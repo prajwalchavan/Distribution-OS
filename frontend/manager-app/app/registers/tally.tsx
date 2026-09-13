@@ -35,7 +35,16 @@ import {
 import { documents } from '@dos/ui/platform'
 import { useState } from 'react'
 
-import { Async, PageTabs, RangeSegments, textColumn, useCan, useNames } from '../../src/lib/ui'
+import {
+  Async,
+  PageTabs,
+  RangeSegments,
+  Refusal,
+  stayOpen,
+  textColumn,
+  useCan,
+  useNames,
+} from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
 import { rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
@@ -281,19 +290,15 @@ export default function Tally(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {t('app.range', { from: span.from, to: span.to })}
             </Txt>
+            <Refusal of={[queue]} testID="tally-export-refusal" />
           </Stack>
         }
         confirmLabel={t('m13.queue')}
         busy={queue.status === 'pending'}
         onConfirm={() => {
-          void queue.mutateAsync({ kind, from: span.from, to: span.to }).then(
-            () => {
-              setQueueing(false)
-            },
-            () => {
-              setQueueing(false)
-            },
-          )
+          void queue.mutateAsync({ kind, from: span.from, to: span.to }).then(() => {
+            setQueueing(false)
+          }, stayOpen)
         }}
         testID="export-dialog"
       />
@@ -323,6 +328,7 @@ export default function Tally(): React.JSX.Element {
               capitalize="words"
               testID="tally-parent"
             />
+            <Refusal of={[setMapping]} testID="tally-mapping-refusal" />
           </Stack>
         }
         confirmLabel={t('app.save')}
@@ -336,14 +342,9 @@ export default function Tally(): React.JSX.Element {
               tallyName: tallyName.trim(),
               tallyParent: tallyParent.trim(),
             })
-            .then(
-              () => {
-                setEditing(null)
-              },
-              () => {
-                setEditing(null)
-              },
-            )
+            .then(() => {
+              setEditing(null)
+            }, stayOpen)
         }}
         testID="mapping-dialog"
       />

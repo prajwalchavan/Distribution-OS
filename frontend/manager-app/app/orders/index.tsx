@@ -45,9 +45,11 @@ import {
   PageTabs,
   Panel,
   RangeSegments,
+  Refusal,
   moneyColumn,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -269,11 +271,11 @@ export default function OrderQueue(): React.JSX.Element {
       setActing(null)
       setReason('')
     }
-    if (acting === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, done)
+    if (acting === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, stayOpen)
     if (acting === 'cancel')
-      void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, done)
+      void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, stayOpen)
     if (acting === 'release')
-      void release.mutateAsync({ orderId: order.id, reason: reason.trim() }).then(done, done)
+      void release.mutateAsync({ orderId: order.id, reason: reason.trim() }).then(done, stayOpen)
   }
 
   /** The one credit sentence UX-01 M4 asks for, built from `creditCheck`'s own fields. */
@@ -345,8 +347,8 @@ export default function OrderQueue(): React.JSX.Element {
       setNote('')
     }
     const input = { id: deciding.id, decision: deciding.decision, note: note.trim() }
-    if (deciding.kind === 'approval') void decideApproval.mutateAsync(input).then(done, done)
-    else void decideBargain.mutateAsync(input).then(done, done)
+    if (deciding.kind === 'approval') void decideApproval.mutateAsync(input).then(done, stayOpen)
+    else void decideBargain.mutateAsync(input).then(done, stayOpen)
   }
 
   return (
@@ -706,6 +708,7 @@ export default function OrderQueue(): React.JSX.Element {
                 testID="order-reason"
               />
             )}
+            <Refusal of={[confirmOrder, cancelOrder, release]} testID="order-refusal" />
           </Stack>
         }
         confirmLabel={
@@ -744,6 +747,7 @@ export default function OrderQueue(): React.JSX.Element {
               helper={deciding?.decision === 'reject' ? t('m2.rejectNeedsNote') : undefined}
               testID="decision-note"
             />
+            <Refusal of={[decideApproval, decideBargain]} testID="decision-refusal" />
           </Stack>
         }
         confirmLabel={deciding?.decision === 'approve' ? t('m2.approve') : t('m2.reject')}

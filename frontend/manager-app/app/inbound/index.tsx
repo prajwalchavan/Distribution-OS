@@ -40,10 +40,12 @@ import {
   Field,
   PageTabs,
   Panel,
+  Refusal,
   countText,
   moneyColumn,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -259,15 +261,15 @@ export default function Inbound(): React.JSX.Element {
     if (acting === 'openGrn' && selected !== null && godown !== undefined)
       void openGrn
         .mutateAsync({ supplierInvoiceId: selected, locationId: godown.id })
-        .then(done, done)
-    if (acting === 'post' && grnId !== null) void postGrn.mutateAsync(grnId).then(done, done)
+        .then(done, stayOpen)
+    if (acting === 'post' && grnId !== null) void postGrn.mutateAsync(grnId).then(done, stayOpen)
     if (acting === 'dispute' && selected !== null)
-      void dispute.mutateAsync({ id: selected, reason: note.trim() }).then(done, done)
+      void dispute.mutateAsync({ id: selected, reason: note.trim() }).then(done, stayOpen)
     if (acting === 'resolve' && findingId !== null)
       void resolve.mutateAsync({ id: findingId, status: outcome, note: note.trim() }).then(() => {
         setFindingId(null)
         done()
-      }, done)
+      }, stayOpen)
   }
 
   const counted = (grn?.lines ?? []).filter((line) => line.countedQtyPcs !== null).length
@@ -574,6 +576,7 @@ export default function Inbound(): React.JSX.Element {
                 testID="inbound-note"
               />
             ) : null}
+            <Refusal of={[openGrn, postGrn, dispute, resolve]} testID="inbound-dialog-refusal" />
           </Stack>
         }
         confirmLabel={

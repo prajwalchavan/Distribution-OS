@@ -35,7 +35,7 @@ import {
 } from '@dos/ui'
 import { useState } from 'react'
 
-import { Async, Field, Panel, textColumn, useCan } from '../../src/lib/ui'
+import { Async, Field, Panel, Refusal, stayOpen, textColumn, useCan } from '../../src/lib/ui'
 import { shortInstant } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -215,22 +215,26 @@ export default function Messages(): React.JSX.Element {
             empty={(outbox.data?.items.length ?? 0) === 0}
             emptyMessage={t('m18.empty')}
           >
-            <Register
-              testID="outbox-register"
-              columns={messageColumns}
-              rows={outbox.data?.items ?? []}
-              rowKey={(row) => row.id}
-              frozen="template"
-              onSelect={
-                can('notifications.messages.resend')
-                  ? (row) => {
-                      if (row.status === 'failed') resend.mutate(row.id)
-                    }
-                  : undefined
-              }
-              state="ready"
-              totals={{ template: t('app.rows', { count: outbox.data?.items.length ?? 0 }) }}
-            />
+            <Stack gap={2}>
+              {/* A row press is the write here, so its refusal sits above the register (DOS-029). */}
+              <Refusal of={[resend]} testID="outbox-refusal" />
+              <Register
+                testID="outbox-register"
+                columns={messageColumns}
+                rows={outbox.data?.items ?? []}
+                rowKey={(row) => row.id}
+                frozen="template"
+                onSelect={
+                  can('notifications.messages.resend')
+                    ? (row) => {
+                        if (row.status === 'failed') resend.mutate(row.id)
+                      }
+                    : undefined
+                }
+                state="ready"
+                totals={{ template: t('app.rows', { count: outbox.data?.items.length ?? 0 }) }}
+              />
+            </Stack>
           </Async>
         ) : view === 'inbound' ? (
           <Async
@@ -239,21 +243,24 @@ export default function Messages(): React.JSX.Element {
             empty={(inbound.data?.items.length ?? 0) === 0}
             emptyMessage={t('m18.empty')}
           >
-            <Register
-              testID="inbound-register"
-              columns={inboundColumns}
-              rows={inbound.data?.items ?? []}
-              rowKey={(row) => row.id}
-              frozen="shop"
-              onSelect={
-                mayTriage
-                  ? (row) => {
-                      if (!row.handled) markHandled.mutate(row.id)
-                    }
-                  : undefined
-              }
-              state="ready"
-            />
+            <Stack gap={2}>
+              <Refusal of={[markHandled]} testID="inbound-refusal" />
+              <Register
+                testID="inbound-register"
+                columns={inboundColumns}
+                rows={inbound.data?.items ?? []}
+                rowKey={(row) => row.id}
+                frozen="shop"
+                onSelect={
+                  mayTriage
+                    ? (row) => {
+                        if (!row.handled) markHandled.mutate(row.id)
+                      }
+                    : undefined
+                }
+                state="ready"
+              />
+            </Stack>
           </Async>
         ) : (
           <Async
@@ -307,6 +314,7 @@ export default function Messages(): React.JSX.Element {
                 {editing.isOverride ? t('m18.ownWording') : t('m18.defaultWording')}
               </Txt>
             </Panel>
+            <Refusal of={[saveTemplate]} testID="template-refusal" />
             <Button
               label={t('m18.saveTemplate')}
               variant="primary"
@@ -314,14 +322,9 @@ export default function Messages(): React.JSX.Element {
               disabledReason={t('app.nothingChanged')}
               loading={saveTemplate.status === 'pending'}
               onPress={() => {
-                void saveTemplate.mutateAsync({ template: editing, body }).then(
-                  () => {
-                    setEditing(null)
-                  },
-                  () => {
-                    setEditing(null)
-                  },
-                )
+                void saveTemplate.mutateAsync({ template: editing, body }).then(() => {
+                  setEditing(null)
+                }, stayOpen)
               }}
               testID="template-save"
             />
@@ -382,6 +385,7 @@ export default function Messages(): React.JSX.Element {
               ]}
               onToggle={setTemplateKey}
             />
+            <Refusal of={[broadcast]} testID="broadcast-refusal" />
           </Stack>
         }
         confirmLabel={t('m18.broadcast')}
@@ -390,14 +394,9 @@ export default function Messages(): React.JSX.Element {
           const beat = beatId ?? beats.data?.items[0]?.id
           const key = templateKey ?? templates.data?.items[0]?.key
           if (beat === undefined || key === undefined) return
-          void broadcast.mutateAsync({ beatId: beat, templateKey: key }).then(
-            () => {
-              setBroadcasting(false)
-            },
-            () => {
-              setBroadcasting(false)
-            },
-          )
+          void broadcast.mutateAsync({ beatId: beat, templateKey: key }).then(() => {
+            setBroadcasting(false)
+          }, stayOpen)
         }}
         testID="broadcast-dialog"
       />

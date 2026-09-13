@@ -423,6 +423,103 @@ export function useMutation<TInput, TResult>(
   return { mutate, mutateAsync, ...state, meta, reset }
 }
 
+// ---------------------------------------------------------------------------
+// Refusals
+// ---------------------------------------------------------------------------
+
+/**
+ * What a dialog or panel needs to know about one of its writes. `UseMutationResult` satisfies it as it
+ * is, so a screen passes its mutations straight in: `useRefusal([confirm, cancel])`.
+ */
+export interface WriteOutcome {
+  readonly status: 'idle' | 'pending' | 'success' | 'error'
+  readonly error: ApiError | undefined
+}
+
+/** What `useRefusal` carries from one render of a surface to the next. */
+export interface RefusalState {
+  /** The row, bill or document the surface is about; a different one starts over. */
+  readonly scope: string | null
+  /** Every error this surface has already met, so none of them is ever put back on screen. */
+  readonly seen: ReadonlySet<ApiError>
+  /** The refusal the surface shows, or nothing. */
+  readonly shown: ApiError | undefined
+  /**
+   * The latest refusal that arrived while another write on the surface was still pending (DOS-135). It was
+   * never on screen, so no press has answered it: it is shown once nothing is pending, if still on its write.
+   */
+  readonly waiting: ApiError | undefined
+}
+
+function errorsOf(writes: readonly WriteOutcome[]): ApiError[] {
+  const errors: ApiError[] = []
+  for (const write of writes) if (write.error !== undefined) errors.push(write.error)
+  return errors
+}
+
+/**
+ * A surface that has just opened. An error already on one of its writes belongs to an EARLIER opening
+ * (the hook lives as long as the screen, the dialog does not), so it is seen and never shown.
+ */
+export function refusalStart(writes: readonly WriteOutcome[], scope: string | null): RefusalState {
+  return { scope, seen: new Set(errorsOf(writes)), shown: undefined, waiting: undefined }
+}
+
+/**
+ * The refusal rule, one render at a time (DOS-029).
+ *
+ * A manager dialog serves up to four writes and a review panel five, and each write keeps its last
+ * error on its own state until it is pressed again. "The first error on the list" would show a
+ * refusal about one bill under the next and keep a stale sentence up after a later success. The rule:
+ *
+ *  1. a new `scope` starts over, as if the surface had just opened;
+ *  2. while any write is pending nothing is shown: the press is the answer to the sentence on screen;
+ *  3. otherwise the LATEST refusal to arrive is shown, and it stays only while it is still on its write.
+ *     A refusal that arrived while another write was still pending counts as arriving when that write
+ *     settles (DOS-135): it was never on screen, so no press answered it, and a success must not bury it;
+ *  4. a render that changes nothing returns `prev` itself, which is what lets `useRefusal` set state
+ *     during render without looping.
+ */
+export function nextRefusal(
+  prev: RefusalState,
+  writes: readonly WriteOutcome[],
+  scope: string | null,
+): RefusalState {
+  if (scope !== prev.scope) return refusalStart(writes, scope)
+  const current = errorsOf(writes)
+  const arrived = current.filter((error) => !prev.seen.has(error))
+  const latest = arrived[arrived.length - 1]
+  /** A refusal counts only while its write still carries it; pressing that write again clears it. */
+  const onItsWrite = (error: ApiError | undefined): ApiError | undefined =>
+    error !== undefined && current.includes(error) ? error : undefined
+  const busy = writes.some((write) => write.status === 'pending')
+  const waiting = busy ? (latest ?? onItsWrite(prev.waiting)) : undefined
+  const shown = busy ? undefined : (latest ?? onItsWrite(prev.waiting) ?? onItsWrite(prev.shown))
+  if (arrived.length === 0 && shown === prev.shown && waiting === prev.waiting) return prev
+  return {
+    scope,
+    seen: arrived.length === 0 ? prev.seen : new Set([...prev.seen, ...arrived]),
+    shown,
+    waiting,
+  }
+}
+
+/**
+ * The refusal a dialog or panel shows for the writes it serves: the service's own `ApiError`, or
+ * `undefined`. The rule is `nextRefusal`'s; this applies it with React's "information from previous
+ * renders" pattern, so the sentence appears in the same render the write fails, with no effect.
+ * Nothing here calls `reset()`: a retry keeps its intent and idempotency key, as `useMutation` does.
+ */
+export function useRefusal(
+  writes: readonly WriteOutcome[],
+  scope: string | null = null,
+): ApiError | undefined {
+  const [state, setState] = useState(() => refusalStart(writes, scope))
+  const next = nextRefusal(state, writes, scope)
+  if (next !== state) setState(next)
+  return next.shown
+}
+
 export { QueryCache }
 export type {
   QueryKey,

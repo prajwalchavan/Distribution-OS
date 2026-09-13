@@ -40,6 +40,11 @@ export const strings = {
   'app.passwordFailed': 'Could not change the password',
   'app.reload': 'Reload',
   'app.retry': 'Try again',
+  /*
+   * A refused write whose request never reached the service (DOS-029). The client's default promises to
+   * send it "when the signal is back", which only a queued field write does; nothing queues a manager write.
+   */
+  'app.writeNoConnection': 'No connection. Check the signal, then press again.',
   'app.export': 'Export CSV',
   'app.exportQueued': 'Export queued',
   'app.exportReady': 'Download export',

@@ -40,8 +40,10 @@ import {
   Async,
   Field,
   Panel,
+  Refusal,
   moneyColumn,
   staffRetailer,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -412,6 +414,7 @@ export default function Shops(): React.JSX.Element {
                 />
               </>
             ) : null}
+            <Refusal of={[setCredit, statement, link]} testID="shop-refusal" />
           </Stack>
         }
         confirmLabel={
@@ -443,10 +446,10 @@ export default function Shops(): React.JSX.Element {
                 creditLimitBills: current.creditLimitBills,
                 creditMode: current.creditMode,
               })
-              .then(close, close)
-          if (dialog === 'statement') void statement.mutateAsync(selected).then(close, close)
+              .then(close, stayOpen)
+          if (dialog === 'statement') void statement.mutateAsync(selected).then(close, stayOpen)
           if (dialog === 'link')
-            void link.mutateAsync({ id: selected, phone: phone.trim() }).then(close, close)
+            void link.mutateAsync({ id: selected, phone: phone.trim() }).then(close, stayOpen)
         }}
         testID="shop-dialog"
       />

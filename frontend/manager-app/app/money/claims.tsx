@@ -45,10 +45,12 @@ import {
   Half,
   PageTabs,
   Panel,
+  Refusal,
   countText,
   moneyColumn,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
 } from '../../src/lib/ui'
@@ -163,14 +165,14 @@ export default function Claims(): React.JSX.Element {
       setNote('')
       setAmount(null)
     }
-    if (acting === 'build') void build.mutateAsync(selected).then(done, done)
-    if (acting === 'submit') void submit.mutateAsync(selected).then(done, done)
+    if (acting === 'build') void build.mutateAsync(selected).then(done, stayOpen)
+    if (acting === 'submit') void submit.mutateAsync(selected).then(done, stayOpen)
     if (acting === 'settle' && amount !== null)
       void settle
         .mutateAsync({ id: selected, amountPaise: amount, mode, note: note.trim() })
-        .then(done, done)
+        .then(done, stayOpen)
     if (acting === 'writeOff')
-      void writeOff.mutateAsync({ id: selected, note: note.trim() }).then(done, done)
+      void writeOff.mutateAsync({ id: selected, note: note.trim() }).then(done, stayOpen)
   }
 
   return (
@@ -410,6 +412,7 @@ export default function Claims(): React.JSX.Element {
                 testID="claim-note"
               />
             ) : null}
+            <Refusal of={[build, submit, settle, writeOff]} testID="claim-refusal" />
           </Stack>
         }
         confirmLabel={

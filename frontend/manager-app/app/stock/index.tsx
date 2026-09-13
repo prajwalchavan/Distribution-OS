@@ -34,9 +34,11 @@ import { useState } from 'react'
 import {
   Async,
   Panel,
+  Refusal,
   countText,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -357,6 +359,7 @@ export default function Stock(): React.JSX.Element {
               }}
               testID="open-transfer"
             />
+            <Refusal of={[adjust]} testID="adjust-refusal" />
           </Stack>
         }
         confirmLabel={t('m16.adjust')}
@@ -373,14 +376,9 @@ export default function Stock(): React.JSX.Element {
               reason,
               note: note.trim(),
             })
-            .then(
-              () => {
-                setAdjusting(null)
-              },
-              () => {
-                setAdjusting(null)
-              },
-            )
+            .then(() => {
+              setAdjusting(null)
+            }, stayOpen)
         }}
         testID="adjust-dialog"
       />
@@ -419,6 +417,7 @@ export default function Stock(): React.JSX.Element {
               keyboard="decimal"
               testID="transfer-qty"
             />
+            <Refusal of={[transfer]} testID="transfer-refusal" />
           </Stack>
         }
         confirmLabel={t('m16.transfer')}
@@ -434,14 +433,9 @@ export default function Stock(): React.JSX.Element {
               toLocationId: toLocation,
               qtyPcs: pieces,
             })
-            .then(
-              () => {
-                setTransferring(null)
-              },
-              () => {
-                setTransferring(null)
-              },
-            )
+            .then(() => {
+              setTransferring(null)
+            }, stayOpen)
         }}
         testID="transfer-dialog"
       />

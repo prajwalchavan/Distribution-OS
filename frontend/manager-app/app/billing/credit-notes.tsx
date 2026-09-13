@@ -51,10 +51,12 @@ import {
   PageTabs,
   Panel,
   RangeSegments,
+  Refusal,
   countText,
   moneyColumn,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -248,9 +250,9 @@ export default function CreditNotes(): React.JSX.Element {
       setActing(null)
       setReason('')
     }
-    if (acting === 'issue') void issue.mutateAsync(selected).then(done, done)
+    if (acting === 'issue') void issue.mutateAsync(selected).then(done, stayOpen)
     if (acting === 'cancel')
-      void cancel.mutateAsync({ id: selected, reason: reason.trim() }).then(done, done)
+      void cancel.mutateAsync({ id: selected, reason: reason.trim() }).then(done, stayOpen)
   }
 
   return (
@@ -477,11 +479,7 @@ export default function CreditNotes(): React.JSX.Element {
                   </Stack>
                 ))}
                 {/* The server's refusal sits directly above the button it answers, never below the fold. */}
-                {create.error === undefined ? null : (
-                  <Txt field="label" desk="meta" color={colors.status.brick.fg}>
-                    {create.error.message}
-                  </Txt>
-                )}
+                <Refusal of={[create]} scope={billId} testID="note-refusal" />
                 <Button
                   label={t('m8.draft')}
                   variant="primary"
@@ -491,16 +489,11 @@ export default function CreditNotes(): React.JSX.Element {
                   onPress={() => {
                     void create
                       .mutateAsync({ invoiceId: billId, reason: kind, lines: draftLines })
-                      .then(
-                        () => {
-                          setDrafting(false)
-                          setBillId(null)
-                          setReturning({})
-                        },
-                        () => {
-                          /* the error is shown by the mutation's own state, above this button */
-                        },
-                      )
+                      .then(() => {
+                        setDrafting(false)
+                        setBillId(null)
+                        setReturning({})
+                      }, stayOpen)
                   }}
                   testID="note-create"
                 />
@@ -534,6 +527,7 @@ export default function CreditNotes(): React.JSX.Element {
                 testID="note-reason-text"
               />
             ) : null}
+            <Refusal of={[issue, cancel]} testID="note-dialog-refusal" />
           </Stack>
         }
         confirmLabel={acting === 'issue' ? t('m8.issue') : t('m8.cancel')}

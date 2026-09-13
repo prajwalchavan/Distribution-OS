@@ -34,7 +34,16 @@ import {
 } from '@dos/ui'
 import { useState } from 'react'
 
-import { Async, Field, PageTabs, Panel, textColumn, useCan } from '../../src/lib/ui'
+import {
+  Async,
+  Field,
+  PageTabs,
+  Panel,
+  Refusal,
+  stayOpen,
+  textColumn,
+  useCan,
+} from '../../src/lib/ui'
 import { formatBps, useWord } from '../../src/lib/words'
 import { shortInstant } from '../../src/lib/dates'
 import { useRegisterKeys } from '../../src/lib/keys'
@@ -175,9 +184,9 @@ export default function Drafts(): React.JSX.Element {
             lineNo: line.lineNo,
           })),
         })
-        .then(done, done)
+        .then(done, stayOpen)
     if (acting === 'reject')
-      void reject.mutateAsync({ id: draft.id, reason: reason.trim() }).then(done, done)
+      void reject.mutateAsync({ id: draft.id, reason: reason.trim() }).then(done, stayOpen)
   }
 
   return (
@@ -320,6 +329,7 @@ export default function Drafts(): React.JSX.Element {
                 testID="draft-reason"
               />
             ) : null}
+            <Refusal of={[confirm, reject]} testID="draft-refusal" />
           </Stack>
         }
         confirmLabel={acting === 'confirm' ? t('ai.confirm') : t('ai.reject')}

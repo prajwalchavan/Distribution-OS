@@ -48,7 +48,9 @@ import {
   Field,
   PageTabs,
   Panel,
+  Refusal,
   moneyColumn,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -283,13 +285,13 @@ export default function Documents(): React.JSX.Element {
           lineNos: lines.map((line) => line.lineNo),
           supplierId: doc?.supplierId ?? null,
         })
-        .then(done, done)
+        .then(done, stayOpen)
     if (acting === 'reject')
       void reject
         .mutateAsync({ id: selected, reason: rejectReason, note: note.trim() })
-        .then(done, done)
+        .then(done, stayOpen)
     if (acting === 'submit' && sessionId !== null)
-      void submitReview.mutateAsync(sessionId).then(done, done)
+      void submitReview.mutateAsync(sessionId).then(done, stayOpen)
   }
 
   return (
@@ -470,6 +472,11 @@ export default function Documents(): React.JSX.Element {
 
               {mayReview ? (
                 <Stack gap={3}>
+                  <Refusal
+                    of={[startReview, saveReview, releaseReview, rematch, acceptMatch]}
+                    scope={selected}
+                    testID="docint-panel-refusal"
+                  />
                   {sessionId === null ? (
                     <Button
                       label={t('m3.startReview')}
@@ -478,7 +485,7 @@ export default function Documents(): React.JSX.Element {
                       onPress={() => {
                         void startReview.mutateAsync(selected ?? '').then((result) => {
                           setSessionId(result.session.id)
-                        })
+                        }, stayOpen)
                       }}
                       testID="docint-start"
                     />
@@ -510,7 +517,7 @@ export default function Documents(): React.JSX.Element {
                         onPress={() => {
                           void releaseReview.mutateAsync(sessionId).then(() => {
                             setSessionId(null)
-                          })
+                          }, stayOpen)
                         }}
                         testID="docint-release"
                       />
@@ -587,6 +594,7 @@ export default function Documents(): React.JSX.Element {
                 testID="docint-reason"
               />
             ) : null}
+            <Refusal of={[approve, reject, submitReview]} testID="docint-refusal" />
           </Stack>
         }
         confirmLabel={

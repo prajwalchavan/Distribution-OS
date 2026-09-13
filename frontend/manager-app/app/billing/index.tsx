@@ -53,11 +53,13 @@ import {
   PageTabs,
   Panel,
   RangeSegments,
+  Refusal,
   addCounts,
   countText,
   moneyColumn,
   pageTotal,
   pagedCount,
+  stayOpen,
   textColumn,
   useCan,
   useNames,
@@ -256,14 +258,14 @@ export default function BillingDesk(): React.JSX.Element {
       setReason('')
     }
     if (dialog === 'cancel' && invoice !== undefined)
-      void cancel.mutateAsync({ id: invoice.id, reason: reason.trim() }).then(done, done)
+      void cancel.mutateAsync({ id: invoice.id, reason: reason.trim() }).then(done, stayOpen)
     if (dialog === 'eway' && invoice !== undefined)
-      void setEway.mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() }).then(done, done)
+      void setEway.mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() }).then(done, stayOpen)
     if (dialog === 'billPack' && packToBill !== null)
       void billPack.mutateAsync(packToBill.id).then(() => {
         setPackToBill(null)
         done()
-      }, done)
+      }, stayOpen)
   }
 
   return (
@@ -523,15 +525,18 @@ export default function BillingDesk(): React.JSX.Element {
                   />
                 ) : null}
                 {can('billing.invoices.requestIrn') ? (
-                  <Button
-                    label={t('m6.requestIrn')}
-                    variant="secondary"
-                    loading={irn.status === 'pending'}
-                    onPress={() => {
-                      irn.mutate(invoice.id)
-                    }}
-                    testID="invoice-irn"
-                  />
+                  <>
+                    <Refusal of={[irn]} scope={invoice.id} testID="invoice-irn-refusal" />
+                    <Button
+                      label={t('m6.requestIrn')}
+                      variant="secondary"
+                      loading={irn.status === 'pending'}
+                      onPress={() => {
+                        irn.mutate(invoice.id)
+                      }}
+                      testID="invoice-irn"
+                    />
+                  </>
                 ) : null}
                 {mayCancel ? (
                   <Button
@@ -600,6 +605,7 @@ export default function BillingDesk(): React.JSX.Element {
                 testID="invoice-ewb"
               />
             ) : null}
+            <Refusal of={[cancel, setEway, billPack]} testID="billing-refusal" />
           </Stack>
         }
         confirmLabel={
