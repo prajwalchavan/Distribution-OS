@@ -2631,8 +2631,8 @@ function tally(results: Result[]): Record<Classification, number> {
 
 /**
  * A service whose role cannot finish the day leaves its throwaway trip open: the godown plans and
- * departs but never returns (not DOORSTEP), the crew returns but never settles (not the money desk).
- * Left alone those trips pile up as `active` / `closing` rows dated weeks ahead and crowd the trip
+ * starts loading but never departs (not DOORSTEP), the crew returns but never settles (not the money
+ * desk). Left alone those trips pile up as `loading` / `closing` rows dated weeks ahead and crowd the trip
  * board and the docs. So the run ends the way a day does: the owner returns whatever is still out on
  * the smoke vehicle and settles whatever is closing, to the paisa (nothing sits on that van, so no lot
  * is counted); a plan that never left is cancelled. Nothing outside the smoke vehicle is touched.

@@ -55,6 +55,7 @@ import {
   nextDocumentNumber,
   requireDb,
   requireRole,
+  writeAudit,
 } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
 import { OrdersService } from '../orders/index.js'
@@ -155,7 +156,8 @@ const MAX_STOPS_PER_TRIP = 80
  * WAREHOUSE DISPATCHES (coordination §4 item 4): `packed → dispatched` happens at
  * `warehouse.loadSheets.confirm`. `depart` here dispatches only the orders the godown has not, and
  * treats an already-dispatched order as a no-op. The godown → vehicle transfer is warehouse's too; this
- * module only asks `LoadSheetsService.confirmedForTrip` whether the load is out.
+ * module only asks `LoadSheetsService.confirmedForTrip` whether the load is out, and
+ * `LoadSheetsService.draftsForTrip` whether a draft sheet still holds the departure back (QA DOS-043).
  *
  * Every state move is `tripMachine` / `stopMachine` through `tripTransition` / `stopTransition`; the
  * one column written outside a machine is `trip_stops.state = 'skipped'` on a cancelled trip, which
@@ -341,6 +343,15 @@ export class TripsService {
         if (trip.state === 'loading') return { item: await this.detail(tx, trip) }
         const to = tripTransition(trip.state, 'start_loading')
         const next = await this.updateTrip(tx, trip.id, { state: to })
+        // Who put the vehicle on the dock is on the record (QA DOS-043); a replay never gets this far.
+        await writeAudit(tx, {
+          action: 'trip.start_loading',
+          entityType: 'trip',
+          entityId: trip.id,
+          before: { state: trip.state },
+          after: { state: to, tripDate: trip.tripDate },
+          deviceId: input.deviceId ?? null,
+        })
         await emitDeliveryEvent(tx, 'trip', next.id, 'TripLoading', tripEventPayload(next))
         return { item: await this.detail(tx, next) }
       }),
@@ -348,25 +359,46 @@ export class TripsService {
   }
 
   /**
-   * `loading → active`. Needs the driver's granted location consent (DPDP, 403 `gps_consent_missing`;
-   * a denied OS permission on the phone never blocks a trip). Orders on the trip the godown has NOT
-   * dispatched through a confirmed load sheet are dispatched here; an already-dispatched order is a
-   * no-op (coordination §4 item 4).
+   * `loading → active`: the crew's step (docs/23 D2), or the desk's from the office, never the godown's
+   * (DOORSTEP, QA DOS-043). Refused 409 `load_sheet_not_confirmed` while any load sheet of the trip is
+   * still a draft: one linked by `trip_id`, or one carrying a bill planned on one of its stops (the
+   * warehouse app builds a sheet for the vehicle and may leave `trip_id` empty); a trip with no load
+   * sheet at all still departs. Needs the driver's granted location consent (DPDP, 403
+   * `gps_consent_missing`; a denied OS permission on the phone never blocks a trip). Orders on the trip
+   * the godown has NOT dispatched through a confirmed load sheet are dispatched here; an
+   * already-dispatched order is a no-op (coordination §4 item 4). The departure is audited; a replay
+   * and a refusal write no row (the short-circuit returns first, a throw rolls the transaction back).
    */
   async depart(input: DepartIn): Promise<DepartOut> {
-    requireRole(TRIP_PLANNERS)
+    requireRole(DOORSTEP)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const trip = await lockTrip(tx, input.id)
-        assertCrewOrDesk(trip, TRIP_PLANNERS)
+        assertCrewOrDesk(trip, DOORSTEP)
         if (trip.state === 'active') return { item: await this.detail(tx, trip) }
         const to = tripTransition(trip.state, 'depart')
         const stops = await stopsOf(tx, trip.id)
         if (stops.length === 0 && !trip.vanSalesEnabled)
           throw new ORPCError('CONFLICT', {
             message: 'a trip with no stops and no van sales has nowhere to go',
+          })
+        // The bills planned on this trip's stops: the load sheet gate looks for them, and they leave with it.
+        const planned = await tx
+          .select({ orderId: deliveries.orderId })
+          .from(deliveries)
+          .where(and(eq(deliveries.tripId, trip.id), sql`${deliveries.outcome} is null`))
+        const orderIds = [
+          ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
+        ]
+        // Nobody departs past a load that has not been counted out at the godown (QA DOS-043): a draft
+        // sheet linked to the trip, or one carrying a bill on its stops, holds the vehicle back.
+        const drafts = await this.loadSheets.draftsForTrip(tx, trip.id, orderIds)
+        if (drafts.length > 0)
+          throw new ORPCError('CONFLICT', {
+            message: `the load sheet of trip ${trip.tripNo ?? trip.id} has not been counted out at the godown yet; the vehicle leaves after the load-out check`,
+            data: { code: 'load_sheet_not_confirmed', loadSheetIds: drafts },
           })
         if (!trip.driverId || !(await driverConsentGranted(tx, trip.driverId)))
           throw new ORPCError('FORBIDDEN', {
@@ -375,17 +407,27 @@ export class TripsService {
             data: { code: 'gps_consent_missing', driverId: trip.driverId },
           })
         const now = whenOr(input.occurredAt, new Date())
-        const planned = await tx
-          .select({ orderId: deliveries.orderId })
-          .from(deliveries)
-          .where(and(eq(deliveries.tripId, trip.id), sql`${deliveries.outcome} is null`))
-        for (const orderId of new Set(planned.map((d) => d.orderId).filter(Boolean)))
-          await this.dispatchIfPacked(tx, orderId as string, input.deviceId ?? null)
+        for (const orderId of orderIds)
+          await this.dispatchIfPacked(tx, orderId, input.deviceId ?? null)
         const next = await this.updateTrip(tx, trip.id, {
           state: to,
           startedAt: now,
           startOdometerKm: input.startOdometerKm ?? trip.startOdometerKm,
           openingCashPaise: input.openingCashPaise ?? trip.openingCashPaise,
+        })
+        await writeAudit(tx, {
+          action: 'trip.depart',
+          entityType: 'trip',
+          entityId: trip.id,
+          before: { state: trip.state },
+          after: {
+            state: to,
+            tripDate: next.tripDate,
+            startedAt: now.toISOString(),
+            startOdometerKm: next.startOdometerKm,
+            openingCashPaise: next.openingCashPaise,
+          },
+          deviceId: input.deviceId ?? null,
         })
         await emitDeliveryEvent(tx, 'trip', next.id, 'TripDeparted', tripEventPayload(next))
         return { item: await this.detail(tx, next) }

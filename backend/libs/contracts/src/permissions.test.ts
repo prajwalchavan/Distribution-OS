@@ -571,9 +571,25 @@ describe('permission matrix', () => {
     expect(isAllowed(permissionFor('delivery.trips.settle'), 'warehouse')).toBe(false)
   })
 
+  it("DOS-043: departing a trip is the crew's and the desk's, never the godown's (delivery)", () => {
+    expect(permissionFor('delivery.trips.depart')).toEqual(['owner', 'manager', 'delivery'])
+    // The departure and the check-in are the same people: the crew, or the desk from the office.
+    expect(permissionFor('delivery.trips.depart')).toEqual(permissionFor('delivery.trips.return'))
+    expect(isAllowed(permissionFor('delivery.trips.depart'), 'warehouse')).toBe(false)
+    // The godown still plans and loads the trip (docs/23 W10).
+    for (const path of [
+      'delivery.trips.create',
+      'delivery.trips.startLoading',
+      'delivery.stops.add',
+    ] as const) {
+      expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
+    }
+  })
+
   it('lets the crew work the door and the godown only plan the trip (delivery)', () => {
     // Doorstep writes: the crew, with the owner and the manager able to do the same from the office.
     for (const path of [
+      'delivery.trips.depart',
       'delivery.trips.return',
       'delivery.stops.reorder',
       'delivery.stops.start',
@@ -595,7 +611,6 @@ describe('permission matrix', () => {
     for (const path of [
       'delivery.trips.create',
       'delivery.trips.startLoading',
-      'delivery.trips.depart',
       'delivery.stops.add',
     ] as const) {
       expect(permissionFor(path), path).toEqual(['owner', 'manager', 'warehouse', 'delivery'])
@@ -607,7 +622,6 @@ describe('permission matrix', () => {
       'delivery.trips.list',
       'delivery.trips.get',
       'delivery.trips.startLoading',
-      'delivery.trips.depart',
       'delivery.stops.list',
       'delivery.stops.next',
       'delivery.stops.add',
