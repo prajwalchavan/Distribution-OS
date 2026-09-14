@@ -555,3 +555,32 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
   - (z3) Drafts are kept when end() throws.
 - **New suspects:** S-132 (SecureStore writes not awaited) and S-133 (a forced sign-out on a memory store drops the queue).
 - **Next:** the run resumes from cache into integration, with (z), then merge and the full re-proof.
+
+
+### Batch 2 — document-URL guard: investigation and clean fix (2026-09-14 08:04 IST)
+
+**Founder request:** determine whether the guard failure at load-out.tsx:236 and :464 was (a) a real relative-URL bug or (b) a safe value the guard could not trace, and fix it without weakening the test.
+
+**Finding: (b).**
+- `result.url` (`string|null`, contracts common.ts:116) went through `absoluteUrl()` before `nextChallanPoll`.
+- The poll's `open` step returns the exact url it was given (load-out.ts:73).
+- `challanUrl` is only ever null or that value (load-out.tsx:84, :221, :238, :360).
+- `absoluteUrl` returns an absolute URL unchanged, and returns null only for null, undefined or `''` (config.ts:41-45).
+
+**Fix `9532a67`** replaces 1f8e0c3's `absoluteUrl(x) ?? x`, which kept a raw fallback:
+- `const readyUrl = absoluteUrl(result.url)` is fed to the poll, and it is the only value opened or stored.
+- On the button, `const printUrl = absoluteUrl(challanUrl)` is a no-op re-check.
+- Both values are checked for null.
+- The button still opens synchronously inside the tap.
+- The guard test is unchanged.
+
+**Checks (all exit 0):**
+- guard 4/4
+- manager-app load-out.test.ts 6/6
+- manager-app typecheck and lint
+- ui typecheck and lint
+- frontend format:check
+
+**Adversarial read-only verifier: UPHELD.**
+- Caveat: a scheme-less API_URL would double-prefix the button path; no configuration does that.
+- It also re-confirmed S-108 by code reading: closing the sheet never bumps `challanToken`, so a running poll can open sheet A's challan from sheet B. One-line fix; offered to the founder, not applied.
