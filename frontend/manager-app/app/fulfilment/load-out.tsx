@@ -355,6 +355,9 @@ export default function LoadOut(): React.JSX.Element {
       <Sheet
         open={selected !== null}
         onClose={() => {
+          // S-108: invalidate a challan poll still waiting, exactly as a new poll does, so its late
+          // answer never lands on the next sheet opened and that sheet's Print never opens this one's.
+          challanToken.current += 1
           setSelected(null)
           setChallanNote(null)
           setChallanUrl(null)
