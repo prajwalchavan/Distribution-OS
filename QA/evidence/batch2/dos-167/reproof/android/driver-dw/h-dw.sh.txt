@@ -1,0 +1,25 @@
+# sourced helpers (zsh) for the DOS-167 ruling-2 RE-PROOF on Android delivery + warehouse. Set PKG (and MARK) first:
+#   PKG=in.distributionos.delivery; LETTER=d; MARK='…'; source h-dw.sh
+cd "/Users/prajwalchavan/Desktop/Distribution OS"
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+export PATH="/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"
+D="/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android"
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/dw167"
+: ${PKG:=in.distributionos.delivery}; : ${LETTER:=d}
+ui() { python3 "/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/ui.py" "$@"; }
+tapt() { local xy; xy=$(ui text "$1"); if [ -z "$xy" ]; then echo "NOT FOUND: $1"; return 1; fi; echo "tap '$1' at $xy"; adb shell input tap ${=xy}; }
+shot() { adb exec-out screencap -p > "$D/$1.png"; echo "shot $1.png"; }
+lsraw() { adb shell run-as $PKG ls -la files/SQLite 2>&1; }
+lsdb() { echo "\$ adb shell run-as $PKG ls -la files/SQLite   ($(date '+%H:%M:%S'))"; local L; L=$(lsraw); echo "$L"; echo "$L" | node "$S/names-dw.mjs" "$LETTER"; }
+alltexts() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb shell cat /sdcard/ui.xml | python3 -c 'import re,sys,html; x=sys.stdin.read(); print(" | ".join(html.unescape(t) for t in re.findall(r"(?:text|content-desc)=\"([^\"]+)\"", x)))'; }
+markers() { grep -o "$MARK" "$@" | sort | uniq -c; }
+q() { psql postgres://dos:dos@127.0.0.1:5439/dos_qa -At -F'|' -c "$1"; }
+apppid() { adb shell pidof $PKG 2>/dev/null | tr -d '\r'; }
+top() { adb shell dumpsys activity activities 2>/dev/null | grep -m1 topResumedActivity | sed 's/.*u0 //; s/\/.*//'; }
+crashcheck() { echo "-- crash check for $PKG ($(date '+%H:%M:%S'))"; echo "- logcat -b crash:"; adb logcat -d -b crash 2>&1 | tail -30; echo "- am_crash / am_anr / Fatal signal (events+main+system):"; adb logcat -d -b events -b main -b system 2>/dev/null | grep -E "am_crash|am_anr|Fatal signal|SIGSEGV" | grep -i "distributionos" | tail -20; echo "(end crash check)"; }
+waitstrip() { local want=$1 n=${2:-60} i; for i in $(seq 1 $n); do alltexts | grep -q "$want" && { echo "strip has '$want' after ~$((i*3))s"; return 0; }; sleep 3; done; echo "strip never showed '$want' in $((n*3))s"; return 1; }
+offline() { adb reverse --remove tcp:3000; adb reverse --remove tcp:$1; echo "-- adb reverse now:"; adb reverse --list; }
+online() { adb reverse tcp:3000 tcp:3000; adb reverse tcp:$1 tcp:$1; echo "-- adb reverse now:"; adb reverse --list; }
+relaunch() { adb shell am force-stop $PKG; sleep 1; adb shell am start -n $PKG/.MainActivity >/dev/null 2>&1; echo "force-stop + start $PKG at $(date '+%H:%M:%S')"; }
+dismiss_location() { local t; t=$(alltexts); if echo "$t" | grep -q "While using the app"; then tapt 'While using the app'; sleep 2; t=$(alltexts); fi; if echo "$t" | grep -q "No thanks"; then tapt 'No thanks'; sleep 1; fi; }

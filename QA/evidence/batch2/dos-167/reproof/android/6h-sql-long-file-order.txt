@@ -1,0 +1,10 @@
+-- dos_qa (read-only) after queueing into the long file 07:32:48
+Chavan Kirana Stores retailer id: a029f31b-2c6c-707b-b580-889125d3ee07 name: Chavan Kirana Stores
+sales_orders rows for 01a09da5-7f69-7603-8145-c7a45d958b07: 0
+sync_ops for 01a09da5-c305-70b2-b2ad-24f5d7fdffdd / 01a09da5-c337-745b-9c29-05feaa971a13: 0
+
+-- dos_qa (read-only) after the office was restored and rahul's new s-file synced 07:35:17
+sales_orders rows for 01a09da5-7f69-7603-8145-c7a45d958b07: 0
+sales_order_lines rows for 01a09da5-a670-767a-8073-c066388c5f06: 0
+sync_ops for the two long-file op ids: 0
+rahul orders created after 07:26 IST: 0

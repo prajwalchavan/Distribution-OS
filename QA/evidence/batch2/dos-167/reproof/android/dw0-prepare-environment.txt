@@ -1,0 +1,15 @@
+## prepare (delivery + warehouse re-proof) 2026-09-14 07:50:50 IST
+-- main checkout
+bafb7b5 Merge QA batch 2 P0 DOS-167 ruling 2: a short store name the web database accepts, and a browser that cannot keep never offers to keep
+ M QA/tools/e2e/s-098-shared-device.mjs
+?? QA/evidence/batch2/dos-167/reproof/
+-- sales Metro :5175 before stop
+  PID STARTED                      COMMAND
+71647 Mon Sep 14 07:32:00 2026     node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+listener 71647 parent 71645: sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+5175 listeners after stop: 0
+-- start the MAIN delivery Metro :5177 (CI=1, pnpm web --clear)
+packager-status:running
+listener 74658 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/delivery-app
+  PID COMMAND
+74658 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5177 --clear

@@ -1,0 +1,24 @@
+## dos_qa baseline + markers for the warehouse runs 08:16:48 (db: dos_qa)
+-- picklists per distributor (number|status)
+Tarsun: PICK-0001:packed PICK-0002:packed PICK-0003:packed PICK-0004:packed PICK-0005:packed PICK-0006:packed PICK-0007:packed PICK-0008:packed PICK-0009:packed PICK-0010:packed PICK-0011:packed PICK-0012:packed PICK-0013:packed PICK-0014:packed PICK-0015:packed PICK-0016:packed PICK-0017:packed PICK-0018:packed PICK-0019:packed PICK-0020:packed PICK-0021:packed PICK-0022:packed PICK-0023:packed PICK-0024:packed PICK-0025:packed PICK-0026:packed PICK-0027:packed PICK-0028:packed PICK-0029:packed PICK-0030:packed PICK-0031:packed PICK-0032:packed PICK-0033:packed PICK-0034:packed PICK-0035:packed PICK-0036:packed PICK-0037:packed PICK-0038:packed PICK-0039:packed PICK-0040:packed PICK-0041:packed PICK-0042:packed PICK-0043:packed PICK-0044:packed PICK-0045:packed PICK-0046:packed PICK-0047:packed PICK-0048:packed PICK-0049:packed PICK-0050:packed PICK-0051:packed PICK-0052:packed PICK-0053:packed PICK-0054:packed PICK-0055:packed PICK-0056:packed PICK-0057:packed PICK-0058:packed PICK-0059:packed PICK-0060:packed PICK-0061:packed PICK-0062:packed PICK-0063:packed PICK-0064:packed PICK-0065:packed PICK-0066:packed PICK-0067:packed PICK-0068:packed PICK-0069:packed PICK-0070:packed PICK-0071:packed PICK-0072:packed PICK-0073:packed PICK-0074:packed PICK-0075:packed PICK-0076:packed PICK-0077:picked PICK-0078:picking
+Sai: PICK-0001:packed PICK-0002:packed PICK-0003:packed PICK-0004:packed PICK-0005:packed PICK-0006:packed PICK-0007:packed PICK-0008:packed PICK-0009:packed PICK-0010:packed PICK-0011:packed PICK-0012:packed PICK-0013:packed PICK-0014:packed PICK-0015:packed PICK-0016:packed PICK-0017:packed PICK-0018:packed PICK-0019:packed PICK-0020:packed PICK-0021:packed PICK-0022:packed PICK-0023:packed PICK-0024:packed PICK-0025:packed PICK-0026:packed PICK-0027:packed PICK-0028:packed PICK-0029:packed PICK-0030:packed PICK-0031:packed PICK-0032:packed PICK-0033:packed PICK-0034:packed PICK-0035:packed PICK-0036:packed PICK-0037:packed PICK-0038:packed PICK-0039:packed PICK-0040:packed PICK-0041:packed PICK-0042:packed PICK-0043:packed PICK-0044:packed PICK-0045:packed PICK-0046:packed PICK-0047:packed PICK-0048:packed PICK-0049:packed PICK-0050:packed PICK-0051:picked PICK-0052:picking
+-- picklist numbers only one distributor has
+Tarsun-only: PICK-0053 PICK-0054 PICK-0055 PICK-0056 PICK-0057 PICK-0058 PICK-0059 PICK-0060 PICK-0061 PICK-0062 PICK-0063 PICK-0064 PICK-0065 PICK-0066 PICK-0067 PICK-0068 PICK-0069 PICK-0070 PICK-0071 PICK-0072 PICK-0073 PICK-0074 PICK-0075 PICK-0076 PICK-0077 PICK-0078
+Sai-only: 
+-- PICK-0078 (Tarsun) lines still to pick (id|requested|picked|short_reason|updated_at)
+399c804c-6e58-7168-b5be-a9d7774e5e54|220|0||2026-09-13 16:11:13.13685+05:30
+48c87a38-fd8e-78db-878a-83d9e0ac410f|9|0||2026-09-13 16:11:13.136948+05:30
+70eedff9-0ae6-7002-8855-f6d1b4120942|264|0||2026-09-13 16:11:13.13698+05:30
+7d9ba5e8-d2cc-7e19-90b8-f2e872f0a87f|125|0||2026-09-13 16:11:13.136883+05:30
+adcd06ab-385d-7a3c-9987-dcf9e4f9dbed|175|0||2026-09-13 16:11:13.136916+05:30
+b8b2bb7a-8886-7085-8361-f82a69d5f20e|75|0||2026-09-13 16:11:13.13718+05:30
+c04ec82a-6ed1-70c2-be7e-98e4e95d6c91|75|0||2026-09-13 16:11:13.137114+05:30
+c0a9530f-9b24-775a-a3e0-c433335605e0|528|0||2026-09-13 16:11:13.137047+05:30
+c26e6bba-29c7-768b-8aef-a0bf7bc1cb05|2|0||2026-09-13 16:11:13.137216+05:30
+c72d4c37-b71d-73d9-8943-18da3b1b3289|50|0||2026-09-13 16:11:13.137249+05:30
+cbdf5e36-4bd5-7aef-9fa2-a8d74f07340f|312|0||2026-09-13 16:11:13.137013+05:30
+f2eb3097-a55c-7e04-85ec-46c099322392|13|0||2026-09-13 16:11:13.137147+05:30
+f7364bd8-c488-7fbe-aef5-62f425ad84c1|60|0||2026-09-13 16:11:13.137079+05:30
+-- sync_ops total / Tarsun since 08:00
+45|2026-09-14 08:14:32.389697+05:30
+0

@@ -1,0 +1,11 @@
+## SQL baseline (dos_qa, read-only) 2026-09-14 09:10:06
+amit orders total: 388
+kiran orders total: 218
+rahul orders total: 379
+amit orders created today (IST) :
+01a09c2c-7c5c-700e-947f-b08f77717683||draft|Anand Bhavan Provision|2026-09-14 00:50:10.241608+05:30
+01a09c84-5bf4-76e1-a7f5-7d1f3418e2c4||draft|Prerna Super Market|2026-09-14 02:20:22.721283+05:30
+01a09c8b-13de-75d1-9850-38fa7512541f||draft|Prerna Super Market|2026-09-14 02:24:12.451317+05:30
+01a09c96-f431-747f-aec8-4927d17047d4||draft|Prerna Super Market|2026-09-14 02:37:35.709278+05:30
+01a09d95-7923-73b8-91ff-05386c614511||draft|Anand Bhavan Provision|2026-09-14 07:21:27.936538+05:30
+sync_ops total: 47

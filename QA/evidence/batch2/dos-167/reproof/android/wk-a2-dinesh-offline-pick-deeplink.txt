@@ -1,0 +1,33 @@
+## WK-a2 warehouse keep path, queue step redone: office unreachable by removing adb reverse tcp:3000 + tcp:3004 AND force-stop + relaunch (closes any kept-alive tunnel), then open the PICK-0078 sheet from local data by deep link 08:48:39
+strip before: Updated just now 
+adb: error: listener 'tcp:3000' not found
+adb: error: listener 'tcp:3004' not found
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3005 tcp:3005
+host-16 tcp:5176 tcp:5176
+
+force-stop + start in.distributionos.warehouse at 08:48:43
+logbox now: 0 (0 = clear)
+home offline (+20s): Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:48 am | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | — | WAVES OPEN | — | PACKED, NO BILL | — | SHEETS WAITING | — | GATE CO
+shot wk-a2-dinesh-offline-home.png
+$ adb shell am start -a android.intent.action.VIEW -d dos-warehouse://pick/26a39571-e117-71c1-b399-bca6f1167b13 in.distributionos.warehouse
+Starting: Intent { act=android.intent.action.VIEW dat=dos-warehouse://pick/... pkg=in.distributionos.warehouse }
+Warning: Activity not started, intent has been delivered to currently running top-most instance.
+logbox now: 0 (0 = clear)
+after deep link: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:48 am | 28 of 40 picked | PICK-0078 | picking | To pick | To pick | Every line | Every line | Picks are saved on this phone and sent when there is a signal. | Still filling this phone from the server | Campa Cola 750 ml | Batch B20260515 | Exp 9 Feb 2027 | ₹40.00 | 3 cs + 3 pc = 75 pc | Picked | Picked | Short | Short | Campa Orange 750 ml | Batch RCP20260529 | Exp 23 Feb 2027 | ₹40.00 | 5 cs + 5 pc = 125 pc | Picked | Picked | Short | Short | 28 of 40 picked | Scan | Scan | Take it to packing | Take it to packing | 12 lines not yet picked | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot wk-a2-dinesh-pick-sheet-offline.png
+first 'Picked' button at: 291 1639
+tapped 'Picked' at 08:49:25
+after pick: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:48 am · 1 waiting to send | Offline since 8:48 am · 1 waiting to send | 29 of 40 picked | PICK-0078 | picking | To pick | To pick | Every line | Every line | Picks are saved on this phone and sent when there is a signal. | Still filling this phone from the server | Campa Orange 750 ml | Batch RCP20260529 | Exp 23 Feb 2027 | ₹40.00 | 5 cs + 5 pc = 125 pc | Picked | Picked | Short | Short | Sunbake Salted Cracker 200 g | Batch SB20260607 | Exp 2 Feb 2027 | ₹40.00 | 13 pc | 29 of 40 picked | Scan | Scan | Take it to packing | Take it to packing | 11 lines not yet picked | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot wk-a2-dinesh-picked-queued.png
+strip: Offline since 8:48 am · 1 waiting to send  ; saved chip: 
+08:49:33 outbox:
+1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+2 01a09ded-3b1e-7615-8af4-7c5b3c6b71d8 pick_lines c04ec82a-6ed1-70c2-be7e-98e4e95d6c91 queued attempts=4
+08:51:34 pick line c04ec82a (Campa Cola 750 ml): 75 requested, 0 picked, updated 2026-09-13 16:11:13.137114+05:30 ; sync_ops for op 01a09ded: 0

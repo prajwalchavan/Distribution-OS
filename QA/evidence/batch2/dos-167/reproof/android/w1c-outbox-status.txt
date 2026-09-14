@@ -1,0 +1,8 @@
+## walk W1c outbox status columns of rahul's s-file after the resend 07:41:30
+seq|op_id|tbl|status|attempts|sent_at|acked_at
+1|01a09dab-c69c-7741-8f44-85beb6eaf475|sales_orders|acked|7|2026-09-14T02:10:22.792Z|2026-09-14T02:10:22.977Z
+2|01a09dab-c69c-7742-8ae1-27e915880919|sales_order_lines|acked|7|2026-09-14T02:10:22.792Z|2026-09-14T02:10:22.977Z
+-- the 199952b long file's outbox (copied read-only): still queued, never sent
+seq|op_id|tbl|status|attempts|sent_at|acked_at
+1|01a09da5-c305-70b2-b2ad-24f5d7fdffdd|sales_orders|queued|6||
+2|01a09da5-c337-745b-9c29-05feaa971a13|sales_order_lines|queued|6||

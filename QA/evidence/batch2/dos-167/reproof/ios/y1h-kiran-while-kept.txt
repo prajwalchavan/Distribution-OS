@@ -1,0 +1,97 @@
+## y1h kiran.mhatre signs in (office reachable) while amit's kept file is on the phone 2026-09-14 09:19:30
+set XCUIElementTypeTextField 0 = kiran.mhatre
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+shot y1h-kiran-filled.png
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 2026-09-14 09:19:36
+1 +1.77s
+2 +2.13s
+3 +2.51s
+4 +2.83s
+5 +3.22s
+6 +3.57s
+--- amit (A) markers in the early page source (expect 0 each)
+Prerna Super Market: 0
+Godrej Hill: 0
+Kolsewadi: 0
+Birla College Road: 0
+Ansari Kirana: 0
+Amit Pawar: 0
+Tarsun: 0
+waiting to send: 0
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+strip 'Updated just now' at 2026-09-14 09:19:43
+shot y1h-kiran-home.png
+home: Expo Go|More|Sai Distributors, Dombivli|SD|salesperson|Updated just now|Manpada Road|Today's beat|Shops: 8|Visited: 0|Ordered: 0|✓ Manpada Road = 1|Tilak Nagar|Ayre Road|Vertical scroll bar, 2 pages = 0%| = Search this beat|Shree Ganesh Kirana, Dombivli East · your last order 9 Sep, 26470 rupees,
+tapped "Shops" Other at 252,806 (1 of 1)
+shops chip: Shops: 24|
+shot y1h-kiran-shops.png
+set XCUIElementTypeSearchField 0 = Prerna
+shot y1h-kiran-search-prerna.png
+search Prerna: Expo Go|More|Sai Distributors, Dombivli|SD|salesperson|Updated just now|Shops|Shops: 24|Shops|Losing|Catalog| = Prerna|Nothing matches "Prerna" = Nothing matches "Prerna"|Add as new item|Nothing matches that|Vertical scroll bar, 1 page = 0%|Beat|Me|Q|W|E|R|T|Y
+NO
+has Prerna Super Market exit 1 (must be 1)
+tapped "return" Button at 352,775 (1 of 1)
+tapped 200 200
+tapped "Orders" Other at 151,806 (1 of 1)
+orders: Expo Go|More|Sai Distributors, Dombivli|SD|salesperson|Updated just now|My orders|Waiting: 0|Drafts: 1|Orders|Needs you|Travelling = radio button|All = radio button|Drafts = radio button|SO-0455, 12 Sep, 54001 rupees, Packed|SO-0453, 12 Sep, 12189 rupees, Confirmed|SO-0450, 12 Sep, 19503 rupees, Bei
+NO
+has 673 (amit's kept order amount) exit 1 (must be 1)
+shot y1h-kiran-orders.png
+tapped "Beat" Other at 51,806 (1 of 1)
+$ find "$C" -path '*SQLite*'   (09:20:06)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1",
+   "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+   "who": "kiran.mhatre @ Sai",
+   "reencodes": true
+  },
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=2 [kiran.mhatre @ Sai, amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- amit's kept file after kiran's sign-in
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|queued|7|2026-09-14T03:46:28.339Z||
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|queued|7|2026-09-14T03:46:28.339Z||
+-- _sync_errors
+0
+-- dos_qa (read-only) 2026-09-14 09:20:06: sales_orders rows for 01a09e05-c8c7-7741-b201-de8bb92ee5d1: 0; sync_ops for amit's two op ids: 0
+-- sales-service requests since the restart (line 16475)
+09:19:01.964 GET /health
+09:19:36.217 GET /sync/manifest
+09:19:36.271 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:36.869 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:37.089 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:37.343 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:37.542 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:37.746 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:37.965 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:38.208 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:19:38.342 GET /sync/errors?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&unresolvedOnly=true&limit=50

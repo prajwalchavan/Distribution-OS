@@ -1,0 +1,32 @@
+## y1 = addendum (x) iOS sales keep path + (y) keep run 1 of 3 + design step 5 (keep case), owner amit.pawar
+## y1a stop sales-service so the office is unreachable (Expo Go on the simulator cannot toggle airplane mode) 2026-09-14 09:15:58
+sales-service stdout: n/Users/prajwalchavan/.dos-qa-logs/logs/sales-service.log
+no concurrent prover on the sales app: 0 web driver processes
+  PID  PPID COMMAND
+41643     1 node /Users/prajwalchavan/.local/state/fnm_multishells/41620_1789333639388/bin/pnpm --filter @dos/sales-service dev
+41657 41643 node --watch --import @swc-node/register/esm-register src/main.ts
+41660 41657 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/main.ts
+$ kill 41643 41657 41660
+:3003 listeners: 0
+:3003 /health: 000
+:3000 /health: 200
+09:16:01 strip: Updated just now|
+09:16:06 strip: Offline since 9:15 am|
+shot y1a-amit-offline.png
+## y1b queue one order for Prerna Super Market 2026-09-14 09:16:07
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+shot y1b-shop-card.png
+tapped "Take order" Button at 201,716 (1 of 1)
+shot y1b-order-entry.png
+dragged 100 600 -> 100 300
+visible Add a case rows:
+Button	[255,429 118x70]	Add a case
+Button	[255,515 118x70]	Add a case
+Button	[255,600 118x70]	Add a case
+tapped "Add a case" Button at 314,464 (1 of 3)
+shot y1b-line-added.png
+after add: Offline since 9:15 am|Save on this phone|Items 1 · ₹673.68 before GST|
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+shot y1b-saved-on-phone.png
+after save: Offline since 9:15 am · 2 waiting to send|(disabled) Saved on this phone|Items 1 · ₹673.68 before GST|

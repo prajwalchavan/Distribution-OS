@@ -1,0 +1,64 @@
+## step6j reopen WITHOUT pm clear on the fixed JS, office unreachable, one order (2 ops) queued in the long file 07:32:02 (epoch 1789351322)
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:32:02)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:29 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:29 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:28 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:31 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:31 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2617344)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4515552)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+am start at 07:32:02
++0s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++6s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++13s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++19s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
+new s-file first seen at +20s
++24s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++28s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++32s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++36s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++40s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
+screen: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:32 am | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is the copy on this phone. | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me | !, Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously
+strip: Offline since 7:32 am  
+sign-in form shown instead? 0
+shot 6j-fixed-reopen-long-file-kept.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:32:44)
+total 4140
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:32 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:32 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:32 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217    4096 2026-09-14 07:32 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:32 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217  103032 2026-09-14 07:32 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (4063232)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (4096)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (103032)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- which JS is running now
+{"storeNameFor.rahul": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "moduleError": null, "checks": {"hermesBigIntExists": true, "hermesProductRahulEqualsRuling": true, "hermesArithmeticEqualsV8": true, "v8EqualsRuling": true}}
+-- logcat: 'offline: kept the store from before ruling 2' (the ruling's pass line) and any offline: line
+matches: 0
+-- the LONG file after the fixed JS started (copied read-only)
+-- integrity
+ok
+-- tables
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09da5-c305-70b2-b2ad-24f5d7fdffdd|sales_orders|01a09da5-7f69-7603-8145-c7a45d958b07|PUT|{"retailer_id":"a029f31b-2c6c-707b-b580-889125d3ee07","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a09da5-c305-70b2-b2ad-24f5d7fdffdd|queue
+2|01a09da5-c337-745b-9c29-05feaa971a13|sales_order_lines|01a09da5-a670-767a-8073-c066388c5f06|PUT|{"order_id":"01a09da5-7f69-7603-8145-c7a45d958b07","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09da5-c337-745b-9c29-05feaa971a13|queued|6|2026-09-14T02
+-- _sync_errors
+-- the NEW s-file (copied read-only)
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+key|value
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+role|salesperson
+deviceId|01a09da2-039b-713c-aefc-f79c7aa86e30
+-- _outbox
+-- _sync_errors
+-- requests since reopen
+07:32:16.665 req-5k POST /auth/refresh -> 200
+(1 requests)
+(0 requests)
+-- logcat crash buffer (07:32:45)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

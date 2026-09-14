@@ -1,0 +1,61 @@
+## step5f office reachable again; kiran signs in while amit's file is kept 07:17:09 (epoch 1789350429)
+$ adb reverse tcp:3003 tcp:3003
+3003
+host-16 tcp:3003 tcp:3003
+SIGNED_IN 5f-kiran: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | ✓ Manpada Road | Tilak Nagar | Tilak Nagar | Ayre Road | Ayre Road | Search this beat | Shree Ganesh Kirana, Dombivli East · your last order 9 Sep, 26470 rupees, To visit | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | 26470 rupees | To visit | Om Sai Provision Store, Dombivli East · your last order 3 Sep, 94393 rupees, To visit | Om Sai Provision Store | Dombivli East · your last order 3 Sep | ₹94,393.00 | 94393 rupees | To visit | Mahalaxmi General Stores, Dombivli East · your last order 10 Sep, 38730 rupees, To visit | Mahalaxmi General Stores | Dombivli East · your last order 10 Sep | ₹38,730.00 | 38730 rupees | To visit | Sai Krupa Super Bazar, Dombivli East · your last order 7 Sep, 274724 rupees, To visit | Sai Krupa Super Bazar | Dombivli East · your last order 7 Sep | ₹2,74,724.00 | 274724 rupees | To visit | Jai Bhavani Stores, Dombivli East · your last order 9 Sep, 137023 rupees, To visit | Jai Bhavani Stores | Dombivli East · your last order 9 Sep | ₹1,37,023.00 | 137023 rupees | To visit | Shivshakti Traders, Dombivli East · your last order 20 Aug, 30205 rupees, To visit | Shivshakti Traders | Dombivli East · your last order 20 Aug | ₹30,205.00 | 30205 rupees | To visit | Ganesh General Store, Dombivli East · your last order 7 Sep, 28696 rupees, To visit | Ganesh General Store | ₹28,696.00 | 28696 rupees | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me | !, Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead. | ! | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.
+--- shot times
+## 5f-kiran sign-in tapped at 07:18:01 (1789350481.479667)
+1 +0.365s
+2 +0.722s
+3 +1.064s
+4 +1.473s
+5 +1.843s
+6 +2.317s
+--- marker grep over early dumps (expect nothing; amit markers too)
+0
+strip: Updated just now  
+amit/rahul markers on kiran home: 0
+tap 'Shops' at 675 2246
+chip: 
+shot 5f-kiran-shops.png
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+search Anand: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | ✓ Manpada Road | Tilak Nagar | Tilak Nagar | Ayre Road | Ayre Road | Search this beat | Shree Ganesh Kirana, Dombivli East · your last order 9 Sep, 26470 rupees, To visit | Shree Ganesh Kirana | Dombivli East · your last order 9 Sep | ₹26,470.00 | 26470 rupees | To visit | Om Sai Provision Store, Dombivli East ·
+shot 5f-kiran-search-anand.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:18:50)
+total 10944
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:18 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:15 ..
+-rw------- 1 u0_a217 u0_a217 2609152 2026-09-14 07:18 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:18 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a217 u0_a217 4461992 2026-09-14 07:18 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+-rw------- 1 u0_a217 u0_a217 4067328 2026-09-14 07:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk (2609152)", "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm (32768)", "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal (4461992)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (4067328)" ], "stores": [ { "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "kiran @ Sai" }, { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- sales-service requests since step5f (expect no POST /sync/upload)
+07:18:01.856 req-n1 GET /sync/manifest -> 200
+07:18:01.933 req-n2 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500 -> 200
+07:18:02.450 req-n3 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:03.201 req-n4 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:03.958 req-n5 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:04.490 req-n6 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:04.932 req-n7 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:05.451 req-n8 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:05.933 req-n9 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:18:06.316 req-na GET /sync/errors?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&unresolvedOnly=true&limit=50 -> 200
+(10 requests)
+uploads: 0
+-- logcat crash buffer (07:18:51)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

@@ -1,0 +1,61 @@
+## w3 bharat.jadhav (warehouse, Sai) signs in through the product form, same Expo Go container (no keychain reset) 2026-09-14 09:43:16
+set XCUIElementTypeTextField 0 = bharat.jadhav
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+shot w3-bharat-filled.png
+tapped "Sign in" Button at 201,457 (2 of 2)
+tap returned at 2026-09-14 09:43:21
+1 +1.41s
+2 +1.74s
+3 +2.11s
+4 +2.40s
+5 +2.73s
+6 +3.06s
+--- dinesh (A) markers in the early page source (expect 0 each)
+Tarsun: 0
+Khadakpada: 0
+Station Road: 0
+SO-0877: 0
+SO-0873: 0
+Bhosale Traders: 0
+Kalyan West Market: 0
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+strip 'Updated just now' at 2026-09-14 09:43:29
+shot w3-bharat-home.png
+home: Expo Go|More|Sai Distributors, Dombivli|SD|warehouse|Updated just now|Sai Distributors, Dombivli|Inbound|✓ Queues = 1|Capture|Stock|Counts|Vertical scroll bar, 2 pages = 0%|BILLS TO COUNT|WAVES OPEN|0|1|PACKED, NO BILL|SHEETS WAITING|0|1|GATE COUNTS WAITING|0 lines|Nothing at the gate|WAVES ON THE
+tapped "Pick" Other at 151,803 (1 of 1)
+shot w3-bharat-pick.png
+pick: Expo Go|More|Sai Distributors, Dombivli|SD|warehouse|Updated just now|Sai Distributors, Dombivli|Pick|✓ Every beat = 1|Kopar Road|Ayre Road|Vertical scroll bar, 2 pages = 0%|ORDERS WAITING|Select all|Clear|0 selected · 0 pc|Thakurli Station Kirana, SO-0454 · Kopar Road · 243 pc, confirmed|Rajhans General Store, SO-0453 · Ayre Road · 537 pc, confirmed|Swami Samarth Stores, SO-9003 · Tilak N
+$ has "Tarsun"  (must be NO): NO
+$ has "Khadakpada"  (must be NO): NO
+$ has "SO-0877"  (must be NO): NO
+$ has "Bhosale Traders"  (must be NO): NO
+$ has "Sai Distributors" (positive control): YES
+expected bharat name: wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk
+$ find "$C" -path '*SQLite*'   (09:43:41)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk
+(end of find)
+{
+ "stores": [
+  {
+   "name": "wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-warehouse",
+   "userId": "fde0c980-27cb-7f1d-a008-ce4503d01611",
+   "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+   "who": "bharat.jadhav @ Sai",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [bharat.jadhav @ Sai] legacy=0 interim=0 strays=0 other=0

@@ -1,0 +1,44 @@
+## s1 checks after rahul's sign-in 2026-09-14 09:09:26
+$ ios-drive.mjs has "Updated"
+YES
+exit 0
+shot s1-rahul-home.png
+strip: Updated just now|
+expected (V8, node BigInt): s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+$ find "$C" -path '*SQLite*'   (09:09:31)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "rahul.deshmukh @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [rahul.deshmukh @ Tarsun] legacy=0 interim=0 strays=0 other=0
+$ find "$C" -path '*SQLite*' -name 'dos-sales*'  (legacy and 199952b names)
+(end of find)
+tapped "Shops" Other at 252,806 (1 of 1)
+shot s1-rahul-shops.png
+shops labels: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Shops|Shops: 30|Shops|Losing|Catalog| = Search by name, code or phone|Ambika Provision Store, R-0009 · Station Road · Station Road, Kalyan West, 23995 rupees, C|Balaji Wholesale Stores, R-0010 · Station Road · Station Road, Kalyan West, 720804 rupees, A|Bhosale Traders, R-0023 · Khadakpada · Khadakpada, Kalyan West, 74287 rupees, B|Chavan Kirana Stores, R-0024 · Khadakpada · Khadakpada, Kalyan West, 21892 rupees, C|Deshmukh Kirana, R-0017 · Kalyan West Market · Bazarpeth, Kalyan West, 24365 rupees, C|V
+$ ios-drive.mjs has "Chavan Kirana"  (positive control on rahul's own Shops tab)
+YES
+exit 0
+$ ios-drive.mjs has "Iyer Provision"
+YES
+exit 0
+shops chip: Shops: 30|

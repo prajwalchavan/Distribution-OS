@@ -1,0 +1,6 @@
+-- dos_qa (read-only) baseline before variant 2 07:28:38
+-- Tarsun retailers named Shree Ganesh Kirana / Om Sai Provision Store
+34191c43-f0bc-70ab-a39d-fcbe8f94ae36|Shree Ganesh Kirana|01a09a5b-3c58-71c1-a34d-b93c569b0099
+d7f09885-489b-73cb-ab29-169334b5eca5|Om Sai Provision Store|01a09a5b-3c58-71c1-a34d-b93c569b0099
+rahul orders total: 378
+rahul orders created after 07:26 IST: 0

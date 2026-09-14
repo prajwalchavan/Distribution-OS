@@ -1,0 +1,32 @@
+## sn1 office reachable, uploads held back: queue one order and open the leave sheet 2026-09-14 09:30:48
+proxy mode: fail-upload
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)
+dragged 100 600 -> 100 300
+tapped "Add a case" Button at 314,464 (1 of 3)
+shot sn1-line-added.png
+NOT FOUND Save on this phone (matches 0)
+shot sn1-saved-on-phone.png
+after save: Updated just now|Items 1 · ₹673.68 before GST|
+## sn1b device outbox (uploads answered 503) 2026-09-14 09:31:22
+-- _sync_errors
+0
+queued order id: 
+-- dos_qa (read-only): rows for it: 0
+-- proxy log since the mode switch
+09:30:25.724 [pass] GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+09:30:25.887 [pass] GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500 -> 200
+09:30:51.615 [fail-upload] GET /reporting/retailers/8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8/behaviour -> 200
+09:30:55.522 [fail-upload] GET /inventory/availability?limit=500 -> 200
+09:30:55.541 [fail-upload] GET /pricing/bounds -> 200
+strip (expect waiting, no Offline): Updated just now|
+shot sn1-queued-online.png
+## sn1c amit taps Sign out while online 2026-09-14 09:31:24
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+shot sn1-leave-sheet-online.png
+sheet: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|space|return|Emoji|Dictate|
+has Send now (expect YES): NO
+has Sign out, keep here (expect YES): NO
+has No connection (expect NO): NO

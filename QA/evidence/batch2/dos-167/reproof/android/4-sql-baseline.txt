@@ -1,0 +1,33 @@
+-- dos_qa (read-only) 07:12:01
+id tenant_id order_no retailer_id state source created_by salesperson_id pricing_date_mode payment_terms fulfil_from_location_id external_ref subtotal_paise discount_paise tax_paise round_off_paise total_paise approval_flags expected_delivery_date note submitted_at confirmed_at closed_at cancelled_at cancel_reason created_at updated_at 
+-- orders per rep (salesperson_id)
+amit.pawar|387
+kiran.mhatre|218
+rahul.deshmukh|378
+-- amit orders created today (IST)
+ERROR:  column o.number does not exist
+LINE 1: select o.id, o.number, o.state, o.source, o.retailer_id, o.c...
+                     ^
+-- SO-0875 owner
+ERROR:  column o.number does not exist
+LINE 1: select o.number, u.username from sales_orders o join users u...
+               ^
+-- dos_qa (read-only) 07:12:24
+-- amit orders by state
+draft|5
+confirmed|1
+picking|1
+packed|4
+dispatched|5
+delivered|335
+partially_delivered|21
+cancelled|15
+-- amit orders created today (IST)
+01a09c2c-7c5c-700e-947f-b08f77717683||draft|salesperson|ffa4c055-0e89-7dea-97f2-a24e6ac0fef5|76600|2026-09-14 00:50:10.241608+05:30
+01a09c84-5bf4-76e1-a7f5-7d1f3418e2c4||draft|salesperson|8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8|75500|2026-09-14 02:20:22.721283+05:30
+01a09c8b-13de-75d1-9850-38fa7512541f||draft|salesperson|8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8|75500|2026-09-14 02:24:12.451317+05:30
+01a09c96-f431-747f-aec8-4927d17047d4||draft|salesperson|8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8|75500|2026-09-14 02:37:35.709278+05:30
+-- SO-0875 owner
+SO-0875|rahul.deshmukh
+-- retailer Anand Bhavan Provision
+ffa4c055-0e89-7dea-97f2-a24e6ac0fef5|Anand Bhavan Provision

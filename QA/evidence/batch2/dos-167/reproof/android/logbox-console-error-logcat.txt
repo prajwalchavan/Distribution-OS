@@ -1,0 +1,1 @@
+5:09-14 07:15:51.811 E/ReactNativeJS( 6599): Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.

@@ -1,0 +1,105 @@
+## y3 = (y) keep run 3 of 3, owner amit.pawar
+## y3a stop sales-service 2026-09-14 09:25:30
+  PID  PPID COMMAND
+98722     1 node /Users/prajwalchavan/.local/state/fnm_multishells/98694_1789358073596/bin/pnpm --filter @dos/sales-service dev
+98737 98722 node --watch --import @swc-node/register/esm-register src/main.ts
+98738 98737 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/main.ts
+$ kill 98722 98737 98738
+:3003 listeners: 0
+:3003 /health: 000
+:3000 /health: 200
+09:25:32 strip: Updated just now|
+09:25:46 strip: Updated just now|
+09:25:51 strip: Offline since 9:24 am|
+shot y3a-amit-offline.png
+## y3b queue one order for Prerna Super Market 2026-09-14 09:25:52
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)
+dragged 100 600 -> 100 300
+tapped "Add a case" Button at 314,464 (1 of 3)
+shot y3b-line-added.png
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+shot y3b-saved-on-phone.png
+after save: Offline since 9:24 am · 2 waiting to send|(disabled) Saved on this phone|Items 1 · ₹673.68 before GST|
+## y3c device outbox (retrying) 2026-09-14 09:26:22
+5|01a09e0e-e070-7641-95eb-4468f50a58cf|sales_orders|01a09e0e-b392-729b-8984-740a81924477|PUT|queued|4|2026-09-14T03:56:10.224Z||
+6|01a09e0e-e070-7642-987e-10107eda640a|sales_order_lines|01a09e0e-d24b-74f2-9041-59e131ec4fb7|PUT|queued|4|2026-09-14T03:56:10.224Z||
+-- _sync_errors
+0
+## y3d amit taps Sign out 2026-09-14 09:26:22
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+shot y3d-amit-leave-sheet.png
+sheet: Expo Go|2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+sheet check PASS (same title and buttons as y1d/y2d, keep button at 201,637)
+## y3e 'Sign out, keep here' with the office unreachable and the outbox retrying (keep run 3 of 3) 2026-09-14 09:26:31
+5|01a09e0e-e070-7641-95eb-4468f50a58cf|sales_orders|01a09e0e-b392-729b-8984-740a81924477|PUT|queued|5|2026-09-14T03:56:10.224Z||
+6|01a09e0e-e070-7642-987e-10107eda640a|sales_order_lines|01a09e0e-d24b-74f2-9041-59e131ec4fb7|PUT|queued|5|2026-09-14T03:56:10.224Z||
+-- _sync_errors
+Expo Go pid before keep: 98483
+.ips before: Expo Go-2026-09-14-021827.ips Expo Go-2026-09-14-022331.ips 
+$ ios-drive.mjs tapxy 201 637 at 2026-09-14 09:26:31
+tapped 201 637
++1.5s pid=98483 shot=y3e-keep-1.png
++2.7s pid=98483 shot=y3e-keep-2.png
++3.9s pid=98483 shot=y3e-keep-3.png
++5.1s pid=98483 shot=y3e-keep-4.png
++6.4s pid=98483 shot=y3e-keep-5.png
++7.6s pid=98483 shot=y3e-keep-6.png
++8.8s pid=98483 shot=y3e-keep-7.png
++10.0s pid=98483 shot=y3e-keep-8.png
++11.2s pid=98483 shot=y3e-keep-9.png
++12.3s pid=98483 shot=y3e-keep-10.png
++13.5s pid=98483 shot=y3e-keep-11.png
++14.7s pid=98483 shot=y3e-keep-12.png
++16.0s pid=98483 shot=y3e-keep-13.png
++17.2s pid=98483 shot=y3e-keep-14.png
++18.4s pid=98483 shot=y3e-keep-15.png
++19.7s pid=98483 shot=y3e-keep-16.png
+screen at +20s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical s
+sign-in form after keep: YES
+shot y3e-amit-kept-signed-out.png
+Expo Go pid after keep: 98483
+-- new Expo Go .ips since the tap:
+(end new .ips)
+-- simulator log since 2026-09-14 09:26:31 (Expo Go exits / SIGSEGV)
+2026-09-14 09:26:54.434 Df log[99790:0] [com.apple.log:] log run noninteractively, parent: 90494 (launchd_sim), args: 'log' 'show' '--start' '2026-09-14 09:26:31' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "host.exp.Exponent" AND (eventMessage CONTAINS[c] "exited" OR eventMessage CONTAINS[c] "S
+(end of simulator log)
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+## y3f relaunch after the keep, office still unreachable 2026-09-14 09:26:55
+terminate exit 0
+openurl at 2026-09-14 09:26:57
+after relaunch: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical s
+shot y3f-relaunch.png
+relaunch shows the sign-in form: YES
+amit's session/data visible: NO
+-- new Expo Go .ips since the tap:
+(end new .ips)
+-- simulator log since 2026-09-14 09:26:31
+2026-09-14 09:26:55.249 Df runningboardd[90501:2ac9a4] [com.apple.runningboard:process] Notifying connection [osservice<com.apple.SpringBoard>:90498] that process [app<host.exp.Exponent((null))>:98483] exited with context <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>
+2026-09-14 09:26:55.252 Df SpringBoard[90498:2ab707] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:98483] Process exited: <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>.
+2026-09-14 09:26:55.253 Df SpringBoard[90498:2a0796] [com.apple.SpringBoard:Workspace] Process exited: <FBApplicationProcess: 0x1015e56c0; app<host.exp.Exponent>:98483(vD075C)> -> <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>
+2026-09-14 09:26:57.508 Df runningboardd[90501:2ac4a1] [com.apple.runningboard:ttl] Assertion 90501-90498-1080 (target:[app<host.exp.Exponent((null))>:99815]) will be created as inactive as originator process has not exited
+2026-09-14 09:27:09.125 Df log[99895:0] [com.apple.log:] log run noninteractively, parent: 90494 (launchd_sim), args: 'log' 'show' '--start' '2026-09-14 09:26:31' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "host.exp.Exponent" AND (eventMessage CONTAINS[c] "exited" OR eventMessage CONTAINS[c] "S
+(end of simulator log)
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+lastUploadAt|2026-09-14T03:54:44.853Z
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+5|01a09e0e-e070-7641-95eb-4468f50a58cf|sales_orders|01a09e0e-b392-729b-8984-740a81924477|PUT|queued|5|2026-09-14T03:56:10.224Z||
+6|01a09e0e-e070-7642-987e-10107eda640a|sales_order_lines|01a09e0e-d24b-74f2-9041-59e131ec4fb7|PUT|queued|5|2026-09-14T03:56:10.224Z||
+-- _sync_errors
+0

@@ -1,0 +1,66 @@
+## step5b queue one order offline as amit at Anand Bhavan Provision 07:13:10
+tap 'Shops' at 675 2246
+search: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:12 am | Shops | Shops: 29 | Shops | Losing | Catalog | Anand | Anand Bhavan Provision | R-0043 · Kolsewadi · Kolsewadi, Kalyan East | ₹35,548.00 | C | Beat | Orders | Shops | Me
+tap 'Anand Bhavan Provision' at 345 1235
+shop card: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:12 am | Kolsewadi · R-0043 | Anand Bhavan Provision | Owes ₹35,548 | Limit ₹50,000 | Overdue ₹32,705 | Shop | Orders 11 | Bills 5 | How old the dues are | as of 14 Sep | Money owed, by age | ₹ | 0–7 | 2,843.00 | 8–1
+shot 5b-amit-shop-card-offline.png
+Take order at 540 2012
+order entry: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:12 am | Anand Bhavan Provision | Order | Items: 0 | No signal | Repeat last order (2) | Repeat last order (2) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Add a case | Items 0 · ₹0.00 before GST | Save on this phone | Save on this phone | Add at least one item | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+shot 5b-amit-order-entry-offline.png
+first visible Add a case at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+after add: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:12 am | Anand Bhavan Provision | Order | Items: 0 | No signal | Repeat last order (2) | Repeat last order (2) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Add a case | Items 0 · ₹0.00 before GST | Save on this phone | Save on this phone | Add at least one item | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+items: Items 0 · ₹0.00 before GST 
+shot 5b-amit-order-line-added.png
+footer button 'Save on this phone' at 773 1954
+save tapped at 07:13:49
+after save: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:12 am | Anand Bhavan Provision | Order | Items: 0 | No signal | Repeat last order (2) | Repeat last order (2) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Add a case | Items 0 · ₹0.00 before GST | Save on this phone | Save on this phone | Add at least one item | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+strip: Offline since 7:12 am 
+shot 5b-amit-order-saved-on-phone.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:13:56)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:12 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:12 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 07:09 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:12 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 07:12 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2605056)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4470232)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## step5b retry: add one case 07:14:20
+-- 'Add a case' nodes
+[707,1857][1004,1809] clickable=true
+[751,1918][959,1809] clickable=false
+[707,2081][1004,1809] clickable=true
+[751,2142][959,1809] clickable=false
+[707,2305][1004,1809] clickable=true
+[751,2366][959,1809] clickable=false
+-- 'Save on this phone' nodes
+[550,1864][996,2045] clickable=true
+[594,1925][951,1983] clickable=false
+tap first Add a case above the footer at 
+[707,1359][1004,1540] clickable=true
+[751,1420][959,1478] clickable=false
+[707,1583][1004,1764] clickable=true
+[751,1644][959,1702] clickable=false
+[707,1807][1004,1809] clickable=true
+[751,1868][959,1809] clickable=false
+[707,2031][1004,1809] clickable=true
+[751,2092][959,1809] clickable=false
+[707,2255][1004,1809] clickable=true
+[751,2316][959,1809] clickable=false
+after scroll: 855 1449
+after add: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:12 am | Anand Bhavan Provision | Order | Items: 1 | No signal | This order | Clear | Clear | Campa Cola 1 L | Campa Cola 1 L | 1 cs | ₹684.00 | 684 rupees | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Add a case | Campa Cola 500 ml | Campa · 24 pc case | Add a case | Add a case | Campa Cola 750 ml | Campa · 24 pc case | Add a case | Add a case | Campa Lemon 1 L | Add a case | Items 1 · ₹684.00 before GST | Save on this phone | Save on this phone | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+items: Items 1 · ₹684.00 before GST 
+shot 5b-amit-order-line-added.png

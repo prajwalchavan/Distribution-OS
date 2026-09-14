@@ -1,0 +1,46 @@
+## D1 delivery: device prep, prior state, fresh install -r + pm clear + sign in ganesh.more (Tarsun) 07:53:50
+-- device
+List of devices attached
+emulator-5554	device
+
+sdk_gphone64_arm64
+16
+MemTotal:        3046940 kB
+logcat buffers set to 16M and cleared
+-- prior state of the delivery app files (before pm clear)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (07:53:50)
+total 7108
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 01:39 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 01:38 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 01:39 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 01:39 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a214 u0_a214 4268352 2026-09-14 01:39 dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db (2945024)", "dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm (32768)", "dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal (4268352)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-delivery__u-5530f7b6-eb3a-7610-94df-7ab6000c3474__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db", "length": 95, "who": "sachin" } ], "other": [] }
+-- summary: stores=0 [] legacy=0 interim=1 strays=0 other=0
+-- APK
+-rw-r--r--@ 1 prajwalchavan  staff  96533394 Sep  7 13:05 frontend/delivery-app/android/app/build/outputs/apk/debug/app-debug.apk
+## d1-ganesh fresh: install -r + pm clear + grant location at 07:53:53
+SIGNED_IN d1-ganesh: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+exit=0
+## D1b dismiss the Google Location Accuracy dialog (07:55:33)
+tap 'No thanks' at 484 1809
+strip has 'Updated just now' after ~3s
+## D1 after sync 07:55:42
+texts: Tarsun Enterprise logo | Tarsun Enterprise | delivery | More | ⋯ | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | STILL TO COLLECT | ₹80,180.00 | 80180 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Vaibhav Kirana Mart, Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306, 7856 rupees, At the shop | Vaibhav Kirana Mart | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | ₹7,856.00 | 7856 rupees | At the shop | Stops in order | 3 of 10 stops done | 1. Prerna Super Market, Shop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301, 73245 rupees, Delivered | 1. Prerna Super Market | ₹73,245.00 | 73245 rupees | Shop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301 | Delivered | 2. Metro Kirana Bazar, Shop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301, 4547 rupees, Delivered | 2. Metro Kirana Bazar | ₹4,547.00 | 4547 rupees | Shop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301 | Delivered | 3. Anand Bhavan Provision, Shop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306, 2843 rupees, Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+shot d1-ganesh-home.png
+-- Tarsun markers visible (trip shops):
+   1 Anand Bhavan Provision
+   2 Metro Kirana Bazar
+   2 Prerna Super Market
+   1 TRIP-ACTIVE
+   2 Tarsun
+   2 Vaibhav Kirana Mart
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (07:55:43)
+total 8956
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 07:55 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 07:54 ..
+-rw------- 1 u0_a214 u0_a214 4718592 2026-09-14 07:55 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 07:55 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a214 u0_a214 4387832 2026-09-14 07:55 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft (4718592)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm (32768)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal (4387832)" ], "stores": [ { "name": "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ganesh @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [ganesh @ Tarsun] legacy=0 interim=0 strays=0 other=0

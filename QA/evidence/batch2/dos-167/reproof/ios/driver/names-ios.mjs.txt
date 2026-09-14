@@ -1,0 +1,52 @@
+// Reads SQLite file basenames (one per line) from the iOS Expo Go container and decodes each with the parseStoreName
+// rule of frontend/libs/offline/src/engine.ts (ruling 2 (s)): <[sdwh]><25 base-36 user><25 base-36 distributor>.
+// Flags -wal/-shm/-journal without a base file, legacy dos-<app>.db and the 199952b dos-<app>__u-…__t-….db names.
+import { readFileSync } from 'node:fs'
+const IDS = {
+  'rahul.deshmukh': { userId: '8760e17e-4830-7395-a946-1e02fffa1ad7', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', d: 'Tarsun' },
+  'kiran.mhatre': { userId: '2239ec93-0bcd-7737-a70c-c60aa4d9e9f1', tenantId: '82f5c562-b7eb-7521-8e19-4aa6befc64f8', d: 'Sai' },
+  'amit.pawar': { userId: 'efde1e76-9785-7827-aff2-6f56ecd33588', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', d: 'Tarsun' },
+  'ganesh.more': { userId: '7b2db500-02d5-7aa7-a1dc-005a3e89ff63', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', d: 'Tarsun' },
+  'sachin.dalvi': { userId: '5530f7b6-eb3a-7610-94df-7ab6000c3474', tenantId: '82f5c562-b7eb-7521-8e19-4aa6befc64f8', d: 'Sai' },
+  'dinesh.patil': { userId: '5b6fbe87-cb70-7195-8de1-a4f5046c3675', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', d: 'Tarsun' },
+  'bharat.jadhav': { userId: 'fde0c980-27cb-7f1d-a008-ce4503d01611', tenantId: '82f5c562-b7eb-7521-8e19-4aa6befc64f8', d: 'Sai' },
+}
+const PREFIXES = new Map([['s', 'dos-sales'], ['d', 'dos-delivery'], ['w', 'dos-warehouse'], ['h', 'dos-harness']])
+const STORE_NAME = /^([sdwh])([0-9a-z]{25})([0-9a-z]{25})$/
+function uuid(digits) {
+  let value = 0n
+  for (const digit of digits) value = value * 36n + BigInt(Number.parseInt(digit, 36))
+  const hex = value.toString(16).padStart(32, '0')
+  if (hex.length > 32) return null
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+function encode(userId, tenantId, p) {
+  const b36 = (u) => BigInt('0x' + u.replace(/-/g, '')).toString(36).padStart(25, '0')
+  return p + b36(userId) + b36(tenantId)
+}
+function parseStoreName(name) {
+  const m = STORE_NAME.exec(name)
+  if (m === null) return null
+  const prefix = PREFIXES.get(m[1]); const userId = uuid(m[2]); const tenantId = uuid(m[3])
+  if (prefix === undefined || userId === null || tenantId === null) return null
+  return { prefix, userId, tenantId }
+}
+if (process.argv[2] === 'expect') {
+  const [, , , user, p] = process.argv
+  console.log(encode(IDS[user].userId, IDS[user].tenantId, p)); process.exit(0)
+}
+const names = readFileSync(0, 'utf8').split('\n').map((l) => l.trim()).filter(Boolean)
+const set = new Set(names)
+const out = { stores: [], strays: [], legacy: [], interim: [], other: [] }
+for (const n of names) {
+  const base = n.replace(/-(wal|shm|journal)$/, '')
+  if (base !== n) { if (!set.has(base)) out.strays.push(n); continue }
+  if (/^dos-[a-z]+\.db$/.test(n)) { out.legacy.push(n); continue }
+  if (/^dos-[a-z]+__u-/.test(n)) { out.interim.push(n); continue }
+  const parsed = parseStoreName(n)
+  if (parsed === null) { out.other.push(n); continue }
+  const who = Object.keys(IDS).find((w) => IDS[w].userId === parsed.userId && IDS[w].tenantId === parsed.tenantId)
+  out.stores.push({ name: n, length: n.length, pattern: /^[sdw][0-9a-z]{50}$/.test(n), ...parsed, who: who ? `${who} @ ${IDS[who].d}` : 'UNKNOWN IDENTITY', reencodes: who ? encode(IDS[who].userId, IDS[who].tenantId, n[0]) === n : false })
+}
+console.log(JSON.stringify(out, null, 1))
+console.log(`-- summary: stores=${out.stores.length} [${out.stores.map((s) => s.who).join(', ')}] legacy=${out.legacy.length} interim=${out.interim.length} strays=${out.strays.length} other=${out.other.length}`)

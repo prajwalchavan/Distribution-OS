@@ -1,0 +1,34 @@
+## step3b kiran after sync 07:07:25
+strip: Updated just now 
+-- markers on kiran's home (expect none)
+tap 'Shops' at 675 2246
+shops tab: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated 1 min ago | Shops | Shops: 24 | Shops | Shops | Losing | Losing | Catalog | Catalog | Search by name, code or phone | Aditya Provision, SD-0023 · Ayre Road · Dombivli East, 26033 rupees, C | Aditya Provision | SD-0023 · Ayre Road · Dombivli East | ₹26,033.00 | 26033 rupees | C | Ambika Provision Store, SD-0009 · Tilak Nagar · Dombivli East, 109238 rupees, B | Ambika Provision Store | SD-0009 · Tilak Nagar · Dombivli East | ₹1,09,238.00 | 109238 rupees | B | Anand General Store, SD-0014 · Tilak Nagar · Dombivli East, 4727 rupees, D | Anand General Store | SD-0014 · Tilak Nagar · Dombivli East | ₹4,727.00 | 4727 rupees | D | Ayre Road Super Market, SD-0021 · Ayre Road · Dombivli East, 39791 rupees, B | Ayre Road Super Market | SD-0021 · Ayre Road · Dombivli East | ₹39,791.00 | 39791 rupe
+chip: Shops: 24
+shot 3-kiran-shops.png
+search field at 540 1021
+search Chavan: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated 1 min ago | Shops | Shops: 24 | Shops | Shops | Losing | Losing | Catalog | Catalog | Chavan | Add as new item | Add as new item | Nothing matches that | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+-- markers after search (expect none)
+shot 3-kiran-search-chavan.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:07:43)
+total 6968
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:06 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:02 ..
+-rw------- 1 u0_a217 u0_a217 2609152 2026-09-14 07:06 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:06 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a217 u0_a217 4461992 2026-09-14 07:06 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk (2609152)", "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm (32768)", "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal (4461992)" ], "stores": [ { "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "kiran @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- sync requests since step3 (kiran)
+07:06:44.446 req-lz GET /sync/manifest -> 200
+07:06:44.552 req-m0 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500 -> 200
+07:06:45.022 req-m1 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:45.690 req-m2 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:46.383 req-m3 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:46.840 req-m4 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:47.282 req-m5 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:47.750 req-m6 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:48.223 req-m7 GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:06:48.534 req-m8 GET /sync/errors?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&unresolvedOnly=true&limit=50 -> 200
+(10 requests)
+-- logcat crash buffer (07:07:43)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

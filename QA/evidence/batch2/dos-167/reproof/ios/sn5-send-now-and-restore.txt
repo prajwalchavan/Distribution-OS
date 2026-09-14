@@ -1,0 +1,48 @@
+## sn5 'Send now' while online (addendum (y) iOS sales, online) 2026-09-14 09:37:08
+Expo Go pid before: 99815
+proxy mode -> pass at 09:37:08
+tapped 201 552
+$ ios-drive.mjs tapxy 201 552   ('Send now' in sn4d-leave-sheet-online.png) returned at 09:37:09.N
+sign-in form visible after ~1s (09:37:11)
+shot sn5-after-send-now.png
+screen: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Prediction
+sheet still showing: NO
+Expo Go pid after: 99815
+-- new Expo Go .ips: (end)
+-- proxy log since the switch (09:37:08)
+09:37:09.356 [pass] POST /sync/upload -> 200
+09:37:09.410 [pass] GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+09:37:09.497 [pass] GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500 -> 200
+09:37:09.507 [pass] GET /sync/errors?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&unresolvedOnly=true&limit=50 -> 200
+POST /sync/upload -> 200 since the switch: 1
+-- dos_qa (read-only) 2026-09-14 09:37:15
+01a09e17-3785-7178-afac-241d61ec39e6|draft|salesperson|amit.pawar|Prerna Super Market|2026-09-14 09:37:09.268123+05:30
+order rows: 1; line rows: 1
+01a09e17-6759-72bd-802b-adc48f81c1c9|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:37:09.268123+05:30
+01a09e17-6759-72be-90c5-44ab1b29ff6d|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:37:09.297293+05:30
+sync_ops rows: 2
+-- the phone after Send now + sign-out
+$ find "$C" -path '*SQLite*'   (09:37:15)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- auth-service logout requests in the last minute
+09:26:32.130 POST /auth/logout
+09:31:28.339 POST /auth/logout
+09:37:09.632 POST /auth/logout
+## sn6 restore: stop the QA proxy and the :3013 service, start sales-service on :3003 as start-services.sh does 2026-09-14 09:37:15
+  PID  PPID COMMAND
+  670     1 node /Users/prajwalchavan/.local/state/fnm_multishells/595_1789358375393/bin/pnpm --filter @dos/sales-servic
+  692   670 node --watch --import @swc-node/register/esm-register src/main.ts
+  694   692 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/regist
+:3013 listeners: 0; :3003 listeners: 0
+sales-service :3003 /health 200 after 3s (09:37:22)
+node    2644 prajwalchavan   17u  IPv4 0x995523000601844e      0t0  TCP *:3003 (LISTEN)
+DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa
