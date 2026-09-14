@@ -1713,6 +1713,56 @@ describe('DOS-167 sign-out ends the engine', () => {
     })
     await back.stop()
   })
+
+  /*
+   * Addendum (z3), merge review minor 2. The provider stops an engine the moment its session goes — a token refresh that
+   * flips `hydrating` unmounts the shell — and a sign-out already on its way then ends an engine a `stop()` has closed:
+   * `end()` answered `kept: false`, and the sales app forgot the rep's drafts while the file, closed as it stood and never
+   * deleted, still held the order he had taken.
+   */
+  it('DOS-167 an end() after a stop() closed the file answers kept, and the file is never deleted', async () => {
+    const phone = phoneFiles()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const engine = new SyncEngine({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: phone.factory,
+      databaseName: name,
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+    })
+    await engine.start()
+    // An order taken in a dead spot.
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-kept',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id },
+    })
+    await engine.flush()
+
+    // The provider's stop lands first, and the sign-out ends the engine after it.
+    await engine.stop()
+    const ended = await engine.end({ keepQueue: false })
+
+    const file = await phone.factory(name)
+    expect({
+      ended,
+      outbox: await file.query<{ row_id: string; status: string }>(
+        `SELECT row_id, status FROM ${OUTBOX_TABLE}`,
+      ),
+    }).toEqual({
+      ended: { kept: true, pending: 1, rejected: 0 },
+      outbox: [{ row_id: 'o-kept', status: 'queued' }],
+    })
+  })
 })
 
 // 14 -------------------------------------------------------------------------------------------------------------

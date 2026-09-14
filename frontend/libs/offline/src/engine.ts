@@ -411,6 +411,11 @@ export class SyncEngine {
   private ended = false
   /** The one `end()`: a second call waits for the first rather than starting again. */
   private ending: Promise<EndResult> | null = null
+  /**
+   * A `stop()` ran before `end()` (addendum (z3)): it closed the file as it stood and never deleted it, so an `end()` that
+   * finds no store answers it kept — it may hold this person's queue, and their drafts stay with it.
+   */
+  private stoppedBeforeEnd = false
   /** Writes that passed the gate and have not landed yet; `end()` waits for every one (ruling (m)). */
   private readonly writes = new Set<Promise<void>>()
   private flushChain: Promise<void> = Promise.resolve()
@@ -545,6 +550,7 @@ export class SyncEngine {
   async stop(): Promise<void> {
     // After `end()` the file is already closed or gone; the provider's cleanup still calls this.
     if (this.ended) return
+    this.stoppedBeforeEnd = true
     this.started = false
     if (this.retryTimer !== null) clearTimeout(this.retryTimer)
     if (this.pollTimer !== null) clearTimeout(this.pollTimer)
@@ -662,7 +668,11 @@ export class SyncEngine {
     await this.settled()
     const store = this.store
     try {
-      if (store === null) return { kept: false, pending: 0, rejected: 0 }
+      if (store === null)
+        // Closed by a `stop()` before this (addendum (z3)): the file lives on as it stood, maybe with this person's queue.
+        return this.stoppedBeforeEnd
+          ? { kept: true, pending: this.pending, rejected: this.rejected }
+          : { kept: false, pending: 0, rejected: 0 }
       if (store.closing) {
         // A `stop()` began closing this file first: it is closed as it stands, and nothing more reaches it.
         await store.close()

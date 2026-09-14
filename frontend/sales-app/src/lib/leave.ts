@@ -207,11 +207,13 @@ export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveStep
    * touches the file only once the session is out of the platform store (`stored`, a Keychain delete on a phone).
    */
   await steps.signOutOnDevice(async (stored) => {
-    let kept = keepQueue
+    let kept: boolean
     try {
       kept = keptBy(await steps.end({ keepQueue, after: stored })) ?? keepQueue
     } catch {
-      // Signed out regardless: the next person opens a different file whatever happened to this one.
+      // Signed out regardless: the next person opens a different file whatever happened to this one. And this one may
+      // well have survived — a close that failed, a native error before the delete — so its drafts stay (addendum (z3)).
+      kept = true
     }
     try {
       await steps.sweep()

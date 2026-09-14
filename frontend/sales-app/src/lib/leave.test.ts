@@ -256,6 +256,39 @@ describe('DOS-167 the sales leave sheet', () => {
   })
 
   /*
+   * Addendum (z3), merge review minor 2. `end()` threw — a close that failed, a native error before the delete — and the
+   * leaving fell back on what was asked: after one tap, `keepQueue: false`, this rep's drafts were forgotten while his
+   * file, and the order kept in it, may well have lived on. A file that may survive keeps its drafts.
+   */
+  it('DOS-167 a leaving whose end() throws keeps the drafts', async () => {
+    const calls: string[] = []
+    const steps: LeaveSteps = {
+      waiting: async () => ({ pending: 0, rejected: 0 }),
+      sendNow: async () => ({ pending: 0, rejected: 0 }),
+      end: async ({ keepQueue }) => {
+        calls.push(`end keepQueue=${String(keepQueue)}`)
+        throw new Error('Access to closed resource')
+      },
+      sweep: async () => {
+        calls.push('sweep')
+      },
+      forgetDrafts: async () => {
+        calls.push('forgetDrafts')
+      },
+      signOutOnDevice: async (leave) => {
+        calls.push('signOutOnDevice')
+        await leave(Promise.resolve())
+        calls.push('revoke')
+      },
+      switchDistributor: async (tenantId) => {
+        calls.push(`switch ${tenantId}`)
+      },
+    }
+    await leaveNow({ mode: 'signOut' }, false, steps)
+    expect(calls).toEqual(['signOutOnDevice', 'end keepQueue=false', 'sweep', 'revoke'])
+  })
+
+  /*
    * Addendum (y). On iOS "Sign out, keep here" crashed Expo Go inside `end()` (2 of 2), and the relaunch came back signed
    * in as the rep who had chosen to sign out: on a shared phone the next person is inside his session. The session is
    * cleared on this phone before `end()` touches the store, and the server's revoke goes last, with the token it kept.
@@ -470,7 +503,8 @@ describe('DOS-167 the sales leave sheet', () => {
       'revoke',
     ])
 
-    // Ending the engine threw: already signed out on this phone, and the rest of the leaving still runs.
+    // Ending the engine threw: already signed out on this phone, and the rest of the leaving still runs — all but the
+    // forgetting of the drafts, which stay with a file that may have survived (addendum (z3)).
     const endFails = phone({ endFails: true })
     await expect(tapLeave({ mode: 'signOut' }, endFails.steps)).resolves.toBe('left')
     expect(endFails.calls).toEqual([
@@ -479,7 +513,6 @@ describe('DOS-167 the sales leave sheet', () => {
       'signOutOnDevice',
       'end keepQueue=false',
       'sweep',
-      'forgetDrafts',
       'revoke',
     ])
 
