@@ -61,6 +61,7 @@ import {
 } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
 import { OrdersService } from '../orders/index.js'
+import { ReceivablesService } from '../receivables/index.js'
 import { activeMembersWithRole } from '../tenancy/index.js'
 import { LoadSheetsService } from '../warehouse/index.js'
 import {
@@ -177,6 +178,7 @@ export class TripsService {
     private readonly orders: OrdersService,
     private readonly billing: BillingService,
     private readonly loadSheets: LoadSheetsService,
+    private readonly receivables: ReceivablesService,
   ) {}
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1214,6 +1216,7 @@ export class TripsService {
         })),
       policy: (tx) => loadTripPolicy(tx),
       vanSalesFlag: (tx) => vanSalesFlag(tx),
+      tripMoney: (tx, tripId) => this.receivables.tripMoney(tx, tripId, { lock: false }),
     }
   }
 }

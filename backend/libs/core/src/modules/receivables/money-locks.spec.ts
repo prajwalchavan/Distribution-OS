@@ -621,11 +621,9 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
     expect(bank.status, JSON.stringify(bank.body)).toBe(200)
     expect(await accountNet([['receipt', bankId]])).toEqual({ BANK: 7_000, AR: -7_000 })
 
-    // The third door, a `collections` PUT (delivery.sync.ts, design Step 3, which lands with the settlement slice).
-    // Pinned here is what holds before and after Step 3: the op naming the settled trip is refused, so is its
-    // replay, and nothing is written. Its code and sentence (`trip_settled`, TRIP_SETTLED) are added to this block
-    // red-first by the settlement slice together with Step 3: see the `it.todo` below.
-    const collectionOp = (onTripId: string, book: string) => ({
+    // The third door, a `collections` PUT (delivery.sync.ts, design Step 3): cash or a cheque naming the settled trip
+    // is refused `trip_settled` in the same sentence as the two doors above, so is its replay, and nothing is written.
+    const collectionOp = (onTripId: string, mode: 'cash' | 'cheque' | 'upi', book: string) => ({
       opId: uuidv7(),
       op: 'PUT',
       table: 'collections',
@@ -634,11 +632,15 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
         receipt_id: uuidv7(),
         trip_id: onTripId,
         retailer_id: shopId,
-        mode: 'cash',
+        mode,
         amount_paise: 7_000,
         collected_at: at,
         device_id: deviceId,
         client_receipt_no: `${book}-${run}`,
+        ...(mode === 'cash' ? {} : { reference: `${book}${run}` }),
+        ...(mode === 'cheque'
+          ? { bank_name: 'Bank of Baroda', cheque_date: businessDate().date }
+          : {}),
       },
       clientTime: at,
     })
@@ -648,25 +650,44 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
           sql`select 1 from collections where tenant_id = ${tenantId} and id = ${id}`,
         )
       ).rows.length > 0
-    const collectionOnSettled = collectionOp(tripId, 'T4K')
-    for (const attempt of ['first', 'replay'] as const) {
-      const sent = await upload([collectionOnSettled])
-      expect(sent.status).toBe(200)
-      expect(sent.body, `${attempt}: ${JSON.stringify(sent.body)}`).toMatchObject({
-        accepted: 0,
-        replayed: attempt === 'first' ? 0 : 1,
-      })
-      expect(sent.body.rejected.map((r) => r.opId)).toEqual([collectionOnSettled.opId])
-      expect(await syncErrorsOf(collectionOnSettled.opId)).toHaveLength(1)
-      expect(await collectionExists(collectionOnSettled.id)).toBe(false)
-      expect(await receiptExists(collectionOnSettled.data.receipt_id)).toBe(false)
-      expect(await entryCount('receipt', [collectionOnSettled.data.receipt_id])).toBe(0)
+    for (const mode of ['cash', 'cheque'] as const) {
+      const collectionOnSettled = collectionOp(tripId, mode, mode === 'cash' ? 'T4K' : 'T4Q')
+      for (const attempt of ['first', 'replay'] as const) {
+        const sent = await upload([collectionOnSettled])
+        expect(sent.status).toBe(200)
+        expect(sent.body, `${mode} ${attempt}: ${JSON.stringify(sent.body)}`).toMatchObject({
+          accepted: 0,
+          replayed: attempt === 'first' ? 0 : 1,
+        })
+        expect(sent.body.rejected.map((r) => [r.opId, r.code, r.messageEn])).toEqual([
+          [collectionOnSettled.opId, 'trip_settled', TRIP_SETTLED],
+        ])
+        expect(await syncErrorsOf(collectionOnSettled.opId)).toEqual([
+          { code: 'trip_settled', message_en: TRIP_SETTLED },
+        ])
+        expect(await collectionExists(collectionOnSettled.id)).toBe(false)
+        expect(await receiptExists(collectionOnSettled.data.receipt_id)).toBe(false)
+        expect(await entryCount('receipt', [collectionOnSettled.data.receipt_id])).toBe(0)
+      }
     }
+
+    // UPI through this door is not money for the cashier (founder answer A): a phone's UPI after the settlement
+    // reaches the office as the `receipts` op above, which accepts it. This door takes money only while the trip is
+    // out, so a UPI collection on the settled trip still answers `trip_not_open` and writes nothing.
+    const upiOnSettled = collectionOp(tripId, 'upi', 'T4V')
+    const upiRefused = await upload([upiOnSettled])
+    expect(upiRefused.status).toBe(200)
+    expect(upiRefused.body.accepted, JSON.stringify(upiRefused.body)).toBe(0)
+    expect(upiRefused.body.rejected.map((r) => [r.opId, r.code])).toEqual([
+      [upiOnSettled.opId, 'trip_not_open'],
+    ])
+    expect(await collectionExists(upiOnSettled.id)).toBe(false)
+    expect(await receiptExists(upiOnSettled.data.receipt_id)).toBe(false)
 
     // The control: the same op naming a trip that has not left yet is still `trip_not_open` (Step 3 refuses only a
     // trip that has handed its cash over), which also shows the op above passes the collection's input schema.
     const notLeftId = await plannedTrip('ml-t4p', 13, 'TC', floatPaise)
-    const collectionOnPlanned = collectionOp(notLeftId, 'T4P')
+    const collectionOnPlanned = collectionOp(notLeftId, 'cash', 'T4P')
     const notOpen = await upload([collectionOnPlanned])
     expect(notOpen.status).toBe(200)
     expect(notOpen.body.accepted, JSON.stringify(notOpen.body)).toBe(0)
@@ -676,13 +697,6 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
     expect(await collectionExists(collectionOnPlanned.id)).toBe(false)
     expect(await receiptExists(collectionOnPlanned.data.receipt_id)).toBe(false)
   }, 120_000)
-
-  // Design T4's last assertion, owed by the settlement slice: the `collections` op on the settled trip above answers
-  // `trip_settled` with TRIP_SETTLED, character for character. Red until design Step 3 lands in delivery.sync.ts; that
-  // slice pins code and sentence inside T4's collections block, red-first, and deletes this line.
-  it.todo(
-    'DOS-169 the collections door refuses a settled trip trip_settled with the same sentence (design Step 3, settlement slice)',
-  )
 
   // ---------------------------------------------------------------------------------------------------------------
   // DOS-170: an undo racing the settlement of the trip that carries the money
