@@ -224,18 +224,18 @@ export default function LoadOut(): React.JSX.Element {
       void api.api.warehouse.challans.pdf({ id: challanId }).then(
         (result) => {
           if (challanToken.current !== token) return
-          const step = nextChallanPoll(
-            absoluteUrl(result.url),
-            tries,
-            CHALLAN_POLL_ATTEMPTS,
-            CHALLAN_POLL_MS,
-          )
+          // Absolutised exactly once, here: `readyUrl` is what the poll decides on and the only value
+          // that is opened or kept for the button (DOS-057/DOS-099 guard, document-urls.test.ts).
+          const readyUrl = absoluteUrl(result.url)
+          const step = nextChallanPoll(readyUrl, tries, CHALLAN_POLL_ATTEMPTS, CHALLAN_POLL_MS)
           if (step.action === 'open') {
+            // The poll opens only the URL it was handed, so `readyUrl` is non-null here.
+            if (readyUrl === null) return
             if (tries === 0) {
               setChallanNote(null)
-              void documents.open(absoluteUrl(step.url) ?? step.url)
+              void documents.open(readyUrl)
             } else {
-              setChallanUrl(step.url)
+              setChallanUrl(readyUrl)
               setChallanNote(t('m7.challanReady'))
             }
           } else if (step.action === 'error') {
@@ -460,8 +460,12 @@ export default function LoadOut(): React.JSX.Element {
                       // thing, before any await — the only way `window.open` keeps this tap's
                       // user gesture on web. Otherwise the poll starts and opens it itself only
                       // if attempt 0 already has the answer.
-                      if (challanUrl !== null) {
-                        void documents.open(absoluteUrl(challanUrl) ?? challanUrl)
+                      // `challanUrl` only ever holds the poll's absolutised `readyUrl` (or null);
+                      // absoluteUrl() returns an absolute URL unchanged, so this re-check is a no-op
+                      // that keeps the rule visible at the call site, with no raw fallback.
+                      const printUrl = absoluteUrl(challanUrl)
+                      if (printUrl !== null) {
+                        void documents.open(printUrl)
                         return
                       }
                       openChallan(sheet.challan?.id ?? '')
