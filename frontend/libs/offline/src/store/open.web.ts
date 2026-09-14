@@ -11,21 +11,29 @@
  * store that cannot be persisted must announce itself as memory rather than half-open one that throws
  * on the first write. Nothing here throws — a missing capability answers with the fallback, the way
  * every `@dos/ui/platform` module does.
+ *
+ * AND NOTHING HERE IS SILENT (DOS-167 ruling 2 (t)). The fallback carries the reason it was taken, and the engine
+ * says it: on the web proof of 199952b every open failed, this answered memory without a word, and a rep was told his
+ * order was kept on the phone while only the tab held it.
  */
 import { createMemoryStore } from './memory.js'
 import { openExpoSqlite, type ExpoSqliteLike } from './expo-sqlite.js'
 import type { StoreKind, SyncStore } from '../types.js'
 
-function opfsAvailable(): boolean {
-  if (typeof globalThis === 'undefined') return false
+/** Why this page cannot have OPFS, or null when it can. */
+function whyNoOpfs(): string | null {
   const scope = globalThis as {
     crossOriginIsolated?: boolean
     navigator?: { storage?: { getDirectory?: unknown } }
     Worker?: unknown
   }
-  if (scope.crossOriginIsolated !== true) return false
-  if (typeof scope.Worker !== 'function') return false
-  return typeof scope.navigator?.storage?.getDirectory === 'function'
+  if (scope.crossOriginIsolated !== true) return 'not cross-origin isolated (no COOP/COEP)'
+  if (typeof scope.Worker !== 'function') return 'no OPFS'
+  return typeof scope.navigator?.storage?.getDirectory === 'function' ? null : 'no OPFS'
+}
+
+function inMemory(reason: string): SyncStore {
+  return createMemoryStore({ wanted: 'sqlite-web', reason })
 }
 
 async function loadSqlite(): Promise<ExpoSqliteLike | null> {
@@ -39,17 +47,18 @@ async function loadSqlite(): Promise<ExpoSqliteLike | null> {
 }
 
 export async function openStore(name: string): Promise<SyncStore> {
-  if (!opfsAvailable()) return createMemoryStore()
+  const missing = whyNoOpfs()
+  if (missing !== null) return inMemory(missing)
   const sqlite = await loadSqlite()
-  if (sqlite === null) return createMemoryStore()
+  if (sqlite === null) return inMemory('expo-sqlite did not load')
   try {
     return await openExpoSqlite(sqlite, name, 'sqlite-web')
-  } catch {
-    return createMemoryStore()
+  } catch (error) {
+    return inMemory(`open failed: ${error instanceof Error ? error.message : String(error)}`)
   }
 }
 
 export async function probeStoreKind(): Promise<StoreKind> {
-  if (!opfsAvailable()) return 'memory'
+  if (whyNoOpfs() !== null) return 'memory'
   return (await loadSqlite()) === null ? 'memory' : 'sqlite-web'
 }

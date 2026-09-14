@@ -102,7 +102,7 @@ export default function RootLayout(): React.JSX.Element | null {
  * distributor until someone has signed in (UX-00 §11: the product's own mark appears nowhere).
  */
 function Shell(): React.JSX.Element {
-  const { session, hydrating, signOut, switchDistributor } = useSession()
+  const { session, hydrating, signOut, signOutOnDevice, switchDistributor } = useSession()
   const pathname = usePathname()
   const router = useRouter()
   const onSignIn = pathname === '/sign-in'
@@ -215,7 +215,7 @@ function Shell(): React.JSX.Element {
       can={can}
       pathname={pathname}
       session={session}
-      signOut={signOut}
+      signOutOnDevice={signOutOnDevice}
       switchDistributor={switchDistributor}
       tenant={{
         current: {
@@ -338,7 +338,8 @@ interface ChromeProps {
   tenant: Omit<ShellTenant, 'onSwitch'>
   /** The account menu without its sign-out: signing out goes through the leave flow below. */
   account: Omit<ShellAccount, 'onSignOut'>
-  signOut: () => Promise<void>
+  /** Sign out on this phone at once, run the leaving, then revoke on the server (DOS-167 addendum (y)). */
+  signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   switchDistributor: (tenantId: string) => Promise<unknown>
   children: React.ReactNode
 }
@@ -352,9 +353,9 @@ interface ChromeProps {
  * never a "Sync now" button (UX-00 §6.11).
  *
  * LEAVING IS DECIDED HERE, inside the provider, because it needs the device (DOS-167; founder,
- * 2026-09-13). With nothing queued and nothing refused, "Sign out" is one tap: this rep's file is
- * deleted, their files at other distributors are deleted where nothing waits in them, their order
- * drafts are forgotten, and only then is the session cleared. With anything waiting, the leave sheet
+ * 2026-09-13). With nothing queued and nothing refused, "Sign out" is one tap: the session is cleared
+ * on this phone first (addendum (y)), then this rep's file is deleted, their files at other distributors
+ * are deleted where nothing waits in them, and their order drafts are forgotten. With anything waiting, the leave sheet
  * names the count and the person: "Send now" while there is a signal, or sign out keeping them on this
  * phone for this rep only. A switch wipes nothing — the changes wait in this distributor's file — and
  * asks only when something is waiting.
@@ -365,7 +366,7 @@ function Chrome({
   session,
   tenant,
   account,
-  signOut,
+  signOutOnDevice,
   switchDistributor,
   children,
 }: ChromeProps): React.JSX.Element {
@@ -400,10 +401,10 @@ function Chrome({
       sweep: () =>
         SyncEngine.sweepIdentityStores(openStore, STORE_PREFIX, otherIdentities(session)),
       forgetDrafts: () => forgetDraftsOf(session.user.id),
-      signOut,
+      signOutOnDevice,
       switchDistributor,
     }),
-    [device.waiting, device.sendNow, device.end, session, signOut, switchDistributor],
+    [device.waiting, device.sendNow, device.end, session, signOutOnDevice, switchDistributor],
   )
 
   /** One leave step at a time: a second tap before `busy` has rendered is swallowed too. */
@@ -501,6 +502,7 @@ function Chrome({
         pending={device.pending}
         rejected={device.rejected}
         online={device.online}
+        persistent={device.persistent}
         name={session.user.name}
         tenantName={session.tenant.displayName}
         busy={busy}

@@ -37,6 +37,8 @@ import type {
   OutboxRow,
   SqlValue,
   StoreFactory,
+  StoreFallback,
+  StoreKind,
   SyncIdentity,
   SyncStatus,
   SyncStore,
@@ -52,14 +54,91 @@ const STORE_PREFIX = /^[A-Za-z0-9-]+$/
 const STORE_ID = /^[A-Za-z0-9-]{1,64}$/
 
 /**
+ * The letter that names the app in its store file (DOS-167 ruling 2 (s)). `storePrefix` is a literal per app,
+ * so a prefix outside this table is a bug, and it gets no file rather than a guessed one.
+ */
+const STORE_APP_LETTERS: ReadonlyMap<string, string> = new Map([
+  ['dos-sales', 's'],
+  ['dos-delivery', 'd'],
+  ['dos-warehouse', 'w'],
+  ['dos-harness', 'h'],
+])
+const STORE_APP_PREFIXES: ReadonlyMap<string, string> = new Map(
+  [...STORE_APP_LETTERS].map(([prefix, letter]) => [letter, prefix]),
+)
+/** Every id in this system is a UUID; a file name never carries an unchecked string. Any case goes in. */
+const CANONICAL_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/** 36^24 < 2^128 < 36^25: twenty-five base-36 digits hold every UUID, zero-padded to a fixed width. */
+const ID_DIGITS = 25
+const STORE_NAME = /^([sdwh])([0-9a-z]{25})([0-9a-z]{25})$/
+
+/**
  * The device database of one person inside one distributorship, for one app (DOS-167, docs/27 §2):
- * `dos-sales__u-<userId>__t-<tenantId>.db`. Two identities can never open the same file, so a person who
- * signs in on a phone somebody else used starts with no rows and no cursor by construction.
+ * `<app><user><distributor>` — the app's letter, then each id's 128 bits in base 36, zero-padded to 25 digits —
+ * exactly 51 characters of `[0-9a-z]`, e.g. `s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft`. Two identities can
+ * never open the same file, so a person who signs in on a phone somebody else used starts with no rows and no
+ * cursor by construction.
  *
- * LOSSLESS ON PURPOSE: the ids go in as they are, never hashed, so two identities share a file only when
- * both ids are equal. And CHECKED: a file name never carries an unchecked string.
+ * SHORT BECAUSE IT HAS TO OPEN (ruling 2 (s)). expo-sqlite's web build opens `./<name>` through wa-sqlite, whose
+ * VFS allows 64 characters of path, and SQLite keeps 8 of those for the journal suffix: a name longer than 54
+ * does not open at all. The 199952b name (`dos-sales__u-<uuid>__t-<uuid>.db`, 92 characters) failed on every
+ * browser, and the open fell back to a store in memory. This one leaves `./` + 51 = 53.
+ *
+ * LOSSLESS AND COLLISION-FREE, with no hash anywhere: a canonical UUID and its 128-bit number are the same thing,
+ * a number has one zero-padded base-36 spelling, the widths are fixed so the parts cannot run into each other,
+ * and the alphabet has ONE case, so no case-folding file system (the iOS simulator's container sits on one) can
+ * take two people's files for one. `parseStoreName` reads a name back.
  */
 export function storeNameFor(prefix: string, identity: SyncIdentity): string {
+  const letter = STORE_APP_LETTERS.get(prefix)
+  if (letter === undefined) throw new Error(`offline: no store file for the app prefix ${prefix}`)
+  return `${letter}${idDigits(identity.userId)}${idDigits(identity.tenantId)}`
+}
+
+function idDigits(id: string): string {
+  if (!CANONICAL_UUID.test(id))
+    throw new Error('offline: a store name takes a user id and a distributor id that are UUIDs')
+  /*
+   * `BigInt`: Hermes has it from React Native 0.70 (the apps run 0.86), and the Android proof checks `typeof BigInt` on its
+   * first run. Should a platform lack it, the same digits come from four 32-bit limbs: the format is the rule, not the
+   * arithmetic (ruling 2 (s), docs/27 §2).
+   */
+  return BigInt(`0x${id.toLowerCase().replaceAll('-', '')}`)
+    .toString(36)
+    .padStart(ID_DIGITS, '0')
+}
+
+/**
+ * Whose file a name is — the app prefix and the two ids, as `storeNameFor` wrote them — or null for anything that
+ * is not a store name (a `-wal` or `-shm` beside it, another app's file). For a QA listing of a phone or a browser.
+ */
+export function parseStoreName(
+  name: string,
+): { prefix: string; userId: string; tenantId: string } | null {
+  const match = STORE_NAME.exec(name)
+  if (match === null) return null
+  const prefix = STORE_APP_PREFIXES.get(match[1] ?? '')
+  const userId = uuidOfDigits(match[2] ?? '')
+  const tenantId = uuidOfDigits(match[3] ?? '')
+  if (prefix === undefined || userId === null || tenantId === null) return null
+  return { prefix, userId, tenantId }
+}
+
+function uuidOfDigits(digits: string): string | null {
+  let value = 0n
+  for (const digit of digits) value = value * 36n + BigInt(Number.parseInt(digit, 36))
+  const hex = value.toString(16).padStart(32, '0')
+  // Twenty-five base-36 digits reach past 128 bits; a group that does is nobody's id.
+  if (hex.length > 32) return null
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+/**
+ * The name 199952b gave the file (`<prefix>__u-<userId>__t-<tenantId>.db`, 92-96 characters). No browser ever
+ * opened it; on the QA phones it did, and still holds what that build kept. It is named here only so the
+ * provider can sweep it once for the person signing in (ruling 2 (s)); nothing opens it to use it.
+ */
+export function interimStoreName(prefix: string, identity: SyncIdentity): string {
   assertStorePrefix(prefix)
   if (!STORE_ID.test(identity.userId) || !STORE_ID.test(identity.tenantId))
     throw new Error(
@@ -178,8 +257,122 @@ export interface SyncEngineOptions {
 
 type Timer = ReturnType<typeof setTimeout>
 
+/**
+ * ONE HOLDER OF A FILE AT A TIME, per opener (DOS-167 addendum (y), merge review of ruling 2). Sign-out clears the
+ * session before `end()` has finished, so the sign-in form is on the screen while `end()` still waits for a page in
+ * flight: the same person signing straight back in had the provider start a second engine on the SAME file — on a
+ * phone expo-sqlite hands both the same connection — and the first `end()` counted the second engine's order, dropped
+ * its tables and deleted the file under it. The sweep of that person's other files ran the same way under an engine.
+ *
+ * So an engine takes the file from `start()` until its close has resolved, and waits for whoever held it before; the
+ * sweep takes a file only while nobody holds it, and skips one in use. Keyed by the opener as well as the name: two
+ * openers are two sets of files (in the apps there is one, `openStore`).
+ */
+const fileHolders = new WeakMap<StoreFactory, Map<string, Promise<void>>>()
+
+interface FileHold {
+  /** The holder before this one letting go; null when nobody held the file. */
+  readonly previous: Promise<void> | null
+  /** Let go of the file. Once is enough; again does nothing. */
+  readonly release: () => void
+}
+
+function holdFile(factory: StoreFactory, name: string): FileHold {
+  let holders = fileHolders.get(factory)
+  if (holders === undefined) {
+    holders = new Map()
+    fileHolders.set(factory, holders)
+  }
+  const byName = holders
+  const previous = byName.get(name) ?? null
+  let letGo = (): void => {}
+  const released = new Promise<void>((resolve) => {
+    letGo = resolve
+  })
+  const mine = previous === null ? released : previous.then(() => released)
+  byName.set(name, mine)
+  void mine.then(() => {
+    if (byName.get(name) === mine) byName.delete(name)
+  })
+  return { previous, release: letGo }
+}
+
+function fileInUse(factory: StoreFactory, name: string): boolean {
+  return fileHolders.get(factory)?.has(name) ?? false
+}
+
+/**
+ * The store as the engine holds it (DOS-167 addendum (x)): every call through it is counted from the moment it starts
+ * until it settles, and the file is closed only once the last one has landed — once, however often `close()` is asked.
+ *
+ * "Sign out, keep here" crashed the delivery app on Android and Expo Go on iOS, 2 of 2 each: SIGSEGV in expo-sqlite's
+ * `exsqlite3_reset`. expo-sqlite's close finalizes every prepared statement and marks the database closed only after
+ * `sqlite3_close` (android SQLiteModule.kt `closeDatabase`), while a `runAsync` already on another dispatcher thread
+ * passes that check and resets a statement that is gone. The engine closed the file with reads still in flight.
+ */
+class HeldStore implements SyncStore {
+  readonly persistent: boolean
+  readonly kind: StoreKind
+  readonly fallback?: StoreFallback
+  private readonly inFlight = new Set<Promise<unknown>>()
+  private closeOnce: Promise<void> | null = null
+
+  constructor(private readonly inner: SyncStore) {
+    this.persistent = inner.persistent
+    this.kind = inner.kind
+    if (inner.fallback !== undefined) this.fallback = inner.fallback
+  }
+
+  exec(sql: string, params?: readonly SqlValue[]): Promise<void> {
+    return this.held(this.inner.exec(sql, params))
+  }
+
+  query<T>(sql: string, params?: readonly SqlValue[]): Promise<T[]> {
+    return this.held(this.inner.query<T>(sql, params))
+  }
+
+  transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
+    return this.held(this.inner.transaction(fn))
+  }
+
+  /** No call started through this store is still running. */
+  get idle(): boolean {
+    return this.inFlight.size === 0
+  }
+
+  /** The close has begun (a `stop()`, or `end()`). */
+  get closing(): boolean {
+    return this.closeOnce !== null
+  }
+
+  /** Until no call started through this store is still running. */
+  async drain(): Promise<void> {
+    while (this.inFlight.size > 0) await Promise.allSettled([...this.inFlight])
+  }
+
+  close(): Promise<void> {
+    this.closeOnce ??= this.drain().then(() => this.inner.close())
+    return this.closeOnce
+  }
+
+  /** Only after the close has resolved. */
+  async destroy(): Promise<void> {
+    await this.close()
+    await this.inner.destroy?.()
+  }
+
+  private held<T>(call: Promise<T>): Promise<T> {
+    this.inFlight.add(call)
+    const landed = (): void => {
+      this.inFlight.delete(call)
+    }
+    void call.then(landed, landed)
+    return call
+  }
+}
+
 export class SyncEngine {
-  private store: SyncStore | null = null
+  private store: HeldStore | null = null
   private readonly bus = new ChangeBus()
   private readonly statusListeners = new Set<(status: SyncStatus) => void>()
   private shapes = new Map<string, TableShape>()
@@ -218,12 +411,19 @@ export class SyncEngine {
   private ended = false
   /** The one `end()`: a second call waits for the first rather than starting again. */
   private ending: Promise<EndResult> | null = null
+  /**
+   * A `stop()` ran before `end()` (addendum (z3)): it closed the file as it stood and never deleted it, so an `end()` that
+   * finds no store answers it kept — it may hold this person's queue, and their drafts stay with it.
+   */
+  private stoppedBeforeEnd = false
   /** Writes that passed the gate and have not landed yet; `end()` waits for every one (ruling (m)). */
   private readonly writes = new Set<Promise<void>>()
   private flushChain: Promise<void> = Promise.resolve()
   /** The open in `start()` and the pull in flight, so `end()` never drops a table under either. */
   private opening: Promise<void> = Promise.resolve()
   private syncing: Promise<void> = Promise.resolve()
+  /** This engine's hold on its file (`holdFile`), from `start()` until the file is closed. */
+  private fileHold: FileHold | null = null
 
   constructor(private readonly options: SyncEngineOptions) {
     this.now = options.now ?? (() => Date.now())
@@ -252,7 +452,19 @@ export class SyncEngine {
     })
     let unclaimed: SyncStore | null = null
     try {
-      const store = await this.options.storeFactory(this.options.databaseName ?? 'dos-offline.db')
+      const name = this.options.databaseName ?? 'dos-offline.db'
+      /*
+       * THE FILE IS TAKEN FIRST, and opened only once whoever held it before has let go (merge review of ruling 2,
+       * `holdFile`): the engine of this same person still ending after a sign-out, or the sweep counting this file.
+       */
+      const hold = holdFile(this.options.storeFactory, name)
+      this.fileHold = hold
+      if (hold.previous !== null) await hold.previous
+      if (this.stoppedWhileOpening()) {
+        this.releaseFile()
+        return
+      }
+      const store = await this.options.storeFactory(name)
       unclaimed = store
       /*
        * STOPPED WHILE IT OPENED (DOS-167, merge review). The provider stops an engine the moment the session
@@ -263,8 +475,19 @@ export class SyncEngine {
        */
       if (this.stoppedWhileOpening()) {
         await store.close().catch(() => {})
+        this.releaseFile()
         return
       }
+      /*
+       * NEVER SILENT (DOS-167 ruling 2 (t)). A person's store that keeps nothing past this tab or this process says so,
+       * once, with the opener's reason: on the web proof of 199952b every open fell back to memory without a word, and
+       * a rep was told his order was kept on this phone while only the tab held it. `storeNote` carries the reason.
+       */
+      if (!store.persistent && this.options.identity !== undefined)
+        this.options.onLog?.('offline: no persistent store; running in memory', {
+          name,
+          fallback: store.fallback,
+        })
       await createSystemTables(store)
       await store.exec(
         `UPDATE ${OUTBOX_TABLE} SET status = 'queued', sent_at = NULL WHERE status = 'sending'`,
@@ -278,6 +501,7 @@ export class SyncEngine {
       await this.claimIdentity(store)
       if (this.stoppedWhileOpening()) {
         await store.close().catch(() => {})
+        this.releaseFile()
         return
       }
       /*
@@ -286,12 +510,14 @@ export class SyncEngine {
        * engine: handed the store before the claim, they read another person's queue and refusals for as
        * long as the claim took.
        */
-      this.store = store
+      // Held from here on (addendum (x)): neither `stop()` nor `end()` closes the file under a call in flight.
+      const held = new HeldStore(store)
+      this.store = held
       unclaimed = null
-      await writeState(store, 'deviceId', this.options.deviceId)
-      this.schemaVersion = await readState(store, 'schemaVersion')
-      this.lastPulledAt = await readState(store, 'lastPulledAt')
-      await this.restoreManifest(store)
+      await writeState(held, 'deviceId', this.options.deviceId)
+      this.schemaVersion = await readState(held, 'schemaVersion')
+      this.lastPulledAt = await readState(held, 'lastPulledAt')
+      await this.restoreManifest(held)
       await this.refreshCounts()
       this.ready = true
       this.emitStatus()
@@ -311,6 +537,8 @@ export class SyncEngine {
     } catch (error) {
       // A file opened and never claimed is this call's alone to close: no `stop()` or `end()` can reach it.
       if (unclaimed !== null) await unclaimed.close().catch(() => {})
+      // And its hold this call's alone to let go; an attached file is let go by the close in `stop()` or `end()`.
+      if (this.store === null) this.releaseFile()
       throw error
     } finally {
       opened()
@@ -322,18 +550,36 @@ export class SyncEngine {
   async stop(): Promise<void> {
     // After `end()` the file is already closed or gone; the provider's cleanup still calls this.
     if (this.ended) return
+    this.stoppedBeforeEnd = true
     this.started = false
     if (this.retryTimer !== null) clearTimeout(this.retryTimer)
     if (this.pollTimer !== null) clearTimeout(this.pollTimer)
     this.retryTimer = null
     this.pollTimer = null
-    await this.store?.close()
-    this.store = null
+    /*
+     * THROUGH THE SAME DRAIN AS `end()` (addendum (x)): from here every public read answers empty, the calls already in
+     * flight land, and only then does the file close, once. A distributor switch is this stop on the old file.
+     */
+    // Still opening, or never opened: `start()` lets go of the file itself.
+    const store = this.store
+    if (store === null) return
+    try {
+      await store.close()
+    } finally {
+      if (this.store === store) this.store = null
+      // Closed: the next holder of this file may open it (`holdFile`).
+      this.releaseFile()
+    }
   }
 
   /** `stop()` ran while `start()` was still opening or claiming its file; `end()` does not count. */
   private stoppedWhileOpening(): boolean {
     return !this.started && !this.ended
+  }
+
+  private releaseFile(): void {
+    this.fileHold?.release()
+    this.fileHold = null
   }
 
   /**
@@ -375,7 +621,8 @@ export class SyncEngine {
   }
 
   /**
-   * What the app's sign-out calls, BEFORE it clears the session (DOS-167; founder, 2026-09-13).
+   * What the app's sign-out calls, in the same turn as it clears the session on the device (DOS-167; founder,
+   * 2026-09-13; addendum (y): a crash in here must never relaunch the app signed in).
    *
    * From the call on every write is refused with `SyncEngineEndedError` (ruling (m)): a write that was
    * never saved is never deleted, and the screen says so instead of "saved on this phone". Nothing is
@@ -390,40 +637,72 @@ export class SyncEngine {
    * re-snapshots, and anyone else's `start()` wipes them unread. The engine is finished either way; a later
    * `stop()` does nothing, and a second `end()` waits for the first.
    */
-  end(options: { keepQueue: boolean }): Promise<EndResult> {
+  end(options: { keepQueue: boolean; after?: Promise<unknown> }): Promise<EndResult> {
     this.ending ??= this.endOnce(options)
     return this.ending
   }
 
-  private async endOnce(options: { keepQueue: boolean }): Promise<EndResult> {
-    // Before the first `await`: a write that begins from here on is refused (`requireStore`).
+  private async endOnce(options: {
+    keepQueue: boolean
+    after?: Promise<unknown>
+  }): Promise<EndResult> {
+    // Before the first `await`: a write that begins from here on is refused (`requireStore`), and a read answers
+    // empty without touching the store (`readsOpen`, addendum (x)).
     this.ended = true
     this.started = false
     if (this.retryTimer !== null) clearTimeout(this.retryTimer)
     if (this.pollTimer !== null) clearTimeout(this.pollTimer)
     this.retryTimer = null
     this.pollTimer = null
+    /*
+     * NOT BEFORE THE SESSION HAS LEFT THE DEVICE STORE (addendum (y), merge review of ruling 2). `after` is the sign-out's
+     * removal of the session from the platform store: on a phone the Keychain / EncryptedSharedPreferences delete is
+     * asynchronous, and a native crash in here before it landed relaunched the app signed in. Nothing in the file is
+     * touched until it has settled; every write is already refused.
+     */
+    if (options.after !== undefined)
+      await options.after.then(
+        () => undefined,
+        () => undefined,
+      )
     await this.settled()
     const store = this.store
     try {
-      if (store === null) return { kept: false, pending: 0, rejected: 0 }
+      if (store === null)
+        // Closed by a `stop()` before this (addendum (z3)): the file lives on as it stood, maybe with this person's queue.
+        return this.stoppedBeforeEnd
+          ? { kept: true, pending: this.pending, rejected: this.rejected }
+          : { kept: false, pending: 0, rejected: 0 }
+      if (store.closing) {
+        // A `stop()` began closing this file first: it is closed as it stands, and nothing more reaches it.
+        await store.close()
+        return { kept: true, pending: this.pending, rejected: this.rejected }
+      }
       await this.refreshCounts()
       const pending = this.pending
       const rejected = this.rejected
       const kept = options.keepQueue || pending + rejected > 0
+      /*
+       * THE ORDER OF THE LAST STEPS IS THE FIX FOR A NATIVE CRASH (addendum (x)): the wipe; its emit, which re-runs
+       * every mounted read — each answers empty now and starts no call; `close()`, which waits for any call still in
+       * flight before the file closes; and the delete only once the close has resolved.
+       */
       await this.dropReadSet(store, { keepQueue: kept })
       await store.close()
-      if (!kept) await store.destroy?.()
+      if (!kept) await store.destroy()
       return { kept, pending, rejected }
     } finally {
       // Even when a step threw: the caller signs out regardless, and this engine never writes again.
       this.store = null
+      // Closed, and deleted when nothing was kept: only now may the next engine on this file open it (`holdFile`).
+      this.releaseFile()
     }
   }
 
   /**
-   * Until no open, no upload batch, no pull and no write in hand is in flight. Nothing new starts once
-   * `ended` is set, so one pass that finds the batch and the pull unchanged and no write left is the end.
+   * Until no open, no upload batch, no pull, no write in hand and no store call — a screen's read included
+   * (addendum (x)) — is in flight. Nothing new starts once `ended` is set, so one pass that finds all of them
+   * unchanged and idle is the end.
    */
   private async settled(): Promise<void> {
     await this.opening
@@ -434,7 +713,14 @@ export class SyncEngine {
       await flushing.catch(() => {})
       await syncing
       await Promise.all(writes)
-      if (flushing === this.flushChain && syncing === this.syncing && this.writes.size === 0) return
+      await this.store?.drain()
+      if (
+        flushing === this.flushChain &&
+        syncing === this.syncing &&
+        this.writes.size === 0 &&
+        (this.store?.idle ?? true)
+      )
+        return
     }
   }
 
@@ -443,9 +729,11 @@ export class SyncEngine {
    * open in `start()` has finished (DOS-167). The sign-out decision is taken on THIS, never on `status()`:
    * the snapshot reads 0 until the open has counted the outbox, and a sign-out tapped in that window took
    * the one-tap path and deleted the queue it had not seen yet. An open that failed has no file to count.
+   * Once `end()` or `stop()` has begun, the last count is the answer and the store is not read (addendum (x)).
    */
   async waiting(): Promise<{ pending: number; rejected: number }> {
     await this.opening
+    if (!this.readsOpen()) return { pending: this.pending, rejected: this.rejected }
     await this.refreshCounts()
     this.emitStatus()
     return { pending: this.pending, rejected: this.rejected }
@@ -535,11 +823,47 @@ export class SyncEngine {
     identities: readonly SyncIdentity[],
     onLog?: (line: string, detail?: unknown) => void,
   ): Promise<{ destroyed: number; kept: { identity: SyncIdentity; pending: number }[] }> {
-    let destroyed = 0
-    const kept: { identity: SyncIdentity; pending: number }[] = []
+    const owners = new Map<string, SyncIdentity>()
     for (const identity of identities) {
       try {
-        const store = await storeFactory(storeNameFor(prefix, identity))
+        owners.set(storeNameFor(prefix, identity), identity)
+      } catch (error) {
+        onLog?.('offline: sweep skipped a store', error)
+      }
+    }
+    const swept = await SyncEngine.sweepStores(storeFactory, [...owners.keys()], onLog)
+    const kept: { identity: SyncIdentity; pending: number }[] = []
+    for (const file of swept.kept) {
+      const identity = owners.get(file.name)
+      if (identity !== undefined) kept.push({ identity, pending: file.pending })
+    }
+    return { destroyed: swept.destroyed, kept }
+  }
+
+  /**
+   * The sibling rule, by file name (DOS-167 ruling 2 (s)): each file is opened in turn, one with nothing queued,
+   * sending or refused is deleted, and one still holding unsent work is kept and reported. Best effort, file by
+   * file — a file that cannot be opened or counted is logged, closed and skipped, never deleted.
+   * `sweepIdentityStores` runs it over a person's other distributorships; the provider over the file 199952b named.
+   *
+   * A file somebody holds (`holdFile`) — an engine that has it open, or is still closing it — is skipped and logged,
+   * never counted or deleted; a file the sweep is working on is held by the sweep, so an engine opening it waits.
+   */
+  static async sweepStores(
+    storeFactory: StoreFactory,
+    names: readonly string[],
+    onLog?: (line: string, detail?: unknown) => void,
+  ): Promise<{ destroyed: number; kept: { name: string; pending: number }[] }> {
+    let destroyed = 0
+    const kept: { name: string; pending: number }[] = []
+    for (const name of names) {
+      if (fileInUse(storeFactory, name)) {
+        onLog?.('offline: sweep skipped a store in use', { name })
+        continue
+      }
+      const hold = holdFile(storeFactory, name)
+      try {
+        const store = await storeFactory(name)
         let pending: number
         try {
           await createSystemTables(store)
@@ -558,7 +882,7 @@ export class SyncEngine {
         }
         if (pending > 0) {
           await store.close()
-          kept.push({ identity, pending })
+          kept.push({ name, pending })
         } else if (store.destroy === undefined) {
           await store.close()
         } else {
@@ -567,6 +891,8 @@ export class SyncEngine {
         }
       } catch (error) {
         onLog?.('offline: sweep skipped a store', error)
+      } finally {
+        hold.release()
       }
     }
     return { destroyed, kept }
@@ -591,6 +917,8 @@ export class SyncEngine {
       online: this.radio() && this.reachable,
       store: this.store?.kind ?? 'memory',
       persistent: this.store?.persistent ?? false,
+      storeNote:
+        this.store === null || this.store.persistent ? null : (this.store.fallback?.reason ?? null),
       lastPulledAt: this.lastPulledAt,
       pulling: this.pulling,
       pending: this.pending,
@@ -895,41 +1223,64 @@ export class SyncEngine {
    * visible but unqueued, or queued but invisible.
    */
   async enqueue(input: EnqueueInput): Promise<string> {
+    // Called before the first `await`, so the gate in `enqueueMany` still refuses synchronously (ruling (m)).
+    const [opId] = await this.enqueueMany([input])
+    if (opId === undefined) throw new Error('offline: the outbox took no op')
+    return opId
+  }
+
+  /**
+   * An aggregate as ONE write (DOS-167 ruling 2 (u)): an order and its lines land in the outbox together, or none of
+   * them does. One gate; every input checked against the manifest BEFORE anything is written, so one line this role
+   * may not queue refuses the whole order; one transaction that inserts the rows in call order — ascending `seq`,
+   * header first, so FIFO still delivers an order before its lines — and applies each locally; then one count, one
+   * message to every table touched and one flush.
+   *
+   * Queued one enqueue at a time, a sign-out that began between the header and its lines refused the lines after the
+   * header had landed, and the office got a draft with no lines (web proof V5E). Refused at the gate now, nothing of
+   * it is queued; past the gate, `end()` waits for it, counts it and keeps the file (ruling (m)).
+   */
+  async enqueueMany(inputs: readonly EnqueueInput[]): Promise<string[]> {
     // The gate: once `end()` has begun this refuses, before anything is written (DOS-167, ruling (m)).
     const store = this.requireStore()
-    const shape = this.shapes.get(input.table)
-    if (!shape)
-      throw new Error(
-        `${input.table} is not in this device's manifest; nothing may be queued for it`,
-      )
-    if (!shape.writable)
-      throw new Error(`${input.table} is download-only for this role (manifest writable = false)`)
-    const opId = input.opId ?? uuidv7()
+    const planned = inputs.map((input) => {
+      const shape = this.shapes.get(input.table)
+      if (!shape)
+        throw new Error(
+          `${input.table} is not in this device's manifest; nothing may be queued for it`,
+        )
+      if (!shape.writable)
+        throw new Error(`${input.table} is download-only for this role (manifest writable = false)`)
+      return { input, shape, opId: input.opId ?? uuidv7() }
+    })
+    if (planned.length === 0) return []
     const createdAt = new Date(this.now()).toISOString()
     return this.inHand(async () => {
       await store.transaction(async (tx) => {
-        await tx.exec(
-          `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
-             (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
-          [
-            opId,
-            input.table,
-            input.id,
-            input.op,
-            input.data === undefined ? null : JSON.stringify(input.data),
-            input.baseUpdatedAt ?? null,
-            opId,
-            createdAt,
-          ],
-        )
-        await this.applyLocally(tx, shape, input)
+        for (const { input, shape, opId } of planned) {
+          await tx.exec(
+            `INSERT OR REPLACE INTO ${OUTBOX_TABLE}
+               (op_id, tbl, row_id, op, data, base_updated_at, idempotency_key, status, attempts, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?)`,
+            [
+              opId,
+              input.table,
+              input.id,
+              input.op,
+              input.data === undefined ? null : JSON.stringify(input.data),
+              input.baseUpdatedAt ?? null,
+              opId,
+              createdAt,
+            ],
+          )
+          await this.applyLocally(tx, shape, input)
+        }
       })
       await this.refreshCounts()
-      this.bus.emit([input.table, OUTBOX_CHANNEL])
+      this.bus.emit([...planned.map(({ input }) => input.table), OUTBOX_CHANNEL])
       this.emitStatus()
       void this.flush()
-      return opId
+      return planned.map(({ opId }) => opId)
     })
   }
 
@@ -1224,7 +1575,7 @@ export class SyncEngine {
 
   async countRows(table: string): Promise<number> {
     const store = this.store
-    if (store === null || !this.shapes.has(table)) return 0
+    if (store === null || !this.readsOpen() || !this.shapes.has(table)) return 0
     const [row] = await store.query<{ n: number }>(`SELECT COUNT(*) AS n FROM ${quoteIdent(table)}`)
     return Number(row?.n ?? 0)
   }
@@ -1232,7 +1583,7 @@ export class SyncEngine {
   async queryTable<T>(table: string, options: TableQuery = {}): Promise<T[]> {
     const store = this.store
     const shape = this.shapes.get(table)
-    if (store === null || !shape) return []
+    if (store === null || !shape || !this.readsOpen()) return []
     const where = options.where === undefined ? '' : ` WHERE ${options.where}`
     const order = options.orderBy === undefined ? '' : ` ORDER BY ${options.orderBy}`
     const limit = options.limit === undefined ? '' : ` LIMIT ${String(Math.trunc(options.limit))}`
@@ -1255,7 +1606,7 @@ export class SyncEngine {
 
   async outbox(): Promise<OutboxRow[]> {
     const store = this.store
-    if (store === null) return []
+    if (store === null || !this.readsOpen()) return []
     const rows = await store.query<Record<string, SqlValue>>(
       `SELECT * FROM ${OUTBOX_TABLE} ORDER BY seq`,
     )
@@ -1265,7 +1616,7 @@ export class SyncEngine {
   /** The tray (docs/27 §11): the rejection, the op the device still holds, and the server's row. */
   async needsAttention(): Promise<NeedsAttentionItem[]> {
     const store = this.store
-    if (store === null) return []
+    if (store === null || !this.readsOpen()) return []
     const errors = await store.query<Record<string, SqlValue>>(
       `SELECT * FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL ORDER BY created_at DESC`,
     )
@@ -1280,6 +1631,8 @@ export class SyncEngine {
         createdAt: String(raw.created_at ?? ''),
         discardedAt: raw.discarded_at === null ? null : String(raw.discarded_at),
       }
+      // A sign-out or a stop that began while this read ran ends it here: no call starts after it (addendum (x)).
+      if (!this.readsOpen()) return []
       const opRows = await store.query<Record<string, SqlValue>>(
         `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
         [error.opId],
@@ -1325,7 +1678,7 @@ export class SyncEngine {
   async flushGps(tripId: string): Promise<void> {
     const store = this.store
     const post = this.options.transport.postGpsPoints
-    if (store === null || post === undefined) return
+    if (store === null || post === undefined || !this.readsOpen()) return
     const rows = await store.query<Record<string, SqlValue>>(
       `SELECT * FROM ${GPS_TABLE} WHERE trip_id = ? AND posted = 0 ORDER BY ts LIMIT 500`,
       [tripId],
@@ -1346,6 +1699,7 @@ export class SyncEngine {
         })),
       }),
     )
+    if (!this.readsOpen()) return
     for (const row of rows)
       await store.exec(`UPDATE ${GPS_TABLE} SET posted = 1 WHERE trip_id = ? AND ts = ?`, [
         tripId,
@@ -1361,6 +1715,16 @@ export class SyncEngine {
    * `end()` begins, and after it has finished, nothing more is saved on this phone and the person is told so
    * in a sentence — never shown a write that the sign-out would then delete.
    */
+  /**
+   * Whether a public read may still touch the store (DOS-167 addendum (x)): not once `end()` or `stop()` has begun.
+   * From then on a read answers empty and starts no call the close would have to wait for — the emit of the dropped
+   * tables re-runs every mounted read, and those reads were still in flight when expo-sqlite closed the file under
+   * them.
+   */
+  private readsOpen(): boolean {
+    return this.started && !this.ended
+  }
+
   private requireStore(): SyncStore {
     if (this.ended) throw new SyncEngineEndedError()
     if (this.store === null) throw new Error('the sync engine has not started yet')

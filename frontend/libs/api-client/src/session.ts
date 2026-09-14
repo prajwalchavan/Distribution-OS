@@ -211,6 +211,20 @@ abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
     this.emit({ session: null, hydrating: false })
   }
 
+  /**
+   * `clear()`, and a promise that settles once the platform store has let go of the session too (DOS-167 addendum (y)):
+   * `TokenStorage.clearSession` where the storage has one, at once where every write is synchronous. It never rejects:
+   * what waits on it waits for the removal to be over, either way.
+   */
+  clearOnDevice(): Promise<void> {
+    const durable = this.storage.clearSession?.() ?? Promise.resolve()
+    this.clear()
+    return durable.then(
+      () => undefined,
+      () => undefined,
+    )
+  }
+
   /** The boot-time refresh finished (or was never worth attempting). */
   settleHydration(): void {
     if (this.#state.hydrating) this.emit({ ...this.#state, hydrating: false })

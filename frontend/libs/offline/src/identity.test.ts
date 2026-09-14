@@ -12,14 +12,21 @@
 import { describe, expect, it } from 'vitest'
 
 import { ERRORS_CHANNEL, OUTBOX_CHANNEL } from './bus.js'
-import { legacyStoreName, storeNameFor, SyncEngine, type SyncEngineOptions } from './engine.js'
-import { leaveDecision } from './react.js'
-import { OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
-import { readAllState, readState } from './state.js'
+import {
+  interimStoreName,
+  legacyStoreName,
+  parseStoreName,
+  storeNameFor,
+  SyncEngine,
+  type SyncEngineOptions,
+} from './engine.js'
+import { leaveDecision, sweepInterimStore } from './react.js'
+import { createSystemTables, OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
+import { readAllState, readState, writeState } from './state.js'
 import { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
-import type { StoreFactory, SyncIdentity, SyncStore, SyncTransport } from './types.js'
+import type { EnqueueInput, StoreFactory, SyncIdentity, SyncStore, SyncTransport } from './types.js'
 import type { PullOutput } from './wire.js'
 
 const RETAILERS = tableManifest('retailers', [
@@ -41,6 +48,32 @@ const TABLES = [RETAILERS, ORDERS]
 const RAHUL: SyncIdentity = { userId: 'rahul', tenantId: 'tarsun', role: 'salesperson' }
 const AMIT: SyncIdentity = { userId: 'amit', tenantId: 'tarsun', role: 'salesperson' }
 const KIRAN: SyncIdentity = { userId: 'kiran', tenantId: 'sai', role: 'salesperson' }
+
+/**
+ * Where a test needs a FILE NAME, the ids are UUIDs, as every id in this system is (ruling 2 (s)): Rahul and Tarsun
+ * as the QA data gives them, and the other people and distributors made up in the same shape.
+ */
+const RAHUL_ID = '8760e17e-4830-7395-a946-1e02fffa1ad7'
+const TARSUN_ID = '01a09a5b-3c58-71c1-a34d-b93c569b0099'
+const AMIT_ID = '0192f3c4-8a1b-7c2d-9e3f-4a5b6c7d8e9f'
+const SAI_ID = '82f5c562-b7eb-7521-8e19-4aa6befc64f8'
+const BALAJI_ID = '0192f3c4-0000-7000-8000-0000000000aa'
+const RAHUL_AT_TARSUN: SyncIdentity = { userId: RAHUL_ID, tenantId: TARSUN_ID, role: 'salesperson' }
+
+/** 128-bit ids across the whole range, the same ones on every run. */
+function spreadOfUuids(count: number): string[] {
+  let seed = 0x1a2b3c4d
+  const next = (): number => {
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return (t ^ (t >>> 14)) >>> 0
+  }
+  return Array.from({ length: count }, () => {
+    const hex = Array.from({ length: 4 }, () => next().toString(16).padStart(8, '0')).join('')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  })
+}
 
 /** Rahul's shop, never on Amit's beat and never Sai's. */
 const CHAVAN = { id: 'r-chavan', name: 'Chavan Kirana Stores' }
@@ -124,36 +157,216 @@ function watched(
   }
 }
 
+/**
+ * A phone's SQLite files as expo-sqlite 57 keeps them, behind ONE opener as `openStore` is in the apps: one connection
+ * per file name, handed to whoever opens that name while it is there, and an empty file after a delete. `opens` names
+ * every open; `countDoor(name)` holds the sweep's count of that file until the function it hands back is called.
+ */
+function phoneFiles(): {
+  factory: StoreFactory
+  opens: string[]
+  countDoor: (name: string) => () => void
+} {
+  const files = new Map<string, SyncStore>()
+  const doors = new Map<string, Promise<void>>()
+  const opens: string[] = []
+  const factory: StoreFactory = async (name) => {
+    opens.push(name)
+    const open = files.get(name)
+    if (open !== undefined) return open
+    const inner = createMemoryStore()
+    const file: SyncStore = {
+      persistent: true,
+      kind: 'sqlite-native',
+      exec: (sql, params) => inner.exec(sql, params),
+      async query<T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> {
+        const door = doors.get(name)
+        // The sweep's count: `status IN ('queued', 'sending', 'rejected')`.
+        if (door !== undefined && sql.includes("'rejected')")) {
+          doors.delete(name)
+          await door
+        }
+        return inner.query<T>(sql, params)
+      },
+      transaction: (fn) => inner.transaction(fn),
+      close: () => inner.close(),
+      destroy: async () => {
+        files.delete(name)
+        await inner.destroy?.()
+      },
+    }
+    files.set(name, file)
+    return file
+  }
+  return {
+    factory,
+    opens,
+    countDoor: (name) => {
+      let open = (): void => {}
+      doors.set(
+        name,
+        new Promise<void>((resolve) => {
+          open = resolve
+        }),
+      )
+      return () => {
+        open()
+      }
+    },
+  }
+}
+
+/** What a read or a write came to: its value, or the sentence it failed with. */
+function outcomeOf<T, R>(call: Promise<T>, pick: (value: T) => R): Promise<R | string> {
+  return call.then(pick, (error: unknown) => (error as Error).message)
+}
+
 // 12 -------------------------------------------------------------------------------------------------------------
 
 describe('DOS-167 one file per app, person and distributor', () => {
+  /*
+   * Ruling 2 (s). The web proof of 199952b: `dos-sales__u-<uuid>__t-<uuid>.db` is 92 characters, expo-sqlite's web
+   * build opens `./<name>` through wa-sqlite, whose VFS allows 64 characters of path and SQLite keeps 8 of them for
+   * the journal suffix, so nothing longer than 54 opens — and the open fell back, silently, to a store in memory.
+   */
   it('DOS-167 storeNameFor keys the file by app, user and distributor', () => {
-    const rahul = storeNameFor('dos-sales', RAHUL)
-    expect(rahul).toBe('dos-sales__u-rahul__t-tarsun.db')
+    const rahul = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    expect(rahul).toBe('s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft')
 
-    // A colleague at the same distributor, and the same rep at another one, each get their own file.
-    expect(storeNameFor('dos-sales', AMIT)).not.toBe(rahul)
-    expect(storeNameFor('dos-sales', { ...RAHUL, tenantId: 'sai' })).not.toBe(rahul)
-    expect(storeNameFor('dos-delivery', RAHUL)).not.toBe(rahul)
-    // The same pair is the same file: a role change on one membership is not a new person.
-    expect(storeNameFor('dos-sales', { ...RAHUL, role: 'delivery' })).toBe(rahul)
-
-    const real = storeNameFor('dos-warehouse', {
-      userId: '0192f3c4-8a1b-7c2d-9e3f-4a5b6c7d8e9f',
-      tenantId: '0192f3c4-0000-7000-8000-0000000000aa',
-      role: 'warehouse',
+    // Every name is one app letter and two 25-digit base-36 ids, which web SQLite opens, and reads back exactly.
+    const ids = [
+      ...spreadOfUuids(200),
+      '00000000-0000-0000-0000-000000000000',
+      'ffffffff-ffff-ffff-ffff-ffffffffffff',
+    ]
+    const APPS = ['dos-sales', 'dos-delivery', 'dos-warehouse'] as const
+    const wrong: unknown[] = []
+    ids.forEach((userId, index) => {
+      const tenantId = ids[ids.length - 1 - index] ?? userId
+      const prefix = APPS[index % APPS.length] ?? 'dos-sales'
+      const name = storeNameFor(prefix, { userId, tenantId, role: 'salesperson' })
+      const back = parseStoreName(name)
+      const fits = /^[sdw][0-9a-z]{50}$/.test(name) && `./${name}`.length <= 56
+      if (!fits || back?.prefix !== prefix || back.userId !== userId || back.tenantId !== tenantId)
+        wrong.push({ userId, tenantId, prefix, name, back })
     })
-    for (const name of [rahul, real]) expect(name).toMatch(/^[A-Za-z0-9_.-]+$/)
+    expect(wrong).toEqual([])
+    // A listing also holds `-wal` and `-shm` files and other apps' names: those are not store names.
+    expect(parseStoreName(`${rahul}-wal`)).toBeNull()
+    expect(parseStoreName('dos-sales.db')).toBeNull()
+
+    // A colleague at the same distributor, the same rep at another one, and another app each get their own file.
+    expect(storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, userId: AMIT_ID })).not.toBe(rahul)
+    expect(storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, tenantId: SAI_ID })).not.toBe(rahul)
+    expect(storeNameFor('dos-delivery', RAHUL_AT_TARSUN)).not.toBe(rahul)
+    // The same pair is the same file: a role change on one membership is not a new person.
+    expect(storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, role: 'delivery' })).toBe(rahul)
+    // One case only, so no case-folding file system can take two people's files for one.
+    expect(
+      storeNameFor('dos-sales', {
+        ...RAHUL_AT_TARSUN,
+        userId: RAHUL_ID.toUpperCase(),
+        tenantId: TARSUN_ID.toUpperCase(),
+      }),
+    ).toBe(rahul)
 
     // A file name never carries an unchecked string.
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, userId: 'a/b' })).toThrow()
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, userId: '../rahul' })).toThrow()
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, tenantId: 'tarsun:sai' })).toThrow()
-    expect(() => storeNameFor('dos-sales', { ...RAHUL, userId: '' })).toThrow()
-    expect(() => storeNameFor('dos/sales', RAHUL)).toThrow()
+    for (const userId of ['a', 'a/b', '../rahul', ''])
+      expect(() => storeNameFor('dos-sales', { ...RAHUL_AT_TARSUN, userId }), userId).toThrow()
+    for (const prefix of ['dos/sales', 'dos-shop'])
+      expect(() => storeNameFor(prefix, RAHUL_AT_TARSUN), prefix).toThrow()
 
     // The fixed name every build before DOS-167 used, which the provider deletes once.
     expect(legacyStoreName('dos-sales')).toBe('dos-sales.db')
+  })
+
+  /*
+   * Ruling 2 (s). The QA phones hold files under the name 199952b gave them. The provider sweeps that file once for
+   * the person signing in, by the sibling rule: nothing unsent in it and it goes; anything unsent and it stays, said.
+   */
+  it('DOS-167 the 199952b store is swept once for the signed-in person: deleted when empty, kept and logged with a queue', async () => {
+    const interim = interimStoreName('dos-sales', RAHUL_AT_TARSUN)
+    // What the Android proof listed on the Pixel 7 under 199952b.
+    expect(interim).toBe(`dos-sales__u-${RAHUL_ID}__t-${TARSUN_ID}.db`)
+
+    async function signsInAfter199952b(queued: boolean): Promise<unknown> {
+      const files = new Map<string, SyncStore>()
+      const asked: string[] = []
+      const factory: StoreFactory = async (name) => {
+        asked.push(name)
+        const held = files.get(name) ?? createMemoryStore()
+        files.set(name, held)
+        return held
+      }
+      const server = new FakeServer(TABLES)
+      server.queuePull({
+        changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+        cursor: 'c1',
+      })
+      // The 199952b build, on its long name.
+      const before = new SyncEngine({
+        transport: server.transport(),
+        deviceId: 'device-1',
+        storeFactory: factory,
+        databaseName: interim,
+        identity: RAHUL_AT_TARSUN,
+        pullIntervalMs: 0,
+        now,
+      })
+      await before.start()
+      if (queued) {
+        server.offline = true
+        await before.enqueue({
+          table: 'sales_orders',
+          id: 'o-before-ruling-2',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+        })
+        await before.flush()
+      }
+      await before.stop()
+      // This build's own file for him, stamped already.
+      const current = createMemoryStore()
+      await createSystemTables(current)
+      await writeState(current, 'userId', RAHUL_ID)
+      files.set(storeNameFor('dos-sales', RAHUL_AT_TARSUN), current)
+
+      asked.length = 0
+      const log: string[] = []
+      await sweepInterimStore(factory, 'dos-sales', RAHUL_AT_TARSUN, (line) => {
+        log.push(line)
+      })
+      return {
+        asked,
+        log,
+        // A deleted file has no tables left to read.
+        interim: await files
+          .get(interim)
+          ?.query(`SELECT row_id, status FROM ${OUTBOX_TABLE}`)
+          .catch((error: unknown) =>
+            /no such table/.test(String(error)) ? 'deleted' : String(error),
+          ),
+        current: await readState(current, 'userId'),
+      }
+    }
+
+    expect({
+      empty: await signsInAfter199952b(false),
+      holding: await signsInAfter199952b(true),
+    }).toEqual({
+      empty: {
+        asked: [interim],
+        log: [],
+        interim: 'deleted',
+        current: RAHUL_ID,
+      },
+      holding: {
+        asked: [interim],
+        log: ['offline: kept the store from before ruling 2'],
+        interim: [{ row_id: 'o-before-ruling-2', status: 'queued' }],
+        current: RAHUL_ID,
+      },
+    })
   })
 
   it("DOS-167 a second user on the same store never renders the first user's rows and starts with no cursor", async () => {
@@ -582,6 +795,69 @@ describe('DOS-167 one file per app, person and distributor', () => {
       errorsAfterPage,
       handshakesWhileClosing: server.manifestCalls.length - handshakes,
     }).toEqual({ errorsAtStart: 1, errorsAfterPage: 1, handshakesWhileClosing: 0 })
+  })
+
+  /*
+   * Ruling 2 (t). On the web proof of 199952b every open failed and `openStore` handed back a store in memory
+   * without a word: the rep was told his order was kept on this phone while only the tab held it.
+   */
+  it('DOS-167 a memory store is announced at start and named in the status', async () => {
+    const server = new FakeServer(TABLES)
+    const said: { line: string; detail: unknown }[] = []
+    const inMemory = engineAs(
+      RAHUL,
+      createMemoryStore({ wanted: 'sqlite-web', reason: 'open failed: sqlite3_open_v2' }),
+      server.transport(),
+      {
+        onLog: (line, detail) => {
+          said.push({ line, detail })
+        },
+      },
+    )
+    await inMemory.start()
+
+    // A store that keeps, as expo-sqlite's is.
+    const inner = createMemoryStore()
+    const disk: SyncStore = {
+      persistent: true,
+      kind: 'sqlite-native',
+      exec: (sql, params) => inner.exec(sql, params),
+      query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> =>
+        inner.query<T>(sql, params),
+      transaction: (fn) => inner.transaction(fn),
+      close: () => inner.close(),
+    }
+    const onDiskSaid: string[] = []
+    const onDisk = engineAs(RAHUL, disk, server.transport(), {
+      onLog: (line) => {
+        onDiskSaid.push(line)
+      },
+    })
+    await onDisk.start()
+
+    expect({
+      announced: said.filter(
+        (entry) => entry.line === 'offline: no persistent store; running in memory',
+      ),
+      note: inMemory.status().storeNote,
+      onDiskAnnounced: onDiskSaid.filter((line) => line.includes('no persistent store')),
+      onDiskNote: onDisk.status().storeNote,
+    }).toEqual({
+      announced: [
+        {
+          line: 'offline: no persistent store; running in memory',
+          detail: {
+            name: 'dos-offline.db',
+            fallback: { wanted: 'sqlite-web', reason: 'open failed: sqlite3_open_v2' },
+          },
+        },
+      ],
+      note: 'open failed: sqlite3_open_v2',
+      onDiskAnnounced: [],
+      onDiskNote: null,
+    })
+    await inMemory.stop()
+    await onDisk.stop()
   })
 })
 
@@ -1015,6 +1291,478 @@ describe('DOS-167 sign-out ends the engine', () => {
       ),
     ).toEqual([{ op_id: landed, status: 'queued' }])
   })
+
+  /*
+   * Ruling 2 (u). The order screen queued the header, then one enqueue per line. A sign-out that began between them
+   * refused the lines after the header had landed, and the office got a draft with no lines (web V5E, S-120).
+   */
+  it('DOS-167 an order and its lines are queued whole or not at all', async () => {
+    const ORDER_LINES = tableManifest(
+      'sales_order_lines',
+      [column('id'), column('order_id'), column('variant_id'), column('updated_at')],
+      { writable: true },
+    )
+    const WITH_LINES = [...TABLES, ORDER_LINES]
+    const header = {
+      table: 'sales_orders',
+      id: 'o-whole',
+      op: 'PUT' as const,
+      data: { retailer_id: CHAVAN.id, state: 'draft' },
+    }
+    const line = (n: number): EnqueueInput => ({
+      table: 'sales_order_lines',
+      id: `l-${String(n)}`,
+      op: 'PUT',
+      data: { order_id: 'o-whole', variant_id: `v-${String(n)}` },
+    })
+    const outcome = (write: Promise<unknown>): Promise<string> =>
+      write.then(
+        () => 'saved',
+        (error: unknown) => `${(error as Error).name}: ${(error as Error).message}`,
+      )
+
+    // (1) Rahul has tapped Sign out, and a pull is still in the air: the whole order is refused.
+    const signingOut = createMemoryStore()
+    const signingOutServer = new FakeServer(WITH_LINES)
+    signingOutServer.queuePull({ changes: [], cursor: 'c1' })
+    const base = signingOutServer.transport()
+    let pullGate: Promise<void> | null = null
+    let openPull = (): void => {}
+    const leaving = engineAs(RAHUL, signingOut, {
+      ...base,
+      pull: async (input) => {
+        if (pullGate !== null) await pullGate
+        return base.pull(input)
+      },
+    })
+    await leaving.start()
+    pullGate = new Promise<void>((resolve) => {
+      openPull = resolve
+    })
+    const pulling = leaving.sync('poll')
+    await sleep(0)
+    const ending = leaving.end({ keepQueue: false })
+    const refusedWhileEnding = await outcome(leaving.enqueueMany([header, line(1)]))
+    const outboxWhileEnding = await signingOut.query(`SELECT op_id FROM ${OUTBOX_TABLE}`)
+    openPull()
+    await pulling
+    const ended = await ending
+
+    // (2) One line for a table this role may only read: nothing of the order is written.
+    const readOnly = createMemoryStore()
+    const readOnlyEngine = engineAs(RAHUL, readOnly, new FakeServer(WITH_LINES).transport())
+    await readOnlyEngine.start()
+    const refusedReadOnly = await outcome(
+      readOnlyEngine.enqueueMany([
+        header,
+        line(1),
+        { table: 'retailers', id: CHAVAN.id, op: 'PATCH', data: { name: 'Chavan Kirana' } },
+      ]),
+    )
+    const readOnlyOutbox = await readOnly.query(`SELECT op_id FROM ${OUTBOX_TABLE}`)
+    const readOnlyOrders = await readOnly.query('SELECT id FROM "sales_orders"')
+    const readOnlyLines = await readOnly.query('SELECT id FROM "sales_order_lines"')
+    await readOnlyEngine.stop()
+
+    // (3) The whole order: three rows in call order, one message to every table it touched.
+    const whole = createMemoryStore()
+    const wholeServer = new FakeServer(WITH_LINES)
+    const wholeEngine = engineAs(RAHUL, whole, wholeServer.transport())
+    await wholeEngine.start()
+    // The upload the write starts waits here, so nothing else is told meanwhile.
+    const releaseUpload = wholeServer.hold()
+    const told: string[][] = []
+    wholeEngine.onTables((tables) => {
+      told.push([...tables].sort())
+    })
+    const opIds = await wholeEngine.enqueueMany([header, line(1), line(2)])
+    const rows = await whole.query<{ seq: number; op_id: string; tbl: string; row_id: string }>(
+      `SELECT seq, op_id, tbl, row_id FROM ${OUTBOX_TABLE} ORDER BY seq`,
+    )
+    const toldOutbox = told.filter((tables) => tables.includes(OUTBOX_CHANNEL))
+    const pending = wholeEngine.status().pending
+    releaseUpload()
+    await wholeEngine.flush()
+    await wholeEngine.stop()
+
+    expect({
+      whileEnding: { refused: refusedWhileEnding, outbox: outboxWhileEnding, ended },
+      readOnly: {
+        refused: refusedReadOnly.includes('download-only'),
+        outbox: readOnlyOutbox,
+        orders: readOnlyOrders,
+        lines: readOnlyLines,
+      },
+      whole: {
+        sameOpIds: rows.map((row) => row.op_id).join() === opIds.join(),
+        order: rows.map((row) => `${row.tbl} ${row.row_id}`),
+        ascending: rows.every((row, index) => index === 0 || row.seq > (rows[index - 1]?.seq ?? 0)),
+        toldOutbox,
+        pending,
+      },
+    }).toEqual({
+      whileEnding: {
+        refused:
+          'SyncEngineEndedError: This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+        outbox: [],
+        ended: { kept: false, pending: 0, rejected: 0 },
+      },
+      readOnly: { refused: true, outbox: [], orders: [], lines: [] },
+      whole: {
+        sameOpIds: true,
+        order: ['sales_orders o-whole', 'sales_order_lines l-1', 'sales_order_lines l-2'],
+        ascending: true,
+        toldOutbox: [[OUTBOX_CHANNEL, 'sales_order_lines', 'sales_orders']],
+        pending: 3,
+      },
+    })
+  })
+
+  /*
+   * Addendum (x). "Sign out, keep here" crashed the delivery app on Android (2 of 2) and Expo Go on iOS (2 of 2): SIGSEGV in
+   * expo-sqlite's `exsqlite3_reset`. expo-sqlite's close finalizes every prepared statement and marks the database
+   * closed only after `sqlite3_close` (SQLiteModule.kt `closeDatabase`), while a `runAsync` already on another
+   * dispatcher thread passes that check and resets a statement that is gone. What was in flight: the reads the emit of
+   * the dropped tables re-ran (`useOutbox`, `useNeedsAttention` query the moment they are told), and any read a screen
+   * had started before the tap.
+   */
+  it('DOS-167 end() never lets a store call start or run after close begins', async () => {
+    /** A store that answers on a later turn, as the native bridge does, and writes down what reached it against the close. */
+    function bridged(inner: SyncStore): {
+      store: SyncStore
+      late: string[]
+      order: string[]
+      hold: (fragment: string) => () => void
+    } {
+      const late: string[] = []
+      const order: string[] = []
+      const holds: { fragment: string; door: Promise<void> }[] = []
+      let closing = false
+      const call = async <T>(sql: string, run: () => Promise<T>): Promise<T> => {
+        if (closing) late.push(`started after close began: ${sql}`)
+        const held = holds.find((entry) => sql.includes(entry.fragment))
+        if (held !== undefined) holds.splice(holds.indexOf(held), 1)
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 0))
+          if (held !== undefined) await held.door
+          return await run()
+        } finally {
+          if (closing) late.push(`finished after close began: ${sql}`)
+          if (held !== undefined) order.push('the slow read landed')
+        }
+      }
+      return {
+        late,
+        order,
+        hold: (fragment) => {
+          let open = (): void => {}
+          const door = new Promise<void>((resolve) => {
+            open = resolve
+          })
+          holds.push({ fragment, door })
+          return () => {
+            open()
+          }
+        },
+        store: {
+          persistent: true,
+          kind: 'sqlite-native',
+          exec: (sql, params) => call(sql, () => inner.exec(sql, params)),
+          query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> =>
+            call(sql, () => inner.query<T>(sql, params)),
+          transaction: (fn) => call('BEGIN', () => inner.transaction(fn)),
+          close: async () => {
+            closing = true
+            order.push('close began')
+            await inner.close()
+          },
+          destroy: async () => {
+            order.push('destroy')
+            await inner.destroy?.()
+          },
+        },
+      }
+    }
+
+    async function signsOutWhileAScreenReads(keepQueue: boolean): Promise<unknown> {
+      const bridge = bridged(createMemoryStore())
+      const server = new FakeServer(TABLES)
+      server.queuePull({
+        changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+        cursor: 'c1',
+      })
+      const engine = engineAs(RAHUL, bridge.store, server.transport())
+      await engine.start()
+      if (keepQueue) {
+        // An order the office refused and one taken in a dead spot: the queue and the tray both hold rows.
+        server.rejections.set('op-refused', {
+          code: 'credit_hold',
+          messageEn: 'Shop is on credit hold',
+        })
+        await engine.enqueue({
+          table: 'sales_orders',
+          id: 'o-refused',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+          opId: 'op-refused',
+        })
+        await engine.flush()
+        server.offline = true
+        await engine.enqueue({
+          table: 'sales_orders',
+          id: 'o-queued',
+          op: 'PUT',
+          data: { retailer_id: CHAVAN.id },
+        })
+        await engine.flush()
+      }
+      // The mounted screens: told a table changed, each asks again at once.
+      const rereads: Promise<unknown>[] = []
+      engine.onTables((tables) => {
+        if (tables.has('retailers')) rereads.push(engine.queryTable('retailers').catch(() => []))
+        if (tables.has(OUTBOX_CHANNEL)) rereads.push(engine.outbox().catch(() => []))
+        if (tables.has(OUTBOX_CHANNEL) || tables.has(ERRORS_CHANNEL))
+          rereads.push(engine.needsAttention().catch(() => []))
+      })
+      // The shops list is still reading when the rep taps Sign out.
+      const openTheSlowRead = bridge.hold('FROM "retailers"')
+      const slowRead = engine.queryTable('retailers').catch(() => [])
+      await sleep(0)
+      const ending = engine.end({ keepQueue })
+      setTimeout(openTheSlowRead, 20)
+      const ended = await ending
+      await slowRead
+      await Promise.all(rereads)
+      await sleep(20)
+      return { ended, late: bridge.late, order: bridge.order }
+    }
+
+    expect({
+      keep: await signsOutWhileAScreenReads(true),
+      oneTap: await signsOutWhileAScreenReads(false),
+    }).toEqual({
+      keep: {
+        ended: { kept: true, pending: 1, rejected: 1 },
+        late: [],
+        order: ['the slow read landed', 'close began'],
+      },
+      oneTap: {
+        ended: { kept: false, pending: 0, rejected: 0 },
+        late: [],
+        order: ['the slow read landed', 'close began', 'destroy'],
+      },
+    })
+  })
+
+  /*
+   * Merge review of ruling 2, problem 3. On a phone the session's delete from the Keychain / EncryptedSharedPreferences is
+   * asynchronous behind a synchronous cache, and the leave flow calls `end()` in the same turn as it clears the session:
+   * a native crash inside `end()` before that delete had landed relaunched the app signed in. `end()` refuses every
+   * write at once, and touches the file only once the removal has landed.
+   */
+  it('DOS-167 end() touches the store only once the session has left the device store', async () => {
+    const inner = createMemoryStore()
+    const touched: string[] = []
+    const file: SyncStore = {
+      persistent: true,
+      kind: 'sqlite-native',
+      exec: (sql, params) => {
+        touched.push('exec')
+        return inner.exec(sql, params)
+      },
+      query: <T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> => {
+        touched.push('query')
+        return inner.query<T>(sql, params)
+      },
+      transaction: (fn) => {
+        touched.push('transaction')
+        return inner.transaction(fn)
+      },
+      close: async () => {
+        touched.push('close')
+        await inner.close()
+      },
+    }
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const engine = engineAs(RAHUL, file, server.transport())
+    await engine.start()
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-kept',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id },
+    })
+    await engine.flush()
+    touched.length = 0
+
+    // "Sign out, keep here": the session is out of the cache, and the secure store's delete has not answered yet.
+    let removed = (): void => {}
+    const removal = new Promise<void>((resolve) => {
+      removed = resolve
+    })
+    const ending = engine.end({ keepQueue: true, after: removal })
+    const late = await outcomeOf(
+      engine.enqueue({ table: 'sales_orders', id: 'o-late', op: 'PUT', data: {} }),
+      () => 'saved',
+    )
+    await sleep(20)
+    const beforeTheRemoval = [...touched]
+    removed()
+    const ended = await ending
+
+    expect({ beforeTheRemoval, late, ended, closedAfter: touched.at(-1) }).toEqual({
+      beforeTheRemoval: [],
+      late: 'This phone is signing out; nothing more can be saved on it. Sign in again and enter it once more.',
+      ended: { kept: true, pending: 1, rejected: 0 },
+      closedAfter: 'close',
+    })
+  })
+
+  /*
+   * Merge review of ruling 2, problem 2 (verifier PROBE-Y1, PROBE-Y2). Addendum (y) clears the session before `end()` has
+   * finished, so the sign-in form is on the screen while `end()` still waits for a page in flight. The same rep signed
+   * straight back in and the provider started a second engine on the SAME file — on a phone expo-sqlite hands both the
+   * same connection — and the first `end()` then counted the second engine's order, dropped its tables and deleted
+   * the file under it.
+   */
+  it('DOS-167 the same person signing straight back in opens the file only once the engine before has closed it', async () => {
+    const phone = phoneFiles()
+    const server = new FakeServer(TABLES)
+    // Every pull answers Chavan Kirana at cursor c1.
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const base = server.transport()
+    let pullGate: Promise<void> | null = null
+    let openPull = (): void => {}
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const options = (transport: SyncTransport): SyncEngineOptions => ({
+      transport,
+      deviceId: 'device-1',
+      storeFactory: phone.factory,
+      databaseName: name,
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+    })
+    const first = new SyncEngine(
+      options({
+        ...base,
+        pull: async (input) => {
+          if (pullGate !== null) await pullGate
+          return base.pull(input)
+        },
+      }),
+    )
+    await first.start()
+
+    // The poll's page hangs in a dead spot when Rahul taps Sign out with nothing waiting...
+    pullGate = new Promise<void>((resolve) => {
+      openPull = resolve
+    })
+    const pulling = first.sync('poll')
+    await sleep(0)
+    const ending = first.end({ keepQueue: false })
+    // ...and, the sign-in form already on the screen, he signs straight back in.
+    const back = new SyncEngine(options(base))
+    const starting = back.start()
+    await sleep(20)
+    const whileTheFirstEnds = {
+      opens: phone.opens.filter((opened) => opened === name).length,
+      ready: back.status().ready,
+    }
+
+    openPull()
+    const ended = await ending
+    await pulling
+    await starting
+    server.offline = true
+    const write = await outcomeOf(
+      back.enqueue({
+        table: 'sales_orders',
+        id: 'o-back',
+        op: 'PUT',
+        data: { retailer_id: CHAVAN.id },
+      }),
+      () => 'queued',
+    )
+
+    expect({
+      whileTheFirstEnds,
+      ended,
+      back: {
+        write,
+        outbox: await outcomeOf(back.outbox(), (rows) => rows.map((row) => row.rowId)),
+        shops: await outcomeOf(back.queryTable<{ id: string }>('retailers'), (rows) =>
+          rows.map((row) => row.id),
+        ),
+        status: back.status().pending,
+      },
+    }).toEqual({
+      // Not opened, and not ready, while the engine before still holds the file.
+      whileTheFirstEnds: { opens: 1, ready: false },
+      ended: { kept: false, pending: 0, rejected: 0 },
+      // A fresh file of his own, whole: the order he takes now waits in it and his shops are there.
+      back: { write: 'queued', outbox: ['o-back'], shops: [CHAVAN.id], status: 1 },
+    })
+    await back.stop()
+  })
+
+  /*
+   * Addendum (z3), merge review minor 2. The provider stops an engine the moment its session goes — a token refresh that
+   * flips `hydrating` unmounts the shell — and a sign-out already on its way then ends an engine a `stop()` has closed:
+   * `end()` answered `kept: false`, and the sales app forgot the rep's drafts while the file, closed as it stood and never
+   * deleted, still held the order he had taken.
+   */
+  it('DOS-167 an end() after a stop() closed the file answers kept, and the file is never deleted', async () => {
+    const phone = phoneFiles()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const engine = new SyncEngine({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: phone.factory,
+      databaseName: name,
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+    })
+    await engine.start()
+    // An order taken in a dead spot.
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-kept',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id },
+    })
+    await engine.flush()
+
+    // The provider's stop lands first, and the sign-out ends the engine after it.
+    await engine.stop()
+    const ended = await engine.end({ keepQueue: false })
+
+    const file = await phone.factory(name)
+    expect({
+      ended,
+      outbox: await file.query<{ row_id: string; status: string }>(
+        `SELECT row_id, status FROM ${OUTBOX_TABLE}`,
+      ),
+    }).toEqual({
+      ended: { kept: true, pending: 1, rejected: 0 },
+      outbox: [{ row_id: 'o-kept', status: 'queued' }],
+    })
+  })
 })
 
 // 14 -------------------------------------------------------------------------------------------------------------
@@ -1027,8 +1775,8 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
       files.set(name, held)
       return held
     }
-    const AT_SAI: SyncIdentity = { ...RAHUL, tenantId: 'sai' }
-    const AT_BALAJI: SyncIdentity = { ...RAHUL, tenantId: 'balaji' }
+    const AT_SAI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: SAI_ID }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: BALAJI_ID }
     const server = new FakeServer(TABLES)
     server.queuePull({
       changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
@@ -1074,8 +1822,8 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
    * count it refuses every later delete of that file for the life of the process ("currently open").
    */
   it('DOS-167 sweepIdentityStores closes a store it could not count and never deletes it', async () => {
-    const AT_SAI: SyncIdentity = { ...RAHUL, tenantId: 'sai' }
-    const AT_BALAJI: SyncIdentity = { ...RAHUL, tenantId: 'balaji' }
+    const AT_SAI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: SAI_ID }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: BALAJI_ID }
     const events: string[] = []
     const corrupt = { closed: 0, destroyed: 0 }
     const clean = createMemoryStore()
@@ -1119,6 +1867,89 @@ describe('DOS-167 the other distributorships of the person signing out', () => {
       events: ['close', 'offline: sweep skipped a store'],
     })
   })
+
+  /*
+   * Merge review of ruling 2, problem 2. Since addendum (y) the sweep of the person's other distributorships runs with the
+   * sign-in form already on the screen. It counted and deleted a file an engine of that same person had open; and an
+   * engine that opened a file the sweep was counting had it deleted under it.
+   */
+  it('DOS-167 the sweep never takes a file an engine holds, and an engine waits for a sweep that holds its file', async () => {
+    const phone = phoneFiles()
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const AT_SAI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: SAI_ID }
+    const AT_BALAJI: SyncIdentity = { ...RAHUL_AT_TARSUN, tenantId: BALAJI_ID }
+    const options = (identity: SyncIdentity): SyncEngineOptions => ({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: phone.factory,
+      databaseName: storeNameFor('dos-sales', identity),
+      identity,
+      pullIntervalMs: 0,
+      now,
+    })
+    const said: string[] = []
+    const onLog = (line: string): void => {
+      said.push(line)
+    }
+
+    // Rahul is already signed in again at Sai when the sweep of his last sign-out reaches the Sai file.
+    const sai = new SyncEngine(options(AT_SAI))
+    await sai.start()
+    const sweptWhileSaiIsOpen = await SyncEngine.sweepIdentityStores(
+      phone.factory,
+      'dos-sales',
+      [AT_SAI],
+      onLog,
+    )
+    const saiShops = await outcomeOf(sai.queryTable<{ id: string }>('retailers'), (rows) =>
+      rows.map((row) => row.id),
+    )
+    await sai.stop()
+
+    // At Balaji everything had reached the office. The sweep is counting that file when he signs in there.
+    const earlier = new SyncEngine(options(AT_BALAJI))
+    await earlier.start()
+    await earlier.stop()
+    const openTheCount = phone.countDoor(storeNameFor('dos-sales', AT_BALAJI))
+    const sweeping = SyncEngine.sweepIdentityStores(phone.factory, 'dos-sales', [AT_BALAJI], onLog)
+    await sleep(0)
+    const balaji = new SyncEngine(options(AT_BALAJI))
+    const starting = balaji.start()
+    await sleep(20)
+    const readyWhileSwept = balaji.status().ready
+    openTheCount()
+    const sweptBalaji = await sweeping
+    await starting
+    server.offline = true
+    const write = await outcomeOf(
+      balaji.enqueue({ table: 'sales_orders', id: 'o-balaji', op: 'PUT', data: {} }),
+      () => 'queued',
+    )
+    const balajiOutbox = await outcomeOf(balaji.outbox(), (rows) => rows.map((row) => row.rowId))
+    await balaji.stop()
+
+    expect({
+      sweptWhileSaiIsOpen,
+      saiShops,
+      readyWhileSwept,
+      sweptBalaji,
+      balaji: { write, outbox: balajiOutbox },
+      said,
+    }).toEqual({
+      // The Sai file is in use: not counted, not deleted, and its shops are still on the screen.
+      sweptWhileSaiIsOpen: { destroyed: 0, kept: [] },
+      saiShops: [CHAVAN.id],
+      // The Balaji engine opens only once the sweep has let go of the file, and then a fresh one.
+      readyWhileSwept: false,
+      sweptBalaji: { destroyed: 1, kept: [] },
+      balaji: { write: 'queued', outbox: ['o-balaji'] },
+      said: ['offline: sweep skipped a store in use'],
+    })
+  })
 })
 
 // 15 -------------------------------------------------------------------------------------------------------------
@@ -1156,13 +1987,16 @@ describe('DOS-167 the SQLite file itself', () => {
   }
 
   it("DOS-167 the SQLite adapter's destroy closes then deletes the file by name", async () => {
-    const name = storeNameFor('dos-sales', { userId: 'a', tenantId: 't1', role: 'salesperson' })
-    expect(name).toBe('dos-sales__u-a__t-t1.db')
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    expect(name).toBe('s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft')
 
     const phone = fakeSqlite({ canDelete: true })
     const store = await openExpoSqlite(phone.sqlite, name, 'sqlite-native')
     await store.destroy?.()
-    expect(phone.calls).toEqual(['closeAsync', 'deleteDatabaseAsync dos-sales__u-a__t-t1.db'])
+    expect(phone.calls).toEqual([
+      'closeAsync',
+      'deleteDatabaseAsync s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft',
+    ])
 
     // A module without deleteDatabaseAsync only closes.
     const older = fakeSqlite({ canDelete: false })
@@ -1195,6 +2029,74 @@ describe('DOS-167 the SQLite file itself', () => {
     await expect(
       (await openExpoSqlite(open.sqlite, name, 'sqlite-native')).destroy?.(),
     ).rejects.toThrow(/Unable to delete/)
+  })
+
+  /*
+   * Addendum (x), rule 3. Whatever the engine does, the adapter is the last door before the native binding: a call made
+   * once the close has begun is refused with a typed error instead of reaching a connection whose statements are being
+   * finalized, and the close runs once.
+   */
+  it('DOS-167 the SQLite adapter refuses a call after close began', async () => {
+    const calls: string[] = []
+    let finishClose = (): void => {}
+    const closed = new Promise<void>((resolve) => {
+      finishClose = resolve
+    })
+    const db: ExpoDatabaseLike = {
+      execAsync: async (sql) => {
+        calls.push(`execAsync ${sql}`)
+      },
+      runAsync: async (sql) => {
+        calls.push(`runAsync ${sql}`)
+      },
+      getAllAsync: async <T>(sql: string) => {
+        calls.push(`getAllAsync ${sql}`)
+        return [] as T[]
+      },
+      withTransactionAsync: async (fn) => {
+        calls.push('withTransactionAsync')
+        await fn()
+      },
+      closeAsync: () => {
+        calls.push('closeAsync')
+        return closed
+      },
+    }
+    const store = await openExpoSqlite(
+      { openDatabaseAsync: async () => db },
+      storeNameFor('dos-sales', RAHUL_AT_TARSUN),
+      'sqlite-native',
+    )
+    calls.length = 0
+
+    const closing = store.close()
+    const reached = (call: Promise<unknown>): Promise<unknown> =>
+      call.then(
+        () => 'reached the binding',
+        (error: unknown) => ({
+          name: (error as Error).name,
+          code: (error as { code?: unknown }).code,
+        }),
+      )
+    const late = {
+      query: await reached(store.query(`SELECT * FROM ${OUTBOX_TABLE}`)),
+      exec: await reached(store.exec(`DELETE FROM ${OUTBOX_TABLE}`)),
+      run: await reached(
+        store.exec(`UPDATE ${OUTBOX_TABLE} SET status = ? WHERE op_id = ?`, ['queued', 'op-1']),
+      ),
+      transaction: await reached(store.transaction(async () => 'written')),
+    }
+    const again = store.close()
+    finishClose()
+    await closing
+    await again
+    await store.close()
+
+    const REFUSED = { name: 'StoreClosedError', code: 'closed' }
+    expect({ late, calls }).toEqual({
+      late: { query: REFUSED, exec: REFUSED, run: REFUSED, transaction: REFUSED },
+      calls: ['closeAsync'],
+    })
   })
 })
 

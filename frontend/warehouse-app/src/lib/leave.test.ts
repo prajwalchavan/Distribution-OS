@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest'
 
 import { strings } from '../strings'
 import {
+  leaveButtons,
   leaveNow,
   leaveSentence,
   sendNowThenLeave,
@@ -204,7 +205,180 @@ describe('DOS-167 the warehouse leave sheet', () => {
     })
   })
 
-  it('DOS-167 leaving decides on what waits in the file once it is open, ends the engine before the session and never deletes what it did not count', async () => {
+  /*
+   * Ruling 2 (u), merge review minor 2. `end()` keeps the file by itself when its re-count finds something waiting — a
+   * pick in hand at the tap. The other distributorships are swept on every sign-out, a kept one included: the sweep
+   * deletes only files with nothing unsent. (This app keeps no drafts.)
+   */
+  it('DOS-167 a file kept by the re-count keeps the drafts, and the sweep runs on every sign-out', async () => {
+    function recorded(kept: boolean): { calls: string[]; steps: LeaveSteps } {
+      const calls: string[] = []
+      const steps: LeaveSteps = {
+        waiting: async () => ({ pending: 0, rejected: 0 }),
+        sendNow: async () => ({ pending: 0, rejected: 0 }),
+        end: async ({ keepQueue }) => {
+          calls.push(`end keepQueue=${String(keepQueue)}`)
+          return { kept }
+        },
+        sweep: async () => {
+          calls.push('sweep')
+        },
+        // The client's side (`useSession().signOutOnDevice`): the leaving runs inside, and the revoke follows it.
+        signOutOnDevice: async (leave) => {
+          calls.push('signOutOnDevice')
+          await leave(Promise.resolve())
+          calls.push('revoke')
+        },
+        switchDistributor: async (tenantId) => {
+          calls.push(`switch ${tenantId}`)
+        },
+      }
+      return { calls, steps }
+    }
+    // One tap with nothing counted, and a pick in hand landed: the engine kept the file.
+    const recount = recorded(true)
+    await leaveNow({ mode: 'signOut' }, false, recount.steps)
+    // "Sign out, keep here".
+    const keep = recorded(true)
+    await leaveNow({ mode: 'signOut' }, true, keep.steps)
+    // Nothing waited and the file went.
+    const gone = recorded(false)
+    await leaveNow({ mode: 'signOut' }, false, gone.steps)
+
+    expect({ recount: recount.calls, keep: keep.calls, gone: gone.calls }).toEqual({
+      recount: ['signOutOnDevice', 'end keepQueue=false', 'sweep', 'revoke'],
+      keep: ['signOutOnDevice', 'end keepQueue=true', 'sweep', 'revoke'],
+      gone: ['signOutOnDevice', 'end keepQueue=false', 'sweep', 'revoke'],
+    })
+  })
+
+  /*
+   * Addendum (y). "Sign out, keep here" crashed natively inside `end()` (Android 2 of 2, iOS 2 of 2), and on iOS the
+   * relaunch came back signed in as the person who had chosen to sign out. The session is cleared on this phone before
+   * `end()` touches the store, and the server's revoke goes last, with the token it kept.
+   */
+  it('DOS-167 the keep sign-out clears the stored session before the store is touched', async () => {
+    function phoneOf(end: LeaveSteps['end']): {
+      calls: string[]
+      signedIn: () => boolean
+      steps: LeaveSteps
+    } {
+      const calls: string[] = []
+      let signedIn = true
+      // The session's removal from the platform store, which the engine waits for before it touches the file.
+      const stored = Promise.resolve()
+      const steps: LeaveSteps = {
+        waiting: async () => ({ pending: 1, rejected: 0 }),
+        sendNow: async () => ({ pending: 1, rejected: 0 }),
+        end: async (options) => {
+          const after =
+            options.after === stored ? 'stored' : options.after === undefined ? 'none' : 'another'
+          calls.push(
+            `end keepQueue=${String(options.keepQueue)} signedIn=${String(signedIn)} after=${after}`,
+          )
+          return end(options)
+        },
+        sweep: async () => {
+          calls.push('sweep')
+        },
+        signOutOnDevice: async (leave) => {
+          signedIn = false
+          calls.push('signOutOnDevice')
+          await leave(stored)
+          calls.push('revoke')
+        },
+        switchDistributor: async (tenantId) => {
+          calls.push(`switch ${tenantId}`)
+        },
+      }
+      return { calls, signedIn: () => signedIn, steps }
+    }
+
+    // "Sign out, keep here".
+    const keep = phoneOf(async () => ({ kept: true }))
+    const [left] = await Promise.allSettled([leaveNow({ mode: 'signOut' }, true, keep.steps)])
+    // The same, and the app dies inside end(): it never returns.
+    const crash = phoneOf(() => new Promise<{ kept: boolean }>(() => {}))
+    void leaveNow({ mode: 'signOut' }, true, crash.steps)
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect({
+      keep: { left: left?.status, calls: keep.calls },
+      crash: { signedIn: crash.signedIn(), calls: crash.calls },
+    }).toEqual({
+      keep: {
+        left: 'fulfilled',
+        calls: [
+          'signOutOnDevice',
+          'end keepQueue=true signedIn=false after=stored',
+          'sweep',
+          'revoke',
+        ],
+      },
+      crash: {
+        signedIn: false,
+        calls: ['signOutOnDevice', 'end keepQueue=true signedIn=false after=stored'],
+      },
+    })
+  })
+
+  /*
+   * Ruling 2 (t). A browser that cannot keep the device store (not cross-origin isolated, no OPFS, an open that
+   * failed) holds the queue in memory, and it goes with the tab: "keep here" would be a promise nothing keeps.
+   */
+  it('DOS-167 a browser that cannot keep offers no keep: Send now or wait', () => {
+    const memorySignOut = leaveSentence({
+      mode: 'signOut',
+      pending: 2,
+      rejected: 1,
+      name: DINESH,
+      tenantName: TARSUN,
+      persistent: false,
+    })
+    const memorySwitch = leaveSentence({
+      mode: 'switch',
+      pending: 2,
+      rejected: 0,
+      name: DINESH,
+      tenantName: TARSUN,
+      persistent: false,
+    })
+    expect({
+      buttons: {
+        persistentOnline: leaveButtons({ mode: 'signOut', online: true, persistent: true }),
+        persistentOffline: leaveButtons({ mode: 'signOut', online: false, persistent: true }),
+        memoryOnline: leaveButtons({ mode: 'signOut', online: true, persistent: false }),
+        memoryOffline: leaveButtons({ mode: 'signOut', online: false, persistent: false }),
+        switchMemoryOnline: leaveButtons({ mode: 'switch', online: true, persistent: false }),
+        switchMemoryOffline: leaveButtons({ mode: 'switch', online: false, persistent: false }),
+      },
+      bodies: [memorySignOut.body, memorySwitch.body],
+      promisesToKeep: [memorySignOut.body, memorySwitch.body].filter((body) =>
+        body.includes('stay on this phone'),
+      ),
+      // The count and the refusals read the same on any store.
+      title: memorySignOut.title,
+      attention: memorySignOut.attention,
+    }).toEqual({
+      buttons: {
+        persistentOnline: ['sendNow', 'keep', 'cancel'],
+        persistentOffline: ['keep', 'cancel'],
+        memoryOnline: ['sendNow', 'cancel'],
+        memoryOffline: ['cancel'],
+        switchMemoryOnline: ['sendNow', 'cancel'],
+        switchMemoryOffline: ['cancel'],
+      },
+      bodies: [catalogue['leave.bodyMemory'], catalogue['leave.bodyMemory']],
+      promisesToKeep: [],
+      title: '2 changes have not reached the office',
+      attention: '1 needs attention',
+    })
+    expect(catalogue['leave.bodyMemory']).toBe(
+      'This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.',
+    )
+  })
+
+  it('DOS-167 leaving decides on what waits in the file once it is open, clears the session on the phone before it ends the engine and never deletes what it did not count', async () => {
     const NOTHING: WaitingCounts = { pending: 0, rejected: 0 }
 
     /** The device and the session, writing down in order what the leave flow asked of them. */
@@ -238,8 +412,11 @@ describe('DOS-167 the warehouse leave sheet', () => {
         sweep: async () => {
           calls.push('sweep')
         },
-        signOut: async () => {
-          calls.push('signOut')
+        // The client's side (`useSession().signOutOnDevice`): the leaving runs inside, and the revoke follows it.
+        signOutOnDevice: async (leave) => {
+          calls.push('signOutOnDevice')
+          await leave(Promise.resolve())
+          calls.push('revoke')
         },
         switchDistributor: async (tenantId) => {
           calls.push(`switch ${tenantId}`)
@@ -260,27 +437,41 @@ describe('DOS-167 the warehouse leave sheet', () => {
     await expect(tapLeave({ mode: 'switch', tenantId: 'sai' }, refused.steps)).resolves.toBe('ask')
     expect(refused.calls).toEqual(['waiting', 'counted 0+2'])
 
-    // Nothing waits: one tap. The engine ends (file deleted) BEFORE the session is cleared, then the
-    // hand's other files are swept.
+    // Nothing waits: one tap. The session is cleared on this phone FIRST (addendum (y)), then the engine ends
+    // (file deleted), the hand's other files are swept, and the revoke goes last.
     const clean = phone({})
     await expect(tapLeave({ mode: 'signOut' }, clean.steps)).resolves.toBe('left')
     expect(clean.calls).toEqual([
       'waiting',
       'counted 0+0',
+      'signOutOnDevice',
       'end keepQueue=false',
       'sweep',
-      'signOut',
+      'revoke',
     ])
 
     // The file could not be counted: it is never deleted, and the hand is still signed out.
     const unreadable = phone({ waiting: new Error('database disk image is malformed') })
     await expect(tapLeave({ mode: 'signOut' }, unreadable.steps)).resolves.toBe('left')
-    expect(unreadable.calls).toEqual(['waiting', 'end keepQueue=true', 'signOut'])
+    expect(unreadable.calls).toEqual([
+      'waiting',
+      'signOutOnDevice',
+      'end keepQueue=true',
+      'sweep',
+      'revoke',
+    ])
 
-    // Ending the engine threw: signed out regardless.
+    // Ending the engine threw: already signed out on this phone, and the rest of the leaving still runs.
     const endFails = phone({ endFails: true })
     await expect(tapLeave({ mode: 'signOut' }, endFails.steps)).resolves.toBe('left')
-    expect(endFails.calls.at(-1)).toBe('signOut')
+    expect(endFails.calls).toEqual([
+      'waiting',
+      'counted 0+0',
+      'signOutOnDevice',
+      'end keepQueue=false',
+      'sweep',
+      'revoke',
+    ])
 
     // A switch with nothing waiting wipes nothing.
     const switching = phone({})
@@ -292,7 +483,13 @@ describe('DOS-167 the warehouse leave sheet', () => {
     // The sheet's Send now: everything went, so the leaving carries on by itself...
     const sent = phone({ afterSend: NOTHING })
     await expect(sendNowThenLeave({ mode: 'signOut' }, sent.steps)).resolves.toBe('left')
-    expect(sent.calls).toEqual(['sendNow', 'end keepQueue=false', 'sweep', 'signOut'])
+    expect(sent.calls).toEqual([
+      'sendNow',
+      'signOutOnDevice',
+      'end keepQueue=false',
+      'sweep',
+      'revoke',
+    ])
     // ...something is still waiting, or the send itself failed: the sheet stays.
     const stillWaiting = phone({ afterSend: { pending: 1, rejected: 0 } })
     await expect(sendNowThenLeave({ mode: 'signOut' }, stillWaiting.steps)).resolves.toBe('ask')
@@ -301,12 +498,58 @@ describe('DOS-167 the warehouse leave sheet', () => {
     await expect(sendNowThenLeave({ mode: 'signOut' }, sendFailed.steps)).resolves.toBe('ask')
     expect(sendFailed.calls).toEqual(['sendNow'])
 
-    // "Sign out, keep here" keeps the queue and does not sweep; "Switch anyway" only switches.
+    // "Sign out, keep here" keeps the queue and sweeps the other distributorships as every sign-out does
+    // (ruling 2 (u)); "Switch anyway" only switches.
     const keep = phone({})
     await leaveNow({ mode: 'signOut' }, true, keep.steps)
-    expect(keep.calls).toEqual(['end keepQueue=true', 'signOut'])
+    expect(keep.calls).toEqual(['signOutOnDevice', 'end keepQueue=true', 'sweep', 'revoke'])
     const anyway = phone({})
     await leaveNow({ mode: 'switch', tenantId: 'sai' }, true, anyway.steps)
     expect(anyway.calls).toEqual(['switch sai'])
+  })
+
+  /*
+   * Addendum (z1). "Sign out" on the Settings screen called `useSession().signOut()` itself: no sheet, no `end()`, the
+   * read set left on the phone, the other distributorships never swept, the session cleared only once the server's
+   * revoke had answered — and on a browser that keeps nothing, the queue thrown away. Every sign-out button takes the
+   * leave flow of `app/_layout.tsx`, through `useLeave()`. The layout's one other sign-out is the wrong-role screen's,
+   * where no device store is ever opened.
+   */
+  it('DOS-167 every sign-out button in the app goes through the leave flow', async () => {
+    const { readdirSync, readFileSync } = (await import(NODE_FS)) as NodeFs & {
+      readdirSync: (path: string, options: { recursive: true; encoding: 'utf8' }) => string[]
+    }
+    const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+    const app = fileURLToPath(new URL('../../app', import.meta.url))
+    const read = (file: string): string =>
+      readFileSync(`${app}/${file}`, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+    const calls = (source: string): number => (source.match(/\bsignOut\s*\(/g) ?? []).length
+    const screens = readdirSync(app, { recursive: true, encoding: 'utf8' })
+      .filter((file) => file.endsWith('.tsx'))
+      .sort()
+    const outside = screens.filter((file) => file !== '_layout.tsx')
+
+    // The session's own sign-out, called — `signOut()`, `useSession().signOut()` — or taken to be called later.
+    const bypass = outside.filter((file) => {
+      const source = read(file)
+      return calls(source) > 0 || /[{,]\s*signOut\s*[,}]/.test(source)
+    })
+    // A button labelled "Sign out" that is not handed the layout's leave flow.
+    const withoutTheFlow = outside.filter((file) => {
+      const source = read(file)
+      return source.includes("t('app.signOut')") && !/\buseLeave\(\)/.test(source)
+    })
+    // Inside the layout, a sign-out that is not the leave flow only on the wrong-role screen.
+    const layout = read('_layout.tsx')
+    const wrongRole = /<WrongRole[\s\S]*?\/>/.exec(layout)?.[0] ?? ''
+
+    expect({
+      read: outside.length > 0 && screens.includes('_layout.tsx'),
+      bypass,
+      withoutTheFlow,
+      layoutBesideTheWrongRoleScreen: calls(layout) - calls(wrongRole),
+    }).toEqual({ read: true, bypass: [], withoutTheFlow: [], layoutBesideTheWrongRoleScreen: 0 })
   })
 })

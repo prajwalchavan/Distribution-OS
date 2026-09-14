@@ -42,6 +42,9 @@ const AUTH_RETRY_PATHS: ReadonlySet<string> = new Set([
   'changePassword',
 ])
 
+/** How long a sign-in waits for the device's last leaving before it goes on (DOS-167 addendum (z2)). */
+const LEAVING_WAIT_MS = 25_000
+
 export interface CreateApiClientOptions {
   /** Base URL of this app's own service. Same-origin `/api` behind a dev proxy is fine. */
   apiUrl: string
@@ -105,6 +108,16 @@ export interface ApiClient {
   signIn: (options: SignInOptions) => Promise<Session>
   /** Revokes this device's session server-side (best effort), then always clears locally. */
   signOut: () => Promise<void>
+  /**
+   * Sign out on THIS device first, then leave it (DOS-167 addendum (y)). In the same turn: the access token in memory
+   * and the refresh token and snapshot in storage are cleared, before any network call — a crash from here on
+   * relaunches to the sign-in form — and `leave(stored)` is called, `stored` settling once the platform store has let
+   * go of the session too (on a phone that delete is asynchronous). Only once `leave` has settled does the client ask
+   * the server to revoke, with the refresh token it kept in memory: best effort, in the background, never signing
+   * anyone back in. Resolves when `leave` has, never waiting for the revoke. Until then a `signIn` on this client
+   * waits: nobody signs in on a phone that is still leaving — for at most 25 s, then it goes on (addendum (z2)).
+   */
+  signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   /** Who am I, in this distributorship. Refreshes the local session snapshot. */
   me: () => Promise<AuthMe>
   /** Open a session on another membership of the same user. */
@@ -137,6 +150,49 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   let refreshInFlight: Promise<void> | null = null
 
   /**
+   * WHICH SESSION AN ANSWER BELONGS TO (DOS-167 addendum (y), merge review of ruling 2, problem 1). Every sign-in,
+   * switch and sign-out starts a new one; a token refresh does not. An answer that set off under one and arrives under
+   * another writes nothing and replays nothing: a refresh in flight when the person signed out on this phone used to
+   * write its rotated pair back — signing in again the rep who had just chosen to leave, or replacing the next
+   * person's session with his — and replay the call under it.
+   */
+  let generation = 0
+
+  /** What a call or a refresh answers once the session it belonged to has ended. */
+  function sessionEnded(): ApiError {
+    return new ApiError({ kind: 'auth', status: 401, message: 'Signed out.' })
+  }
+
+  /**
+   * The device's own leaving after `signOutOnDevice` — the engine ended, the person's other files swept, their drafts
+   * forgotten — until it has settled (merge review of ruling 2, problem 2). The session is cleared before it begins,
+   * so the sign-in form is already on the screen: a sign-in waits for this rather than open the same file, or let a
+   * sweep and a forgetting still running reach the person signing in.
+   */
+  let leaving: Promise<void> = Promise.resolve()
+
+  /**
+   * The sign-in's wait for `leaving`, capped (DOS-167 addendum (z2)). A native close that never answered held every
+   * sign-in on the phone behind a spinner until the app was killed. Past `LEAVING_WAIT_MS` the sign-in goes on and says
+   * so — the engine's file holds still keep one person's file from being opened twice — and a later sign-in does not
+   * wait for that same leaving again.
+   */
+  async function waitForLeaving(): Promise<void> {
+    const waited = leaving
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const capped = new Promise<'capped'>((resolve) => {
+      timer = setTimeout(() => {
+        resolve('capped')
+      }, LEAVING_WAIT_MS)
+    })
+    const outcome = await Promise.race([waited.then(() => 'left' as const), capped])
+    clearTimeout(timer)
+    if (outcome === 'left') return
+    console.warn('sign-in did not wait for a leaving that took over 25 s')
+    if (leaving === waited) leaving = Promise.resolve()
+  }
+
+  /**
    * Only the SERVER may end a session.
    *
    * A refresh that comes back 401 (rejected, reused, expired) means the session is really gone and
@@ -158,12 +214,20 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       options.onSignOut?.(err)
       throw err
     }
+    const at = generation
     try {
       const pair = await authClient.refresh({ refreshToken, deviceId: session.deviceId })
+      if (generation !== at) {
+        // The session that asked is gone: the pair is nobody's. Never written; revoked, best effort, in the background.
+        void authClient.logout({ refreshToken: pair.refreshToken }).catch(() => undefined)
+        throw sessionEnded()
+      }
       session.applyTokens(pair)
     } catch (raw) {
       const err = toApiError(raw)
-      if (endsTheSession(err)) {
+      // A refusal ends only the session that asked, never one begun since.
+      if (endsTheSession(err) && generation === at) {
+        generation += 1
         session.clear()
         options.onSignOut?.(err)
       }
@@ -188,10 +252,13 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       next: () => Promise<unknown>
       path: readonly string[]
     }): Promise<unknown> => {
+      const at = generation
       try {
         return await opts.next()
       } catch (err) {
         if (!isUnauthorized(err) || !retryable(opts.path)) throw toApiError(err)
+        // A call made under a session that has since ended is never refreshed, nor replayed under another (problem 1).
+        if (generation !== at) throw toApiError(err)
         try {
           await ensureFreshAccessToken()
         } catch (refreshErr) {
@@ -200,6 +267,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
           const failure = toApiError(refreshErr)
           throw endsTheSession(failure) ? toApiError(err) : failure
         }
+        if (generation !== at) throw toApiError(err)
         try {
           return await opts.next()
         } catch (second) {
@@ -244,6 +312,11 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     newMutation,
 
     async signIn(input: SignInOptions): Promise<Session> {
+      // A new session: anything still on its way for the last one writes nothing (problem 1).
+      generation += 1
+      // Never on a phone that is still leaving (addendum (y)): the last sign-out finishes on the device first — for at
+      // most 25 s (addendum (z2)).
+      await waitForLeaving()
       storage.setDurable?.(input.remember !== false)
       const pair: TokenPair = await authClient.login({
         username: input.username,
@@ -262,6 +335,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     },
 
     async signOut(): Promise<void> {
+      generation += 1
       const refreshToken = session.refreshToken
       if (refreshToken !== null) {
         try {
@@ -274,9 +348,41 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       options.onSignOut?.(null)
     },
 
+    signOutOnDevice(leave: (stored: Promise<void>) => Promise<void>): Promise<void> {
+      // Kept in memory only, for the revoke: the one copy that outlives the clear below.
+      const refreshToken = session.refreshToken
+      // A refresh or a call still on its way for this session writes nothing, and replays nothing (problem 1).
+      generation += 1
+      const stored = session.clearOnDevice()
+      options.onSignOut?.(null)
+      // In the same turn as the clear: the leave flow ends the engine before the cleared session re-renders the app.
+      let local: Promise<void>
+      try {
+        local = leave(stored)
+      } catch (error) {
+        local = Promise.reject(error instanceof Error ? error : new Error(String(error)))
+      }
+      const settled = local.then(
+        () => undefined,
+        () => undefined,
+      )
+      const before = leaving
+      leaving = settled.then(() => before)
+      void settled.then(async () => {
+        if (refreshToken === null) return
+        try {
+          await authClient.logout({ refreshToken })
+        } catch {
+          // Best effort: the token is already gone from this device; a revoke that never arrived changes nothing here.
+        }
+      })
+      return local
+    },
+
     async me(): Promise<AuthMe> {
+      const at = generation
       const answer = await authClient.me()
-      session.updateUser(answer.user)
+      if (generation === at) session.updateUser(answer.user)
       return answer
     },
 
@@ -285,11 +391,18 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       if (refreshToken === null) {
         throw new ApiError({ kind: 'auth', status: 401, message: 'Signed out.' })
       }
+      // Another session: the old distributor's calls still on their way are never replayed under this one.
+      const at = ++generation
       const pair = await authClient.switchTenant({
         refreshToken,
         deviceId: session.deviceId,
         tenantId,
       })
+      if (generation !== at) {
+        // Signed out while the switch was on its way: nobody's pair, never written.
+        void authClient.logout({ refreshToken: pair.refreshToken }).catch(() => undefined)
+        throw sessionEnded()
+      }
       session.applyTokens(pair)
       const current = session.getSnapshot().session
       if (!current) throw new ApiError({ kind: 'unknown', message: 'Switch did not settle.' })
@@ -297,9 +410,10 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     },
 
     async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+      const at = generation
       await authClient.changePassword({ currentPassword, newPassword })
       const answer = await authClient.me()
-      session.updateUser(answer.user)
+      if (generation === at) session.updateUser(answer.user)
     },
 
     async hydrate(): Promise<void> {

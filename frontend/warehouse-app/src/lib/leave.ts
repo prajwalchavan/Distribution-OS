@@ -29,6 +29,11 @@ export interface LeaveSentenceInput {
   name: string
   /** The distributor these changes belong to: the one being left. */
   tenantName: string
+  /**
+   * False when the device store is in memory (DOS-167 ruling 2 (t)): nothing waiting survives leaving, so the body
+   * never says it stays. Absent means a store that keeps.
+   */
+  persistent?: boolean
 }
 
 export interface LeaveSentence {
@@ -73,11 +78,35 @@ export function leaveSentence(input: LeaveSentenceInput): LeaveSentence {
   return {
     title: queued ? counted(input.pending, 'leave.title', 'leave.title.one') : attention,
     attention: queued && refused ? attention : null,
-    body: say(bodyKey(input.mode, queued, refused), {
-      name: input.name,
-      tenantName: input.tenantName,
-    }),
+    body:
+      input.persistent === false
+        ? say('leave.bodyMemory', {})
+        : say(bodyKey(input.mode, queued, refused), {
+            name: input.name,
+            tenantName: input.tenantName,
+          }),
   }
+}
+
+/** A button the leave sheet may offer. */
+export type LeaveButton = 'sendNow' | 'keep' | 'cancel'
+
+/**
+ * What the sheet offers, in order (DOS-167; ruling 2 (t)). "Send now" only with a signal. "Sign out, keep here" — or
+ * "Switch anyway" — only on a store that keeps: a store in memory goes with the tab, so a keep there would be a
+ * promise nothing keeps, and the leaving WAITS — sent now, or the person stays signed in until there is a signal;
+ * refused ones are fixed or discarded in Needs attention. Throwing a change away is never offered here.
+ */
+export function leaveButtons(input: {
+  mode: LeaveMode
+  online: boolean
+  persistent: boolean
+}): LeaveButton[] {
+  const buttons: LeaveButton[] = []
+  if (input.online) buttons.push('sendNow')
+  if (input.persistent) buttons.push('keep')
+  buttons.push('cancel')
+  return buttons
 }
 
 /** How the person asked to leave: signing out, or switching to another distributor. */
@@ -98,11 +127,23 @@ export interface LeaveSteps {
   waiting: () => Promise<WaitingCounts>
   /** Upload what is queued; what still waits afterwards. */
   sendNow: () => Promise<WaitingCounts>
-  /** What it kept (`EndResult`) is the device's to report; the order of leaving is the same either way. */
-  end: (options: { keepQueue: boolean }) => Promise<unknown>
+  /**
+   * What it kept (`EndResult`): the file survives when asked to, and also when the engine's own count found something
+   * waiting once the last write had landed (ruling 2 (u)). The order of leaving is the same either way.
+   */
+  end: (options: {
+    keepQueue: boolean
+    /** The session's removal from the platform store: the engine touches the file only once it has landed. */
+    after?: Promise<unknown>
+  }) => Promise<{ kept: boolean } | void>
   /** This hand's files at their other distributors: deleted where nothing waits in them. */
   sweep: () => Promise<unknown>
-  signOut: () => Promise<void>
+  /**
+   * Sign out on this phone, then leave it (addendum (y); `useSession().signOutOnDevice`): the stored session is cleared
+   * at once and `leave` runs in the same turn, handed `stored`, the session's removal from the platform store. The
+   * server's revoke follows `leave`, and a sign-in on this phone waits for it.
+   */
+  signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   switchDistributor: (tenantId: string) => Promise<unknown>
 }
 
@@ -143,27 +184,35 @@ export async function sendNowThenLeave(to: Leaving, steps: LeaveSteps): Promise<
 
 /**
  * The leaving itself, once there is nothing left to ask. A switch wipes nothing: the provider stops the
- * engine on this distributor's file, queue kept, and starts it on the other one. A sign-out ends the
- * engine BEFORE the session is cleared ("Send now" needed the token, and the revoke may wait out the
- * 20 s deadline with no signal); `keepQueue: false` deletes this hand's file, and only then are their
- * other files swept. The session is cleared whatever those steps did.
+ * engine on this distributor's file, queue kept, and starts it on the other one. A sign-out clears the
+ * session on this phone FIRST and only then ends the engine (addendum (y)): a crash inside `end()` relaunches
+ * to the sign-in form, and "Send now" has already sent with the live session before this runs. `keepQueue: false`
+ * deletes this hand's file unless the engine's own count found something waiting, which keeps it. Then their other
+ * files are swept, on EVERY sign-out — the sweep deletes only files with nothing unsent (ruling 2 (u)). All of it runs
+ * inside `signOutOnDevice`: a sign-in on this phone waits until it is over, and the server's revoke follows it, in the
+ * background.
  */
 export async function leaveNow(to: Leaving, keepQueue: boolean, steps: LeaveSteps): Promise<void> {
   if (to.mode === 'switch') {
     await steps.switchDistributor(to.tenantId)
     return
   }
-  try {
-    await steps.end({ keepQueue })
-  } catch {
-    // Signed out regardless: the next person opens a different file whatever happened to this one.
-  }
-  if (!keepQueue) {
+  /*
+   * SIGNED OUT ON THIS PHONE FIRST (addendum (y)). On iOS the app died inside `end()` and came back signed in as the
+   * person who had chosen to sign out. The stored session goes now, and `end` is called in the same turn — nothing is
+   * awaited between them — so the engine refuses reads and writes before the cleared session re-renders the app; it
+   * touches the file only once the session is out of the platform store (`stored`, a Keychain delete on a phone).
+   */
+  await steps.signOutOnDevice(async (stored) => {
+    try {
+      await steps.end({ keepQueue, after: stored })
+    } catch {
+      // Signed out regardless: the next person opens a different file whatever happened to this one.
+    }
     try {
       await steps.sweep()
     } catch {
       // Best effort, file by file: a file left behind is still under this hand's own name.
     }
-  }
-  await steps.signOut()
+  })
 }

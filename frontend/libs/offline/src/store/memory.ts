@@ -6,14 +6,20 @@
  * runs, with no WASM to load, no OPFS to be denied and no network anywhere.
  */
 import { MemoryDatabase } from '../sql.js'
-import type { SqlValue, SyncStore } from '../types.js'
+import type { SqlValue, StoreFallback, SyncStore } from '../types.js'
 
 class MemoryStore implements SyncStore {
   readonly persistent = false
   readonly kind = 'memory' as const
+  readonly fallback?: StoreFallback
   private depth = 0
 
-  constructor(private db: MemoryDatabase) {}
+  constructor(
+    private db: MemoryDatabase,
+    fallback?: StoreFallback,
+  ) {
+    if (fallback !== undefined) this.fallback = fallback
+  }
 
   async exec(sql: string, params: readonly SqlValue[] = []): Promise<void> {
     this.db.run(sql, params)
@@ -54,8 +60,12 @@ class MemoryStore implements SyncStore {
   }
 }
 
-export function createMemoryStore(): SyncStore {
-  return new MemoryStore(new MemoryDatabase())
+/**
+ * A store in memory. An opener that hands one back INSTEAD of the SQLite store it was asked for passes `fallback`
+ * (DOS-167 ruling 2 (t)): what was wanted and why it could not be had, so the engine can say so.
+ */
+export function createMemoryStore(fallback?: StoreFallback): SyncStore {
+  return new MemoryStore(new MemoryDatabase(), fallback)
 }
 
 /** The `StoreFactory` shape, so a test or a harness can pass it straight to `<OfflineProvider>`. */

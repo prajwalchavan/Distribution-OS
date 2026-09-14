@@ -36,11 +36,31 @@ interface SyncStore {
   (COOP/COEP headers); the dev server and the CloudFront distribution send them. If OPFS is unavailable the client falls to:
 - `memory`: an in-memory SQL-compatible store (better-sqlite3-style API over `sql.js` is acceptable on web only). It is honest:
   `persistent=false`, and the strip says "Offline data is not saved on this browser".
+  A fallback to it is never silent (ruling 2 (t), 2026-09-14): the opener hands back the memory store with
+  `fallback = { wanted, reason }` — `not cross-origin isolated (no COOP/COEP)`, `no OPFS`, `expo-sqlite did not load` (web),
+  `expo-sqlite is not in this binary` (native) or `open failed: <message>` — `start()` logs
+  `offline: no persistent store; running in memory` once with that reason, and `SyncStatus.storeNote` names it (null on a
+  persistent store).
 
-One file per (app, user, distributor): `<prefix>__u-<userId>__t-<tenantId>.db` (`storeNameFor`, prefix `dos-sales`,
-`dos-delivery`, `dos-warehouse`). The ids go in unhashed after a character check, so two people, or one person at two
-distributors, never open the same file; a person signing in on a phone somebody else used starts with no rows and no cursor
-(DOS-167). The fixed `<prefix>.db` of earlier builds is deleted once at mount.
+One file per (app, user, distributor): `<app><user><distributor>` (`storeNameFor`), exactly 51 characters of `[0-9a-z]`, no
+separator and no extension — the app's letter (`dos-sales` → `s`, `dos-delivery` → `d`, `dos-warehouse` → `w`, `dos-harness` →
+`h`; any other prefix has no file), then the user's and the distributor's UUID, each as its 128-bit number in base 36
+zero-padded to 25 digits; e.g. `s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft`. The LIMIT is web SQLite's: expo-sqlite
+opens `./<name>` through wa-sqlite, whose VFS allows 64 characters of path, less 8 SQLite keeps for the journal suffix, so a
+name longer than 54 does not open in a browser (the 92-character `<prefix>__u-<userId>__t-<tenantId>.db` of 199952b never did);
+`./` + 51 = 53. No hash anywhere: the name is lossless (`parseStoreName` reads it back), fixed-width and single-case, so two
+people, or one person at two distributors, never open the same file on any file system, a case-folding one included; a person
+signing in on a phone somebody else used starts with no rows and no cursor (DOS-167; ruling 2, 2026-09-14). The fixed
+`<prefix>.db` of earlier builds is deleted once at mount; the 199952b name is swept once per person, deleted when it holds nothing
+unsent and kept (and logged) when it does. To read a name in a QA listing:
+`node -e 'const n=process.argv[1],id=g=>{let v=0n;for(const c of g)v=v*36n+BigInt(parseInt(c,36));return v.toString(16).padStart(32,"0").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")};console.log({s:"dos-sales",d:"dos-delivery",w:"dos-warehouse",h:"dos-harness"}[n[0]],id(n.slice(1,26)),id(n.slice(26)))' <name>`.
+The name is computed with `BigInt`, which Hermes has from React Native 0.70 (the apps run 0.86). The Android proof checks
+`typeof BigInt` on its first run; should a platform ever lack it, the same digits come from four 32-bit limbs — the format is the
+rule, not the arithmetic (ruling 2 (s)).
+
+A file has one holder at a time in a process (merge review of ruling 2): an engine takes its file from `start()` until its close has
+resolved and opens it only once the holder before has let go — the engine of the same person still ending after a sign-out, or a
+sweep counting that file — and a sweep skips a file somebody holds (`offline: sweep skipped a store in use`).
 
 Everything below is plain SQL that all three run identically. No ORM on the device.
 
@@ -107,6 +127,10 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 
 - `enqueue({ table, id, op, data, baseUpdatedAt })` writes the outbox row AND applies the change locally in the same transaction
   (`_pending='queued'`). The screen shows the order at once, marked as waiting.
+- An aggregate — an order and its lines — is queued in ONE transaction through `enqueueMany(inputs)` (ruling 2 (u),
+  2026-09-14): every input is checked against the manifest before anything is written, so one line the role may not queue
+  refuses the whole order; the rows land in call order (ascending `seq`, header first); a sign-out that has begun refuses all of
+  it. The phone and the office hold the whole order or none of it. `enqueue(input)` is `enqueueMany([input])`.
 - Uploader: one batch in flight at a time; FIFO by `seq`; ≤ 50 ops and ≤ 4 MiB of op JSON per batch (an op larger than that
   goes on its own; DOS-056, §15); `sync.upload({ deviceId, protocol, ops })`.
   Ops keep their order inside the batch so a `sales_order_lines` op follows its `sales_orders` op.
@@ -184,14 +208,18 @@ browser". The strip never shows a spinner without a word.
 - `useTable<T>(table, { where?, params?, orderBy?, limit? })` — a live query: re-runs when a pull applies rows to that table or the
   outbox touches it (an in-process change bus keyed by table). Returns `{ rows, loading }`.
 - `useRow<T>(table, id)`
-- `useOutbox()` → `{ enqueue, pending, rejected, retry(opId), discard(opId) }`. `discard` is only offered on a rejected op and writes
-  an audit line into `_sync_errors`.
+- `useOutbox()` → `{ enqueue, enqueueMany(inputs), pending, rejected, retry(opId), discard(opId) }`. `enqueueMany` queues an order and
+  its lines as one write, whole or not at all (ruling 2 (u)). `discard` is only offered on a rejected op and writes an audit line
+  into `_sync_errors`.
 - `useNeedsAttention()` — the rejected ops joined with their rows, for the tray.
-- `useLeaveSession()` → `{ pending, rejected, online, waiting(), sendNow(), end({ keepQueue }) }` — the app's sign-out flow
-  (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is given
-  `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which reads 0
-  until then. `end` is called before the session is cleared; `SyncEngine.sweepIdentityStores` deletes the person's
-  other-distributor files that hold nothing unsent.
+- `useLeaveSession()` → `{ pending, rejected, online, persistent, waiting(), sendNow(), end({ keepQueue, after }) }` — the app's
+  sign-out flow (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is
+  given `waiting()`, the counts read from the file once the engine has opened it, never the `pending`/`rejected` snapshot, which
+  reads 0 until then. The leaving runs inside `useSession().signOutOnDevice(leave)` of `@dos/api-client` (addendum (y),
+  2026-09-14): the session is cleared on the device first, `leave(stored)` is called in the same turn and calls `end` with
+  `after: stored`, the session's removal from the platform store, which `end` waits for before it touches the file; then
+  `SyncEngine.sweepIdentityStores` deletes the person's other-distributor files that hold nothing unsent. The server's revoke goes
+  once `leave` has settled, in the background, and a sign-in on that client waits until then, for at most 25 s (addendum (z2)).
 - `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
   `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
 
@@ -202,14 +230,21 @@ Screens never write SQL; only the library does. Screens never call `sync.upload`
 Tokens live in `platform.storage` (secure store on native; `localStorage` on web with the documented XSS caveat: no third-party
 scripts, strict CSP on the hosted site). The local database is unencrypted for the pilot (SQLCipher is a phase-2 item in docs/25); it
 contains no cost or margin column by construction (the manifest strips them server-side). A device file belongs to one person in
-one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out ends the engine before the session is
-cleared: with nothing queued or refused it is one tap, the read set is dropped and the file deleted, and the person's files at their
-other distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
+one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out clears the session on the device first — a
+crash from then on relaunches to the sign-in form, and the engine touches the file only once the session has left the platform
+store (the Keychain delete is asynchronous) — then ends the engine, and asks the server to revoke last, in the background
+(addendum (y), 2026-09-14). Until the leaving is over no one signs in on that phone — for at most 25 s, then the sign-in goes on
+and logs it (addendum (z2)) — and a refresh or a switch that set off under the session that ended writes nothing and replays
+nothing (merge review of ruling 2). Every sign-out button of an app takes this flow (addendum (z1)). With nothing queued or
+refused, signing out is one tap: the read set is dropped and the file deleted, and the person's files at their other
+distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
 that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
 refused ones wait in Needs attention for that person to fix or discard. Discarding is never
-offered at sign-out; it stays in the Needs-attention tray (§11). A session that ends by itself (a refresh answered 401) keeps the
+offered at sign-out; it stays in the Needs-attention tray (§11). A store that cannot keep (§2, memory) never offers to keep, nor
+to switch anyway: the sheet says the browser cannot keep them and offers "Send now" while online, and Cancel; the sign-out waits
+for a signal, and refused ones are fixed or discarded in Needs attention (ruling 2 (t), 2026-09-14). A session that ends by itself (a refresh answered 401) keeps the
 queue in that person's file the same way (§14). Decided by the founder, 2026-09-13.
 
 ## 13. Tests (deterministic, fake transport, no network)
@@ -225,7 +260,9 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
 9. No cost/margin column ever exists in the local schema for a field role (walk the manifest).
 10. Status object transitions: offline → online → pulling → synced; pending counts.
 11. Memory adapter reports `persistent=false` and the strip text follows.
-12. One store per app, person and distributor (DOS-167): `storeNameFor` is lossless and refuses an unsafe id; a second person on
+12. One store per app, person and distributor (DOS-167): `storeNameFor` writes the 51-character `<app><user><distributor>` name
+    web SQLite opens, `parseStoreName` reads back every id (200 spread UUIDs, all-zero, all-f), one case only, and a non-UUID id
+    or an unknown app prefix is refused; the 199952b file is swept once for the person signing in; a second person on
     the same store sees no row and pulls with no cursor, even before the handshake; another distributor's store after a restart is
     wiped before any table is published and its queue is never uploaded; the same person keeps rows, cursor and queue.
 13. `end()` at sign-out: with nothing queued it drops the read set, tells every table and deletes the file; `keepQueue` keeps the
@@ -233,13 +270,21 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     under a pull page and an upload batch in flight waits for both and lets nothing land after the drop. A write that begins once
     `end()` has begun is refused with `SyncEngineEndedError`, never saved and so never deleted; a write already in hand when `end()`
     begins, or landed between the tap's count and `end()`, is finished and counted, and the file is kept for that person, who sends
-    it at the next sign-in, while anyone else's start wipes it.
-14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue.
+    it at the next sign-in, while anyone else's start wipes it. An order and its lines are queued whole or not at all through
+    `enqueueMany`: refused whole once `end()` has begun, refused whole for one download-only line, and landed in call order with
+    one message to every table touched; a file kept by the count keeps that person's drafts, and the sibling sweep runs on every
+    sign-out. `end({ after })` touches the store only once `after` has settled; the same person signing straight back in opens
+    the file only once the engine before has closed it.
+14. `sweepIdentityStores` deletes the person's other-distributor file with nothing unsent and keeps, and reports, one with a queue;
+    it never takes a file an engine holds, and an engine waits for a sweep that holds its file.
 15. The SQLite adapter's `destroy` closes once, then deletes the file by name; a file already gone is no error. `leaveDecision` asks
     only when something is queued or refused, and a sign-out tapped while the store is still opening counts the file through
     `waiting()` and asks.
 16. `@dos/api-client`: `identityKey` changes with the user or the distributor, not with a password flag or a role, and the query
     cache is cleared on every identity change, a forced sign-out included; the sales draft is keyed by the signed-in user.
+    `signOutOnDevice` clears the session before any network call and revokes only once the leaving has settled; a sign-in waits
+    for the leaving; the leaving is told when the session has left the platform store; a refresh in flight at the sign-out signs
+    nobody back in and never replaces the next person's session.
 
 ## 14. Failure modes
 

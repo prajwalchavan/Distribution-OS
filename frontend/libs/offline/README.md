@@ -41,8 +41,9 @@ import { OfflineProvider, useTable, useOutbox, useSyncStatus } from '@dos/offlin
 and `index.web.ts` in a browser. `deviceId` is the id the app already keeps for `auth_sessions`
 (`src/api.ts` in the app template) — one per install, kept across a sign-out. `identity` is
 `sessionIdentity(session)` from `@dos/api-client` (`null` while nobody is signed in) and `storePrefix`
-names the app: the device database is one file per app, person and distributor,
-`dos-sales__u-<userId>__t-<tenantId>.db` (DOS-167).
+names the app: the device database is one file per app, person and distributor, `<app><user><distributor>` —
+the app's letter and both UUIDs in base 36, 51 characters, short enough for web SQLite to open
+(`s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft`; `parseStoreName` reads it back; DOS-167, ruling 2).
 
 ## The tests
 

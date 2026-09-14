@@ -12,14 +12,21 @@ export {
   SyncEngine,
   SyncEngineEndedError,
   CLIENT_SYNC_PROTOCOL,
+  interimStoreName,
   legacyStoreName,
+  parseStoreName,
   storeNameFor,
   type EndResult,
   type SyncEngineOptions,
 } from './engine.js'
 export { transportFromApi, type SyncApiLike } from './transport.js'
 export { createMemoryStore, memoryStoreFactory } from './store/memory.js'
-export { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
+export {
+  openExpoSqlite,
+  StoreClosedError,
+  type ExpoDatabaseLike,
+  type ExpoSqliteLike,
+} from './store/expo-sqlite.js'
 export { MemoryDatabase, SqlError, splitStatements, type Row } from './sql.js'
 export { ChangeBus, ERRORS_CHANNEL, OUTBOX_CHANNEL, type TableListener } from './bus.js'
 export {

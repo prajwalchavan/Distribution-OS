@@ -19,6 +19,7 @@ import {
 
 import { OUTBOX_CHANNEL, ERRORS_CHANNEL } from './bus.js'
 import {
+  interimStoreName,
   legacyStoreName,
   storeNameFor,
   SyncEngine,
@@ -65,6 +66,28 @@ export interface OfflineProviderProps {
   enabled?: boolean
   onLog?: (line: string, detail?: unknown) => void
   children: ReactNode
+}
+
+/**
+ * THE FILE 199952b NAMED (DOS-167 ruling 2 (s)). That build gave each person's file a name no browser could open,
+ * and on the QA phones it opened and still holds what it kept: the provider sweeps it once for the person signing
+ * in, by the sibling rule — deleted when nothing in it is queued, sending or refused; kept, and said, when something
+ * is, because nothing unsent is ever thrown away. An id that could not have been in that name has no such file.
+ */
+export async function sweepInterimStore(
+  storeFactory: StoreFactory,
+  storePrefix: string,
+  identity: SyncIdentity,
+  onLog?: (line: string, detail?: unknown) => void,
+): Promise<void> {
+  let name: string
+  try {
+    name = interimStoreName(storePrefix, identity)
+  } catch {
+    return
+  }
+  const swept = await SyncEngine.sweepStores(storeFactory, [name], onLog)
+  for (const file of swept.kept) onLog?.('offline: kept the store from before ruling 2', file)
 }
 
 /** The file the engine opens: the explicit name, else this person's file in this distributorship. */
@@ -184,6 +207,20 @@ export function OfflineProvider({
   }, [storeFactory, storePrefix, databaseName])
 
   /*
+   * THE FILE 199952b NAMED, swept once per person per mount (ruling 2 (s)): `sweepInterimStore`. Its name is not the
+   * engine's, so the two never open one file; on a browser it never existed and the open simply finds nothing.
+   */
+  const sweptInterim = useRef(new Set<string>())
+  useEffect(() => {
+    if (storePrefix === undefined || identity === null || idKey === null) return
+    if (sweptInterim.current.has(idKey)) return
+    sweptInterim.current.add(idKey)
+    void sweepInterimStore(storeFactory, storePrefix, identity, onLog).catch((error: unknown) => {
+      onLog?.('offline: could not sweep the store from before ruling 2', error)
+    })
+  }, [storeFactory, storePrefix, idKey])
+
+  /*
    * The radio, told to the engine rather than guessed at. On web these are the browser's own events;
    * on a device the app passes NetInfo through `engine.setNetworkHint`. Coming back is what clears the
    * backoff and drains the queue, so a rep walking out of a dead spot does not wait out a 60 s timer.
@@ -221,6 +258,7 @@ const IDLE: SyncStatus = {
   online: true,
   store: 'memory',
   persistent: false,
+  storeNote: null,
   lastPulledAt: null,
   pulling: false,
   pending: 0,
@@ -263,6 +301,11 @@ export interface LeaveSession {
   rejected: number
   online: boolean
   /**
+   * False while the device store is in memory (DOS-167 ruling 2 (t)): nothing waiting survives leaving, so the sheet
+   * never offers to keep it — "Send now" with a signal, else the person stays signed in.
+   */
+  persistent: boolean
+  /**
    * What waits in this person's file, counted once the engine has opened it. The tap decides on this:
    * before the open the snapshot reads 0, and a sign-out decided on it deleted a queue it had not seen.
    */
@@ -270,12 +313,13 @@ export interface LeaveSession {
   /** Upload what is queued now; what is still waiting afterwards, counted the same way. */
   sendNow: () => Promise<{ pending: number; rejected: number }>
   /**
-   * End the engine BEFORE the session is cleared: `keepQueue: false` deletes this person's file,
-   * `keepQueue: true` keeps the queue and the tray in it and drops everything else. From the call on the
-   * engine refuses every new write; a write already in hand lands first, and when anything waits once it
-   * has, the file is kept for this person whatever was asked. `kept` says which (DOS-167, ruling (m)).
+   * End the engine once the session is cleared on the device (addendum (y)): `keepQueue: false` deletes this person's
+   * file, `keepQueue: true` keeps the queue and the tray in it and drops everything else. From the call on the engine
+   * refuses every new write; `after`, the session's removal from the platform store, is waited for before the file is
+   * touched; a write already in hand lands first, and when anything waits once it has, the file is kept for this
+   * person whatever was asked. `kept` says which (DOS-167, ruling (m)).
    */
-  end: (options: { keepQueue: boolean }) => Promise<EndResult>
+  end: (options: { keepQueue: boolean; after?: Promise<unknown> }) => Promise<EndResult>
 }
 
 /**
@@ -295,7 +339,7 @@ export function useLeaveSession(): LeaveSession {
     return engine.waiting()
   }, [engine])
   const end = useCallback(
-    async (options: { keepQueue: boolean }): Promise<EndResult> => {
+    async (options: { keepQueue: boolean; after?: Promise<unknown> }): Promise<EndResult> => {
       if (engine === null) return { kept: false, pending: 0, rejected: 0 }
       return engine.end(options)
     },
@@ -306,11 +350,12 @@ export function useLeaveSession(): LeaveSession {
       pending: status.pending,
       rejected: status.rejected,
       online: status.online,
+      persistent: status.persistent,
       waiting,
       sendNow,
       end,
     }),
-    [status.pending, status.rejected, status.online, waiting, sendNow, end],
+    [status.pending, status.rejected, status.online, status.persistent, waiting, sendNow, end],
   )
 }
 
@@ -406,6 +451,8 @@ export function useRow<T = Record<string, unknown>>(
 
 export interface OutboxApi {
   enqueue: (input: EnqueueInput) => Promise<string>
+  /** An aggregate — an order and its lines — as ONE write, whole or not at all (DOS-167 ruling 2 (u)). */
+  enqueueMany: (inputs: readonly EnqueueInput[]) => Promise<string[]>
   rows: OutboxRow[]
   pending: number
   rejected: number
@@ -450,6 +497,13 @@ export function useOutbox(): OutboxApi {
     },
     [engine],
   )
+  const enqueueMany = useCallback(
+    async (inputs: readonly EnqueueInput[]) => {
+      if (engine === null) throw new Error('no offline engine: is <OfflineProvider> mounted?')
+      return engine.enqueueMany(inputs)
+    },
+    [engine],
+  )
   const retry = useCallback(async (opId: string) => engine?.retry(opId) ?? undefined, [engine])
   const discard = useCallback(async (opId: string) => engine?.discard(opId) ?? undefined, [engine])
   const flush = useCallback(async () => engine?.flush() ?? undefined, [engine])
@@ -457,6 +511,7 @@ export function useOutbox(): OutboxApi {
   return useMemo(
     () => ({
       enqueue,
+      enqueueMany,
       rows,
       pending: status.pending,
       rejected: status.rejected,
@@ -464,7 +519,7 @@ export function useOutbox(): OutboxApi {
       discard,
       flush,
     }),
-    [enqueue, rows, status.pending, status.rejected, retry, discard, flush],
+    [enqueue, enqueueMany, rows, status.pending, status.rejected, retry, discard, flush],
   )
 }
 

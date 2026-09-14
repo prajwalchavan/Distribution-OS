@@ -13,7 +13,7 @@
  */
 import { Button, Sheet, Stack, Txt, useColors, useStrings } from '@dos/ui'
 
-import { leaveSentence, type LeaveMode } from './leave'
+import { leaveButtons, leaveSentence, type LeaveMode } from './leave'
 
 export interface LeaveSheetProps {
   open: boolean
@@ -23,6 +23,8 @@ export interface LeaveSheetProps {
   /** Refused by the office and waiting in the tray. */
   rejected: number
   online: boolean
+  /** False while the device store is in memory (ruling 2 (t)): no keep is offered, and the body says why. */
+  persistent: boolean
   /** The person signing out. */
   name: string
   /** The distributor being left, whose file keeps the changes. */
@@ -42,6 +44,7 @@ export function LeaveSheet({
   pending,
   rejected,
   online,
+  persistent,
   name,
   tenantName,
   busy,
@@ -52,7 +55,8 @@ export function LeaveSheet({
 }: LeaveSheetProps): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
-  const sentence = leaveSentence({ mode, pending, rejected, name, tenantName })
+  const sentence = leaveSentence({ mode, pending, rejected, name, tenantName, persistent })
+  const buttons = leaveButtons({ mode, online, persistent })
   const why = online ? note : t('leave.noSignal')
   return (
     <Sheet open={open} onClose={onCancel} title={sentence.title} testID="leave-sheet">
@@ -75,7 +79,7 @@ export function LeaveSheet({
             {why}
           </Txt>
         )}
-        {online ? (
+        {buttons.includes('sendNow') ? (
           <Button
             testID="leave-send-now"
             label={t('leave.sendNow')}
@@ -84,19 +88,23 @@ export function LeaveSheet({
             onPress={onSendNow}
           />
         ) : null}
-        <Button
-          testID="leave-keep"
-          label={mode === 'signOut' ? t('leave.signOutKeep') : t('leave.switchAnyway')}
-          variant="secondary"
-          loading={busy}
-          onPress={onLeave}
-        />
-        <Button
-          testID="leave-cancel"
-          label={t('action.cancel')}
-          variant="ghost"
-          onPress={onCancel}
-        />
+        {buttons.includes('keep') ? (
+          <Button
+            testID="leave-keep"
+            label={mode === 'signOut' ? t('leave.signOutKeep') : t('leave.switchAnyway')}
+            variant="secondary"
+            loading={busy}
+            onPress={onLeave}
+          />
+        ) : null}
+        {buttons.includes('cancel') ? (
+          <Button
+            testID="leave-cancel"
+            label={t('action.cancel')}
+            variant="ghost"
+            onPress={onCancel}
+          />
+        ) : null}
       </Stack>
     </Sheet>
   )
