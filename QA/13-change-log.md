@@ -584,3 +584,24 @@ Answer to the approval gate that asked about DOS-167 P0, 11 lean-design decision
 **Adversarial read-only verifier: UPHELD.**
 - Caveat: a scheme-less API_URL would double-prefix the button path; no configuration does that.
 - It also re-confirmed S-108 by code reading: closing the sheet never bumps `challanToken`, so a running poll can open sheet A's challan from sheet B. One-line fix; offered to the founder, not applied.
+
+
+### Batch 2 — approvals (founder, 2026-09-14 08:12 IST: "Approved")
+
+The founder approved the request for the six confirmed findings and the one-line S-108 fix.
+- **Added to batch 2:** DOS-168 and DOS-169 (P0), DOS-170, DOS-171 and DOS-172 (P1), DOS-173 (P3).
+- **Answers, all A:**
+  - Q1 (DOS-169): a late cash or cheque trip payment is refused and handed to the cashier; UPI is accepted.
+  - Q2 (DOS-172): no trip departs with a bill that no load sheet counted out.
+  - Q3: wrong money figures in the founder's own dos are corrected by one appended entry per case, signed off trip by trip.
+- **Also approved:** the S-108 challan-poll fix (closing the panel cancels a waiting print). "Approved" was read as covering both the pending approval request and that question.
+- **Architect decisions carried with the batch:** DOS-171 is built now, and DOS-079's cess moves up to follow it. DOS-173 goes to lean-orders-panels (owner of billing/index.tsx).
+- **docs/22 updated in the same turn:** §4 T1, D5 and D8 nodes; the §6 diagram and prose; the §7 sign-out note; six §8 rows; a §11 line. The "Sign out, keep here" wording is corrected. The artifact is republished.
+- **Build plan:**
+  - Lanes: b2-money (receivables → settlement → phone), b2-dos171 (backend → app), b2-s108, b2-dos172 (backend → apps).
+  - Each slice: Opus implementer and adversarial verifier, one repair round.
+  - Review: Opus merge reviews standing in for Fable, whose limit resets Saturday.
+  - At most 2 build lanes at once, while the DOS-167 re-proof holds the devices.
+  - Merge order: money → dos171 → dos172; s108 whenever it is ready.
+  - Platform proofs run in a later run, once the devices are free.
+- **Q3 data repair:** runs after the money fix merges. The founder is told before `pnpm db:migrate` runs on dos.
