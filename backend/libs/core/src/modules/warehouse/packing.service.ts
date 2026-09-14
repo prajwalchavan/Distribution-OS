@@ -16,6 +16,7 @@ import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../pla
 import { BillingService, type IssueForPackLine } from '../billing/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { OrdersService, type FulfilmentLine } from '../orders/index.js'
+import { LoadSheetsService } from './load-sheets.service.js'
 import { PicklistsService } from './picklists.service.js'
 import {
   activeWarehouseLocation,
@@ -73,6 +74,8 @@ export class PackingService {
     private readonly inventory: InventoryService,
     private readonly billing: BillingService,
     private readonly picklists: PicklistsService,
+    /** Same module, no cycle: `packs.list?status=awaiting_load` asks it which bills are on the road. */
+    private readonly loadSheets: LoadSheetsService,
   ) {}
 
   async confirm(input: ConfirmIn): Promise<ConfirmOut> {
@@ -175,16 +178,17 @@ export class PackingService {
             : isNull(packConfirmations.invoiceId),
         /*
          * `awaiting_load` is loadSheets.create's own acceptance rule (DOS-133): the order is still `packed`
-         * — asked of the orders module, which owns `sales_orders` — AND it is on no draft or confirmed
-         * sheet. Neither half is enough alone: trips.depart dispatches a packed order that was never on a
-         * sheet, and `return_undelivered` puts an order back to `packed` while its confirmed sheet still
-         * lists it, which create refuses.
+         * — asked of the orders module, which owns `sales_orders` — AND it is on no DRAFT sheet, AND its
+         * bill is not riding back on a van that has not checked in (QA DOS-172, applied to the page below:
+         * delivery answers it). A confirmed sheet holds nothing: `return_undelivered` puts an order back to
+         * `packed` while its confirmed sheet still lists it, and once its trip checks in it is loaded again
+         * on a fresh sheet.
          */
         input.status === 'awaiting_load'
           ? this.orders.orderInState(packConfirmations.orderId, 'packed')
           : undefined,
         input.status === 'awaiting_load'
-          ? sql`not ${onLiveLoadSheet(packConfirmations.orderId)}`
+          ? sql`not ${onDraftLoadSheet(packConfirmations.orderId)}`
           : undefined,
         /*
          * Keyset on the cursor pack's own (created_at, id), read inside this tenant's transaction, so the
@@ -206,7 +210,18 @@ export class PackingService {
          */
         .orderBy(desc(packConfirmations.createdAt), desc(packConfirmations.id))
         .limit(input.limit + 1)
-      const page = rows.slice(0, input.limit)
+      const scanned = rows.slice(0, input.limit)
+      // QA DOS-172: a bill riding back on a van that has not checked in is scanned and left out — one batched
+      // question to delivery per page. `nextCursor` stays the last SCANNED pack, so a page may hold fewer
+      // than `limit` while it is set (the planning board's own convention).
+      const onTheRoad =
+        input.status === 'awaiting_load'
+          ? await this.loadSheets.heldOnTheRoad(
+              tx,
+              scanned.map((p) => p.invoiceId).filter((id): id is string => id !== null),
+            )
+          : new Map<string, unknown>()
+      const page = scanned.filter((p) => p.invoiceId === null || !onTheRoad.has(p.invoiceId))
       const orders = await this.orders.fulfilmentOrders(
         tx,
         page.map((p) => p.orderId),
@@ -216,7 +231,7 @@ export class PackingService {
         tx,
         page.map((p) => p.invoiceId).filter((id): id is string => id !== null),
       )
-      const last = page[page.length - 1]
+      const lastScanned = scanned[scanned.length - 1]
       return {
         items: page.map((p) => {
           const order = byOrder.get(p.orderId)
@@ -228,7 +243,7 @@ export class PackingService {
             invoiceNo: p.invoiceId ? (invoices.get(p.invoiceId)?.invoiceNo ?? null) : null,
           }
         }),
-        nextCursor: rows.length > input.limit && last ? last.id : null,
+        nextCursor: rows.length > input.limit && lastScanned ? lastScanned.id : null,
       }
     })
   }
@@ -378,14 +393,14 @@ export class PackingService {
 }
 
 /**
- * "This order is on a live load sheet", as a correlated predicate for `packs.list?status=awaiting_load`
- * (DOS-133). LIVE is draft or confirmed (`status <> 'cancelled'`): the SAME rule as
- * `LoadSheetsService.onALiveSheet` (load-sheets.service.ts), which `loadSheets.create` refuses on. The
- * rule exists twice; the DOS-133 spec in warehouse.spec.ts is the tie (create accepts every row the list
- * offers and refuses the returned bill it leaves out), so a change to one — letting a bill returned
- * undelivered be loaded again, say — changes both. The tenant fence is literal, as in `onALiveSheet`.
+ * "This order is on a DRAFT load sheet", as a correlated predicate for `packs.list?status=awaiting_load`
+ * (DOS-133). Only a draft holds an order (QA DOS-172): a confirmed sheet is the record of one load-out, and
+ * a packed order it lists came back undelivered. The SAME rule as `LoadSheetsService.onADraftSheet`
+ * (load-sheets.service.ts), which `loadSheets.create` refuses on. The rule exists twice; the DOS-133 spec in
+ * warehouse.spec.ts is the tie (create accepts every row the list offers), so a change to one changes both.
+ * The tenant fence is literal, as in `onADraftSheet`.
  */
-function onLiveLoadSheet(orderId: SQLWrapper): SQL {
+function onDraftLoadSheet(orderId: SQLWrapper): SQL {
   const { tenantId } = currentTenant()
-  return sql`exists (select 1 from ${loadSheets} ls where ls.tenant_id = ${tenantId} and ls.status <> 'cancelled' and ls.order_ids @> jsonb_build_array(${orderId}))`
+  return sql`exists (select 1 from ${loadSheets} ls where ls.tenant_id = ${tenantId} and ls.status = 'draft' and ls.order_ids @> jsonb_build_array(${orderId}))`
 }

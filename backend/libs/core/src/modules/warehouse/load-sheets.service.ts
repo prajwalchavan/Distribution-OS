@@ -112,13 +112,27 @@ export interface ConfirmedLoad {
 }
 
 /**
+ * "Which of these bills came back undelivered and still ride a van that has not checked in", as invoice id
+ * → that trip (QA DOS-172). Delivery owns trips and deliveries, so it supplies the answer at start-up
+ * (`DeliveryModule.onModuleInit` → `registerRoadHold`) and no SQL in warehouse names those tables.
+ */
+export type RoadHoldLookup = (
+  tx: Db,
+  invoiceIds: readonly string[],
+) => Promise<Map<string, { tripId: string; tripNo: string | null }>>
+
+/**
  * The load-out: what goes onto a vehicle, the blind package count at the gate, the godown → vehicle
  * movement of the counted van stock, the Rule 55 delivery challan and the order's `packed → dispatched`
  * step.
  *
  * WAREHOUSE DISPATCHES, NOT DELIVERY (coordination §5 item 4). The goods physically leave here, with a
- * numbered challan; `delivery.trips.depart` moves the trip and treats an already-dispatched order as a
- * no-op.
+ * numbered challan, and nowhere else: `delivery.trips.depart` moves the trip, passes an already-dispatched
+ * order and refuses one still packed (QA DOS-172).
+ *
+ * ONLY A DRAFT SHEET HOLDS AN ORDER (QA DOS-172). A confirmed sheet and its challan are the record of one
+ * load-out and are never edited: a bill that came back undelivered is loaded again on a fresh sheet once
+ * its trip has checked in, and until then `heldOnTheRoad` keeps it off every sheet and off W7's list.
  *
  * STOCK LEAVES THE GODOWN ONCE (QA DOS-039). The packed orders' pieces already left as `sale` at pack
  * (`PackingService`), so the load-out puts them on the challan and never on the ledger a second time.
@@ -128,6 +142,10 @@ export interface ConfirmedLoad {
  */
 @Injectable()
 export class LoadSheetsService {
+  /** A warehouse with no delivery module has no road, so nothing is held until delivery says otherwise. */
+  private roadHold: RoadHoldLookup = () =>
+    Promise.resolve(new Map<string, { tripId: string; tripNo: string | null }>())
+
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
@@ -135,12 +153,37 @@ export class LoadSheetsService {
     private readonly billing: BillingService,
   ) {}
 
+  /**
+   * Delivery supplies "which bills still ride a van that has not checked in" at start-up
+   * (`DeliveryModule.onModuleInit`, QA DOS-172), the DOS-132 `registerTripSettled` pattern. Every service
+   * that serves load sheets mounts delivery (pinned by `service/definitions.test.ts`), because the empty
+   * default would offer a held bill silently.
+   */
+  registerRoadHold(lookup: RoadHoldLookup): void {
+    this.roadHold = lookup
+  }
+
+  /**
+   * The bills of `invoiceIds` that came back undelivered and are still out on a trip, as invoice id → that
+   * trip (QA DOS-172). `create` refuses them 409 `bill_on_road` and `packs.list?status=awaiting_load` leaves
+   * them out; the hold ends when the trip checks in (`trips.return`). Runs inside the caller's transaction.
+   */
+  heldOnTheRoad(
+    tx: Db,
+    invoiceIds: readonly string[],
+  ): Promise<Map<string, { tripId: string; tripNo: string | null }>> {
+    if (invoiceIds.length === 0)
+      return Promise.resolve(new Map<string, { tripId: string; tripNo: string | null }>())
+    return this.roadHold(tx, invoiceIds)
+  }
+
   // -------------------------------------------------------------------------------------------------------------
   // building the sheet
 
   /**
    * Builds the sheet WITHOUT moving anything. Every order must be packed and have a pack confirmation
-   * (so an invoice exists, or has been deliberately deferred) and must not already be on a live sheet.
+   * (so an invoice exists, or has been deliberately deferred), must not already be on a DRAFT sheet, and
+   * its bill must not still ride a van that has not checked in (409 `bill_on_road`, QA DOS-172).
    * The orders stay IN THE ORDER THE CALLER SUPPLIED — last stop loaded first is the app's job, because
    * reading `trip_stops` would make the godown depend on the delivery module (coordination §4 item 3).
    */
@@ -182,10 +225,32 @@ export class LoadSheetsService {
           throw new ORPCError('CONFLICT', {
             message: `these orders have no pack confirmation: ${unconfirmed.join(', ')}`,
           })
-        const clash = await this.onALiveSheet(tx, orderIds)
+        const clash = await this.onADraftSheet(tx, orderIds)
         if (clash.size > 0)
           throw new ORPCError('CONFLICT', {
             message: `order(s) already on load sheet ${[...new Set(clash.values())].join(', ')}`,
+          })
+        // QA DOS-172: a bill that came back undelivered rides its van until that trip checks in. Asked of
+        // delivery through the registered lookup; `confirm` needs no second check, because a held bill can
+        // never reach a draft.
+        const invoiceOf = new Map(packs.map((p) => [p.orderId, p.invoiceId]))
+        const onTheRoad = await this.heldOnTheRoad(
+          tx,
+          packs.map((p) => p.invoiceId).filter((id): id is string => id !== null),
+        )
+        const held = orderIds.flatMap((orderId) => {
+          const invoiceId = invoiceOf.get(orderId)
+          const trip = invoiceId ? onTheRoad.get(invoiceId) : undefined
+          return trip ? [{ orderId, trip }] : []
+        })
+        if (held.length > 0)
+          throw new ORPCError('CONFLICT', {
+            message: `order(s) ${held.map((h) => byOrder.get(h.orderId)?.orderNo ?? h.orderId).join(', ')} came back undelivered and are still out on trip ${[...new Set(held.map((h) => h.trip.tripNo ?? h.trip.tripId))].join(', ')}; load them after that trip checks in`,
+            data: {
+              code: 'bill_on_road',
+              orderIds: held.map((h) => h.orderId),
+              tripIds: [...new Set(held.map((h) => h.trip.tripId))],
+            },
           })
 
         const invoices = await this.billing.invoiceRefs(
@@ -785,20 +850,22 @@ export class LoadSheetsService {
   }
 
   /**
-   * Which live sheet each of these orders is already on. A confirmed sheet counts: the goods left.
+   * Which DRAFT sheet each of these orders is on. A confirmed sheet is history (QA DOS-172): its orders
+   * were dispatched by `confirm`, so a packed order listed on one came back undelivered and may be loaded
+   * again once its trip has checked in (`heldOnTheRoad` answers that half).
    *
-   * The same live-sheet rule exists a second time as `onLiveLoadSheet` in packing.service.ts, which
+   * The same draft-sheet rule exists a second time as `onDraftLoadSheet` in packing.service.ts, which
    * `packs.list?status=awaiting_load` filters with (DOS-133). The DOS-133 spec in warehouse.spec.ts ties
-   * the two (create accepts every row that list offers and refuses the returned bill it leaves out), so a
-   * change here — letting a bill returned undelivered be loaded again, say — changes both.
+   * the two (create accepts every row that list offers, the bill returned after its confirmed sheet
+   * included), so a change to one changes both.
    */
-  private async onALiveSheet(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
+  private async onADraftSheet(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
     if (orderIds.length === 0) return new Map()
     const { tenantId } = currentTenant()
     const rows = await tx.execute(sql`
       select ls.id, o.value as order_id
         from load_sheets ls, jsonb_array_elements_text(ls.order_ids) o
-       where ls.tenant_id = ${tenantId} and ls.status <> 'cancelled'
+       where ls.tenant_id = ${tenantId} and ls.status = 'draft'
          and o.value in (${sql.join(
            orderIds.map((id) => sql`${id}`),
            sql`, `,

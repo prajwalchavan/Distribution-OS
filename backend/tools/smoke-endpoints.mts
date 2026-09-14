@@ -1896,7 +1896,19 @@ async function planFor(
     case 'delivery.trips.startLoading':
     case 'delivery.trips.depart':
     case 'delivery.trips.return': {
-      if (chain.tripId) return { pathParams: { id: chain.tripId }, pinned: { id: chain.tripId } }
+      if (chain.tripId) {
+        // No trip departs with a bill no load sheet counted out (QA DOS-172). Stop 1 carries a real
+        // packed bill, so before a role that may depart presses it, the owner loads the trip out.
+        if (
+          op.operationId === 'delivery.trips.depart' &&
+          isAllowed(permissionFor(op.operationId), ctx.role)
+        ) {
+          const refused = await loadOutSmokeTrip(fx, chain.tripId, target.name)
+          if (refused)
+            return { skip: `could not load the throwaway trip out before it departs: ${refused}` }
+        }
+        return { pathParams: { id: chain.tripId }, pinned: { id: chain.tripId } }
+      }
       if (isAllowed(permissionFor(op.operationId), ctx.role))
         return { skip: 'no throwaway trip: delivery.trips.create did not run' }
       const any = await fx.visibleTrip(null, false)
@@ -2682,6 +2694,77 @@ function tally(results: Result[]): Record<Classification, number> {
   const counts: Record<Classification, number> = { OK: 0, EXPECTED: 0, BROKEN: 0, SKIPPED: 0 }
   for (const r of results) counts[r.classification] += 1
   return counts
+}
+
+/**
+ * THE LOAD-OUT BEFORE THE THROWAWAY TRIP DEPARTS (QA DOS-172). A bill leaves the godown only through a
+ * confirmed load sheet, and `delivery.trips.depart` refuses 409 `bill_not_loaded` while a bill planned on
+ * the trip is still packed. Stop 1 of this run's trip carries a real bill (`fx.freeInvoice`), so before a
+ * role that may depart presses the button, the owner does what the godown does — the session-and-post
+ * pattern of `sweepSmokeTrips`: a sheet for the trip with those orders, then the blind count equal to the
+ * expected packages (an owner confirming IS the approval). Keyed per run and service, so a second press
+ * replays. A trip whose bills are already dispatched, or that carries none, needs nothing. Answers null
+ * when the trip may depart, or why it could not be loaded out.
+ */
+async function loadOutSmokeTrip(
+  fx: Fixtures,
+  tripId: string,
+  service: string,
+): Promise<string | null> {
+  const packed = await fx.rows(
+    `select distinct d.order_id from deliveries d join sales_orders o on o.id = d.order_id
+      where d.tenant_id = $1 and d.trip_id = $2 and d.outcome is null and o.state::text = 'packed'
+      order by d.order_id`,
+    [fx.tenantId, tripId],
+  )
+  const orderIds = packed.map((r) => r.order_id as string)
+  if (orderIds.length === 0) return null
+  const toLocationId = await fx.liveScalar(
+    `select l.id from trips t join locations l on l.tenant_id = t.tenant_id and l.vehicle_id = t.vehicle_id
+      where t.tenant_id = $1 and t.id = $2 and l.kind::text = 'vehicle' limit 1`,
+    [fx.tenantId, tripId],
+  )
+  if (!toLocationId) return 'the smoke vehicle has no stock location'
+  let owner: LoginResult
+  try {
+    owner = await login('sunil.tarsun')
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err)
+  }
+  const headers = {
+    authorization: `Bearer ${owner.accessToken}`,
+    'content-type': 'application/json',
+  }
+  const base = baseUrlFor('owner', SERVICES.find((s) => s.name === 'owner')?.port ?? 3001)
+  const post = (path: string, step: string, body: Record<string, unknown>) =>
+    callJson(`${base}${path}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        idempotencyKey: `smoke:${service}:load-out:${step}:${RUN_NONCE}`,
+        ...body,
+      }),
+    })
+  const sheetId = stableUuid(`${RUN_NONCE}:${service}:trip:load-sheet`)
+  const created = await post('/warehouse/load-sheets', 'create', {
+    id: sheetId,
+    toLocationId,
+    tripId,
+    orderIds,
+  })
+  if (created.status !== 200)
+    return `warehouse.loadSheets.create → HTTP ${String(created.status)} ${messageOf(created.body)}`
+  const expectedPackages = Number(
+    (created.body as { item?: { expectedPackages?: number } } | null)?.item?.expectedPackages ?? 0,
+  )
+  const confirmed = await post(`/warehouse/load-sheets/${sheetId}/confirm`, 'confirm', {
+    id: sheetId,
+    challanId: stableUuid(`${RUN_NONCE}:${service}:trip:challan`),
+    countedPackages: expectedPackages,
+  })
+  if (confirmed.status !== 200)
+    return `warehouse.loadSheets.confirm → HTTP ${String(confirmed.status)} ${messageOf(confirmed.body)}`
+  return null
 }
 
 /**

@@ -7,11 +7,11 @@ import { OrdersModule } from '../orders/index.js'
 import { ReceivablesModule, ReceivablesService } from '../receivables/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
-import { WarehouseModule } from '../warehouse/index.js'
+import { LoadSheetsService, WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
 import { DeliveryController } from './delivery.controller.js'
-import { tripSettledSql } from './delivery.internals.js'
+import { returnedOnTheRoad, tripSettledSql } from './delivery.internals.js'
 import {
   applyCollectionSync,
   applyDeliverySync,
@@ -33,7 +33,9 @@ import { VehiclesService } from './vehicles.service.js'
  * `OrdersService` for the order aggregate, `InventoryService` for every piece, `BillingService` /
  * `CreditNotesService` for the van-sale bill and the doorstep credit note, `ReceivablesService` for
  * every rupee, `LoadSheetsService` for "is the load out of the godown". Delivery also tells receivables
- * when a trip's cash is in the office (`registerTripSettled`, DOS-132), so the money desk banks only that.
+ * when a trip's cash is in the office (`registerTripSettled`, DOS-132), so the money desk banks only that,
+ * and tells the godown which bills are still on the road (`registerRoadHold`, DOS-172): a bill that came
+ * back undelivered on a van that has not checked in is neither offered nor loaded.
  *
  * Every dependency is HARD (never `@Optional()`): by the build order they all exist, and a delivery
  * module that could not bill a van sale or post a receipt would quietly record money nobody booked.
@@ -70,13 +72,16 @@ export class DeliveryModule implements OnModuleInit {
     private readonly deliveries: DeliveriesService,
     private readonly collections: CollectionsService,
     private readonly receivables: ReceivablesService,
+    private readonly loadSheets: LoadSheetsService,
     @Optional() @Inject(SyncRegistry) private readonly registry: SyncRegistry | null,
   ) {}
 
   onModuleInit(): void {
     // First, before the sync early return: a spec or a service that boots delivery without SyncModule still
-    // needs receivables to know which trips have handed their cash over (DOS-132).
+    // needs receivables to know which trips have handed their cash over (DOS-132), and the godown to know
+    // which bills still ride a van that has not checked in (DOS-172).
     this.receivables.registerTripSettled(tripSettledSql)
+    this.loadSheets.registerRoadHold(returnedOnTheRoad)
     if (!this.registry) return
     // Each upload table names the online procedure(s) it stands for, and the uploader asks PERMISSIONS
     // about every one of them before a handler runs (DOS-166). A stop op moves the stop through start,

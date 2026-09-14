@@ -77,8 +77,8 @@ import { AddressSchema, PaymentTermsSchema } from './retailers.js'
  * COORDINATION FACTS THAT SHAPE THIS FILE:
  *
  *  - WAREHOUSE DISPATCHES, not delivery (§4 item 4): `packed → dispatched` happens at
- *    `warehouse.loadSheets.confirm`. `trips.depart` dispatches only orders whose invoices are NOT on a
- *    confirmed load sheet and treats an already-dispatched order as a no-op, never a 409.
+ *    `warehouse.loadSheets.confirm`, and nowhere else. `trips.depart` dispatches nothing: it passes a bill
+ *    the load-out already dispatched and refuses 409 `bill_not_loaded` while one is still packed (QA DOS-172).
  *  - GODOWN → VEHICLE IS `transfer_out` + `transfer_in`, posted by the warehouse at load-out (§4 item
  *    5). Delivery posts the RETURN direction at check-in (`van_unload` + `transfer_in`, keys
  *    `settle:<tripId>:<lotId>:out|in`), doorstep returns INTO the vehicle (`sale_return_saleable`) or
@@ -705,8 +705,11 @@ export const CreateTripOutput = TripItemOutput
  *    `onTripId` / `onTripNo` name the trip the member is driver or helper of on `date` whose state is
  *    not settled, settled with variance or cancelled: `trips.create`'s own busy rule.
  *  - `bills` are orders in `packed` with a live bill (not draft, not cancelled) that no outcome-null
- *    delivery of such a trip carries — exactly the bills `trips.create` and `stops.add` accept rather
- *    than refuse 409. Sale values only.
+ *    delivery of such a trip carries and that is not held on the road — exactly the bills `trips.create`
+ *    and `stops.add` accept rather than refuse 409. Sale values only.
+ *  - `held` are packed bills that came back undelivered and still ride the trip that took them out
+ *    (a `failed` delivery of an `active` trip), with that trip's id and number; no trip may plan them
+ *    (409 `bill_on_road`) and the godown cannot load them until that trip checks in (QA DOS-172).
  *  - It pages packed orders newest first. `nextCursor` is the last order id scanned while more packed
  *    orders exist, so a page may hold fewer than `limit` bills, or none, while `nextCursor` is set.
  */
@@ -735,11 +738,22 @@ export const PlanningBillSchema = z.object({
   beatName: z.string().nullable(),
 })
 export type PlanningBill = z.infer<typeof PlanningBillSchema>
+/** A packed bill still riding back on the trip that took it out: `onTripId` / `onTripNo` name that trip. */
+export const HeldBillSchema = PlanningBillSchema.extend({
+  onTripId: IdSchema,
+  onTripNo: z.string().nullable(),
+})
+export type HeldBill = z.infer<typeof HeldBillSchema>
 export const TripPlanningOutput = z.object({
   /** The IST business date `crew[].onTrip*` was answered for. */
   date: z.string(),
   crew: z.array(PlanningCrewSchema).max(200),
   bills: z.array(PlanningBillSchema).max(200),
+  /**
+   * Packed bills that came back undelivered and still ride the trip that took them out; no trip may plan
+   * them and the godown cannot load them until that trip checks in (QA DOS-172).
+   */
+  held: z.array(HeldBillSchema).max(200),
   nextCursor: z.string().nullable(),
 })
 
@@ -776,9 +790,11 @@ export const StartLoadingOutput = TripItemOutput
  * DOS-043). Needs a granted `location_consents` row for the driver (403 `gps_consent_missing`); a denied
  * OS permission on the phone never blocks it. 409 when the trip has no stops and van sales are off. 409
  * `load_sheet_not_confirmed` (`data.loadSheetIds`) while any load sheet of the trip is still a draft: one
- * linked to the trip, or one carrying a bill planned on one of its stops; a trip with no load sheet
- * departs. Orders on the trip that the godown has NOT dispatched through a confirmed load sheet are
- * dispatched here; an already-dispatched order is a no-op (coordination §4 item 4).
+ * linked to the trip, or one carrying a bill planned on one of its stops. 409 `bill_not_loaded`
+ * (`data.orderIds`) while a bill planned on the trip is still `packed`: a bill leaves the godown only
+ * through a confirmed load sheet, whose confirm dispatches it (QA DOS-172). Both refusals come before the
+ * consent check. Depart dispatches nothing: a trip whose bills the load-out dispatched, or one with no bill
+ * and van sales on, departs (coordination §4 item 4).
  */
 export const DepartTripInput = MutationBase.extend({
   id: IdSchema,
