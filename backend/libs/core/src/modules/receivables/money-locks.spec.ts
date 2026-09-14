@@ -290,11 +290,10 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
   }
 
   /**
-   * A trip on the road (planned → loading → active) with no stops and van sales on, the DOS-112 `closingTrip`
-   * shape: nothing is billed or loaded, so it survives DOS-172's depart gate (design Step 5). Each trip has a
-   * vehicle and a date of its own, so the one-open-trip-per-driver-per-date rule never meets another test's.
+   * A planned trip with no stops and van sales on, the DOS-112 `closingTrip` shape. Each trip has a vehicle and a
+   * date of its own, so the one-open-trip-per-driver-per-date rule never meets another test's.
    */
-  const tripOnTheRoad = async (
+  const plannedTrip = async (
     label: string,
     daysAhead: number,
     plate: string,
@@ -320,6 +319,20 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
       openingCashPaise,
     })
     expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+    return tripId
+  }
+
+  /**
+   * That trip on the road (planned → loading → active): nothing is billed or loaded, so it survives DOS-172's
+   * depart gate (design Step 5).
+   */
+  const tripOnTheRoad = async (
+    label: string,
+    daysAhead: number,
+    plate: string,
+    openingCashPaise: number,
+  ): Promise<string> => {
+    const tripId = await plannedTrip(label, daysAhead, plate, openingCashPaise)
     for (const step of ['start-loading', 'depart']) {
       const moved = await call(app, driver, 'POST', `/delivery/trips/${tripId}/${step}`, {
         idempotencyKey: `${label}-${step}-${run}`,
@@ -608,9 +621,68 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
     expect(bank.status, JSON.stringify(bank.body)).toBe(200)
     expect(await accountNet([['receipt', bankId]])).toEqual({ BANK: 7_000, AR: -7_000 })
 
-    // The third door, a `collections` PUT naming this trip (and the `trip_not_open` control on a planned trip),
-    // is refused by delivery.sync.ts (design Step 3); its assertions join this test with the settlement slice.
+    // The third door, a `collections` PUT (delivery.sync.ts, design Step 3, which lands with the settlement slice).
+    // Pinned here is what holds before and after Step 3: the op naming the settled trip is refused, so is its
+    // replay, and nothing is written. Its code and sentence (`trip_settled`, TRIP_SETTLED) are added to this block
+    // red-first by the settlement slice together with Step 3: see the `it.todo` below.
+    const collectionOp = (onTripId: string, book: string) => ({
+      opId: uuidv7(),
+      op: 'PUT',
+      table: 'collections',
+      id: uuidv7(),
+      data: {
+        receipt_id: uuidv7(),
+        trip_id: onTripId,
+        retailer_id: shopId,
+        mode: 'cash',
+        amount_paise: 7_000,
+        collected_at: at,
+        device_id: deviceId,
+        client_receipt_no: `${book}-${run}`,
+      },
+      clientTime: at,
+    })
+    const collectionExists = async (id: string): Promise<boolean> =>
+      (
+        await db.execute(
+          sql`select 1 from collections where tenant_id = ${tenantId} and id = ${id}`,
+        )
+      ).rows.length > 0
+    const collectionOnSettled = collectionOp(tripId, 'T4K')
+    for (const attempt of ['first', 'replay'] as const) {
+      const sent = await upload([collectionOnSettled])
+      expect(sent.status).toBe(200)
+      expect(sent.body, `${attempt}: ${JSON.stringify(sent.body)}`).toMatchObject({
+        accepted: 0,
+        replayed: attempt === 'first' ? 0 : 1,
+      })
+      expect(sent.body.rejected.map((r) => r.opId)).toEqual([collectionOnSettled.opId])
+      expect(await syncErrorsOf(collectionOnSettled.opId)).toHaveLength(1)
+      expect(await collectionExists(collectionOnSettled.id)).toBe(false)
+      expect(await receiptExists(collectionOnSettled.data.receipt_id)).toBe(false)
+      expect(await entryCount('receipt', [collectionOnSettled.data.receipt_id])).toBe(0)
+    }
+
+    // The control: the same op naming a trip that has not left yet is still `trip_not_open` (Step 3 refuses only a
+    // trip that has handed its cash over), which also shows the op above passes the collection's input schema.
+    const notLeftId = await plannedTrip('ml-t4p', 13, 'TC', floatPaise)
+    const collectionOnPlanned = collectionOp(notLeftId, 'T4P')
+    const notOpen = await upload([collectionOnPlanned])
+    expect(notOpen.status).toBe(200)
+    expect(notOpen.body.accepted, JSON.stringify(notOpen.body)).toBe(0)
+    expect(notOpen.body.rejected.map((r) => [r.opId, r.code])).toEqual([
+      [collectionOnPlanned.opId, 'trip_not_open'],
+    ])
+    expect(await collectionExists(collectionOnPlanned.id)).toBe(false)
+    expect(await receiptExists(collectionOnPlanned.data.receipt_id)).toBe(false)
   }, 120_000)
+
+  // Design T4's last assertion, owed by the settlement slice: the `collections` op on the settled trip above answers
+  // `trip_settled` with TRIP_SETTLED, character for character. Red until design Step 3 lands in delivery.sync.ts; that
+  // slice pins code and sentence inside T4's collections block, red-first, and deletes this line.
+  it.todo(
+    'DOS-169 the collections door refuses a settled trip trip_settled with the same sentence (design Step 3, settlement slice)',
+  )
 
   // ---------------------------------------------------------------------------------------------------------------
   // DOS-170: an undo racing the settlement of the trip that carries the money
