@@ -430,6 +430,86 @@ describe('DOS-167 who is signed in', () => {
       },
     })
   })
+
+  /*
+   * Addendum (z2), merge review minor 1. A sign-in waited for the leaving before it with no end: a native close that never
+   * answered held every sign-in on that phone behind a spinner until the app was killed. It waits at most 25 s, then goes
+   * on and says so — the engine's file holds still keep one person's file from being opened twice — and a later sign-in
+   * never waits for that same leaving again.
+   */
+  it('DOS-167 a leaving that never settles holds a sign-in for at most 25 seconds', async () => {
+    const calls = stubAuth((path, body) => {
+      if (path === '/auth/login') {
+        const who = (body as { username?: string }).username === AMIT.username ? AMIT : RAHUL
+        return json(pair(who, TARSUN))
+      }
+      if (path === '/auth/logout') return json({ ok: true })
+      return json({ code: 'NOT_FOUND', message: path }, 404)
+    })
+    const warned: unknown[][] = []
+    const warn = vi.spyOn(console, 'warn').mockImplementation((...args: unknown[]) => {
+      warned.push(args)
+    })
+    // The cap runs on the faked clock; a real one lets a sign-in that went on finish its stubbed round trip.
+    const realTimeout = globalThis.setTimeout
+    const settle = (): Promise<void> => new Promise((resolve) => realTimeout(resolve, 30))
+    const logins = (): number => calls.filter((call) => call.path === '/auth/login').length
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
+      const client = createApiClient({
+        apiUrl: 'http://localhost:3003',
+        authUrl: 'http://localhost:3000',
+        storage: memoryTokenStorage(),
+        requestTimeoutMs: 0,
+      })
+      await client.signIn({ username: 'rahul.deshmukh', password: 'Dos@1234' })
+      const signedIn: { amit: string | null; rahulAgain: string | null } = {
+        amit: null,
+        rahulAgain: null,
+      }
+
+      // Rahul signs out, and the close under `end()` never answers.
+      void client.signOutOnDevice(() => new Promise<void>(() => {}))
+      // Amit takes the phone and signs in.
+      const before = logins()
+      void client.signIn({ username: 'amit.pawar', password: 'Dos@1234' }).then((session) => {
+        signedIn.amit = session.user.username
+      })
+      await vi.advanceTimersByTimeAsync(24_999)
+      await settle()
+      const justBefore = {
+        logins: logins() - before,
+        signedIn: signedIn.amit,
+        warned: warned.length,
+      }
+      await vi.advanceTimersByTimeAsync(1)
+      await settle()
+      const atTheCap = { logins: logins() - before, signedIn: signedIn.amit, warned: [...warned] }
+
+      // Amit signs out with nothing hung, and Rahul signs in again: no second wait for the leaving that never settled.
+      await client.signOutOnDevice(async () => {})
+      const again = logins()
+      void client.signIn({ username: 'rahul.deshmukh', password: 'Dos@1234' }).then((session) => {
+        signedIn.rahulAgain = session.user.username
+      })
+      await settle()
+      const next = { logins: logins() - again, signedIn: signedIn.rahulAgain }
+
+      expect({ justBefore, atTheCap, next }).toEqual({
+        justBefore: { logins: 0, signedIn: null, warned: 0 },
+        atTheCap: {
+          logins: 1,
+          signedIn: AMIT.username,
+          warned: [['sign-in did not wait for a leaving that took over 25 s']],
+        },
+        next: { logins: 1, signedIn: RAHUL.username },
+      })
+    } finally {
+      vi.useRealTimers()
+      warn.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
 })
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))

@@ -42,6 +42,9 @@ const AUTH_RETRY_PATHS: ReadonlySet<string> = new Set([
   'changePassword',
 ])
 
+/** How long a sign-in waits for the device's last leaving before it goes on (DOS-167 addendum (z2)). */
+const LEAVING_WAIT_MS = 25_000
+
 export interface CreateApiClientOptions {
   /** Base URL of this app's own service. Same-origin `/api` behind a dev proxy is fine. */
   apiUrl: string
@@ -112,7 +115,7 @@ export interface ApiClient {
    * go of the session too (on a phone that delete is asynchronous). Only once `leave` has settled does the client ask
    * the server to revoke, with the refresh token it kept in memory: best effort, in the background, never signing
    * anyone back in. Resolves when `leave` has, never waiting for the revoke. Until then a `signIn` on this client
-   * waits: nobody signs in on a phone that is still leaving.
+   * waits: nobody signs in on a phone that is still leaving — for at most 25 s, then it goes on (addendum (z2)).
    */
   signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   /** Who am I, in this distributorship. Refreshes the local session snapshot. */
@@ -167,6 +170,27 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
    * sweep and a forgetting still running reach the person signing in.
    */
   let leaving: Promise<void> = Promise.resolve()
+
+  /**
+   * The sign-in's wait for `leaving`, capped (DOS-167 addendum (z2)). A native close that never answered held every
+   * sign-in on the phone behind a spinner until the app was killed. Past `LEAVING_WAIT_MS` the sign-in goes on and says
+   * so — the engine's file holds still keep one person's file from being opened twice — and a later sign-in does not
+   * wait for that same leaving again.
+   */
+  async function waitForLeaving(): Promise<void> {
+    const waited = leaving
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const capped = new Promise<'capped'>((resolve) => {
+      timer = setTimeout(() => {
+        resolve('capped')
+      }, LEAVING_WAIT_MS)
+    })
+    const outcome = await Promise.race([waited.then(() => 'left' as const), capped])
+    clearTimeout(timer)
+    if (outcome === 'left') return
+    console.warn('sign-in did not wait for a leaving that took over 25 s')
+    if (leaving === waited) leaving = Promise.resolve()
+  }
 
   /**
    * Only the SERVER may end a session.
@@ -290,8 +314,9 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     async signIn(input: SignInOptions): Promise<Session> {
       // A new session: anything still on its way for the last one writes nothing (problem 1).
       generation += 1
-      // Never on a phone that is still leaving (addendum (y)): the last sign-out finishes on the device first.
-      await leaving
+      // Never on a phone that is still leaving (addendum (y)): the last sign-out finishes on the device first — for at
+      // most 25 s (addendum (z2)).
+      await waitForLeaving()
       storage.setDurable?.(input.remember !== false)
       const pair: TokenPair = await authClient.login({
         username: input.username,
