@@ -23066,6 +23066,21 @@ curl "http://localhost:3002/delivery/trip-planning?date=2026-09-04&beatId=01a06d
       "beatName": "Campa Cola 750 ml"
     }
   ],
+  "held": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "invoiceTotalPaise": 2680000,
+      "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+      "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "beatId": "01a06d3e-cfdb-7635-85cb-ee42f205a04f",
+      "beatName": "Campa Cola 750 ml",
+      "onTripId": "01a06d13-8baf-7d7e-83a4-bcfc01d0fd27",
+      "onTripNo": "SO-0042"
+    }
+  ],
   "nextCursor": null
 }
 ```
