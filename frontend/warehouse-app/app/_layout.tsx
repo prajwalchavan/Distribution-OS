@@ -47,6 +47,7 @@ import {
   type Leaving,
   type LeaveSteps,
 } from '../src/lib/leave'
+import { LeaveContext } from '../src/lib/leave-context'
 import { LeaveSheet } from '../src/lib/leave-sheet'
 import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
@@ -470,8 +471,12 @@ function Chrome({
     if (!running.current) setAsking(null)
   }, [])
 
+  /*
+   * EVERY "SIGN OUT" IN THE APP TAKES THIS FLOW (addendum (z1)). The Settings screen's button is handed `leave` through
+   * `useLeave()`: calling `useSession().signOut()` there skipped the sheet, `end()` and the sweep.
+   */
   return (
-    <>
+    <LeaveContext.Provider value={leave}>
       <AppShell
         sections={sections}
         can={can}
@@ -518,6 +523,6 @@ function Chrome({
         onLeave={keep}
         onCancel={cancel}
       />
-    </>
+    </LeaveContext.Provider>
   )
 }

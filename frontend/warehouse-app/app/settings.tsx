@@ -25,6 +25,7 @@ import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 
 import { instantWithClock } from '../src/lib/dates'
+import { useLeave } from '../src/lib/leave-context'
 import { Async, Panel } from '../src/lib/ui'
 
 export default function Me(): React.JSX.Element {
@@ -32,7 +33,9 @@ export default function Me(): React.JSX.Element {
   const api = useApi()
   const colors = useColors()
   const router = useRouter()
-  const { session, signOut } = useSession()
+  const { session } = useSession()
+  /** The shell's leave flow (DOS-167 addendum (z1)): the sheet when anything waits, the engine ended, the file swept. */
+  const leave = useLeave()
   const signedIn = session !== null
   const engine = useSyncEngine()
   const status = useSyncStatus()
@@ -162,7 +165,7 @@ export default function Me(): React.JSX.Element {
             label={t('app.signOut')}
             variant="destructive"
             onPress={() => {
-              void signOut()
+              leave?.({ mode: 'signOut' })
             }}
             testID="x4-sign-out"
           />

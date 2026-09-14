@@ -507,4 +507,49 @@ describe('DOS-167 the delivery leave sheet', () => {
     await leaveNow({ mode: 'switch', tenantId: 'sai' }, true, anyway.steps)
     expect(anyway.calls).toEqual(['switch sai'])
   })
+
+  /*
+   * Addendum (z1). "Sign out" on the Settings screen called `useSession().signOut()` itself: no sheet, no `end()`, the
+   * read set left on the phone, the other distributorships never swept, the session cleared only once the server's
+   * revoke had answered — and on a browser that keeps nothing, the queue thrown away. Every sign-out button takes the
+   * leave flow of `app/_layout.tsx`, through `useLeave()`. The layout's one other sign-out is the wrong-role screen's,
+   * where no device store is ever opened.
+   */
+  it('DOS-167 every sign-out button in the app goes through the leave flow', async () => {
+    const { readdirSync, readFileSync } = (await import(NODE_FS)) as NodeFs & {
+      readdirSync: (path: string, options: { recursive: true; encoding: 'utf8' }) => string[]
+    }
+    const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+    const app = fileURLToPath(new URL('../../app', import.meta.url))
+    const read = (file: string): string =>
+      readFileSync(`${app}/${file}`, 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+    const calls = (source: string): number => (source.match(/\bsignOut\s*\(/g) ?? []).length
+    const screens = readdirSync(app, { recursive: true, encoding: 'utf8' })
+      .filter((file) => file.endsWith('.tsx'))
+      .sort()
+    const outside = screens.filter((file) => file !== '_layout.tsx')
+
+    // The session's own sign-out, called — `signOut()`, `useSession().signOut()` — or taken to be called later.
+    const bypass = outside.filter((file) => {
+      const source = read(file)
+      return calls(source) > 0 || /[{,]\s*signOut\s*[,}]/.test(source)
+    })
+    // A button labelled "Sign out" that is not handed the layout's leave flow.
+    const withoutTheFlow = outside.filter((file) => {
+      const source = read(file)
+      return source.includes("t('app.signOut')") && !/\buseLeave\(\)/.test(source)
+    })
+    // Inside the layout, a sign-out that is not the leave flow only on the wrong-role screen.
+    const layout = read('_layout.tsx')
+    const wrongRole = /<WrongRole[\s\S]*?\/>/.exec(layout)?.[0] ?? ''
+
+    expect({
+      read: outside.length > 0 && screens.includes('_layout.tsx'),
+      bypass,
+      withoutTheFlow,
+      layoutBesideTheWrongRoleScreen: calls(layout) - calls(wrongRole),
+    }).toEqual({ read: true, bypass: [], withoutTheFlow: [], layoutBesideTheWrongRoleScreen: 0 })
+  })
 })
