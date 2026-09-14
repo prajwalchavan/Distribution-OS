@@ -10,15 +10,22 @@
  * collection too. The app must never assemble that out of `orders.create` + `orders.submit`: the crew
  * does not hold `orders.confirm`, and half a van sale is a bill with no stock behind it.
  *
- * PRICED BY THE OFFICE'S OWN ENGINE. `pricing.quote` runs `priceOrder()` — tier price, retailer
- * override, stacked schemes, approved bargain, cash discount reported and not deducted — so the figure
- * a shopkeeper is shown at the van door is the figure the bill will carry, to the paisa.
+ * PRICED BY THE OFFICE'S OWN ENGINE, AND SHOWN AS THE BILL (DOS-171). `pricing.quote` runs `priceOrder()`
+ * — tier price, retailer override, stacked schemes, approved bargain, cash discount reported and not
+ * deducted — and adds GST at each item's dated HSN rate with the bill's own rounding to the rupee (DOS-096).
+ * The quote's `totalPaise` is the bill's payable figure for every item that carries only GST, so that is
+ * what the crew reads under the button, with the breakdown under the lines; the screen reads the quote's
+ * money only through `saleFigures` and `lineFigure` (src/lib/van-sale.ts). Cess is not in the quote yet
+ * (DOS-079), and the bill rounds the CGST and SGST halves separately, a paisa apart from the quote. That is
+ * why the bill is shown again once it is issued: its number and its own total stay on this screen until the
+ * crew taps Back to the stop, so the figure they ask the shop for is the bill's, never a toast that vanished
+ * under a redirect (DOS-149).
  *
  * The van's stock is `inventory.stock.sellable` at the VEHICLE location. It carries availability,
  * batch and MRP, and no cost column: the crew cannot see what the distributor paid, here or anywhere.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
-import { useSyncStatus } from '@dos/offline/react'
+import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
   Group,
@@ -30,13 +37,13 @@ import {
   Search,
   Stack,
   StatusChip,
-  Toast,
   Txt,
+  formatINR,
   useColors,
   useStrings,
 } from '@dos/ui'
 import { haptics } from '@dos/ui/platform'
-import { uuidv7 } from '@dos/domain'
+import { paise, uuidv7 } from '@dos/domain'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
@@ -44,12 +51,19 @@ import { deviceId } from '../../../src/api'
 import { longDate } from '../../../src/lib/dates'
 import { bool, useLocalRetailers, useLocalStop, useLocalTrip } from '../../../src/lib/local'
 import { Async, Panel } from '../../../src/lib/ui'
+import { lineFigure, saleFigures } from '../../../src/lib/van-sale'
 
 interface Draft {
   variantId: string
   name: string
   caseSize: number
   pieces: number
+}
+
+/** The bill the office issued, as it came back: its number and its own total. */
+interface Billed {
+  no: string
+  totalPaise: number
 }
 
 export default function VanSale(): React.JSX.Element {
@@ -60,6 +74,7 @@ export default function VanSale(): React.JSX.Element {
   const { session } = useSession()
   const params = useLocalSearchParams<{ id: string }>()
   const stopId = typeof params.id === 'string' ? params.id : null
+  const engine = useSyncEngine()
   const status = useSyncStatus()
   const signedIn = session !== null
 
@@ -100,7 +115,7 @@ export default function VanSale(): React.JSX.Element {
 
   const [query, setQuery] = useState('')
   const [draft, setDraft] = useState<Record<string, Draft>>({})
-  const [toast, setToast] = useState<string | null>(null)
+  const [billed, setBilled] = useState<Billed | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const rows = stock.data?.items ?? []
@@ -178,10 +193,19 @@ export default function VanSale(): React.JSX.Element {
       }),
     {
       invalidates: [['trip'], ['van-stock'], ['settlement']],
+      /*
+       * THE CREW TAKES THE BILL'S FIGURE. The screen stays on the issued bill — its number and its own
+       * total — and the only way on is Back to the stop, so no second tap can issue a second bill. The
+       * pull carries the stop's new "owed on the bills here" to D3 and D5; a pull already running makes
+       * this call a no-op and the next poll catches up.
+       */
       onSuccess: (result) => {
+        setBilled({
+          no: result.invoice.invoiceNo ?? result.invoice.id.slice(0, 8),
+          totalPaise: result.invoice.totalPaise,
+        })
         haptics.success()
-        setToast(t('d6.created', { no: result.invoice.invoiceNo ?? result.invoice.id.slice(0, 8) }))
-        router.replace(`/stop/${String(stopId ?? '')}`)
+        void engine?.sync('van-sale')
       },
       onError: (failed) => {
         haptics.error()
@@ -190,7 +214,7 @@ export default function VanSale(): React.JSX.Element {
     },
   )
 
-  const netPaise = quote.data?.totals.netPaise ?? null
+  const figures = saleFigures(quote.data)
 
   return (
     <Screen
@@ -209,36 +233,49 @@ export default function VanSale(): React.JSX.Element {
         </Row>
       }
       bottomBar={
-        <Stack gap={2}>
-          <Row justify="between" align="center" gap={3}>
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('d6.total')}
-            </Txt>
-            <Money value={netPaise} size="moneyL" testID="d6-total" />
-          </Row>
+        billed === null ? (
+          <Stack gap={2}>
+            <Row justify="between" align="center" gap={3}>
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('d6.total')}
+              </Txt>
+              <Money value={figures?.billPaise ?? null} size="moneyL" testID="d6-total" />
+            </Row>
+            <Button
+              testID="d6-create"
+              label={t('d6.create')}
+              variant="primary"
+              size="floor"
+              fullWidth
+              loading={create.status === 'pending'}
+              disabled={allowed !== true || lines.length === 0 || !status.online}
+              disabledReason={
+                unknown
+                  ? t('d6.unknown')
+                  : allowed === false
+                    ? t('d6.off')
+                    : !status.online
+                      ? t('d6.online')
+                      : t('d6.needsLine')
+              }
+              onPress={() => {
+                setError(null)
+                create.mutate({ at: Date.now() })
+              }}
+            />
+          </Stack>
+        ) : (
           <Button
-            testID="d6-create"
-            label={t('d6.create')}
+            testID="d6-back"
+            label={t('d6.back')}
             variant="primary"
             size="floor"
             fullWidth
-            loading={create.status === 'pending'}
-            disabled={allowed !== true || lines.length === 0 || !status.online}
-            disabledReason={
-              unknown
-                ? t('d6.unknown')
-                : allowed === false
-                  ? t('d6.off')
-                  : !status.online
-                    ? t('d6.online')
-                    : t('d6.needsLine')
-            }
             onPress={() => {
-              setError(null)
-              create.mutate({ at: Date.now() })
+              router.replace(`/stop/${String(stopId ?? '')}`)
             }}
           />
-        </Stack>
+        )
       }
       testID="d6-screen"
     >
@@ -249,9 +286,54 @@ export default function VanSale(): React.JSX.Element {
           </Txt>
         )}
 
-        {lines.length === 0 ? null : (
+        {billed === null ? null : (
+          <Panel title={t('d6.billed', { no: billed.no })} testID="d6-billed">
+            <Stack gap={2}>
+              <Money value={billed.totalPaise} size="moneyL" testID="d6-billed-total" />
+              <Txt field="body" desk="body" color={colors.text.secondary}>
+                {t('d6.billedNext')}
+              </Txt>
+            </Stack>
+          </Panel>
+        )}
+
+        {billed !== null || lines.length === 0 ? null : (
           <Panel title={t('d6.lines')} meta={t('d6.quote')} testID="d6-lines">
-            <Group>
+            <Group
+              footer={
+                <Stack gap={1}>
+                  <FigureRow
+                    label={t('d6.beforeGst')}
+                    value={figures?.beforeGstPaise ?? null}
+                    testID="d6-before-gst"
+                  />
+                  <FigureRow
+                    label={t('d6.gst')}
+                    value={figures?.gstPaise ?? null}
+                    testID="d6-gst"
+                  />
+                  {figures === null || figures.roundOffPaise === 0 ? null : (
+                    <FigureRow
+                      label={t('d6.roundOff')}
+                      value={figures.roundOffPaise}
+                      testID="d6-round-off"
+                    />
+                  )}
+                  {figures === null || figures.cashDiscountPaise <= 0 ? null : (
+                    <Txt
+                      field="label"
+                      desk="meta"
+                      color={colors.status.moss.fg}
+                      testID="d6-cash-discount"
+                    >
+                      {t('d6.cashDiscount', {
+                        amount: formatINR(paise(figures.cashDiscountPaise)),
+                      })}
+                    </Txt>
+                  )}
+                </Stack>
+              }
+            >
               {lines.map((line) => {
                 const quoted = quote.data?.lines.find((one) => one.lineId === line.variantId)
                 return (
@@ -260,7 +342,7 @@ export default function VanSale(): React.JSX.Element {
                     testID={`d6-line-${line.variantId}`}
                     primary={line.name}
                     secondary={t('d.pieces', { pieces: line.pieces })}
-                    trailingMoney={quoted?.lineNetPaise ?? null}
+                    trailingMoney={lineFigure(quote.data, line.variantId)}
                     trailingSize="moneyM"
                     {...(quoted === undefined || quoted.freeQtyPcs === 0
                       ? {}
@@ -279,67 +361,69 @@ export default function VanSale(): React.JSX.Element {
           </Panel>
         )}
 
-        <Panel title={t('d6.stock')} testID="d6-stock">
-          <Stack gap={4}>
-            <Search
-              testID="d6-search"
-              value={query}
-              onChange={setQuery}
-              state={shown.length === 0 && query.trim() !== '' ? 'noResults' : 'results'}
-            />
-            <Async
-              state={[trip, stock]}
-              empty={rows.length === 0}
-              emptyMessage={t('d.nothingHere')}
-            >
-              <Stack gap={4}>
-                {shown.slice(0, 40).map((row) => (
-                  <Stack
-                    key={row.variantId}
-                    gap={3}
-                    pad={4}
-                    background="surface"
-                    radius="md"
-                    border="all"
-                    borderTone="hairline"
-                    testID={`d6-item-${row.variantId}`}
-                  >
-                    <Row justify="between" gap={3} wrap>
-                      <Txt field="bodyStrong" desk="cell">
-                        {row.name}
-                      </Txt>
-                      <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
-                        {t('d6.available', { pieces: row.available })}
-                      </Txt>
-                    </Row>
-                    {row.expiry === null ? null : (
-                      <Txt field="label" desk="meta" color={colors.text.secondary}>
-                        {longDate(row.expiry)}
-                      </Txt>
-                    )}
-                    <QtyStepper
-                      testID={`d6-qty-${row.variantId}`}
-                      pieces={draft[row.variantId]?.pieces ?? 0}
-                      caseSize={1}
-                      availablePieces={row.available}
-                      onChange={(pieces) => {
-                        setDraft((held) => ({
-                          ...held,
-                          [row.variantId]: {
-                            variantId: row.variantId,
-                            name: row.name,
-                            caseSize: 1,
-                            pieces: Math.max(0, pieces),
-                          },
-                        }))
-                      }}
-                    />
-                  </Stack>
-                ))}
-              </Stack>
-            </Async>
-          </Stack>
-        </Panel>
+        {billed !== null ? null : (
+          <Panel title={t('d6.stock')} testID="d6-stock">
+            <Stack gap={4}>
+              <Search
+                testID="d6-search"
+                value={query}
+                onChange={setQuery}
+                state={shown.length === 0 && query.trim() !== '' ? 'noResults' : 'results'}
+              />
+              <Async
+                state={[trip, stock]}
+                empty={rows.length === 0}
+                emptyMessage={t('d.nothingHere')}
+              >
+                <Stack gap={4}>
+                  {shown.slice(0, 40).map((row) => (
+                    <Stack
+                      key={row.variantId}
+                      gap={3}
+                      pad={4}
+                      background="surface"
+                      radius="md"
+                      border="all"
+                      borderTone="hairline"
+                      testID={`d6-item-${row.variantId}`}
+                    >
+                      <Row justify="between" gap={3} wrap>
+                        <Txt field="bodyStrong" desk="cell">
+                          {row.name}
+                        </Txt>
+                        <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
+                          {t('d6.available', { pieces: row.available })}
+                        </Txt>
+                      </Row>
+                      {row.expiry === null ? null : (
+                        <Txt field="label" desk="meta" color={colors.text.secondary}>
+                          {longDate(row.expiry)}
+                        </Txt>
+                      )}
+                      <QtyStepper
+                        testID={`d6-qty-${row.variantId}`}
+                        pieces={draft[row.variantId]?.pieces ?? 0}
+                        caseSize={1}
+                        availablePieces={row.available}
+                        onChange={(pieces) => {
+                          setDraft((held) => ({
+                            ...held,
+                            [row.variantId]: {
+                              variantId: row.variantId,
+                              name: row.name,
+                              caseSize: 1,
+                              pieces: Math.max(0, pieces),
+                            },
+                          }))
+                        }}
+                      />
+                    </Stack>
+                  ))}
+                </Stack>
+              </Async>
+            </Stack>
+          </Panel>
+        )}
 
         {error === null ? null : (
           <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d6-error">
@@ -347,14 +431,27 @@ export default function VanSale(): React.JSX.Element {
           </Txt>
         )}
       </Stack>
-
-      <Toast
-        open={toast !== null}
-        message={toast ?? ''}
-        onDismiss={() => {
-          setToast(null)
-        }}
-      />
     </Screen>
+  )
+}
+
+/** One figure of the breakdown under the lines: the label on the left, the amount on the right. */
+function FigureRow({
+  label,
+  value,
+  testID,
+}: {
+  label: string
+  value: number | null
+  testID: string
+}): React.JSX.Element {
+  const colors = useColors()
+  return (
+    <Row justify="between" align="center" gap={3}>
+      <Txt field="label" desk="meta" color={colors.text.secondary}>
+        {label}
+      </Txt>
+      <Money value={value} size="cell" testID={testID} />
+    </Row>
   )
 }
