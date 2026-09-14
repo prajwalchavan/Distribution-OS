@@ -208,8 +208,9 @@ browser". The strip never shows a spinner without a word.
 - `useTable<T>(table, { where?, params?, orderBy?, limit? })` — a live query: re-runs when a pull applies rows to that table or the
   outbox touches it (an in-process change bus keyed by table). Returns `{ rows, loading }`.
 - `useRow<T>(table, id)`
-- `useOutbox()` → `{ enqueue, pending, rejected, retry(opId), discard(opId) }`. `discard` is only offered on a rejected op and writes
-  an audit line into `_sync_errors`.
+- `useOutbox()` → `{ enqueue, enqueueMany(inputs), pending, rejected, retry(opId), discard(opId) }`. `enqueueMany` queues an order and
+  its lines as one write, whole or not at all (ruling 2 (u)). `discard` is only offered on a rejected op and writes an audit line
+  into `_sync_errors`.
 - `useNeedsAttention()` — the rejected ops joined with their rows, for the tray.
 - `useLeaveSession()` → `{ pending, rejected, online, persistent, waiting(), sendNow(), end({ keepQueue, after }) }` — the app's
   sign-out flow (DOS-167). `leaveDecision({ pending, rejected })` is the rule: `'leave'` when both are 0, `'ask'` otherwise. It is
@@ -218,7 +219,7 @@ browser". The strip never shows a spinner without a word.
   2026-09-14): the session is cleared on the device first, `leave(stored)` is called in the same turn and calls `end` with
   `after: stored`, the session's removal from the platform store, which `end` waits for before it touches the file; then
   `SyncEngine.sweepIdentityStores` deletes the person's other-distributor files that hold nothing unsent. The server's revoke goes
-  once `leave` has settled, in the background, and a sign-in on that client waits until then.
+  once `leave` has settled, in the background, and a sign-in on that client waits until then, for at most 25 s (addendum (z2)).
 - `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
   `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
 
@@ -232,10 +233,11 @@ contains no cost or margin column by construction (the manifest strips them serv
 one distributorship (DOS-167, §2) and is checked at open before any read (§5). Sign-out clears the session on the device first — a
 crash from then on relaunches to the sign-in form, and the engine touches the file only once the session has left the platform
 store (the Keychain delete is asynchronous) — then ends the engine, and asks the server to revoke last, in the background
-(addendum (y), 2026-09-14). Until the leaving is over no one signs in on that phone, and a refresh or a switch that set off under
-the session that ended writes nothing and replays nothing (merge review of ruling 2): with nothing queued or refused it is one
-tap, the read set is dropped and the file deleted, and the person's files at their other distributors are deleted when they hold
-nothing unsent. From the tap on the phone refuses new writes with a sentence; a
+(addendum (y), 2026-09-14). Until the leaving is over no one signs in on that phone — for at most 25 s, then the sign-in goes on
+and logs it (addendum (z2)) — and a refresh or a switch that set off under the session that ended writes nothing and replays
+nothing (merge review of ruling 2). Every sign-out button of an app takes this flow (addendum (z1)). With nothing queued or
+refused, signing out is one tap: the read set is dropped and the file deleted, and the person's files at their other
+distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
 that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
