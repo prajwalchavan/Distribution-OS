@@ -787,3 +787,9 @@ Also filed from the same proofs: **S-152** — the sales order screen's outcome 
 3. **The Q3 repair on the founder's own `dos` database is authorised to run.** Method unchanged from 2026-09-14: read-only checks first, then ONE appended balancing entry per wrong figure, never an edit, with the founder approving the list trip by trip. `pnpm db:migrate` runs there first.
 
 **Also filed today:** **DOS-174** — S-108, the challan poll that kept running after its panel closed, merged as `c3b4ec1`; its manual walks are still owed.
+
+### Founder, 2026-09-19 evening: the stop rule is withdrawn and the machine runs unattended
+
+- **"no need of this rule now"** — the 2026-09-13 lean-mode ceiling ("if overall weekly usage passes about 70% by Wednesday, work stops after P0/P1 and its regression") is **withdrawn**. QA batch 2 runs to the end, P2 and P3 included. Usage is paced, not capped. docs/22 §8 carries the superseding row; the rest of the lean-mode rule is unchanged.
+- **"full time internet and charging provided"** — long browser and device walks may run overnight and across sessions. What still serialises them is the Mac's 8 GB, not the founder's availability: one Android emulator at 3 GB plus Metro plus the eight services is already near the ceiling. So the proof stages batch their checks into **fewer, longer device sessions** instead of booting per check, and browser walks run beside a device walk only where memory allows.
+- **"finish it this week if possible"** — the target is batch 2 closed and its full regression done inside this week.
