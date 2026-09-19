@@ -89,8 +89,12 @@ const SCREENS: readonly Screen[] = [
     path: '../../app/attention.tsx',
     memoryKey: 'tray.storeMemory',
     diskKey: 'tray.storeDisk',
-    /* The hand-over dialog, with and without a paper-book number (DOS-179). */
-    offers: ['handOverBodyNoBook', 'handOverBody'],
+    /*
+     * The chip on each waiting row, then the hand-over dialog with and without a paper-book number
+     * (DOS-179). The chip was the last claim on this screen to reach the store: `wordFor(t, row.status)`
+     * built its key from the value, so it read "On this phone" twenty lines under `tray.storeMemory`.
+     */
+    offers: ['waitingChip', 'handOverBodyNoBook', 'handOverBody'],
   },
 ]
 

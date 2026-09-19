@@ -168,9 +168,20 @@ export default function NeedsAttention(): React.JSX.Element {
                   testID={`tray-waiting-${row.opId}`}
                   primary={word(row.table)}
                   secondary={instantWithClock(row.createdAt)}
+                  /*
+                    DOS-179 — this chip used to be labelled `wordFor(t, row.status)`, which resolved a
+                    queued op to `word.queued`: "On this phone". On a browser with no OPFS the line
+                    above this list already says the store keeps nothing, so the phone denied and
+                    asserted the same keep in one render, over rows that include doorstep receipts. The
+                    queued half asks the store; `sending` is not a keep claim and keeps its own word.
+                  */
                   trailing={
                     <StatusChip
-                      label={wordFor(t, row.status)}
+                      label={
+                        row.status === 'sending'
+                          ? t('word.sending')
+                          : t(keepKey('waitingChip', status.persistent))
+                      }
                       family={row.status === 'sending' ? 'clay' : 'ochre'}
                     />
                   }

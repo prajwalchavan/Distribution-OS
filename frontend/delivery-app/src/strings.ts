@@ -504,7 +504,15 @@ export const strings = {
   'word.PRE': 'Paid in advance',
   'word.ON': 'Pays on delivery',
   'word.POST_FULFILLMENT': 'Credit',
+  /*
+   * DOS-179 — the chip on every waiting row of D10. `wordFor` builds its key from the VALUE, so this one
+   * is never written out in a screen and survived two passes of the sweep; it still claims a keep, on the
+   * one screen that prints `tray.storeMemory` twenty lines above it, over rows that include doorstep
+   * receipts. `keepKey('waitingChip', …)` chooses. "In this tab" reads as a place, like its twin, so the
+   * chip stays the same width and the same shape of answer to "where is my work?".
+   */
   'word.queued': 'On this phone',
+  'word.queuedTab': 'In this tab only',
   'word.sending': 'Sending',
   'word.photo': 'Photo',
   'word.signature': 'Signature',

@@ -40,6 +40,13 @@ const KEEP_WORDS = {
    * "· Not kept in this browser" — the phone denying and asserting the same keep in ONE render, over the
    * outbox that decides whether the vehicle may be checked in and over money nobody has counted yet.
    */
+  /*
+   * The chip on every waiting row of D10 (merge review, 2026-09-19). `wordFor(t, row.status)` built the
+   * key from the value, so no grep for a string key ever found it: the label resolved to `word.queued`,
+   * "On this phone", on the same screen that prints `tray.storeMemory` above the list and now takes its
+   * hand-over dialog through this helper. Those rows include doorstep receipts.
+   */
+  waitingChip: { device: 'word.queued', tab: 'word.queuedTab' },
   pending: { device: 'd8.pending', tab: 'd8.pendingTab' },
   pendingBlocks: { device: 'd8.pendingBlocks', tab: 'd8.pendingBlocksTab' },
   uncounted: { device: 'd8.uncounted', tab: 'd8.uncountedTab' },
