@@ -43,6 +43,7 @@ import {
   inboundMessages,
   invoices,
   loadSheets,
+  locationConsents,
   locations,
   memberships,
   messages,
@@ -2493,9 +2494,9 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .where(and(eq(trips.tenantId, tenantId), inArray(trips.id, [...candidates])))
       ).map((row) => row.id),
     )
-  // QA DOS-176. A CREATING procedure whose row id is the client's, which used to publish ONE fixed id: the
-  // first service's document took it and every other service, and every later run, pressed an id another crew
-  // already held — a row `pod_evidence_read` hides from them — so the insert died on the primary key (500).
+  // QA DOS-176 / DOS-177. Both are CREATING procedures whose row id is the client's, and both used to publish
+  // ONE fixed id: the first service's document took it and every other service, and every later run, pressed an
+  // id somebody else already held — a row RLS hides from them, so the insert died on the primary key (500).
   const podIds: TakenIds = async (candidates) =>
     new Set(
       (
@@ -2503,6 +2504,21 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .select({ id: podEvidence.id })
           .from(podEvidence)
           .where(and(eq(podEvidence.tenantId, tenantId), inArray(podEvidence.id, [...candidates])))
+      ).map((row) => row.id),
+    )
+  // A consent is per PERSON, so the whole tenant's rows are the taken set, not just one user's.
+  const consentIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: locationConsents.id })
+          .from(locationConsents)
+          .where(
+            and(
+              eq(locationConsents.tenantId, tenantId),
+              inArray(locationConsents.id, [...candidates]),
+            ),
+          )
       ).map((row) => row.id),
     )
   const cycleCountIds: TakenIds = async (candidates) =>
@@ -2629,6 +2645,7 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       'evidence.id',
       podIds,
     ),
+    'delivery.consents.grant': await freeSlots('delivery.consents.grant', 'id', consentIds),
     'integrations.imports.create': await freeSlots(
       'integrations.imports.create',
       'id',
@@ -3854,13 +3871,20 @@ const OVERRIDES: Record<
     active: true,
   }),
   'delivery.vehicles.positions': () => ({ vehicleId: DROP, staleAfterMinutes: 30 }),
-  'delivery.consents.grant': () => ({
-    id: createdId('delivery.consents.grant', 'id'),
-    granted: true,
-    noticeVersion: 'gps-notice-2026-09',
-    locale: 'en-IN',
-    deviceId: DROP,
-  }),
+  // The consent row id is the client's and a consent belongs to ONE person, so it walks the free-slot
+  // sequence like every other creating procedure (QA DOS-177): a fixed id meant the second service's
+  // document — and the driver pressing it — landed on the owner's row, which RLS hides from a crew member.
+  'delivery.consents.grant': (ctx) => {
+    const slot = slotOf(ctx, 'delivery.consents.grant')
+    return {
+      id: createdId('delivery.consents.grant', 'id', slot),
+      idempotencyKey: docsIdempotencyKey('delivery.consents.grant', slot),
+      granted: true,
+      noticeVersion: 'gps-notice-2026-09',
+      locale: 'en-IN',
+      deviceId: DROP,
+    }
+  },
   'delivery.consents.get': () => ({ userId: DROP }),
   'delivery.trips.create': (ctx) => ({
     id: createdId('delivery.trips.create', 'id', slotOf(ctx, 'delivery.trips.create')),

@@ -206,6 +206,7 @@ const LINKED: ExampleContext = {
   },
   // Free slots as the probe reads them: one lane per role, so no two services publish the same id.
   slotLanes: {
+    'delivery.consents.grant': [4, 5, 6, 7, 8, 9, 10, 11],
     'delivery.deliveries.addPod': [1, 2, 3, 4, 5, 6, 7, 8],
     'orders.create': [2, 3, 4, 5, 6, 7, 8, 9],
     'orders.repeatLast': [0, 1, 2, 3, 4, 5, 6, 7],
@@ -561,11 +562,12 @@ describe('every POST, on every service that serves it', () => {
   })
 
   /**
-   * QA DOS-176. The procedure creates a row under an id the CLIENT sends, and it used to publish one fixed id
-   * for every service. The first document pressed took it; every other document then pressed an id somebody
-   * else holds — proof on another crew's delivery, which `pod_evidence_read` hides from that caller — and the
-   * insert died on the primary key: `proof insert returned nothing`, a 500 on a stop the crew could not close.
-   * The server now refuses that honestly; this is the other half, so the published example is pressable.
+   * QA DOS-176 / DOS-177. Both procedures create a row under an id the CLIENT sends, and both used to publish
+   * one fixed id for every service. The first document pressed took it; every other document then pressed an id
+   * somebody else holds — on a row RLS hides from that caller (another crew's delivery, another person's
+   * consent) — and the insert died on the primary key: `proof insert returned nothing`, and a 500 with no
+   * message at all on the gate a trip cannot depart without. The server now refuses that honestly; this is the
+   * other half, so the published example is one a reader can actually press.
    */
   it('DOS-176 gives every service document its own proof id for delivery.deliveries.addPod', () => {
     const business = [...byService].filter(([service]) => service !== 'auth')
@@ -581,6 +583,17 @@ describe('every POST, on every service that serves it', () => {
       String(examples.get('delivery.deliveries.addPod')?.body?.idempotencyKey),
     )
     expect(new Set(keys).size, 'delivery.deliveries.addPod idempotencyKey').toBe(business.length)
+  })
+
+  it('DOS-177 gives every service document its own consent id for delivery.consents.grant', () => {
+    const business = [...byService].filter(([service]) => service !== 'auth')
+    const ids = business.map(([, examples]) => examples.get('delivery.consents.grant')?.body?.id)
+    expect(ids.every((id) => typeof id === 'string')).toBe(true)
+    expect(new Set(ids).size, 'delivery.consents.grant id').toBe(business.length)
+    const keys = business.map(([, examples]) =>
+      String(examples.get('delivery.consents.grant')?.body?.idempotencyKey),
+    )
+    expect(new Set(keys).size, 'delivery.consents.grant idempotencyKey').toBe(business.length)
   })
 
   it('is deterministic per service', () => {

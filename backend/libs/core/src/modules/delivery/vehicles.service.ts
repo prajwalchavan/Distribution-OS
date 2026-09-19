@@ -271,12 +271,23 @@ export class VehiclesService {
             grantedAt: now,
             evidence: { deviceId: input.deviceId ?? null, app: 'delivery' },
           })
+          .onConflictDoNothing()
           .returning()
-        if (!row)
-          throw new ORPCError('INTERNAL_SERVER_ERROR', {
-            message: 'consent insert returned nothing',
-          })
-        return { item: toConsent(row) }
+        if (row) return { item: toConsent(row) }
+        // A race on the caller's OWN id: the look-up above missed it, the insert lost to it, so answer with it.
+        const [raced] = await tx
+          .select()
+          .from(locationConsents)
+          .where(eq(locationConsents.id, input.id))
+          .limit(1)
+        if (raced) return { item: toConsent(raced) }
+        // Nothing comes back, so the row holding this id is one `location_consents_rw` hides: somebody else's
+        // answer (QA DOS-177). The id is the client's, and the driver used to get a 500 with no message at all
+        // on the one gate a trip cannot depart without — say what is wrong instead.
+        throw new ORPCError('CONFLICT', {
+          message: `consent ${input.id} is already recorded for another person; send this answer under an id of its own`,
+          data: { code: 'consent_id_taken', consentId: input.id },
+        })
       }),
     )
   }

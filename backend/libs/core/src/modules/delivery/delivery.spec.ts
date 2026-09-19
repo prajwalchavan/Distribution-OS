@@ -2077,7 +2077,7 @@ describeDb('delivery (DATABASE_URL)', () => {
   })
 
   // ---------------------------------------------------------------------------------------------------------------
-  // QA DOS-176: a client id somebody else already holds, on a row RLS hides from this caller
+  // QA DOS-176 / DOS-177: a client id somebody else already holds, on a row RLS hides from this caller
 
   it('DOS-176 proof of delivery under an evidence id another crew already holds is refused with a message, never a 500', async () => {
     // The proof id is the client's. `addPod` looks for it first, but that look-up runs under RLS: a row on
@@ -2132,6 +2132,47 @@ describeDb('delivery (DATABASE_URL)', () => {
     const [row] = (await db.execute(sql`select delivery_id from pod_evidence where id = ${podId}`))
       .rows as { delivery_id: string }[]
     expect(row?.delivery_id).toBe(deliveryA1)
+  })
+
+  it('DOS-177 a location consent under an id another person already holds is refused with a message, never a 500', async () => {
+    // Same shape as DOS-176 and the same silence: `location_consents_rw` shows a crew member only its OWN
+    // rows, so the look-up missed the owner's row, the insert hit the primary key, and the driver got a
+    // 500 with no message at all — on the one gate a trip cannot depart without.
+    const consentId = uuidv7()
+    const body = { granted: true, noticeVersion: 'gps-2026-09', locale: 'en-IN' }
+    const first = await call<{ item: { id: string; userId: string } }>(
+      app,
+      owner,
+      'POST',
+      '/delivery/consents',
+      { idempotencyKey: `consent-177-a-${run}`, id: consentId, ...body },
+    )
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    expect(first.body.item.userId).toBe(ownerId)
+
+    const clash = await call<{ message: string; data?: { code?: string } }>(
+      app,
+      otherDriver,
+      'POST',
+      '/delivery/consents',
+      { idempotencyKey: `consent-177-b-${run}`, id: consentId, ...body },
+    )
+    expect(clash.status, JSON.stringify(clash.body)).toBe(409)
+    expect(clash.body.data?.code).toBe('consent_id_taken')
+    expect(clash.body.message).toContain(consentId)
+    // the owner's answer is untouched, and the driver's own consent still stands
+    const [row] = (
+      await db.execute(sql`select user_id from location_consents where id = ${consentId}`)
+    ).rows as { user_id: string }[]
+    expect(row?.user_id).toBe(ownerId)
+    const theirs = await call<{ item: { granted: boolean } | null }>(
+      app,
+      otherDriver,
+      'GET',
+      '/delivery/consents',
+    )
+    expect(theirs.status).toBe(200)
+    expect(theirs.body.item?.granted).toBe(true)
   })
 
   // ---------------------------------------------------------------------------------------------------------------
