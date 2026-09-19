@@ -1,0 +1,459 @@
+[
+ {
+  "t": 1138,
+  "kind": "granted",
+  "permission": "local-network-access"
+ },
+ {
+  "t": 1756,
+  "kind": "screenshot",
+  "file": "a4-01-tab1-sign-in.png"
+ },
+ {
+  "t": 1811,
+  "kind": "sign-in-click",
+  "tab": "tab1"
+ },
+ {
+  "t": 1938,
+  "kind": "signed-in",
+  "tab": "tab1",
+  "url": "http://localhost:5175/"
+ },
+ {
+  "t": 2006,
+  "kind": "worker",
+  "tab": "tab1",
+  "url": "blob:http://localhost:5175/7caf3e5a-a29f-4c1d-b1fb-74eca8685808"
+ },
+ {
+  "t": 2948,
+  "kind": "waited",
+  "what": "tab1 beat loaded",
+  "ok": true,
+  "afterMs": 1010
+ },
+ {
+  "t": 8967,
+  "kind": "says",
+  "label": "tab1 after sign-in, persistent store expected",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 9046,
+  "kind": "screenshot",
+  "file": "a4-02-tab1-home-persistent.png"
+ },
+ {
+  "t": 9061,
+  "kind": "opfs",
+  "when": "tab1 after open",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "junk": [],
+  "unreadable": 0,
+  "sizes": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ]
+ },
+ {
+  "t": 10267,
+  "kind": "page-offline",
+  "tab": "tab1",
+  "offline": true,
+  "navigatorOnLine": false
+ },
+ {
+  "t": 13250,
+  "kind": "draft",
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "id": "01a0ba24-f6cc-702b-965b-e7d3e9122bb9",
+  "lines": [
+   {
+    "id": "01a0ba24-fdf2-72b2-9531-db3320055db1",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 13306,
+  "kind": "screenshot",
+  "file": "a4-03-tab1-draft-offline.png"
+ },
+ {
+  "t": 13306,
+  "kind": "place-label",
+  "label": "Save on this phone"
+ },
+ {
+  "t": 13847,
+  "kind": "waited",
+  "what": "tab1 saved on phone",
+  "ok": true,
+  "afterMs": 505
+ },
+ {
+  "t": 15852,
+  "kind": "says",
+  "label": "tab1 with the order queued and unsent",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:19 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 15905,
+  "kind": "screenshot",
+  "file": "a4-04-tab1-order-queued.png"
+ },
+ {
+  "t": 15909,
+  "kind": "opfs",
+  "when": "tab1 after queueing",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "junk": [],
+  "unreadable": 0,
+  "sizes": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ]
+ },
+ {
+  "t": 15940,
+  "kind": "sql",
+  "when": "before tab 2",
+  "orderRowsInDosQa": "count\n0\n(1 row)"
+ },
+ {
+  "t": 17428,
+  "kind": "worker",
+  "tab": "tab2",
+  "url": "blob:http://localhost:5175/277856f9-71d5-4619-bf5a-8bd455d596c9"
+ },
+ {
+  "t": 18270,
+  "kind": "console",
+  "tab": "tab2",
+  "source": "page",
+  "type": "warning",
+  "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+ },
+ {
+  "t": 25037,
+  "kind": "says",
+  "label": "tab2 eight seconds after opening",
+  "notPersisted": true,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 25096,
+  "kind": "screenshot",
+  "file": "a4-05-tab2-early.png"
+ },
+ {
+  "t": 25097,
+  "kind": "waited",
+  "what": "tab2 says memory",
+  "ok": true,
+  "afterMs": 1
+ },
+ {
+  "t": 29102,
+  "kind": "says",
+  "label": "tab2 once its store had resolved",
+  "notPersisted": true,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 29161,
+  "kind": "screenshot",
+  "file": "a4-06-tab2-memory-line.png"
+ },
+ {
+  "t": 29222,
+  "kind": "opfs",
+  "when": "walked from tab2",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "junk": [],
+  "unreadable": 0,
+  "sizes": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ]
+ },
+ {
+  "t": 29224,
+  "kind": "says",
+  "label": "tab1 while tab2 is open",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:19 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 29271,
+  "kind": "screenshot",
+  "file": "a4-08-tab1-while-tab2-open.png"
+ },
+ {
+  "t": 29275,
+  "kind": "opfs",
+  "when": "tab1 while tab2 open",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n-journal",
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "junk": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n-journal"
+  ],
+  "unreadable": 0,
+  "sizes": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ]
+ },
+ {
+  "t": 29290,
+  "kind": "pageerror",
+  "tab": "tab1",
+  "text": "Error: Error: Database not found - nativeDatabaseId[2]"
+ },
+ {
+  "t": 34675,
+  "kind": "tab1-orders",
+  "when": "tab2 open",
+  "rows": 11
+ },
+ {
+  "t": 34744,
+  "kind": "screenshot",
+  "file": "a4-09-tab1-orders-while-tab2-open.png"
+ },
+ {
+  "t": 35947,
+  "kind": "page-offline",
+  "tab": "tab2",
+  "offline": true,
+  "navigatorOnLine": false
+ },
+ {
+  "t": 35956,
+  "kind": "console",
+  "tab": "tab2",
+  "source": "page",
+  "type": "warning",
+  "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+ },
+ {
+  "t": 45291,
+  "kind": "pageerror",
+  "tab": "tab1",
+  "text": "Error: Error: Database not found - nativeDatabaseId[2]"
+ },
+ {
+  "t": 78160,
+  "kind": "says",
+  "label": "tab2 before tapping Sign out",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:20 pm",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 78200,
+  "kind": "screenshot",
+  "file": "a4-10-tab2-before-sign-out.png"
+ },
+ {
+  "t": 81488,
+  "kind": "tab2-leave-sheet",
+  "sheet": false,
+  "title": null,
+  "body": null,
+  "keep": false,
+  "sendNow": false,
+  "cancel": false,
+  "signInForm": true
+ },
+ {
+  "t": 81532,
+  "kind": "screenshot",
+  "file": "a4-11-tab2-leave-sheet.png"
+ },
+ {
+  "t": 83034,
+  "kind": "says",
+  "label": "tab2 after Cancel",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(no connection strip)",
+  "who": ""
+ },
+ {
+  "t": 83045,
+  "kind": "tab2-closed"
+ },
+ {
+  "t": 94467,
+  "kind": "says",
+  "label": "tab1 reloaded, still offline",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(no connection strip)",
+  "who": ""
+ },
+ {
+  "t": 94523,
+  "kind": "screenshot",
+  "file": "a4-12-tab1-reloaded-offline.png"
+ },
+ {
+  "t": 94527,
+  "kind": "opfs",
+  "when": "tab1 after reload, offline",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "junk": [],
+  "unreadable": 0,
+  "sizes": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ]
+ },
+ {
+  "t": 119348,
+  "kind": "tab1-orders",
+  "when": "after reload, offline",
+  "rows": 0
+ },
+ {
+  "t": 119412,
+  "kind": "screenshot",
+  "file": "a4-13-tab1-orders-after-reload.png"
+ },
+ {
+  "t": 120618,
+  "kind": "page-offline",
+  "tab": "tab1",
+  "offline": false,
+  "navigatorOnLine": true
+ },
+ {
+  "t": 300749,
+  "kind": "waited",
+  "what": "tab1 uploaded after coming back",
+  "ok": false,
+  "afterMs": 180000
+ },
+ {
+  "t": 306805,
+  "kind": "says",
+  "label": "tab1 back online",
+  "notPersisted": false,
+  "stillLoading": false,
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(no connection strip)",
+  "who": ""
+ },
+ {
+  "t": 306882,
+  "kind": "screenshot",
+  "file": "a4-14-tab1-back-online.png"
+ },
+ {
+  "t": 306883,
+  "kind": "sync-order-after-online",
+  "calls": []
+ },
+ {
+  "t": 331810,
+  "kind": "screenshot",
+  "file": "a4-15-tab1-orders-sent.png"
+ },
+ {
+  "t": 331825,
+  "kind": "opfs",
+  "when": "final",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "junk": [],
+  "unreadable": 0,
+  "sizes": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ]
+ },
+ {
+  "t": 331906,
+  "kind": "sql-final",
+  "orderRows": "id|order_no|state|source|salesperson_id|retailer_id|created_at\n(0 rows)",
+  "orderCount": "count\n0\n(1 row)",
+  "lineCount": "count\n0\n(1 row)"
+ }
+]

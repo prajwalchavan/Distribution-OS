@@ -1,0 +1,106 @@
+[
+ {
+  "t": 88,
+  "kind": "sql-before-sign-in",
+  "orderRows": "count\n0\n(1 row)"
+ },
+ {
+  "t": 1861,
+  "kind": "says",
+  "label": "the sign-in form run A left behind",
+  "notPersisted": false,
+  "stillLoading": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ {
+  "t": 1877,
+  "kind": "opfs",
+  "when": "before sign-in",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "sizes": [
+   4091904
+  ],
+  "magic": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 1929,
+  "kind": "screenshot",
+  "file": "a4b-01-sign-in-form.png"
+ },
+ {
+  "t": 2099,
+  "kind": "signed-in",
+  "afterMs": 170
+ },
+ {
+  "t": 4670,
+  "kind": "screenshot",
+  "file": "a4b-02-right-after-sign-in.png"
+ },
+ {
+  "t": 62855,
+  "kind": "sync-order",
+  "first": {
+   "t": 313,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  "firstUploadAt": 60753,
+  "firstPullAt": 362,
+  "uploadBeforePull": false
+ },
+ {
+  "t": 70867,
+  "kind": "says",
+  "label": "after the queue had gone",
+  "notPersisted": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ {
+  "t": 70947,
+  "kind": "screenshot",
+  "file": "a4b-03-after-upload.png"
+ },
+ {
+  "t": 70957,
+  "kind": "opfs",
+  "when": "after upload",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "sizes": [
+   4091904
+  ],
+  "magic": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 75086,
+  "kind": "screenshot",
+  "file": "a4b-04-orders.png"
+ },
+ {
+  "t": 75186,
+  "kind": "sql-after",
+  "count": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id|created_at\n01a0ba24-f6cc-702b-965b-e7d3e9122bb9||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|2026-09-19 20:27:43.376568+05:30\n(1 row)",
+  "lines": "count\n1\n(1 row)",
+  "ops": "(sql error: ERROR:  column \"payload\" does not exist\nLINE 1: ...outcome::text,120) as outcome from sync_ops where payload::t...\n                                                             ^\n)"
+ }
+]

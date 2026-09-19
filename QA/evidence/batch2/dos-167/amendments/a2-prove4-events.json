@@ -1,0 +1,607 @@
+[
+  {
+    "t": 1079,
+    "kind": "granted",
+    "permission": "local-network-access"
+  },
+  {
+    "t": 1625,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/refresh"
+  },
+  {
+    "t": 1707,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/refresh"
+  },
+  {
+    "t": 1724,
+    "kind": "request",
+    "method": "GET",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789915188&signature=e957a6388d542ff629e2"
+  },
+  {
+    "t": 1726,
+    "kind": "worker-created",
+    "url": "blob:http://localhost:5175/943a3885-69c1-47c1-9adc-8beee265b5b8"
+  },
+  {
+    "t": 1757,
+    "kind": "request-failed",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789915188&signature=e957a6388d542ff629e2",
+    "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+    "t": 1812,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: the device store could not be used; running in memory Error: Error: Error code 26: file is not a database\n    at workerMessageHandler (eval at <anonymous> (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:155278:16), <anonymous>:40974:27)\n    at Wor"
+  },
+  {
+    "t": 1812,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+  },
+  {
+    "t": 1814,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 1820,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 1823,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 1927,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 1939,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 1996,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 2007,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 2040,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 2053,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 2119,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 2136,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 2173,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 2192,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 2236,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 2260,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 2342,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 2364,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 2437,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 2457,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 2509,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 2534,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 2591,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 2623,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 2695,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 2718,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 2760,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 2771,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 2804,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 2807,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 2812,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 9731,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+    "t": 9736,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+    "t": 9737,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDozOTo0NC43NDN"
+  },
+  {
+    "t": 9737,
+    "kind": "pull-intercepted",
+    "stalling": true
+  },
+  {
+    "t": 12832,
+    "kind": "second-sign-in-tapped"
+  },
+  {
+    "t": 14335,
+    "kind": "waiting",
+    "afterMs": 1540,
+    "url": "http://localhost:5175/sign-in",
+    "button": "Sign in",
+    "body": "Distribution OS - Sales\nSign in\nUsername\nPassword\nSign in\nUse the username your distributor gave you."
+  },
+  {
+    "t": 14382,
+    "kind": "screenshot",
+    "file": "a2-18-signin-wait-2s.png"
+  },
+  {
+    "t": 18393,
+    "kind": "waiting",
+    "afterMs": 5592,
+    "url": "http://localhost:5175/sign-in",
+    "button": "Sign in",
+    "body": "Distribution OS - Sales\nSign in\nUsername\nPassword\nSign in\nUse the username your distributor gave you."
+  },
+  {
+    "t": 18456,
+    "kind": "screenshot",
+    "file": "a2-18-signin-wait-6s.png"
+  },
+  {
+    "t": 27465,
+    "kind": "waiting",
+    "afterMs": 14665,
+    "url": "http://localhost:5175/sign-in",
+    "button": "Sign in",
+    "body": "Distribution OS - Sales\nSign in\nUsername\nPassword\nSign in\nUse the username your distributor gave you."
+  },
+  {
+    "t": 27523,
+    "kind": "screenshot",
+    "file": "a2-18-signin-wait-15s.png"
+  },
+  {
+    "t": 29741,
+    "kind": "request-failed",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDozOTo0NC43NDN",
+    "error": "net::ERR_ABORTED"
+  },
+  {
+    "t": 29742,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/logout"
+  },
+  {
+    "t": 29742,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/login"
+  },
+  {
+    "t": 29748,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/logout"
+  },
+  {
+    "t": 29797,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/login"
+  },
+  {
+    "t": 29816,
+    "kind": "second-sign-in-landed",
+    "afterMs": 17023
+  },
+  {
+    "t": 29816,
+    "kind": "request",
+    "method": "GET",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789915216&signature=4227517039209f7c1647"
+  },
+  {
+    "t": 29817,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: the device store could not be used; running in memory Error: Error: Error code 26: file is not a database\n    at workerMessageHandler (eval at <anonymous> (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:155278:16), <anonymous>:40974:27)\n    at Wor"
+  },
+  {
+    "t": 29817,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+  },
+  {
+    "t": 29818,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 29820,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 29822,
+    "kind": "request-failed",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789915216&signature=4227517039209f7c1647",
+    "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+    "t": 29822,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 29822,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 29861,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 29869,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 29869,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 29919,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 29929,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 29929,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 29971,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 29983,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 29983,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30029,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 30045,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 30045,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30078,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 30097,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 30097,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30131,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 30155,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 30155,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30210,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 30231,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 30231,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30278,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 30297,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 30297,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30345,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 30370,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 30370,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30417,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 30448,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 30448,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30505,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 30529,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 30529,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30569,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 30579,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 30579,
+    "kind": "pull-intercepted",
+    "stalling": false
+  },
+  {
+    "t": 30608,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 30612,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 30616,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 32889,
+    "kind": "screenshot",
+    "file": "a2-19-after-second-sign-in.png"
+  }
+]
