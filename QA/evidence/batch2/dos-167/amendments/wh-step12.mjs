@@ -1,0 +1,40 @@
+// Round 2 — the sheet is already open; the office has just gone. Record a pick, sign out keeping it.
+import * as A from './wh-lib.mjs'
+import { pull, sql } from './wh-pull.mjs'
+const DBF = 'wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk'
+
+await A.newSession()
+await A.sleep(2000)
+await A.dismissSystemDialogs()
+let xml = await A.source()
+let picks = [...xml.matchAll(/resource-id="(w5-pick-[^"]+)"/g)].map((m) => m[1])
+A.log('screen:', await A.texts(1200))
+A.log('pick buttons:', JSON.stringify(picks))
+if (!picks.length) throw new Error('sheet is locked again')
+const lineId = picks[0].replace('w5-pick-', '')
+await A.tapId(picks[0], { timeout: 20000, label: 'Picked (' + lineId.slice(0, 8) + ')' })
+await A.sleep(22000)
+await A.shot('wh-34-round2-picked-offline')
+A.log('after the pick:', await A.texts(1600))
+
+await A.clickText('More', { timeout: 20000 })
+await A.sleep(2200)
+await A.clickText('Settings', { timeout: 15000 })
+await A.sleep(3500)
+await A.scrollIntoView('Sign out').catch(() => {})
+await A.tapId('x4-sign-out', { timeout: 20000, label: 'Sign out (round 2)' })
+await A.sleep(3000)
+await A.shot('wh-35-round2-leave-sheet')
+A.log('leave sheet:', await A.texts(1500))
+await A.tapId('leave-keep', { timeout: 20000, label: 'Sign out, keep here' })
+await A.sleep(8000)
+await A.shot('wh-36-round2-signed-out')
+A.log('screen:', await A.texts(600))
+await A.quit()
+
+const local = pull(DBF, 'wh-round2-kept-after-signout')
+console.log('ROUND 2 LINE:', lineId)
+console.log('== _outbox after sign-out ==')
+console.log(sql(local, 'select seq,op_id,tbl,row_id,status,attempts,created_at,sent_at from _outbox order by seq'))
+console.log('== unsent payload ==')
+console.log(sql(local, "select data from _outbox where status<>'acked'"))

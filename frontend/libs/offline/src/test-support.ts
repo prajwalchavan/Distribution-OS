@@ -191,3 +191,30 @@ export function fixedStoreFactory(store: SyncStore): (name: string) => Promise<S
     return store
   }
 }
+
+/**
+ * The transport with the order in which calls ANSWERED written down — the clock for DOS-167's "the queue goes with
+ * the person" and DOS-183's "it goes FIRST": the engine serialises these calls, so the order they answered in is the
+ * order they were made in, and no test has to reach for a wall clock or a poll interval to say which came first.
+ */
+export function recording(server: FakeServer, order: string[]): SyncTransport {
+  const base = server.transport()
+  return {
+    ...base,
+    manifest: async (input) => {
+      const out = await base.manifest(input)
+      order.push('manifest')
+      return out
+    },
+    pull: async (input) => {
+      const out = await base.pull(input)
+      order.push('pull')
+      return out
+    },
+    upload: async (input) => {
+      const out = await base.upload(input)
+      order.push('upload')
+      return out
+    },
+  }
+}

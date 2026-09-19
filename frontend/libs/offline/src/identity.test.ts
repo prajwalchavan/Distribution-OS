@@ -25,7 +25,7 @@ import { createSystemTables, OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js
 import { readAllState, readState, writeState } from './state.js'
 import { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
 import { createMemoryStore } from './store/memory.js'
-import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
+import { column, FakeServer, fixedStoreFactory, recording, tableManifest } from './test-support.js'
 import type {
   EnqueueInput,
   SqlValue,
@@ -103,29 +103,6 @@ function engineAs(
     now,
     ...extra,
   })
-}
-
-/** The transport, with the order in which calls ANSWERED written down. */
-function recording(server: FakeServer, order: string[]): SyncTransport {
-  const base = server.transport()
-  return {
-    ...base,
-    manifest: async (input) => {
-      const out = await base.manifest(input)
-      order.push('manifest')
-      return out
-    },
-    pull: async (input) => {
-      const out = await base.pull(input)
-      order.push('pull')
-      return out
-    },
-    upload: async (input) => {
-      const out = await base.upload(input)
-      order.push('upload')
-      return out
-    },
-  }
 }
 
 function page(id: string, cursor: string, hasMore: boolean): PullOutput {
@@ -919,9 +896,9 @@ describe('DOS-167 one file per app, person and distributor', () => {
     // The first thing the device publishes, before the handshake has answered, already holds his shops.
     expect(painted[0]).toEqual([CHAVAN.id])
     expect(server.pullCalls[pullsBefore]?.since).toBe('c1')
-    expect((await restarted.outbox()).map((op) => [op.opId, op.status])).toEqual([[opId, 'queued']])
-    await restarted.flush()
+    // And his order went out on the start itself, before the handshake (DOS-183), under the SAME opId.
     expect(server.uploadCalls.at(-1)?.ops.map((op) => op.opId)).toEqual([opId])
+    expect((await restarted.outbox()).map((op) => [op.opId, op.status])).toEqual([[opId, 'acked']])
     await restarted.stop()
   })
 
@@ -1395,7 +1372,7 @@ describe('DOS-167 sign-out ends the engine', () => {
     })
     const back = engineAs(RAHUL, kept.store, recording(kept.server, kept.order))
     await back.start()
-    expect(kept.order.slice(mark)).toEqual(['manifest', 'upload', 'pull'])
+    expect(kept.order.slice(mark)).toEqual(['upload', 'manifest', 'pull'])
     expect(kept.server.uploadCalls.at(-1)?.ops.map((op) => op.opId)).toEqual([kept.queuedOpId])
     expect(kept.server.pullCalls[pullsBefore]?.since).toBeUndefined()
     expect(back.status()).toMatchObject({ pending: 0, rejected: 1 })
@@ -1653,7 +1630,7 @@ describe('DOS-167 sign-out ends the engine', () => {
     })
     const back = engineAs(RAHUL, kept.store, recording(kept.server, kept.order))
     await back.start()
-    expect(kept.order.slice(mark)).toEqual(['manifest', 'upload', 'pull'])
+    expect(kept.order.slice(mark)).toEqual(['upload', 'manifest', 'pull'])
     expect(kept.server.uploadCalls.at(-1)?.ops.map((op) => op.opId)).toEqual([opId])
     await back.stop()
 
@@ -2560,12 +2537,13 @@ describe('DOS-167 the sign-out rule', () => {
     expect(counts).toEqual({ pending: 1, rejected: 0 })
     expect(leaveDecision(counts)).toBe('ask')
     expect(back.status()).toMatchObject({ ready: true, pending: 1 })
+    await starting
+    // The start tried to send it first (DOS-183) and the dead spot is still a dead spot, so it is waiting again.
     expect(
       await store.query<{ op_id: string; status: string }>(
         `SELECT op_id, status FROM ${OUTBOX_TABLE}`,
       ),
     ).toEqual([{ op_id: opId, status: 'queued' }])
-    await starting
     await back.stop()
 
     // A file that never opens is never waited on for ever: there is nothing in it to count or delete.

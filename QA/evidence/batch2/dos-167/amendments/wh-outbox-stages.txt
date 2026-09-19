@@ -1,0 +1,93 @@
+DOS-167 — Android (Pixel_7_API_36, -memory 3072) WAREHOUSE keep proof, 2026-09-19.
+Repo: main, HEAD 254958a (the run was asked for at ff28995; ff28995 is an ancestor of this HEAD —
+the two commits after it are QA/docs only, no product code).
+Hand: bharat.jadhav (Bharat Jadhav, Sai Distributors, Dombivli). Other hand: sunita.gaikwad (Sunita Gaikwad),
+same tenant, same role, same phone. Password Dos@1234. App: in.distributionos.warehouse (debug APK + Metro 8081).
+Driven with Appium 3.7.0 / UiAutomator2 8.7.0 on :4725, ALWAYS by resource-id (testID) or by visible text —
+no raw coordinate taps anywhere in this run.
+
+Services for this walk: isolated auth :3010 and warehouse :3014 on database dos_test_b2_dos167wh
+(createdb -T dos_test_batch2b_template). Device reached them through adb reverse (device 3000 -> host 3010,
+device 3004 -> host 3014). dos and dos_qa were NEVER touched; the two services already running on :3000/:3004
+against dos_qa were left alone and were not used.
+
+HOW "NO SIGNAL" WAS MADE HONEST. Airplane mode ALONE does not cut this phone off: `adb reverse` is a loopback
+tunnel over the adb channel, so with the radio off the app still reached the services and two picks were sent
+and acked (seq 1 and 2 below — they are the control, not the proof). The cut that counts is airplane mode PLUS
+`adb reverse --remove tcp:3004` PLUS stopping the warehouse service itself; only then does the app say
+"Offline since …" and hold the write. Both kept ops below were queued under that cut.
+
+== ROUND 1 — kept across sign-out with no signal at all (auth reachable, office not) ==
+wh-queued-before-signout.db : _outbox
+seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at
+1|01a0ba8b-4324-7005-a215-4b29a9d249d5|pick_lines|363ada0f-…|PUT|acked |1|16:41:24.006Z|16:41:24.183Z|16:41:24.479Z   (control, sent online)
+2|01a0ba8c-d8b9-702a-b212-6cc7e1507645|pick_lines|a7ed45fd-…|PUT|acked |1|16:43:07.841Z|16:43:08.027Z|16:43:08.171Z   (control, sent online)
+3|01a0ba8e-8c86-736b-96ba-6c836861bacf|pick_lines|f8d9a25c-…|PUT|queued|5|16:44:59.398Z|          |                    <- THE KEPT PICK
+
+wh-kept-after-signout.db : _outbox   (after "Sign out, keep here")
+3|01a0ba8e-8c86-736b-96ba-6c836861bacf|pick_lines|f8d9a25c-…|PUT|queued|7|16:44:59.398Z|          |
+-- whose store: userId=fde0c980-27cb-7f1d-a008-ce4503d01611 (bharat.jadhav), tenantId=82f5c562-…,
+   role= (emptied by sign-out), deviceId=01a0ba82-75fd-71a3-981f-9b518274e6cd
+
+wh-same-person-after-signin.db : _outbox   (the SAME hand signs back in, still no office)
+3|01a0ba8e-…|pick_lines|f8d9a25c-…|PUT|queued|7|16:44:59.398Z|  |     same op_id, same created_at, role=warehouse again
+   on screen: "Offline since 10:17 pm · 1 waiting to send"; tray = Waiting 1 / Refused 0, "pick_lines · 19 Sep, 10:14 pm · queued"
+
+wh-other-person.db (sunita.gaikwad, same phone) : a DIFFERENT store file
+-- userId=b6b0d733-78fc-71f4-8fdd-528f14da104d, _outbox rows = 0, op_id hits for Bharat's op = 0,
+   no pick_lines table at all; tray = Waiting 0 / "Nothing is waiting"
+
+wh-final-after-send.db : _outbox   (he signs back in WITH a signal)
+3|01a0ba8e-…|pick_lines|f8d9a25c-…|PUT|acked|14|16:44:59.398Z|16:53:02.420Z|16:53:02.475Z
+   _sync_state: lastUploadAt 16:53:02.475Z  <  lastPulledAt 16:53:05.002Z  -> the kept op went BEFORE the first pull.
+   _sync_errors = 0.
+
+== ROUND 2 — the isolation proof with the other hand FULLY SYNCED ==
+Queued under the same cut, then the office was restored BEFORE the other hand signed in, so she pulled
+everything the server knew.
+
+wh-round2-kept-after-signout.db : _outbox
+4|01a0ba9f-1bc0-76d7-92a8-b1e75af8c5af|pick_lines|d3d9ff92-…|PUT|queued|6|17:03:04.640Z|  |   <- THE KEPT PICK (48 pc)
+payload: {"picklist_id":"7ff186e1-…","order_line_id":"e4ca6891-…","lot_id":"f5c005f3-…",
+          "requested_qty_pcs":48,"picked_qty_pcs":48,"case_size":24,"short_reason":null}
+
+wh-other-person-online.db (sunita.gaikwad, "Updated just now", 13 tables, 735 pick_lines)
+-- _outbox rows = 0; Bharat's op_id in her outbox = 0
+-- the line he picked offline, AS SHE SEES IT:  d3d9ff92-… | line 4 | 48 requested | 0 picked | picked_by (none)
+-- the three he had already sent:               363ada0f-…=192, a7ed45fd-…=156, f8d9a25c-…=288
+-- her sheet offered her "Picked / Short" on that very line (screenshot wh-39)
+wh-his-store-while-she-is-in.db (his file, untouched on disk while she is signed in)
+4|01a0ba9f-…|pick_lines|d3d9ff92-…|queued|6   -- still his, still waiting
+
+wh-round2-final-after-send.db : _outbox   (she signs out, HE signs in with a signal)
+4|01a0ba9f-…|pick_lines|d3d9ff92-…|PUT|acked|7|17:03:04.640Z|17:08:00.735Z|17:08:00.806Z
+   _sync_state: lastUploadAt 17:08:00.806Z  <  lastPulledAt 17:08:03.732Z  -> it went first again. _sync_errors = 0.
+
+== THE OFFICE'S OWN BOOKS (database dos_test_b2_dos167wh) ==
+pick_lines, after everything:
+  363ada0f-… line 1  192/192  picked_by fde0c980 (bharat.jadhav)  22:11:24 IST
+  a7ed45fd-… line 2  156/156  picked_by fde0c980                  22:13:08 IST
+  f8d9a25c-… line 3  288/288  picked_by fde0c980                  22:23:02 IST   <- round-1 kept pick
+  d3d9ff92-… line 4   48/48   picked_by fde0c980                  22:38:01 IST   <- round-2 kept pick
+sync_ops:
+  01a0ba8e-8c86-736b-96ba-6c836861bacf  {"ok": true}  22:23:02.747
+  01a0ba9f-1bc0-76d7-92a8-b1e75af8c5af  {"ok": true}  22:38:01.082
+
+== WHAT THE LEAVE SHEET SAID (screenshot wh-11) ==
+  "1 change has not reached the office"
+  "They stay on this phone for Bharat Jadhav only and go the next time Bharat Jadhav signs in here.
+   Nobody else can see them."
+  "No connection — they cannot go now."      buttons: [Sign out, keep here]  [Cancel]
+(no "Send now" offered, correctly, because there was no connection)
+
+== A DEFECT FOUND WHILE OPERATING THE APP (not part of the keep claim) ==
+The picking sheet LOCKS OUT PICKING whenever it is opened while the office is unreachable, even though the
+wave and all 735 of its lines are already on the phone. The rows render, the promise
+"Picks are saved on this phone and sent when there is a signal." is printed, and the app adds
+"Still filling this phone from the server" — and the Picked / Short buttons are simply absent.
+Measured: locked from 16:56:20 to 17:02:08 (5 m 48 s, polled every 10 s, screenshot wh-32), and it unlocked
+within seconds of the office becoming reachable again ("Updated just now", screenshot wh-33, same row, same
+wave, buttons back). A pick recorded BEFORE the cut, on a sheet already open, works fine (that is how both
+kept ops above were made) — so the lock is on OPENING the sheet without a signal, not on picking offline.
+Business impact: a picker whose phone restarts, or who walks into the sheet in a dead corner of the godown,
+cannot record a single piece until the signal returns.
