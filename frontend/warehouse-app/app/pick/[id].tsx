@@ -94,8 +94,9 @@ export default function PickingSheet(): React.JSX.Element {
    * a pull is already running, so the local `picklists` row can still read `open` after a start that
    * succeeded. The reply counts only for THIS sheet, in case the router reuses the screen for another id.
    *
-   * An unknown status is NOT a fourth way of saying "open" (DOS-182): `pickGate` tells apart a device
-   * that has not answered yet from a device holding a wave whose sheet row a cut pull never delivered.
+   * An unknown status is NOT a fourth way of saying "open" (DOS-182), and it is not a way of saying
+   * "pickable" either: `pickGate` answers `waiting` for a sheet this device does not hold, so nothing
+   * is offered over a wave that may still be arriving. The precedence itself lives in `pickGate`.
    */
   const startedHere =
     start.data !== undefined && start.data.item.id === picklistId
