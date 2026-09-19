@@ -1,0 +1,32 @@
+## z teardown  2026-09-19 18:07:21
+  appium session: ended
+$ xcrun simctl shutdown all
+  exit 0
+  == Devices ==
+  -- iOS 18.0 --
+  -- iOS 18.3 --
+-- stop the log stream this run started
+  done
+-- stop the Metro :5185 this run started (the :5175 Metro is the web lane's and stays)
+  kill 77362
+  :5185 -> 000
+-- stop the QA proxies this run started
+  kill 77326
+  :3900 -> 000
+  :3903 -> 000
+-- WHAT IS LEFT RUNNING, as the step requires
+  :3000 -> 200
+  :3001 -> 200
+  :3002 -> 200
+  :3003 -> 200
+  :3004 -> 200
+  :3005 -> 200
+  :3006 -> 200
+  :3007 -> 200
+  :5175 (web lane's Metro) -> packager-status:running
+  :4723 Appium -> {"value":{"ready":true,"message":"The server is ready to acc
+  worker -> 14477 48029 
+-- working tree: changes must be under QA/ only
+  (nothing listed above = clean)
+  total changed paths:      167
+  under reproof2/ios: 1

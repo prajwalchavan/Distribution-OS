@@ -1,0 +1,214 @@
+## walk F — the two-distributor rep on Android: ruksana.shaikh 16:59:56
+(ruling 3 (gg) requires the switch path on WEB; this is the Android counterpart, possible because
+ the web prover gave ruksana a second membership through the product's own API — prepare-04-two-distributor-rep.json)
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+screen: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you. | ! | Open debugge
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:00:13)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-19 17:00 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-19 16:59 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk F1 — ruksana signs in (no distributor given) 17:00:23
+SIGNED_IN f1-ruksana: Switch distributor | Tarsun Enterprise logo | Tarsun Enterprise | salesperson | ▾ | More | ⋯ | Updated just now | Khadakpada | Today's beat | Shops: 10 | Visited: 0 | Ordered: 1 | ✓ Khadakpada | ✓ Khadakpada | Station Road | Stati
+## walk F2 — her file at the first distributor, then the switcher 17:01:48
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:01:48)
+total 3732
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 17:01 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:59 ..
+-rw------- 1 u0_a217 u0_a217    4096 2026-09-19 17:01 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 17:01 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 3753352 2026-09-19 17:01 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft (4096)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm (32768)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal (3753352)" ], "stores": [ { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ruksana(Tarsun) @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+shot f2-ruksana-tarsun-home.png
+switcher at 439 247
+menu: Switch distributor | Switch distributor | Tarsun Enterprise, salesperson | Tarsun Enterprise | salesperson | Sai Distributors, Dombivli, salesperson | Sai Distributors, Dombivli | salesperson | Close | Close | !, Open debugger to view warnings. | ! | Open debugger to view warnings.
+shot f2-switcher-open.png
+## walk F3 — switch to Sai Distributors with NOTHING queued 17:02:07
+tap at 540 2002
+right after: SD | Sai Distributors, Dombivli | salesperson | ▾ | ⋯ | Updated just now | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | No shops on this beat yet | Beat | Orders | Shops | Me | ! | Open debugger to view warnings.
++5s: Sai Distributors,  Shops: 0 Updated just now 
++10s: Sai Distributors,  Shops: 0 Updated just now 
++15s: Sai Distributors,  Shops: 0 Updated just now 
++20s: Sai Distributors,  Shops: 0 Updated just now 
++25s: Sai Distributors,  Shops: 0 Updated just now 
++30s: Sai Distributors,  Shops: 0 Updated just now 
+shot f3-ruksana-sai-home.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:02:57)
+total 3760
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 17:02 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:59 ..
+-rw------- 1 u0_a217 u0_a217 2068480 2026-09-19 17:02 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217    4096 2026-09-19 17:02 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 17:02 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a217 u0_a217 1709832 2026-09-19 17:02 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft (2068480)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk (4096)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-shm (32768)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-wal (1709832)" ], "stores": [ { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ruksana(Tarsun) @ Tarsun" }, { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "ruksana(Sai) @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- logcat ReactNativeJS console lines — ruling 3 (dd) wires consoleSink into the field apps (17:02:58)
+(end console lines)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)
+## walk F4 — back to Tarsun, queue one change offline, then try to switch 17:03:18
+back at: Tarsun Enterprise | salesperson | ▾ | ⋯ | Updated just now | Khadakpada | Today's beat | Shops: 10 | Visited: 0 | Ordered: 1 | ✓ Khadakpada | Station Road | Search this beat 
+3003 cut
+tap 'Shops' at 675 2246
+tap 'Shops' at 675 2246
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+after save: Tarsun Enterprise | salesperson | ▾ | ⋯ | Updated just now | Chavan Kirana Stores | Order | Items: 1 | This order | Clear | Campa Cola 1 L | 1 cs · 18 cs available | ₹684.00 | Add items | On this phone: 171 items 
+shot f4-ruksana-queued.png
+## walk F4 retry — cold relaunch with the office cut, then save the typed line on the phone 17:05:06
+home: Sat, Sep 19 | Gmail | Photos | YouTube | Phone | Messages | Chrome | Distribution OS - Warehouse
+NOT FOUND: Shops
+NOT FOUND: Shops
+NOT FOUND: Shops
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+order screen: Sat, Sep 19 | Gmail | Photos | YouTube | Phone | Messages | Chrome | Distribution OS - Warehouse
+save button at: ''
+after save: Sat, Sep 19 | Gmail | Photos | YouTube | Phone | Messages | Chrome | Distribution OS - Warehouse
+shot f4-ruksana-queued.png
+## walk F4 retry 2 — queue one change offline as ruksana at Tarsun 17:09:20
+tap 'Shops' at 675 2246
+tap 'Shops' at 675 2246
+order screen: TE | Tarsun Enterprise | salesperson | ▾ | ⋯ | Offline since 5:04 pm | Chavan Kirana Stores | Order | Items: 1 | No signal | This order | Clear | Campa Cola 1 L | 1 cs | ₹684.00 | Add items | On this phone: 171 items | Searc
+save button: '773 2012'
+after save: TE | Tarsun Enterprise | salesperson | ▾ | ⋯ | Offline since 5:04 pm · 2 waiting to send | Chavan Kirana Stores | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a sig
+shot f4-ruksana-queued.png
+## walk F5 — try to switch distributor with 2 changes waiting 17:10:23
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:10:23)
+total 3268
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 17:09 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 17:08 ..
+-rw------- 1 u0_a217 u0_a217 2068480 2026-09-19 17:02 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217  490312 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal
+-rw------- 1 u0_a217 u0_a217  720896 2026-09-19 17:03 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk
+-- decoded (parseStoreName rule): { "files": [ "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft (2068480)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm (32768)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal (490312)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk (720896)" ], "stores": [ { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ruksana(Tarsun) @ Tarsun" }, { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "ruksana(Sai) @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+menu: Switch distributor | Switch distributor | Tarsun Enterprise, salesperson | Tarsun Enterprise | salesperson | Sai Distributors, Dombivli, salesperson | Sai Distributors, Dombivli | salesperson | Close | Close
+shot f5-switcher-open.png
+tap Sai at 540 2002
+SHEET: 2 changes have not reached the office | 2 changes have not reached the office | They go when you come back to Tarsun Enterprise on this phone. | No connection — they cannot go now. | Switch anyway | Switch anyway | Cancel | Cancel | Close | Close
+shot f5-switch-sheet.png
+## walk F6 — 'Switch anyway': the Tarsun file and its 2 ops are kept, Sai becomes current 17:10:53
+after: SD | Sai Distributors, Dombivli | salesperson | ▾ | ⋯ | Offline since 5:03 pm | Order | That shop is not on this phone | Beat | Orders | Shops | Me
+shot f6-after-switch-anyway.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:11:06)
+total 2816
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 17:10 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 17:08 ..
+-rw------- 1 u0_a217 u0_a217 2068480 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217  720896 2026-09-19 17:03 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a217 u0_a217   24752 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft (2068480)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk (720896)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-shm (32768)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk-wal (24752)" ], "stores": [ { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ruksana(Tarsun) @ Tarsun" }, { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "ruksana(Sai) @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- the Tarsun file's ops, still there:
+-- _outbox
+seq|op_id|tbl|row_id|op|status|attempts|rejection_code
+1|01a0b977-593a-72b9-97ca-741f22e208d8|sales_orders|01a0b971-fbbe-7547-bd3f-0f1d84a19924|PUT|queued|6|
+2|01a0b977-593a-72ba-809b-daabd42c2c4b|sales_order_lines|01a0b972-25b9-70bf-907c-d6e2d11590fd|PUT|queued|6|
+-- _outbox data
+1 {"retailer_id":"a029f31b-2c6c-707b-b580-889125d3ee07","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}
+2 {"order_id":"01a0b971-fbbe-7547-bd3f-0f1d84a19924","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}
+-- _sync_errors
+-- logcat ReactNativeJS console lines — ruling 3 (dd) wires consoleSink into the field apps (17:11:06)
+--------- beginning of main
+09-19 17:10:57.329 16777 16826 W ReactNativeJS: 'sync(start): No connection. This will send when the signal is back.', { [ApiError: No connection. This will send when the signal is back.]
+09-19 17:10:57.329 16777 16826 W ReactNativeJS:   name: 'ApiError',
+09-19 17:10:57.329 16777 16826 W ReactNativeJS:   kind: 'network',
+09-19 17:10:57.329 16777 16826 W ReactNativeJS:   status: 0,
+09-19 17:10:57.329 16777 16826 W ReactNativeJS:   code: undefined,
+09-19 17:10:57.329 16777 16826 W ReactNativeJS:   data: undefined }
+(end console lines)
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+09-19 17:05:16.057   672 15832 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)
+## walk F7 — signal back, switch back to Tarsun: the kept ops go once; then sign out (sibling sweep) 17:11:22
+-- dos_qa before:
+01a0b924-2e4e-7069-9ed0-eae7be2afe02|draft|2026-09-19 15:39:15.906618+05:30
+01a0b926-2d0e-75f1-9b0e-af3bdb15ebab|draft|2026-09-19 15:41:37.002925+05:30
+01a0b929-239a-7639-a901-660ffd433643|draft|2026-09-19 15:44:51.19195+05:30
+01a0b92b-d460-73eb-a7a2-a66c459fb71c|draft|2026-09-19 15:47:47.522458+05:30
++10s: 2 waiting to send Tarsun Enterprise 
++20s: 2 waiting to send Tarsun Enterprise 
++30s: 2 waiting to send Tarsun Enterprise 
++40s: 2 waiting to send Tarsun Enterprise 
+shot f7-back-at-tarsun.png
+-- dos_qa after:
+01a0b924-2e4e-7069-9ed0-eae7be2afe02|draft|2026-09-19 15:39:15.906618+05:30|1
+01a0b926-2d0e-75f1-9b0e-af3bdb15ebab|draft|2026-09-19 15:41:37.002925+05:30|1
+01a0b929-239a-7639-a901-660ffd433643|draft|2026-09-19 15:44:51.19195+05:30|1
+01a0b92b-d460-73eb-a7a2-a66c459fb71c|draft|2026-09-19 15:47:47.522458+05:30|1
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:12:28)
+total 2856
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 17:11 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 17:08 ..
+-rw------- 1 u0_a217 u0_a217 2068480 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 17:11 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217   65952 2026-09-19 17:11 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal
+-rw------- 1 u0_a217 u0_a217  720896 2026-09-19 17:11 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk
+-- decoded (parseStoreName rule): { "files": [ "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft (2068480)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm (32768)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal (65952)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk (720896)" ], "stores": [ { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ruksana(Tarsun) @ Tarsun" }, { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "ruksana(Sai) @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk F7 cont — waiting for the backoff to retry 17:12:43
+screen now: TE | Tarsun Enterprise | salesperson | ▾ | ⋯ | Updated just now | Chavan Kirana Stores | Order | Items: 1 | Order placed | The office has it, with its number and its price. | Open the order | Back to the beat | This order | Clear | Campa Cola 1 L | 1 cs · 18 cs available | ₹684.00 | Add items
++15s: Updated just now 
++30s: Updated just now 
++45s: Updated just now 
++60s: Updated just now 
++75s: Updated just now 
++90s: Updated just now 
+-- dos_qa:
+01a0b971-fbbe-7547-bd3f-0f1d84a19924|draft|2026-09-19 17:12:31.062822+05:30
+-- logcat ReactNativeJS console lines — ruling 3 (dd) wires consoleSink into the field apps (17:14:28)
+(end console lines)

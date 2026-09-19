@@ -1,0 +1,58 @@
+## prepare  2026-09-19 17:39:36 IST — DOS-167 ruling-3 iOS SANITY re-proof
+-- main checkout HEAD
+5d9c5c7 QA batch 2: money 6e5c7c5 and DOS-172 d25574e merged; smoke failed 6 BROKEN (S-146..S-150); dos_qa damaged by a smoke run and the harness gap closed
+d25574e Merge QA batch 2 lane dos172: DOS-172
+85e5ac8 refactor(DOS-172): one load-out helper, not two
+-- ruling 3 merge ce3dc8c is an ancestor of HEAD?
+YES (ruling 3 is on main)
+-- ruling-3 product commits present on HEAD
+ce3dc8c Merge QA batch 2 P0 DOS-167 ruling 3: the web store opens under slow loads, the offline log lines print, and the not-kept warning shows only for a real memory store
+5a13f90 docs(DOS-167): ruling 3 (cc) — the fallback-reason list names the 15 s timeout
+95b37aa Merge main into qa/b2-dos167r3 before merging it back
+b00c5fa fix(DOS-167): ruling 3 (ee) — "will not keep" is never said before the open resolves
+6f72d46 fix(DOS-167): ruling 3 (dd) — every field app passes onLog, with the sink decided
+fa905fb fix(DOS-167): ruling 3 (cc) — a store that will not open is announced, bounded and never a hang
+1c5ebf9 fix(DOS-167): ruling 3 (bb) — the clean-ups go after the store, in order, and never on web
+58a646d fix(DOS-167): ruling 3 (aa) — one web open at a time
+58a646d on HEAD: fix(DOS-167): ruling 3 (aa) — one web open at a time
+1c5ebf9 on HEAD: fix(DOS-167): ruling 3 (bb) — the clean-ups go after the store, in order, and never on web
+fa905fb on HEAD: fix(DOS-167): ruling 3 (cc) — a store that will not open is announced, bounded and never a hang
+6f72d46 on HEAD: fix(DOS-167): ruling 3 (dd) — every field app passes onLog, with the sink decided
+b00c5fa on HEAD: fix(DOS-167): ruling 3 (ee) — "will not keep" is never said before the open resolves
+5a13f90 on HEAD: docs(DOS-167): ruling 3 (cc) — the fallback-reason list names the 15 s timeout
+-- working tree (must stay QA/ only)
+ M QA/evidence/batch2/dos-167/reproof2/android/ENVIRONMENT.txt
+ M QA/evidence/batch2/dos-167/reproof2/android/b8-relaunch2.txt
+-- services (real, shared with the other lanes)
+  3000 200
+  3001 200
+  3002 200
+  3003 200
+  3004 200
+  3005 200
+  3006 200
+  3007 200
+-- the database the listening services use
+DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa
+-- QA proxies THIS run added (so the office can be made unreachable for the simulator alone,
+   without stopping the shared :3000/:3003 the other batch-2 lanes are using)
+  3900 -> 3000 auth  /health 200
+  3903 -> 3003 sales /health 200
+-- sales Metro for the simulator: :5185, started by THIS run, bundle pointed at the proxies
+  :5185 status packager-status:running
+  PID STARTED                      COMMAND
+77362 Sat Sep 19 17:38:42 2026     node ../node_modules/.bin/expo start --port 5185
+  (the :5175 Metro was already running for the WEB lane and is left alone:
+   :5175 status packager-status:running)
+-- Appium
+{"value":{"ready":true,"message":"The server is ready to accept new connections","build":{"version":"3.7.0","git-sha":"5
+-- simulator
+    iPhone 16 Pro (DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74) (Booted) 
+-- Expo Go crash reports BEFORE this run
+(end of .ips list)
+-- the two identities this run uses (queried from dos_qa now, not carried over)
+rahul.deshmukh|8760e17e-4830-7395-a946-1e02fffa1ad7|01a09a5b-3c58-71c1-a34d-b93c569b0099|Tarsun Enterprises
+kiran.mhatre|2239ec93-0bcd-7737-a70c-c60aa4d9e9f1|82f5c562-b7eb-7521-8e19-4aa6befc64f8|Sai Distributors
+-- store names those identities must produce (engine.ts storeName rule)
+  A rahul.deshmukh @ Tarsun: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+  B kiran.mhatre   @ Sai   : s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk

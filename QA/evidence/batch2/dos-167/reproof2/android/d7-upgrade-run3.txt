@@ -1,0 +1,100 @@
+## walk D7 — the long-name upgrade with one queued op, RUN 3/3 16:54:45
+== d7r3: before the relaunch (16:54:45)
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:54:45)
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:54 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:53 ..
+-rw-rw-rw- 1 u0_a217 u0_a217 2641920 2026-09-19 16:54 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw-rw-rw- 1 u0_a217 u0_a217   32768 2026-09-19 16:54 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw-rw-rw- 1 u0_a217 u0_a217 4556752 2026-09-19 16:54 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2641920)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4556752)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+am start at 16:54:46
++0.2s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++2.3s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++4.4s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++6.5s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
+the rep's own s-file first seen at +6.5s
++8.6s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++10.6s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++12.7s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++14.8s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++16.9s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++19.0s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++21.1s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++23.1s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++25.2s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++27.3s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++29.4s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++31.5s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++33.6s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++35.6s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++37.7s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
++39.8s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
+-- screen
+TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:54 pm | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is the copy on this phone. | Beat | Orders | Shops | Me | ! | Open debugger to view warnings.
+
+strip: Offline since 4:54 pm  
+sign-in form shown instead? 0
+shot d7r3-after-upgrade.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:55:34)
+total 4024
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:54 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:54 ..
+-rw-rw-rw- 1 u0_a217 u0_a217 3944448 2026-09-19 16:54 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217    4096 2026-09-19 16:54 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:54 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217  103032 2026-09-19 16:54 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (3944448)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (4096)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (103032)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- THE RULING'S PASS LINE in logcat
+matches: 1
+09-19 16:54:52.252 13207 13246 W ReactNativeJS: 'offline: kept the store from before ruling 2', { name: 'dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db',
+-- every console line this launch wrote
+--------- beginning of main
+09-19 16:54:52.145 13207 13246 W ReactNativeJS: 'sync(start): No connection. This will send when the signal is back.', { [ApiError: No connection. This will send when the signal is back.]
+09-19 16:54:52.145 13207 13246 W ReactNativeJS:   name: 'ApiError',
+09-19 16:54:52.145 13207 13246 W ReactNativeJS:   kind: 'network',
+09-19 16:54:52.145 13207 13246 W ReactNativeJS:   status: 0,
+09-19 16:54:52.145 13207 13246 W ReactNativeJS:   code: undefined,
+09-19 16:54:52.145 13207 13246 W ReactNativeJS:   data: undefined }
+09-19 16:54:52.252 13207 13246 W ReactNativeJS: 'offline: kept the store from before ruling 2', { name: 'dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db',
+09-19 16:54:52.252 13207 13246 W ReactNativeJS:   pending: 2 }
+-- the LONG file's outbox after the fixed JS started (copied read-only)
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+key|value
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenant_id","type":"string","nullable":false},{"name":"variant_id","type":"st
+schemaVersion|36957a3c3b8da665
+-- the NEW s-file
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+key|value
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+role|salesperson
+deviceId|01a0b962-d40f-7328-98af-bcdb41f57428
+-- _outbox
+-- _outbox data
+-- _sync_errors
+-- row counts (writable tables)
+-- logcat crash buffer (16:55:35)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)

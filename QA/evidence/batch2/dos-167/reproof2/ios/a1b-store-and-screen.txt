@@ -1,0 +1,48 @@
+## A1b  2026-09-19 17:45:13 — what A's store holds, and what the home screen says
+-- (ee)/S-140 watch: the not-kept line must be ABSENT on a persistent native store
+Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Station Road|Today's beat|Shops: 11|Visited: 0|Ordered: 1|✓ Station Road = 1|Kalyan West Market|Khadakpada|Vertical scroll bar, 2 pages = 0%| = Search this beat|Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit|Om Sai Provision Store, Station Road, Kalyan West · your last order 19 Sep, 69862 rupees 50 paise, Ordered|Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, 36259 rupees, To visit|Sai Krupa Super Bazar, Station Road, Kalyan West · your last order 3 Sep, 206709 rupees, To visit|Jai Bhavani Stores, Station Road, Kalyan West · your last order 10 Sep, 11511 rupees, To visit|Vertical scroll bar, 3 pages = 0%|Horizontal scroll bar, 1 page = 0%|Beat|Orders|Shops|Me|gearshape.fill|
+
+-- any 'will not keep' / 'not saved on this' sentence on screen?
+NO
+NO
+NO
+
+-- A's store file, copied read-only
+-- copied read-only to scratchpad (17:45:19)
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 19 17:45 .
+drwxr-xr-x@ 11 prajwalchavan  wheel      352 Sep 19 17:45 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2641920 Sep 19 17:45 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 19 17:45 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4556752 Sep 19 17:45 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjoxNDo0MS4xOTZaIn0
+lastPulledAt|2026-09-19T12:14:46.196Z
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+-- _sync_errors
+0
+
+-- (dd)/S-139 watch: 'offline:' lines from consoleSink in the Metro log
+(end of offline: lines)

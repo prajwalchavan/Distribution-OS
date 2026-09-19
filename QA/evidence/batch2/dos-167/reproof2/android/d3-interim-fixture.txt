@@ -1,0 +1,56 @@
+## walk D3 — make the phone look like a phone that ran 199952b 16:50:49
+WHY A FIXTURE: the b2-dos167 worktree the previous prover served the 199952b bundle from no longer exists
+(git worktree list: b2-dos167r3, b2-dos171, b2-dos172, b2-money, b2-s108 — 199952b's lane was removed after the merge),
+and this run may not create worktrees or check anything out. The file is therefore built by RENAMING the store
+this build just wrote, on the device, to the exact name interimStoreName('dos-sales', identity) yields.
+SyncEngine.sweepStores (engine.ts:909) opens the file and counts _outbox rows in ('queued','sending','rejected')
+and reads nothing else, so the two builds' files are interchangeable for it; only the NAME differed.
+-- the 199952b name for this identity: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (92 characters)
+pidof: 
+-- before
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:49 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:49 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:48 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+mv: bad 's80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft': Read-only file system
+-- after
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:50:52)
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:49 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:49 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:48 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2641920)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4556752)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk D3 retry — absolute paths 16:51:06
+mv: Needs 1 argument (see "mv --help")
+rc=1
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:51:06)
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:49 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:49 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:48 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2641920)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4556752)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk D3 retry 2 — rename through a pushed script 16:51:22
+db rc=0
+wal rc=0
+shm rc=0
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:51 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:49 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:48 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:50 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:50 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:51:22)
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:51 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:49 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:48 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:50 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:50 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2641920)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4556752)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }

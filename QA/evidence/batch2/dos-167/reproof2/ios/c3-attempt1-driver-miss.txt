@@ -1,0 +1,55 @@
+### keep cycle 3 — shop 'Mahalaxmi General Stores'   2026-09-19 17:59:48
+  baseline: A has 328 orders; 2 successful uploads so far in this run
+proxy mode = down (17:59:48)
+  tapped "Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, 36" Button at 201,650 (1 of 1)
+  tapped "Take order" Button at 201,716 (1 of 1)
+  strip: 
+  tapped "Repeat last order (1)" Button at 201,342 (1 of 1)
+  cart:  Items: 1|Items 1 · ₹1,653.84 before GST|
+  NOT FOUND Save on this phone (matches 0)
+  after save: 
+shot c3-1-order-saved.png 18:00:15.3N
+  outbox queued now:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    6|01a0b9a3-a265-76e5-9505-c1b73ae58f24|sales_orders|01a0b9a3-729b-7458-b0c4-d3db8ee62296|PUT|acked|6|2026-09-19T12:28:24.037Z|2026-09-19T12:29:13.790Z|2026-09-19T12:29:13.891Z
+    7|01a0b9a3-a265-76e6-ada1-b31b9882f52a|sales_order_lines|01a0b9a3-72b9-7406-8c26-ae8649e668eb|PUT|acked|6|2026-09-19T12:28:24.037Z|2026-09-19T12:29:13.790Z|2026-09-19T12:29:13.891Z
+    -- _sync_errors
+shot c3-2-more.png 18:00:23.3N
+  sheet: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|space|return|Emoji|Dictate|
+shot c3-3-leave-sheet.png 18:00:28.3N
+  $ tap 'Sign out, keep here' (201,637)  18:00:28
+  screen: Expo Go|Distribution OS - Sales|Sign in|Username| = t|Password|Sign in|Use the username your distributor gave you.|Verti
+shot c3-4-signed-out.png 18:00:33.3N
+  store kept?  
+  kept outbox:
+  -- relaunch on the kept store
+  relaunched at the SIGN-IN FORM after 6s
+shot c3-5-relaunched.png 18:00:44.3N
+  new Expo Go .ips: 0
+  -- the office comes back and A signs in again
+proxy mode = pass (18:00:44)
+  18:01:06.964 c3-6-rahul-home.png
+  18:01:07.390 SIGNED_IN rahul.deshmukh
+  RESULT cycle 3: A's orders 328 -> 328 (must be +1); successful uploads 2 -> 2 (must be +1)
+  outbox after the send:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    -- _sync_errors
+  duplicate watch — orders A created in the last 6 minutes:
+    01a0b99d-b031-7444-a49a-a15d1c3cf27d|2026-09-19 17:55:59.404579+05:30
+    01a0b9a3-729b-7458-b0c4-d3db8ee62296|2026-09-19 17:59:13.799448+05:30
+shot c3-7-home.png 18:01:22.3N
+
+
+## READING OF THIS ATTEMPT (kept as evidence, not a product finding)
+The driver missed: `NOT FOUND Save on this phone (matches 0)` — the order was built (Items 1, Rs 1,653.84) but the
+save button was never tapped, and the outbox dump taken straight afterwards shows the SEVEN acked ops of cycles 1
+and 2 and NOT ONE queued op. So at the sign-out nothing was waiting, the one-tap sign-out was correct, and the store
+that was destroyed held no unsent work — which is exactly what ruling 2 / founder answer A require (nothing UNSENT
+is thrown away; a fully-acked store is cleared at sign-out so the next person cannot read it).
+This attempt therefore proves nothing either way about the keep path. Cycle 3 is re-run as c4 with a guard that
+refuses to go on unless a queued op is really in the outbox. Screenshots of this attempt: c3a1-*.png.

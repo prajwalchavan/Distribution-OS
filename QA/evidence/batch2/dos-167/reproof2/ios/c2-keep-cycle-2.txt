@@ -1,0 +1,64 @@
+## C  keep cycle repeated — ruling 3's 3-of-3 rule for this run's timing-sensitive walk
+## cycle 1 was b2..b8 above (Shree Ganesh Kirana). Cycles 2 and 3 follow, each on a different shop.
+### keep cycle 2 — shop 'Om Sai Provision Store'   2026-09-19 17:58:02
+  baseline: A has 327 orders; 1 successful uploads so far in this run
+proxy mode = down (17:58:02)
+  tapped "Om Sai Provision Store, Station Road, Kalyan West · your last order 19 Sep, 6986" Button at 201,580 (1 of 1)
+  tapped "Take order" Button at 201,716 (1 of 1)
+  strip: Offline since 5:57 pm|No signal|
+  tapped "Repeat last order (1)" Button at 201,342 (1 of 1)
+  cart:  Items: 1|Items 1 · ₹3,738.74 before GST|
+  tapped "Save on this phone" Button at 281,716 (1 of 1)
+  after save: Offline since 5:57 pm · 2 waiting to send|Saved on this phone|(disabled) Saved on this phone|
+shot c2-1-order-saved.png 17:58:29.3N
+  outbox queued now:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    6|01a0b9a3-a265-76e5-9505-c1b73ae58f24|sales_orders|01a0b9a3-729b-7458-b0c4-d3db8ee62296|PUT|queued|3|2026-09-19T12:28:24.037Z||
+    7|01a0b9a3-a265-76e6-ada1-b31b9882f52a|sales_order_lines|01a0b9a3-72b9-7406-8c26-ae8649e668eb|PUT|queued|3|2026-09-19T12:28:24.037Z||
+    -- _sync_errors
+shot c2-2-more.png 17:58:38.3N
+  sheet: Expo Go|2 changes have not reached the office, They stay on this phone for Demo Docs Staff (edited) only and go the next time Demo Docs Staff (edited) signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 
+shot c2-3-leave-sheet.png 17:58:43.3N
+  $ tap 'Sign out, keep here' (201,637)  17:58:43
+  screen: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical s
+shot c2-4-signed-out.png 17:58:49.3N
+  store kept?  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft 
+  kept outbox:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    6|01a0b9a3-a265-76e5-9505-c1b73ae58f24|sales_orders|01a0b9a3-729b-7458-b0c4-d3db8ee62296|PUT|queued|5|2026-09-19T12:28:24.037Z||
+    7|01a0b9a3-a265-76e6-ada1-b31b9882f52a|sales_order_lines|01a0b9a3-72b9-7406-8c26-ae8649e668eb|PUT|queued|5|2026-09-19T12:28:24.037Z||
+    -- _sync_errors
+  -- relaunch on the kept store
+  relaunched at the SIGN-IN FORM after 4s
+shot c2-5-relaunched.png 17:58:58.3N
+  new Expo Go .ips: 0
+  -- the office comes back and A signs in again
+proxy mode = pass (17:58:58)
+  17:59:20.712 c2-6-rahul-home.png
+  17:59:21.149 SIGNED_IN rahul.deshmukh
+  RESULT cycle 2: A's orders 327 -> 328 (must be +1); successful uploads 1 -> 2 (must be +1)
+  outbox after the send:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+    6|01a0b9a3-a265-76e5-9505-c1b73ae58f24|sales_orders|01a0b9a3-729b-7458-b0c4-d3db8ee62296|PUT|acked|6|2026-09-19T12:28:24.037Z|2026-09-19T12:29:13.790Z|2026-09-19T12:29:13.891Z
+    7|01a0b9a3-a265-76e6-ada1-b31b9882f52a|sales_order_lines|01a0b9a3-72b9-7406-8c26-ae8649e668eb|PUT|acked|6|2026-09-19T12:28:24.037Z|2026-09-19T12:29:13.790Z|2026-09-19T12:29:13.891Z
+    -- _sync_errors
+  duplicate watch — orders A created in the last 6 minutes:
+    01a0b99d-b031-7444-a49a-a15d1c3cf27d|2026-09-19 17:55:59.404579+05:30
+    01a0b9a3-729b-7458-b0c4-d3db8ee62296|2026-09-19 17:59:13.799448+05:30
+shot c2-7-home.png 17:59:35.3N
+

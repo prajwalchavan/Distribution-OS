@@ -1,0 +1,37 @@
+## B1  2026-09-19 17:50:33 — A = rahul.deshmukh signs back in; this is the keep path's person
+-- server-side baseline: orders A has on dos_qa today
+  orders by A, all time: 326
+17:50:33.795 start rahul.deshmukh tag=b1-rahul reset=false early=false
+17:50:38.035 opened exp://127.0.0.1:5185
+17:50:44.348 b1-rahul-signin-form.png
+17:50:46.976 b1-rahul-filled.png
+17:50:46.976 tapped "Sign in"
+17:51:03.940 b1-rahul-home.png
+17:51:05.495 SIGNED_IN rahul.deshmukh
+labels: Passwords | Lock | Passwords Is Locked | Unlock | All | Share | Edit | e | Expo | Last modified today | User Name, rahul.deshmukh | User Name | rahul.deshmukh | Password, •••••••• | Password | •••••••• | Website, expo.dev | Website | expo.dev | Security | shield.lefthalf.filled.trianglebadge.exclamationmark | Compromised Password | Change Password… | Vertical scroll bar, 1 page | Toolbar | New Password | Welcome to the Passwords App | Easily Save and Fill Passwords with AutoFill | Never forget a password again. | Secure Encryption
+-- stores
+$ find "$C" -path '*SQLite*'   (17:51:05)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "rahul.deshmukh @ Tarsun Enterprises",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [rahul.deshmukh @ Tarsun Enterprises] legacy=0 interim=0 strays=0 other=0

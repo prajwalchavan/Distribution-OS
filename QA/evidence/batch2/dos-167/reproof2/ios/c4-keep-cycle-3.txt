@@ -1,0 +1,14 @@
+## C4 — keep cycle 3 (re-run with a guard; attempt 1 was a driver miss, see c3-attempt1-driver-miss.txt)
+### keep cycle 4 — shop 'Sai Krupa Super Bazar'   2026-09-19 18:02:12
+  baseline: A has 328 orders; 2 successful uploads so far in this run
+proxy mode = down (18:02:12)
+  tapped "Sai Krupa Super Bazar, Station Road, Kalyan West · your last order 3 Sep, 206709" Button at 201,720 (1 of 1)
+  tapped "Take order" Button at 201,716 (1 of 1)
+  strip: 
+  tapped "Repeat last order (5)" Button at 201,342 (1 of 1)
+  cart:  Items: 5|Items 5 · ₹24,575.46 before GST|
+  save button: no
+  after save: 
+  GUARD: queued (unsent) ops in the outbox before the sign-out: 0
+  ABORT cycle 4: nothing was queued, so this would not test the keep path at all
+proxy mode = pass (18:02:56)

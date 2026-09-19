@@ -1,0 +1,29 @@
+## walk B9 — keep sign-out again (file + drafts kept), then ANOTHER rep signs in 16:32:49
+-- SecureStore keys (16:32:49)
+name="key_v1-dos.auth.refresh"
+name="key_v1-dos.auth.session"
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Demo Docs Staff (edited) only and go the next time Demo Docs Staff (edited) signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot b9-amit-leave-sheet.png
+sign-in form at +5.2s
+shot b9-amit-kept-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:33:11)
+total 3840
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:33 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:31 ..
+-rw------- 1 u0_a217 u0_a217 3911680 2026-09-19 16:33 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3911680)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:33:12)
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)
+-- logcat crash buffer (16:33:12)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)

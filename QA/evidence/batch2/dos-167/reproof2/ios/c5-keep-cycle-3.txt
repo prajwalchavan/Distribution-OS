@@ -1,0 +1,61 @@
+## C5 — keep cycle 3 (second re-run; now waits for the app to NOTICE the office is unreachable)
+### keep cycle 5 — shop 'Sai Krupa Super Bazar'   2026-09-19 18:03:45
+  baseline: A has 328 orders; 2 successful uploads so far in this run
+proxy mode = down (18:03:46)
+  app noticed the office is unreachable after ~15s: Offline since 6:03 pm|
+  tapped "Sai Krupa Super Bazar, Station Road, Kalyan West · your last order 3 Sep, 206709" Button at 201,720 (1 of 1)
+  tapped "Take order" Button at 201,716 (1 of 1)
+  strip: Offline since 6:03 pm|No signal|
+  tapped "Repeat last order (5)" Button at 201,342 (1 of 1)
+  cart:  Items: 5|Items 5 · ₹24,575.46 before GST|
+  save button: yes
+  after save: Offline since 6:03 pm · 6 waiting to send|Saved on this phone|(disabled) Saved on this phone|
+  GUARD: queued (unsent) ops in the outbox before the sign-out: 6
+shot c5-1-order-saved.png 18:04:30.3N
+  outbox queued now:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b9a9-1cef-779b-9a94-f9f349335c76|sales_orders|01a0b9a8-5c25-7632-bb95-6f543d820731|PUT|queued|4|2026-09-19T12:34:23.087Z||
+    2|01a0b9a9-1cef-779c-9456-fa9604d3a0f1|sales_order_lines|01a0b9a8-ec84-77fb-9836-421af46d869e|PUT|queued|4|2026-09-19T12:34:23.087Z||
+    3|01a0b9a9-1cef-779d-be7b-2678177650d3|sales_order_lines|01a0b9a8-ec84-77fc-835e-abf951d1f470|PUT|queued|4|2026-09-19T12:34:23.087Z||
+    4|01a0b9a9-1cef-779e-af04-38720e61e1ee|sales_order_lines|01a0b9a8-ec84-77fd-94e1-77acdbbef29a|PUT|queued|4|2026-09-19T12:34:23.087Z||
+    5|01a0b9a9-1cef-779f-81a2-164e110bbd19|sales_order_lines|01a0b9a8-ec84-77fe-9f67-2643cbdeaf66|PUT|queued|4|2026-09-19T12:34:23.087Z||
+    6|01a0b9a9-1cef-77a0-a9e3-640d41eb0db1|sales_order_lines|01a0b9a8-ec84-77ff-9115-a99330b6c85a|PUT|queued|4|2026-09-19T12:34:23.087Z||
+    -- _sync_errors
+shot c5-2-more.png 18:04:38.3N
+  sheet: Expo Go|6 changes have not reached the office, They stay on this phone for Demo Docs Staff (edited) only and go the next time Demo Docs Staff (edited) signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 
+shot c5-3-leave-sheet.png 18:04:43.3N
+  $ tap 'Sign out, keep here' (201,637)  18:04:43
+  screen: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical s
+shot c5-4-signed-out.png 18:04:49.3N
+  store kept?  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft 
+  kept outbox:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b9a9-1cef-779b-9a94-f9f349335c76|sales_orders|01a0b9a8-5c25-7632-bb95-6f543d820731|PUT|queued|5|2026-09-19T12:34:23.087Z||
+    2|01a0b9a9-1cef-779c-9456-fa9604d3a0f1|sales_order_lines|01a0b9a8-ec84-77fb-9836-421af46d869e|PUT|queued|5|2026-09-19T12:34:23.087Z||
+    3|01a0b9a9-1cef-779d-be7b-2678177650d3|sales_order_lines|01a0b9a8-ec84-77fc-835e-abf951d1f470|PUT|queued|5|2026-09-19T12:34:23.087Z||
+    4|01a0b9a9-1cef-779e-af04-38720e61e1ee|sales_order_lines|01a0b9a8-ec84-77fd-94e1-77acdbbef29a|PUT|queued|5|2026-09-19T12:34:23.087Z||
+    5|01a0b9a9-1cef-779f-81a2-164e110bbd19|sales_order_lines|01a0b9a8-ec84-77fe-9f67-2643cbdeaf66|PUT|queued|5|2026-09-19T12:34:23.087Z||
+    6|01a0b9a9-1cef-77a0-a9e3-640d41eb0db1|sales_order_lines|01a0b9a8-ec84-77ff-9115-a99330b6c85a|PUT|queued|5|2026-09-19T12:34:23.087Z||
+    -- _sync_errors
+  -- relaunch on the kept store
+  relaunched at the SIGN-IN FORM after 4s
+shot c5-5-relaunched.png 18:04:58.3N
+  new Expo Go .ips: 0
+  -- the office comes back and A signs in again
+proxy mode = pass (18:04:58)
+  18:05:21.424 c5-6-rahul-home.png
+  18:05:21.854 SIGNED_IN rahul.deshmukh
+  RESULT cycle 5: A's orders 328 -> 329 (must be +1); successful uploads 2 -> 3 (must be +1)
+  outbox after the send:
+    -- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+    1|01a0b9a9-1cef-779b-9a94-f9f349335c76|sales_orders|01a0b9a8-5c25-7632-bb95-6f543d820731|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+    2|01a0b9a9-1cef-779c-9456-fa9604d3a0f1|sales_order_lines|01a0b9a8-ec84-77fb-9836-421af46d869e|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+    3|01a0b9a9-1cef-779d-be7b-2678177650d3|sales_order_lines|01a0b9a8-ec84-77fc-835e-abf951d1f470|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+    4|01a0b9a9-1cef-779e-af04-38720e61e1ee|sales_order_lines|01a0b9a8-ec84-77fd-94e1-77acdbbef29a|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+    5|01a0b9a9-1cef-779f-81a2-164e110bbd19|sales_order_lines|01a0b9a8-ec84-77fe-9f67-2643cbdeaf66|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+    6|01a0b9a9-1cef-77a0-a9e3-640d41eb0db1|sales_order_lines|01a0b9a8-ec84-77ff-9115-a99330b6c85a|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+    -- _sync_errors
+  duplicate watch — orders A created in the last 6 minutes:
+    01a0b9a8-5c25-7632-bb95-6f543d820731|2026-09-19 18:05:14.33537+05:30
+shot c5-7-home.png 18:05:36.3N
+

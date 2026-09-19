@@ -1,0 +1,9 @@
+#!/system/bin/sh
+D=/data/data/in.distributionos.sales/files/SQLite
+SHORT=s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+LONG=dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+cd "$D" || exit 9
+mv "$SHORT" "$LONG"; echo "db rc=$?"
+if [ -f "$SHORT-wal" ]; then mv "$SHORT-wal" "$LONG-wal"; echo "wal rc=$?"; fi
+if [ -f "$SHORT-shm" ]; then mv "$SHORT-shm" "$LONG-shm"; echo "shm rc=$?"; fi
+ls -la "$D"

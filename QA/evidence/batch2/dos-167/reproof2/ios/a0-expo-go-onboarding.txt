@@ -1,0 +1,21 @@
+## a0 first-launch Expo Go developer-menu onboarding dismissed  2026-09-19 17:44:09
+(a brand-new Expo Go install shows its own onboarding modal over the app; it is Expo Go's, not the product's)
+tapped "Continue" Button at 201,810 (1 of 1)
+Application	[0,0 402x874]	Expo Go
+StaticText	[66,395 184x22]	Distribution OS - Sales
+StaticText	[66,418 110x15]	SDK version: 57.0.0
+Button	[350,396 36x37]	Close
+Button	[16,465 181x57]	Reload
+tapped "Close" Button at 368,415 (1 of 1)
+Application	[0,0 402x874]	Expo Go
+StaticText	[16,74 370x18]	Distribution OS - Sales
+StaticText	[16,92 370x26]	Sign in
+StaticText	[16,146 370x19]	Username
+StaticText	[16,275 370x19]	Password
+Button	[16,404 370x70]	Sign in
+StaticText	[16,489 370x19]	Use the username your distributor gave you.
+Other	[369,158 30x660]	Vertical scroll bar, 1 page = 0%
+Image	[344,71 26x26]	gearshape.fill
+Other	[0,538 402x45]	Typing Predictions
+Button	[30,538 342x45]	Passwords
+Key	[0,590 41x46]	q

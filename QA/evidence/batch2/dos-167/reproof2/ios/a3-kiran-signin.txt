@@ -1,0 +1,56 @@
+## A3  2026-09-19 17:48:37 — B = kiran.mhatre (salesperson @ SAI DISTRIBUTORS, a DIFFERENT distributor)
+## signs in on the SAME phone right after A. No keychain reset: this is the same device, next person.
+-- stores before B signs in
+$ find "$C" -path '*SQLite*'   (17:48:37)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+17:48:37.867 start kiran.mhatre tag=a3-kiran reset=false early=true
+17:48:44.050 opened exp://127.0.0.1:5185
+17:48:50.592 a3-kiran-signin-form.png
+17:48:53.189 a3-kiran-filled.png
+17:48:53.189 tapped "Sign in"
+tapped Sign in at 17:48:53.189
+17:48:54.048 a3-kiran-early-1.png
+17:48:55.940 a3-kiran-early-2.png
+17:48:57.308 a3-kiran-early-3.png
+17:48:58.490 a3-kiran-early-4.png
+17:48:59.656 a3-kiran-early-5.png
+17:49:00.879 a3-kiran-early-6.png
+17:49:08.830 a3-kiran-home.png
+17:49:09.254 SIGNED_IN kiran.mhatre
+labels: Expo Go | More | Sai Distributors, Dombivli | SD | salesperson | Updated just now | Manpada Road | Today's beat | Shops: 8 | Visited: 0 | Ordered: 0 | ✓ Manpada Road | Tilak Nagar | Ayre Road | Vertical scroll bar, 2 pages | Horizontal scroll bar, 1 page | Beat | Orders | Shops | Me | gearshape.fill
+
+-- stores after B signs in
+$ find "$C" -path '*SQLite*'   (17:49:09)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1",
+   "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+   "who": "kiran.mhatre @ Sai Distributors",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [kiran.mhatre @ Sai Distributors] legacy=0 interim=0 strays=0 other=0

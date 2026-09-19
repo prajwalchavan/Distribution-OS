@@ -1,0 +1,19 @@
+## walk D2 — cut the office, cold relaunch (crash watch #3), queue one order 16:49:07
+beat at +10.5s
+screen: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:48 pm | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station Road | Kalyan West Market | Khadakpada | Search thi
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)
+tap 'Shops' at 675 2246
+tap 'Shops' at 675 2246
+items: Items 1 · ₹684.00 before GST
+after save: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:48 pm · 2 waiting to send | Chavan Kirana Stores | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once i
+shot d2-rahul-order-queued.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:50:21)
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:49 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:49 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:48 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:50 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2641920)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4556752)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }

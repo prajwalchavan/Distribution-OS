@@ -1,0 +1,14 @@
+## walk D0 — amit plain sign-out (queue drained): file and drafts go 16:46:55
+tap 'Beat' at 135 2246
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+screen: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot d0-amit-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:47:20)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-19 16:47 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-19 16:43 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:47:20)
+name="key_v1-dos.device"
+(end keys)

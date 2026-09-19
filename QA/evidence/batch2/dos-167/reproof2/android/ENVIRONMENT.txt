@@ -35,3 +35,20 @@ emulator-5554	device
   rahul.deshmukh 8760e17e-4830-7395-a946-1e02fffa1ad7 @ Tarsun Enterprises 01a09a5b-3c58-71c1-a34d-b93c569b0099
   ruksana.shaikh e607cec2-3403-7a35-bec0-e0b3cbc08d57 @ Sai Distributors 82f5c562-b7eb-7521-8e19-4aa6befc64f8
   ruksana.shaikh e607cec2-3403-7a35-bec0-e0b3cbc08d57 @ Tarsun Enterprises 01a09a5b-3c58-71c1-a34d-b93c569b0099
+
+## dos_qa data artefact this run hit (NOT a DOS-167 defect, recorded so the next reader is not misled)
+  users.name for rahul.deshmukh AND amit.pawar was 'Demo Docs Staff (edited)' throughout this run, both
+  updated_at 2026-09-19 15:50 — i.e. changed by an earlier batch-2 walk today, before this session started.
+  Every leave sheet therefore reads 'They stay on this phone for Demo Docs Staff (edited) only…'. The sheet
+  renders users.name faithfully; the identity that matters (the store file name, the draft key) is the userId
+  and was correct everywhere. SQL proof:
+    amit.pawar | name=Demo Docs Staff (edited) | updated_at=2026-09-19 15:50:17.421+05:30
+    pooja.shinde | name=Pooja Shinde | updated_at=2026-09-13 16:11:05.766338+05:30
+    rahul.deshmukh | name=Demo Docs Staff (edited) | updated_at=2026-09-19 15:50:11.672+05:30
+    ruksana.shaikh | name=Ruksana Shaikh | updated_at=2026-09-13 16:11:05.766338+05:30
+
+## dos_qa rows this run created (through the product only; no SQL write, never the dos database)
+    01a0b94b-5ed6-7373-b094-c93bc0a7db0f draft by amit.pawar at 2026-09-19 16:29:39.751473+05:30
+    01a0b954-c176-724c-b43e-cc67a327e9cf draft by amit.pawar at 2026-09-19 16:44:22.15989+05:30
+    01a0b971-fbbe-7547-bd3f-0f1d84a19924 draft by ruksana.shaikh at 2026-09-19 17:12:31.062822+05:30
+    01a0b97d-0843-738d-a0a9-ed14a1a446e3 draft by ruksana.shaikh at 2026-09-19 17:16:55.472738+05:30

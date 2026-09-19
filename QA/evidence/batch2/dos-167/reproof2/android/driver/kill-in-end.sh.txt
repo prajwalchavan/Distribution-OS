@@ -1,0 +1,39 @@
+#!/bin/zsh
+# (y) under an induced kill, Android best effort (DOS-167 ruling 3, ANDROID list): tap "Sign out, keep here" and
+# force-stop the app DELAY seconds later, inside end(). The relaunch must come up on the SIGN-IN FORM, and the
+# person's file must still be there with its queue. Usage: kill-in-end.sh <tag> <delaySeconds>
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3"
+source "$S/h.sh"
+TAG=$1; DELAY=${2:-1.0}
+uin() { python3 "$S/uin.py" "$@"; }
+echo "-- $TAG: open the leave sheet ($(date '+%H:%M:%S'))"
+tapt '⋯'; sleep 2; tapt 'Sign out'; sleep 4
+SHEET=$(uin all)
+echo "sheet: $SHEET"
+shot "$TAG-sheet"
+XY=$(uin find 'Sign out, keep here'); [ -z "$XY" ] && { echo "NO KEEP BUTTON"; exit 2; }
+T0=$(python3 -c 'import time;print(time.time())')
+adb shell input tap ${=XY}
+python3 -c "import time;time.sleep($DELAY)"
+adb shell am force-stop $PKG
+echo "force-stopped at +$(python3 -c "import time;print(round(time.time()-$T0,3))")s"
+sleep 3
+echo "pidof after force-stop: $(adb shell pidof $PKG)"
+lsdb
+echo "-- relaunch"
+adb shell am start -n $PKG/.MainActivity >/dev/null
+T1=$(python3 -c 'import time;print(time.time())')
+FOUND=none
+for i in $(seq 1 40); do
+  sleep 3
+  T=$(ui texts)
+  if echo "$T" | grep -q "Use the username"; then FOUND=signin; break; fi
+  if echo "$T" | grep -q "Today's beat"; then FOUND=signedin; break; fi
+  echo "$T" | grep -q "isn't responding" && adb shell input tap ${=$(ui text Wait)}
+done
+echo "relaunched to: $FOUND at +$(python3 -c "import time;print(round(time.time()-$T1,1))")s"
+echo "screen: $(ui texts | head -c 260)"
+shot "$TAG-relaunched"
+lsdb
+secure
+crashcheck | tail -4

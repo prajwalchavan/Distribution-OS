@@ -1,0 +1,21 @@
+## A4  2026-09-19 17:50:13 — B signs out with one tap; the phone is clean again before the keep path
+tapped 352 105
+shot a4-kiran-more-open.png 17:50:16.3N
+tapped 150 722
+  screen: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Ty
+shot a4-kiran-signed-out.png 17:50:21.3N
+-- stores after B's sign-out
+$ find "$C" -path '*SQLite*'   (17:50:21)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+17:49:55.643 [pass] sales GET /sync/pull -> 200
+17:49:55.654 [pass] sales GET /sync/errors -> 200
+17:50:17.220 [pass] auth POST /auth/logout -> 200

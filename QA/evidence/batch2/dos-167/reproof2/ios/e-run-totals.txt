@@ -1,0 +1,36 @@
+## E  2026-09-19 18:06:45 — the run's own totals, read off the proxy log (every call the phone made)
+-- successful uploads in the whole run (one per keep cycle, no duplicate):
+3
+   17:55:59.652 [pass] sales POST /sync/upload -> 200
+   17:59:13.890 [pass] sales POST /sync/upload -> 200
+   18:05:14.550 [pass] sales POST /sync/upload -> 200
+-- dropped upload attempts while the office was unreachable:
+17
+-- sign-outs that reached the office (background revoke):
+   17:48:03.574 [pass] auth POST /auth/logout -> 200
+   17:50:17.220 [pass] auth POST /auth/logout -> 200
+   17:53:48.904 [down] auth POST /auth/logout -> connection dropped
+   17:58:43.722 [down] auth POST /auth/logout -> connection dropped
+   18:00:23.462 [down] auth POST /auth/logout -> connection dropped
+   18:04:44.120 [down] auth POST /auth/logout -> connection dropped
+-- 4xx/5xx the phone ever saw:
+ugrep: invalid option -> (4|5)[0-9][0-9]$
+For more help, run `ugrep --help' or `ugrep --help -> (4|5)[0-9][0-9]$'
+   (end)
+
+-- the three orders this run put on dos_qa, one per keep cycle:
+   01a0b99d-b031-7444-a49a-a15d1c3cf27d|draft|1272200|2026-09-19 17:55:59.404579+05:30
+   01a0b9a3-729b-7458-b0c4-d3db8ee62296|draft|392600|2026-09-19 17:59:13.799448+05:30
+   01a0b9a8-5c25-7632-bb95-6f543d820731|draft|2926500|2026-09-19 18:05:14.33537+05:30
+   A orders all time (326 at the start): 329
+
+-- Expo Go crash reports for the whole run:
+(end of .ips list)
+
+-- (corrected) 4xx/5xx the phone ever saw:
+   (end — blank above means none)
+-- every distinct answer the proxies gave:
+    145 200
+     83 connection dropped
+      1 127.0.0.1:3003, mode pass
+      1 127.0.0.1:3000, mode pass

@@ -1,0 +1,100 @@
+## B8  2026-09-19 17:55:43 — the office comes back; A signs in again; the kept order must go ONCE
+-- before: the office has never seen it
+   sales_orders rows: 0
+ERROR:  column "sales_order_id" does not exist
+LINE 1: select count(*) from sales_order_lines where sales_order_id=...
+                                                     ^
+   upload attempts logged so far: 7 (all dropped)
+proxy mode = pass (17:55:43)
+   office reachable again: 3903 /health 200
+17:55:44.945 start rahul.deshmukh tag=b8-rahul reset=false early=false
+17:55:49.684 opened exp://127.0.0.1:5185
+17:55:56.057 b8-rahul-signin-form.png
+17:55:58.740 b8-rahul-filled.png
+17:55:58.740 tapped "Sign in"
+17:56:06.372 b8-rahul-home.png
+17:56:06.806 SIGNED_IN rahul.deshmukh
+labels: Expo Go | More | Tarsun Enterprise logo | Tarsun Enterprise | salesperson | Updated just now | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 2 | ✓ Station Road | Kalyan West Market | Khadakpada | Vertical scroll bar, 2 pages | Demo Kirana Store (docs), Kalyan West · No order from you yet, —, To visit | Vertical scroll bar, 3 pages | Horizontal scroll bar, 1 page | Beat | Orders | Shops | Me | gearshape.fill
+
+-- AFTER: what the office now holds for that order id
+ERROR:  column "code" does not exist
+LINE 1: select id, code, state, created_by from sales_orders where i...
+                   ^
+HINT:  Perhaps you meant to reference the column "sales_orders.note".
+   sales_orders rows (must be exactly 1): 1
+ERROR:  column "sales_order_id" does not exist
+LINE 1: select count(*) from sales_order_lines where sales_order_id=...
+                                                     ^
+-- any DUPLICATE of the same order under a different id for this retailer in the last 20 minutes?
+ERROR:  column "code" does not exist
+LINE 1: select id, code, created_at from sales_orders where created_...
+                   ^
+HINT:  Perhaps you meant to reference the column "sales_orders.note".
+-- the phone's outbox now
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastUploadAt|2026-09-19T12:25:59.658Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjoyNTo1Ny4wMTZaIn0
+lastPulledAt|2026-09-19T12:26:02.016Z
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|acked|8|2026-09-19T12:22:30.818Z|2026-09-19T12:25:59.395Z|2026-09-19T12:25:59.658Z
+-- _sync_errors
+0
+-- uploads on the wire
+   17:52:33.998 [down] sales POST /sync/upload -> connection dropped
+   17:52:38.059 [down] sales POST /sync/upload -> connection dropped
+   17:52:46.117 [down] sales POST /sync/upload -> connection dropped
+   17:52:50.516 [down] sales POST /sync/upload -> connection dropped
+   17:53:22.569 [down] sales POST /sync/upload -> connection dropped
+   17:55:59.652 [pass] sales POST /sync/upload -> 200
+   successful POST /sync/upload in the whole run: 1
+
+-- (corrected query; sales_orders has no 'code' column in this schema)
+-- the order as the office now holds it
+01a0b99d-b031-7444-a49a-a15d1c3cf27d|01a09a5b-3c58-71c1-a34d-b93c569b0099||34191c43-f0bc-70ab-a39d-fcbe8f94ae36|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|order|POST_FULFILLMENT|||1069962|0|202188|50|1272200|[]||||||||2026-09-19 17:55:59.404579+05:30|2026-09-19 17:55:59.648567+05:30
+-- columns available:
+id, tenant_id, order_no, retailer_id, state, source, created_by, salesperson_id, pricing_date_mode, payment_terms, fulfil_from_location_id, external_ref, subtotal_paise, discount_paise, tax_paise, round_off_paise, total_paise, approval_flags, expected_delivery_date, note, submitted_at, confirmed_at, closed_at, cancelled_at, cancel_reason, created_at, updated_at
+
+-- EXACTLY ONCE checks
+   sales_orders rows for that id (must be 1): 1
+ERROR:  column "sales_order_id" does not exist
+LINE 1: select count(*) from sales_order_lines where sales_order_id=...
+                                                     ^
+   orders A created in the last 25 minutes (a duplicate would show as a second row):
+     01a0b99d-b031-7444-a49a-a15d1c3cf27d|2026-09-19 17:55:59.404579+05:30
+   A orders all time (baseline was 326): 327
+   sync_ops rows the server recorded for those five op ids:
+     01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|{"ok": true}
+     01a0b99e-3ea2-76c0-83b1-084ba20061e9|{"ok": true}
+     01a0b99e-3ea2-76c1-9480-12beff722f4f|{"ok": true}
+     01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|{"ok": true}
+     01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|{"ok": true}
+     rows (must be 5, one per op): 5
+-- (second correction) sales_order_lines columns:
+id, tenant_id, order_id, line_no, variant_id, entered_qty, entered_unit, pack_size_at_entry, qty_pcs, free_qty_pcs, picked_qty_pcs, delivered_qty_pcs, list_rate_paise, rate_paise, discount_bps, discount_paise, gst_bps, tax_paise, line_total_paise, applied_rules, price_locked, created_at, updated_at
+-- lines the office holds for that order (must be exactly 4, the 'Repeat last order (4)'):
+   4
+-- the phone's own total on the order screen was: Items 4 · Rs 10,699.62 before GST; the office row's total_paise = 1272200 (Rs 12,722.00 with GST)
+-- SUMMARY OF CYCLE 1: one upload, one order, five acked ops, A's order count 326 -> 327

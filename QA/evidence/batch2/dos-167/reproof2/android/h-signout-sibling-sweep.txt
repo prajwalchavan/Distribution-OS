@@ -1,0 +1,33 @@
+## walk H — ruksana signs out with nothing waiting: BOTH her files go (the sibling sweep over her other distributorship) 17:17:22
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:17:22)
+total 3640
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 17:15 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 17:15 ..
+-rw------- 1 u0_a217 u0_a217 2068480 2026-09-19 17:10 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 17:16 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217  865232 2026-09-19 17:16 sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal
+-rw------- 1 u0_a217 u0_a217  720896 2026-09-19 17:11 sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk
+-- decoded (parseStoreName rule): { "files": [ "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft (2068480)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-shm (32768)", "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft-wal (865232)", "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk (720896)" ], "stores": [ { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ruksana(Tarsun) @ Tarsun" }, { "name": "sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "e607cec2-3403-7a35-bec0-e0b3cbc08d57", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "ruksana(Sai) @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+tap 'Beat' at 135 2246
+tap '⋯' at 947 247
+menu: More | More | Settings | Settings | My account | My account | Change your password | Change your password | Sign out | Sign out | Close | Close
+tap 'Sign out' at 540 2002
+screen: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot h-ruksana-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (17:17:53)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-19 17:17 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-19 17:15 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (17:17:53)
+name="key_v1-dos.device"
+(end keys)
+09-19 17:16:39.769 17609 17659 W ReactNativeJS:   name: 'ApiError',
+09-19 17:16:39.769 17609 17659 W ReactNativeJS:   kind: 'network',
+09-19 17:16:39.769 17609 17659 W ReactNativeJS:   status: 0,
+09-19 17:16:39.769 17609 17659 W ReactNativeJS:   code: undefined,
+09-19 17:16:39.769 17609 17659 W ReactNativeJS:   data: undefined }
+(end console lines)
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+09-19 17:05:16.057   672 15832 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)

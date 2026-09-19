@@ -1,0 +1,8 @@
+## B2  2026-09-19 17:51:38 — the office goes unreachable, then A writes an order on the phone
+proxy mode = down (17:51:38)
+-- proof the office is unreachable from the app's base URLs (what the bundle points at)
+  GET http://127.0.0.1:3903/health : 000 (000 = no answer)
+  GET http://127.0.0.1:3900/health : 000 (000 = no answer)
+-- the real services are untouched and still serving the other lanes:
+  GET http://127.0.0.1:3003/health : 200
+  GET http://127.0.0.1:3000/health : 200

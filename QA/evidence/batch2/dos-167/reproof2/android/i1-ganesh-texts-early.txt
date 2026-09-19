@@ -1,0 +1,3 @@
+dump1 +2.791s: Tarsun Enterprise logo | Tarsun Enterprise | delivery | More | ⋯ | Updated just now | Tarsun Enterprise | Today's trip | Still filling this phone from the office. | Your trips | Your trips
+dump2 +4.868s: Tarsun Enterprise logo | Tarsun Enterprise | delivery | More | ⋯ | Updated just now | Tarsun Enterprise | Today's trip | Still filling this phone from the office. | Your trips | Your trips
+dump3 +6.905s: Allow Distribution OS - Delivery to access this device’s location? | Precise | Approximate | While using the app | Only this time | Don’t allow

@@ -1,0 +1,31 @@
+## walk B10 — pooja.shinde (a DIFFERENT Tarsun rep) signs in on the same phone 16:33:39
+(the office is reachable again; amit's kept file must survive the sibling sweep because it has 2 unsent ops)
+SIGNED_IN b10-pooja: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West Market | Khadakpada | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · No order from you yet, 35843 rupees, To visit | Shree Ganesh Kirana | Station Road, Kalyan West · No order from you yet | ₹35,843.00 | 35843 rupees | To visit | Om Sai Provision Store, Station Road, Kalyan West · No order from you yet, 69862 rupees 50 paise, To visit | Om Sai Provision Store | Station Road, Kalyan West · No order from you yet | ₹69,862.50 | 69862 rupees 50 paise | To visit | Mahalaxmi General Stores, Station Road, Kalyan West · your last order 5 Aug, 36259 rupees, To visit | Mahalaxmi General Stores | Station Road, Kalyan West · your last order 5 Aug | ₹36,259.00 | 36259 rupees | To visit | Sai Krupa Super Bazar, Station Road, Kalyan West · No order from you yet, 206709 rupees, To visit | Sai Krupa Super Bazar | Station Road, Kalyan West · No order from you yet | ₹2,06,709.00 | 206709 rupees | To visit | Jai Bhavani Stores, Station Road, Kalyan West · your last order 18 Jul, 11511 rupees, To visit | Jai Bhavani Stores | Station Road, Kalyan West · your last order 18 Jul | ₹11,511.00 | 11511 rupees | To visit | Shivshakti Traders, Station Road, Kalyan West · No order from you yet, 22834 rupees, To visit | Shivshakti Traders | Station Road, Kalyan West · No order from you yet | ₹22,834.00 | 22834 rupees | To visit | Ganesh General Store, Station Road, Kalyan West · your last order 24 Aug, 94373 rupees, To visit | Ganesh General Store | ₹94,373.00 | 94373 rupees | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+## walk B10 cont — the files, the log lines, and Ansari's order screen for the OTHER rep 16:35:05
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:35:05)
+total 10432
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:34 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:31 ..
+-rw------- 1 u0_a217 u0_a217 2441216 2026-09-19 16:34 s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:34 s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4260112 2026-09-19 16:34 s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft-wal
+-rw------- 1 u0_a217 u0_a217 3911680 2026-09-19 16:33 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft (2441216)", "s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft-wal (4260112)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3911680)" ], "stores": [ { "name": "s4na22qhqm2vobp6ul7adna63k03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "4e7ccc38-81dc-7e8f-83d8-240e2ae66860", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "pooja @ Tarsun" }, { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+
+-- logcat ReactNativeJS 'offline:' lines (16:35:05)
+(end offline lines)
+
+-- SecureStore keys (16:35:05)
+name="key_v1-dos.auth.refresh"
+name="key_v1-dos.auth.session"
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)
+
+-- open Ansari Kirana Stores as pooja: the draft must NOT be there
+tap 'Shops' at 675 2246
+order screen: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated 1 min ago | Ansari Kirana Stores | Order | Items: 0 | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case · 18 cs available | Add a case | Add a case | Campa Cola 2 L | Campa · 24 pc case · 10 cs available | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case · 10 cs available | Add a case | Add a case | Campa
+
+items: Items 0 · ₹0.00 before GST
+shot b10-pooja-ansari-order.png

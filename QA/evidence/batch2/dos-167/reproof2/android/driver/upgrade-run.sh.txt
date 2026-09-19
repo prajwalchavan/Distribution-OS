@@ -1,0 +1,42 @@
+#!/bin/zsh
+# One run of the ruling-3 ANDROID upgrade walk: the phone holds the 199952b long-named file with one order (2 ops)
+# queued in it and nothing else; relaunch on the FIXED JS without pm clear and watch what happens.
+# Expected (ruling 2 (s) + ruling 3 (bb)(dd)): the rep's own `s<50>` file is created, the long file is KEPT because
+# it still holds unsent work, its ops are intact, and logcat now carries
+# `offline: kept the store from before ruling 2` — the line no field app used to pass an onLog for (S-139).
+# Usage: upgrade-run.sh <tag>
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3"
+source "$S/h.sh"
+TAG=$1
+LONG='dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db'
+SHORT=s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+echo "== $TAG: before the relaunch ($(date '+%H:%M:%S'))"
+lsdb
+adb logcat -c
+T0=$(python3 -c 'import time;print(time.time())')
+adb shell am start -n $PKG/.MainActivity >/dev/null
+echo "am start at $(date '+%H:%M:%S')"
+SEEN=""
+for i in $(seq 1 20); do
+  N=$(adb shell run-as $PKG ls files/SQLite 2>/dev/null | tr -d '\r' | tr '\n' ' ')
+  E=$(python3 -c "import time;print(round(time.time()-$T0,1))")
+  echo "+${E}s: $N"
+  if [ -z "$SEEN" ] && echo "$N" | grep -q "$SHORT"; then SEEN=$E; echo "the rep's own s-file first seen at +${E}s"; fi
+  sleep 2
+done
+echo "-- screen"
+ui texts | head -c 400; echo
+echo "strip: $(python3 "$S/uin.py" all | grep -o 'Offline since [0-9:apm ]*\|Updated just now\|[0-9]* waiting to send\|will not keep the offline copy' | sort -u | tr '\n' ' ')"
+echo "sign-in form shown instead? $(ui texts | grep -c 'Use the username')"
+shot "$TAG-after-upgrade"
+lsdb
+echo "-- THE RULING'S PASS LINE in logcat"
+adb logcat -d -s ReactNativeJS 2>/dev/null | grep -c "kept the store from before ruling 2" | sed 's/^/matches: /'
+adb logcat -d -s ReactNativeJS 2>/dev/null | grep "kept the store from before ruling 2" | head -4
+echo "-- every console line this launch wrote"
+adb logcat -d -s ReactNativeJS 2>/dev/null | grep -v 'Running "main"' | head -30
+echo "-- the LONG file's outbox after the fixed JS started (copied read-only)"
+zsh "$S/outbox.sh" "$LONG" "$TAG-long" 2>&1 | sed -n '/-- integrity/,$p' | head -20
+echo "-- the NEW s-file"
+zsh "$S/outbox.sh" "$SHORT" "$TAG-new" 2>&1 | sed -n '/-- integrity/,$p' | head -18
+crashcheck | tail -4

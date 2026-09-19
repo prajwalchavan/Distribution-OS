@@ -1,0 +1,66 @@
+# one full keep cycle for the DOS-167 ruling-3 iOS re-proof. Assumes A is signed in and online.
+# usage: keepcycle <n> <ShopNameSubstring>
+keepcycle() {
+  local n="$1" shop="$2" pre post upbefore upafter
+  echo "### keep cycle $n — shop '$shop'   $(now)"
+  pre=$(q "select count(*) from sales_orders where created_by='8760e17e-4830-7395-a946-1e02fffa1ad7'")
+  upbefore=$(grep -c "POST /sync/upload -> 200" "$S/proxy.log")
+  echo "  baseline: A has $pre orders; $upbefore successful uploads so far in this run"
+  mode down; sleep 1
+  # the app only offers "Save on this phone" once it has NOTICED the office is unreachable; until then the
+  # primary button is "Place order". Wait for the strip to say so rather than racing it (cycles c3a1/c4 raced).
+  local off=no
+  for w in $(seq 1 30); do
+    drv tapc "Beat" >/dev/null 2>&1; sleep 4
+    if drv labels | cut -f3 | grep -qE "Offline|No signal"; then off=yes; echo "  app noticed the office is unreachable after ~$((w*5))s: $(drv labels | cut -f3 | grep -E 'Offline|No signal' | tr '\n' '|')"; break; fi
+  done
+  if [ "$off" != yes ]; then echo "  ABORT cycle $n: the app never showed an offline strip"; mode pass; return 1; fi
+  drv tapc "$shop" | sed 's/^/  /'; sleep 3
+  drv tap "Take order" | sed 's/^/  /'; sleep 4
+  echo "  strip: $(drv labels | cut -f3 | grep -E 'Offline|No signal' | tr '\n' '|')"
+  drv tapc "Repeat last order" | sed 's/^/  /'; sleep 3
+  echo "  cart:  $(drv labels | cut -f3 | grep -E '^Items:|before GST' | tr '\n' '|')"
+  local saved=no
+  for try in 1 2 3 4 5; do
+    if drv tap "Save on this phone" | grep -q "^tapped"; then saved=tapped; sleep 4; else sleep 3; continue; fi
+    if drv labels | cut -f3 | grep -q "Saved on this phone"; then saved=yes; break; fi
+  done
+  echo "  save button: $saved"
+  echo "  after save: $(drv labels | cut -f3 | grep -E 'Saved on this phone|waiting to send' | tr '\n' '|')"
+  local queued
+  queued=$(dbcopy s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft "c$n-guard" 2>/dev/null | grep -c "|queued|")
+  echo "  GUARD: queued (unsent) ops in the outbox before the sign-out: $queued"
+  if [ "$queued" -lt 1 ]; then echo "  ABORT cycle $n: nothing was queued, so this would not test the keep path at all"; mode pass; return 1; fi
+  shot "c$n-1-order-saved"
+  echo "  outbox queued now:"; dbcopy s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft "c$n-q" | sed -n '/_outbox (seq/,/_sync_errors/p' | sed 's/^/    /'
+  drv tapc "Back to the beat" >/dev/null 2>&1; sleep 3
+  drv tapxy 352 105 >/dev/null; sleep 2; shot "c$n-2-more"
+  drv tapxy 150 722 >/dev/null; sleep 3
+  echo "  sheet: $(drv labels | cut -f3 | tr '\n' '|' | head -c 320)"
+  shot "c$n-3-leave-sheet"
+  echo "  \$ tap 'Sign out, keep here' (201,637)  $(date '+%H:%M:%S')"
+  drv tapxy 201 637 >/dev/null; sleep 4
+  echo "  screen: $(drv labels | cut -f3 | tr '\n' '|' | head -c 120)"
+  shot "c$n-4-signed-out"
+  echo "  store kept?  $(find $(cont) -path '*SQLite*' -type f -exec basename {} \; | tr '\n' ' ')"
+  echo "  kept outbox:"; dbcopy s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft "c$n-k" | sed -n '/_outbox (seq/,/_sync_errors/p' | sed 's/^/    /'
+  echo "  -- relaunch on the kept store"
+  xcrun simctl terminate $UDID host.exp.Exponent >/dev/null 2>&1; sleep 2
+  xcrun simctl openurl $UDID "exp://127.0.0.1:$METRO" >/dev/null
+  for i in $(seq 1 40); do sleep 2; t=$(drv labels 2>/dev/null | cut -f3 | tr '\n' '|'); case "$t" in *"Sign in"*"Username"*) echo "  relaunched at the SIGN-IN FORM after $((i*2))s"; break;; esac; done
+  shot "c$n-5-relaunched"
+  echo "  new Expo Go .ips: $(ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -ic 'Expo Go')"
+  echo "  -- the office comes back and A signs in again"
+  mode pass; sleep 1
+  drv end >/dev/null 2>&1
+  node "$S/ios-signin.mjs" $METRO rahul.deshmukh "c$n-6-rahul" 2>&1 | grep -E "SIGNED_IN|STILL_ON|ERROR|home.png" | sed 's/^/  /'
+  sleep 12
+  drv new >/dev/null 2>&1
+  post=$(q "select count(*) from sales_orders where created_by='8760e17e-4830-7395-a946-1e02fffa1ad7'")
+  upafter=$(grep -c "POST /sync/upload -> 200" "$S/proxy.log")
+  echo "  RESULT cycle $n: A's orders $pre -> $post (must be +1); successful uploads $upbefore -> $upafter (must be +1)"
+  echo "  outbox after the send:"; dbcopy s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft "c$n-s" | sed -n '/_outbox (seq/,/_sync_errors/p' | sed 's/^/    /'
+  echo "  duplicate watch — orders A created in the last 6 minutes:"; q "select id, created_at from sales_orders where created_by='8760e17e-4830-7395-a946-1e02fffa1ad7' and created_at > now() - interval '6 minutes' order by created_at" | sed 's/^/    /'
+  shot "c$n-7-home"
+  echo
+}

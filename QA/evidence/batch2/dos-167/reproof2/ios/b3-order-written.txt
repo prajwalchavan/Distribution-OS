@@ -1,0 +1,56 @@
+## B3  2026-09-19 17:52:10 — A writes an order with the office unreachable
+-- order screen strip: Offline since 5:50 pm|No signal|
+tapped "Repeat last order (4)" Button at 201,342 (1 of 1)
+Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Offline since 5:50 pm|Shree Ganesh Kirana|Order|Items: 4|No signal|This order|Clear|Neelam Herbal Toothpaste 200 g|Neelam Sandal Soap 3 x 100 g pack|Campa Lemon 750 ml|Vertical scroll bar, 5 pages = 0%|Horizontal scroll bar, 1 page = 0%|Save on this phone|Items 4 · ₹10,699.62 before GST|Beat|Orders|Shops|Me|gearshape.fill|
+-- $ tap 'Save on this phone'  17:52:29
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Offline since 5:50 pm · 5 waiting to send|Shree Ganesh Kirana|Order|Items: 4|No signal|Saved on this phone|It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.|Open the order|Back to the beat|This order|Clear|Vertical scroll bar, 7 pages = 0%|Horizontal scroll bar, 1 page = 0%|(disabled) Saved on this phone|Items 4 · ₹10,699.62 before GST|Beat|Orders|Shops|Me|gearshape.fill|
+
+-- A's outbox on the phone right after the save
+-- copied read-only to scratchpad (17:52:37)
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 19 17:52 .
+drwxr-xr-x@ 15 prajwalchavan  wheel      480 Sep 19 17:52 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2641920 Sep 19 17:52 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 19 17:52 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4556752 Sep 19 17:52 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjoyMDo0NS4yMTRaIn0
+lastPulledAt|2026-09-19T12:20:50.214Z
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|queued|3|2026-09-19T12:22:30.818Z||
+2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|queued|3|2026-09-19T12:22:30.818Z||
+3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|queued|3|2026-09-19T12:22:30.818Z||
+4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|queued|3|2026-09-19T12:22:30.818Z||
+5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|queued|3|2026-09-19T12:22:30.818Z||
+-- _sync_errors
+0
+-- the office is still unreachable; the outbox is retrying:
+17:51:54.386 [down] sales GET /pricing/bounds -> connection dropped
+17:51:54.390 [down] sales GET /pricing/bounds -> connection dropped
+17:51:54.395 [down] sales GET /pricing/bounds -> connection dropped
+17:52:30.918 [down] sales POST /sync/upload -> connection dropped
+17:52:31.952 [down] sales POST /sync/upload -> connection dropped
+17:52:33.998 [down] sales POST /sync/upload -> connection dropped

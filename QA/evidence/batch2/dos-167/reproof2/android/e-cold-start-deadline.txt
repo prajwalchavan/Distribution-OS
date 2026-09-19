@@ -1,0 +1,68 @@
+## walk E — cold start on a FULL store against ruling 3 (cc)'s new 15 s deadline 16:56:02
+SIGNED_IN e0-rahul: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 11 | Visited
+== e1-cold (16:57:43)
+-- the store this start has to open:
+   2641920 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+   32768 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+   4556752 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+beat with rows at +8.7s (Shops: 11)
+screen: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station Road | Kalyan West Market | Khadakpada | Search this beat | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | ₹35,843.00 | To visit |
+shot e1-cold-cold.png
+-- the not-kept line on the beat? (ruling (ee): only a real memory store may say it)
+   (nothing above = the line is absent)
+-- fallback / deadline lines in logcat
+   (nothing above = the open was neither abandoned nor downgraded)
+-- every console line this launch wrote
+--------- beginning of main
+-- logcat crash buffer (16:58:00)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)
+   2641920 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+   32768 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+   4556752 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+
+== e2-cold (16:58:00)
+-- the store this start has to open:
+   2641920 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+   32768 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+   4556752 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+beat with rows at +8.6s (Shops: 11)
+screen: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station Road | Kalyan West Market | Khadakpada | Search this beat | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | ₹35,843.00 | To visit |
+shot e2-cold-cold.png
+-- the not-kept line on the beat? (ruling (ee): only a real memory store may say it)
+   (nothing above = the line is absent)
+-- fallback / deadline lines in logcat
+   (nothing above = the open was neither abandoned nor downgraded)
+-- every console line this launch wrote
+--------- beginning of main
+-- logcat crash buffer (16:58:18)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)
+   2641920 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+   32768 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+   4556752 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+
+== e3-cold (16:58:18)
+-- the store this start has to open:
+   2641920 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+   32768 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+   4556752 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+beat with rows at +8.6s (Shops: 11)
+screen: Tarsun Enterprise | salesperson | ⋯ | Updated just now | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station Road | Kalyan West Market | Khadakpada | Search this beat | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | ₹35,843.00 | To visit |
+shot e3-cold-cold.png
+-- the not-kept line on the beat? (ruling (ee): only a real memory store may say it)
+   (nothing above = the line is absent)
+-- fallback / deadline lines in logcat
+   (nothing above = the open was neither abandoned nor downgraded)
+-- every console line this launch wrote
+--------- beginning of main
+-- logcat crash buffer (16:58:35)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)
+   2641920 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+   32768 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+   4556752 bytes  s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+
