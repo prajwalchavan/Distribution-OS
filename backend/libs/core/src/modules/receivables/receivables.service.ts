@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, ne, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   AccountsListInput,
@@ -292,6 +292,26 @@ function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
       // bad debt and it is not a credit note, so it goes to Round off, the same place s.170 residues go.
       return 'ROUND_OFF'
   }
+}
+
+/**
+ * Money that reaches the office after its trip has handed its cash over (DOS-169, founder answer A, 2026-09-14). Cash
+ * and cheques are refused: the settlement has already counted the van, so the crew hands them to the cashier and the
+ * desk records them at the office, on no trip. UPI and a bank transfer are already in the account and post as today.
+ */
+const REFUSED_AFTER_SETTLEMENT: ReadonlySet<ReceiptMode> = new Set<ReceiptMode>(['cash', 'cheque'])
+
+/** The one sentence for that refusal at every door (amendment (l)): POST /receipts, the `receipts` and `collections` ops. */
+const TRIP_SETTLED_MESSAGE =
+  'this trip has already settled; hand this money to the cashier and record it at the office, not on the trip'
+
+/** A trip's own receipts per mode, however they arrived, net of reversals (DOS-169): what its settlement counts. */
+export interface TripMoney {
+  cashPaise: number
+  upiPaise: number
+  chequePaise: number
+  /** The receipts counted, every mode: a reversed original and its mirror are left out, a bounced cheque is kept. */
+  count: number
 }
 
 /** A receipt as the Tally receipt voucher reads it (integrations, slice 6). */
@@ -595,6 +615,55 @@ export class ReceivablesService {
     await refreshOutstandingFor(tx, [retailerId])
   }
 
+  /**
+   * What a trip's own receipts add up to per mode, however they arrived — the doorstep collection, the van sale, the
+   * phone's offline `receipts` op, the desk — net of reversals: a reversed original (`cancelled`) and its mirror both
+   * drop out, a bounced cheque stays. The trip settlement counts this, never `collections` rows (DOS-169).
+   *
+   * `lock: true` is the settlement's count inside its own transaction, after it has locked the trip row: first the
+   * trip's money lock, the one `recordReceipt` takes before it adds a receipt to a trip (amendment (b)), so a late
+   * receipt is either counted here or sees the trip settled; then every receipt row of the trip `FOR UPDATE` in
+   * ascending id, the order `depositReceipts` and `undoReceipt` lock in (amendment (a)), so a deposit or an undo of
+   * the same money waits for the settlement to commit, or the settlement waits for it. `lock: false` is the cockpit's
+   * read and takes no lock.
+   */
+  async tripMoney(tx: Db, tripId: string, opts: { lock: boolean }): Promise<TripMoney> {
+    const { tenantId } = currentTenant()
+    if (opts.lock) {
+      await this.lockTripMoney(tx, tenantId, tripId)
+      await tx
+        .select({ id: receipts.id })
+        .from(receipts)
+        .where(and(eq(receipts.tenantId, tenantId), eq(receipts.tripId, tripId)))
+        .orderBy(asc(receipts.id))
+        .for('update')
+    }
+    const byMode = await tx
+      .select({
+        mode: receipts.mode,
+        amountPaise: sql<string>`coalesce(sum(${receipts.amountPaise}), 0)::bigint`,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(receipts)
+      .where(
+        and(
+          eq(receipts.tenantId, tenantId),
+          eq(receipts.tripId, tripId),
+          isNull(receipts.reversesReceiptId),
+          ne(receipts.status, 'cancelled'),
+        ),
+      )
+      .groupBy(receipts.mode)
+    const paiseOf = (mode: ReceiptMode): number =>
+      Number(byMode.find((row) => row.mode === mode)?.amountPaise ?? 0)
+    return {
+      cashPaise: paiseOf('cash'),
+      upiPaise: paiseOf('upi'),
+      chequePaise: paiseOf('cheque'),
+      count: byMode.reduce((n, row) => n + Number(row.count), 0),
+    }
+  }
+
   // =============================================================================================================
   // recording money
   // =============================================================================================================
@@ -606,6 +675,12 @@ export class ReceivablesService {
    *
    * Idempotent twice over: by the receipt's own id, and by `(device_id, client_receipt_no)` for a receipt
    * written on paper in the field and uploaded later (docs/07 §7.3).
+   *
+   * A receipt carrying a trip first takes the trip's money lock (amendment (b)), so it waits for a settlement
+   * counting that trip (`tripMoney({ lock: true })`) and is either counted by it or sees the trip settled. Cash or a
+   * cheque for a trip that has already handed its cash over is then refused 409 `trip_settled` (DOS-169, founder
+   * answer A): the crew hands it to the cashier. The check runs after the replay, so a re-sent receipt that landed
+   * before the settlement is still a replay; with no "trip settled" predicate registered nothing is refused (DOS-132).
    */
   async recordReceipt(tx: Db, input: RecordReceiptInput): Promise<RecordReceiptResult> {
     const { tenantId, actorId } = currentTenant()
@@ -619,6 +694,18 @@ export class ReceivablesService {
     const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date()
     const paidOn = businessDate(receivedAt).date
     const tripId = input.tripId ?? null
+    if (tripId !== null) {
+      await this.lockTripMoney(tx, tenantId, tripId)
+      if (
+        REFUSED_AFTER_SETTLEMENT.has(input.mode) &&
+        (await this.isTripSettled(tx, tripId, tenantId))
+      ) {
+        throw new ORPCError('CONFLICT', {
+          message: TRIP_SETTLED_MESSAGE,
+          data: { code: 'trip_settled', tripId },
+        })
+      }
+    }
     const drawnNo = await nextDocumentNumber(tx, 'RCPT', receivedAt)
 
     const plan = await this.planAllocations(tx, input, paidOn)
@@ -788,10 +875,7 @@ export class ReceivablesService {
         if (tripId === null) {
           withCrew = false
         } else {
-          const settled = await tx.execute(
-            sql`select (${this.tripSettled(sql`${tripId}`, ctx.tenantId)}) as settled`,
-          )
-          withCrew = (settled.rows[0] as { settled: boolean } | undefined)?.settled !== true
+          withCrew = !(await this.isTripSettled(tx, tripId, ctx.tenantId))
         }
       }
       return {
@@ -873,10 +957,16 @@ export class ReceivablesService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // DOS-168: the batch is locked before it is checked, in ascending id, the order `undoReceipt` and the
+        // settlement's `tripMoney({ lock: true })` lock in (amendment (a)). A second desk banking the same receipt
+        // waits for the first to commit and then reads it `deposited`; two overlapping batches take turns instead of
+        // deadlocking. The trip-settled check below reads each trip only while these rows are held.
         const rows = await tx
           .select()
           .from(receipts)
           .where(and(eq(receipts.tenantId, ctx.tenantId), inArray(receipts.id, input.receiptIds)))
+          .orderBy(asc(receipts.id))
+          .for('update')
         if (rows.length !== input.receiptIds.length) {
           throw new ORPCError('NOT_FOUND', { message: 'one of the receipts does not exist' })
         }
@@ -930,7 +1020,9 @@ export class ReceivablesService {
           const code = receiptAccountCode(row.mode as ReceiptMode, null)
           bySource.set(code, (bySource.get(code) ?? 0) + row.amountPaise)
         }
-        await tx
+        // The second guard: only a receipt still `collected` is banked, and the whole batch or none of it (amendment
+        // (c)). Under the row locks above it cannot fire; if it ever does, the journal and the events roll back too.
+        const banked = await tx
           .update(receipts)
           .set({
             status: 'deposited',
@@ -939,7 +1031,21 @@ export class ReceivablesService {
             depositAccountId: bankId ?? null,
             updatedAt: new Date(),
           })
-          .where(and(eq(receipts.tenantId, ctx.tenantId), inArray(receipts.id, input.receiptIds)))
+          .where(
+            and(
+              eq(receipts.tenantId, ctx.tenantId),
+              inArray(receipts.id, input.receiptIds),
+              eq(receipts.status, 'collected'),
+            ),
+          )
+          .returning({ id: receipts.id })
+        if (banked.length !== input.receiptIds.length) {
+          throw new ORPCError('CONFLICT', {
+            message:
+              'a receipt in this batch was banked or undone by someone else a moment ago; reload the register',
+            data: { code: 'receipt_moved' },
+          })
+        }
         const posted = await postJournalEntry(tx, {
           entryDate: businessDate(depositedAt).date,
           refType: 'deposit',
@@ -1597,6 +1703,29 @@ export class ReceivablesService {
       })
   }
 
+  /**
+   * "This trip has handed its cash over", through the predicate delivery registered at start-up (DOS-132); false while
+   * none is registered (fail closed). A money move reads it only while it holds the receipt row it moves, or the
+   * trip's money lock (amendment (a)). `getReceipt`, `undoReceipt` and `recordReceipt` share this one statement.
+   */
+  private async isTripSettled(tx: Db, tripId: string, tenantId: string): Promise<boolean> {
+    const settled = await tx.execute(
+      sql`select (${this.tripSettled(sql`${tripId}`, tenantId)}) as settled`,
+    )
+    return (settled.rows[0] as { settled: boolean } | undefined)?.settled === true
+  }
+
+  /**
+   * The trip's money lock (amendment (b)): transaction-scoped, keyed on the tenant and the trip, and taken only by
+   * `recordReceipt` before it adds a receipt to a trip and by `tripMoney({ lock: true })` before it counts one. A hash
+   * collision can only make two trips wait for each other, never let a receipt slip past a count of its own trip.
+   */
+  private async lockTripMoney(tx: Db, tenantId: string, tripId: string): Promise<void> {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`trip-money:${tenantId}:${tripId}`}))`,
+    )
+  }
+
   /** The receipt this call already produced, by its own id or by the crew's paper book number. */
   private async findExistingReceipt(tx: Db, input: RecordReceiptInput): Promise<ReceiptRow | null> {
     const { tenantId } = currentTenant()
@@ -1845,6 +1974,12 @@ export class ReceivablesService {
    * Reversing and bouncing are the same movement: a mirror receipt with a negative amount, mirror
    * allocations, the cash-discount offer handed back, and one entry that puts AR back to exactly where it
    * was — the realised discount included. A bounce adds the bank's charge and marks the cheque returned.
+   *
+   * Lock order (amendment (a), DOS-168 / DOS-170): the receipt row `FOR UPDATE` before anything is read from it, and
+   * the trip's state read only while it is held. `depositReceipts` and the settlement's `tripMoney({ lock: true })`
+   * take the same row lock, in ascending id, and nobody takes a trip lock after a receipt lock, so whichever of
+   * them commits second re-reads what the first one did: an undo after a deposit takes the money from BANK, a
+   * deposit after an undo is refused, and an undo after the trip settled takes it from CASH, not CASH_VAN.
    */
   private async undoReceipt(
     tx: Db,
@@ -1864,6 +1999,7 @@ export class ReceivablesService {
       .from(receipts)
       .where(and(eq(receipts.tenantId, tenantId), eq(receipts.id, input.originalId)))
       .limit(1)
+      .for('update')
     if (!original) {
       throw new ORPCError('NOT_FOUND', { message: `receipt ${input.originalId} not found` })
     }
@@ -1917,10 +2053,19 @@ export class ReceivablesService {
     }
     await releaseConditionsOf(tx, original.id, today)
 
-    // Where the money had landed: a banked cheque or cash credits the bank, not the tin it came out of.
-    const sourceCode = original.depositedAt
-      ? 'BANK'
-      : receiptAccountCode(original.mode as ReceiptMode, original.tripId)
+    // Where the money is now (amendment (e)): banked cash or a banked cheque credits the bank, not the tin it came out
+    // of; trip cash whose trip has handed its cash over credits the office CASH, because the settlement already moved
+    // it out of CASH_VAN (DOS-170); anything else credits where it landed. Read under the row lock taken above.
+    let sourceCode = receiptAccountCode(original.mode as ReceiptMode, original.tripId)
+    if (original.depositedAt) {
+      sourceCode = 'BANK'
+    } else if (
+      original.mode === 'cash' &&
+      original.tripId !== null &&
+      (await this.isTripSettled(tx, original.tripId, tenantId))
+    ) {
+      sourceCode = receiptAccountCode('cash', null)
+    }
     const lines: JournalEntryInput['lines'] = [
       { accountCode: sourceCode, amountPaise: -original.amountPaise },
       { accountCode: 'CASH_DISCOUNT', amountPaise: -original.cashDiscountPaise },

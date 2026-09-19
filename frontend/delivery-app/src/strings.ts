@@ -335,7 +335,11 @@ export const strings = {
   'd8.handOver': 'Hand {amount} to the cashier',
   'd8.handedOver': 'The office expected {amount} from this trip',
   'd8.uncounted':
-    'This phone also holds {amount} in receipts the office has not counted into this trip yet. The cash part is already in the figure above.',
+    'This phone holds {amount} in receipts that have not reached the office yet. They count into this trip when they arrive; the cash part is already in the figure above.',
+  'd8.uncountedSettled':
+    'This phone holds {amount} in receipts that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.',
+  'd8.pendingBlocks':
+    '{count} records from this phone have not reached the office yet. They go first; check in when the strip reads Updated.',
   'd8.deskSettles':
     'The cashier counts the money and the godown counts the van. The trip closes at the office, not here.',
   'd8.pending':

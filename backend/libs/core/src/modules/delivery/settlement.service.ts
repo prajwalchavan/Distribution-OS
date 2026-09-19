@@ -13,7 +13,6 @@ import type {
 import { businessDate, uuidv7 } from '@dos/domain'
 import {
   approvals,
-  collections,
   locations,
   stockBalances,
   tripExpenses,
@@ -72,17 +71,24 @@ interface Cockpit {
  * The check-in: the van counted back into the godown, the cash handed over, one balanced journal
  * entry, and the owner's word when it does not add up.
  *
- *   expected cash = opening float + Σ cash collections − Σ expenses (UPI and cheques are reported
- *                   beside it, never netted: they are not in the crew's hand)
+ *   money taken   Σ the trip's own receipts per mode, however they arrived — the doorstep collection, the
+ *                   van sale, the phone's offline `receipts` op, the desk — net of reversals, from
+ *                   `ReceivablesService.tripMoney` (QA DOS-169). `collections` rows are stop-level detail and
+ *                   are never summed for money: a doorstep payment queued with no signal writes none
+ *   expected cash = opening float + Σ cash receipts − Σ expenses (UPI and cheques are reported beside it,
+ *                   never netted: they are not in the crew's hand)
  *   variance      = handed over − expected; red beyond `delivery.settlement_tolerance_paise`, and red
  *                   on ANY van stock miscount (coordination §7 q14)
  *   stock         counted pieces move vehicle → godown as `van_unload` + `transfer_in` per lot (keys
  *                   `settle:<tripId>:<lotId>:out|in`); a miscount writes a `cycle_count` row at the
  *                   vehicle so its balance ends at zero (coordination §4 item 5)
  *   journal       Dr CASH (handed over − float) · Dr TRIP_EXPENSES · Dr/Cr CASH_SHORT (the variance)
- *                   · Cr CASH_VAN (cash collected), through `ReceivablesService.postEntry`, balanced
- *                   to the paisa (the float went out of and back into the office cash, so it never
- *                   touches the book)
+ *                   · Cr CASH_VAN (the cash receipts counted, so exactly what they debited to it), through
+ *                   `ReceivablesService.postEntry`, balanced to the paisa (the float went out of and back
+ *                   into the office cash, so it never touches the book)
+ *   locks         the trip row `FOR UPDATE`, then the trip's money lock and its receipts `FOR UPDATE`
+ *                   (`tripMoney({ lock: true })`, amendment (a)): a receipt racing the count is counted or
+ *                   finds the trip settled, and an undo or a deposit of the same money takes turns with it
  *   the owner     a red settlement is 409 `settlement_needs_owner` and files an `approvals` row of
  *                   kind `trip_settlement` for the owner's queue — unless the caller IS the owner and
  *                   sends `acceptVariance`, in which case `approved_by` is the owner and the trip ends
@@ -119,7 +125,8 @@ export class SettlementService {
       if (trip.state !== 'closing') return null
       const existing = await this.settlementOf(tx, trip.id)
       if (existing) return null
-      const plan = await this.plan(tx, trip, input)
+      // lock-free: this count only decides whether to file the approval; the settlement counts again under the locks
+      const plan = await this.plan(tx, trip, input, { lock: false })
       if (!plan.hasVariance) return null
       if (ctx.actorRole === 'owner' && input.acceptVariance) return null
       return plan
@@ -162,7 +169,10 @@ export class SettlementService {
           throw new ORPCError('CONFLICT', {
             message: `trip ${trip.tripNo ?? trip.id} is ${trip.state}; a trip is settled after it returns (closing)`,
           })
-        const plan = await this.plan(tx, trip, input)
+        // Under the trip row lock taken above: the trip's money lock, then its receipts `FOR UPDATE` (amendment (a)),
+        // so a receipt racing this count is counted or finds the trip settled, and an undo or a deposit of the same
+        // money waits for this settlement to commit, or it waits for them.
+        const plan = await this.plan(tx, trip, input, { lock: true })
         if (plan.hasVariance && !(ctx.actorRole === 'owner' && input.acceptVariance))
           throw new ORPCError('CONFLICT', {
             message: 'the settlement has a variance and needs the owner',
@@ -322,9 +332,22 @@ export class SettlementService {
   // -------------------------------------------------------------------------------------------------------------
 
   private async cockpit(tx: Db, trip: TripRow): Promise<PreviewOut> {
-    const figures = await this.figures(tx, trip)
-    const stops = await stopsOf(tx, trip.id)
     const existing = await this.settlementOf(tx, trip.id)
+    const live = await this.figures(tx, trip, { lock: false })
+    // A settled trip reports the figures it settled with (QA DOS-169 (g)): cash, UPI, expenses and the expected cash
+    // come from its settlement row, so an undo after the close never moves them. The row has no cheque column, so
+    // the cheques stay live, and so does the count of the trip's receipts.
+    const figures: Cockpit = existing
+      ? {
+          ...live,
+          cashCollectedPaise:
+            existing.expectedCashPaise - trip.openingCashPaise + existing.expensesPaise,
+          upiCollectedPaise: existing.upiCollectedPaise,
+          expensesPaise: existing.expensesPaise,
+          expectedCashPaise: existing.expectedCashPaise,
+        }
+      : live
+    const stops = await stopsOf(tx, trip.id)
     return {
       tripId: trip.id,
       tripState: trip.state,
@@ -345,30 +368,29 @@ export class SettlementService {
     }
   }
 
-  private async figures(tx: Db, trip: TripRow): Promise<Cockpit> {
-    const money = await tx
-      .select({ mode: collections.mode, amountPaise: collections.amountPaise })
-      .from(collections)
-      .where(eq(collections.tripId, trip.id))
-    const sum = (mode: string) =>
-      money.filter((m) => m.mode === mode).reduce((n, m) => n + m.amountPaise, 0)
+  /**
+   * The trip's figures, live: its receipts per mode however they arrived, net of reversals (QA DOS-169 (d)), its
+   * expenses and the van's stock. `lock: true` is the settlement's own count, taken after the trip row lock; the
+   * cockpit and the refusal pre-check read without locks.
+   */
+  private async figures(tx: Db, trip: TripRow, opts: { lock: boolean }): Promise<Cockpit> {
+    const money = await this.receivables.tripMoney(tx, trip.id, opts)
     const [spent] = await tx
       .select({ total: sql<number>`coalesce(sum(${tripExpenses.amountPaise}), 0)` })
       .from(tripExpenses)
       .where(eq(tripExpenses.tripId, trip.id))
     const expensesPaise = Number(spent?.total ?? 0)
-    const cashCollectedPaise = sum('cash')
     const policy = await loadTripPolicy(tx)
     const vehicle = await loadVehicle(tx, trip.vehicleId)
     return {
-      cashCollectedPaise,
-      upiCollectedPaise: sum('upi'),
-      chequeCollectedPaise: sum('cheque'),
+      cashCollectedPaise: money.cashPaise,
+      upiCollectedPaise: money.upiPaise,
+      chequeCollectedPaise: money.chequePaise,
       expensesPaise,
-      expectedCashPaise: trip.openingCashPaise + cashCollectedPaise - expensesPaise,
+      expectedCashPaise: trip.openingCashPaise + money.cashPaise - expensesPaise,
       tolerancePaise: policy.settlementTolerancePaise,
       vanStock: await this.vanStock(tx, vehicle.locationId),
-      collectionsCount: money.length,
+      collectionsCount: money.count,
     }
   }
 
@@ -413,6 +435,7 @@ export class SettlementService {
     tx: Db,
     trip: TripRow,
     input: SettleIn,
+    opts: { lock: boolean },
   ): Promise<
     Cockpit & {
       cashVariancePaise: number
@@ -421,7 +444,7 @@ export class SettlementService {
       counted: { lotId: string; countedPcs: number }[]
     }
   > {
-    const figures = await this.figures(tx, trip)
+    const figures = await this.figures(tx, trip, opts)
     const onVan = new Map(figures.vanStock.map((l) => [l.lotId, l.expectedPcs]))
     const countedByLot = new Map<string, number>()
     for (const c of input.counted) {

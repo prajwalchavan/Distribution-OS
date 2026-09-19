@@ -1,4 +1,4 @@
-import type { StopFailureReason, SyncOp } from '@dos/contracts'
+import type { CollectionMode, StopFailureReason, SyncOp } from '@dos/contracts'
 import {
   PodEvidenceInput,
   RecordCollectionInput,
@@ -9,7 +9,7 @@ import type { Db } from '@dos/db'
 import { SyncRejection } from '../sync/index.js'
 import type { CollectionsService } from './collections.service.js'
 import type { DeliveriesService } from './deliveries.service.js'
-import { lockTrip } from './delivery.internals.js'
+import { lockTrip, TRIP_CASH_HANDED_OVER } from './delivery.internals.js'
 import type { TripsService } from './trips.service.js'
 
 /**
@@ -172,7 +172,24 @@ export async function applyPodSync(
   await deliveries.addPodInTx(tx, deliveryId, evidence)
 }
 
-/** `collections`: PUT — the receipt and the collection row, one fact (docs/23 §5.4). */
+/**
+ * Money that reaches the office through the `collections` door after its trip has handed its cash over (QA DOS-169,
+ * founder answer A, 2026-09-14): cash and a cheque are refused `trip_settled` — the crew hands them to the cashier —
+ * in the sentence POST /receipts and the `receipts` op answer, character for character (amendment (l);
+ * `TRIP_SETTLED_MESSAGE` in receivables.service.ts). UPI is not money for the cashier: it keeps this door's
+ * `trip_not_open`, and a phone's UPI after the settlement reaches the office as a `receipts` op, which accepts it.
+ */
+const REFUSED_AFTER_SETTLEMENT: ReadonlySet<CollectionMode> = new Set<CollectionMode>([
+  'cash',
+  'cheque',
+])
+const TRIP_SETTLED_MESSAGE =
+  'this trip has already settled; hand this money to the cashier and record it at the office, not on the trip'
+
+/**
+ * `collections`: PUT — the receipt and the collection row, one fact (docs/23 §5.4). No phone queues it: doorstep
+ * money goes up as one `receipts` op, and the settlement counts the trip's receipts however they arrived.
+ */
 export async function applyCollectionSync(
   tx: Db,
   op: SyncOp,
@@ -202,6 +219,8 @@ export async function applyCollectionSync(
     }),
   )
   const trip = await lockTrip(tx, input.tripId)
+  if (TRIP_CASH_HANDED_OVER.has(trip.state) && REFUSED_AFTER_SETTLEMENT.has(input.mode))
+    throw new SyncRejection('trip_settled', TRIP_SETTLED_MESSAGE)
   if (trip.state !== 'active' && trip.state !== 'closing')
     throw new SyncRejection(
       'trip_not_open',

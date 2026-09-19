@@ -33,10 +33,11 @@ import {
   tripSettlements,
   type Db,
 } from '@dos/db'
-import { currentTenant } from '../../platform/index.js'
+import { BACK_OFFICE, currentTenant } from '../../platform/index.js'
 import type { InvoiceRef } from '../billing/index.js'
 import {
   iso,
+  isCrew,
   loadVehicles,
   receiptRefs,
   retailerNames,
@@ -528,24 +529,25 @@ export async function mapCollections(tx: Db, rows: CollectionRow[]): Promise<Col
   )
 }
 
-/** Σ cheque collections of a trip — the settlement row has no cheque column, so it is derived on read. */
-export async function chequeCollectedOf(tx: Db, tripId: string): Promise<number> {
-  const rows = await tx
-    .select({ amountPaise: collections.amountPaise })
-    .from(collections)
-    .where(and(eq(collections.tripId, tripId), eq(collections.mode, 'cheque')))
-  return rows.reduce((n, r) => n + r.amountPaise, 0)
-}
-
 export interface TripDetailDeps extends StopDeps {
   loadConfirmed: (tx: Db, tripId: string) => Promise<{ id: string; confirmedAt: string | null }[]>
   policy: (tx: Db) => Promise<TripPolicy>
   vanSalesFlag: (tx: Db) => Promise<boolean>
+  /**
+   * The trip's own receipts per mode, however they arrived, net of reversals — `ReceivablesService.tripMoney`, the
+   * count the settlement makes (QA DOS-169). `collections` rows are listed as stop-level detail, never summed for money.
+   */
+  tripMoney: (tx: Db, tripId: string) => Promise<{ cashPaise: number; chequePaise: number }>
 }
 
 /**
  * Everything the crew's trip screen and the owner's drill-down need in one call. `expectedCashPaise`
- * is recomputed from the tables on every read (docs/20 rule 1); nothing is held in process memory.
+ * is read from the tables on every read (docs/20 rule 1); nothing is held in process memory.
+ *
+ * Its money follows the settlement (QA DOS-169): the trip's receipts, however they arrived, net of reversals, and
+ * for a settled trip the expected cash it settled with. The money is shown only to whoever may see money on a
+ * trip — the back office and the trip's own crew, the rule of the `collections`, `trip_expenses` and
+ * `trip_settlements` rows. Receipts carry no such rule, so the godown still reads the trip with nothing taken on it.
  */
 export async function loadTripDetail(
   tx: Db,
@@ -572,12 +574,9 @@ export async function loadTripDetail(
     .where(eq(tripSettlements.tripId, trip.id))
     .limit(1)
   const sheets = await deps.loadConfirmed(tx, trip.id)
-  const cash = collectionRows
-    .filter((c) => c.mode === 'cash')
-    .reduce((n, c) => n + c.amountPaise, 0)
-  const cheque = collectionRows
-    .filter((c) => c.mode === 'cheque')
-    .reduce((n, c) => n + c.amountPaise, 0)
+  const { actorRole } = currentTenant()
+  const seesMoney = BACK_OFFICE.includes(actorRole) || (actorRole === 'delivery' && isCrew(trip))
+  const money = seesMoney ? await deps.tripMoney(tx, trip.id) : { cashPaise: 0, chequePaise: 0 }
   const expenses = expenseRows.reduce((n, e) => n + e.amountPaise, 0)
   const policy = await deps.policy(tx)
   const flag = await deps.vanSalesFlag(tx)
@@ -586,11 +585,14 @@ export async function loadTripDetail(
     stops,
     collections: await mapCollections(tx, collectionRows),
     expenses: expenseRows.map(toExpense),
-    settlement: settlementRow ? toSettlement(settlementRow, cheque) : null,
+    settlement: settlementRow ? toSettlement(settlementRow, money.chequePaise) : null,
     loadConfirmedAt: sheets.map((s) => s.confirmedAt).find((at) => at !== null) ?? null,
     loadSheetIds: sheets.map((s) => s.id),
     vanSalesAllowed: trip.vanSalesEnabled && flag,
-    expectedCashPaise: trip.openingCashPaise + cash - expenses,
+    expectedCashPaise:
+      settlementRow && seesMoney
+        ? settlementRow.expectedCashPaise
+        : trip.openingCashPaise + money.cashPaise - expenses,
     policy,
   }
 }
