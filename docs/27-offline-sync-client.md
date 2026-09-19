@@ -175,6 +175,14 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   op over 1 MiB of JSON, §15) → mark rejected with the server's sentence in the tray; keep the row, never retry it (DOS-166,
   DOS-056).
 - Queue survives restarts (it is a table). A pending count and the oldest queued time feed the status object.
+- **No upload before the device can answer, and every kicked flush names its own failure** (merge review of DOS-183,
+  2026-09-20). A flush that lands before the store's shapes are loaded — a reconnect hint arriving during the opening
+  seconds — does nothing at all: uploading there would mark no row, so `settle` would clear no row either and the local
+  copy would keep `_pending='queued'` on an op the server already has, a "waiting" chip that also holds the row back
+  from every pull. The op stays in the outbox and that start's own drain sends it. The three flushes the engine kicks
+  for itself and does not wait on — a write, a retry of a refused op, the backoff timer — each catch and NAME their
+  failure (`flush(write)`, `flush(retry)`, `flush(retry-timer)`), so a device store that blinked is a line in the log
+  and never an unhandled rejection.
 
 ## 7. Conflict rules
 
@@ -337,7 +345,11 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     and pulls the delta from the file's own cursor; the poll tick drains before it pulls; a page that booted with no network
     uploads the moment the radio is reported back, with no screen calling `flush()`; a reconnect landing on an armed retry timer
     still sends each op exactly once (`applied` is 1); and a flush that throws neither blocks that start's pull nor kills the
-    chain — the step is named in the log and the very next flush sends what was waiting.
+    chain — the step is named in the log and the very next flush sends what was waiting. A radio-back hint landing in the
+    opening seconds, before the shapes exist, leaves NO row stuck on "waiting": the op is sent once by that start's own drain,
+    `_pending` is cleared, and the pull that follows is allowed to bring the server's version of that row down. Each of the
+    three flushes the engine kicks for itself writes a named line when the device store throws under `claim`, and no rejection
+    goes unhandled.
 
 ## 14. Failure modes
 

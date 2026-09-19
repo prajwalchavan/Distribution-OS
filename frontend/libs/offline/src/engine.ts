@@ -1369,7 +1369,14 @@ export class SyncEngine {
       await this.refreshCounts()
       this.bus.emit([...planned.map(({ input }) => input.table), OUTBOX_CHANNEL])
       this.emitStatus()
-      void this.flush()
+      /*
+       * ASKED WITH `void`, SO IT MUST NAME ITS OWN FAILURE (merge review of this lane, minor 2). A flush now
+       * rejects for its caller (R3); on these three there is no caller, and a device store that blinked under
+       * `claim` would otherwise be an `unhandledrejection` in the browser and a LogBox warning on the phone, with
+       * nothing saying which step it was. The queue itself is safe either way — the row stays `queued` and the
+       * poll's drain owns it within the minute.
+       */
+      void this.flush().catch((error: unknown) => this.note(error, 'flush(write)'))
       return planned.map(({ opId }) => opId)
     })
   }
@@ -1435,7 +1442,15 @@ export class SyncEngine {
     const pullAfter = options.pullAfter ?? true
     const run = async (): Promise<void> => {
       const store = this.store
-      if (store === null) return
+      /*
+       * NOT BEFORE THE SHAPES EXIST (merge review of this lane, minor 1). `started` is true from the first line of
+       * `start()` and the store is handed over several awaits before `restoreManifest` has run, so a reconnect hint
+       * landing in that window found a store and no shapes: `claim` and `settle` both skipped `setPending`, the
+       * upload landed, and the local row kept `_pending = 'queued'` — a "waiting" chip on an order the server
+       * already had, and a row `pendingKeys` then held back from every pull. `start()`'s own drain runs after
+       * `ready`, and the outbox row is a row: whatever this returns for, the next flush sends it.
+       */
+      if (store === null || !this.ready) return
       await this.flushInternal(store, pullAfter)
     }
     /*
@@ -1633,7 +1648,8 @@ export class SyncEngine {
       await this.refreshCounts()
       this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
       this.emitStatus()
-      void this.flush()
+      // Named for the same reason as the write's own kick above.
+      void this.flush().catch((error: unknown) => this.note(error, 'flush(retry)'))
     })
   }
 
@@ -1911,7 +1927,8 @@ export class SyncEngine {
     this.backoffMs = Math.min(this.backoffMs * 2, BACKOFF_CEILING_MS)
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null
-      void this.flush()
+      // Named for the same reason as the write's own kick: nobody is waiting on this one either.
+      void this.flush().catch((error: unknown) => this.note(error, 'flush(retry-timer)'))
     }, wait)
   }
 

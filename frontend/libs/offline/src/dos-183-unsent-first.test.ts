@@ -13,7 +13,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { SyncEngine, type SyncEngineOptions } from './engine.js'
-import { OUTBOX_TABLE } from './schema.js'
+import { OUTBOX_TABLE, PENDING_COLUMN } from './schema.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, recording, tableManifest } from './test-support.js'
 import type { SqlValue, SyncIdentity, SyncStore, SyncTransport } from './types.js'
@@ -302,5 +302,209 @@ describe('DOS-183 the queue goes before the handshake and the pull', () => {
     expect(server.applied.get(opId)).toBe(1)
     expect(engine.status().pending).toBe(0)
     await engine.stop()
+  })
+
+  /**
+   * MERGE REVIEW MINOR 1 (Fable, 2026-09-19). `this.started` is true from the first line of `start()`, but the
+   * SHAPES only exist once `restoreManifest` has run: between `this.store = held` and `ready = true` the engine can
+   * be told the radio is back, and on main that hint returned early on `navigator.onLine`, so the window is this
+   * lane's own. A drain in it uploads with no shape to mark, `settle` clears nothing, and the row keeps
+   * `_pending = 'queued'` — a "waiting" chip on an order the server already has, and a row `pendingKeys` then
+   * protects from every pull, for as long as the app is open.
+   */
+  it('DOS-183 a radio-back hint inside the opening window leaves no row stuck on "waiting"', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    const order: string[] = []
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+
+    // A file a closed tab left behind: the manifest, the cursor, and one order taken in a dead spot.
+    const before = engineOn(store, recording(server, order))
+    await before.start()
+    server.offline = true
+    const opId = await before.enqueue({
+      table: 'sales_orders',
+      id: 'o-window',
+      op: 'PUT',
+      data: { retailer_id: CHAVAN.id, state: 'draft' },
+    })
+    await before.flush()
+    expect(before.status().pending).toBe(1)
+    await before.stop()
+    server.offline = false
+
+    // The server's own copy of that order, waiting for the next pull to bring it down.
+    server.pulls = []
+    server.queuePull({
+      changes: [
+        {
+          table: 'sales_orders',
+          rows: [{ id: 'o-window', retailer_id: CHAVAN.id, state: 'confirmed' }],
+          deleted: [],
+        },
+      ],
+      cursor: 'c2',
+    })
+
+    /*
+     * The window, held open from the one store call that sits inside it: `writeState(deviceId)` is the first thing
+     * `bringUp` does after handing the engine the store, and `restoreManifest` has not run yet.
+     */
+    let opening: SyncEngine | null = null
+    let windowOpen = false
+    const slow: SyncStore = {
+      persistent: store.persistent,
+      kind: store.kind,
+      query: (sql, params) => store.query(sql, params),
+      transaction: (fn) => store.transaction(fn),
+      close: () => store.close(),
+      exec: async (sql: string, params?: readonly SqlValue[]): Promise<void> => {
+        await store.exec(sql, params)
+        if (params?.[0] !== 'deviceId') return
+        windowOpen = true
+        if (opening === null) throw new Error('the window opened before the engine existed')
+        // The browser's own `online` event, and everything it starts running to the end inside the window.
+        opening.setNetworkHint(true)
+        await tick(12)
+        windowOpen = false
+      },
+    }
+
+    /*
+     * Only the UPLOAD may land in the window. A handshake that succeeded here would rebuild the shapes and hide the
+     * defect behind a re-snapshot; a page coming back in a dead spot loses its manifest call first anyway.
+     */
+    const base = recording(server, order)
+    const transport: SyncTransport = {
+      ...base,
+      manifest: async (input) => {
+        if (windowOpen) throw new TypeError('Failed to fetch')
+        return base.manifest(input)
+      },
+      pull: async (input) => {
+        if (windowOpen) throw new TypeError('Failed to fetch')
+        return base.pull(input)
+      },
+    }
+
+    const engine = engineOn(slow, transport)
+    opening = engine
+    await engine.start()
+
+    // Sent, exactly once — that much was never in doubt.
+    expect(server.applied.get(opId)).toBe(1)
+    expect(engine.status().pending).toBe(0)
+
+    const [row] = await store.query<Record<string, SqlValue>>(
+      `SELECT * FROM sales_orders WHERE id = ?`,
+      ['o-window'],
+    )
+    // The row says what the outbox says: nothing is waiting on it...
+    expect(row?.[PENDING_COLUMN] ?? null).toBeNull()
+    // ...so the pull that followed was allowed to bring the server's version of it down.
+    expect(row?.state).toBe('confirmed')
+    await engine.stop()
+  })
+
+  /**
+   * MERGE REVIEW MINOR 2 (Fable, 2026-09-19). R3 made a failed flush REJECT for whoever asked for it, which is what
+   * lets `drain` name the step. The three flushes the ENGINE kicks for itself ask with `void`, so a device store
+   * that blinked under `claim` reached nobody at all: an `unhandledrejection` in the browser, a LogBox warning on
+   * the phone, nothing in the log saying which step it was. Each site is named, so the log says which.
+   */
+  it('DOS-183 the flushes the engine kicks for itself name their failure instead of going unhandled', async () => {
+    const unhandled: unknown[] = []
+    const onUnhandled = (reason: unknown): void => {
+      unhandled.push(reason)
+    }
+    process.on('unhandledRejection', onUnhandled)
+    try {
+      const store = createMemoryStore()
+      const server = new FakeServer(TABLES)
+      server.queuePull({
+        changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+        cursor: 'c1',
+      })
+
+      // The claim, and only the claim: a disk that blinked, not a network failure.
+      let breakClaim = false
+      const flaky: SyncStore = {
+        persistent: store.persistent,
+        kind: store.kind,
+        exec: (sql, params) => store.exec(sql, params),
+        transaction: (fn) => store.transaction(fn),
+        close: () => store.close(),
+        query: async <T>(sql: string, params?: readonly SqlValue[]): Promise<T[]> => {
+          if (breakClaim && sql.includes(OUTBOX_TABLE) && sql.includes("status = 'queued'"))
+            throw new Error('device store unavailable')
+          return store.query<T>(sql, params)
+        },
+      }
+
+      const logged: string[] = []
+      const engine = engineOn(flaky, server.transport(), {
+        onLog: (message) => logged.push(message),
+      })
+      await engine.start()
+
+      // 1. THE WRITE'S OWN KICK (`enqueueMany`).
+      breakClaim = true
+      await engine.enqueue({
+        table: 'sales_orders',
+        id: 'o-kick',
+        op: 'PUT',
+        data: { retailer_id: CHAVAN.id, state: 'draft' },
+      })
+      await tick(6)
+      expect(logged.filter((line) => line === 'flush(write): device store unavailable')).toEqual([
+        'flush(write): device store unavailable',
+      ])
+
+      // 2. SENDING A REFUSED WRITE AGAIN (`retry`). The gate holds the upload so the refusal can be scripted.
+      breakClaim = false
+      const release = server.hold()
+      const refusedId = await engine.enqueue({
+        table: 'sales_orders',
+        id: 'o-refused',
+        op: 'PUT',
+        data: { retailer_id: CHAVAN.id, state: 'draft' },
+      })
+      await tick(4)
+      server.rejections.set(refusedId, { code: 'credit_limit', messageEn: 'Over the credit limit' })
+      release()
+      await tick(8)
+      expect(engine.status().rejected).toBe(1)
+
+      breakClaim = true
+      await engine.retry(refusedId)
+      await tick(6)
+      expect(logged.filter((line) => line === 'flush(retry): device store unavailable')).toEqual([
+        'flush(retry): device store unavailable',
+      ])
+
+      // 3. THE BACKOFF TIMER (`scheduleRetry`), armed by an upload that never reached the service.
+      breakClaim = false
+      server.offline = true
+      await engine.enqueue({
+        table: 'sales_orders',
+        id: 'o-timer',
+        op: 'PUT',
+        data: { retailer_id: CHAVAN.id, state: 'draft' },
+      })
+      await tick(6)
+      breakClaim = true
+      await new Promise((resolve) => setTimeout(resolve, 1_200))
+      expect(
+        logged.filter((line) => line === 'flush(retry-timer): device store unavailable'),
+      ).toEqual(['flush(retry-timer): device store unavailable'])
+
+      expect(unhandled).toEqual([])
+      await engine.stop()
+    } finally {
+      process.off('unhandledRejection', onUnhandled)
+    }
   })
 })
