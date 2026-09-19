@@ -20,13 +20,20 @@ import {
   SyncEngine,
   type SyncEngineOptions,
 } from './engine.js'
-import { leaveDecision, sweepInterimStore } from './react.js'
+import { leaveDecision, runStartupCleanups, sweepInterimStore } from './react.js'
 import { createSystemTables, OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
 import { readAllState, readState, writeState } from './state.js'
 import { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
-import type { EnqueueInput, StoreFactory, SyncIdentity, SyncStore, SyncTransport } from './types.js'
+import type {
+  EnqueueInput,
+  StoreFactory,
+  StoreKind,
+  SyncIdentity,
+  SyncStore,
+  SyncTransport,
+} from './types.js'
 import type { PullOutput } from './wire.js'
 
 const RETAILERS = tableManifest('retailers', [
@@ -366,6 +373,100 @@ describe('DOS-167 one file per app, person and distributor', () => {
         interim: [{ row_id: 'o-before-ruling-2', status: 'queued' }],
         current: RAHUL_ID,
       },
+    })
+  })
+
+  /*
+   * Ruling 3 (bb). The legacy destroy and the 199952b sweep were two floating effects that fired 2-3 ms apart under
+   * load, beside the engine's own open — three web databases opening in one microtask batch, which is S-138. They are
+   * ONE effect now, and one pure function: the rep's own file is opened FIRST, then the clean-ups, each awaited
+   * before the next.
+   */
+  it("DOS-167 the startup clean-ups run after the engine's store and never two at once", async () => {
+    const calls: string[] = []
+    let live = 0
+    let overlapped = 0
+    const factory: StoreFactory = async (name) => {
+      calls.push(`open ${name}`)
+      live += 1
+      if (live > 1) overlapped += 1
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      live -= 1
+      calls.push(`done ${name}`)
+      return createMemoryStore()
+    }
+
+    const engineFile = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const interim = interimStoreName('dos-sales', RAHUL_AT_TARSUN)
+    /*
+     * The engine's own open, as `start()` runs it. `storeKind` is what that open turned out to be, so awaiting it IS
+     * the wait for the rep's own data — what the provider passes is `engine.waiting().then(() => status().store)`.
+     */
+    let opened = (): void => {}
+    const engineOpen = new Promise<StoreKind>((resolve) => {
+      opened = () => {
+        resolve('sqlite-native')
+      }
+    })
+    void factory(engineFile).then(opened)
+
+    await runStartupCleanups({
+      storeFactory: factory,
+      storePrefix: 'dos-sales',
+      identity: RAHUL_AT_TARSUN,
+      storeKind: engineOpen,
+    })
+
+    expect({ overlapped, calls }).toEqual({
+      overlapped: 0,
+      calls: [
+        `open ${engineFile}`,
+        `done ${engineFile}`,
+        'open dos-sales.db',
+        'done dos-sales.db',
+        `open ${interim}`,
+        `done ${interim}`,
+      ],
+    })
+  })
+
+  /*
+   * Ruling 3 (bb). On a browser the 199952b name can only ever fail to open, and its failure is what poisoned the two
+   * healthy connections beside it (`runs/vE-trace.json`). It keeps running on a phone, where those files really exist.
+   */
+  it('DOS-167 the 199952b sweep is skipped on a web store and still runs on a native one', async () => {
+    const interim = interimStoreName('dos-sales', RAHUL_AT_TARSUN)
+    /*
+     * 94 characters. expo-sqlite web opens `'./' + name` through wa-sqlite, whose VFS allows 64 characters of path
+     * less the 8 SQLite keeps for the journal suffix (ruling 2 (s)): `sqlite3_open_v2` failed on this name in EVERY
+     * executed browser trace, and no browser ever created such a file.
+     */
+    expect(`./${interim}`.length).toBeGreaterThan(56)
+
+    async function asks(storeKind: StoreKind): Promise<string[]> {
+      const names: string[] = []
+      const factory: StoreFactory = async (name) => {
+        names.push(name)
+        return createMemoryStore()
+      }
+      await runStartupCleanups({
+        storeFactory: factory,
+        storePrefix: 'dos-sales',
+        identity: RAHUL_AT_TARSUN,
+        storeKind,
+      })
+      return names
+    }
+
+    expect({
+      web: await asks('sqlite-web'),
+      native: await asks('sqlite-native'),
+      // A store in memory has no file to delete and none to sweep.
+      memory: await asks('memory'),
+    }).toEqual({
+      web: ['dos-sales.db'],
+      native: ['dos-sales.db', interim],
+      memory: [],
     })
   })
 

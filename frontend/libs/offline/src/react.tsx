@@ -32,6 +32,7 @@ import type {
   NeedsAttentionItem,
   OutboxRow,
   StoreFactory,
+  StoreKind,
   SyncIdentity,
   SyncStatus,
   SyncTransport,
@@ -88,6 +89,70 @@ export async function sweepInterimStore(
   }
   const swept = await SyncEngine.sweepStores(storeFactory, [name], onLog)
   for (const file of swept.kept) onLog?.('offline: kept the store from before ruling 2', file)
+}
+
+export interface StartupCleanups {
+  storeFactory: StoreFactory
+  storePrefix: string
+  identity: SyncIdentity
+  /**
+   * What the engine's own open turned out to be. A promise while it is still opening — and awaiting it IS the wait for
+   * the rep's own file: the provider passes `engine.waiting().then(() => engine.status().store)`.
+   */
+  storeKind: StoreKind | Promise<StoreKind>
+  /** The explicit file name, when an app passes one: an app still opening the fixed name is using that file. */
+  databaseName?: string
+  onLog?: (line: string, detail?: unknown) => void
+}
+
+/**
+ * THE CLEAN-UPS OF EVERY EARLIER BUILD, AFTER THIS PERSON'S OWN FILE AND ONE AT A TIME (DOS-167 ruling 3 (bb)).
+ *
+ * They used to be two floating effects that fired 2-3 ms apart under load, beside the engine's own open: three
+ * different web databases opening in one microtask batch, which is S-138 (see `store/open.web.ts`). Now the rep's own
+ * data is opened FIRST — which also shortens the window behind S-140 — and then, in order, each awaited before the
+ * next:
+ *
+ * 1. the fixed `<prefix>.db` of every build before DOS-167 (amendment i), deleted once;
+ * 2. the file 199952b named, swept once by the sibling rule (ruling 2 (s)) — on a PHONE only.
+ *
+ * `'./' + interimStoreName(...)` is 94 characters against wa-sqlite's 64-character path budget, so on a browser that
+ * open can only ever fail — and in the single-VFS trace its failure is precisely what poisoned the two healthy
+ * connections beside it. No browser ever created such a file (ruling 2 (s)), so on web there is nothing to sweep.
+ * A store in memory has no file for either.
+ *
+ * A plain async function, so all of it is provable in Node without a React harness.
+ */
+export async function runStartupCleanups(input: StartupCleanups): Promise<void> {
+  const kind = await input.storeKind
+  if (kind === 'memory') return
+  await destroyLegacyStore(input)
+  if (kind !== 'sqlite-native') return
+  await sweepInterimStore(input.storeFactory, input.storePrefix, input.identity, input.onLog)
+}
+
+/**
+ * THE FILE EVERY BUILD BEFORE DOS-167 KEPT (amendment i): `dos-sales.db`, `dos-delivery.db`, `dos-warehouse.db`, one
+ * per app whoever was signed in. Every QA device and browser profile that ran such a build still holds the last rep's
+ * rows in it at rest, so it is deleted once per person per mount, best effort. Where it never existed, opening creates
+ * an empty file and deleting removes it again.
+ */
+async function destroyLegacyStore(input: StartupCleanups): Promise<void> {
+  let legacy: string
+  try {
+    legacy = legacyStoreName(input.storePrefix)
+  } catch {
+    return
+  }
+  // An app still opening the fixed name is using that file.
+  if (legacy === input.databaseName) return
+  try {
+    const store = await input.storeFactory(legacy)
+    if (store.destroy === undefined) await store.close()
+    else await store.destroy()
+  } catch (error) {
+    input.onLog?.('offline: could not delete the store from before DOS-167', error)
+  }
 }
 
 /** The file the engine opens: the explicit name, else this person's file in this distributorship. */
@@ -179,46 +244,31 @@ export function OfflineProvider({
   }, [enabled, deviceId, storeFactory, name, idKey, pullIntervalMs])
 
   /*
-   * THE FILE EVERY BUILD BEFORE DOS-167 KEPT (amendment i): `dos-sales.db`, `dos-delivery.db`,
-   * `dos-warehouse.db`, one per app whoever was signed in. Every QA device and browser profile that ran
-   * such a build still holds the last rep's rows in it at rest, so it is deleted once per mount, best
-   * effort. Where it never existed, opening creates an empty file and deleting removes it again; the
-   * memory adapter has nothing to delete.
+   * THE CLEAN-UPS OF THE EARLIER BUILDS — ONE effect, after this person's own file is open, in order (ruling 3 (bb)).
+   * Two floating effects raced the engine's open 2-3 ms apart under load, which on a browser is three databases
+   * opening at once and the store lost for that profile (S-138). Once per person per mount, best effort.
    */
+  const cleanedFor = useRef(new Set<string>())
   useEffect(() => {
-    if (storePrefix === undefined) return
-    let legacy: string
-    try {
-      legacy = legacyStoreName(storePrefix)
-    } catch {
-      return
-    }
-    // An app still opening the fixed name is using that file.
-    if (legacy === databaseName) return
-    void (async () => {
-      try {
-        const store = await storeFactory(legacy)
-        if (store.destroy === undefined) await store.close()
-        else await store.destroy()
-      } catch (error) {
-        onLog?.('offline: could not delete the store from before DOS-167', error)
-      }
-    })()
-  }, [storeFactory, storePrefix, databaseName])
-
-  /*
-   * THE FILE 199952b NAMED, swept once per person per mount (ruling 2 (s)): `sweepInterimStore`. Its name is not the
-   * engine's, so the two never open one file; on a browser it never existed and the open simply finds nothing.
-   */
-  const sweptInterim = useRef(new Set<string>())
-  useEffect(() => {
-    if (storePrefix === undefined || identity === null || idKey === null) return
-    if (sweptInterim.current.has(idKey)) return
-    sweptInterim.current.add(idKey)
-    void sweepInterimStore(storeFactory, storePrefix, identity, onLog).catch((error: unknown) => {
-      onLog?.('offline: could not sweep the store from before ruling 2', error)
+    if (engine === null || storePrefix === undefined || identity === null || idKey === null) return
+    if (cleanedFor.current.has(idKey)) return
+    cleanedFor.current.add(idKey)
+    const started = engine
+    void runStartupCleanups({
+      storeFactory,
+      storePrefix,
+      identity,
+      // The rep's own data first: `waiting()` awaits the open, and what it opened decides what there is to clean up.
+      storeKind: started.waiting().then(
+        () => started.status().store,
+        () => started.status().store,
+      ),
+      ...(databaseName === undefined ? {} : { databaseName }),
+      ...(onLog === undefined ? {} : { onLog }),
+    }).catch((error: unknown) => {
+      onLog?.('offline: could not clean up the stores of earlier builds', error)
     })
-  }, [storeFactory, storePrefix, idKey])
+  }, [engine, storeFactory, storePrefix, idKey, databaseName])
 
   /*
    * The radio, told to the engine rather than guessed at. On web these are the browser's own events;

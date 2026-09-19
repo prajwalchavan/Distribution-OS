@@ -52,7 +52,14 @@ name longer than 54 does not open in a browser (the 92-character `<prefix>__u-<u
 people, or one person at two distributors, never open the same file on any file system, a case-folding one included; a person
 signing in on a phone somebody else used starts with no rows and no cursor (DOS-167; ruling 2, 2026-09-14). The fixed
 `<prefix>.db` of earlier builds is deleted once at mount; the 199952b name is swept once per person, deleted when it holds nothing
-unsent and kept (and logged) when it does. To read a name in a QA listing:
+unsent and kept (and logged) when it does — **both through one `runStartupCleanups()` in ONE provider effect, after the engine's
+own open has resolved and one at a time, and the 199952b sweep only when the store is `sqlite-native`** (ruling 3 (bb),
+2026-09-19): `'./' + interimStoreName(...)` is 94 characters against wa-sqlite's 64-character path budget, so on a browser that
+open can only ever fail, no browser ever created such a file, and in the single-VFS trace its failure is exactly what poisoned
+the two healthy connections beside it. The legacy destroy is skipped on a store in memory and keeps its `legacy ===
+databaseName` guard. The leave flow's order — local sign-out (y) → `end()` → sibling sweep → drafts → background revoke — is
+load-bearing on web for the same reason and stays sequential: the sweep never starts beside `end()`. To read a name in a QA
+listing:
 `node -e 'const n=process.argv[1],id=g=>{let v=0n;for(const c of g)v=v*36n+BigInt(parseInt(c,36));return v.toString(16).padStart(32,"0").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")};console.log({s:"dos-sales",d:"dos-delivery",w:"dos-warehouse",h:"dos-harness"}[n[0]],id(n.slice(1,26)),id(n.slice(26)))' <name>`.
 The name is computed with `BigInt`, which Hermes has from React Native 0.70 (the apps run 0.86). The Android proof checks
 `typeof BigInt` on its first run; should a platform ever lack it, the same digits come from four 32-bit limbs — the format is the
