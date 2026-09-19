@@ -2132,6 +2132,37 @@ describeDb('delivery (DATABASE_URL)', () => {
     const [row] = (await db.execute(sql`select delivery_id from pod_evidence where id = ${podId}`))
       .rows as { delivery_id: string }[]
     expect(row?.delivery_id).toBe(deliveryA1)
+
+    // The DESK is shown the whole tenant's proof (`pod_evidence_read`), so an id-only look-up handed the
+    // owner ANOTHER delivery's row back as a 200 "proof recorded" — the app then says the proof is on this
+    // delivery when it is on that one (never-list #12). A foreign row this caller CAN see is refused the
+    // same way an invisible one is: the answer depends on whose row it is, never on who may look at it.
+    const deskClash = await call<{ message: string; data?: { code?: string } }>(
+      app,
+      owner,
+      'POST',
+      `/delivery/deliveries/${theirs?.id ?? ''}/pod`,
+      { idempotencyKey: `pod-176-d-${run}`, id: theirs?.id ?? '', evidence },
+    )
+    expect(deskClash.status, JSON.stringify(deskClash.body)).toBe(409)
+    expect(deskClash.body.data?.code).toBe('pod_id_taken')
+    expect(deskClash.body.message).toContain(podId)
+    const [still] = (await db.execute(sql`select delivery_id from pod_evidence where id = ${podId}`))
+      .rows as { delivery_id: string }[]
+    expect(still?.delivery_id).toBe(deliveryA1)
+    // the desk adding proof to its own delivery under a fresh id is untouched by the narrowing
+    const deskOwn = await call<{ item: { id: string } }>(
+      app,
+      owner,
+      'POST',
+      `/delivery/deliveries/${theirs?.id ?? ''}/pod`,
+      {
+        idempotencyKey: `pod-176-e-${run}`,
+        id: theirs?.id ?? '',
+        evidence: { ...evidence, id: uuidv7() },
+      },
+    )
+    expect(deskOwn.status, JSON.stringify(deskOwn.body)).toBe(200)
   })
 
   it('DOS-177 a location consent under an id another person already holds is refused with a message, never a 500', async () => {
@@ -2173,6 +2204,43 @@ describeDb('delivery (DATABASE_URL)', () => {
     )
     expect(theirs.status).toBe(200)
     expect(theirs.body.item?.granted).toBe(true)
+
+    // The desk is shown every consent row (`location_consents_rw`), so the id-only look-up replayed the
+    // DRIVER's answer to the owner as the owner's own — against this method's own rule, "Always the
+    // CALLER's own row". A row this caller can see is refused like one it cannot.
+    const driversConsent = uuidv7()
+    const drivers = await call<{ item: { userId: string } }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/consents',
+      { idempotencyKey: `consent-177-c-${run}`, id: driversConsent, ...body },
+    )
+    expect(drivers.status, JSON.stringify(drivers.body)).toBe(200)
+    expect(drivers.body.item.userId).toBe(driverId)
+
+    const deskClash = await call<{ message: string; data?: { code?: string } }>(
+      app,
+      owner,
+      'POST',
+      '/delivery/consents',
+      { idempotencyKey: `consent-177-d-${run}`, id: driversConsent, ...body },
+    )
+    expect(deskClash.status, JSON.stringify(deskClash.body)).toBe(409)
+    expect(deskClash.body.data?.code).toBe('consent_id_taken')
+    // the driver's answer stands, still current, and the owner's own answer was not closed on the way:
+    // the refused call wrote nothing at all.
+    const [driversRow] = (
+      await db.execute(
+        sql`select user_id, withdrawn_at from location_consents where id = ${driversConsent}`,
+      )
+    ).rows as { user_id: string; withdrawn_at: string | null }[]
+    expect(driversRow?.user_id).toBe(driverId)
+    expect(driversRow?.withdrawn_at).toBeNull()
+    const [ownersRow] = (
+      await db.execute(sql`select withdrawn_at from location_consents where id = ${consentId}`)
+    ).rows as { withdrawn_at: string | null }[]
+    expect(ownersRow?.withdrawn_at).toBeNull()
   })
 
   // ---------------------------------------------------------------------------------------------------------------
