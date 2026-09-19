@@ -13,8 +13,17 @@ Last updated: 2026-09-19 21:0x IST
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid recorded in the 2026-09-19 change-log section). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
 
+## The smoke gate, reshaped (Fable, 2026-09-19 — binding)
+
+`pnpm smoke`'s "0 BROKEN" could not be reached on a fresh database for reasons no lane owns (S-149, S-156, S-157), so a lane was being held to a bar it could not clear. The architect's ruling `QA/evidence/batch2/verdicts/DOS-175-177-blocker2-ruling.md` replaces it, per lane, at the walk stage:
+(a) the design's NAMED operations read **OK** — never EXPECTED, never a 409 counted as green — on a fresh seed AND on a replay;
+(b) **no NEW BROKEN against main at the merge base** (same seed, same `--run-tag`, first run), and every BROKEN that is also on main is filed as an S-row in the same turn;
+(c) nothing turns BROKEN on the replay.
+Absolute 0 BROKEN survives as a **main-health** gate the integrator runs once after each merge of main — and it is **binding only after** S-149, S-156 and S-157 are fixed and one observed `pnpm smoke` on a fresh seed records 0 BROKEN in this file with its commit hash. **Until that line exists, nobody may be held to 0 BROKEN.**
+
 ## Queued, in order
 
+0. **Fix S-149, S-156 and S-157, then observe 0 BROKEN once on main** and record it here with the commit hash and the seed's row counts — that is what re-arms the main-health gate. S-149: `examples.ts` `ownNotices` must be filtered to in_app/push with `recipient_user_id` set and no retailer BEFORE any limit (never "newest 500 of the tenant"), proven by `markRead` OK on the manager AND warehouse lanes on a fresh seed. S-156/S-157: the seed leaves one PARKED pack and one OPEN gate-count discrepancy, AND the harness reports an INVENTED path id as SKIPPED "no demo row qualifies", never BROKEN.
 1. **Money + DOS-172 platform walks** — Fable's merge-gate ruling items 2–7 (`QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`). Device-bound: they queue behind the DOS-167 walks. DOS-168/169/170 and DOS-172 are **MERGED, PROOF OWED, still OPEN** until these pass.
 2. **Lean wave 3** — the last 16 groups, 84 items, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat. Nothing is held back: all sixteen `defer` lists are empty. Waits only for the device queue above to clear.
 3. **The suspects still unprobed** — S-141, S-142, S-144, S-145, S-149, S-150, S-153, S-154, S-155. S-153 (the seed builds 44 of 48 trip settlements from the wrong table) and S-155 (a turbo cache hit reports the cross-app guards green without running them) are the two that make other tests untrustworthy; do those first.

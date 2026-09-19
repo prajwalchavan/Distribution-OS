@@ -870,3 +870,16 @@ Run `wf_dae59dd1-114` finished: 16 agents, the five amendments merged as `609388
 **Also worth the founder's attention (not filed as a defect, it is a design question):** signing out drops the read set (docs/27 §13), so a rep who signs out at night and signs in with no signal in the morning sees an **empty beat** until a pull succeeds. That is the design working as written; whether it is what the founder wants is a decision.
 
 The judge's other open items — the A3 live counter gate at 600/1500 ms and on a production export, an iOS sanity boot on the merged tree, a page error seen twice in one run, and several merge-review minors — are recorded in `QA/evidence/batch2/verdicts/DOS-167-judge.md`.
+
+### Fable reshapes the smoke gate, and both fix lanes merge (2026-09-19 → 20)
+
+**Blocker 2 CLOSED by ruling** (`QA/evidence/batch2/verdicts/DOS-175-177-blocker2-ruling.md`). The architect's reasoning is worth keeping: blocker 2 had two parts — an acceptance proof and a regression guard. The proof was met in full on both runs. The guard (0 BROKEN) was met "in substance, not on the letter": she re-read the lane's diff over `modules/{notifications,billing,procurement}` and `contracts/notifications.ts` herself, found it **empty**, and confirmed each root cause was reproduced rather than asserted. A lane was being held to a bar it could not clear for reasons it did not cause.
+
+**The gate is now shaped per lane**, and this replaces "0 BROKEN" everywhere in this programme:
+(a) the design's **named** operations read OK — never EXPECTED, never a 409 counted as green — on a fresh seed and on a replay; (b) **no NEW BROKEN against main at the merge base**, with every shared BROKEN filed as an S-row in the same turn; (c) nothing turns BROKEN on the replay. Absolute 0 BROKEN survives only as a **main-health** gate run once after each merge of main — and is **binding only after** S-149, S-156 and S-157 are fixed and one observed clean run is recorded in STATE with its commit hash. Until that line exists, nobody may be held to it. She also asked for a `--baseline <dir>` in the harness so a run can diff against a stored one (P3).
+
+Her conditions were executed with the merge: the raw runs copied out of the scratchpad into `QA/evidence/batch2/dos-175-177/walk1/`, the record written as `lane-results/money-delivery-walk1.md` with its first line reading **"FAIL on the letter (4 → 2 BROKEN), closed by architect ruling"** — never "PASS" — and the review annotated. One condition joins the owed walks: on the first smoke on main after this merge, the example receipt must hold ONE deposit reference and ONE Dr BANK line; a second line reopens DOS-168, not this lane.
+
+**Merged:** `ed3e1b7` the honesty lane (DOS-178, DOS-179, DOS-180 — Fable: MERGE, no blockers, after three rounds) and `f144e29` money-delivery (DOS-175, DOS-176, DOS-177). The money-delivery merge was again refused by the auto-mode classifier and completed by hand; that is now twice, and the runners carry the instruction to stop after two tries and say so rather than thrash.
+
+**Still OPEN despite merging:** DOS-175, DOS-176, DOS-177 keep their platform walks owed (walks 2–4), as DOS-168..170 and DOS-172 do.
