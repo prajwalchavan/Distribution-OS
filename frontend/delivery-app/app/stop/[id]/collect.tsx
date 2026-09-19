@@ -34,7 +34,6 @@ import {
   Stack,
   StatusChip,
   TextInput,
-  Toast,
   Txt,
   formatINR,
   useColors,
@@ -46,6 +45,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
+import { doorDoneHref } from '../../../src/lib/at-the-door'
 import { longDate, today } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -100,7 +100,6 @@ export default function Collect(): React.JSX.Element {
   const [chequeDate, setChequeDate] = useState(today())
   const [bank, setBank] = useState('')
   const [bookNo, setBookNo] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -137,10 +136,13 @@ export default function Collect(): React.JSX.Element {
       onSuccess: (result) => {
         haptics.success()
         void engine?.sync('payment recorded')
-        setToast(
-          t('d5.recorded', { no: result.receipt.receiptNo ?? result.receipt.id.slice(0, 8) }),
+        // DOS-149: the receipt number is read on the stop, not on a screen already being replaced.
+        router.replace(
+          doorDoneHref(stopId ?? '', {
+            code: 'money',
+            no: result.receipt.receiptNo ?? result.receipt.id.slice(0, 8),
+          }),
         )
-        router.replace(`/stop/${String(stopId ?? '')}`)
       },
       onError: (failed) => {
         haptics.error()
@@ -180,12 +182,12 @@ export default function Collect(): React.JSX.Element {
           receivedBy: myUserId,
         })
         haptics.success()
-        setToast(
-          t(keepKey('recordedMoney', status.persistent), {
+        router.replace(
+          doorDoneHref(stopId ?? '', {
+            code: 'moneyKept',
             no: bookNo.trim() === '' ? id.slice(0, 8) : bookNo.trim(),
           }),
         )
-        router.replace(`/stop/${String(stopId ?? '')}`)
       } catch (thrown) {
         haptics.error()
         setError(thrown instanceof Error ? thrown.message : t('d5.failed'))
@@ -379,14 +381,6 @@ export default function Collect(): React.JSX.Element {
           </Txt>
         )}
       </Stack>
-
-      <Toast
-        open={toast !== null}
-        message={toast ?? ''}
-        onDismiss={() => {
-          setToast(null)
-        }}
-      />
     </Screen>
   )
 }

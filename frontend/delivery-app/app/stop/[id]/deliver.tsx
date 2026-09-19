@@ -31,7 +31,6 @@ import {
   Stack,
   StatusChip,
   TextInput,
-  Toast,
   Txt,
   useColors,
   wordFor,
@@ -44,6 +43,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
+import { doorDoneHref } from '../../../src/lib/at-the-door'
 import { longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -149,7 +149,6 @@ export default function AtTheDoor(): React.JSX.Element {
   const [receiver, setReceiver] = useState('')
   const [note, setNote] = useState('')
   const [proof, setProof] = useState<CapturedProof | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -215,12 +214,19 @@ export default function AtTheDoor(): React.JSX.Element {
       onSuccess: (result) => {
         haptics.success()
         void engine?.sync('delivery recorded')
-        setToast(
-          result.creditNoteId === null
-            ? t('d4.recorded')
-            : t('d4.creditNote', { no: result.creditNoteId.slice(0, 8) }),
+        /*
+         * DOS-149: the outcome travels to the stop, which is the screen that is still there a second
+         * later. The credit note is named by its NUMBER — what the shopkeeper is holding — and only
+         * falls back to the head of its id when the office has not numbered it.
+         */
+        const note =
+          result.item.creditNote?.creditNoteNo ?? result.creditNoteId?.slice(0, 8) ?? null
+        router.replace(
+          doorDoneHref(
+            stopId ?? '',
+            note === null ? { code: 'delivered' } : { code: 'credit', note },
+          ),
         )
-        router.replace(`/stop/${String(stopId ?? '')}`)
       },
       onError: (failed) => {
         // No answer from the office is not a refusal: `commit` saves the delivery on the phone instead
@@ -440,8 +446,8 @@ export default function AtTheDoor(): React.JSX.Element {
         })
         if (result.via === 'phone') {
           haptics.success()
-          setToast(t(keepKey('savedOnPhone', status.persistent)))
-          router.replace(`/stop/${String(stopId ?? '')}`)
+          // No pull: there is no signal, and `queueDelivery` has already written this phone's own row.
+          router.replace(doorDoneHref(stopId ?? '', { code: 'kept' }))
         }
       } catch (thrown) {
         haptics.error()
@@ -719,14 +725,6 @@ export default function AtTheDoor(): React.JSX.Element {
           </Txt>
         )}
       </Stack>
-
-      <Toast
-        open={toast !== null}
-        message={toast ?? ''}
-        onDismiss={() => {
-          setToast(null)
-        }}
-      />
     </Screen>
   )
 }
