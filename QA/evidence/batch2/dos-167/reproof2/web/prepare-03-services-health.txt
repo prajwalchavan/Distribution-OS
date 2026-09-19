@@ -1,0 +1,11 @@
+# PREPARE 2026-09-19T09:15:55Z
+git: ce3dc8c Merge QA batch 2 P0 DOS-167 ruling 3: the web store opens under slow loads, the offline log lines print, and the not-kept warning shows only for a real memory store
+services health:
+  :3000 -> 200
+  :3001 -> 200
+  :3002 -> 200
+  :3003 -> 200
+  :3004 -> 200
+  :3005 -> 200
+  :3006 -> 200
+  :3007 -> 200
