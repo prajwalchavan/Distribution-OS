@@ -19,6 +19,7 @@ export {
   type EndResult,
   type SyncEngineOptions,
 } from './engine.js'
+export { consoleSink } from './log.js'
 export { transportFromApi, type SyncApiLike } from './transport.js'
 export { createMemoryStore, memoryStoreFactory } from './store/memory.js'
 export {

@@ -18,7 +18,7 @@ import { sessionIdentity } from '@dos/api-client'
 import { ApiProvider, useApi, useSession } from '@dos/api-client/react'
 import { openStore, SyncEngine } from '@dos/offline'
 import { OfflineProvider, useLeaveSession, useSyncStatus } from '@dos/offline/react'
-import { connectionStateFrom } from '@dos/offline'
+import { connectionStateFrom, consoleSink } from '@dos/offline'
 import {
   AppShell,
   Button,
@@ -310,6 +310,8 @@ function Offline({
       storePrefix={STORE_PREFIX}
       enabled={enabled}
       storeFactory={openStore}
+      /* S-139 (ruling 3 (dd)): the `offline:` lines go where a support call and a QA gate can read them. */
+      onLog={consoleSink}
     >
       {children}
     </OfflineProvider>
