@@ -2862,9 +2862,31 @@ async function main(): Promise<void> {
   const owner = await login('sunil.tarsun')
   platformTenantId = owner.tenantId
   const fx = await Fixtures.open(owner.tenantId)
+
+  /**
+   * The harness reads fixtures straight from DATABASE_URL, but it CALLS whatever is listening on the
+   * service ports (or `--base`), and nothing ties those two together. On 2026-09-19 that gap cost us a
+   * database: a run meant for a throwaway copy omitted `--base`, reached services that were still
+   * bound to the founder's dos_qa, and committed fifteen destructive operations there before anyone
+   * noticed — the run's own totals looked healthy throughout. So: the tenant the services just signed
+   * us into must EXIST in the database the fixtures read. If it does not, the two halves are looking at
+   * different databases and nothing below this line can be trusted, destructive or not.
+   */
+  const fixturesDb = /\/([^/?]+)(\?|$)/.exec(process.env.DATABASE_URL ?? '')?.[1] ?? '(unknown)'
+  const sameDatabase = await fx.rows('select 1 from tenants where id = $1', [owner.tenantId])
+  if (sameDatabase.length === 0) {
+    console.error(
+      `smoke: REFUSING TO RUN — the services signed us in as tenant ${owner.tenantId}, which does not exist in ${fixturesDb} (DATABASE_URL).\n` +
+        `       The services are answering from a DIFFERENT database than the one this run reads fixtures from.\n` +
+        `       Point the services at ${fixturesDb}, or pass --base <url> for the instance that serves it.`,
+    )
+    await fx.close()
+    process.exit(2)
+  }
+
   mkdirSync(outDir, { recursive: true })
 
-  out(`smoke: ${targets.length} service(s), tenant ${owner.tenantId}`)
+  out(`smoke: ${targets.length} service(s), tenant ${owner.tenantId}, database ${fixturesDb}`)
   if (ONLY_METHOD) out(`       --only ${ONLY_METHOD}: nothing else is called`)
   if (!DESTRUCTIVE)
     out(`       destructive procedures are skipped (pass --destructive to include them)`)

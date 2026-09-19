@@ -1,0 +1,4 @@
+## walk B2 — a NATIVE CRASH was found on the cold relaunch at 16:15:49 (offline, uptime 5 s)
+signal 11 SIGSEGV, thread mqt_v_js, fault addr 0x6e7275746572207b, top frame libreactnative.so UIManager::completeSurface
+NOT the S-128 shape (that was libexpo-sqlite exsqlite3_reset on DefaultDispatch at 0x1000000bb).
+full tombstone: b2-native-crash-at-cold-relaunch-1615.txt — a dedicated 3x repeat follows in walk F.

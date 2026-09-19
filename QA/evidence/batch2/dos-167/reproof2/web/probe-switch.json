@@ -1,0 +1,201 @@
+{
+ "steps": [],
+ "afterSignIn": {
+  "path": "/",
+  "body": "TE\nTarsun Enterprise\nsalesperson\n▾\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nRS\nRuksana Shaikh\nsalesperson\nKhadakpada\nToday's beat\nShops: 10\nVisited: 0\nOrdered: 0\n✓ Khadakpada\nStation Road\nKadam Stores\nKhadakpada, Kalyan West · your last order 22 Aug\n₹30,216.00\nTo visit\nPawar General Store\nKhadakpada, Kalyan West · your last order 11 Jul\n₹8,199.00\nTo visit\nBhosale Traders\nKhadakpada, Kalyan West · your last order 22 Aug\n₹74,287.00\nTo visit\nChavan Kirana Stores\nKhadakpada, Kalyan West · your last order 11 Jul\n₹21,892.00\nTo visit\nYadav General Store\nKhadakpada, Kalyan West · your last order 11 Jul\n₹28,485.00\nTo visit\nMishra Provision Store\nKhadakpada, Kalyan West · your last order 1 Aug\n₹10,385.00\nTo visit\nGupta Kirana Stores\nKhadakpada, Kalyan West · your last order 22 Aug\n₹90,266.00\nTo visit\nSingh General Store\nKhadakpada, Kalyan West · your last order 1 Aug\n₹17,372.00\nTo visit\nIyer Provision Store\nKhadakpada, Kalyan West · your last order 1 Aug\n—\nTo visit\nReddy Traders\nKhadakpada, Kalyan West · your last order 22 Aug\n₹9,474.00\nTo visit"
+ },
+ "controls": [
+  {
+   "tag": "BUTTON",
+   "testid": null,
+   "aria": null,
+   "haspopup": "menu",
+   "href": null,
+   "text": "TETarsun Enterprisesalesperson▾"
+  },
+  {
+   "tag": "A",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": "/",
+   "text": "Beat"
+  },
+  {
+   "tag": "A",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": "/orders",
+   "text": "Orders"
+  },
+  {
+   "tag": "A",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": "/shops",
+   "text": "Shops"
+  },
+  {
+   "tag": "A",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": "/me",
+   "text": "Me"
+  },
+  {
+   "tag": "A",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": "/settings",
+   "text": "Settings"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": null,
+   "aria": null,
+   "haspopup": "menu",
+   "href": null,
+   "text": "RSRuksana Shaikhsalesperson"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "✓ Khadakpada"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": null,
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Station Road"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-e3270517-3ec0-749c-8e66-043c0b8a864a",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Kadam StoresKhadakpada, Kalyan West · your last order 22 Aug"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-f498f03d-1b40-704f-8632-acd04953b564",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Pawar General StoreKhadakpada, Kalyan West · your last order"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-5a597c5e-1c9b-7dfa-a11e-1266091c487c",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Bhosale TradersKhadakpada, Kalyan West · your last order 22 "
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-a029f31b-2c6c-707b-b580-889125d3ee07",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Chavan Kirana StoresKhadakpada, Kalyan West · your last orde"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-2ffe76e4-fd1b-786e-a1f3-83e682a3e4a9",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Yadav General StoreKhadakpada, Kalyan West · your last order"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-a7e3c778-fcd8-7e6c-97fb-02d2c288c7e0",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Mishra Provision StoreKhadakpada, Kalyan West · your last or"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-4ba7bda0-1083-731b-b352-50ecb7532489",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Gupta Kirana StoresKhadakpada, Kalyan West · your last order"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-5fcf11f0-7ae2-71bb-a2ce-59382628436d",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Singh General StoreKhadakpada, Kalyan West · your last order"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-21789c58-876b-7bc3-9071-34d79086c32f",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Iyer Provision StoreKhadakpada, Kalyan West · your last orde"
+  },
+  {
+   "tag": "BUTTON",
+   "testid": "beat-row-9811c946-9de5-734d-8d25-727ed3aa93d4",
+   "aria": null,
+   "haspopup": null,
+   "href": null,
+   "text": "Reddy TradersKhadakpada, Kalyan West · your last order 22 Au"
+  }
+ ],
+ "menus": [
+  {
+   "index": 0,
+   "items": [
+    {
+     "testid": null,
+     "text": "Tarsun Enterprisesalesperson"
+    },
+    {
+     "testid": null,
+     "text": "Sai Distributors, Dombivlisalesperson"
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "items": [
+    {
+     "testid": null,
+     "text": "Tarsun Enterprisesalesperson"
+    },
+    {
+     "testid": null,
+     "text": "Sai Distributors, Dombivlisalesperson"
+    },
+    {
+     "testid": null,
+     "text": "My account"
+    },
+    {
+     "testid": null,
+     "text": "Change your password"
+    },
+    {
+     "testid": null,
+     "text": "Sign out"
+    }
+   ]
+  }
+ ]
+}

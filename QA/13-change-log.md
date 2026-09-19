@@ -724,3 +724,33 @@ The architect resolved the deadlock between the programme's own convention ("Pla
 - **S-145 (P2):** the D8 held-money figure is totals-minus-totals, so it mis-states a two-phone crew or an unpulled desk receipt; bounded today by the outbox gate.
 
 **Executing it:** run `wf_a26d0575-7f9`, script `QA/tools/batch2/workflows/money-then-dos172.js` — items 0 and 1, then DOS-172's merge. The walks (2–7) run in their own pass once the DOS-167 proofs free the browser and the emulator.
+
+### Batch 2 — money and DOS-172 merged; the smoke pass FAILED; and a QA run damaged dos_qa (2026-09-19)
+
+**Merged and pushed, per Fable's MERGE NOW ruling:** **DOS-168, DOS-169, DOS-170 `6e5c7c5`** (a trip payment arriving after its trip settled is refused and handed to the cashier, UPI and bank transfer accepted; a phone holding unsent payments cannot check its vehicle in) and **DOS-172 `d25574e`** (no trip departs with a packed bill no confirmed load sheet counted out; a returned bill waits on its van until check-in). Both re-gated on merged main: the whole backend suite forced (19/19 tasks, 0 cached), every touched spec, `examples.spec.ts`, the six service specs that mount the touched modules, `docs:readme:check`, the whole frontend gate including the kit cross-app guards, format and build. The money lane's single review blocker was re-checked on the merged HEAD and is resolved more strongly than either review asked: `dayEndCash` no longer accepts the screen's lagging `tripState` at all — the state rides with the figures as one snapshot (`check-in.ts:33`, read at `:103`). DOS-172's merge folded the duplicate load-out helper (`85e5ac8`).
+
+**DOS-168/169/170 and DOS-172 are MERGED, PROOF OWED, and stay OPEN** until the browser and device walks (ruling items 2–7) pass.
+
+#### The smoke pass failed: 6 BROKEN of 1606 calls
+
+Fable's item 1 passes only at 0 BROKEN with collections, settle, receipts and deposit all OK. **It did not pass.** Collections, settle and receipts were OK in every lane. `deposit` never returned 200 on either run, and four faults reproduce on a fresh seeded database in both runs. Filed:
+
+- **S-146 (P1, money)** — a receipt can be created against a `tripId` that exists in no `trips` row (no validation, and no FK because receipts→trips is an upstream reference). The settled-trip deposit guard then refuses it **forever** with `trip_cash_not_settled`, because that trip can never settle. Money collected against a non-existent trip is permanently un-bankable. The published contract example is what supplied the bad id. This sits squarely in the code that just merged.
+- **S-147 (P1)** — `delivery.deliveries.addPod` answers 500 "proof insert returned nothing".
+- **S-148 (P1)** — `delivery.consents.grant` answers 500 with no message; that consent is the gate a trip cannot depart without.
+- **S-149 (P3)** — `notifications.messages.markRead` 404 for manager and warehouse: the published example names a message the seed never creates.
+- **S-150 (P2, tooling)** — re-running `--destructive` with the same `--run-tag` on an already-mutated database silently skipped 328 of 1606 operations, so collections and settle were never exercised while the totals still read healthy.
+
+Per the ruling's own terms these are new findings repaired forward, not a revert: none of them shows the merged tree writing money wrong where main did not. S-146 is the one to fix first.
+
+#### A QA run committed destructive calls against dos_qa
+
+**What happened.** The smoke agent's first destructive attempt omitted `--base`, so the harness fell back to its hardcoded `localhost:3000-3007` — which were occupied by services the DOS-167 proof run had started against **dos_qa** at 15:43. The run therefore read fixtures from the throwaway `dos_smoke_money` while CALLING services bound to dos_qa, and committed there before the agent caught it. The agent disclosed it rather than hiding it, stopped, assessed the damage read-only, and re-ran correctly against an all-in-one instance on :3100.
+
+**Damage on dos_qa, assessed read-only:** all 4 tenants `active`, zero disabled users or memberships, and `auth.changePassword` sent `Dos@1234` → `Dos@1234`, so every demo sign-in still works. 15 destructive operations did commit, notably `receivables.allocations.remove` (reopens the bill it settled), `receivables.writeOffs.create`, `receivables.receipts.reverse`, `orders.cancel`, `procurement.supplierInvoices.cancel`, `claims.lines.remove`, `claims.writeOff`, `incentives.targets.remove`, `integrations.imports.cancel`, `docint.documents.reject`, `ai.drafts.reject`, `admin.support.revoke`, `auth.revokeSession`. `pnpm db:seed` restores demo access but will not undo the cancelled order, the removed allocation or the write-off. Evidence: `scratchpad/money1/smoke-run2.log` and `smoke-json-run2-DOS_QA/`.
+
+**Consequence for DOS-167:** the DOS-167 re-proof was running against dos_qa in that same window (15:47–15:48 IST). Any leg of it that touched money, allocations or sessions in those two minutes must be re-run before its result is trusted.
+
+**Repair, not yet done:** dos_qa needs a clean rebuild (stop services and worker, `dropdb --force`, `createdb`, `db:migrate`, `db:seed`, restart). It is deliberately NOT done while the DOS-167 proofs are still using it; it runs the moment that run reports.
+
+**The fix so it cannot recur.** `backend/tools/smoke-endpoints.mts` now refuses to run when the two halves disagree: after sign-in it checks that the tenant the SERVICES returned actually exists in the database the FIXTURES read (`DATABASE_URL`), and aborts with both names if it does not. The gap was structural — the harness reads one database and calls whatever is listening on the ports, and nothing tied them together — and it is the same gap whether or not `--destructive` is passed. The run header now also prints the database name. (Noted while there: `backend/tools/` is neither linted nor typechecked by the gate — two pre-existing type errors sit in that file today. That is its own follow-up.)

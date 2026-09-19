@@ -1,0 +1,74 @@
+# DOS-167 ruling-3 re-proof — WEB — environment and hand-off (2026-09-19T10:29:35Z)
+
+main at the START of this run : ce3dc8c (the ruling-3 merge)
+main at the END of this run   : 6e5c7c5 Merge QA batch 2 lane money: DOS-168, DOS-169, DOS-170
+
+## what moved under us, and why the web proof still stands
+  6e5c7c5 15:41 Merge QA batch 2 lane money: DOS-168, DOS-169, DOS-170
+  c1ae542 15:08 Merge main into qa/b2-money before merging it back
+  21e983b 15:08 QA batch 2: Fable rules MERGE NOW on the money gate; S-143..S-145 filed; money+DOS-172 merge run launched (wf_a26d0575-7f9)
+  cb66c13 14:53 QA batch 2: finish-lanes done — S-108 and DOS-171 merged; money blocked on owed runtime proof; S-141/S-142 filed
+  d65034b 14:50 Merge QA batch 2 lane dos171: DOS-171
+  1ffc032 14:38 docs(DOS-171): the van-sale comment stops claiming a lost reply is safe
+  e66e8f3 14:33 fix(DOS-171): D6 names no cash discount the bill never takes off
+  d078884 14:31 Merge main into qa/b2-dos171 before merging it back
+  f6361d1 14:16 test(DOS-169): pin the preview's trip state — the field D8 now branches the hand-over on
+  a6a2385 14:06 Merge main into qa/b2-money before merging it back
+  b2502af 13:52 fix(DOS-168+DOS-169+DOS-170): the hand-over figure and the rule that reads it come from one snapshot
+  5d4b92a 13:47 Merge main into qa/b2-money before merging it back
+  f086d1a 12:45 fix(DOS-168+DOS-169+DOS-170): the phone cannot check the vehicle in while it still holds unsent payments
+  1b4e022 09:49 fix(DOS-168+DOS-169+DOS-170): day-end counts every trip payment however it reached the office
+  d19d39d 09:02 fix(DOS-168+DOS-169+DOS-170): address review — T4 pins the collections door as far as this slice can
+  483685a 08:44 fix(DOS-171): the van sale shows the bill total with GST and keeps the bill on screen
+  9c44458 08:36 fix(DOS-168+DOS-169+DOS-170): a receipt moves once: row locks, the undo source and the settled-trip refusal
+  cafb0ef 08:26 fix(DOS-171): a van-sale bill counts in what is owed at its stop
+
+frontend files changed ce3dc8c..HEAD:
+  frontend/delivery-app/app/day.tsx
+  frontend/delivery-app/app/stop/[id]/van-sale.tsx
+  frontend/delivery-app/src/lib/check-in.test.ts
+  frontend/delivery-app/src/lib/check-in.ts
+  frontend/delivery-app/src/lib/van-sale.test.ts
+  frontend/delivery-app/src/lib/van-sale.ts
+  frontend/delivery-app/src/strings.ts
+  -> nothing under frontend/libs/offline, frontend/sales-app, frontend/libs/api-client or frontend/libs/ui,
+     so every sales web run below exercised the ruling-3 code exactly as merged at ce3dc8c.
+
+backend files changed ce3dc8c..HEAD (delivery + receivables only, no migration):
+  backend/libs/contracts/src/delivery.ts
+  backend/libs/core/src/modules/delivery/delivery.mappers.ts
+  backend/libs/core/src/modules/delivery/delivery.sync.ts
+  backend/libs/core/src/modules/delivery/settlement-money.spec.ts
+  backend/libs/core/src/modules/delivery/settlement.service.ts
+  backend/libs/core/src/modules/delivery/trips.service.ts
+  backend/libs/core/src/modules/delivery/vansales.service.ts
+  backend/libs/core/src/modules/delivery/vansales.spec.ts
+  backend/libs/core/src/modules/receivables/money-locks.spec.ts
+  backend/libs/core/src/modules/receivables/receivables.service.ts
+  backend/libs/core/src/modules/receivables/receivables.sync.ts
+
+## left running for the Android prover
+  :3000 /health -> 200
+  :3001 /health -> 200
+  :3002 /health -> 200
+  :3003 /health -> 200
+  :3004 /health -> 200
+  :3005 /health -> 200
+  :3006 /health -> 200
+  :3007 /health -> 200
+  sales Metro :5175 -> 200 (main checkout, warm, CI=1)
+  QA Chromium :9341 -> stopped
+  production export server :5199 -> stopped
+
+  WARNING for whoever runs next: the eight services were started at 09:15 UTC from the libs dist built at
+  ce3dc8c. The money lane (6e5c7c5, 15:41 IST) changed backend/libs/core delivery + receivables and
+  backend/libs/contracts/src/delivery.ts. Nothing in the sync/manifest/pull/upload path, so this web proof is
+  unaffected, but a delivery or money walk needs the libs rebuilt and the services restarted first.
+
+## dos_qa change made by this run (allowed by ruling (gg))
+  ruksana.shaikh (e607cec2-3403-7a35-bec0-e0b3cbc08d57) was given a SECOND membership, at sai-distributors,
+  through the product's own API: sign in as prakash.salunkhe (sai owner) -> POST :3001/tenancy/staff with her
+  existing phone +919810000015. createStaff reuses the user by phone and does NOT touch the password, so
+  Dos@1234 still works and must_change_password is still false (verified by SQL). No SQL write, never dos.
+  She is not used by any other QA tool, so rahul/kiran/amit stay single-distributor and every other script's
+  tenantId-less sign-in keeps working. Call and response: prepare-04-two-distributor-rep.json

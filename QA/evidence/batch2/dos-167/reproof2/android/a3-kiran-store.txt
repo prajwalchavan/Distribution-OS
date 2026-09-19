@@ -1,0 +1,28 @@
+## walk A3 — after kiran's sign-in: one file, kiran's; no rahul marker 16:12:43
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:12:43)
+total 6968
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:12 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:09 ..
+-rw------- 1 u0_a217 u0_a217 2609152 2026-09-19 16:12 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:12 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a217 u0_a217 4461992 2026-09-19 16:12 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk (2609152)", "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm (32768)", "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal (4461992)" ], "stores": [ { "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "kiran @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- the leak window (6 shots 150 ms apart, 3 text dumps) — rahul markers in the early dumps:
+-- Sai markers in the early dumps:
+  42 Dombivli
+   9 Manpada
+   3 Sai Distributors
+-- shot times
+## a3-kiran sign-in tapped at 16:12:10 (1789814530.638616)
+1 +0.281s
+2 +0.623s
+3 +0.991s
+4 +1.336s
+5 +1.691s
+6 +2.127s
+-- Tarsun / Station Road / Khadakpada anywhere on kiran's screen now:
+-- logcat ReactNativeJS 'offline:' lines (16:12:45)
+(end offline lines)
+-- logcat crash buffer (16:12:45)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

@@ -1,0 +1,641 @@
+{
+ "what": "DOS-167 ruling-3 RE-PROOF, WEB. Executed on main ce3dc8c against dos_qa (services :3000-:3007) on 2026-09-19.",
+ "coldMetroFirstLoads": [
+  {
+   "label": "cold-01",
+   "delayMs": 0,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": []
+  },
+  {
+   "label": "cold-02",
+   "delayMs": 0,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": []
+  },
+  {
+   "label": "cold-03",
+   "delayMs": 0,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": []
+  }
+ ],
+ "warmMetro600": [
+  {
+   "label": "d600-01",
+   "delayMs": 600,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index.bundle?platform=web&dev=true&hot=false&lazy=true&trans",
+    "worker.bundle?platform=web&dev=true&hot=false&lazy=true&tran"
+   ]
+  },
+  {
+   "label": "d600-02",
+   "delayMs": 600,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index.bundle?platform=web&dev=true&hot=false&lazy=true&trans",
+    "worker.bundle?platform=web&dev=true&hot=false&lazy=true&tran"
+   ]
+  },
+  {
+   "label": "d600-03",
+   "delayMs": 600,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index.bundle?platform=web&dev=true&hot=false&lazy=true&trans",
+    "worker.bundle?platform=web&dev=true&hot=false&lazy=true&tran"
+   ]
+  }
+ ],
+ "warmMetro1500": [
+  {
+   "label": "d1500-01",
+   "delayMs": 1500,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index.bundle?platform=web&dev=true&hot=false&lazy=true&trans",
+    "worker.bundle?platform=web&dev=true&hot=false&lazy=true&tran"
+   ]
+  },
+  {
+   "label": "d1500-02",
+   "delayMs": 1500,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index.bundle?platform=web&dev=true&hot=false&lazy=true&trans",
+    "worker.bundle?platform=web&dev=true&hot=false&lazy=true&tran"
+   ]
+  },
+  {
+   "label": "d1500-03",
+   "delayMs": 1500,
+   "app": "Metro :5175",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index.bundle?platform=web&dev=true&hot=false&lazy=true&trans",
+    "worker.bundle?platform=web&dev=true&hot=false&lazy=true&tran"
+   ]
+  }
+ ],
+ "productionExport": [
+  {
+   "label": "prod-ctl-01",
+   "delayMs": 0,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": []
+  },
+  {
+   "label": "prod-d600-01",
+   "delayMs": 600,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index-565b578c170464d598321ad5bb5a6b30.js",
+    "worker-4b9c3f83bac709745329805dba065f94.js"
+   ]
+  },
+  {
+   "label": "prod-d600-02",
+   "delayMs": 600,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index-565b578c170464d598321ad5bb5a6b30.js",
+    "worker-4b9c3f83bac709745329805dba065f94.js"
+   ]
+  },
+  {
+   "label": "prod-d600-03",
+   "delayMs": 600,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index-565b578c170464d598321ad5bb5a6b30.js",
+    "worker-4b9c3f83bac709745329805dba065f94.js"
+   ]
+  },
+  {
+   "label": "prod-d1500-01",
+   "delayMs": 1500,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index-565b578c170464d598321ad5bb5a6b30.js",
+    "worker-4b9c3f83bac709745329805dba065f94.js"
+   ]
+  },
+  {
+   "label": "prod-d1500-02",
+   "delayMs": 1500,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index-565b578c170464d598321ad5bb5a6b30.js",
+    "worker-4b9c3f83bac709745329805dba065f94.js"
+   ]
+  },
+  {
+   "label": "prod-d1500-03",
+   "delayMs": 1500,
+   "app": "production export :5199",
+   "pass": true,
+   "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "junkHeaders": [],
+   "manifestCalls": 1,
+   "pullCalls": 12,
+   "notADatabase": 0,
+   "cannotCreate": 0,
+   "beatNotPersisted": false,
+   "beatStillLoading": false,
+   "crossOriginIsolated": true,
+   "heldChunks": [
+    "index-565b578c170464d598321ad5bb5a6b30.js",
+    "worker-4b9c3f83bac709745329805dba065f94.js"
+   ]
+  }
+ ],
+ "nextPersonAfterSlowLoad": [
+  {
+   "label": "d600-next-01",
+   "firstPersonDelayMs": 600,
+   "atSignOutHeaders": [
+    []
+   ],
+   "secondPerson": "amit",
+   "headers": [
+    "/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "expected": "/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "manifest": 1,
+   "pull": 12,
+   "notPersisted": false,
+   "stillLoading": false,
+   "pass": true
+  },
+  {
+   "label": "d600-next-02",
+   "firstPersonDelayMs": 600,
+   "atSignOutHeaders": [
+    []
+   ],
+   "secondPerson": "amit",
+   "headers": [
+    "/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "expected": "/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "manifest": 1,
+   "pull": 12,
+   "notPersisted": false,
+   "stillLoading": false,
+   "pass": true
+  },
+  {
+   "label": "d600-next-03",
+   "firstPersonDelayMs": 600,
+   "atSignOutHeaders": [
+    []
+   ],
+   "secondPerson": "amit",
+   "headers": [
+    "/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft"
+   ],
+   "expected": "/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "poolFiles": 6,
+   "emptySlots": 5,
+   "manifest": 1,
+   "pull": 12,
+   "notPersisted": false,
+   "stillLoading": false,
+   "pass": true
+  }
+ ],
+ "deadlineFallback": [
+  {
+   "label": "dl-01",
+   "delayMs": 20000,
+   "firstSyncAfterSignInMs": 15093,
+   "manifest": 1,
+   "pull": 12,
+   "opfsTopLevel": [],
+   "memoryLines": [
+    "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+   ],
+   "screensSayingNotKept": [
+    "beat"
+   ],
+   "screensSilent": [
+    "shops",
+    "orders",
+    "me",
+    "settings"
+   ],
+   "anyScreenStillLoading": []
+  },
+  {
+   "label": "dl-02",
+   "delayMs": 20000,
+   "firstSyncAfterSignInMs": 15092,
+   "manifest": 1,
+   "pull": 12,
+   "opfsTopLevel": [],
+   "memoryLines": [
+    "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+   ],
+   "screensSayingNotKept": [
+    "beat"
+   ],
+   "screensSilent": [
+    "shops",
+    "orders",
+    "me",
+    "settings"
+   ],
+   "anyScreenStillLoading": []
+  },
+  {
+   "label": "dl-03",
+   "delayMs": 20000,
+   "firstSyncAfterSignInMs": 15088,
+   "manifest": 1,
+   "pull": 12,
+   "opfsTopLevel": [],
+   "memoryLines": [
+    "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+   ],
+   "screensSayingNotKept": [
+    "beat"
+   ],
+   "screensSilent": [
+    "shops",
+    "orders",
+    "me",
+    "settings"
+   ],
+   "anyScreenStillLoading": []
+  }
+ ],
+ "secondTab": [
+  {
+   "label": "tt-01",
+   "pass": true,
+   "tab1Before": {
+    "who": "tab1 before the second tab",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": false,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "tab2": {
+    "who": "tab2 after its own boot",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": true,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "tab1After": {
+    "who": "tab1 after the second tab opened",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": false,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "badLines": [],
+   "tab2Lines": [
+    "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+   ]
+  },
+  {
+   "label": "tt-02",
+   "pass": true,
+   "tab1Before": {
+    "who": "tab1 before the second tab",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": false,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "tab2": {
+    "who": "tab2 after its own boot",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": true,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "tab1After": {
+    "who": "tab1 after the second tab opened",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": false,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "badLines": [],
+   "tab2Lines": [
+    "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+   ]
+  },
+  {
+   "label": "tt-03",
+   "pass": true,
+   "tab1Before": {
+    "who": "tab1 before the second tab",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": false,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "tab2": {
+    "who": "tab2 after its own boot",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": true,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "tab1After": {
+    "who": "tab1 after the second tab opened",
+    "headers": [
+     "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+    ],
+    "poolFiles": 6,
+    "unreadable": 0,
+    "junk": [],
+    "saysNotPersisted": false,
+    "stillLoading": false,
+    "path": "/"
+   },
+   "badLines": [],
+   "tab2Lines": [
+    "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+   ]
+  }
+ ]
+}

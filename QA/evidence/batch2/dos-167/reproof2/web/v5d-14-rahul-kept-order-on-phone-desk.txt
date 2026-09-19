@@ -1,0 +1,35 @@
+TE
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+RD
+Rahul Deshmukh
+salesperson
+Chavan Kirana Stores
+Not numbered yet
+Draft
+This is a draft. Submitting it is what gives it a number and checks the shop’s credit.
+Items
+Lines: 1
+Campa Cola 1 L
+1 cs · ₹28.50/pc
+₹766.08
+Details
+Written
+19 Sep, 3:11 pm
+Submitted
+Not yet
+Delivery expected
+—
+Note
+—
+Cancel this order
+Price on this phone
+₹684.00
+Submit order

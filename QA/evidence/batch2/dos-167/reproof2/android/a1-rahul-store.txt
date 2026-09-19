@@ -1,0 +1,22 @@
+## walk A1 after rahul's first sign-in 16:10:09
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:10:09)
+total 7092
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:09 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:09 ..
+-rw------- 1 u0_a217 u0_a217 2641920 2026-09-19 16:09 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:09 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4556752 2026-09-19 16:09 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2641920)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4556752)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+
+-- logcat ReactNativeJS 'offline:' lines (16:10:09)
+(end offline lines)
+
+-- every ReactNativeJS line mentioning store/sqlite/memory
+(end)
+
+-- beat screen: the not-kept line?
+Updated just now
+-- crash
+-- logcat crash buffer (16:10:13)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

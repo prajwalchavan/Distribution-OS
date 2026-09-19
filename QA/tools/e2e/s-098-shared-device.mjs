@@ -2123,6 +2123,289 @@ async function vfast(browser, { key, prefix, next }) {
   }
 }
 
+
+// ---------------------------------------------------------------------------------------------------------------
+// VKILL — DOS-167 ruling 3 (gg): "(y) under a crash: REQUIRED, proven by an induced kill on web."
+// (x) removed the native crash, so waiting for one is not a test. Stall /sync/**, tap "Sign out, keep here", and kill
+// the page from underneath end(): the reopened page must show the SIGN-IN FORM (the local sign-out (y) does before
+// end() is what makes a crash safe), and the kept changes must still be that person's at their next sign-in (answer A).
+
+async function vkill(browser, { key = 'VKILL', prefix = 'vkill', viewport = DESK, reopen = 'newpage' } = {}) {
+  const R = start(key)
+  const w = viewport === PHONE ? 'phone' : 'desk'
+  R.viewport = viewport
+  R.reopen = reopen
+  const { ctx, page, log } = await openIsolatedPage(browser, viewport)
+  try {
+    await boot(page)
+    const aAt = await signIn(page, USERS.A.user)
+    R.aSync = await waitSynced(page, log, aAt)
+    R.storeAfterA = await storeFacts(page)
+    expectFiles(R, 'rahul signed in and synced on a persistent store', R.storeAfterA, { rahul: 0 + 1, kiran: 0, amit: 0, legacy: 0, storeHeaders: 1, interim: 0 }, { who: 'rahul', claims: lastClaims(log) })
+    await buildOrderForChavan(R, page, 1)
+    await placeOffline(R, page, ctx)
+    await shot(R, page, `${prefix}-01-queued-offline-${w}`, 'an order saved on this phone; 2 changes wait')
+
+    // Back on the radio, but every /sync call is held open: end() will wait for a send that never finishes.
+    const stall = { intercepted: 0, firstAt: null, urls: [] }
+    R.stall = stall
+    await page.route(/\/sync\//, async (route) => {
+      stall.intercepted += 1
+      if (stall.firstAt === null) stall.firstAt = Date.now()
+      stall.urls.push(route.request().url().slice(0, 120))
+      await sleep(120000) // never answers within this variant
+      await route.abort('internetdisconnected').catch(() => {})
+    })
+    await ctx.setOffline(false)
+    await page.waitForTimeout(800)
+
+    R.tapAt = await tapSignOut(page)
+    R.afterTap = await afterSignOutTap(page, 30000)
+    R.sheet = await readSheet(page)
+    await shot(R, page, `${prefix}-02-leave-sheet-${w}`, 'the sheet on a persistent store: "Sign out, keep here"')
+    R.keepClickAt = null
+    if (R.sheet?.keepButton !== null && R.sheet?.keepButton !== undefined) {
+      await page.click('[data-testid=leave-keep]').catch((error) => {
+        R.keepClickError = String(error).slice(0, 200)
+      })
+      R.keepClickAt = Date.now()
+    }
+    // Inside end(): the send is held, so the app is mid-sign-out. Kill it.
+    await page.waitForTimeout(900)
+    R.screenInsideEnd = await page.evaluate(() => ({
+      path: location.pathname,
+      signInFormShown: document.querySelector('[data-testid=sign-in-username]') !== null,
+      sheetOpen: document.querySelector('[data-testid=leave-sheet] [role=dialog]') !== null,
+    }))
+    R.stallSeenBeforeKill = { intercepted: stall.intercepted, firstAt: stall.firstAt }
+    await shot(R, page, `${prefix}-03-inside-end-${w}`, 'the moment before the kill: end() is waiting on a held /sync')
+
+    // THE KILL: the tab goes away while end() is still in flight, and the person opens the app again.
+    const killAt = Date.now()
+    let reopened
+    if (reopen === 'newpage') {
+      await page.close({ runBeforeUnload: false })
+      reopened = await ctx.newPage()
+      current = reopened
+    } else {
+      reopened = page
+      // The stall is a property of the dead tab, not of the network: a reopened app must be allowed to sync.
+      // (page.route survives a reload, so without this the harness itself would hold the next sign-in's uploads.)
+      await page.unroute(/\/sync\//).catch(() => {})
+      await reopened.reload({ waitUntil: 'domcontentloaded', timeout: 240000 })
+    }
+    await reopened.goto(APP, { waitUntil: 'domcontentloaded', timeout: 240000 }).catch(() => {})
+    const formBack = await reopened
+      .waitForSelector('[data-testid=sign-in-username]', { timeout: 60000 })
+      .then(() => true)
+      .catch(() => false)
+    R.afterKill = {
+      killedAfterKeepMs: R.keepClickAt === null ? null : killAt - R.keepClickAt,
+      signInFormShown: formBack,
+      path: await reopened.evaluate(() => location.pathname).catch(() => null),
+      body: await reopened.innerText('body').catch(() => ''),
+    }
+    await reopened.screenshot({ path: `${OUT}${prefix}-04-after-kill-${w}.png` }).catch(() => {})
+    R.shots.push(`${prefix}-04-after-kill-${w}.png`)
+    R.storeAfterKill = await storeFacts(reopened)
+
+    // Answer A: nothing unsent was thrown away — the kept file is still rahul's and his changes go first.
+    await ctx.setOffline(false)
+    const log2 = makeLog(reopened)
+    await armStripWatch(reopened)
+    const bAt = await signIn(reopened, USERS.A.user)
+    R.againSync = await waitSynced(reopened, log2, bAt)
+    await reopened.waitForTimeout(2000)
+    R.againStripSequence = await readStripWatch(reopened)
+    R.againUploads = uploadsSince(log2, bAt)
+    R.storeAgain = await storeFacts(reopened)
+    expectFiles(R, 'rahul signed in again after the kill', R.storeAgain, { rahul: 1, kiran: 0, amit: 0, legacy: 0, storeHeaders: 1, interim: 0 }, { who: 'rahul', claims: lastClaims(log2) })
+    await reopened.screenshot({ path: `${OUT}${prefix}-05-rahul-again-${w}.png` }).catch(() => {})
+    R.shots.push(`${prefix}-05-rahul-again-${w}.png`)
+    const draftId = R.draft?.id ?? '00000000-0000-0000-0000-000000000000'
+    R.sql = sqlOrderFacts(draftId, R.againUploads.opIds, (R.draft?.lines ?? []).map((l) => l.id))
+    R.console = log.console.slice(0, 40)
+    R.failed = log.failed.slice(0, 40)
+    R.syncLog = log.sync
+    R.offlineLines = [...log.offlineLines, ...log2.offlineLines]
+    R.summary = {
+      sheetOffersKeep: { expected: 'Sign out, keep here', observed: R.sheet, pass: R.sheet?.keepButton === 'Sign out, keep here' },
+      keptFileExistsAtKill: { expected: "rahul's store still on the device at the kill", observed: R.storeAfterKill?.files?.decoded ?? null, pass: (R.storeAfterKill?.files?.count?.rahul ?? 0) === 1 },
+      signInFormAfterKill: { expected: 'the reopened page shows the sign-in form', observed: R.afterKill, pass: R.afterKill.signInFormShown === true },
+      noAppScreenAfterKill: { expected: 'no order screen, no beat', observed: R.afterKill.body.slice(0, 200), pass: !/Add a case|Save on this phone/.test(R.afterKill.body) },
+      keptChangesWentFirst: { expected: 'the kept ops upload once at the next sign-in', observed: { uploads: R.againUploads, strip: R.againStripSequence }, pass: R.againUploads.opIds.length > 0 && Object.values(R.againUploads.perOp).every((n) => n === 1) },
+      orderInDosQaOnce: { expected: 'the order once, salesperson rahul', observed: R.sql, pass: R.sql.orderCount === 1 && R.sql.salespersonIsRahul === true },
+      fileChecks: { expected: 'all pass', observed: R.fileChecks.map((f) => `${f.pass ? 'PASS' : 'FAIL'} ${f.where}`), pass: R.fileChecks.every((f) => f.pass) },
+    }
+  } finally {
+    await ctx.close()
+  }
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------
+// VSWITCH — DOS-167 ruling 3 (gg) + the merge review's owed web walk: the two-distributor rep, the sibling sweep and
+// "Switch anyway", watching the OPFS pool. The one shape the 41-run diagnosis never covered: the chain serialises
+// OPENS, not `deleteDatabaseAsync`, so the old file's destroy can overlap the new engine's `open_v2` on another name.
+//
+// The rep was made on dos_qa through the product's own API, the way the ruling allows (sign in as the SECOND
+// distributor's owner, POST /tenancy/staff with the existing rep's phone; the existing user is reused by phone and the
+// password is untouched). Evidence: reproof2/web/prepare-04-two-distributor-rep.json.
+const SWITCH_REP = {
+  user: 'ruksana.shaikh',
+  userId: 'e607cec2-3403-7a35-bec0-e0b3cbc08d57',
+  home: { tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', name: 'Tarsun Enterprise' },
+  other: { tenantId: '82f5c562-b7eb-7521-8e19-4aa6befc64f8', name: 'Sai Distributors' },
+}
+const SWITCH_ANYWAY = 'Switch anyway'
+
+/** The rail's distributor switcher: the visible menu button whose menu lists distributors, not the account menu. */
+async function openSwitcher(page) {
+  const buttons = await page.locator('button[aria-haspopup="menu"]:visible').all()
+  for (const b of buttons) {
+    await b.click({ timeout: 10000 }).catch(() => {})
+    await page.waitForTimeout(400)
+    const items = await page.evaluate(() => [...document.querySelectorAll('[role=menuitem]')].map((e) => (e.textContent ?? '').replace(/\s+/g, ' ').trim()))
+    if (items.length > 0 && !items.some((t) => /^Sign out$/.test(t))) return items
+    await page.keyboard.press('Escape').catch(() => {})
+    await page.waitForTimeout(250)
+  }
+  return null
+}
+
+async function chooseDistributor(page, name) {
+  await page.locator('[role=menuitem]:visible', { hasText: name }).first().click({ timeout: 15000 })
+  return Date.now()
+}
+
+async function vswitch(browser, { key = 'VSWITCH', prefix = 'vswitch', viewport = DESK } = {}) {
+  const R = start(key)
+  const w = viewport === PHONE ? 'phone' : 'desk'
+  R.viewport = viewport
+  const homeName = storeNameFor('dos-sales', { userId: SWITCH_REP.userId, tenantId: SWITCH_REP.home.tenantId })
+  const otherName = storeNameFor('dos-sales', { userId: SWITCH_REP.userId, tenantId: SWITCH_REP.other.tenantId })
+  R.expectedNames = { home: `/${homeName}`, other: `/${otherName}` }
+  const { ctx, page, log } = await openIsolatedPage(browser, viewport)
+  const pool = (facts) => ({
+    headers: facts.files.sqlitePaths,
+    poolFiles: facts.files.count.poolFiles,
+    unreadable: facts.files.count.unreadable,
+    junk: facts.files.sqlitePaths.filter((h) => !STORE_HEADER.test(h)),
+    home: facts.files.sqlitePaths.filter((h) => h === `/${homeName}`).length,
+    other: facts.files.sqlitePaths.filter((h) => h === `/${otherName}`).length,
+    notPersistedOnScreen: facts.beatScreenSaysNotPersisted,
+  })
+  try {
+    await boot(page)
+    await armTextWatch(page, [NOT_PERSISTED])
+    const aAt = await signIn(page, SWITCH_REP.user)
+    R.homeSync = await waitSynced(page, log, aAt)
+    R.atHome = pool(await storeFacts(page))
+    await shot(R, page, `${prefix}-01-home-${w}`, 'the rep signed in at their first distributor')
+    R.menuItems = await openSwitcher(page)
+    await shot(R, page, `${prefix}-02-switcher-open-${w}`, 'the rail switcher listing both distributors')
+
+    // (a) A clean switch, nothing waiting: no sheet, and both files coexist (a switch wipes nothing).
+    R.switchAt = await chooseDistributor(page, SWITCH_REP.other.name)
+    R.afterSwitchTap = await afterSignOutTap(page, 30000)
+    await page.waitForTimeout(2500)
+    R.otherSync = await waitSynced(page, log, R.switchAt)
+    await page.waitForTimeout(1500)
+    R.atOther = pool(await storeFacts(page))
+    R.claimsAtOther = lastClaims(log)
+    await shot(R, page, `${prefix}-03-other-${w}`, 'the rep now at the second distributor')
+
+    // (b) Back to the first distributor (still nothing waiting): a clean switch, no sheet.
+    R.menuItems2 = await openSwitcher(page)
+    R.switchBackAt = await chooseDistributor(page, SWITCH_REP.home.name)
+    R.afterSwitchBackTap = await afterSignOutTap(page, 8000)
+    await page.waitForTimeout(3000)
+    R.backHomePool = pool(await storeFacts(page))
+    R.claimsBackHome = lastClaims(log)
+
+    // (c) Now something IS waiting here — switch again: the sheet must offer "Switch anyway", and taking it must
+    // keep this file with its unsent change in it (answer A) while the rep works at the other distributor.
+    // A_SHOP is on Khadakpada, the beat this rep also works at the first distributor (its name is on her beat
+    // screen in vswitch-01), so it is a shop she may order for — no scraping, no guessing.
+    R.shopUsed = A_SHOP.id
+    {
+      await softGo(page, `/orders/new?retailerId=${A_SHOP.id}`)
+      const add = page.locator('button:visible', { hasText: /^Add a case$/ })
+      await add.first().waitFor({ timeout: 30000 }).catch((e) => { R.addWaitError = String(e).slice(0, 160) })
+      await add.first().click({ timeout: 15000 }).catch((e) => { R.addError = String(e).slice(0, 160) })
+      await page.waitForSelector('[data-testid^="line-"]', { timeout: 15000 }).catch(() => {})
+      await page.waitForTimeout(1200)
+      await ctx.setOffline(true)
+      R.offlineLabel = await waitPlaceLabel(page, 'Save on this phone', 10000)
+      await page.click('[data-testid=place-order]').catch((e) => { R.placeError = String(e).slice(0, 160) })
+      await page.waitForTimeout(1500)
+      R.queued = { strip: await strip(page) }
+      /*
+       * Back on the radio, but the UPLOAD itself is held open, so the two ops stay unsent while the app is online.
+       * Without this the outbox flushes the moment the radio returns and there is nothing left to ask about — the
+       * first attempt at this variant measured exactly that and read it, wrongly, as "no sheet offered".
+       */
+      R.uploadHold = { held: 0 }
+      await page.route(/\/sync\/upload/, async (route) => {
+        R.uploadHold.held += 1
+        await sleep(120000)
+        await route.abort('internetdisconnected').catch(() => {})
+      })
+      await ctx.setOffline(false)
+      await page.waitForTimeout(2500)
+      R.queuedOnline = { strip: await strip(page) }
+    }
+    R.menuItems3 = await openSwitcher(page)
+    R.switchWithQueueAt = await chooseDistributor(page, SWITCH_REP.other.name)
+    R.afterSwitchWithQueueTap = await afterSignOutTap(page, 30000)
+    R.switchSheet = await readSheet(page)
+    await shot(R, page, `${prefix}-04-switch-sheet-${w}`, 'changes waiting: the sheet offers "Switch anyway"')
+    if (R.switchSheet?.keepButton === SWITCH_ANYWAY) {
+      await page.click('[data-testid=leave-keep]').catch((e) => { R.switchAnywayError = String(e).slice(0, 160) })
+      await page.waitForTimeout(4000)
+    }
+    R.afterSwitchAnyway = pool(await storeFacts(page))
+    R.claimsAfterSwitchAnyway = lastClaims(log)
+    await shot(R, page, `${prefix}-05-after-switch-anyway-${w}`, 'at the other distributor; the first file is kept, unsent')
+
+    // (d) The sibling sweep, which happens on SIGN-OUT and deletes only files with nothing unsent: nothing waits
+    // here, a change waits in the sibling, so the sibling must SURVIVE (founder answer A).
+    R.tapAt = await tapSignOut(page)
+    R.afterSignOut = await afterSignOutTap(page, 40000)
+    R.signOutSheet = R.afterSignOut.state === 'sheet' ? await readSheet(page) : null
+    if (R.afterSignOut.state === 'sheet') {
+      await page.click('[data-testid=leave-keep]').catch(() => {})
+    }
+    await page.waitForSelector('[data-testid=sign-in-username]', { timeout: 60000 }).catch(() => {})
+    await page.waitForTimeout(3000)
+    R.afterSignOutPool = pool(await storeFacts(page))
+    await shot(R, page, `${prefix}-06-signed-out-${w}`, 'after sign-out: the sweep deletes only files with nothing unsent')
+    await page.unroute(/\/sync\/upload/).catch(() => {})
+    R.textWatch = await readTextWatch(page)
+    R.console = log.console.slice(0, 40)
+    R.failed = log.failed.slice(0, 40)
+    R.syncLog = log.sync
+    R.offlineLines = log.offlineLines
+    const badConsole = log.consoleAll.filter((l) => /not a database|cannot create file|SQLiteError/i.test(l.text ?? ''))
+    const everyPool = [R.atHome, R.atOther, R.backHomePool, R.afterSwitchAnyway, R.afterSignOutPool].filter(Boolean)
+    R.summary = {
+      twoDistributorsOffered: { expected: 'both distributors in the rail switcher', observed: R.menuItems, pass: (R.menuItems ?? []).length === 2 },
+      homeStoreOpened: { expected: `one header ${R.expectedNames.home}`, observed: R.atHome, pass: R.atHome.home === 1 && R.atHome.other === 0 && R.atHome.junk.length === 0 },
+      switchOpensOtherStore: { expected: `${R.expectedNames.other} present, the first kept (a switch wipes nothing)`, observed: { pool: R.atOther, claims: R.claimsAtOther }, pass: R.atOther.other === 1 && R.atOther.home === 1 && R.atOther.junk.length === 0 && R.claimsAtOther?.tid === SWITCH_REP.other.tenantId },
+      switchBackIsClean: { expected: 'no sheet with nothing waiting; back on the first distributor', observed: { tap: R.afterSwitchBackTap, pool: R.backHomePool, claims: R.claimsBackHome }, pass: R.afterSwitchBackTap.state === 'timeout' && R.claimsBackHome?.tid === SWITCH_REP.home.tenantId && R.backHomePool.junk.length === 0 },
+      changeQueuedHere: { expected: 'an order saved on this phone at the first distributor', observed: { shop: R.shopHref, label: R.offlineLabel, strip: R.queued?.strip ?? null, errors: [R.addWaitError ?? null, R.addError ?? null, R.placeError ?? null] }, pass: /waiting to send/.test(R.queued?.strip ?? '') },
+      switchAnywayOffered: { expected: SWITCH_ANYWAY, observed: { sheetState: R.afterSwitchWithQueueTap, sheet: R.switchSheet }, pass: R.switchSheet?.keepButton === SWITCH_ANYWAY },
+      switchAnywayKeepsBoth: { expected: 'both files still there after the switch (nothing unsent thrown away)', observed: { pool: R.afterSwitchAnyway, claims: R.claimsAfterSwitchAnyway }, pass: R.afterSwitchAnyway.home === 1 && R.afterSwitchAnyway.other === 1 && R.afterSwitchAnyway.junk.length === 0 && R.claimsAfterSwitchAnyway?.tid === SWITCH_REP.other.tenantId },
+      siblingWithUnsentSurvivesSignOut: { expected: 'this file goes, the sibling holding an unsent change stays', observed: { sheet: R.signOutSheet, pool: R.afterSignOutPool }, pass: R.afterSignOutPool.other === 0 && R.afterSignOutPool.home === 1 && R.afterSignOutPool.junk.length === 0 },
+      poolNeverPoisoned: { expected: 'no junk header, no unreadable file, ≤6 pool files at every checkpoint', observed: everyPool, pass: everyPool.every((p) => p.junk.length === 0 && p.unreadable === 0 && p.poolFiles <= 6) },
+      noSqliteErrors: { expected: [], observed: badConsole.slice(0, 10), pass: badConsole.length === 0 },
+      notPersistedNeverShown: { expected: `no hit of s0.notPersisted (${TEXT_WATCH_MS} ms watch)`, observed: R.textWatch, pass: (R.textWatch?.hits ?? []).length === 0 && everyPool.every((p) => p.notPersistedOnScreen === false) },
+    }
+  } finally {
+    await ctx.close()
+  }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 
 const VARIANTS = [
@@ -2141,6 +2424,9 @@ const VARIANTS = [
   ['vrefresh', vrefresh],
   ['vfasta', (browser) => vfast(browser, { key: 'VFASTA', prefix: 'vfasta', next: USERS.A })],
   ['vfastb', (browser) => vfast(browser, { key: 'VFASTB', prefix: 'vfastb', next: USERS.B })],
+  ['vkill', (browser) => vkill(browser, { key: 'VKILL', prefix: 'vkill', viewport: DESK, reopen: 'newpage' })],
+  ['vkillr', (browser) => vkill(browser, { key: 'VKILLR', prefix: 'vkillr', viewport: DESK, reopen: 'reload' })],
+  ['vswitch', (browser) => vswitch(browser, { key: 'VSWITCH', prefix: 'vswitch', viewport: DESK })],
 ]
 
 // One results file per invocation, so a later run never overwrites an earlier one's evidence.

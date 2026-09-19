@@ -1,0 +1,65 @@
+## walk B4 — amit types a DRAFT at Ansari Kirana Stores and leaves it unsaved 16:23:08
+tap 'Shops' at 675 2246
+shot b4-amit-shops-search.png
+tap shop at 540 1371
+shot b4-amit-shop-card.png
+order entry: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm · 2 waiting to send | Ansari Kirana Stores | Order | Items: 0 | No signal | Repeat last order (2) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 
+add a case at 855 1403
+after add: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm · 2 waiting to send | Ansari Kirana Stores | Order | Items: 1 | No signal | This order | Clear | Campa Cola 1 L | 1 cs | ₹684.00 | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Campa Cola 500 ml | Campa �
+items: Items 1 · ₹684.00 before GST
+shot b4-amit-draft-typed.png
+## walk B4 cont — leave the typed lines unsaved, back to Beat 16:24:03
+tap 'Beat' at 135 2246
+shot b4-amit-left-as-draft.png
+screen: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm · 2 waiting to send | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this 
+
+-- SecureStore keys (amit's draft keys must be here; the queued order is in the store file, not here)
+-- SecureStore keys (16:24:14)
+name="key_v1-dos.auth.refresh"
+name="key_v1-dos.auth.session"
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)
+
+-- amit userId efde1e76-9785-7827-aff2-6f56ecd33588; the draft index key is dos.sales.drafts.<userId>
+total 14040
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 19 16:24 .
+drwxr-xr-x@ 13 prajwalchavan  wheel      416 Sep 19 16:24 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2621440 Sep 19 16:24 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 19 16:24 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4532032 Sep 19 16:24 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+key|value
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenant_id","type":"string","nullable":false},{"name":"variant_id","type":"st
+schemaVersion|36957a3c3b8da665
+role|salesperson
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMDo0NDo1Ni4wODNaIn0
+lastPulledAt|2026-09-19T10:45:01.083Z
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+deviceId|01a0b93f-2697-74fa-98c0-af94ea27f8c0
+-- _outbox
+seq|op_id|tbl|row_id|op|status|attempts|rejection_code
+1|01a0b94c-172a-774e-b4da-b29ffb2a9012|sales_orders|01a0b94b-5ed6-7373-b094-c93bc0a7db0f|PUT|queued|7|
+2|01a0b94c-172b-7580-b206-c34652b008c5|sales_order_lines|01a0b94b-d0e0-76a6-afbd-571fcc7e0847|PUT|queued|7|
+-- _outbox data
+1 {"retailer_id":"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}
+2 {"order_id":"01a0b94b-5ed6-7373-b094-c93bc0a7db0f","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}

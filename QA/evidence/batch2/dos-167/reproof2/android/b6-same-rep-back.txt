@@ -1,0 +1,18 @@
+## walk B6 — the SAME rep signs back in (office still cut): the kept queue and the kept draft 16:25:47
+SIGNED_IN b6-amit: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 4:26 pm · 2 waiting to send | Offline since 4:26 pm · 2 waiting to send | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is the copy on this phone. | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+## walk B6 cont — the beat after the offline sign-in 16:27:12
++10s screen: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:26 pm · 2 waiting to send | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is th
++20s screen: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:26 pm · 2 waiting to send | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is th
++35s screen: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:27 pm · 2 waiting to send | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is th
++60s screen: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:27 pm · 2 waiting to send | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. Everything on this screen is th
+shot b6-amit-home-offline.png
+-- logcat ReactNativeJS 'offline:' lines (16:28:01)
+(end offline lines)
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:28:01)
+total 4072
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:26 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:19 ..
+-rw------- 1 u0_a217 u0_a217 3907584 2026-09-19 16:25 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:27 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217  197792 2026-09-19 16:27 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3907584)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (197792)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }

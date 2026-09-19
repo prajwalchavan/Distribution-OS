@@ -1,0 +1,37 @@
+# DOS-167 ruling 3 — ANDROID re-proof environment (2026-09-19 16:08:06 IST)
+
+## checkout
+HEAD 6e5c7c54ab48026d13e6ed565feec8878cc66731 Merge QA batch 2 lane money: DOS-168, DOS-169, DOS-170
+ruling3 merge ce3dc8c40450bb58e038e17c5129cbab3b0ff3f1 Sat Sep 19 14:43:31 2026 +0530 Merge QA batch 2 P0 DOS-167 ruling 3: the web store opens under slow loads, the offline log lines print, and the not-kept warning shows only for a real memory store
+node v24.20.0  pnpm 11.25.0
+
+## the merged (cc)/(dd)/(ee) bits this walk reads
+31:export const OPEN_DEADLINE_MS = 15_000
+314:      onLog={consoleSink}
+15:export function consoleSink(line: string, detail?: unknown): void {
+
+## services (dos_qa)
+  :3000 /health -> 200
+  :3001 /health -> 200
+  :3002 /health -> 200
+  :3003 /health -> 200
+  :3004 /health -> 200
+  :3005 /health -> 200
+  :3006 /health -> 200
+  :3007 /health -> 200
+  sales Metro :5175 -> 200 (main checkout, cwd OS/frontend/sales-app)
+  android bundle warm: 10152128 bytes
+
+## device
+emulator-5554	device
+
+  avd: Pixel_7_API_36  boot: emulator -avd Pixel_7_API_36 -memory 3072 -no-snapshot-save -no-window -no-audio
+  api: 36  abi: arm64-v8a  mem: MemTotal:        3046940 kB
+  apk: 96533382 Sep 7 02:00
+
+## the reps used (dos_qa, password Dos@1234)
+  amit.pawar efde1e76-9785-7827-aff2-6f56ecd33588 @ Tarsun Enterprises 01a09a5b-3c58-71c1-a34d-b93c569b0099
+  kiran.mhatre 2239ec93-0bcd-7737-a70c-c60aa4d9e9f1 @ Sai Distributors 82f5c562-b7eb-7521-8e19-4aa6befc64f8
+  rahul.deshmukh 8760e17e-4830-7395-a946-1e02fffa1ad7 @ Tarsun Enterprises 01a09a5b-3c58-71c1-a34d-b93c569b0099
+  ruksana.shaikh e607cec2-3403-7a35-bec0-e0b3cbc08d57 @ Sai Distributors 82f5c562-b7eb-7521-8e19-4aa6befc64f8
+  ruksana.shaikh e607cec2-3403-7a35-bec0-e0b3cbc08d57 @ Tarsun Enterprises 01a09a5b-3c58-71c1-a34d-b93c569b0099

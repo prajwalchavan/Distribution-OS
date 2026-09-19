@@ -1,0 +1,13 @@
+## walk B0 — kiran one-tap sign-out (nothing queued) 16:13:42
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sign-in form at +5.2s
+shot b0-kiran-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:13:55)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-19 16:13 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-19 16:09 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:13:55)
+name="key_v1-dos.device"
+(end keys)

@@ -1,0 +1,1046 @@
+{
+  "startedAt": "2026-09-19T10:16:41.082Z",
+  "app": "http://localhost:5175",
+  "out": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/",
+  "sqlExpect": {
+    "A": {
+      "shops": 30,
+      "orders90d": 363
+    },
+    "B": {
+      "shops": 24,
+      "orders90d": 218
+    },
+    "A2": {
+      "shops": 29,
+      "orders90d": 380
+    }
+  },
+  "variants": {
+    "VSWITCH": {
+      "name": "VSWITCH",
+      "startedAt": "2026-09-19T10:16:41.132Z",
+      "shots": [
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/vswitch-01-home-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "the rep signed in at their first distributor"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/vswitch-02-switcher-open-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "the rail switcher listing both distributors"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/vswitch-03-other-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "the rep now at the second distributor"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/vswitch-04-switch-sheet-desk.png",
+          "url": "http://localhost:5175/orders/new?retailerId=a029f31b-2c6c-707b-b580-889125d3ee07",
+          "strip": "2 waiting to send",
+          "note": "changes waiting: the sheet offers \"Switch anyway\""
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/vswitch-05-after-switch-anyway-desk.png",
+          "url": "http://localhost:5175/orders/new?retailerId=a029f31b-2c6c-707b-b580-889125d3ee07",
+          "strip": "Updated just now",
+          "note": "at the other distributor; the first file is kept, unsent"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/switch-repeat3/vswitch-06-signed-out-desk.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": "after sign-out: the sweep deletes only files with nothing unsent"
+        }
+      ],
+      "checks": [],
+      "fileChecks": [],
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "expectedNames": {
+        "home": "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+        "other": "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+      },
+      "homeSync": {
+        "syncedAfterMs": 4153,
+        "strip": "Updated just now",
+        "pullRequests": 6,
+        "pullResponses": 6,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 20,
+        "salesOrdersRowsPulled": 28
+      },
+      "atHome": {
+        "headers": [
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft"
+        ],
+        "poolFiles": 6,
+        "unreadable": 0,
+        "junk": [],
+        "home": 1,
+        "other": 0,
+        "notPersistedOnScreen": false
+      },
+      "menuItems": [
+        "Tarsun Enterprisesalesperson",
+        "Sai Distributors, Dombivlisalesperson"
+      ],
+      "switchAt": 1789813006877,
+      "afterSwitchTap": {
+        "state": "timeout",
+        "afterMs": 30005
+      },
+      "otherSync": {
+        "syncedAfterMs": 32515,
+        "strip": "Updated just now",
+        "pullRequests": 2,
+        "pullResponses": 2,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 0,
+        "salesOrdersRowsPulled": 0
+      },
+      "atOther": {
+        "headers": [
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+        ],
+        "poolFiles": 6,
+        "unreadable": 0,
+        "junk": [],
+        "home": 1,
+        "other": 1,
+        "notPersistedOnScreen": false
+      },
+      "claimsAtOther": {
+        "sub": "e607cec2-3403-7a35-bec0-e0b3cbc08d57",
+        "tid": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+        "role": "salesperson"
+      },
+      "menuItems2": [
+        "Tarsun Enterprisesalesperson",
+        "Sai Distributors, Dombivlisalesperson"
+      ],
+      "switchBackAt": 1789813041432,
+      "afterSwitchBackTap": {
+        "state": "timeout",
+        "afterMs": 8022
+      },
+      "backHomePool": {
+        "headers": [
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+        ],
+        "poolFiles": 6,
+        "unreadable": 0,
+        "junk": [],
+        "home": 1,
+        "other": 1,
+        "notPersistedOnScreen": false
+      },
+      "claimsBackHome": {
+        "sub": "e607cec2-3403-7a35-bec0-e0b3cbc08d57",
+        "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+        "role": "salesperson"
+      },
+      "shopUsed": "a029f31b-2c6c-707b-b580-889125d3ee07",
+      "offlineLabel": {
+        "label": "Save on this phone",
+        "afterMs": 16
+      },
+      "queued": {
+        "strip": "Offline since 3:47 pm · 2 waiting to send"
+      },
+      "uploadHold": {
+        "held": 1
+      },
+      "queuedOnline": {
+        "strip": "2 waiting to send"
+      },
+      "menuItems3": [
+        "Tarsun Enterprisesalesperson",
+        "Sai Distributors, Dombivlisalesperson"
+      ],
+      "switchWithQueueAt": 1789813060131,
+      "afterSwitchWithQueueTap": {
+        "state": "sheet",
+        "afterMs": 54
+      },
+      "switchSheet": {
+        "title": "2 changes have not reached the office",
+        "attention": null,
+        "body": "They go when you come back to Tarsun Enterprise on this phone.",
+        "why": null,
+        "sendNowButton": "Send now",
+        "keepButton": "Switch anyway",
+        "cancelButton": "Cancel",
+        "innerText": "2 changes have not reached the office\nClose\nThey go when you come back to Tarsun Enterprise on this phone.\nSend now\nSwitch anyway\nCancel"
+      },
+      "afterSwitchAnyway": {
+        "headers": [
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+        ],
+        "poolFiles": 6,
+        "unreadable": 0,
+        "junk": [],
+        "home": 1,
+        "other": 1,
+        "notPersistedOnScreen": false
+      },
+      "claimsAfterSwitchAnyway": {
+        "sub": "e607cec2-3403-7a35-bec0-e0b3cbc08d57",
+        "tid": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+        "role": "salesperson"
+      },
+      "tapAt": 1789813064408,
+      "afterSignOut": {
+        "state": "signIn",
+        "afterMs": 53
+      },
+      "signOutSheet": null,
+      "afterSignOutPool": {
+        "headers": [
+          "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft"
+        ],
+        "poolFiles": 6,
+        "unreadable": 0,
+        "junk": [],
+        "home": 1,
+        "other": 0,
+        "notPersistedOnScreen": false
+      },
+      "textWatch": {
+        "startedAt": 1789813002054,
+        "periodMs": 20,
+        "hits": [],
+        "intervals": [],
+        "watchedMs": 65466
+      },
+      "console": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+      ],
+      "failed": [],
+      "syncLog": [
+        {
+          "at": 1789813002413,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789813002419,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": true
+        },
+        {
+          "at": 1789813002617,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500 "
+        },
+        {
+          "at": 1789813002755,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 20,
+            "sales_orders": 0,
+            "beats": 6
+          }
+        },
+        {
+          "at": 1789813002835,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDUzODNaIn0 "
+        },
+        {
+          "at": 1789813002913,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813002960,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjQ5NjRaIn0 "
+        },
+        {
+          "at": 1789813003057,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 25,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813003136,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MTc3NTdaIn0 "
+        },
+        {
+          "at": 1789813003203,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813003267,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzQwMzdaIn0 "
+        },
+        {
+          "at": 1789813003341,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813003415,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MTU2OTBaIn0 "
+        },
+        {
+          "at": 1789813003480,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 3,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813003535,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789813006940,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789813006943,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": true
+        },
+        {
+          "at": 1789813007141,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500 "
+        },
+        {
+          "at": 1789813007167,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 5
+          }
+        },
+        {
+          "at": 1789813007228,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxOC44NTA0MTBaIn0 "
+        },
+        {
+          "at": 1789813007264,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813007304,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789813041506,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789813041513,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789813041544,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMDoxNjozOC40MTZaIn0 "
+        },
+        {
+          "at": 1789813041605,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813041609,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789813052522,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789813052527,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789813052588,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMDoxNzoxNi41NDVaIn0 "
+        },
+        {
+          "at": 1789813052624,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813052627,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789813055695,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b92b-e097-768a-9086-d146b534acc1",
+            "01a0b92b-e097-768b-acf2-2a15a0d92987"
+          ],
+          "rows": [
+            "sales_orders:01a0b92b-d460-73eb-a7a2-a66c459fb71c",
+            "sales_order_lines:01a0b92b-db9a-72a3-9fad-6a252bdc367d"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b92b-0f05-70db-8858-2ba32988e32c\",\"ops\":[{\"opId\":\"01a0b92b-e097-768a-9086-d146b534acc1\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b92b-d460-73eb-a7a2-a66c459fb71c\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T10:17:35.639Z\"},{\"opId\":\"01a0b92b-e097-768b-acf2-2a15a0d92987\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b92b-db9a-72a3-9fad-6a252bdc367d\",\"data\":{\"order_id\":\"01a0b92b-d460-73eb-a7a2-a66c459fb71c\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T10:17:35.639Z\"}]}"
+        },
+        {
+          "at": 1789813055700,
+          "kind": "failed",
+          "path": "/sync/upload",
+          "error": "net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789813056729,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b92b-e097-768a-9086-d146b534acc1",
+            "01a0b92b-e097-768b-acf2-2a15a0d92987"
+          ],
+          "rows": [
+            "sales_orders:01a0b92b-d460-73eb-a7a2-a66c459fb71c",
+            "sales_order_lines:01a0b92b-db9a-72a3-9fad-6a252bdc367d"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b92b-0f05-70db-8858-2ba32988e32c\",\"ops\":[{\"opId\":\"01a0b92b-e097-768a-9086-d146b534acc1\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b92b-d460-73eb-a7a2-a66c459fb71c\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T10:17:35.639Z\"},{\"opId\":\"01a0b92b-e097-768b-acf2-2a15a0d92987\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b92b-db9a-72a3-9fad-6a252bdc367d\",\"data\":{\"order_id\":\"01a0b92b-d460-73eb-a7a2-a66c459fb71c\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T10:17:35.639Z\"}]}"
+        },
+        {
+          "at": 1789813056734,
+          "kind": "failed",
+          "path": "/sync/upload",
+          "error": "net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789813057154,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789813057162,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789813057173,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b92b-e097-768a-9086-d146b534acc1",
+            "01a0b92b-e097-768b-acf2-2a15a0d92987"
+          ],
+          "rows": [
+            "sales_orders:01a0b92b-d460-73eb-a7a2-a66c459fb71c",
+            "sales_order_lines:01a0b92b-db9a-72a3-9fad-6a252bdc367d"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b92b-0f05-70db-8858-2ba32988e32c\",\"ops\":[{\"opId\":\"01a0b92b-e097-768a-9086-d146b534acc1\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b92b-d460-73eb-a7a2-a66c459fb71c\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T10:17:35.639Z\"},{\"opId\":\"01a0b92b-e097-768b-acf2-2a15a0d92987\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b92b-db9a-72a3-9fad-6a252bdc367d\",\"data\":{\"order_id\":\"01a0b92b-d460-73eb-a7a2-a66c459fb71c\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T10:17:35.639Z\"}]}"
+        },
+        {
+          "at": 1789813057197,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMDoxNzoyNy41ODlaIn0 "
+        },
+        {
+          "at": 1789813057228,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813057232,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789813060349,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789813060354,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789813060380,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMDoxNjo0Mi4yMjlaIn0 "
+        },
+        {
+          "at": 1789813060430,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789813060433,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b92b-0f05-70db-8858-2ba32988e32c&unresolvedOnly=true&limit=50 "
+        }
+      ],
+      "offlineLines": [],
+      "summary": {
+        "twoDistributorsOffered": {
+          "expected": "both distributors in the rail switcher",
+          "observed": [
+            "Tarsun Enterprisesalesperson",
+            "Sai Distributors, Dombivlisalesperson"
+          ],
+          "pass": true
+        },
+        "homeStoreOpened": {
+          "expected": "one header /sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+          "observed": {
+            "headers": [
+              "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft"
+            ],
+            "poolFiles": 6,
+            "unreadable": 0,
+            "junk": [],
+            "home": 1,
+            "other": 0,
+            "notPersistedOnScreen": false
+          },
+          "pass": true
+        },
+        "switchOpensOtherStore": {
+          "expected": "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk present, the first kept (a switch wipes nothing)",
+          "observed": {
+            "pool": {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 1,
+              "notPersistedOnScreen": false
+            },
+            "claims": {
+              "sub": "e607cec2-3403-7a35-bec0-e0b3cbc08d57",
+              "tid": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+              "role": "salesperson"
+            }
+          },
+          "pass": true
+        },
+        "switchBackIsClean": {
+          "expected": "no sheet with nothing waiting; back on the first distributor",
+          "observed": {
+            "tap": {
+              "state": "timeout",
+              "afterMs": 8022
+            },
+            "pool": {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 1,
+              "notPersistedOnScreen": false
+            },
+            "claims": {
+              "sub": "e607cec2-3403-7a35-bec0-e0b3cbc08d57",
+              "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+              "role": "salesperson"
+            }
+          },
+          "pass": true
+        },
+        "changeQueuedHere": {
+          "expected": "an order saved on this phone at the first distributor",
+          "observed": {
+            "label": {
+              "label": "Save on this phone",
+              "afterMs": 16
+            },
+            "strip": "Offline since 3:47 pm · 2 waiting to send",
+            "errors": [
+              null,
+              null,
+              null
+            ]
+          },
+          "pass": true
+        },
+        "switchAnywayOffered": {
+          "expected": "Switch anyway",
+          "observed": {
+            "sheetState": {
+              "state": "sheet",
+              "afterMs": 54
+            },
+            "sheet": {
+              "title": "2 changes have not reached the office",
+              "attention": null,
+              "body": "They go when you come back to Tarsun Enterprise on this phone.",
+              "why": null,
+              "sendNowButton": "Send now",
+              "keepButton": "Switch anyway",
+              "cancelButton": "Cancel",
+              "innerText": "2 changes have not reached the office\nClose\nThey go when you come back to Tarsun Enterprise on this phone.\nSend now\nSwitch anyway\nCancel"
+            }
+          },
+          "pass": true
+        },
+        "switchAnywayKeepsBoth": {
+          "expected": "both files still there after the switch (nothing unsent thrown away)",
+          "observed": {
+            "pool": {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 1,
+              "notPersistedOnScreen": false
+            },
+            "claims": {
+              "sub": "e607cec2-3403-7a35-bec0-e0b3cbc08d57",
+              "tid": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+              "role": "salesperson"
+            }
+          },
+          "pass": true
+        },
+        "siblingWithUnsentSurvivesSignOut": {
+          "expected": "this file goes, the sibling holding an unsent change stays",
+          "observed": {
+            "sheet": null,
+            "pool": {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 0,
+              "notPersistedOnScreen": false
+            }
+          },
+          "pass": true
+        },
+        "poolNeverPoisoned": {
+          "expected": "no junk header, no unreadable file, ≤6 pool files at every checkpoint",
+          "observed": [
+            {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 0,
+              "notPersistedOnScreen": false
+            },
+            {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 1,
+              "notPersistedOnScreen": false
+            },
+            {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 1,
+              "notPersistedOnScreen": false
+            },
+            {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft",
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v7r431bgsoifpg41eqordf44xk"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 1,
+              "notPersistedOnScreen": false
+            },
+            {
+              "headers": [
+                "/sdm9eb4bmimwz0uw1mvh0t7q6v03guzv9zghwmmy1imsvb8cmft"
+              ],
+              "poolFiles": 6,
+              "unreadable": 0,
+              "junk": [],
+              "home": 1,
+              "other": 0,
+              "notPersistedOnScreen": false
+            }
+          ],
+          "pass": true
+        },
+        "noSqliteErrors": {
+          "expected": [],
+          "observed": [],
+          "pass": true
+        },
+        "notPersistedNeverShown": {
+          "expected": "no hit of s0.notPersisted (20 ms watch)",
+          "observed": {
+            "startedAt": 1789813002054,
+            "periodMs": 20,
+            "hits": [],
+            "intervals": [],
+            "watchedMs": 65466
+          },
+          "pass": true
+        }
+      },
+      "consoleTimeline": [
+        {
+          "at": 1789813001879,
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "at": 1789813001906,
+          "type": "log",
+          "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+        },
+        {
+          "at": 1789813002200,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+        },
+        {
+          "at": 1789813002309,
+          "type": "worker-created",
+          "text": "blob:http://localhost:5175/5db96bb9-b67b-480c-b65d-150d5afd405e"
+        },
+        {
+          "at": 1789813052517,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+        },
+        {
+          "at": 1789813055700,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789813055711,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        },
+        {
+          "at": 1789813056734,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789813056745,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        },
+        {
+          "at": 1789813067523,
+          "type": "worker-closed",
+          "text": "blob:http://localhost:5175/5db96bb9-b67b-480c-b65d-150d5afd405e"
+        }
+      ]
+    }
+  },
+  "nameSelfCheck": {
+    "rahul": {
+      "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "roundTrip": true
+    },
+    "kiran": {
+      "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1",
+        "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8"
+      },
+      "roundTrip": true
+    },
+    "amit": {
+      "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "roundTrip": true
+    },
+    "rahulEqualsRuling": true
+  },
+  "sqlIdsLive": "username|id|tenant_id|slug|role\namit.pawar|efde1e76-9785-7827-aff2-6f56ecd33588|01a09a5b-3c58-71c1-a34d-b93c569b0099|tarsun|salesperson\nkiran.mhatre|2239ec93-0bcd-7737-a70c-c60aa4d9e9f1|82f5c562-b7eb-7521-8e19-4aa6befc64f8|sai-distributors|salesperson\nrahul.deshmukh|8760e17e-4830-7395-a946-1e02fffa1ad7|01a09a5b-3c58-71c1-a34d-b93c569b0099|tarsun|salesperson\n(3 rows)",
+  "sqlExpectLive": null,
+  "finishedAt": "2026-09-19T10:17:47.526Z"
+}

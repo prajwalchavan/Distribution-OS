@@ -1,0 +1,191 @@
+{
+ "label": "dl-03",
+ "delayMs": 20000,
+ "signInAt": 1789813388576,
+ "memoryLines": [
+  {
+   "t": 16012,
+   "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+  }
+ ],
+ "memoryLineDetails": [
+  null
+ ],
+ "timeoutReasonNamed": false,
+ "syncCalls": 14,
+ "manifestCalls": 1,
+ "pullCalls": 12,
+ "firstSyncAfterSignInMs": 15088,
+ "screens": [
+  {
+   "name": "beat",
+   "path": "/",
+   "saysNotPersisted": true,
+   "stillLoadingBeat": false,
+   "body": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nD(\nDemo Docs Staff (edited)\nsalesperson\nStation Road\nToday's beat\nShops: 11\nVisited: 0\nOrdered: 1\n✓ Station Road\nKalyan West Market\nKh"
+  },
+  {
+   "name": "shops",
+   "path": "/shops",
+   "saysNotPersisted": false,
+   "stillLoadingBeat": false,
+   "body": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nD(\nDemo Docs Staff (edited)\nsalesperson\nShops\nShops: 31\nShops\nLosing\nCatalog\nAmbika Provision Store\nR-0009 · Station Road · Station Ro"
+  },
+  {
+   "name": "orders",
+   "path": "/orders",
+   "saysNotPersisted": false,
+   "stillLoadingBeat": false,
+   "body": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nD(\nDemo Docs Staff (edited)\nsalesperson\nMy orders\nWaiting: 0\nDrafts: 20\nOrders\nNeeds you\nTravelling\nAll\nDrafts\nSO-0885\n19 Sep · From w"
+  },
+  {
+   "name": "me",
+   "path": "/me",
+   "saysNotPersisted": false,
+   "stillLoadingBeat": false,
+   "body": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nD(\nDemo Docs Staff (edited)\nsalesperson\n21 Aug to 19 Sep\nMe\nMe\nVisits\nDrafts\nInbox\nToday\nVISITS\n0\nORDERS\n0\nORDER VALUE\n₹0.00\nSTRIKE RA"
+  },
+  {
+   "name": "settings",
+   "path": "/settings",
+   "saysNotPersisted": false,
+   "stillLoadingBeat": false,
+   "body": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nD(\nDemo Docs Staff (edited)\nsalesperson\nMy account\nName\nDemo Docs Staff (edited)\nRole\nSalesperson\nChange your password\nDevices signed "
+  }
+ ],
+ "opfsTopLevel": [],
+ "events": [
+  {
+   "t": 966,
+   "kind": "request",
+   "url": "/auth/login"
+  },
+  {
+   "t": 1020,
+   "kind": "request",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789899788&signature=0f67b51abb4b5c33554f"
+  },
+  {
+   "t": 1022,
+   "kind": "signed-in"
+  },
+  {
+   "t": 1048,
+   "kind": "holding",
+   "url": "index.bundle?platform=web&dev=true&hot=f"
+  },
+  {
+   "t": 16012,
+   "kind": "console",
+   "src": "page",
+   "type": "warning",
+   "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+   "args": null
+  },
+  {
+   "t": 16017,
+   "kind": "request",
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 16027,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500"
+  },
+  {
+   "t": 16118,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ"
+  },
+  {
+   "t": 16174,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjQ"
+  },
+  {
+   "t": 16222,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42ODA"
+  },
+  {
+   "t": 16278,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzI"
+  },
+  {
+   "t": 16333,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg"
+  },
+  {
+   "t": 16392,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDQ"
+  },
+  {
+   "t": 16460,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjU"
+  },
+  {
+   "t": 16527,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE"
+  },
+  {
+   "t": 16601,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMjA"
+  },
+  {
+   "t": 16676,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzY"
+  },
+  {
+   "t": 16723,
+   "kind": "request",
+   "url": "/sync/pull?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MjA"
+  },
+  {
+   "t": 16775,
+   "kind": "request",
+   "url": "/sync/errors?deviceId=01a0b930-f4b5-7293-83ed-3e7b76d55028&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 21048,
+   "kind": "released"
+  },
+  {
+   "t": 21157,
+   "kind": "holding",
+   "url": "worker.bundle?platform=web&dev=true&hot="
+  },
+  {
+   "t": 34292,
+   "kind": "request",
+   "url": "/reporting/dashboard/rep"
+  },
+  {
+   "t": 34293,
+   "kind": "request",
+   "url": "/reporting/registers/rep-daily?from=2026-08-21&to=2026-09-19&limit=40"
+  },
+  {
+   "t": 34298,
+   "kind": "request",
+   "url": "/incentives/progress"
+  },
+  {
+   "t": 34299,
+   "kind": "request",
+   "url": "/incentives/statements?limit=12"
+  },
+  {
+   "t": 36006,
+   "kind": "request",
+   "url": "/auth/sessions"
+  }
+ ],
+ "pass": false
+}

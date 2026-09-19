@@ -1,0 +1,26 @@
+## walk B5 — 'Sign out, keep here' with 2 changes queued and a typed draft 16:24:31 (epoch 1789815271)
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Demo Docs Staff (edited) only and go the next time Demo Docs Staff (edited) signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot b5-amit-leave-sheet.png
+## walk B5 cont — tap 'Sign out, keep here' 16:25:15
+keep at 540 1779
+sign-in form at +14.7s
+shot b5-amit-kept-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:25:34)
+total 3836
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:25 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:19 ..
+-rw------- 1 u0_a217 u0_a217 3907584 2026-09-19 16:25 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3907584)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:25:35)
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)
+-- logcat ReactNativeJS 'offline:' lines (16:25:35)
+(end offline lines)
+-- logcat crash buffer (16:25:35)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)

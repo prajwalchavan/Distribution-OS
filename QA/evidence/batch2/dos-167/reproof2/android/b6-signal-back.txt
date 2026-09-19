@@ -1,0 +1,15 @@
+## walk B6 cont — the office comes back: the kept change goes first, once 16:28:45 (epoch 1789815525)
+-- dos_qa BEFORE (amit's draft orders at Ansari/Anand today):
+3003
+3003 reverse restored
++10s strip: 2 waiting to send Offline since 4:28 pm  Shops: 0 
++20s strip: 2 waiting to send Offline since 4:28 pm  Shops: 0 
++30s strip: 2 waiting to send Offline since 4:28 pm  Shops: 0 
++40s strip: 2 waiting to send Offline since 4:28 pm  Shops: 0 
++50s strip: Shops: 10 Updated just now 
++60s strip: Shops: 10 Updated just now 
+shot b6-amit-after-signal.png
+-- dos_qa AFTER:
+01a0b94b-5ed6-7373-b094-c93bc0a7db0f|draft|salesperson|2026-09-19 16:29:39.751473+05:30
+-- lines on those orders:
+01a0b94b-5ed6-7373-b094-c93bc0a7db0f|f086f3e3-3697-7439-98d9-f20c231c110a|1|case

@@ -1,0 +1,6 @@
+## walk B7 — (u) the kept DRAFT: open Ansari Kirana Stores again as the same rep 16:30:10
+tap 'Shops' at 675 2246
+order screen: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated 1 min ago | Ansari Kirana Stores | Order | Items: 1 | This order | Clear | Clear | Campa Cola 1 L | Campa Cola 1 L | 1 cs · 18 cs available | ₹684.00 | 684 rupees | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case · 10 cs available | Add a case | Add a case | Campa Cola 200 ml | Campa · 48 pc case · 10 cs available | Add a case | Add a case | Campa Cola 500 ml | Add a case | Items 1 · ₹684.00 before GST | Place order | Place order | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+
+items: Items 1 · ₹684.00 before GST
+shot b7-amit-draft-restored.png

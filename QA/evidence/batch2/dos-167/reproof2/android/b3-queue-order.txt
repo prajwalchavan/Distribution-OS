@@ -1,0 +1,46 @@
+## walk B3 (retry) — amit queues ONE order offline at Anand Bhavan Provision 16:21:30
+-- b3-amit: open Shops and search 'Anand Bhavan Provision' (16:21:30)
+tap 'Shops' at 675 2246
+shops list: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm | Shops | Shops: 29 | Shops | Losing | Catalog | Anand Bhavan Provision | Anand Bhavan Provision | R-0043 · Kolsewadi · Kolsewadi, Kalyan East | ₹35,548.00 | C | Beat | Orders | Shops | Me
+shot b3-amit-shops.png
+tap shop at 540 1264
+shop card: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm | Kolsewadi · R-0043 | Anand Bhavan Provision | Owes ₹35,548 | Limit ₹50,000 | Overdue ₹35,548 | Shop | Orders 11 | Bills 5 | How old the dues are | as of 19 Sep | Money owed, by age | ₹ | 0–7 | 2,843.00 | 8–15 | 6,073.00 | 16–30 | 12,264.00 | 31–60 | 14,368.00 | 61–90 | 0.00 | 90+ | 0.00 | Credit | Credit limit | Credit days | Open bills | Terms | ₹50,000.00 | 7 | 5 | Pay after delivery | The office checks the credit (Strict) when the order is submitted, not here. | Your last order 11 Sep | ₹2,843.00 | Take order | Beat | Orders
+shot b3-amit-shop-card.png
+order entry: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm | Anand Bhavan Provision | Order | Items: 0 | No signal | Repeat last order (2) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case | Add a case | Campa Cola 2 L | Campa · 24 pc case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Items 0 · ₹0.00 before GST | Save on this phone | Add at least one item | Beat | Orders | Shops | Me
+shot b3-amit-order-entry.png
+NO ADD A CASE
+(707, 1857, 1004, 1809) clickable=true
+(751, 1918, 959, 1809) clickable=false
+(707, 2081, 1004, 1809) clickable=true
+(751, 2142, 959, 1809) clickable=false
+(707, 2305, 1004, 1809) clickable=true
+(751, 2366, 959, 1809) clickable=false
+## walk B3 cont — scroll the item list and add one case 16:22:20
+(707, 1232, 1004, 1413) clickable=true
+(751, 1293, 959, 1351) clickable=false
+(707, 1456, 1004, 1637) clickable=true
+(751, 1517, 959, 1575) clickable=false
+(707, 1680, 1004, 1809) clickable=true
+(751, 1741, 959, 1799) clickable=false
+(707, 1904, 1004, 1809) clickable=true
+(751, 1965, 959, 1809) clickable=false
+(707, 2128, 1004, 1809) clickable=true
+(751, 2189, 959, 1809) clickable=false
+(707, 2352, 1004, 1809) clickable=true
+first real Add a case at: 855 1322
+after add: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm | Anand Bhavan Provision | Order | Items: 1 | No signal | This order | Clear | Campa Cola 1 L | 1 cs | ₹684.00 | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Campa Cola 200 ml | Campa · 48 pc case | Add a case | Campa Cola 500 ml | Campa · 24 pc case | Add 
+items: Items 1 · ₹684.00 before GST
+shot b3-amit-line-added.png
+## walk B3 cont — Save on this phone 16:22:44
+save at 773 2012
+after save: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:15 pm · 2 waiting to send | Anand Bhavan Provision | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands. | Open the order | Back to the beat | This order | Clear | Campa Cola 1 L | 1 cs | ₹684.00 | Add items | On this phone: 171 ite
+shot b3-amit-saved.png
+strip: 2 waiting to send Offline since 4:15 pm  Saved on this phone 
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:22:56)
+total 7048
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:19 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:19 ..
+-rw------- 1 u0_a217 u0_a217 2621440 2026-09-19 16:15 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-19 16:22 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4532032 2026-09-19 16:22 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2621440)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4532032)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }

@@ -1,0 +1,1464 @@
+{
+  "startedAt": "2026-09-19T09:40:35.792Z",
+  "app": "http://localhost:5175",
+  "out": "QA/evidence/batch2/dos-167/reproof2/web/",
+  "sqlExpect": {
+    "A": {
+      "shops": 30,
+      "orders90d": 363
+    },
+    "B": {
+      "shops": 24,
+      "orders90d": 218
+    },
+    "A2": {
+      "shops": 29,
+      "orders90d": 380
+    }
+  },
+  "variants": {
+    "VMEM": {
+      "name": "VMEM",
+      "startedAt": "2026-09-19T09:40:35.867Z",
+      "shots": [
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/vmem-01-rahul-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Updated just now",
+          "note": "memory store: the beat's not-persisted line is expected"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/vmem-02-queued-offline-desk.png",
+          "url": "http://localhost:5175/orders/new?retailerId=a029f31b-2c6c-707b-b580-889125d3ee07",
+          "strip": "Offline since 3:10 pm · 2 waiting to send",
+          "note": "order saved in this tab; the strip counts what waits"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/vmem-03-leave-sheet-offline-desk.png",
+          "url": "http://localhost:5175/orders/new?retailerId=a029f31b-2c6c-707b-b580-889125d3ee07",
+          "strip": "Offline since 3:10 pm · 2 waiting to send",
+          "note": "memory + offline: the sheet offers only Cancel"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/vmem-04-leave-sheet-online-desk.png",
+          "url": "http://localhost:5175/orders/new?retailerId=a029f31b-2c6c-707b-b580-889125d3ee07",
+          "strip": "Updated just now",
+          "note": "memory + online: Send now and Cancel"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof2/web/vmem-05-after-send-now-desk.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": null
+        }
+      ],
+      "checks": [],
+      "fileChecks": [
+        {
+          "where": "memory: rahul signed in and synced — no store file in OPFS at all",
+          "expected": {
+            "rahul": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "observed": {
+            "rahul": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "pass": true,
+          "identity": null,
+          "sqlitePaths": [],
+          "decoded": [],
+          "sidecars": [],
+          "poolFiles": 0,
+          "unreadable": 0,
+          "crossOriginIsolated": false,
+          "beatScreenSaysNotPersisted": true
+        }
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "envAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": false,
+        "opfs": true,
+        "sameDocumentMarker": "document-1789810836289",
+        "localStorageKeys": [
+          "dos.device"
+        ]
+      },
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": false,
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789810836289",
+        "localStorageAuthKeys": [],
+        "opfsTopLevel": [],
+        "opfsWalk": [],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "sidecars": 0,
+            "sidecarsOfOthers": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 0,
+            "unreadable": 0
+          },
+          "sqlitePaths": [],
+          "decoded": [],
+          "sidecars": []
+        }
+      },
+      "sqlBefore": "id|order_no|state|source|salesperson_id|created_by|created_at\n01a09dab-8b6d-71cc-b75c-82fbbc4215ac||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 07:40:23.054378+05:30\n01a09d7f-d596-7106-84d6-3373b7e9c75b||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:50:21.250277+05:30\n01a09d7f-57f0-77e2-8a12-5c10e417c734||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:49:40.86021+05:30\n01a09d7d-679f-7244-813a-0ca5e225db9e||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:47:42.021034+05:30\n01a09d7c-f88a-7515-a0a6-38653447125b||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:47:03.5531+05:30\n01a09d7b-e139-7628-850c-77a3c2f04831||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:46:02.905245+05:30\n01a09d7b-3bb0-70ca-965d-f401dfb52682||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:45:01.533054+05:30\n01a09d7b-034c-72e6-bf8b-4e36a70ad575||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:44:47.14512+05:30\n01a09d7a-7045-72e0-ab4f-6301947e6204||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:44:10.112836+05:30\n01a09d7a-2057-77a2-9d97-67f33c6e2718||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:43:49.643009+05:30\n01a09d78-559e-711b-ba2d-41c8a2d07f66||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:42:01.480734+05:30\n6717be15-8358-7c0f-820d-f9c5d5c2ad02|SO-0839|delivered|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-09 09:45:00+05:30\n(12 rows)",
+      "aSync": {
+        "syncedAfterMs": 3360,
+        "strip": "Updated just now",
+        "pullRequests": 12,
+        "pullResponses": 12,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 30,
+        "salesOrdersRowsPulled": 357
+      },
+      "storeAfterA": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": false,
+        "beatScreenSaysNotPersisted": true,
+        "sameDocumentMarker": "document-1789810836289",
+        "localStorageAuthKeys": [
+          {
+            "key": "dos.auth.refresh",
+            "length": 43
+          },
+          {
+            "key": "dos.auth.session",
+            "length": 868
+          }
+        ],
+        "opfsTopLevel": [],
+        "opfsWalk": [],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "sidecars": 0,
+            "sidecarsOfOthers": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 0,
+            "unreadable": 0
+          },
+          "sqlitePaths": [],
+          "decoded": [],
+          "sidecars": []
+        }
+      },
+      "offlineLinesAtSignIn": [
+        {
+          "at": 1789810836452,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+          "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+        }
+      ],
+      "draft": {
+        "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.a029f31b-2c6c-707b-b580-889125d3ee07",
+        "id": "01a0b90a-1b07-73ac-8f30-e1f683c00fb5",
+        "lines": [
+          {
+            "id": "01a0b90a-222d-7582-8d4f-cf821a54157a",
+            "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+            "qtyPcs": 24
+          }
+        ],
+        "clicks": [
+          {
+            "index": 0,
+            "linesBefore": 0,
+            "linesAfter": 1
+          }
+        ],
+        "distinctVariants": 1
+      },
+      "offlineLabel": {
+        "label": "Save on this phone",
+        "afterMs": 15
+      },
+      "queued": {
+        "placeLabel": "Saved on this phone",
+        "strip": "Offline since 3:10 pm · 2 waiting to send",
+        "bodySavedOnPhone": true
+      },
+      "tapAt": 1789810846565,
+      "afterTap": {
+        "state": "sheet",
+        "afterMs": 0
+      },
+      "sheetOffline": {
+        "title": "2 changes have not reached the office",
+        "attention": null,
+        "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+        "why": "No connection — they cannot go now.",
+        "sendNowButton": null,
+        "keepButton": null,
+        "cancelButton": "Cancel",
+        "innerText": "2 changes have not reached the office\nClose\nThis browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.\nNo connection — they cannot go now.\nCancel"
+      },
+      "buttonsOffline": [
+        {
+          "testId": null,
+          "aria": null,
+          "text": "Close"
+        },
+        {
+          "testId": "leave-cancel",
+          "aria": null,
+          "text": "Cancel"
+        }
+      ],
+      "waitsOffline": {
+        "signInFormShown": false,
+        "sheetOpen": true,
+        "path": "/orders/new"
+      },
+      "sendNowAppeared": {
+        "ok": true,
+        "afterMs": 10
+      },
+      "sheetOnline": {
+        "title": "2 changes have not reached the office",
+        "attention": null,
+        "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+        "why": null,
+        "sendNowButton": "Send now",
+        "keepButton": null,
+        "cancelButton": "Cancel",
+        "innerText": "2 changes have not reached the office\nClose\nThis browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.\nSend now\nCancel"
+      },
+      "buttonsOnline": [
+        {
+          "testId": null,
+          "aria": null,
+          "text": "Close"
+        },
+        {
+          "testId": "leave-send-now",
+          "aria": null,
+          "text": "Send now"
+        },
+        {
+          "testId": "leave-cancel",
+          "aria": null,
+          "text": "Cancel"
+        }
+      ],
+      "afterSendNow": {
+        "state": "signIn",
+        "afterMs": 56
+      },
+      "stripAroundSend": [
+        {
+          "atMs": 57,
+          "strip": "Updated just now",
+          "path": "/orders/new"
+        },
+        {
+          "atMs": 117,
+          "strip": "(none)",
+          "path": "/sign-in"
+        }
+      ],
+      "uploadsAfterSend": {
+        "requests": 0,
+        "responses": [],
+        "opIds": [],
+        "perOp": {},
+        "rows": []
+      },
+      "sql": {
+        "orderRows": "id|order_no|state|source|salesperson_id|created_by|retailer_id|created_at\n01a0b90a-1b07-73ac-8f30-e1f683c00fb5||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|a029f31b-2c6c-707b-b580-889125d3ee07|2026-09-19 15:10:49.610864+05:30\n(1 row)",
+        "orderCount": 1,
+        "salespersonIsRahul": true,
+        "lineRows": "id|order_id|variant_id|entered_qty|entered_unit\n01a0b90a-222d-7582-8d4f-cf821a54157a|01a0b90a-1b07-73ac-8f30-e1f683c00fb5|f086f3e3-3697-7439-98d9-f20c231c110a|1|case\n(1 row)",
+        "lineCount": 1,
+        "lineIdsCount": 1,
+        "syncOps": "(no opIds captured)",
+        "syncOpsCount": 0
+      },
+      "sqlAfter": "id|order_no|state|source|salesperson_id|created_by|created_at\n01a0b90a-1b07-73ac-8f30-e1f683c00fb5||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-19 15:10:49.610864+05:30\n01a09dab-8b6d-71cc-b75c-82fbbc4215ac||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 07:40:23.054378+05:30\n01a09d7f-d596-7106-84d6-3373b7e9c75b||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:50:21.250277+05:30\n01a09d7f-57f0-77e2-8a12-5c10e417c734||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:49:40.86021+05:30\n01a09d7d-679f-7244-813a-0ca5e225db9e||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:47:42.021034+05:30\n01a09d7c-f88a-7515-a0a6-38653447125b||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:47:03.5531+05:30\n01a09d7b-e139-7628-850c-77a3c2f04831||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:46:02.905245+05:30\n01a09d7b-3bb0-70ca-965d-f401dfb52682||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:45:01.533054+05:30\n01a09d7b-034c-72e6-bf8b-4e36a70ad575||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:44:47.14512+05:30\n01a09d7a-7045-72e0-ab4f-6301947e6204||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:44:10.112836+05:30\n01a09d7a-2057-77a2-9d97-67f33c6e2718||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:43:49.643009+05:30\n01a09d78-559e-711b-ba2d-41c8a2d07f66||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|2026-09-14 06:42:01.480734+05:30\n(12 rows)",
+      "console": [
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+      ],
+      "consoleAll": [
+        {
+          "at": 1789810836120,
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "at": 1789810836146,
+          "type": "log",
+          "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+        },
+        {
+          "at": 1789810836452,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+        },
+        {
+          "at": 1789810842359,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+        },
+        {
+          "at": 1789810842361,
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "at": 1789810845234,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810845235,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        },
+        {
+          "at": 1789810846244,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810846245,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        },
+        {
+          "at": 1789810848256,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810848256,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        }
+      ],
+      "failed": [
+        "401 GET http://127.0.0.1:3003/sync/manifest"
+      ],
+      "syncLog": [
+        {
+          "at": 1789810836453,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789810836461,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500 "
+        },
+        {
+          "at": 1789810836462,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": true
+        },
+        {
+          "at": 1789810836539,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0 "
+        },
+        {
+          "at": 1789810836542,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 30,
+            "sales_orders": 0,
+            "beats": 6
+          }
+        },
+        {
+          "at": 1789810836594,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0 "
+        },
+        {
+          "at": 1789810836597,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810836659,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0 "
+        },
+        {
+          "at": 1789810836668,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 217,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810836731,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0 "
+        },
+        {
+          "at": 1789810836738,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 127,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810836790,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0 "
+        },
+        {
+          "at": 1789810836796,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810836852,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0 "
+        },
+        {
+          "at": 1789810836858,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810836917,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0 "
+        },
+        {
+          "at": 1789810836926,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810836982,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0 "
+        },
+        {
+          "at": 1789810836992,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810837047,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0 "
+        },
+        {
+          "at": 1789810837056,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810837119,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0 "
+        },
+        {
+          "at": 1789810837128,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 1,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810837160,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0 "
+        },
+        {
+          "at": 1789810837173,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810837210,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789810837216,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 12,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842360,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789810842361,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 401,
+          "schemaVersion": null,
+          "role": null,
+          "changed": null
+        },
+        {
+          "at": 1789810842377,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789810842381,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500 "
+        },
+        {
+          "at": 1789810842382,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": true
+        },
+        {
+          "at": 1789810842452,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0 "
+        },
+        {
+          "at": 1789810842455,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 30,
+            "sales_orders": 0,
+            "beats": 6
+          }
+        },
+        {
+          "at": 1789810842498,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0 "
+        },
+        {
+          "at": 1789810842501,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842540,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0 "
+        },
+        {
+          "at": 1789810842550,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 217,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842605,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0 "
+        },
+        {
+          "at": 1789810842611,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 127,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842660,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0 "
+        },
+        {
+          "at": 1789810842666,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842721,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0 "
+        },
+        {
+          "at": 1789810842726,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842810,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0 "
+        },
+        {
+          "at": 1789810842819,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842894,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0 "
+        },
+        {
+          "at": 1789810842903,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810842963,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0 "
+        },
+        {
+          "at": 1789810842979,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810843063,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0 "
+        },
+        {
+          "at": 1789810843073,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 1,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810843142,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0 "
+        },
+        {
+          "at": 1789810843156,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810843198,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789810843208,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 12,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810845232,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b90a-2604-704d-8f71-8d8cf8684bd3",
+            "01a0b90a-2604-704e-8113-69c99cd6447e"
+          ],
+          "rows": [
+            "sales_orders:01a0b90a-1b07-73ac-8f30-e1f683c00fb5",
+            "sales_order_lines:01a0b90a-222d-7582-8d4f-cf821a54157a"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b90a-0302-7762-92ea-f064257ab5fe\",\"ops\":[{\"opId\":\"01a0b90a-2604-704d-8f71-8d8cf8684bd3\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T09:40:45.188Z\"},{\"opId\":\"01a0b90a-2604-704e-8113-69c99cd6447e\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b90a-222d-7582-8d4f-cf821a54157a\",\"data\":{\"order_id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T09:40:45.188Z\"}]}"
+        },
+        {
+          "at": 1789810845233,
+          "kind": "failed",
+          "path": "/sync/upload",
+          "error": "net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810846238,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b90a-2604-704d-8f71-8d8cf8684bd3",
+            "01a0b90a-2604-704e-8113-69c99cd6447e"
+          ],
+          "rows": [
+            "sales_orders:01a0b90a-1b07-73ac-8f30-e1f683c00fb5",
+            "sales_order_lines:01a0b90a-222d-7582-8d4f-cf821a54157a"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b90a-0302-7762-92ea-f064257ab5fe\",\"ops\":[{\"opId\":\"01a0b90a-2604-704d-8f71-8d8cf8684bd3\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T09:40:45.188Z\"},{\"opId\":\"01a0b90a-2604-704e-8113-69c99cd6447e\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b90a-222d-7582-8d4f-cf821a54157a\",\"data\":{\"order_id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T09:40:45.188Z\"}]}"
+        },
+        {
+          "at": 1789810846244,
+          "kind": "failed",
+          "path": "/sync/upload",
+          "error": "net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810848250,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b90a-2604-704d-8f71-8d8cf8684bd3",
+            "01a0b90a-2604-704e-8113-69c99cd6447e"
+          ],
+          "rows": [
+            "sales_orders:01a0b90a-1b07-73ac-8f30-e1f683c00fb5",
+            "sales_order_lines:01a0b90a-222d-7582-8d4f-cf821a54157a"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b90a-0302-7762-92ea-f064257ab5fe\",\"ops\":[{\"opId\":\"01a0b90a-2604-704d-8f71-8d8cf8684bd3\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T09:40:45.188Z\"},{\"opId\":\"01a0b90a-2604-704e-8113-69c99cd6447e\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b90a-222d-7582-8d4f-cf821a54157a\",\"data\":{\"order_id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T09:40:45.188Z\"}]}"
+        },
+        {
+          "at": 1789810848255,
+          "kind": "failed",
+          "path": "/sync/upload",
+          "error": "net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810849606,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": "36957a3c3b8da665",
+          "input": "knownSchemaVersion=36957a3c3b8da665 "
+        },
+        {
+          "at": 1789810849607,
+          "kind": "request",
+          "method": "POST",
+          "path": "/sync/upload",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "",
+          "opIds": [
+            "01a0b90a-2604-704d-8f71-8d8cf8684bd3",
+            "01a0b90a-2604-704e-8113-69c99cd6447e"
+          ],
+          "rows": [
+            "sales_orders:01a0b90a-1b07-73ac-8f30-e1f683c00fb5",
+            "sales_order_lines:01a0b90a-222d-7582-8d4f-cf821a54157a"
+          ],
+          "body": "{\"protocol\":1,\"deviceId\":\"01a0b90a-0302-7762-92ea-f064257ab5fe\",\"ops\":[{\"opId\":\"01a0b90a-2604-704d-8f71-8d8cf8684bd3\",\"op\":\"PUT\",\"table\":\"sales_orders\",\"id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"data\":{\"retailer_id\":\"a029f31b-2c6c-707b-b580-889125d3ee07\",\"state\":\"draft\",\"source\":\"salesperson\",\"pricing_date_mode\":\"order\",\"note\":null,\"expected_delivery_date\":null},\"clientTime\":\"2026-09-19T09:40:45.188Z\"},{\"opId\":\"01a0b90a-2604-704e-8113-69c99cd6447e\",\"op\":\"PUT\",\"table\":\"sales_order_lines\",\"id\":\"01a0b90a-222d-7582-8d4f-cf821a54157a\",\"data\":{\"order_id\":\"01a0b90a-1b07-73ac-8f30-e1f683c00fb5\",\"variant_id\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"entered_qty\":1,\"entered_unit\":\"case\"},\"clientTime\":\"2026-09-19T09:40:45.188Z\"}]}"
+        },
+        {
+          "at": 1789810849615,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOTo0MDozOC4xNDJaIn0 "
+        },
+        {
+          "at": 1789810849616,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": false
+        },
+        {
+          "at": 1789810849661,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a0b90a-0302-7762-92ea-f064257ab5fe&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789810849662,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789810849662,
+          "kind": "response",
+          "path": "/sync/upload",
+          "status": 200,
+          "body": "{\"accepted\":2,\"replayed\":0,\"rejected\":[],\"warnings\":[],\"upgradeRequired\":false}"
+        }
+      ],
+      "auth": [
+        {
+          "at": 1789810836436,
+          "path": "/auth/login",
+          "status": 200,
+          "claims": {
+            "sub": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+            "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+            "role": "salesperson"
+          }
+        },
+        {
+          "at": 1789810842366,
+          "path": "/auth/refresh",
+          "status": 200,
+          "claims": {
+            "sub": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+            "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+            "role": "salesperson"
+          }
+        },
+        {
+          "at": 1789810849729,
+          "path": "/auth/logout",
+          "status": 200,
+          "claims": null
+        }
+      ],
+      "offlineLines": [
+        {
+          "at": 1789810836452,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+          "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+        },
+        {
+          "at": 1789810842359,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+          "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+        }
+      ],
+      "summary": {
+        "consoleNoPersistentStoreLine": {
+          "expected": "a console line 'offline: no persistent store; running in memory' naming 'not cross-origin isolated'",
+          "observed": {
+            "matching": [
+              {
+                "at": 1789810836452,
+                "type": "warning",
+                "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+                "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+              },
+              {
+                "at": 1789810842359,
+                "type": "warning",
+                "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+                "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+              }
+            ],
+            "everyOfflineLine": [
+              {
+                "at": 1789810836452,
+                "type": "warning",
+                "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+                "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+              },
+              {
+                "at": 1789810842359,
+                "type": "warning",
+                "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}",
+                "args": "[\"offline: no persistent store; running in memory\",{\"name\":\"s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\",\"fallback\":{\"wanted\":\"sqlite-web\",\"reason\":\"not cross-origin isolated (no COOP/COEP)\"}}]"
+              }
+            ],
+            "consoleMessagesSeen": 11
+          },
+          "pass": true
+        },
+        "crossOriginIsolated": {
+          "expected": false,
+          "observed": false,
+          "pass": true
+        },
+        "beatNotPersistedLine": {
+          "expected": true,
+          "observed": true,
+          "pass": true
+        },
+        "queuedStrip": {
+          "expected": "'2 waiting to send'",
+          "observed": {
+            "placeLabel": "Saved on this phone",
+            "strip": "Offline since 3:10 pm · 2 waiting to send",
+            "bodySavedOnPhone": true
+          },
+          "pass": true
+        },
+        "sheetOffline": {
+          "expected": {
+            "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+            "sendNowButton": null,
+            "keepButton": null,
+            "cancelButton": "Cancel"
+          },
+          "observed": {
+            "sheet": {
+              "title": "2 changes have not reached the office",
+              "attention": null,
+              "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+              "why": "No connection — they cannot go now.",
+              "sendNowButton": null,
+              "keepButton": null,
+              "cancelButton": "Cancel",
+              "innerText": "2 changes have not reached the office\nClose\nThis browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.\nNo connection — they cannot go now.\nCancel"
+            },
+            "buttons": [
+              {
+                "testId": null,
+                "aria": null,
+                "text": "Close"
+              },
+              {
+                "testId": "leave-cancel",
+                "aria": null,
+                "text": "Cancel"
+              }
+            ]
+          },
+          "pass": true
+        },
+        "waitsOffline": {
+          "expected": "still signed in, the sheet open, 3 s after the tap",
+          "observed": {
+            "signInFormShown": false,
+            "sheetOpen": true,
+            "path": "/orders/new"
+          },
+          "pass": true
+        },
+        "sheetOnline": {
+          "expected": {
+            "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+            "sendNowButton": "Send now",
+            "keepButton": null,
+            "cancelButton": "Cancel"
+          },
+          "observed": {
+            "appeared": {
+              "ok": true,
+              "afterMs": 10
+            },
+            "sheet": {
+              "title": "2 changes have not reached the office",
+              "attention": null,
+              "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+              "why": null,
+              "sendNowButton": "Send now",
+              "keepButton": null,
+              "cancelButton": "Cancel",
+              "innerText": "2 changes have not reached the office\nClose\nThis browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.\nSend now\nCancel"
+            },
+            "buttons": [
+              {
+                "testId": null,
+                "aria": null,
+                "text": "Close"
+              },
+              {
+                "testId": "leave-send-now",
+                "aria": null,
+                "text": "Send now"
+              },
+              {
+                "testId": "leave-cancel",
+                "aria": null,
+                "text": "Cancel"
+              }
+            ]
+          },
+          "pass": true
+        },
+        "sendNowSends": {
+          "expected": "the queued ops uploaded, each once",
+          "observed": {
+            "requests": 0,
+            "responses": [],
+            "opIds": [],
+            "perOp": {},
+            "rows": []
+          },
+          "pass": false
+        },
+        "signOutAfterSend": {
+          "expected": "signed out right after the send (by itself, or one tap with no sheet)",
+          "observed": {
+            "afterSendNow": {
+              "state": "signIn",
+              "afterMs": 56
+            },
+            "secondAfterTap": null,
+            "stripAroundSend": [
+              {
+                "atMs": 57,
+                "strip": "Updated just now",
+                "path": "/orders/new"
+              },
+              {
+                "atMs": 117,
+                "strip": "(none)",
+                "path": "/sign-in"
+              }
+            ]
+          },
+          "pass": true
+        },
+        "dosQaOrderOnce": {
+          "expected": "the order once with its line, salesperson rahul; each op once in sync_ops",
+          "observed": {
+            "orderRows": "id|order_no|state|source|salesperson_id|created_by|retailer_id|created_at\n01a0b90a-1b07-73ac-8f30-e1f683c00fb5||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|8760e17e-4830-7395-a946-1e02fffa1ad7|a029f31b-2c6c-707b-b580-889125d3ee07|2026-09-19 15:10:49.610864+05:30\n(1 row)",
+            "orderCount": 1,
+            "salespersonIsRahul": true,
+            "lineRows": "id|order_id|variant_id|entered_qty|entered_unit\n01a0b90a-222d-7582-8d4f-cf821a54157a|01a0b90a-1b07-73ac-8f30-e1f683c00fb5|f086f3e3-3697-7439-98d9-f20c231c110a|1|case\n(1 row)",
+            "lineCount": 1,
+            "lineIdsCount": 1,
+            "syncOps": "(no opIds captured)",
+            "syncOpsCount": 0
+          },
+          "pass": true
+        },
+        "noOpfsStoreFile": {
+          "expected": 0,
+          "observed": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "sidecars": 0,
+            "sidecarsOfOthers": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 0,
+            "unreadable": 0
+          },
+          "pass": true
+        }
+      },
+      "consoleTimeline": [
+        {
+          "at": 1789810836120,
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "at": 1789810836146,
+          "type": "log",
+          "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+        },
+        {
+          "at": 1789810836452,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+        },
+        {
+          "at": 1789810842359,
+          "type": "warning",
+          "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+        },
+        {
+          "at": 1789810842361,
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "at": 1789810845234,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810845235,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        },
+        {
+          "at": 1789810846244,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810846245,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        },
+        {
+          "at": 1789810848256,
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+        },
+        {
+          "at": 1789810848256,
+          "type": "warning",
+          "text": "sync.upload: No connection. This will send when the signal is back. ApiError: No connection. This will send when the signal is back.\n    at toApiError (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:93063:14)\n    at http://localhost:5175/node_modules/expo-"
+        }
+      ]
+    }
+  },
+  "nameSelfCheck": {
+    "rahul": {
+      "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "roundTrip": true
+    },
+    "kiran": {
+      "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1",
+        "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8"
+      },
+      "roundTrip": true
+    },
+    "amit": {
+      "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "roundTrip": true
+    },
+    "rahulEqualsRuling": true
+  },
+  "sqlIdsLive": "username|id|tenant_id|slug|role\namit.pawar|efde1e76-9785-7827-aff2-6f56ecd33588|01a09a5b-3c58-71c1-a34d-b93c569b0099|tarsun|salesperson\nkiran.mhatre|2239ec93-0bcd-7737-a70c-c60aa4d9e9f1|82f5c562-b7eb-7521-8e19-4aa6befc64f8|sai-distributors|salesperson\nrahul.deshmukh|8760e17e-4830-7395-a946-1e02fffa1ad7|01a09a5b-3c58-71c1-a34d-b93c569b0099|tarsun|salesperson\n(3 rows)",
+  "sqlExpectLive": {
+    "raw": "uname|shops_today|orders_90d\namit.pawar|29|368\nkiran.mhatre|24|218\nrahul.deshmukh|30|357\n(3 rows)",
+    "parsed": {
+      "amit.pawar": {
+        "shops": 29,
+        "orders90d": 368
+      },
+      "kiran.mhatre": {
+        "shops": 24,
+        "orders90d": 218
+      },
+      "rahul.deshmukh": {
+        "shops": 30,
+        "orders90d": 357
+      }
+    }
+  },
+  "finishedAt": "2026-09-19T09:40:49.904Z"
+}

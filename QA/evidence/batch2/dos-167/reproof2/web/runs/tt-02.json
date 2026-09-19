@@ -1,0 +1,165 @@
+{
+ "label": "tt-02",
+ "tab1Before": {
+  "who": "tab1 before the second tab",
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  ],
+  "poolFiles": 6,
+  "unreadable": 0,
+  "junk": [],
+  "saysNotPersisted": false,
+  "stillLoading": false,
+  "path": "/"
+ },
+ "tab2": {
+  "who": "tab2 after its own boot",
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  ],
+  "poolFiles": 6,
+  "unreadable": 0,
+  "junk": [],
+  "saysNotPersisted": true,
+  "stillLoading": false,
+  "path": "/"
+ },
+ "tab1After": {
+  "who": "tab1 after the second tab opened",
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  ],
+  "poolFiles": 6,
+  "unreadable": 0,
+  "junk": [],
+  "saysNotPersisted": false,
+  "stillLoading": false,
+  "path": "/"
+ },
+ "consoleLines": [
+  {
+   "tab": "tab2",
+   "type": "warning",
+   "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, fallback: Object}"
+  }
+ ],
+ "badLines": [],
+ "syncCalls": [
+  {
+   "tab": "tab1",
+   "url": "/sync/manifest"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab1",
+   "url": "/sync/errors?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&unresolvedOnly=true&limit=50"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/manifest"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/pull?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0"
+  },
+  {
+   "tab": "tab2",
+   "url": "/sync/errors?deviceId=01a0b933-3adb-75c7-b429-713d58c2a5dc&unresolvedOnly=true&limit=50"
+  }
+ ],
+ "rahulHeaderPresentThroughout": true,
+ "noJunk": true,
+ "tab1KeptWorking": true,
+ "pass": true
+}

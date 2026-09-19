@@ -1,0 +1,31 @@
+## walk A2 — rahul one-tap sign-out, nothing queued 16:10:47 (epoch 1789814447)
+-- SecureStore keys (16:10:47)
+name="key_v1-dos.auth.refresh"
+name="key_v1-dos.auth.session"
+name="key_v1-dos.device"
+(end keys)
+tap '⋯' at 947 247
+menu: More | More | Settings | Settings | My account | My account | Change your password | Change your password | Sign out | Sign out | Close | Close
+shot a2-rahul-menu.png
+tap 'Sign out' at 540 2002
+sign-in form at +5.3s: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot a2-rahul-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:11:04)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-19 16:10 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-19 16:09 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- again +6s
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:11:10)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-19 16:10 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-19 16:09 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:11:10)
+name="key_v1-dos.device"
+(end keys)
+-- logcat ReactNativeJS 'offline:' lines (16:11:10)
+(end offline lines)
+-- logcat crash buffer (16:11:10)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

@@ -1,0 +1,21 @@
+{
+ "signIn": {
+  "status": 200,
+  "who": "prakash.salunkhe (sai-distributors owner)",
+  "tenantId": null
+ },
+ "request": {
+  "id": "01a0b91c-c464-71b4-a9c3-1686633cad9a",
+  "userId": "01a0b91c-c464-7807-b9e6-9e25ce649b4b",
+  "username": "ruksana.shaikh",
+  "name": "Ruksana Shaikh",
+  "phone": "+919810000015",
+  "role": "salesperson",
+  "temporaryPassword": "Dos@1234",
+  "idempotencyKey": "01a0b91c-c464-705d-85d2-5c7aa4ae6939"
+ },
+ "response": {
+  "status": 200,
+  "body": "{\"userId\":\"e607cec2-3403-7a35-bec0-e0b3cbc08d57\",\"membershipId\":\"01a0b91c-c464-71b4-a9c3-1686633cad9a\",\"mustChangePassword\":true}"
+ }
+}
