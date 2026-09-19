@@ -48,6 +48,7 @@ import { useMemo, useState } from 'react'
 
 import type { PickRow } from '../../src/lib/local'
 import { useHydrated, useLocalPickLines, useLocalPicklist } from '../../src/lib/local'
+import { pickGate } from '../../src/lib/pick-gate'
 import { useRecordPick } from '../../src/lib/queue'
 import { DeskOnly, ExpiryChip, LocalAsync, Panel, pl, workFamily } from '../../src/lib/ui'
 
@@ -91,15 +92,25 @@ export default function PickingSheet(): React.JSX.Element {
    * The Start reply wins until the next pull repaints the local row: `engine.sync` returns early while
    * a pull is already running, so the local `picklists` row can still read `open` after a start that
    * succeeded. The reply counts only for THIS sheet, in case the router reuses the screen for another id.
-   * An unknown status locks too: the `pick_lines` rows can land a pull page before their sheet row.
+   *
+   * An unknown status is NOT a fourth way of saying "open" (DOS-182): `pickGate` tells apart a device
+   * that has not answered yet from a device holding a wave whose sheet row a cut pull never delivered.
    */
   const startedHere =
     start.data !== undefined && start.data.item.id === picklistId
       ? start.data.item.status
       : undefined
   const liveStatus = startedHere ?? sheet?.status
-  const notStarted = liveStatus === 'open'
-  const locked = liveStatus === undefined || notStarted
+  const gate = pickGate({
+    startedHere,
+    deviceStatus: sheet?.status ?? null,
+    reading: sheetLoading || loading,
+    linesOnDevice: rows.length,
+  })
+  const notStarted = gate === 'not-started'
+  const locked = gate !== 'pickable'
+  /** Pickable on this phone's word alone: the office has not confirmed the wave started. */
+  const unconfirmed = gate === 'pickable' && liveStatus === undefined
 
   const [shortFor, setShortFor] = useState<PickRow | null>(null)
   const [shortPieces, setShortPieces] = useState<number | null>(null)
@@ -207,7 +218,11 @@ export default function PickingSheet(): React.JSX.Element {
            * disabled button's reason beneath it — the not-started sentence would be said twice on a
            * phone, over the scanner's own "unavailable" reason.
            */}
-          {notStarted ? (
+          {/*
+           * Nothing is offered while the device has not answered (DOS-182). Scan and "Take it to
+           * packing" over rows that refuse to be picked is the bar contradicting the sheet.
+           */}
+          {gate === 'waiting' ? null : notStarted ? (
             <Button
               label={t('w5.start')}
               variant="primary"
@@ -253,6 +268,12 @@ export default function PickingSheet(): React.JSX.Element {
         {notStarted ? (
           <Txt field="body" desk="body" testID="w5-not-started">
             {t('w5.notStarted')}
+          </Txt>
+        ) : null}
+        {/* The wave is being picked on this phone's word: say so rather than let it pass for confirmed. */}
+        {unconfirmed ? (
+          <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-unconfirmed">
+            {t('w5.unconfirmed')}
           </Txt>
         ) : null}
         {start.error === undefined ? null : (

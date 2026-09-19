@@ -285,6 +285,8 @@ export const strings = {
   'w5.confirm': 'Take it to packing',
   'w5.savedLine': 'Line saved on this phone',
   'w5.notStarted': 'This sheet has not been started',
+  'w5.unconfirmed':
+    'Picking from the copy on this phone — the office has not confirmed this wave yet',
   'w5.cancelIsManager': 'A wave is cancelled by the manager.',
   'w5.viewTodo': 'To pick',
   'w5.viewAll': 'Every line',
