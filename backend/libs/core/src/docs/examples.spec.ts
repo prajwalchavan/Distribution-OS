@@ -206,6 +206,7 @@ const LINKED: ExampleContext = {
   },
   // Free slots as the probe reads them: one lane per role, so no two services publish the same id.
   slotLanes: {
+    'delivery.deliveries.addPod': [1, 2, 3, 4, 5, 6, 7, 8],
     'orders.create': [2, 3, 4, 5, 6, 7, 8, 9],
     'orders.repeatLast': [0, 1, 2, 3, 4, 5, 6, 7],
     'orders.setLines': [7, 8, 9, 10, 11, 12, 13, 14],
@@ -557,6 +558,29 @@ describe('every POST, on every service that serves it', () => {
       ([, examples]) => examples.get('procurement.supplierInvoices.create')?.body?.invoiceNo,
     )
     expect(new Set(numbers).size, 'supplier invoice numbers').toBe(business.length)
+  })
+
+  /**
+   * QA DOS-176. The procedure creates a row under an id the CLIENT sends, and it used to publish one fixed id
+   * for every service. The first document pressed took it; every other document then pressed an id somebody
+   * else holds — proof on another crew's delivery, which `pod_evidence_read` hides from that caller — and the
+   * insert died on the primary key: `proof insert returned nothing`, a 500 on a stop the crew could not close.
+   * The server now refuses that honestly; this is the other half, so the published example is pressable.
+   */
+  it('DOS-176 gives every service document its own proof id for delivery.deliveries.addPod', () => {
+    const business = [...byService].filter(([service]) => service !== 'auth')
+    const ids = business.map(([, examples]) => {
+      const evidence = examples.get('delivery.deliveries.addPod')?.body?.evidence as
+        { id?: unknown } | undefined
+      return evidence?.id
+    })
+    expect(ids.every((id) => typeof id === 'string')).toBe(true)
+    expect(new Set(ids).size, 'delivery.deliveries.addPod evidence.id').toBe(business.length)
+    // the same walk as every other creating procedure, so a second press replays instead of colliding
+    const keys = business.map(([, examples]) =>
+      String(examples.get('delivery.deliveries.addPod')?.body?.idempotencyKey),
+    )
+    expect(new Set(keys).size, 'delivery.deliveries.addPod idempotencyKey').toBe(business.length)
   })
 
   it('is deterministic per service', () => {

@@ -46,6 +46,7 @@ import {
   locations,
   memberships,
   messages,
+  podEvidence,
   priceListItems,
   priceLists,
   products,
@@ -2492,6 +2493,18 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .where(and(eq(trips.tenantId, tenantId), inArray(trips.id, [...candidates])))
       ).map((row) => row.id),
     )
+  // QA DOS-176. A CREATING procedure whose row id is the client's, which used to publish ONE fixed id: the
+  // first service's document took it and every other service, and every later run, pressed an id another crew
+  // already held — a row `pod_evidence_read` hides from them — so the insert died on the primary key (500).
+  const podIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: podEvidence.id })
+          .from(podEvidence)
+          .where(and(eq(podEvidence.tenantId, tenantId), inArray(podEvidence.id, [...candidates])))
+      ).map((row) => row.id),
+    )
   const cycleCountIds: TakenIds = async (candidates) =>
     new Set(
       (
@@ -2611,6 +2624,11 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       writeOffIds,
     ),
     'delivery.trips.create': await freeSlots('delivery.trips.create', 'id', tripIds),
+    'delivery.deliveries.addPod': await freeSlots(
+      'delivery.deliveries.addPod',
+      'evidence.id',
+      podIds,
+    ),
     'integrations.imports.create': await freeSlots(
       'integrations.imports.create',
       'id',
@@ -3977,17 +3995,24 @@ const OVERRIDES: Record<
       },
     ],
   }),
-  'delivery.deliveries.addPod': (ctx, options) => ({
-    id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
-    'evidence.id': createdId('delivery.deliveries.addPod', 'evidence.id'),
-    'evidence.kind': 'geo',
-    'evidence.objectKey': DROP,
-    'evidence.inline': DROP,
-    'evidence.payload': { distanceM: 40 },
-    'evidence.lat': 19.2437,
-    'evidence.lng': 73.1355,
-    'evidence.capturedAt': DROP,
-  }),
+  // The proof id is the client's and it walks the free-slot sequence (QA DOS-176): a fixed id meant every
+  // service after the first pressed proof another crew's delivery already holds, and `pod_evidence_read`
+  // hides that row from a crew member, so the insert died on the primary key.
+  'delivery.deliveries.addPod': (ctx, options) => {
+    const slot = slotOf(ctx, 'delivery.deliveries.addPod')
+    return {
+      id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
+      idempotencyKey: docsIdempotencyKey('delivery.deliveries.addPod', slot),
+      'evidence.id': createdId('delivery.deliveries.addPod', 'evidence.id', slot),
+      'evidence.kind': 'geo',
+      'evidence.objectKey': DROP,
+      'evidence.inline': DROP,
+      'evidence.payload': { distanceM: 40 },
+      'evidence.lat': 19.2437,
+      'evidence.lng': 73.1355,
+      'evidence.capturedAt': DROP,
+    }
+  },
   'delivery.deliveries.list': () => ({
     tripId: DROP,
     stopId: DROP,

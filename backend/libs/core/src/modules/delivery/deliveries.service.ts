@@ -497,9 +497,15 @@ export class DeliveriesService {
       .from(podEvidence)
       .where(eq(podEvidence.id, evidence.id))
       .limit(1)
-    if (!existing)
-      throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'proof insert returned nothing' })
-    return existing
+    // A replay of proof this caller can see (its own delivery): the row it already wrote.
+    if (existing) return existing
+    // The insert hit the primary key, yet nothing comes back from the look-up: the row that holds this id is one
+    // `pod_evidence_read` hides — proof on ANOTHER crew's delivery (QA DOS-176). The id is the client's, so the
+    // answer belongs to the client; a 500 told the crew nothing and left a delivered stop it could not close.
+    throw new ORPCError('CONFLICT', {
+      message: `proof ${evidence.id} is already recorded against another delivery; send this proof under an id of its own`,
+      data: { code: 'pod_id_taken', evidenceId: evidence.id },
+    })
   }
 
   private async findDelivery(tx: Db, id: string): Promise<DeliveryRow> {

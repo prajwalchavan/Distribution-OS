@@ -2077,6 +2077,64 @@ describeDb('delivery (DATABASE_URL)', () => {
   })
 
   // ---------------------------------------------------------------------------------------------------------------
+  // QA DOS-176: a client id somebody else already holds, on a row RLS hides from this caller
+
+  it('DOS-176 proof of delivery under an evidence id another crew already holds is refused with a message, never a 500', async () => {
+    // The proof id is the client's. `addPod` looks for it first, but that look-up runs under RLS: a row on
+    // ANOTHER crew's delivery is invisible, the insert then hits the primary key, and the crew was told
+    // "proof insert returned nothing" — a 500 on a delivery it cannot close.
+    const podId = uuidv7()
+    const evidence = {
+      id: podId,
+      kind: 'geo',
+      payload: { distanceM: 40 },
+      lat: 19.2437,
+      lng: 73.1355,
+    }
+    const mine = await call<{ item: { id: string } }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/deliveries/${deliveryA1}/pod`,
+      { idempotencyKey: `pod-176-a-${run}`, id: deliveryA1, evidence },
+    )
+    expect(mine.status, JSON.stringify(mine.body)).toBe(200)
+
+    // the same id again, from the same crew: the row IS visible, so it replays
+    const again = await call<{ item: { id: string } }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/deliveries/${deliveryA1}/pod`,
+      { idempotencyKey: `pod-176-b-${run}`, id: deliveryA1, evidence },
+    )
+    expect(again.status, JSON.stringify(again.body)).toBe(200)
+    expect(again.body.item.id).toBe(podId)
+
+    // the other crew, on its own delivery, reusing that id: refused, and told why
+    const [theirs] = (
+      await db.execute(
+        sql`select id from deliveries where tenant_id = ${tenantId} and trip_id = ${trip2} limit 1`,
+      )
+    ).rows as { id: string }[]
+    expect(theirs?.id).toBeDefined()
+    const clash = await call<{ message: string; data?: { code?: string } }>(
+      app,
+      otherDriver,
+      'POST',
+      `/delivery/deliveries/${theirs?.id ?? ''}/pod`,
+      { idempotencyKey: `pod-176-c-${run}`, id: theirs?.id ?? '', evidence },
+    )
+    expect(clash.status, JSON.stringify(clash.body)).toBe(409)
+    expect(clash.body.data?.code).toBe('pod_id_taken')
+    expect(clash.body.message).toContain(podId)
+    // and nothing of the other crew's was touched
+    const [row] = (await db.execute(sql`select delivery_id from pod_evidence where id = ${podId}`))
+      .rows as { delivery_id: string }[]
+    expect(row?.delivery_id).toBe(deliveryA1)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
   // who sees what
 
   it('a salesperson is refused every delivery write and every collection, at the API and in Postgres', async () => {
