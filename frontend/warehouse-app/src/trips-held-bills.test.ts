@@ -5,8 +5,10 @@
  * refuses to plan it (409 `bill_on_road`) and answers it apart from the plannable bills, under
  * `TripPlanningOutput.held`, with the trip that carries it. The screen only displays that list — the road
  * rule has one server home and no screen keeps a copy (design amendment (g)) — so each held bill sits
- * under the bills, greyed and not pressable, saying "Out on <trip> — back after check-in", and a page that
- * carries only held bills still draws them.
+ * under the bills, disabled and not pressable, saying "Out on <trip> — back after check-in", and a page
+ * that carries only held bills still draws them. "Disabled", not "greyed": A Ledger never greys a control
+ * that is unavailable (`ui/src/web/css.ts:71`), so the sentence beneath the shop name is the whole of why
+ * the row cannot be tapped, and it has to name the trip.
  *
  * Read as source, like `owner-app/src/settings-views.test.ts`: importing the screen in Node pulls in
  * `react-native` and `expo-router`, which do not resolve outside Metro. It lives under `src/`, not `app/`,
@@ -65,7 +67,7 @@ function elementWithTestIdPrefix(code: string, prefix: string): { tag: string; s
 const catalogue: Readonly<Record<string, string>> = strings
 
 describe('W10 Trips: bills held on the road', () => {
-  it('DOS-172: W10 lists the planning board\'s held bills under the plannable bills, greyed and never pressable, each saying "Out on <trip> — back after check-in"', async () => {
+  it('DOS-172: W10 lists the planning board\'s held bills under the plannable bills, disabled and never pressable, each saying "Out on <trip> — back after check-in"', async () => {
     const code = withoutComments(await readScreen())
 
     // The rows are the board's own `held`, never a rule of the screen's.
@@ -82,9 +84,11 @@ describe('W10 Trips: bills held on the road', () => {
     const row = elementWithTestIdPrefix(code, 'w10-held-')
     expect(row.tag).toBe('ListRow')
     expect(row.source).toMatch(/testID=\{`w10-held-\$\{\w+\.invoiceId\}`\}/)
-    // Greyed, and a tap does nothing: nobody plans a bill still on a van.
+    // Disabled, and a tap does nothing: nobody plans a bill still on a van.
     expect(row.source).toMatch(/state="disabled"/)
     expect(row.source).not.toMatch(/\bonPress\b/)
+    // The reason is the row's own sentence, because a disabled control is never greyed here.
+    expect(row.source).toMatch(/\bsecondary=/)
     // It names the trip that carries it.
     expect(row.source).toMatch(/t\(\s*'w10\.heldOnTrip'/)
     expect(row.source).toMatch(/\.onTripNo\b/)
@@ -98,5 +102,20 @@ describe('W10 Trips: bills held on the road', () => {
     expect(empty.length, 'the bill list has no empty condition').toBeGreaterThan(0)
     expect(empty).toMatch(/\bbills\.length\s*===\s*0/)
     expect(empty).toMatch(/\bheld\.length\s*===\s*0/)
+  })
+
+  it('DOS-172: `held` means the bills on the road everywhere in W10 — no tap callback shadows it with the chosen ids', async () => {
+    const code = withoutComments(await readScreen())
+    // One binding, and it is the board's.
+    const bindings = [...code.matchAll(/\bconst\s+held\s*=/g)]
+    expect(bindings, 'W10 binds `held` more than once').toHaveLength(1)
+    expect(code).toMatch(/const\s+held\s*=\s*board\.data\?\.held\b/)
+    /*
+     * The `setChosen` updaters take the PREVIOUS CHOSEN INVOICE IDS, a `string[]`, not the held bills.
+     * Naming that parameter `held` hid the board's own `held` inside the two tap callbacks and invited
+     * the next reader to plan a bill that is still on a van.
+     */
+    expect(code).not.toMatch(/\(\s*held\s*\)\s*=>/)
+    expect(code).not.toMatch(/setChosen\(\s*\(\s*held\b/)
   })
 })

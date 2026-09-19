@@ -6,7 +6,7 @@
  * built from the trip planning board (`delivery.trips.planning`): today or tomorrow, a vehicle, a driver
  * and a helper from the crew — a member already on a trip that day is listed, disabled, saying which —
  * the cash float, and the packed bills no open trip carries yet, stops in the order the bills are tapped.
- * A bill that came back undelivered is listed under those, greyed and not tappable: it rides its van
+ * A bill that came back undelivered is listed under those, disabled and not tappable: it rides its van
  * until that trip checks in, and no trip may plan it until then (QA DOS-172). The board answers those
  * apart, under `held`, with the trip that carries each one; the rule is the server's alone and this
  * screen only draws what it sends.
@@ -435,7 +435,7 @@ export default function DeskTrips(): React.JSX.Element {
               <Stack gap={2}>
                 {label(t('m7t.bills'))}
                 {billList((invoiceId) => {
-                  setChosen((held) => toggleChosen(held, invoiceId))
+                  setChosen((chosen) => toggleChosen(chosen, invoiceId))
                   changed()
                 })}
               </Stack>
@@ -462,7 +462,7 @@ export default function DeskTrips(): React.JSX.Element {
           <Panel title={t('m7t.addBillTitle', { trip: tripName(addTrip) })} testID="trip-add-panel">
             <Stack gap={4}>
               {billList((invoiceId) => {
-                setChosen((held) => toggleWithinShop(held, bills, invoiceId))
+                setChosen((chosen) => toggleWithinShop(chosen, bills, invoiceId))
                 changed()
               })}
               <Button

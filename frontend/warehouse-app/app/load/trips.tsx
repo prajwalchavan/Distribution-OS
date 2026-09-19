@@ -6,15 +6,14 @@
  * board (`delivery.trips.planning`): the date, a vehicle, a driver and a helper from the crew — a member
  * already on a trip that day is listed, disabled, saying which — the cash float, and the packed bills no
  * open trip carries yet, stops in the order the bills are tapped. A bill that came back undelivered is
- * listed under those, greyed and not tappable: it rides its van until that trip checks in, and no trip
+ * listed under those, disabled and not tappable: it rides its van until that trip checks in, and no trip
  * may plan it until then (QA DOS-172). The board answers those apart, under `held`, with the trip that
- * carries each one; the rule is the server's alone and this screen only draws what it sends.
- * "Add a bill" puts a late bill on a
- * planned or loading trip. Both forms are inline panels and both confirm in a dialog on the page, never
- * over a sheet (DOS-164). The trip and stop ids are fixed when the dialog opens, so pressing again after
- * a lost reply sends the same request and gets the same trip back. A refusal keeps the form and prints
- * the service's sentence under it. The godown has no staff read, so a trip's driver is named from the
- * board's crew.
+ * carries each one; the rule is the server's alone and this screen only draws what it sends. "Add a
+ * bill" puts a late bill on a planned or loading trip. Both forms are inline panels and both confirm
+ * in a dialog on the page, never over a sheet (DOS-164). The trip and stop ids are fixed when the
+ * dialog opens, so pressing again after a lost reply sends the same request and gets the same trip
+ * back. A refusal keeps the form and prints the service's sentence under it. The godown has no staff
+ * read, so a trip's driver is named from the board's crew.
  *
  * "Start loading" asks first; the load sheet is then built FOR the trip, from its shops, and counted
  * out on W7 (DOS-137).
@@ -437,7 +436,7 @@ export default function Trips(): React.JSX.Element {
                   {t('w10.bills')}
                 </Txt>
                 {billList((invoiceId) => {
-                  setChosen((held) => toggleChosen(held, invoiceId))
+                  setChosen((chosen) => toggleChosen(chosen, invoiceId))
                   changed()
                 })}
               </Stack>
@@ -460,7 +459,7 @@ export default function Trips(): React.JSX.Element {
           <Panel title={t('w10.addBillTitle', { trip: tripName(addTrip) })} testID="w10-add-panel">
             <Stack gap={4}>
               {billList((invoiceId) => {
-                setChosen((held) => toggleWithinShop(held, bills, invoiceId))
+                setChosen((chosen) => toggleWithinShop(chosen, bills, invoiceId))
                 changed()
               })}
               {addStop.error === undefined ? null : (
