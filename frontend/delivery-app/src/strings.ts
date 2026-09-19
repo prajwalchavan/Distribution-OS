@@ -287,7 +287,6 @@ export const strings = {
   'd6.beforeGst': 'Before GST',
   'd6.gst': 'GST',
   'd6.roundOff': 'Round-off',
-  'd6.cashDiscount': 'Paid now, {amount} comes off the bill',
   'd6.collectNow': 'Take the money now',
   'd6.create': 'Bill it and hand it over',
   'd6.created': 'Bill {no}',

@@ -96,7 +96,6 @@ describe('van sale figures', () => {
       beforeGstPaise: 22140,
       gstPaise: 2657,
       roundOffPaise: 3,
-      cashDiscountPaise: 0,
     })
     expect(saleFigures(undefined)).toBeNull()
   })
@@ -113,6 +112,7 @@ describe('van sale figures', () => {
     expect.soft(code, 'D6 reads the before-GST net of the quote').not.toMatch(/\bnetPaise\b/)
     expect.soft(code, 'D6 reads the before-GST net of a line').not.toMatch(/\blineNetPaise\b/)
     expect.soft(code, 'D6 reads the quote totals itself').not.toMatch(/\.\s*totals\b/)
+    expect.soft(code, 'D6 names a cash discount').not.toMatch(/\bcashDiscount/)
     expect.soft(code, 'D6 does not take its figures from saleFigures').toMatch(/\bsaleFigures\s*\(/)
     expect.soft(code, 'D6 does not take its lines from lineFigure').toMatch(/\blineFigure\s*\(/)
     expect

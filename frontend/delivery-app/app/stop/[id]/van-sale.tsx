@@ -38,12 +38,11 @@ import {
   Stack,
   StatusChip,
   Txt,
-  formatINR,
   useColors,
   useStrings,
 } from '@dos/ui'
 import { haptics } from '@dos/ui/platform'
-import { paise, uuidv7 } from '@dos/domain'
+import { uuidv7 } from '@dos/domain'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
@@ -318,18 +317,6 @@ export default function VanSale(): React.JSX.Element {
                       value={figures.roundOffPaise}
                       testID="d6-round-off"
                     />
-                  )}
-                  {figures === null || figures.cashDiscountPaise <= 0 ? null : (
-                    <Txt
-                      field="label"
-                      desk="meta"
-                      color={colors.status.moss.fg}
-                      testID="d6-cash-discount"
-                    >
-                      {t('d6.cashDiscount', {
-                        amount: formatINR(paise(figures.cashDiscountPaise)),
-                      })}
-                    </Txt>
                   )}
                 </Stack>
               }

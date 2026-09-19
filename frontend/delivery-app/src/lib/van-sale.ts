@@ -5,8 +5,13 @@
  * round-off included, the same field the retailer order screen prints as 'You pay' (DOS-096). The breakdown
  * under the lines is the quote's own before-GST figure, its GST and its round-off. Each line shows
  * `lineTotalPaise`, the line with its GST. Schemes, bargains and order-level rules are already inside every
- * line (`priceOrder()` spreads order-level rules into the lines), so the lines add up to Before GST. The cash
- * discount is reported (ADR 0004) and never deducted from the bill's figure.
+ * line (`priceOrder()` spreads order-level rules into the lines), so the lines add up to Before GST.
+ *
+ * NO CASH DISCOUNT IS NAMED HERE. `quote.cashDiscountPaise` is the best `cash_discount_pct` SCHEME on the net
+ * of the lines it covers, and no scheme cash discount ever reaches a bill: the only discount receivables can
+ * grant comes from `retailers.cash_discount_bps` applied to the bill TOTAL. Naming the scheme figure at the
+ * door invites the crew to take that much less, which is the DOS-171 short collection again, so the screen
+ * names none and D5 alone speaks about what a shop may deduct.
  *
  * For an item that carries only GST this is the bill to the paisa. Cess is not in the quote yet (DOS-079), and
  * the bill rounds the CGST and SGST halves separately, so on those the bill's own total, shown once it is
@@ -23,8 +28,6 @@ export interface SaleFigures {
   gstPaise: number
   /** Signed residue of rounding to the rupee. */
   roundOffPaise: number
-  /** Comes off only when the shop pays inside its window: reported, never deducted from `billPaise`. */
-  cashDiscountPaise: number
 }
 
 /** The sale's figures from the office's quote, or null while there is no quote. */
@@ -36,7 +39,6 @@ export function saleFigures(quote: Quote | undefined): SaleFigures | null {
     beforeGstPaise: totals.netPaise,
     gstPaise: totals.taxPaise,
     roundOffPaise: totals.roundOffPaise,
-    cashDiscountPaise: quote.cashDiscountPaise,
   }
 }
 
