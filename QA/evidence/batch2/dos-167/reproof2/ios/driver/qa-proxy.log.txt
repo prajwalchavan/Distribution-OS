@@ -1,0 +1,230 @@
+17:38:28.961 auth proxy listening 127.0.0.1:3900 -> 127.0.0.1:3000, mode pass
+17:38:28.967 sales proxy listening 127.0.0.1:3903 -> 127.0.0.1:3003, mode pass
+17:38:30.962 [pass] auth GET /health -> 200
+17:38:30.983 [pass] sales GET /health -> 200
+17:39:37.151 [pass] auth GET /health -> 200
+17:39:37.157 [pass] sales GET /health -> 200
+17:44:42.953 [pass] auth POST /auth/login -> 200
+17:44:43.119 [pass] sales GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg -> 200
+17:44:43.631 [pass] sales GET /sync/manifest -> 200
+17:44:43.988 [pass] sales GET /sync/pull -> 200
+17:44:44.139 [pass] sales GET /sync/pull -> 200
+17:44:44.311 [pass] sales GET /sync/pull -> 200
+17:44:44.549 [pass] sales GET /sync/pull -> 200
+17:44:44.759 [pass] sales GET /sync/pull -> 200
+17:44:44.970 [pass] sales GET /sync/pull -> 200
+17:44:45.193 [pass] sales GET /sync/pull -> 200
+17:44:45.405 [pass] sales GET /sync/pull -> 200
+17:44:45.631 [pass] sales GET /sync/pull -> 200
+17:44:45.844 [pass] sales GET /sync/pull -> 200
+17:44:46.051 [pass] sales GET /sync/pull -> 200
+17:44:46.251 [pass] sales GET /sync/pull -> 200
+17:44:46.341 [pass] sales GET /sync/errors -> 200
+17:45:46.393 [pass] sales GET /sync/manifest -> 200
+17:45:46.555 [pass] sales GET /sync/pull -> 200
+17:45:46.572 [pass] sales GET /sync/errors -> 200
+17:46:03.148 [pass] sales GET /reporting/registers/rep-daily -> 200
+17:46:03.148 [pass] sales GET /reporting/dashboard/rep -> 200
+17:46:03.185 [pass] sales GET /incentives/statements -> 200
+17:46:03.195 [pass] sales GET /incentives/progress -> 200
+17:46:46.641 [pass] sales GET /sync/manifest -> 200
+17:46:46.718 [pass] sales GET /sync/pull -> 200
+17:46:46.725 [pass] sales GET /sync/errors -> 200
+17:47:46.782 [pass] sales GET /sync/manifest -> 200
+17:47:46.927 [pass] sales GET /sync/pull -> 200
+17:47:46.952 [pass] sales GET /sync/errors -> 200
+17:48:03.574 [pass] auth POST /auth/logout -> 200
+17:48:53.585 [pass] auth POST /auth/login -> 200
+17:48:53.842 [pass] sales GET /sync/manifest -> 200
+17:48:54.037 [pass] sales GET /sync/pull -> 200
+17:48:54.192 [pass] sales GET /sync/pull -> 200
+17:48:54.357 [pass] sales GET /sync/pull -> 200
+17:48:54.545 [pass] sales GET /sync/pull -> 200
+17:48:54.755 [pass] sales GET /sync/pull -> 200
+17:48:54.979 [pass] sales GET /sync/pull -> 200
+17:48:55.209 [pass] sales GET /sync/pull -> 200
+17:48:55.421 [pass] sales GET /sync/pull -> 200
+17:48:55.508 [pass] sales GET /sync/errors -> 200
+17:49:55.538 [pass] sales GET /sync/manifest -> 200
+17:49:55.643 [pass] sales GET /sync/pull -> 200
+17:49:55.654 [pass] sales GET /sync/errors -> 200
+17:50:17.220 [pass] auth POST /auth/logout -> 200
+17:50:47.505 [pass] auth POST /auth/login -> 200
+17:50:47.589 [pass] sales GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg -> 200
+17:50:47.734 [pass] sales GET /sync/manifest -> 200
+17:50:47.857 [pass] sales GET /sync/pull -> 200
+17:50:48.109 [pass] sales GET /sync/pull -> 200
+17:50:48.267 [pass] sales GET /sync/pull -> 200
+17:50:48.470 [pass] sales GET /sync/pull -> 200
+17:50:48.684 [pass] sales GET /sync/pull -> 200
+17:50:48.902 [pass] sales GET /sync/pull -> 200
+17:50:49.149 [pass] sales GET /sync/pull -> 200
+17:50:49.400 [pass] sales GET /sync/pull -> 200
+17:50:49.635 [pass] sales GET /sync/pull -> 200
+17:50:49.845 [pass] sales GET /sync/pull -> 200
+17:50:50.051 [pass] sales GET /sync/pull -> 200
+17:50:50.267 [pass] sales GET /sync/pull -> 200
+17:50:50.351 [pass] sales GET /sync/errors -> 200
+17:51:40.353 [down] sales GET /health -> connection dropped
+17:51:40.362 [down] auth GET /health -> connection dropped
+17:51:41.274 [down] sales GET /reporting/retailers/34191c43-f0bc-70ab-a39d-fcbe8f94ae36/behaviour -> connection dropped
+17:51:41.278 [down] sales GET /reporting/retailers/34191c43-f0bc-70ab-a39d-fcbe8f94ae36/behaviour -> connection dropped
+17:51:41.282 [down] sales GET /reporting/retailers/34191c43-f0bc-70ab-a39d-fcbe8f94ae36/behaviour -> connection dropped
+17:51:50.375 [down] sales GET /sync/manifest -> connection dropped
+17:51:50.384 [down] sales GET /sync/manifest -> connection dropped
+17:51:50.388 [down] sales GET /sync/manifest -> connection dropped
+17:51:54.350 [down] sales GET /inventory/availability -> connection dropped
+17:51:54.355 [down] sales GET /inventory/availability -> connection dropped
+17:51:54.357 [down] sales GET /inventory/availability -> connection dropped
+17:51:54.386 [down] sales GET /pricing/bounds -> connection dropped
+17:51:54.390 [down] sales GET /pricing/bounds -> connection dropped
+17:51:54.395 [down] sales GET /pricing/bounds -> connection dropped
+17:52:30.918 [down] sales POST /sync/upload -> connection dropped
+17:52:31.952 [down] sales POST /sync/upload -> connection dropped
+17:52:33.998 [down] sales POST /sync/upload -> connection dropped
+17:52:38.059 [down] sales POST /sync/upload -> connection dropped
+17:52:46.117 [down] sales POST /sync/upload -> connection dropped
+17:52:50.454 [down] sales GET /sync/manifest -> connection dropped
+17:52:50.458 [down] sales GET /sync/manifest -> connection dropped
+17:52:50.462 [down] sales GET /sync/manifest -> connection dropped
+17:52:50.516 [down] sales POST /sync/upload -> connection dropped
+17:53:22.569 [down] sales POST /sync/upload -> connection dropped
+17:53:48.904 [down] auth POST /auth/logout -> connection dropped
+17:55:44.473 [pass] sales GET /health -> 200
+17:55:59.142 [pass] auth POST /auth/login -> 200
+17:55:59.231 [pass] sales GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg -> 200
+17:55:59.375 [pass] sales GET /sync/manifest -> 200
+17:55:59.652 [pass] sales POST /sync/upload -> 200
+17:55:59.811 [pass] sales GET /sync/pull -> 200
+17:55:59.947 [pass] sales GET /sync/pull -> 200
+17:56:00.168 [pass] sales GET /sync/pull -> 200
+17:56:00.362 [pass] sales GET /sync/pull -> 200
+17:56:00.558 [pass] sales GET /sync/pull -> 200
+17:56:00.755 [pass] sales GET /sync/pull -> 200
+17:56:00.999 [pass] sales GET /sync/pull -> 200
+17:56:01.241 [pass] sales GET /sync/pull -> 200
+17:56:01.435 [pass] sales GET /sync/pull -> 200
+17:56:01.638 [pass] sales GET /sync/pull -> 200
+17:56:01.857 [pass] sales GET /sync/pull -> 200
+17:56:02.071 [pass] sales GET /sync/pull -> 200
+17:56:02.158 [pass] sales GET /sync/errors -> 200
+17:57:02.223 [pass] sales GET /sync/manifest -> 200
+17:57:02.332 [pass] sales GET /sync/pull -> 200
+17:57:02.343 [pass] sales GET /sync/errors -> 200
+17:58:02.397 [down] sales GET /sync/manifest -> connection dropped
+17:58:02.401 [down] sales GET /sync/manifest -> connection dropped
+17:58:02.403 [down] sales GET /sync/manifest -> connection dropped
+17:58:07.076 [down] sales GET /reporting/retailers/d7f09885-489b-73cb-ab29-169334b5eca5/behaviour -> connection dropped
+17:58:07.082 [down] sales GET /reporting/retailers/d7f09885-489b-73cb-ab29-169334b5eca5/behaviour -> connection dropped
+17:58:07.085 [down] sales GET /reporting/retailers/d7f09885-489b-73cb-ab29-169334b5eca5/behaviour -> connection dropped
+17:58:11.777 [down] sales GET /inventory/availability -> connection dropped
+17:58:11.780 [down] sales GET /inventory/availability -> connection dropped
+17:58:11.782 [down] sales GET /inventory/availability -> connection dropped
+17:58:11.802 [down] sales GET /pricing/bounds -> connection dropped
+17:58:11.805 [down] sales GET /pricing/bounds -> connection dropped
+17:58:11.807 [down] sales GET /pricing/bounds -> connection dropped
+17:58:24.124 [down] sales POST /sync/upload -> connection dropped
+17:58:25.163 [down] sales POST /sync/upload -> connection dropped
+17:58:27.232 [down] sales POST /sync/upload -> connection dropped
+17:58:31.281 [down] sales POST /sync/upload -> connection dropped
+17:58:39.329 [down] sales POST /sync/upload -> connection dropped
+17:58:43.722 [down] auth POST /auth/logout -> connection dropped
+17:59:13.533 [pass] auth POST /auth/login -> 200
+17:59:13.628 [pass] sales GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg -> 200
+17:59:13.766 [pass] sales GET /sync/manifest -> 200
+17:59:13.890 [pass] sales POST /sync/upload -> 200
+17:59:14.017 [pass] sales GET /sync/pull -> 200
+17:59:14.172 [pass] sales GET /sync/pull -> 200
+17:59:14.346 [pass] sales GET /sync/pull -> 200
+17:59:14.545 [pass] sales GET /sync/pull -> 200
+17:59:14.750 [pass] sales GET /sync/pull -> 200
+17:59:14.956 [pass] sales GET /sync/pull -> 200
+17:59:15.180 [pass] sales GET /sync/pull -> 200
+17:59:15.406 [pass] sales GET /sync/pull -> 200
+17:59:15.653 [pass] sales GET /sync/pull -> 200
+17:59:15.887 [pass] sales GET /sync/pull -> 200
+17:59:16.113 [pass] sales GET /sync/pull -> 200
+17:59:16.313 [pass] sales GET /sync/pull -> 200
+17:59:16.408 [pass] sales GET /sync/errors -> 200
+17:59:52.948 [down] sales GET /reporting/retailers/34ce3241-c275-7cc5-bc44-cd7856930d50/behaviour -> connection dropped
+17:59:52.951 [down] sales GET /reporting/retailers/34ce3241-c275-7cc5-bc44-cd7856930d50/behaviour -> connection dropped
+17:59:52.953 [down] sales GET /reporting/retailers/34ce3241-c275-7cc5-bc44-cd7856930d50/behaviour -> connection dropped
+17:59:57.672 [down] sales GET /inventory/availability -> connection dropped
+17:59:57.674 [down] sales GET /inventory/availability -> connection dropped
+17:59:57.676 [down] sales GET /inventory/availability -> connection dropped
+17:59:57.748 [down] sales GET /pricing/bounds -> connection dropped
+17:59:57.750 [down] sales GET /pricing/bounds -> connection dropped
+17:59:57.753 [down] sales GET /pricing/bounds -> connection dropped
+18:00:16.426 [down] sales GET /sync/manifest -> connection dropped
+18:00:16.428 [down] sales GET /sync/manifest -> connection dropped
+18:00:16.431 [down] sales GET /sync/manifest -> connection dropped
+18:00:23.462 [down] auth POST /auth/logout -> connection dropped
+18:00:59.554 [pass] auth POST /auth/login -> 200
+18:00:59.646 [pass] sales GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg -> 200
+18:00:59.788 [pass] sales GET /sync/manifest -> 200
+18:01:00.117 [pass] sales GET /sync/pull -> 200
+18:01:00.308 [pass] sales GET /sync/pull -> 200
+18:01:00.454 [pass] sales GET /sync/pull -> 200
+18:01:00.646 [pass] sales GET /sync/pull -> 200
+18:01:00.842 [pass] sales GET /sync/pull -> 200
+18:01:01.068 [pass] sales GET /sync/pull -> 200
+18:01:01.299 [pass] sales GET /sync/pull -> 200
+18:01:01.516 [pass] sales GET /sync/pull -> 200
+18:01:01.722 [pass] sales GET /sync/pull -> 200
+18:01:01.934 [pass] sales GET /sync/pull -> 200
+18:01:02.149 [pass] sales GET /sync/pull -> 200
+18:01:02.338 [pass] sales GET /sync/pull -> 200
+18:01:02.431 [pass] sales GET /sync/errors -> 200
+18:02:02.502 [pass] sales GET /sync/manifest -> 200
+18:02:02.611 [pass] sales GET /sync/pull -> 200
+18:02:02.649 [pass] sales GET /sync/errors -> 200
+18:02:17.379 [down] sales GET /reporting/retailers/b5dbcdb8-401a-7a7d-9626-37ad239fd91a/behaviour -> connection dropped
+18:02:17.383 [down] sales GET /reporting/retailers/b5dbcdb8-401a-7a7d-9626-37ad239fd91a/behaviour -> connection dropped
+18:02:17.390 [down] sales GET /reporting/retailers/b5dbcdb8-401a-7a7d-9626-37ad239fd91a/behaviour -> connection dropped
+18:02:22.004 [down] sales GET /inventory/availability -> connection dropped
+18:02:22.009 [down] sales GET /inventory/availability -> connection dropped
+18:02:22.011 [down] sales GET /inventory/availability -> connection dropped
+18:02:22.030 [down] sales GET /pricing/bounds -> connection dropped
+18:02:22.032 [down] sales GET /pricing/bounds -> connection dropped
+18:02:22.034 [down] sales GET /pricing/bounds -> connection dropped
+18:03:02.714 [pass] sales GET /sync/manifest -> 200
+18:03:03.061 [pass] sales GET /sync/pull -> 200
+18:03:03.070 [pass] sales GET /sync/errors -> 200
+18:04:03.147 [down] sales GET /sync/manifest -> connection dropped
+18:04:03.151 [down] sales GET /sync/manifest -> connection dropped
+18:04:03.155 [down] sales GET /sync/manifest -> connection dropped
+18:04:05.888 [down] sales GET /reporting/retailers/b5dbcdb8-401a-7a7d-9626-37ad239fd91a/behaviour -> connection dropped
+18:04:05.891 [down] sales GET /reporting/retailers/b5dbcdb8-401a-7a7d-9626-37ad239fd91a/behaviour -> connection dropped
+18:04:05.894 [down] sales GET /reporting/retailers/b5dbcdb8-401a-7a7d-9626-37ad239fd91a/behaviour -> connection dropped
+18:04:10.642 [down] sales GET /inventory/availability -> connection dropped
+18:04:10.644 [down] sales GET /inventory/availability -> connection dropped
+18:04:10.647 [down] sales GET /inventory/availability -> connection dropped
+18:04:10.664 [down] sales GET /pricing/bounds -> connection dropped
+18:04:10.666 [down] sales GET /pricing/bounds -> connection dropped
+18:04:10.668 [down] sales GET /pricing/bounds -> connection dropped
+18:04:23.190 [down] sales POST /sync/upload -> connection dropped
+18:04:24.251 [down] sales POST /sync/upload -> connection dropped
+18:04:26.317 [down] sales POST /sync/upload -> connection dropped
+18:04:30.371 [down] sales POST /sync/upload -> connection dropped
+18:04:38.420 [down] sales POST /sync/upload -> connection dropped
+18:04:44.120 [down] auth POST /auth/logout -> connection dropped
+18:05:14.018 [pass] auth POST /auth/login -> 200
+18:05:14.114 [pass] sales GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg -> 200
+18:05:14.271 [pass] sales GET /sync/manifest -> 200
+18:05:14.550 [pass] sales POST /sync/upload -> 200
+18:05:14.705 [pass] sales GET /sync/pull -> 200
+18:05:14.869 [pass] sales GET /sync/pull -> 200
+18:05:15.027 [pass] sales GET /sync/pull -> 200
+18:05:15.228 [pass] sales GET /sync/pull -> 200
+18:05:15.410 [pass] sales GET /sync/pull -> 200
+18:05:15.621 [pass] sales GET /sync/pull -> 200
+18:05:15.841 [pass] sales GET /sync/pull -> 200
+18:05:16.088 [pass] sales GET /sync/pull -> 200
+18:05:16.307 [pass] sales GET /sync/pull -> 200
+18:05:16.522 [pass] sales GET /sync/pull -> 200
+18:05:16.736 [pass] sales GET /sync/pull -> 200
+18:05:16.942 [pass] sales GET /sync/pull -> 200
+18:05:17.042 [pass] sales GET /sync/errors -> 200
+18:06:17.080 [pass] sales GET /sync/manifest -> 200
+18:06:17.189 [pass] sales GET /sync/pull -> 200
+18:06:17.202 [pass] sales GET /sync/errors -> 200

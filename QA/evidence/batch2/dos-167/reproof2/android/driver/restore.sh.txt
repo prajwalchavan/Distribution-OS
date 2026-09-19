@@ -1,0 +1,10 @@
+#!/bin/zsh
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3"
+source "$S/h.sh"
+adb shell am force-stop $PKG; sleep 3
+adb push "$S/snap/long" /data/local/tmp/long >/dev/null
+adb push "$S/snap/long-wal" /data/local/tmp/long-wal >/dev/null
+adb push "$S/snap/long-shm" /data/local/tmp/long-shm >/dev/null
+adb push "$S/restore-on-device.sh" /data/local/tmp/restore.sh >/dev/null
+adb shell chmod 755 /data/local/tmp/restore.sh
+adb shell run-as $PKG sh /data/local/tmp/restore.sh

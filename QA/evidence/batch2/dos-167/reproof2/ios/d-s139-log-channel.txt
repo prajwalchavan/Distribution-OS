@@ -1,0 +1,35 @@
+## D  2026-09-19 18:06:20 — (dd)/S-139 on iOS: is there any channel that carries the app's console.warn?
+-- the sales app DOES pass the sink (source on main, HEAD 5d9c5c7):
+   frontend/sales-app/app/_layout.tsx:21:import { connectionStateFrom, consoleSink } from '@dos/offline'
+   frontend/sales-app/app/_layout.tsx:314:      onLog={consoleSink}
+-- and the sink writes through console.warn:
+   frontend/libs/offline/src/log.ts:10: * `console.warn` because it is the one console level `frontend/libs/config/eslint/base.js` allows in a library, and
+   frontend/libs/offline/src/log.ts:16:  if (detail === undefined) console.warn(line)
+   frontend/libs/offline/src/log.ts:17:  else console.warn(line, detail)
+
+-- every 'offline:' line in the engine is an EXCEPTION path, so a clean start prints none:
+   535:        this.options.onLog?.('offline: no persistent store; running in memory', {
+   820:      this.options.onLog?.('offline: store belonged to another identity; wiped', {
+   889:        onLog?.('offline: sweep skipped a store', error)
+   919:        onLog?.('offline: sweep skipped a store in use', { name })
+   951:        onLog?.('offline: sweep skipped a store', error)
+   475:          'offline: the device store could not be used; running in memory',
+
+-- Metro :5185 log, whole file — Metro in CI mode forwards NO app console lines:
+         51 /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/i167r3/metro-5185.log
+   offline: lines: 0
+-- the simulator unified log captured for host.exp.Exponent during the whole run:
+   lines:        3 /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/i167r3/simlog.txt
+   offline: lines: 0
+   any JS console line at all (RCTLog / console / warn):
+     0
+   a sample of what the channel DID carry:
+     getpwuid_r did not find a match for uid 501
+     Filtering the log data using "processImagePath CONTAINS "Exponent""
+     Child process terminated with signal 15: Terminated
+
+VERDICT: the (dd) wiring is present in the source on main, and no 'offline:' line was EXPECTED in this run —
+every one of them is an exception path and no store failure was induced on iOS. Whether a line that DID fire
+would be readable on a device is NOT TESTED here: neither Metro in CI mode nor the simulator's unified log
+carried any app console output at all, so this run has no channel to prove it on. The Android lane's
+s139-consolesink-positive-control.txt is the positive control that exists.

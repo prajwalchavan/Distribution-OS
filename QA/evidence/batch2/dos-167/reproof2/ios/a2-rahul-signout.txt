@@ -1,0 +1,63 @@
+## A2  2026-09-19 17:48:02 — A signs out with ONE tap (nothing waiting); A's file must be gone
+-- the More sheet is one accessibility container, so the row is tapped by point:
+   'Sign out' sits at (150,722) points  [a2-more-open.png, 1206x2622 px at 3x]
+-- stores before
+$ find "$C" -path '*SQLite*'   (17:48:02)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "rahul.deshmukh @ Tarsun Enterprises",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [rahul.deshmukh @ Tarsun Enterprises] legacy=0 interim=0 strays=0 other=0
+$ tap Sign out  17:48:02
+tapped 150 722
+  +1.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +3.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +4.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +6.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +7.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +9.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +10.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+  +12.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearshape.fill|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|
+shot a2-after-signout.png 17:48:21.3N
+-- stores AFTER the sign-out
+$ find "$C" -path '*SQLite*'   (17:48:22)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- auth/sales calls around the sign-out
+17:46:03.148 [pass] sales GET /reporting/dashboard/rep -> 200
+17:46:03.185 [pass] sales GET /incentives/statements -> 200
+17:46:03.195 [pass] sales GET /incentives/progress -> 200
+17:46:46.641 [pass] sales GET /sync/manifest -> 200
+17:46:46.718 [pass] sales GET /sync/pull -> 200
+17:46:46.725 [pass] sales GET /sync/errors -> 200
+17:47:46.782 [pass] sales GET /sync/manifest -> 200
+17:47:46.927 [pass] sales GET /sync/pull -> 200
+17:47:46.952 [pass] sales GET /sync/errors -> 200
+17:48:03.574 [pass] auth POST /auth/logout -> 200

@@ -1,0 +1,64 @@
+## A3b (corrected)  2026-09-19 17:49:47 — the EARLY frames after B tapped Sign in
+CORRECTION to the first grep: the dos_qa seed gives BOTH distributors shops with the same trade names
+(Shree Ganesh Kirana, Om Sai Provision Store, ...). Those names are therefore NOT markers of A.
+A's UNAMBIGUOUS markers are its distributor name and its territory:
+  Tarsun | Station Road | Kalyan West | Khadakpada | 'Shops: 11' | 'Ordered: 1' | '3926 rupees'
+B's own territory is Dombivli East / Manpada Road / Tilak Nagar / Ayre Road, 'Shops: 8'.
+
+-- every early frame, checked for A's unambiguous markers
+OK: NO marker of A in any of the 6 early frames
+
+-- the same check on the first frame's full source XML
+OK: none in a3-kiran-early-src.xml
+
+-- and every early frame DOES carry B's own distributor and territory
+  frames naming Sai Distributors: 6
+  frames naming Manpada Road:     6
+  first frame is 0.859 s after the Sign in tap and already shows Sai only
+
+-- B's store file: does it hold anything of A's?
+-- copied read-only to scratchpad (17:49:47)
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 19 17:49 .
+drwxr-xr-x@ 14 prajwalchavan  wheel      448 Sep 19 17:49 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2609152 Sep 19 17:49 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 19 17:49 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4461992 Sep 19 17:49 s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+userId|2239ec93-0bcd-7737-a70c-c60aa4d9e9f1
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjoxODo1MC4zNzdaIn0
+lastPulledAt|2026-09-19T12:18:55.377Z
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+-- _sync_errors
+0
+-- retailers in B's store, by town (A's are Kalyan West / Khadakpada; B's are Dombivli)
+24
+id tenant_id identity_id code name owner_name phone alt_phone address lat lng beat_id tier gst_reg_type gstin state_code credit_limit_paise credit_limit_bills credit_days credit_mode payment_terms cash_discount_bps cash_discount_days tally_ledger_name external_ids onboarded_by merged_into pan active created_at updated_at 
+-- any row in B's store carrying A's tenant id 01a09a5b-3c58-71c1-a34d-b93c569b0099 ?
+  retailers        0
+  sales_orders     0
+  visits           0
+  beats            0
+  tenant_products  0
+  invoices         0

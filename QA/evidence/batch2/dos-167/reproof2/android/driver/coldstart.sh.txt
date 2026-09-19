@@ -1,0 +1,41 @@
+#!/bin/zsh
+# One cold start on a FULL store, against ruling 3 (cc)'s new OPEN_DEADLINE_MS = 15_000 in open.native.ts
+# (merge review "Walks still owed": confirm a slow-but-succeeding open is not routinely abandoned to memory).
+# Watches: how long until the beat renders with the store's own rows, whether logcat carries
+# `open timed out after 15s` / `no persistent store; running in memory` / `the device store could not be used`,
+# whether the beat shows the not-kept line, and whether the process crashes.
+# Usage: coldstart.sh <tag>
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3"
+source "$S/h.sh"
+TAG=$1
+echo "== $TAG ($(date '+%H:%M:%S'))"
+echo "-- the store this start has to open:"
+lsraw | grep -E "^-rw" | awk '{print "   "$5" bytes  "$NF}'
+adb shell am force-stop $PKG; sleep 4
+adb logcat -c
+T0=$(python3 -c 'import time;print(time.time())')
+adb shell am start -n $PKG/.MainActivity >/dev/null
+BEAT=never; SHOPS=""
+for i in $(seq 1 25); do
+  sleep 2
+  T=$(ui texts)
+  if echo "$T" | grep -q "Shops: [1-9]"; then
+    BEAT=$(python3 -c "import time;print(round(time.time()-$T0,1))")
+    SHOPS=$(echo "$T" | grep -o "Shops: [0-9]*" | head -1)
+    break
+  fi
+  echo "$T" | grep -q "isn't responding" && adb shell input tap ${=$(ui text Wait)}
+done
+echo "beat with rows at +${BEAT}s ($SHOPS)"
+echo "screen: $(ui texts | head -c 300)"
+shot "$TAG-cold"
+echo "-- the not-kept line on the beat? (ruling (ee): only a real memory store may say it)"
+python3 "$S/uin.py" all | grep -o "will not keep the offline copy\|not kept on this[a-z ]*\|Saved only while this" | sort -u
+echo "   (nothing above = the line is absent)"
+echo "-- fallback / deadline lines in logcat"
+adb logcat -d -s ReactNativeJS 2>/dev/null | grep -iE "open timed out|no persistent store|device store could not be used|running in memory" | head -6
+echo "   (nothing above = the open was neither abandoned nor downgraded)"
+echo "-- every console line this launch wrote"
+adb logcat -d -s ReactNativeJS 2>/dev/null | grep -v 'Running "main"' | head -12
+crashcheck | tail -4
+lsraw | grep -E "^-rw" | awk '{print "   "$5" bytes  "$NF}'

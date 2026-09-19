@@ -1,0 +1,10 @@
+## S-139 positive control: consoleSink DOES reach logcat on Android (ruling 3 (dd)) 16:41:21
+the engine's own onLog line, written by console.warn through @dos/offline's consoleSink:
+2:09-19 16:37:45.889  8581  8630 W ReactNativeJS: 'sync(start): No connection. This will send when the signal is back.', { [ApiError: No connection. This will send when the signal is back.]
+9:09-19 16:39:47.507 10060 10095 W ReactNativeJS: 'sync(start): No connection. This will send when the signal is back.', { [ApiError: No connection. This will send when the signal is back.]
+
+-- the wiring on main:
+314:      onLog={consoleSink}
+10: * `console.warn` because it is the one console level `frontend/libs/config/eslint/base.js` allows in a library, and
+16:  if (detail === undefined) console.warn(line)
+17:  else console.warn(line, detail)

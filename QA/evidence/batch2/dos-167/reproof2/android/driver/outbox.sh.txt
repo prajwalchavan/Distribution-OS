@@ -1,0 +1,18 @@
+#!/bin/zsh
+# Copy one store file (+ -wal/-shm) off the device READ-ONLY into the scratchpad and print its tables, stamp, outbox,
+# sync errors and integrity. Usage: outbox.sh <db file name> <label>
+export ANDROID_HOME=$HOME/Library/Android/sdk; export PATH="$ANDROID_HOME/platform-tools:/opt/homebrew/bin:$PATH"
+PKG=in.distributionos.sales; F=$1; LABEL=$2
+S=/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3/db-$LABEL
+rm -rf "$S"; mkdir -p "$S"
+for suf in "" "-wal" "-shm"; do
+  if adb shell run-as $PKG ls "files/SQLite/$F$suf" >/dev/null 2>&1; then adb exec-out run-as $PKG cat "files/SQLite/$F$suf" > "$S/$F$suf"; fi
+done
+ls -la "$S"
+echo "-- integrity"; sqlite3 "$S/$F" "PRAGMA integrity_check"
+echo "-- tables"; sqlite3 "$S/$F" ".tables"
+echo "-- _sync_state"; sqlite3 -header "$S/$F" "select * from _sync_state" 2>&1 | cut -c1-200
+echo "-- _outbox"; sqlite3 -header "$S/$F" "select seq,op_id,tbl,row_id,op,status,attempts,rejection_code from _outbox" 2>&1 | cut -c1-300
+echo "-- _outbox data"; sqlite3 "$S/$F" "select seq||' '||substr(data,1,180) from _outbox" 2>&1
+echo "-- _sync_errors"; sqlite3 -header "$S/$F" "select * from _sync_errors" 2>&1 | cut -c1-300
+echo "-- row counts (writable tables)"; sqlite3 "$S/$F" "select name from sqlite_master where type='table' and name like 'sales_order%'" 2>&1 | while read t; do echo "$t: $(sqlite3 "$S/$F" "select count(*) from $t" 2>&1)"; done

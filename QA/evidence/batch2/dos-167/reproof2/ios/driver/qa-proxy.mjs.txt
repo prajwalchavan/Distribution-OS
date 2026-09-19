@@ -1,0 +1,32 @@
+// QA test infrastructure for the DOS-167 ruling-3 iOS sanity re-proof. NO product code is touched.
+// Two loopback proxies the simulator's bundle points at (EXPO_PUBLIC_AUTH_URL / EXPO_PUBLIC_API_URL):
+//   127.0.0.1:3900 -> the real auth-service  127.0.0.1:3000
+//   127.0.0.1:3903 -> the real sales-service 127.0.0.1:3003
+// They exist so THIS run can make "the office unreachable" for the simulator alone, without stopping
+// the shared :3000/:3003 services that the other batch-2 lanes are using.
+// The mode file decides one thing: "pass" forwards everything; "down" destroys the socket without an
+// answer, which the phone reads as a network failure (the office unreachable).
+import http from 'node:http'
+import { appendFileSync, readFileSync } from 'node:fs'
+const DIR = process.argv[2]
+const MODE_FILE = `${DIR}/proxy-mode`
+const LOG = `${DIR}/proxy.log`
+const mode = () => { try { return readFileSync(MODE_FILE, 'utf8').trim() } catch { return 'pass' } }
+const stamp = () => new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(11, 23)
+const log = (l) => appendFileSync(LOG, `${stamp()} ${l}\n`)
+const make = (listen, upstreamPort, tag) => {
+  const server = http.createServer((req, res) => {
+    const path = (req.url ?? '').split('?')[0]
+    const m = mode()
+    if (m === 'down') { log(`[${m}] ${tag} ${req.method} ${path} -> connection dropped`); req.socket.destroy(); return }
+    const up = http.request({ host: '127.0.0.1', port: upstreamPort, method: req.method, path: req.url, headers: req.headers }, (r) => {
+      res.writeHead(r.statusCode ?? 502, r.headers); r.pipe(res)
+      r.on('end', () => log(`[${m}] ${tag} ${req.method} ${path} -> ${r.statusCode}`))
+    })
+    up.on('error', (e) => { log(`[${m}] ${tag} ${req.method} ${path} -> upstream error ${e.code}`); res.destroy() })
+    req.pipe(up)
+  })
+  server.listen(listen, '127.0.0.1', () => log(`${tag} proxy listening 127.0.0.1:${listen} -> 127.0.0.1:${upstreamPort}, mode ${mode()}`))
+}
+make(3900, 3000, 'auth')
+make(3903, 3003, 'sales')

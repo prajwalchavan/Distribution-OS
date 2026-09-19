@@ -1,0 +1,152 @@
+## walk I — ANDROID DELIVERY keep run (ruling 3's Android list) 17:20:59
+SIGNED_IN i1-ganesh: Allow Distribution OS - Delivery to access this device’s location? | Precise | Approximate | While using the app | Only this time | Don’t allow
+
+## walk I1 cont — dismiss the location prompt, land on the trip 17:22:49
+tap 'While using the app' at 540 1475
+home: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal loca
+shot i1-ganesh-trip.png
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (17:22:59)
+total 6468
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-19 17:22 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-19 17:22 ..
+-rw------- 1 u0_a214 u0_a214 2387968 2026-09-19 17:22 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-19 17:22 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a214 u0_a214 4173592 2026-09-19 17:22 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft (2387968)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm (32768)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal (4173592)" ], "stores": [ { "name": "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": false, "prefix": "dos-delivery", "userId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ganesh @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk I2 — dismiss Location Accuracy, cut :3005, cold relaunch, queue one op 17:23:14
+home: Tarsun Enterprise | delivery | ⋯ | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | STILL TO COLLECT | ₹80,180.00 | COLLECTED TODAY | ₹0.00 | FLOAT AT START | ₹5,000.00 | STOPS | 3 / 10 | Next stop | Vaibhav Kirana Mart | Shop 
+shot i2-ganesh-trip.png
+3005 cut: 0
+offline home: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹80,180.00 | COLLECTED TODAY | ₹0.00 | FLOAT AT START
+shot i2-ganesh-offline-home.png
+## walk I3 — open the next stop and arrive: one op queued 17:23:47
+stop row at 540 1692
+stop screen: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | Stop 4 of 10 · TRIP-ACTIVE | Vaibhav Kirana Mart | At the shop | Owes ₹75,228.00 | Credit | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | Call | Open in maps | Expected | Arrived | Still due | 12 Sep, 10:30 am | 12 Sep, 10:40 am | ₹75,228.00 | 7 bills
+shot i3-ganesh-stop.png
+arrive at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+after arrive: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | Stop 4 of 10 · TRIP-ACTIVE | Vaibhav Kirana Mart | At the shop | Owes ₹75,228.00 | Credit | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | Call | Open in maps | Expected | Arrived | Still due | 12 Sep, 10:30 am | 1
+strip: Offline since 5:22 pm  
+shot i3-ganesh-queued.png
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (17:24:10)
+total 6468
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-19 17:23 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-19 17:23 ..
+-rw------- 1 u0_a214 u0_a214 2387968 2026-09-19 17:22 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-19 17:23 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a214 u0_a214 4173592 2026-09-19 17:23 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft (2387968)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm (32768)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal (4173592)" ], "stores": [ { "name": "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": false, "prefix": "dos-delivery", "userId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ganesh @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk I3 retry — this stop was already 'At the shop' in the seed; queue a payment instead ('Take money') 17:24:35
+take money at 540 2207
+sheet: TE | Tarsun Enterprise | delivery | More | ⋯ | Offline since 5:22 pm | Stop 4 of 10 · TRIP-ACTIVE | Vaibhav Kirana Mart | At the shop | Owes ₹75,228.00 | Credit | Shop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306 | Call | Call | Open in maps | Open in maps | Expected | Arrived | Still due | 12 Sep, 10:30 am | 12 Sep, 10:40 am | ₹75,228.00 | 75228 rupees | 7 bills still open at this shop | Bills on this stop | ₹7,856.00 | Still filling this phone from the office. | INV/0825, 11 Sep 2026, 7856 rupees, Not started | INV/0825 | ₹7,856.00 | 7856 rupees | 11 Sep 2026 | Not started | Sell from the van | Deliver this bill | Deliver this bill | Take money | Take money
+shot i3-ganesh-take-money.png
+## walk I3 retry 2 — tap 'Take money' at its own centre (540,2207) again and wait longer 17:25:07
+screen: TE | Tarsun Enterprise | delivery | More | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart | Take money | Owes ₹75,228.00 | Bills on this stop | Still filling this phone from the office. | INV/0825, 11 Sep 2026, 7856 rupees | INV/0825 | 11 Sep 2026 | ₹7,856.00 | 7856 rupees | How it was paid | Cash | Cash | UPI | UPI | Cheque | Cheque | Amount taken | — | — | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered | No signal — thi
+shot i3-ganesh-money-sheet.png
+## walk I4 — record a cash payment offline 17:25:26
+full screen: TE | Tarsun Enterprise | delivery | More | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart | Take money | Owes ₹75,228.00 | Bills on this stop | Still filling this phone from the office. | INV/0825, 11 Sep 2026, 7856 rupees | INV/0825 | 11 Sep 2026 | ₹7,856.00 | 7856 rupees | How it was paid | Cash | Cash | UPI | UPI | Cheque | Cheque | Amount taken | — | — | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered | No signal — this stays on the phone until there is one. The office numbers the receipt when this reaches them. Write your book number above so the two can be matched. | Owed on the bills here | ₹7,856.00 | 7856 rupees | Save on this phone | Save on this phone | Amount taken
+## walk I4 cont — pick the bill, Cash, an amount, save 17:25:40
+bill at 540 1073
+cash at 140 1513
+amount field at 540 1987
+book number field at 
+before save: TE | Tarsun Enterprise | delivery | More | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart | Take money | Owes ₹75,228.00 | Bills on this stop | Still filling this phone from the office. | INV/0825, 11 Sep 2026, 7856 rupees | INV/0825 | 11 Sep 2026 | ₹7,856.00 | 7856 rupees | How it was paid | Cash | Cash | UPI | UPI | Cheque | Cheque | Amount taken | — | — | Your receipt book number | The number you wrote in the paper book, so a printed receipt is never re-numbered | No signal — thi
+shot i4-ganesh-money-filled.png
+## walk I4 retry — the amount field after scrolling 17:26:39
+screen: TE | Tarsun Enterprise | delivery | More | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart | Take money | Owes ₹75,228.00 | Bills on this stop | Still filling this phone from the office. | INV/0825, 11 Sep 2026, 7856 rupees | INV/0825 | 11 Sep 2026 | ₹7,856.00 | 7856 rupees | How it was paid | Cash | Cash | UPI | UPI | Cheque | Cheque | Amount taken | — | — | Your receipt book number | 500 | The number you wrote in the paper book, so a printed receipt is never re-numbered | No signal — this stays on the phone until there is one. The office numbers the receipt when this reaches them
+shot i4-amount-typed.png
+## walk I5 — leave the money sheet unsaved and queue a DELIVERY instead (one tap, one op) 17:27:01
+back on: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | Stop 4 of 10 · TRIP-ACTIVE | Vaibhav Kirana Mart | At the shop | Owes ₹75,228.00 | Credit | Shop 24, Tisgaon Naka, Kolsewadi, Kalya
+deliver at 540 1976
+screen: TE | Tarsun Enterprise | delivery | More | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart · 11 Sep 2026 | INV/0825 | Will be recorded as Delivered | Delivered in full | Delivered in full | Nothing from this bill | Nothing from this bill | What is being dropped | On the bill | Still filling this phone from the office. | Rajwadi Aamras Mango Drink 1 L | ₹3,199.66 | 3199 rupees 66 paise | On the bill | Batch | 60 pc | B20260902 | Dropping | One case less | − | 5 cs | One case more | + | 5 cs = 60 pc | Campa Lemon 750 ml | ₹2,281.10 | 2281 rupees 10 paise | Dropping 279 / 279 | ₹7,856.00 | 7856 rupees | Save on this phone | Save on this phone
+shot i5-deliver-sheet.png
+## walk I5 cont — 'Delivered in full' then 'Save on this phone' 17:27:26
+save at 540 2207
+after save: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart · 11 Sep 2026 | INV/0825 | Will be recorded as Delivered | Delivered in full | Nothing from this bill | What is being dropped | On the bill | Still filling this phone from the office. | Rajwadi Aamras Mango Drink 
+strip: Offline since 5:22 pm  
+shot i5-ganesh-queued.png
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (17:27:46)
+total 6468
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-19 17:23 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-19 17:23 ..
+-rw------- 1 u0_a214 u0_a214 2387968 2026-09-19 17:22 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-19 17:23 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a214 u0_a214 4173592 2026-09-19 17:23 d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft (2387968)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm (32768)", "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal (4173592)" ], "stores": [ { "name": "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": false, "prefix": "dos-delivery", "userId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "ganesh @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+## walk I5 retry — tap 'Save on this phone' at 540,2207 (its box is [42,2107]-[1038,2307]) 17:28:14
+screen: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | Vaibhav Kirana Mart · 11 Sep 2026 | INV/0825 | Will be recorded as Delivered | Delivered in full | Nothing from this bill | What is being dropped | On the bill | Still filling this phone from the office. | Rajwadi Aamras Mango Drink 
+strip: Offline since 5:22 pm  
+shot i5-ganesh-queued2.png
+## walk I6 — the deliver sheet's Save did not respond to synthetic taps; use a NOT-STARTED stop and 'I am at the shop' instead 17:29:21
+on: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05
+tap 'Today's trip' at 540 547
+stops: At the shop At the shop 1. Prerna Super Market Delivered 1. Prerna Super Market  Delivered 2. Metro Kirana Bazar Delivered 2. Metro Kirana Bazar  Delivered 3. Anand Bhavan Provision Delivered 3. Anand Bhavan Provision  Delivered 4. Vaibhav Kirana Mart At the shop 4. Vaibhav Kirana Mart  At the shop 5. Joshi Kirana Stores Annexe Not started 5. Joshi Kirana Stores Annexe  Not started 6. Ansari Kirana Stores Not started 
+shot i6-stops-list.png
+## walk I7 — open stop 5 (Not started) and tap 'I am at the shop' 17:29:50
+stop 5 at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+stop screen: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT
+shot i7-stop5.png
+arrive at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+after: TE | Tarsun Enterprise | delivery | ⋯ | Offline since 5:22 pm | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | Still filling this phone from the office — this may not be the whole trip yet
+strip: Offline since 5:22 pm  
+shot i7-queued.png
+
+## walk I — OUTCOME: NOT TESTED (delivery keep run), and why, in full 17:30:36
+What DID run and is proven here: the delivery app installs, ganesh.more signs in on the merged build, and the
+device holds exactly ONE store, 'd7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft' (51 chars), which decodes
+to ganesh @ Tarsun — no legacy dos-delivery.db, no interim file, no stray. The trip renders offline from that
+store after the office was cut and a cold relaunch (i2-ganesh-offline-home.png). No crash in this app.
+
+What could NOT be run: the KEEP itself, because no op could be queued within this run's budget —
+  1. the seed's next stop (4, Vaibhav Kirana Mart) is ALREADY 'At the shop' with 'Arrived 12 Sep, 10:40 am',
+     so ruling-1's usual queue tap ('I am at the shop') is not on that screen;
+  2. the 'Take money' sheet's amount field and receipt-book field are two EditTexts whose boxes the footer
+     clips; 'adb shell input text' landed in the book-number field (i4-amount-typed.png);
+  3. the 'Deliver this bill' sheet's 'Save on this phone' (box [42,2107]-[1038,2307], enabled, solid) did not
+     respond to three synthetic taps at its centre — no console line, _outbox still empty (checked directly);
+  4. tapping stop 5 (Joshi Kirana Stores Annexe, 'Not started') in the stops list did not open it.
+Whether (3) and (4) are the product or this driver's synthetic taps is NOT established — that is exactly why
+this is NOT TESTED rather than a defect. The delivery and warehouse keep runs of ruling 3's Android list are
+therefore still owed. Reproof 1 proved both on the ruling-2 build (judge: Android delivery and warehouse PROVEN).
+The WAREHOUSE keep run was not started at all: same budget.

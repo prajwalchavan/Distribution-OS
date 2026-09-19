@@ -1,0 +1,31 @@
+## B7  2026-09-19 17:54:51 — three relaunches on the kept store: each must come up at the SIGN-IN FORM, no crash
+-- crash reports before (host DiagnosticReports + the simulator's own)
+(end of .ips list)
+   host .ips mentioning Expo: 0
+
+== relaunch 1  17:54:51
+   at the SIGN-IN FORM after 4s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar,
+shot b7-relaunch-1.png 17:55:00.3N
+   stores still on the phone: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft 
+   new Expo Go .ips since the run started: 0
+
+== relaunch 2  17:55:00
+   at the SIGN-IN FORM after 4s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar,
+shot b7-relaunch-2.png 17:55:08.3N
+   stores still on the phone: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft 
+   new Expo Go .ips since the run started: 0
+
+== relaunch 3  17:55:08
+   at the SIGN-IN FORM after 4s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar,
+shot b7-relaunch-3.png 17:55:16.3N
+   stores still on the phone: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft 
+   new Expo Go .ips since the run started: 0
+
+-- crash reports after all three relaunches
+(end of .ips list)
+-- simulator-side crash reports
+-rw-------@  1 prajwalchavan  _analyticsusers    3304 Sep 19 10:15 TransparencyTopic_2026-09-19-101508-1_prajwals-MacBook-Air.diag
+-rw-------@  1 prajwalchavan  _analyticsusers    5633 Sep 19 10:15 TransparencyTopic_2026-09-19-101508_prajwals-MacBook-Air.diag
+-rw-------@  1 prajwalchavan  _analyticsusers   12636 Sep 19 17:37 UsageTrackingAgent-2026-09-19-173733.ips
+-rw-------@  1 prajwalchavan  _analyticsusers   13376 Sep 19 17:41 UsageTrackingAgent-2026-09-19-174109.ips
+-rw-------@  1 prajwalchavan  _analyticsusers   15111 Sep 19 17:41 intelligenceplatformd-2026-09-19-174109.0002.ips

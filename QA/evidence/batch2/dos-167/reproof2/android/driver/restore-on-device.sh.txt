@@ -1,0 +1,8 @@
+#!/system/bin/sh
+D=/data/data/in.distributionos.sales/files/SQLite
+LONG=dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+rm -f "$D"/*
+cp /data/local/tmp/long "$D/$LONG"
+cp /data/local/tmp/long-wal "$D/$LONG-wal"
+cp /data/local/tmp/long-shm "$D/$LONG-shm"
+ls -la "$D"

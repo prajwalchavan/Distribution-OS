@@ -1,0 +1,51 @@
+Starting project at /Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+Waiting on http://localhost:5185
+
+Logs for your project will appear below.
+iOS Bundled 8353ms node_modules/expo-router/entry.js (1731 modules)
+iOS Bundled 67ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 464ms node_modules/expo-sqlite/build/index.js (739 modules)
+iOS Bundled 65ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 25ms node_modules/expo-sqlite/build/index.js (1 module)
+iOS Bundled 61ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 34ms node_modules/expo-sqlite/build/index.js (1 module)
+ WARN  sync(poll): No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync(poll): No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+iOS Bundled 67ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 61ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 60ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 63ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 31ms node_modules/expo-sqlite/build/index.js (1 module)
+ WARN  sync(poll): No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+iOS Bundled 65ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 60ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 26ms node_modules/expo-sqlite/build/index.js (1 module)
+ WARN  sync(poll): No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+iOS Bundled 69ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 59ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 28ms node_modules/expo-sqlite/build/index.js (1 module)
+ WARN  sync(poll): No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+ WARN  sync.upload: No connection. This will send when the signal is back. [ApiError: No connection. This will send when the signal is back.]
+iOS Bundled 64ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 70ms node_modules/expo-router/entry.js (1 module)
+iOS Bundled 24ms node_modules/expo-sqlite/build/index.js (1 module)

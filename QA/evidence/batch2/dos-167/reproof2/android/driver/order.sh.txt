@@ -1,0 +1,35 @@
+#!/bin/zsh
+# Open a shop from the Shops tab, take an order, add ONE case, and either save it on the phone or leave it as a
+# typed draft. Usage: order.sh <shop search text> <tag> <save|draft>
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3"
+source "$S/h.sh"
+SHOP=$1; TAG=$2; WHAT=$3
+uin() { python3 "$S/uin.py" "$@"; }
+echo "-- $TAG: open Shops and search '$SHOP' ($(date '+%H:%M:%S'))"
+for i in 1 2 3; do tapt 'Shops'; sleep 4; python3 "$S/uin.py" all | grep -q 'Search by name' && break; done
+XY=$(uin find 'Search by name')
+[ -z "$XY" ] && { echo "NO SEARCH BOX: $(uin all | head -c 400)"; }
+if [ -n "$XY" ]; then adb shell input tap ${=XY}; sleep 1; adb shell input text "${SHOP// /%s}"; sleep 3; fi
+echo "shops list: $(ui texts)"
+shot "$TAG-shops"
+XY=$(uin find "$SHOP"); [ -z "$XY" ] && { echo "SHOP NOT FOUND: $SHOP"; exit 2; }
+echo "tap shop at $XY"; adb shell input tap ${=XY}; sleep 4
+echo "shop card: $(ui texts)"; shot "$TAG-shop-card"
+XY=$(uin find 'Take order'); [ -z "$XY" ] && { echo "NO TAKE ORDER"; exit 3; }
+adb shell input tap ${=XY}; sleep 4
+echo "order entry: $(ui texts)"; shot "$TAG-order-entry"
+# the first 'Add a case' that is a real clickable box above the footer
+XY=$(uin nth 'Add a case' 1); [ -z "$XY" ] && { echo "NO ADD A CASE"; uin list 'Add a case'; exit 4; }
+echo "add a case at $XY"; adb shell input tap ${=XY}; sleep 3
+echo "after add: $(ui texts)"
+echo "items: $(uin all | grep -o 'Items [0-9]* · ₹[0-9,.]* before GST' | head -1)"
+shot "$TAG-line-added"
+if [ "$WHAT" = save ]; then
+  XY=$(uin find 'Save on this phone'); [ -z "$XY" ] && { echo "NO SAVE BUTTON"; exit 5; }
+  echo "save at $XY"; adb shell input tap ${=XY}; sleep 5
+  echo "after save: $(ui texts)"; shot "$TAG-saved"
+else
+  echo "-- leaving the typed lines as a DRAFT (no save); back to Beat"
+  sleep 2; tapt 'Beat'; sleep 3; shot "$TAG-left-as-draft"
+fi
+echo "strip: $(uin all | grep -o 'Offline since [0-9:apm ]*\|Updated just now\|[0-9]* waiting to send' | sort -u | tr '\n' ' ')"

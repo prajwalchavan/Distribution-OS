@@ -1,0 +1,16 @@
+## walk G — the order banner follows the RADIO, not the order: confirmation run 17:15:29
+frontend/sales-app/app/orders/new.tsx:387-388 — title/meta are chosen on local.online at render time
+          <Panel
+            title={local.online ? t('s3.placedTitle') : t('s3.queuedTitle')}
+            meta={local.online ? t('s3.placedBody') : t('s3.queuedBody')}
+          >
+tap 'Shops' at 675 2246
+tap 'Shops' at 675 2246
+BANNER WHILE OFFLINE: It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.  Saved on this phone 
+shot g1-banner-offline.png
+## walk G cont — the office comes back while the rep is still on that screen 17:16:49
++15s: Order placed The office has it, with its number and its price.  
+shot g2-banner-flipped.png
+-- what the office actually holds for that order:
+01a0b971-fbbe-7547-bd3f-0f1d84a19924 state=draft order_no=''
+01a0b97d-0843-738d-a0a9-ed14a1a446e3 state=draft order_no=''

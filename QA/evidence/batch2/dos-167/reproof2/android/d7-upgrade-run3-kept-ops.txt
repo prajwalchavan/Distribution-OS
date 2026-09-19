@@ -1,0 +1,9 @@
+## walk D7 — the kept ops after run 3 16:55:56
+-- _outbox
+seq|op_id|tbl|row_id|op|status|attempts|rejection_code
+1|01a0b965-391e-731f-af81-014e7d4e8a43|sales_orders|01a0b964-f305-7544-8505-09eda02a7cdc|PUT|queued|6|
+2|01a0b965-391e-7320-939b-390253944025|sales_order_lines|01a0b965-1ca1-74e4-9dab-8d8ac7a23605|PUT|queued|6|
+-- _outbox data
+1 {"retailer_id":"a029f31b-2c6c-707b-b580-889125d3ee07","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}
+2 {"order_id":"01a0b964-f305-7544-8505-09eda02a7cdc","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}
+-- _sync_errors

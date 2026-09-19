@@ -1,0 +1,17 @@
+## walk B11 — pooja plain sign-out (nothing queued): her file goes, amit's kept file stays 16:36:03
+tap 'Beat' at 135 2246
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+screen: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot b11-pooja-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:36:27)
+total 3840
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:36 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:31 ..
+-rw------- 1 u0_a217 u0_a217 3911680 2026-09-19 16:33 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3911680)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:36:27)
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)

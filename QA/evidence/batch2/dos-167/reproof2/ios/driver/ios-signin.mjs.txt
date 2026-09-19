@@ -1,0 +1,83 @@
+// Headless iOS sign-in for the DOS-167 ruling-3 iOS sanity re-proof, through the already-running Appium
+// (XCUITest / WebDriverAgent) on :4723. No Simulator window, no Claude simulator panel.
+// Usage: node ios-signin.mjs <metroPort> <user> <tag> [--reset] [--early] [--title "Distribution OS - Sales"]
+//   --reset  terminate Expo Go AND reset the simulator keychain first (a brand-new person on a clean phone)
+//   --early  from the instant "Sign in" is tapped, take 6 screenshots ~700 ms apart plus the visible text at each,
+//            so a leak of the PREVIOUS person's rows would be caught in the first frames after sign-in
+import { execSync } from 'node:child_process'
+import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs'
+const args = process.argv.slice(2)
+const flags = new Set(args.filter((a) => a.startsWith('--')))
+const [port, user, tag] = args.filter((a) => !a.startsWith('--'))
+const title = 'Distribution OS - Sales'
+const OUT = '/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof2/ios/'
+mkdirSync(OUT, { recursive: true })
+const udid = execSync(`xcrun simctl list devices booted | grep -o '[0-9A-F-]\\{36\\}' | head -1`).toString().trim()
+const A = 'http://127.0.0.1:4723'
+const ts = () => new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(11, 23)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const j = async (method, path, body) => {
+  const r = await fetch(A + path, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined })
+  const t = await r.json(); if (t.value && t.value.error) throw new Error(`${path}: ${t.value.error} ${String(t.value.message).slice(0, 160)}`); return t.value
+}
+execSync(`xcrun simctl terminate ${udid} host.exp.Exponent 2>/dev/null || true`, { stdio: 'ignore' })
+if (flags.has('--reset')) execSync(`xcrun simctl keychain ${udid} reset`, { stdio: 'ignore' })
+console.log(`${ts()} start ${user} tag=${tag} reset=${flags.has('--reset')} early=${flags.has('--early')}`)
+const s = await j('POST', '/session', { capabilities: { alwaysMatch: {
+  platformName: 'iOS', 'appium:automationName': 'XCUITest', 'appium:udid': udid, 'appium:bundleId': 'host.exp.Exponent',
+  'appium:noReset': true, 'appium:autoAcceptAlerts': true, 'appium:wdaLaunchTimeout': 600000, 'appium:wdaConnectionTimeout': 600000,
+  'appium:showXcodeLog': false, 'appium:newCommandTimeout': 1800,
+} } })
+const sid = s.sessionId
+const S2 = (p) => `/session/${sid}${p}`
+const id = (e) => e['element-6066-11e4-a52e-4f735466cecf'] ?? e.ELEMENT
+const find = (using, value) => j('POST', S2('/element'), { using, value })
+const source = () => j('GET', S2('/source'))
+const dec = (x) => x.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#10;/g, ' ').replace(/&apos;/g, "'")
+const simshot = (name) => { execSync(`xcrun simctl io ${udid} screenshot "${OUT}${name}.png"`, { stdio: 'ignore' }); return `${ts()} ${name}.png` }
+const labelsOf = (src) => [...dec(src).matchAll(/label="([^"]{1,80})"/g)].map((m) => m[1]).filter((v, i, a) => a.indexOf(v) === i)
+const act = async (using, value, fn) => { let err; for (let i = 0; i < 4; i++) { try { return await fn(id(await find(using, value))) } catch (e) { err = e; await sleep(1500) } } throw err }
+const dismissSavePassword = async () => { try { const src = await source(); if (src.includes('Not Now')) { const el = id(await find('-ios predicate string', "label == 'Not Now'")); await j('POST', S2(`/element/${el}/click`), {}); await sleep(600) } } catch {} }
+let status = 'ERROR'
+try {
+  execSync(`xcrun simctl openurl ${udid} "exp://127.0.0.1:${port}"`)
+  console.log(`${ts()} opened exp://127.0.0.1:${port}`)
+  let ready = false
+  for (let i = 0; i < 60; i++) { await sleep(3000); let src; try { src = await source() } catch { continue }
+    if (src.includes(title) && src.includes('XCUIElementTypeTextField')) { ready = true; break } }
+  if (!ready) throw new Error('sign-in screen did not appear within 180 s')
+  await sleep(1200); await dismissSavePassword()
+  console.log(simshot(`${tag}-signin-form`))
+  await act('class name', 'XCUIElementTypeTextField', async (el) => { await j('POST', S2(`/element/${el}/click`), {}); await j('POST', S2(`/element/${el}/clear`), {}); await j('POST', S2(`/element/${el}/value`), { text: user }) })
+  await act('class name', 'XCUIElementTypeSecureTextField', async (el) => { await j('POST', S2(`/element/${el}/click`), {}); await j('POST', S2(`/element/${el}/value`), { text: 'Dos@1234' }) })
+  console.log(simshot(`${tag}-filled`))
+  const tappedAt = ts()
+  try { await act('-ios class chain', '**/XCUIElementTypeButton[`label == "Sign in"`]', (el) => j('POST', S2(`/element/${el}/click`), {})) }
+  catch { await act('-ios predicate string', "label == 'Sign in' AND type == 'XCUIElementTypeOther'", (el) => j('POST', S2(`/element/${el}/click`), {})) }
+  console.log(`${tappedAt} tapped "Sign in"`)
+  if (flags.has('--early')) {
+    const times = [`tapped Sign in at ${tappedAt}`]
+    for (let i = 1; i <= 6; i++) {
+      const line = simshot(`${tag}-early-${i}`)
+      let src = ''; try { src = await source() } catch { src = '' }
+      times.push(line)
+      appendFileSync(`${OUT}${tag}-texts-early.txt`, `\n== ${line}\n${labelsOf(src).join(' | ')}\n`)
+      if (i === 1) writeFileSync(`${OUT}${tag}-early-src.xml`, dec(src))
+      await sleep(450)
+    }
+    writeFileSync(`${OUT}${tag}-shot-times.txt`, times.join('\n') + '\n')
+    console.log(times.join('\n'))
+  }
+  const onSignIn = (src) => /label="Username"/.test(src) && /label="Password"/.test(src)
+  let src = ''
+  for (let i = 0; i < 20; i++) { await sleep(2000); await dismissSavePassword(); src = await source(); if (!onSignIn(src)) break }
+  await sleep(3500); await dismissSavePassword()
+  console.log(simshot(`${tag}-home`))
+  src = await source()
+  status = onSignIn(src) ? 'STILL_ON_SIGN_IN' : 'SIGNED_IN'
+  console.log(`${ts()} ${status} ${user}`)
+  console.log('labels:', labelsOf(src).slice(0, 30).join(' | '))
+} catch (e) {
+  try { console.log(simshot(`${tag}-error`)) } catch {}
+  console.log('ERROR', user, String(e).slice(0, 300))
+} finally { await j('DELETE', S2('')).catch(() => {}) }

@@ -1,0 +1,92 @@
+## B5  2026-09-19 17:53:48 — 'Sign out, keep here' is tapped while the outbox is still retrying
+-- the sheet text, verbatim (b4-leave-sheet.png):
+   '5 changes have not reached the office'
+   'They stay on this phone for Demo Docs Staff (edited) only and go the next time Demo Docs Staff (edited)
+    signs in here. Nobody else can see them.'
+   'No connection — they cannot go now.'   [Sign out, keep here]  [Cancel]
+-- NOTE on the name: 'Demo Docs Staff (edited)' IS rahul.deshmukh's name column in dos_qa right now.
+   A pnpm smoke run edited it at 2026-09-19 15:50 (the damage recorded in commit 5d9c5c7). The sheet is
+   rendering the SIGNED-IN person's own name correctly; it is not another person's name leaking in.
+     dos_qa: amit.pawar|Demo Docs Staff (edited)|2026-09-19 15:50:17.421+05:30
+     dos_qa: rahul.deshmukh|Demo Docs Staff (edited)|2026-09-19 15:50:11.672+05:30
+
+-- outbox immediately before the tap
+_outbox                       product_variants            
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|queued|7|2026-09-19T12:22:30.818Z||
+2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|queued|7|2026-09-19T12:22:30.818Z||
+3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|queued|7|2026-09-19T12:22:30.818Z||
+4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|queued|7|2026-09-19T12:22:30.818Z||
+5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|queued|7|2026-09-19T12:22:30.818Z||
+$ tap 'Sign out, keep here' at (201,637) points   17:53:48.3N
+tapped 201 637
+  +1.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +3.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +4.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +6.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +7.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +9.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +10.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +12.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +13.5s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+  +15.0s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|gearsha
+
+## B6  2026-09-19 17:54:27 — after 'Sign out, keep here': A's file must SURVIVE, with the five ops still in it
+-- stores on the phone
+$ find "$C" -path '*SQLite*'   (17:54:27)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "rahul.deshmukh @ Tarsun Enterprises",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [rahul.deshmukh @ Tarsun Enterprises] legacy=0 interim=0 strays=0 other=0
+-- A's kept store
+-- copied read-only to scratchpad (17:54:27)
+drwxr-xr-x@  3 prajwalchavan  wheel       96 Sep 19 17:54 .
+drwxr-xr-x@ 17 prajwalchavan  wheel      544 Sep 19 17:54 ..
+-rw-r--r--@  1 prajwalchavan  wheel  3944448 Sep 19 17:54 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a0b99e-3ea2-76bf-bff7-4f9b0d50fe1f|sales_orders|01a0b99d-b031-7444-a49a-a15d1c3cf27d|PUT|queued|7|2026-09-19T12:22:30.818Z||
+2|01a0b99e-3ea2-76c0-83b1-084ba20061e9|sales_order_lines|01a0b99d-b0ab-71c5-a711-aaa35ec2b6a9|PUT|queued|7|2026-09-19T12:22:30.818Z||
+3|01a0b99e-3ea2-76c1-9480-12beff722f4f|sales_order_lines|01a0b99d-b0ab-71c6-9bd9-1c27b6a1515b|PUT|queued|7|2026-09-19T12:22:30.818Z||
+4|01a0b99e-3ea2-76c2-bca3-8e4fc31cb88b|sales_order_lines|01a0b99d-b0ab-71c7-9bae-feec06ac69fa|PUT|queued|7|2026-09-19T12:22:30.818Z||
+5|01a0b99e-3ea2-76c3-9f4e-79fb8ea5c779|sales_order_lines|01a0b99d-b0ab-71c8-8b27-df7069cffaf6|PUT|queued|7|2026-09-19T12:22:30.818Z||
+-- _sync_errors
+0
+-- the order row the kept ops carry, still on the phone:
+Error: in prepare, no such table: sales_orders
+-- and NOT on the server (the office never got it):
+   dos_qa rows for that order id: 0
+-- proxy: every upload attempt was dropped
+   dropped POST /sync/upload so far: 7
+   successful POST /sync/upload so far: 0

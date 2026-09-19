@@ -1,0 +1,13 @@
+## walk C4 — the office is back: amit's twice-kept change goes first and ONCE 16:43:28
+-- dos_qa before:
+01a0b94b-5ed6-7373-b094-c93bc0a7db0f|draft|2026-09-19 16:29:39.751473+05:30
+SIGNED_IN c4-amit: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | ✓ G
++10s strip: Shops: 10 Updated just now 
++20s strip: Shops: 10 Updated just now 
++30s strip: Shops: 10 Updated just now 
++40s strip: Shops: 10 Updated just now 
++50s strip: Shops: 10 Updated just now 
+shot c4-amit-after-send.png
+-- dos_qa after:
+01a0b94b-5ed6-7373-b094-c93bc0a7db0f|draft|2026-09-19 16:29:39.751473+05:30|1
+01a0b954-c176-724c-b43e-cc67a327e9cf|draft|2026-09-19 16:44:22.15989+05:30|1

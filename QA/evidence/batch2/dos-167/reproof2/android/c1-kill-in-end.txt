@@ -1,0 +1,34 @@
+## walk C1 — (y) under an induced kill, run 1/3 16:36:53
+SIGNED_IN c1-amit: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 4:37 pm · 2 waiting to send | Offline since 4:37 pm · 2 waiting to send | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | No signal. 
+-- c1: open the leave sheet (16:38:14)
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Demo Docs Staff (edited) only and go the next time Demo Docs Staff (edited) signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot c1-sheet.png
+force-stopped at +1.216s
+pidof after force-stop: 
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:38:33)
+total 3840
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:38 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:31 ..
+-rw------- 1 u0_a217 u0_a217 3911680 2026-09-19 16:38 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3911680)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- relaunch
+relaunched to: signin at +6.1s
+screen: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot c1-relaunched.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (16:38:42)
+total 3840
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-19 16:38 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-19 16:38 ..
+-rw------- 1 u0_a217 u0_a217 3911680 2026-09-19 16:38 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (3911680)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys (16:38:42)
+name="key_v1-dos.device"
+name="key_v1-dos.sales.draft.efde1e76-9785-7827-aff2-6f56ecd33588.b995e0b8-9582-7148-b666-0769e4023c24"
+name="key_v1-dos.sales.drafts.efde1e76-9785-7827-aff2-6f56ecd33588"
+(end keys)
+-- logcat crash buffer (16:38:42)
+-- am_crash / Fatal signal for in.distributionos.sales
+09-19 16:15:49.545   672  6060 I am_crash: [672,0,in.distributionos.sales,686341702,Native crash,Segmentation fault,unknown,0,0]
+(end)

@@ -1,0 +1,15 @@
+## walk E'' — the native start crash, second occurrence at 17:05:15 and a 3x repeat from the SAME state
+(the app was last on the order screen with a typed draft, the office cut, and was force-stopped)
+09-19 17:05:15.789 15752 15802 F libc    : Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0x7bc2bfa668 in tid 15802 (mqt_v_js), pid 15752 (ibutionos.sales)
+09-19 17:05:16.049 15827 15827 F DEBUG   : Process uptime: 5s
+09-19 17:05:16.049 15827 15827 F DEBUG   : pid: 15752, tid: 15802, name: mqt_v_js  >>> in.distributionos.sales <<<
+09-19 17:05:16.049 15827 15827 F DEBUG   :       #16 pc 0000000001285688  /data/app/~~eozWSVH4km4xpIo6d8RnyA==/in.distributionos.sales-P_z7HoryFx066XDHVWPS6g==/base.apk!libreactnative.so (offset 0x338c000) (facebook::react::UIManager::completeSurface(int, std::__ndk1::shared_ptr<std::__ndk1::vector<std::__ndk1::shared_ptr<facebook::react::ShadowNode const>, std::__ndk1::allocator<std::__ndk1::shared_ptr<facebook::react::ShadowNode const>>>> const&, facebook::react::ShadowTreeCommitOptions)+120) (BuildId: e59970ac57f947b8fe2e1ffcdcc218fa16367ed2)
+== relaunch 1
+  +8.8s pidof=16500 screen: TE | Tarsun Enterprise | salesperson | ▾ | ⋯ | Offline since 5:04 pm | Khadakpada | Today's beat | Shops: 10 | Visit
+  fatal lines: 0
+== relaunch 2
+  +8.6s pidof=16638 screen: TE | Tarsun Enterprise | salesperson | ▾ | ⋯ | Offline since 5:04 pm | Khadakpada | Today's beat | Shops: 10 | Visit
+  fatal lines: 0
+== relaunch 3
+  +8.6s pidof=16777 screen: TE | Tarsun Enterprise | salesperson | ▾ | ⋯ | Offline since 5:04 pm | Khadakpada | Today's beat | Shops: 10 | Visit
+  fatal lines: 0

@@ -14,3 +14,5 @@ tap 'Shops' at 675 2246
 add a case at 855 1292
 items: Items 1 · ₹684.00 before GST
 save at 773 2012
+after save: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:29 pm · 2 waiting to send | Anand Bhavan Provision | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands. | Open the order | Back to th
+shot b8-amit-second-order-queued.png

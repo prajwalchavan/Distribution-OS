@@ -1,0 +1,18 @@
+# helpers for the ruling-3 Android DELIVERY / WAREHOUSE keep runs. Usage: PKGAPP=delivery source hdw.sh
+cd "/Users/prajwalchavan/Desktop/Distribution OS"
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
+export PATH="/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"
+D="/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof2/android"
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/a167r3"
+PKG=in.distributionos.${PKGAPP:-delivery}
+ui() { python3 "/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/ui.py" "$@"; }
+uin() { python3 "$S/uin.py" "$@"; }
+tapt() { local xy; xy=$(ui text "$1"); if [ -z "$xy" ]; then echo "NOT FOUND: $1"; return 1; fi; echo "tap '$1' at $xy"; adb shell input tap ${=xy}; }
+shot() { adb exec-out screencap -p > "$D/$1.png"; echo "shot $1.png"; }
+lsraw() { adb shell run-as $PKG ls -la files/SQLite 2>&1; }
+lsdb() { echo "\$ adb shell run-as $PKG ls -la files/SQLite   ($(date '+%H:%M:%S'))"; local L; L=$(lsraw); echo "$L"; echo "$L" | node "$S/names.mjs"; }
+q() { psql postgres://dos:dos@127.0.0.1:5439/dos_qa -At -c "$1"; }
+crashcheck() { echo "-- logcat crash buffer ($(date '+%H:%M:%S'))"; adb logcat -d -b crash 2>&1 | grep -E "Fatal signal|>>> |Process uptime" | tail -10; echo "-- am_crash for $PKG"; adb logcat -d -b events 2>/dev/null | grep -E "am_crash|am_anr" | grep -i "distributionos" | tail -5; echo "(end)"; }
+offlinelog() { echo "-- logcat ReactNativeJS console lines ($(date '+%H:%M:%S'))"; adb logcat -d -s ReactNativeJS 2>/dev/null | grep -v 'Running "main"' | tail -20; echo "(end console lines)"; }
+secure() { echo "-- SecureStore keys ($(date '+%H:%M:%S'))"; adb shell run-as $PKG cat shared_prefs/SecureStore.xml 2>/dev/null | grep -o 'name="[^"]*"' | sort; echo "(end keys)"; }

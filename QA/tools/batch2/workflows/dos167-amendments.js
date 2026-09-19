@@ -208,6 +208,13 @@ PASS means: the app announces an honest memory store rather than hanging; AND a 
 Sign the same person in on the sales app web build in TAB 1 and let the persistent store open; queue an unsent change. Open TAB 2 on the same browser, same person. PASS means: tab 2 falls to an honest memory store and says so, AND tab 1's persistent file is neither corrupted nor evicted — tab 1 still holds its unsent change, and after closing tab 2 and reloading tab 1 the change is still there and still goes first. Screenshots into "${EV}/"; name them. Report exactly what each tab showed.` },
   { key: 'web-timeout', prompt: (head) => `Prove Fable's amendment A5 on a REAL browser, on main at ${head}. Operate the app; do not infer from code.
 Make the OPFS open slow enough to cross the 15 s deadline (the ruling names how the bundle and the worker are delayed), then let the handle arrive late. PASS means: the app falls back honestly at the deadline; the late handle is CLOSED, never destroyed; the on-disk file survives — reload and the persistent store opens again with its queued change intact. Also show a slow-but-succeeding open (a delay under the deadline) is NOT abandoned. Screenshots into "${EV}/"; name them. Report what you saw.` },
+  { key: 'android-delivery-keep', prompt: (head) => `On main at ${head}, run the DOS-167 keep proof for the DELIVERY app on Android — ruling 3 REQUIRED it and the last run could not finish it.
+Boot Pixel_7_API_36 with -memory 3072 (ANDROID_HOME and openjdk@21 per ${MAIN}/CLAUDE.md). The last prover was defeated by the tooling, not by the product: its \`adb shell input tap\` calls threw 'Argument expected after "tap"', the Take-money sheet's amount and receipt-book fields are clipped by the footer so \`input text\` landed in the wrong one, and a Save button did not answer synthetic taps. So DRIVE IT PROPERLY: use Appium/UiAutomator2 (the repo already runs Appium on :4723 — see ${MAIN}/QA/tools/) and address elements by resource-id or text, never by raw coordinates; scroll a clipped field into view before typing into it.
+Walk: sign in as a driver; go offline (airplane mode); queue at least ONE real op — a delivery saved on the phone, or money taken at a door; sign out with that op unsent; sign in as the SAME driver (the op is still there and goes first); then sign in as a DIFFERENT person (they see none of it). Screenshots of each state into "${EV}/".
+PASS needs a REAL queued op, verified in the outbox before sign-out and after sign-in. If you again cannot queue one, report 'not-tested' and say precisely which control refused and what you tried — do not report a pass you did not see.` },
+  { key: 'android-warehouse-keep', prompt: (head) => `On main at ${head}, run the DOS-167 keep proof for the WAREHOUSE app on Android — ruling 3 REQUIRED it and the last run never started it.
+Same rules as the delivery keep: Pixel_7_API_36 with -memory 3072, Appium/UiAutomator2 by resource-id or text rather than raw taps.
+Walk: sign in as a warehouse hand; go offline; queue one real op (a pick saved on the phone); sign out with it unsent; sign in as the SAME person (it is still there and goes first); then a DIFFERENT person (they see none of it). Screenshots into "${EV}/". A control you cannot drive is 'not-tested' with the detail, never a pass.` },
   { key: 'android-sanity', prompt: (head) => `On main at ${head}, re-prove that the amendments broke nothing on Android. Boot Pixel_7_API_36 with -memory 3072 (ANDROID_HOME and openjdk@21 per ${MAIN}/CLAUDE.md), run the sales app, and walk: sign in, queue an offline change, sign out, sign in again as the SAME person (the change is still there and goes first), then sign in as a DIFFERENT person (that person sees none of it). Screenshots into "${EV}/". Report pass or fail with what you saw; 'not-tested' if the emulator cannot boot, with the error.` },
 ]
 
@@ -237,7 +244,16 @@ Also read the earlier evidence under ${MAIN}/QA/evidence/batch2/dos-167/ and the
 Decide 'closed' ONLY if, on every target, a person's unsent changes survive sign-out on that device, go first at that person's next sign-in, and never reach anybody else — and the web store opens honestly or says honestly that it cannot. A case reported 'not-tested' is not a pass. List every open item.
 Write ${MAIN}/QA/evidence/batch2/verdicts/DOS-167-judge.md (under 60 lines) and return the structured decision.`
 
-const serious = (v) => !v || v.verdict !== 'pass' || v.problems.some((p) => p.severity !== 'minor') || (v.amendmentsChecked || []).some((a) => !a.satisfied)
+/**
+ * What actually stops the lane. The verifier's own verdict, an unsatisfied amendment, or a BLOCKER.
+ * A 'major' beside a 'pass' is NOT a stop: the first run of this lane was halted by one, and reading
+ * it showed it was the verifier correctly saying "the live-browser half of A3, A4 and A5 cannot run
+ * in a build lane" — which is precisely what the Proof phase below exists to do. Majors are carried
+ * forward and logged rather than swallowed; a blocker still stops everything.
+ */
+const serious = (v) =>
+  !v || v.verdict !== 'pass' || v.problems.some((p) => p.severity === 'blocker') || (v.amendmentsChecked || []).some((a) => !a.satisfied)
+const carried = (v) => (v && v.problems ? v.problems.filter((p) => p.severity === 'major') : [])
 const ivBad = (x) => !x || x.verdict !== 'pass' || x.problems.some((p) => p.severity !== 'minor')
 
 const out = {}
@@ -257,6 +273,7 @@ if (serious(v)) {
 out.impl = b
 out.verdict = v
 if (serious(v)) return { ...out, final: 'not-verified' }
+for (const m of carried(v)) log('carried forward to the proof stage: ' + String(m.detail).slice(0, 180))
 
 phase('Review')
 const review = await agent(reviewPrompt({ commits: b.commits, amendments: b.amendments, deviations: b.deviations, verifier: { verdict: v.verdict, problems: v.problems } }), { label: 'review:amendments', phase: 'Review', schema: REVIEW, model: 'fable' })

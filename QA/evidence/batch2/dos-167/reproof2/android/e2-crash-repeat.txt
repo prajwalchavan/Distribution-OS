@@ -1,0 +1,13 @@
+## walk E' — the 16:15:49 native crash, repeated: three OFFLINE cold relaunches (3003 cut) 16:58:51
+== offline cold start 1
+  screen at +8.7s: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:58 pm | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station R
+  pidof: 14368
+  crash buffer: 0 fatal lines
+== offline cold start 2
+  screen at +8.6s: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:58 pm | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station R
+  pidof: 14512
+  crash buffer: 0 fatal lines
+== offline cold start 3
+  screen at +8.6s: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 4:58 pm | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station R
+  pidof: 14655
+  crash buffer: 0 fatal lines

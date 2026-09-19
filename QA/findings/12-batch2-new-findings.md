@@ -610,6 +610,83 @@ Skeptic corrections (binding on this record): 1. **The impact statement needs a 
 6. **No other changes.** Every number in the prober's report matches my run: headers 2, 3, 1, 0 against true counts 1, 2, 1, 0, and the 409 on the second bill.
 Status: NEW — confirmed on the API, not yet approved by the founder.
 
+### DOS-174 — Closing the load-out panel leaves a challan poll running: reopening it opens a challan for the sheet that was closed (was S-108)
+Category: bug | Priority: P2 | Role: manager | Platform: manager app, web and phone widths (source guard plus unit test; the browser walk is owed)
+User: manager
+Platform: manager app M7 load-out panel
+Environment: Worktree .claude/worktrees/b2-s108 on branch qa/b2-s108, merged into main as `c3b4ec1`.
+Steps:
+  1. On M7, open a draft load sheet's panel and press Print the challan. The first answer is `queued` (the worker renders the PDF), so the screen polls.
+  2. Close the panel before the poll ends (the poll window is about 60 s).
+  3. Open another sheet's panel.
+Expected: the poll for the closed sheet stops; nothing opens for a sheet the manager is no longer looking at.
+Actual: the timer kept running and a late answer opened the CLOSED sheet's challan over the newly opened panel.
+Fix (merged): the panel's `onClose` bumps `challanToken.current`, so any answer belonging to a closed panel is dropped and nothing further is scheduled. Guard: `frontend/manager-app/src/lib/s-108-challan-close.guard.test.ts` — proven red on the merged tree by deleting the single `challanToken.current += 1` line.
+Owed: the manual walks (web 1280x800 and 390x844, Android, iOS, and the Safari attempt-0 check).
+
+### DOS-175 — A receipt can be recorded against a trip that does not exist, and is then permanently un-bankable
+Category: bug | Priority: P1 (money) | Role: accountant, manager, owner | Platform: API (`pnpm smoke` on a fresh seeded database, main 6e5c7c5)
+User: whoever records the receipt; the accountant is the one who can never bank it
+Platform: API
+Environment: Fresh database `dos_smoke_money` (created, migrated, seeded, dropped afterwards), all eight services plus the in-process worker behind `backend/all-in-one` on :3100, main at `6e5c7c5`. Runs: `pnpm smoke --base http://127.0.0.1:3100 --run-tag money-1` and the same with `--destructive`.
+Steps:
+  1. POST /receipts with `tripId` set to the value the published contract example carries (`01a06d0b-bd31-7813-8e79-aa7c39f75385`). The call succeeds and creates RCPT-9006.
+  2. In SQL: `select count(*) from trips where id='01a06d0b-bd31-7813-8e79-aa7c39f75385'` returns **0**. A LEFT JOIN of receipts to trips leaves `trip_no` NULL for RCPT-9006 and RCPT-9007, while every seeded RCPT-VAN-* and RCPT-9005/9008/9009 joins to a real trip.
+  3. POST /receipts/deposit for that receipt, as owner and as manager.
+Expected: either the receipt is refused at creation because its trip does not exist, or it can be banked like any other office receipt.
+Actual: creation succeeds — `receivables.receipts.create` does not validate `tripId`, and receipts→trips is an upstream reference so there is no foreign key to catch it. The deposit is then refused **forever** with 409 `trip_cash_not_settled` ("was taken on a trip that is not settled yet; bank it after the trip's cash is handed over at Day-end"), because the trip it names can never settle. The guard is `receivables.service.ts:1006`, added by DOS-132 (`460269e`) and hardened by the money lane (`9c44458`) — both correct; the hole is the missing validation at creation. Money collected against a non-existent trip can never reach the bank.
+Evidence: `deposit` never returned 200 on either smoke run; the harness classifies the 409 as EXPECTED, so the run table stayed green while the operation was never actually proven.
+
+### DOS-176 — Proof of delivery fails with a 500: 'proof insert returned nothing'
+Category: bug | Priority: P1 | Role: delivery crew | Platform: API (`pnpm smoke` on a fresh seeded database, main 6e5c7c5), both runs
+User: delivery crew
+Platform: API
+Environment: as DOS-175.
+Steps: POST /delivery/deliveries/{id}/pod with the published example body `{"evidence":{"kind":"geo","payload":{"distanceM":40},"lat":19.2437,"lng":73.1355},"id":"…"}`.
+Expected: the proof is stored and the stop can be closed.
+Actual: **500 Internal Server Error**, message "proof insert returned nothing". Stack: `DeliveriesService.writePod` (`libs/core/dist/modules/delivery/deliveries.service.js:404`) → `addPodInTx:199` → `runIdempotent`, thrown as INTERNAL_SERVER_ERROR. Reproduced on a fresh seeded database in both the non-destructive and the destructive run. A proof of delivery that 500s is a delivery the crew cannot close.
+
+### DOS-177 — The driver's GPS consent fails with a 500, and no van can depart without it
+Category: bug | Priority: P1 | Role: delivery crew | Platform: API (`pnpm smoke` on a fresh seeded database, main 6e5c7c5), both runs
+User: delivery crew
+Platform: API
+Environment: as DOS-175.
+Steps: POST /delivery/consents with the published example body `{"granted":true,"noticeVersion":"gps-notice-2026-09","locale":"en-IN"}`.
+Expected: the consent is recorded and the trip can start.
+Actual: **500** with no message at all. Consent is the gate a trip cannot depart without, so this blocks the whole day for that crew.
+
+### DOS-178 — A late trip payment refused by the office can be DISCARDED on the phone, erasing the only record of cash a shop already paid
+Category: bug | Priority: P1 (money, data loss) | Role: delivery crew | Platform: delivery app (architect review of the DOS-168..170 lane; code reading — the walk is owed)
+User: delivery crew
+Platform: delivery app, the unsent-changes tray
+Environment: Found by the architect (Fable) reviewing the money lane's merge gate, 2026-09-19.
+Steps:
+  1. A crew takes cash at a door with no signal. The office settles that trip before the phone gets signal back.
+  2. The phone syncs; the server refuses the receipt op with `trip_settled` (correct, founder answer A: the driver hands the money to the cashier instead).
+  3. The refused op lands in the phone's unsent-changes tray, which offers **Discard**.
+Expected: nothing a person entered is ever thrown away (founder answer A, 2026-09-14, and never-list #11). A refused payment should be kept and routed to the cashier, never offered for deletion.
+Actual: Discard erases the phone's only record that the shop paid. The shop's money then exists nowhere — not on the phone, not in the books.
+
+### DOS-179 — When the browser cannot keep an offline copy, only one screen says so, and the order button claims the opposite
+Category: bug | Priority: P2 (honesty) | Role: salesperson (delivery and warehouse not yet walked) | Platform: web (Chromium, desk and phone widths), 3/3 FAIL
+User: salesperson
+Platform: sales app on web; the same question is unwalked on delivery and warehouse, on every platform
+Environment: DOS-167 ruling-3 re-proof, main at `ce3dc8c`/`6e5c7c5`, fallback to a memory store induced by holding the expo-sqlite chunk past the 15 s deadline.
+Steps: induce the memory fallback, then visit Beat, Shops, Orders, Me and Settings, and place an order.
+Expected: a rep working all day on Shops and Orders is told the phone keeps nothing.
+Actual: "This browser will not keep the offline copy" appears on the **beat screen only**. Shops, Orders, Me and Settings show the connection strip reading "Updated just now" and nothing about the store. Worse, the order screen says the opposite: its button reads "Save on this phone" and then "Saved on this phone" after the order is queued into a store that dies with the tab. The ruling-3 merge review asked for exactly this to be ruled out ("the app now looks healthy while keeping nothing"); it was executed and it fails.
+Founder decision 2026-09-19: warn on every screen, and stop the button claiming it saved.
+
+### DOS-180 — An order saved in a dead spot re-labels itself 'Order placed' the moment signal returns, though the office holds only a draft
+Category: bug | Priority: P2 (honesty) | Role: salesperson | Platform: Android (sales app)
+User: salesperson
+Platform: sales app
+Environment: DOS-167 ruling-3 Android re-proof, main at `6e5c7c5`.
+Steps: place an order with no signal (the honest "queued" banner shows), stay on that screen, restore signal.
+Expected: the banner keeps telling the truth about THIS order until the office actually confirms it.
+Actual: `frontend/sales-app/app/orders/new.tsx:387-388` picks `title` and `meta` from `local.online` at render time, so the same banner re-renders as "Order placed — The office has it, with its number and its price" over an order the office still holds as a DRAFT with no number.
+Founder decision 2026-09-19: the banner stays honest until the office confirms.
+
 ## Suspected by the architect's plan sign-offs — NOT TESTED
 
 Raised by Fable while signing off batch-2 plans (sign-off run wf_b67cb996-95f, 2026-09-13), from code reading only. None of these is a
@@ -773,3 +850,5 @@ Raised by the Fable merge reviews (run wf_a8e3a6c2-fdd, 2026-09-13), from code r
 | S-148 | same smoke run | P1 SERVER FAULT, CONFIRMED: `delivery.consents.grant` answers **500** with no message on a fresh seeded database, both runs. Body: `{granted:true, noticeVersion:'gps-notice-2026-09', locale:'en-IN'}` to POST /delivery/consents. The driver's GPS consent is the gate the trip cannot depart without. | CONFIRMED on a fresh seeded database, both runs — needs a DOS block for approval |
 | S-149 | same smoke run | P3 DEMO DATA, CONFIRMED: `notifications.messages.markRead` answers 404 for the manager and the warehouse on a fresh seeded database, both runs — the published example names a message id the seed does not create. Fixture or example, not a product fault. | CONFIRMED on a fresh seeded database, both runs — fix the example or the seed |
 | S-150 | same smoke run (harness) | P2 QA TOOLING, CONFIRMED: re-running `pnpm smoke --destructive` with the SAME `--run-tag` against a database the first run already mutated silently guts coverage — 328 of 1606 operations skipped (vs 23 on a clean pass), because `delivery.trips.create` skips on a missing fixture and cascades through start-loading, depart, stops, collections, settle and return. The totals still read healthy, so **collections and settle were never exercised at all** and nothing said so. The run should fail loudly when it skips a large fraction. | CONFIRMED — fix in backend/tools/smoke-endpoints.mts |
+| S-151 | DOS-167 ruling-3 re-proof (web, judge 2026-09-19) | **P2 HONESTY, CONFIRMED 3/3 on web.** When the browser cannot keep an offline copy and the app falls back to memory, the sales app says so on the BEAT screen ONLY. Shops, Orders, Me and Settings show the connection strip reading 'Updated just now' and nothing about the store — and the order screen says the OPPOSITE, labelling its button 'Save on this phone' and then 'Saved on this phone' over an order queued into a store that dies with the tab. A rep who works on Shops and Orders all day is never told the phone keeps nothing. The ruling-3 merge review asked for exactly this to be ruled out ('the app now looks healthy while keeping nothing'); it was executed and it fails. Never walked at all on delivery or warehouse, on any platform. | CONFIRMED on web sales — needs a design and a DOS block for approval |
+| S-152 | DOS-167 ruling-3 re-proof (Android, judge 2026-09-19) | **P2 HONESTY, CONFIRMED on Android.** The sales order screen's outcome banner is bound to the LIVE connection state, not to what happened to that order: `frontend/sales-app/app/orders/new.tsx:387-388` picks `title`/`meta` from `local.online` at render time. An order saved on the phone in a dead spot shows the honest 'queued' banner, and the moment the radio returns while the rep is still on that screen the SAME banner re-renders as 'Order placed — The office has it, with its number and its price' over an order the office still holds as a draft with no number. | CONFIRMED on Android sales — needs a DOS block for approval |

@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""uiautomator helper used by the DOS-167 ruling-3 Android walks.
+  uin.py nth "<text>" <n>   -> centre of the Nth (1-based) CLICKABLE node with that text whose box is real
+                               (y2 > y1) and fully above the footer area; prints "x y" or nothing
+  uin.py list "<text>"      -> every matching node's bounds + clickable flag
+  uin.py find "<substr>"    -> centre of the last clickable node whose text/content-desc CONTAINS substr
+  uin.py all                -> every text and content-desc, ' | ' joined (no 600-char cut)
+"""
+import re, subprocess, sys
+
+def dump():
+    for _ in range(4):
+        subprocess.run(['adb', 'shell', 'uiautomator', 'dump', '/sdcard/ui.xml'], capture_output=True, timeout=40)
+        out = subprocess.run(['adb', 'shell', 'cat', '/sdcard/ui.xml'], capture_output=True, text=True, timeout=40).stdout
+        if '<hierarchy' in out:
+            return out
+        subprocess.run(['adb', 'shell', 'rm', '-f', '/sdcard/ui.xml'], capture_output=True)
+    return ''
+
+def box(node):
+    m = re.search(r'bounds="\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]"', node)
+    return tuple(map(int, m.groups())) if m else None
+
+x = dump()
+nodes = re.findall(r'<node [^>]*>', x)
+cmd = sys.argv[1]
+if cmd == 'all':
+    print(' | '.join(re.findall(r'(?:text|content-desc)="([^"]+)"', x)))
+elif cmd == 'list':
+    t = sys.argv[2]
+    for n in nodes:
+        if f'text="{t}"' in n or f'content-desc="{t}"' in n:
+            print(box(n), 'clickable=' + ('true' if 'clickable="true"' in n else 'false'))
+elif cmd == 'nth':
+    t, k = sys.argv[2], int(sys.argv[3])
+    hits = []
+    for n in nodes:
+        if ('clickable="true"' in n) and (f'text="{t}"' in n or f'content-desc="{t}"' in n):
+            b = box(n)
+            if b and b[3] > b[1] and b[3] < 2150 and b[1] > 250:
+                hits.append(b)
+    if k <= len(hits):
+        b = hits[k - 1]
+        print(f'{(b[0]+b[2])//2} {(b[1]+b[3])//2}')
+elif cmd == 'find':
+    s = sys.argv[2].lower()
+    hits = []
+    for n in nodes:
+        m = re.findall(r'(?:text|content-desc)="([^"]*)"', n)
+        if any(s in v.lower() for v in m):
+            b = box(n)
+            if b and b[3] > b[1]:
+                hits.append((('clickable="true"' in n), b))
+    click = [b for c, b in hits if c]
+    pick = click[-1] if click else ([b for _, b in hits][-1] if hits else None)
+    if pick:
+        print(f'{(pick[0]+pick[2])//2} {(pick[1]+pick[3])//2}')

@@ -1,0 +1,50 @@
+## A1 (retry after the Expo Go onboarding modal was dismissed)  2026-09-19 17:44:29
+## A = rahul.deshmukh (salesperson @ Tarsun Enterprises) signs in on a FRESH phone
+-- Metro :5185, bundle API_URL=http://127.0.0.1:3903 AUTH_URL=http://127.0.0.1:3900 (QA proxies, mode pass)
+17:44:29.606 start rahul.deshmukh tag=a1-rahul reset=true early=false
+17:44:33.515 opened exp://127.0.0.1:5185
+17:44:39.868 a1-rahul-signin-form.png
+17:44:42.498 a1-rahul-filled.png
+17:44:42.498 tapped "Sign in"
+17:44:54.912 a1-rahul-home.png
+17:44:55.340 SIGNED_IN rahul.deshmukh
+labels: Expo Go | More | Tarsun Enterprise logo | Tarsun Enterprise | salesperson | Updated just now | Station Road | Today's beat | Shops: 11 | Visited: 0 | Ordered: 1 | ✓ Station Road | Kalyan West Market | Khadakpada | Vertical scroll bar, 2 pages | Demo Kirana Store (docs), Kalyan West · No order from you yet, —, To visit | Vertical scroll bar, 3 pages | Horizontal scroll bar, 1 page | Beat | Orders | Shops | Me | gearshape.fill
+-- stores on the phone now
+$ find "$C" -path '*SQLite*'   (17:44:55)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "rahul.deshmukh @ Tarsun Enterprises",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [rahul.deshmukh @ Tarsun Enterprises] legacy=0 interim=0 strays=0 other=0
+-- proxy log for this sign-in
+17:44:44.139 [pass] sales GET /sync/pull -> 200
+17:44:44.311 [pass] sales GET /sync/pull -> 200
+17:44:44.549 [pass] sales GET /sync/pull -> 200
+17:44:44.759 [pass] sales GET /sync/pull -> 200
+17:44:44.970 [pass] sales GET /sync/pull -> 200
+17:44:45.193 [pass] sales GET /sync/pull -> 200
+17:44:45.405 [pass] sales GET /sync/pull -> 200
+17:44:45.631 [pass] sales GET /sync/pull -> 200
+17:44:45.844 [pass] sales GET /sync/pull -> 200
+17:44:46.051 [pass] sales GET /sync/pull -> 200
+17:44:46.251 [pass] sales GET /sync/pull -> 200
+17:44:46.341 [pass] sales GET /sync/errors -> 200

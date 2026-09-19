@@ -1,0 +1,20 @@
+# sourced zsh helpers for the DOS-167 ruling-3 iOS SANITY re-proof (iPhone 16 Pro, iOS 18.0, Expo Go)
+cd "/Users/prajwalchavan/Desktop/Distribution OS"
+export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH
+eval "$(fnm env)"; fnm use 24 >/dev/null
+export DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa
+D="/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof2/ios"
+S="/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/i167r3"
+UDID=DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74
+METRO=5185
+drv() { node "/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/ios-drive.mjs" "$@"; }
+cont() { xcrun simctl get_app_container $UDID host.exp.Exponent data; }
+shot() { xcrun simctl io $UDID screenshot "$D/$1.png" >/dev/null 2>&1 && echo "shot $1.png $(date '+%H:%M:%S.%3N' 2>/dev/null || date '+%H:%M:%S')"; }
+labels() { drv labels "$@" | cut -f3 | tr '\n' '|'; echo; }
+now() { date '+%Y-%m-%d %H:%M:%S'; }
+q() { psql "$DATABASE_URL" -At -c "$1"; }
+mode() { echo "$1" > "$S/proxy-mode"; echo "proxy mode = $(cat $S/proxy-mode) ($(date '+%H:%M:%S'))"; }
+stores() { local c; c=$(cont); echo "\$ find \"\$C\" -path '*SQLite*'   ($(date '+%H:%M:%S'))"; find "$c" -path '*SQLite*' | sed "s|$c|\$C|"; echo "(end of find)"; find "$c" -path '*SQLite*' -type f -exec basename {} \; | node "$S/names-ios.mjs"; }
+dbcopy() { local c f dir T; c=$(cont); f=$(find "$c" -path '*SQLite*' -type f -name "$1" | head -1); if [ -z "$f" ]; then echo "no file $1"; return 1; fi; dir=$(dirname "$f"); T="$S/db-$2"; rm -rf "$T"; mkdir -p "$T"; for suf in "" "-wal" "-shm"; do [ -f "$dir/$1$suf" ] && cp "$dir/$1$suf" "$T/"; done; echo "-- copied read-only to scratchpad ($(date '+%H:%M:%S'))"; ls -la "$T" | tail -n +2; echo "-- integrity"; sqlite3 "$T/$1" "PRAGMA integrity_check"; echo "-- tables"; sqlite3 "$T/$1" ".tables"; echo "-- _sync_state"; sqlite3 "$T/$1" "select key, substr(coalesce(value,''),1,60) from _sync_state"; echo "-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)"; sqlite3 "$T/$1" "select seq, op_id, tbl, row_id, op, status, attempts, created_at, sent_at, acked_at from _outbox"; echo "-- _sync_errors"; sqlite3 "$T/$1" "select count(*) from _sync_errors"; }
+ips() { ls -la ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i "Expo Go"; echo "(end of .ips list)"; }
+strip() { drv labels | cut -f3 | grep -E "Updated|Offline|waiting|Waiting|Still|Saved on|Sending|refused|attention|keep" | head -4 | tr '\n' '|'; echo; }
