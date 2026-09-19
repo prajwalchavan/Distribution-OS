@@ -19,9 +19,10 @@ const LIMIT = 3
 /**
  * Wave 3 = the 16 lean groups still unmerged (waves 1 and 2 merged lean-sales-entry, lean-kit-overlays,
  * lean-manager-billing, lean-retailer-shop and lean-backend-platform). `after` is each group's waitsFor
- * narrowed to groups in THIS run; the h-lanes it also waited for are all on main. `defer` is the items
- * whose design still needs a founder answer (QA/evidence/batch2/lean-founder-questions.md) — they are
- * NOT built here, and the group ships without them.
+ * narrowed to groups in THIS run; the h-lanes it also waited for are all on main. `defer` is empty: the eleven items once listed in
+ * QA/evidence/batch2/lean-founder-questions.md were ALREADY decided by the founder on 2026-09-13
+ * (docs/22 §8 carries a row for each of DOS-006, 016, 054, 066, 071, 081, 087, 100, 102, 103, 138)
+ * and re-confirmed on 2026-09-19 ("accept all recommended"). Nothing in wave 3 is held.
  */
 const GROUPS = [
  {
@@ -328,10 +329,7 @@ const GROUPS = [
    "DOS-066",
    "DOS-071"
   ],
-  "defer": [
-   "DOS-066",
-   "DOS-071"
-  ],
+  "defer": [],
   "model": "opus",
   "after": [
    "lean-delivery-door",
@@ -419,10 +417,7 @@ const GROUPS = [
    "DOS-087",
    "DOS-090"
   ],
-  "defer": [
-   "DOS-081",
-   "DOS-087"
-  ],
+  "defer": [],
   "model": "opus",
   "after": [
    "lean-manager-money",
@@ -478,10 +473,7 @@ const GROUPS = [
    "DOS-011",
    "DOS-033"
   ],
-  "defer": [
-   "DOS-006",
-   "DOS-016"
-  ],
+  "defer": [],
   "model": "opus",
   "after": [
    "lean-owner-desk",
@@ -540,9 +532,7 @@ const GROUPS = [
    "DOS-138",
    "DOS-030"
   ],
-  "defer": [
-   "DOS-138"
-  ],
+  "defer": [],
   "model": "opus",
   "after": [
    "lean-delivery-door",
@@ -601,11 +591,7 @@ const GROUPS = [
    "DOS-104",
    "DOS-125"
   ],
-  "defer": [
-   "DOS-100",
-   "DOS-102",
-   "DOS-103"
-  ],
+  "defer": [],
   "model": "opus",
   "after": [
    "lean-warehouse-stock",
@@ -669,9 +655,7 @@ const GROUPS = [
    "DOS-050",
    "DOS-054"
   ],
-  "defer": [
-   "DOS-054"
-  ],
+  "defer": [],
   "model": "opus",
   "after": [
    "lean-warehouse-pick",
