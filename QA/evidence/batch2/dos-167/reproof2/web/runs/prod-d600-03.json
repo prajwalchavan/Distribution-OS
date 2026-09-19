@@ -1,0 +1,369 @@
+{
+ "label": "prod-d600-03",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5199/_expo/static/js/web/index-565b578c170464d598321ad5bb5a6b30.js",
+   "heldMs": 602,
+   "at": 1062
+  },
+  {
+   "url": "http://localhost:5199/_expo/static/js/web/worker-4b9c3f83bac709745329805dba065f94.js",
+   "heldMs": 602,
+   "at": 1685
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/0n5ln2zv4fl",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/3ax6mvafu68",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/7y98ka4dnx4",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/gbnkkgc35pb",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/p4kujdplfxq",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/wuctsrlyegs",
+   "kind": "file",
+   "size": 3940352,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  }
+ ],
+ "walkEarly": [],
+ "syncRequests": [
+  {
+   "t": 1804,
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2005,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500"
+  },
+  {
+   "t": 2129,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 2229,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 2358,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 2495,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 2623,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 2761,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 2921,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 3064,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 3213,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 3392,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 3516,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 3645,
+   "url": "/sync/errors?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&unresolvedOnly=true&limit=50"
+  }
+ ],
+ "manifestCalls": 1,
+ "pullCalls": 12,
+ "offlineLines": [],
+ "notADatabase": 0,
+ "cannotCreate": 0,
+ "beatFinal": {
+  "notPersisted": false,
+  "stillLoading": false
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 325,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 378,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 420,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 450,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 458,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789896929&signature=d3f9d8050ba52cf320bc49b6024a62178c6bbfd8623fd6564e1d803e85eb"
+  },
+  {
+   "t": 459,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 462,
+   "kind": "opfs-early",
+   "files": 0
+  },
+  {
+   "t": 463,
+   "kind": "beat",
+   "notPersisted": false,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 1078,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5199/9b007c8a-bfd7-4f68-895e-7d683070225b"
+  },
+  {
+   "t": 1804,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 1807,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2005,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500"
+  },
+  {
+   "t": 2054,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500"
+  },
+  {
+   "t": 2129,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 2180,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 2229,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 2279,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 2358,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 2416,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 2486,
+   "kind": "beat",
+   "notPersisted": false,
+   "stillLoading": false,
+   "updated": true,
+   "notUpdated": false
+  },
+  {
+   "t": 2495,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 2556,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 2623,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 2681,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 2761,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 2831,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 2921,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 2992,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 3064,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 3126,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 3213,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 3274,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 3392,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 3444,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 3516,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 3572,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 3645,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/errors?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 3650,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/errors?deviceId=01a0b905-534d-7275-acae-5a30b5da0ee2&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 25839,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": true
+}

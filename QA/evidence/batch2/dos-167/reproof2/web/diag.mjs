@@ -205,12 +205,17 @@ if (flag('reload')) {
 let second = null
 if (SECOND !== null) {
   const before = events.length
-  await page.evaluate(() => {
-    const el = [...document.querySelectorAll('*')].find((n) => /^Sign out$/i.test(n.textContent ?? ''))
-    el?.click?.()
-  }).catch(() => {})
-  await sleep(1500)
-  await page.goto(APP, { waitUntil: 'domcontentloaded', timeout: 240000 }).catch(() => {})
+  // The real menu path (the same one QA/tools/e2e/s-098-shared-device.mjs taps): rail menu -> Sign out.
+  try {
+    await page.locator('header button[aria-haspopup="menu"]:visible').first().click({ timeout: 15000 })
+    await page.locator('[role=menuitem]:visible', { hasText: 'Sign out' }).first().click({ timeout: 15000 })
+    push({ kind: 'sign-out-tapped' })
+  } catch (error) {
+    push({ kind: 'sign-out-tap-failed', text: String(error).slice(0, 200) })
+  }
+  await page.waitForSelector('[data-testid=sign-in-username]', { timeout: 60000 }).catch((e) => push({ kind: 'sign-out-no-form', text: String(e).slice(0, 160) }))
+  await sleep(1200)
+  push({ kind: 'signed-out', walk: (await opfsWalk(page)).filter((e) => e.kind === 'file' && e.sqlitePath).map((e) => e.sqlitePath) })
   await signIn(SECOND).catch((e) => push({ kind: 'second-signin-failed', text: String(e).slice(0, 200) }))
   await sleep(WATCH)
   const b = await page.innerText('body').catch(() => '')

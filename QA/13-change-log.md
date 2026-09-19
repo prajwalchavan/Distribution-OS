@@ -699,3 +699,28 @@ The founder approved the request for the six confirmed findings and the one-line
 **DOS-172 did not merge either** — it waits on money by design (it changes departure for every spec, so it merges last). Its branch holds the backend slice, the app slice and a review-fix commit, tree clean.
 
 **Referred to Fable** (architect, 2026-09-19): does money merge now with the walks owed afterwards — the convention every lane merge message states, "Platform proof follows" — or must the walks run first? Only the architect may resolve that, and her ruling names the exact proof set, what happens if a walk fails after a merge, and the ordering against DOS-172. Output: `QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`.
+
+### DOS-168..DOS-170 — Fable's merge-gate ruling: MERGE NOW (2026-09-19)
+
+The architect resolved the deadlock between the programme's own convention ("Platform proof follows", in every lane merge message) and the two money reviews, which demanded the device walks before the merge. **Decision: MERGE NOW**, proof owed afterwards, DOS-168/169/170 staying OPEN until the walks pass. Full ruling: `QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`.
+
+**The proof set she named, in order** (item 0 and 1 before DOS-172 rebases; 2–7 after):
+0. Merge main into `qa/b2-money` and re-run the FULL gate on that tree — the lane last saw main at `6f2614b`, before DOS-171 and the ruling-3 repair — then merge and push.
+1. `pnpm smoke --run-tag money-1`, then `--destructive`, on a fresh database copy: 0 BROKEN, with collections, settle, receipts and deposit all OK.
+2. Web at 1280×800: two desks press Bank on ONE collected receipt in the same second — exactly one 2xx, the loser told "is deposited, not collected" (409 `receipt_moved`), one deposit ref, one `ChequeDeposited` row, one Dr BANK line.
+3. Web + API probe: a returned trip whose only cash is a driver-uploaded receipt op with no `collections` row still shows that cash in the cockpit and settles green at float + X with Cr CASH_VAN = X; a second trip handed the float alone answers 409 `settlement_needs_owner`.
+4. Web: the accountant undoes that receipt after settlement — the reversal credits CASH, never CASH_VAN; the trial balance shows CASH −X with CASH_VAN unchanged; the bill reopens; the settlement row is untouched.
+5. Web delivery at both widths: one receipt held offline shows `d8-uncounted` and a disabled check-in, clears on re-open after reconnect with the hand-over rupee unchanged; in the settle-while-open leg the refused `trip_settled` op reaches the tray while D8 shows the settled figure.
+6. **Android on the Pixel 7 — the one item that genuinely needs a real device** (SQLite outbox, airplane mode, background push, the tray).
+7. iOS through `xcrun simctl`, renderer sanity only; a failure Android does not reproduce is P3 and never blocks.
+
+**If a walk fails later:** it is a new finding repaired forward on `b2-money-r1`, re-proving only the failed leg. The merge is reverted **only** if the merged tree writes money wrong where main did not — an unbalanced journal, a double bank or double count, CASH_VAN not at 0, or a settle against founder answer A — and the forward fix is not on main within one working day. A screen fault never reverts.
+
+**Ordering:** nothing in money waits for DOS-172, and DOS-172 must not merge before money; DOS-172 comes onto merged main once, resolving three `trips.service.ts` lines and the contract JSDoc hunks, folding a duplicate load-out helper at that merge.
+
+**Three risks nobody else raised, now filed:**
+- **S-143 (P1, money, data loss):** the delivery phone's tray offers **Discard** on a receipt op the server refused with `trip_settled` — discarding erases the phone's only record of cash a shop has already paid, which is exactly what founder answer A forbids.
+- **S-144 (P2):** D8's settlement preview is fetched once per mount and never refetched, so a stale "money still on the phone" note can stand beside an enabled check-in button.
+- **S-145 (P2):** the D8 held-money figure is totals-minus-totals, so it mis-states a two-phone crew or an unpulled desk receipt; bounded today by the outbox gate.
+
+**Executing it:** run `wf_a26d0575-7f9`, script `QA/tools/batch2/workflows/money-then-dos172.js` — items 0 and 1, then DOS-172's merge. The walks (2–7) run in their own pass once the DOS-167 proofs free the browser and the emulator.
