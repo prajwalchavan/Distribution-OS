@@ -27,7 +27,7 @@ import {
   type Db,
   type TenantContext,
 } from '@dos/db'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, onTestFinished } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { TRIP_PREDICATES } from '../delivery/index.js'
@@ -1698,8 +1698,9 @@ describeDb('receivables (DATABASE_URL)', () => {
 
   /*
    * Receivables cannot read `trips`: delivery hands it the "this trip is settled" predicate at start-up (DOS-132).
-   * This app mounts receivables without delivery, so nothing has registered one, and a receipt taken on a trip
-   * must read as still with the crew — never as money the office holds.
+   * This app registers delivery's predicates by hand and blanks `settled` for the length of this case, so nothing
+   * can say that trip's cash reached the office, and a receipt taken on a trip must read as still with the crew —
+   * never as money the office holds.
    */
   it('DOS-132 (fail closed): with no delivery module to say a trip is settled, a receipt carrying a tripId is never listed in hand, reads withCrew, and is refused for banking', async () => {
     const shopK = uuidv7()
@@ -1718,6 +1719,11 @@ describeDb('receivables (DATABASE_URL)', () => {
     // below by blanking the `settled` predicate alone, exactly as a process without delivery leaves it.
     const tripId = onTheRoadTripId
     receivables.registerTripPredicates({ ...TRIP_PREDICATES, settled: () => sql`false` })
+    // put delivery's own `settled` answer back however this case ends: nothing below it is about a process
+    // without delivery, and a mid-case failure must not leak the blank into the rest of the file.
+    onTestFinished(() => {
+      receivables.registerTripPredicates(TRIP_PREDICATES)
+    })
     type Taken = { id: string; receiptNo: string }
     const take = async (
       actor: Actor,
@@ -1819,8 +1825,6 @@ describeDb('receivables (DATABASE_URL)', () => {
       select count(*)::int as n from journal_entries
        where tenant_id = ${tenantId} and ref_type = 'deposit' and ref_id = ${batch}`)
     expect((posted.rows[0] as { n: number }).n).toBe(0)
-    // put delivery's own `settled` answer back: nothing below this case is about a process without delivery
-    receivables.registerTripPredicates(TRIP_PREDICATES)
   })
 
   // -------------------------------------------------------------------------------------------------------------
