@@ -663,3 +663,27 @@ The founder approved the request for the six confirmed findings and the one-line
 **Proof, executed under the CI condition (`rm -rf libs/database/dist`).** Before: `eslint .` exit 1, that one error. After: exit 0. Then the backend CI gates from the repo root: `pnpm format:check` 0, `pnpm lint` 0 (19 tasks), `pnpm typecheck` 0 (19), `pnpm build` 0 (14).
 
 **Swept for recurrences:** no other backend package (`@dos/domain`, `@dos/contracts`, `@dos/db`, `@dos/core`) imports its own package name anywhere in `src/`.
+
+### CI red on main — backend tests, the doc-example specs (2026-09-19)
+
+**Reported by the founder** as the next GitHub Actions failure after the lint fix: `@dos/core` `src/docs/examples.spec.ts`, three assertions — `ctx.variantId` undefined, one broken `retailers.linkIdentity` example, and no parsed party-master import row.
+
+**Cause.** The CI backend job runs `pnpm db:migrate` and then `pnpm test`, and never seeds. `describeDb('doc examples against the demo database')` runs whenever `DATABASE_URL` resolves, and on CI it resolves to a migrated but EMPTY database: there is no tenant with shops, products and orders to build an example from. It read as three failures rather than four only because other specs in the same turbo run had created a tenant and a retailer as their own fixtures — that part was a race. Nobody saw it locally: every developer database here is seeded.
+
+**Fix.** One line in `.github/workflows/ci.yml`, `pnpm db:seed` between migrate and test, with a comment saying why. `db:seed` is idempotent. No source or test change; the spec is right to demand demo rows.
+
+**Proof, executed on a fresh database (`dos_test_ci_repro`, created and dropped for this).** Migrate only: `vitest run src/docs/examples.spec.ts` → 4 failed / 28 passed. Then `pnpm db:seed` → 32 passed / 32. Then the whole backend suite against that seeded copy: `pnpm test` exit 0, 19 of 19 turbo tasks.
+
+### DOS-167 — Fable back in the architect seat, and five amendments to ruling 3 (2026-09-19)
+
+**Why it matters.** Both runs relaunched this morning were written on 2026-09-14, while Fable's weekly limit was exhausted, so every architect seat in them still said "Opus standing in for Fable". The limit reset at 11:30 IST and the scripts were not switched back — the Opus stand-in wrote ruling 3 at 13:35. The founder caught it. From the DOS-167 close decision onward every architect role is Fable again.
+
+**First act as architect: an adversarial review of ruling 3** (read-only, against the executed diagnosis, the ruling-2 addenda, docs/27 and the offline sources). Verdict **SOUND WITH AMENDMENTS**, five of them, written to `QA/evidence/batch2/verdicts/DOS-167-ruling-3-architect-review.md` and binding on the build:
+
+- **A1** — the `persistent: boolean | null` widening must be threaded through EVERY hop (`LeaveSession.persistent`, the three `_layout` device props, the `LeaveSheet` prop, `leaveButtons`/`leaveSentence`, and the owner, manager and retailer consumers), not only the endpoints the ruling named; proven red by a failing `pnpm typecheck`.
+- **A2** — the never-a-hang memory fallback must RELEASE the failed persistent file's `holdFile` hold; proven by a post-open corruption that drops to memory, after which a second engine on the same store name still opens instead of blocking.
+- **A3** — the promoted S-138 gate must assert at most ONE VFS construction and ONE WASM init per load: the concurrency mode fired at delay 0 (`warm-instr`), and the pool-header check alone can pass over a latent second VFS.
+- **A4** — a SECOND TAB of the same person must be proven to fall to an honest memory store without corrupting or evicting the first tab's persistent file. Ruling 3 omits this case.
+- **A5** — the 15 s timeout path must CLOSE a late-arriving persistent handle, never destroy it, and keep the on-disk file, with a deadline generous enough not to abandon a slow-but-succeeding OPFS open.
+
+**How they land.** The ruling-3 build was already three commits deep and mid-slice when the review came back, so it was not interrupted. The amendments run as their own lane after ruling 3 merges: `QA/tools/batch2/workflows/dos167-amendments.js` — implementer, adversarial verifier, one repair round, Fable's own merge review, integration with the full frontend gate including the kit cross-app guards, merge, then a re-proof of ONLY the four cases the amendments add (web memory fallback, web second tab, web timeout, an Android sanity walk), and finally Fable as judge on whether DOS-167 closes.

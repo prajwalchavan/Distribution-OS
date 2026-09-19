@@ -47,6 +47,10 @@ jobs:
       - run: pnpm build
       - run: pnpm docs:readme:check
       - run: pnpm db:migrate
+      # The doc-example specs read the DEMO rows (`describeDb` in libs/core/src/docs/examples.spec.ts):
+      # a migrated-but-empty database has no tenant, variant, order or parsed import to build an
+      # example from. The seed is idempotent and is what every developer's database already holds.
+      - run: pnpm db:seed
       - run: pnpm test
 
   frontend:
