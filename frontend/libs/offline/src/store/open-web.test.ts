@@ -260,4 +260,96 @@ describe('DOS-167 ruling 3: the web opener', () => {
       destroyed: 0,
     })
   })
+
+  /*
+   * Fable amendment A4 (2026-09-19): the case ruling 3 left out. OPFS hands a synchronous access handle to ONE
+   * holder, and wa-sqlite's pool takes the whole directory, so a SECOND TAB of the same signed-in person cannot have
+   * the file the first tab is signed in on. What must never happen there is either of the two halves of S-138: a tab
+   * that hangs or throws instead of carrying on, and a tab that "recovers" by clearing the file the other tab is
+   * using. It falls to memory, says which file it wanted and why it could not have it — so (t)/(dd) print it and the
+   * sheet withholds the keep — and the first tab's file, its queued op and the pool are exactly as they were
+   * (founder answer A: nothing unsent is thrown away, and nothing of one person's is touched for another's sake).
+   */
+  it('DOS-167 a second tab of the same person falls to an announced memory store and leaves the first tab and its queue alone', async () => {
+    asCrossOriginIsolatedBrowser()
+
+    /** OPFS as the browser gives it: one holder per file, and a pool file is only ever removed by an explicit delete. */
+    class ExclusiveOpfs {
+      readonly rows = new Map<string, string[]>()
+      readonly held = new Set<string>()
+      readonly deleted: string[] = []
+
+      acquire(name: string): void {
+        if (this.held.has(name))
+          throw new Error(
+            'NoModificationAllowedError: Access Handles cannot be created if there is another open Access Handle',
+          )
+        this.held.add(name)
+        if (!this.rows.has(name)) this.rows.set(name, [])
+      }
+
+      release(name: string): void {
+        this.held.delete(name)
+      }
+    }
+
+    const opfs = new ExclusiveOpfs()
+    const loadSqlite = async (): Promise<ExpoSqliteLike> => ({
+      openDatabaseAsync: async (name: string): Promise<ExpoDatabaseLike> => {
+        opfs.acquire(name)
+        return {
+          execAsync: async () => {},
+          runAsync: async (_sql, params) => {
+            opfs.rows.get(name)?.push(String(params[0] ?? ''))
+            return {}
+          },
+          getAllAsync: async <T>() => (opfs.rows.get(name) ?? []).map((id) => ({ id })) as T[],
+          withTransactionAsync: async (fn: () => Promise<void>) => fn(),
+          closeAsync: async () => {
+            opfs.release(name)
+          },
+        }
+      },
+      deleteDatabaseAsync: async (name: string) => {
+        opfs.deleted.push(name)
+        opfs.rows.delete(name)
+      },
+    })
+
+    // Tab 1: signed in, with one order still waiting to reach the office.
+    const tabOne = await openStore(ENGINE, { loadSqlite })
+    await tabOne.exec(`INSERT INTO outbox (op_id) VALUES (?)`, ['op-1'])
+
+    // Tab 2: the same person, the same profile, the same file — and the file is taken.
+    const tabTwo = await openStore(ENGINE, { loadSqlite })
+    const stillWaiting = await tabOne.query<{ id: string }>('SELECT op_id AS id FROM outbox', [])
+
+    expect({
+      oneKind: tabOne.kind,
+      onePersistent: tabOne.persistent,
+      twoKind: tabTwo.kind,
+      twoPersistent: tabTwo.persistent,
+      // Said out loud, with the file it wanted and why it could not have it (ruling 2 (t), ruling 3 (dd)).
+      twoWanted: tabTwo.fallback?.wanted,
+      twoReason: /^open failed: NoModificationAllowedError/.test(tabTwo.fallback?.reason ?? ''),
+      // Tab 1 is untouched: still holding its file, still holding its op, and no file deleted or added.
+      held: [...opfs.held],
+      queued: stillWaiting.map((row) => row.id),
+      deleted: opfs.deleted,
+      pool: [...opfs.rows.keys()],
+    }).toEqual({
+      oneKind: 'sqlite-web',
+      onePersistent: true,
+      twoKind: 'memory',
+      twoPersistent: false,
+      twoWanted: 'sqlite-web',
+      twoReason: true,
+      held: [ENGINE],
+      queued: ['op-1'],
+      deleted: [],
+      pool: [ENGINE],
+    })
+
+    await tabOne.close()
+  })
 })
