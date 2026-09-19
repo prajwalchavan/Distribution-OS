@@ -1,0 +1,390 @@
+{
+  "service": "admin",
+  "ranAt": "2026-09-19T17:09:47.227Z",
+  "summary": {
+    "OK": 14,
+    "EXPECTED": 0,
+    "BROKEN": 0,
+    "SKIPPED": 3
+  },
+  "results": [
+    {
+      "service": "admin",
+      "operationId": "health.ping",
+      "method": "GET",
+      "path": "/health/ping",
+      "url": "http://127.0.0.1:3100/admin/health/ping",
+      "summary": "Liveness + database reachability",
+      "status": 200,
+      "ms": 3,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "ok": true,
+        "version": "0.0.0",
+        "db": "up",
+        "time": "2026-09-19T17:09:47.040Z"
+      }
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.tenants.create",
+      "method": "POST",
+      "path": "/admin/tenants",
+      "url": "http://127.0.0.1:3100/admin/admin/tenants",
+      "summary": "Onboard a distributor: tenant, chart of accounts, owner login and a trial · console level: super",
+      "status": 200,
+      "ms": 60,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:admin:admin.tenants.create:67318cd9a1f5b961",
+        "id": "01a0d0c5-fb03-7ca7-87ab-dfbd27f62ca3",
+        "slug": "docs-distributor-0",
+        "legalName": "Docs Distributors 0",
+        "stateCode": "27",
+        "plan": "starter",
+        "owner": {
+          "userId": "01a0d0c5-d5a4-7afa-86da-9cda3a360afa",
+          "membershipId": "01a0d0c5-0f5a-72a9-8253-371575838110",
+          "username": "docs.owner0",
+          "name": "Docs Owner",
+          "phone": "+918800000101",
+          "locale": "en-IN",
+          "temporaryPassword": "Dos@1234"
+        },
+        "subscription": {
+          "id": "01a0d0c5-c080-76e0-899d-fa58ff98f1b0",
+          "trialDays": 30,
+          "amountPaise": 199900,
+          "billingInterval": "monthly",
+          "seats": 10
+        }
+      },
+      "responseSample": "{\"tenant\":{\"id\":\"01a0d0c5-fb03-7ca7-87ab-dfbd27f62ca3\",\"slug\":\"docs-distributor-0\",\"legalName\":\"Docs Distributors 0\",\"gstin\":null,\"stateCode\":\"27\",\"plan\":\"starter\",\"status\":\"active\"},\"owner\":{\"userId\":\"01a0d0c5-d5a4-7afa-86da-9cda3a360afa\",\"membershipId\":\"01a0d0c5-0f5a-72a9-8253-371575838110\",\"username\":\"docs.owner0\",\"mustChangePassword\":true},\"subscription\":{\"id\":\"01a0d0c5-c080-76e0-899d-fa58ff98f1b0\",\"tenantId\":\"01a0d0c5-fb03-7ca7-87ab-dfbd27f62ca3\",\"plan\":\"starter\",\"status\":\"trialing\",\"amountPaise\":199900,\"billingInterval\":\"monthly\",\"seats\":10,\"currentPeriodStart\":\"2026-09-19\",\"currentPerio…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.tenants.list",
+      "method": "GET",
+      "path": "/admin/tenants",
+      "url": "http://127.0.0.1:3100/admin/admin/tenants?limit=5",
+      "summary": "Distributors on the platform, with subscription state and size · console levels: super, support, billing",
+      "status": 200,
+      "ms": 20,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"01a0baa2-26bc-75bc-aaac-acd319cf8525\",\"slug\":\"tarsun\",\"legalName\":\"Tarsun Enterprises\",\"gstin\":\"27CNGPP9039R1ZX\",\"stateCode\":\"27\",\"plan\":\"pilot\",\"status\":\"active\",\"subscriptionStatus\":\"active\",\"trialEndDate\":null,\"staffCount\":23,\"retailerCount\":62,\"orders30d\":322,\"lastActivityAt\":\"2026-09-19T17:09:46.682Z\",\"createdAt\":\"2026-09-19T17:06:24.073Z\"},{\"id\":\"01a0baa2-bc10-7779-863c-b39a5ddeef28\",\"slug\":\"vs-37622288\",\"legalName\":\"Van Door Traders\",\"gstin\":null,\"stateCode\":\"27\",\"plan\":\"pilot\",\"status\":\"active\",\"subscriptionStatus\":null,\"trialEndDate\":null,\"staffCount\":7,\"retailerCount…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.tenants.get",
+      "method": "GET",
+      "path": "/admin/tenants/{id}",
+      "url": "http://127.0.0.1:3100/admin/admin/tenants/01a0baa2-26bc-75bc-aaac-acd319cf8525",
+      "summary": "One distributor: subscription, size, storage and its support grants · console levels: super, support, billing",
+      "status": 200,
+      "ms": 9,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"01a0baa2-26bc-75bc-aaac-acd319cf8525\",\"slug\":\"tarsun\",\"legalName\":\"Tarsun Enterprises\",\"gstin\":\"27CNGPP9039R1ZX\",\"stateCode\":\"27\",\"plan\":\"pilot\",\"status\":\"active\",\"subscriptionStatus\":\"active\",\"trialEndDate\":null,\"staffCount\":23,\"retailerCount\":62,\"orders30d\":322,\"lastActivityAt\":\"2026-09-19T17:09:46.682Z\",\"createdAt\":\"2026-09-19T17:06:24.073Z\",\"subscription\":{\"id\":\"858931f9-ae7b-7a24-8238-8c558a9a0274\",\"tenantId\":\"01a0baa2-26bc-75bc-aaac-acd319cf8525\",\"plan\":\"pro\",\"status\":\"active\",\"amountPaise\":499900,\"billingInterval\":\"monthly\",\"seats\":25,\"currentPeriodStart\":\"2026-09-19\",\"cu…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.tenants.suspend",
+      "method": "POST",
+      "path": "/admin/tenants/{id}/suspend",
+      "url": "http://127.0.0.1:3100/admin/admin/tenants/{id}/suspend",
+      "summary": "Refuse every sign-in to this distributor; nothing is deleted (audited) · console level: super",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (would refuse every sign-in for the demo distributorship until it is reactivated)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.tenants.reactivate",
+      "method": "POST",
+      "path": "/admin/tenants/{id}/reactivate",
+      "url": "http://127.0.0.1:3100/admin/admin/tenants/01a0baa2-26bc-75bc-aaac-acd319cf8525/reactivate",
+      "summary": "Let a suspended distributor back in (audited) · console level: super",
+      "status": 200,
+      "ms": 18,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:admin:admin.tenants.reactivate:c60d13647a1e9a21",
+        "note": "Payment received."
+      },
+      "responseSample": {
+        "item": {
+          "id": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+          "slug": "tarsun",
+          "legalName": "Tarsun Enterprises",
+          "gstin": "27CNGPP9039R1ZX",
+          "stateCode": "27",
+          "plan": "pilot",
+          "status": "active"
+        }
+      }
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.subscriptions.upsert",
+      "method": "POST",
+      "path": "/admin/subscriptions",
+      "url": "http://127.0.0.1:3100/admin/admin/subscriptions",
+      "summary": "Set a distributor's plan, price and period (audited) · console levels: super, billing",
+      "status": 200,
+      "ms": 6,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:admin:admin.subscriptions.upsert:9d0b93deb546b175",
+        "id": "858931f9-ae7b-7a24-8238-8c558a9a0274",
+        "tenantId": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+        "plan": "pro",
+        "status": "active",
+        "amountPaise": 499900,
+        "billingInterval": "monthly",
+        "seats": 25,
+        "currentPeriodStart": "2026-09-19",
+        "currentPeriodEnd": "2026-10-19",
+        "note": "Pilot customer, Kalyan West."
+      },
+      "responseSample": {
+        "item": {
+          "id": "858931f9-ae7b-7a24-8238-8c558a9a0274",
+          "tenantId": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+          "plan": "pro",
+          "status": "active",
+          "amountPaise": 499900,
+          "billingInterval": "monthly",
+          "seats": 25,
+          "currentPeriodStart": "2026-09-19",
+          "currentPeriodEnd": "2026-10-19",
+          "trialEndDate": null,
+          "cancelledAt": null,
+          "note": "Pilot customer, Kalyan West.",
+          "createdAt": "2026-09-19T17:06:44.359Z",
+          "updatedAt": "2026-09-19T17:09:47.151Z"
+        }
+      }
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.subscriptions.list",
+      "method": "GET",
+      "path": "/admin/subscriptions",
+      "url": "http://127.0.0.1:3100/admin/admin/subscriptions?limit=5",
+      "summary": "Subscriptions, filtered by state, plan or what is about to end · console levels: super, support, billing",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"01a0d0c5-c080-76e0-899d-fa58ff98f1b0\",\"tenantId\":\"01a0d0c5-fb03-7ca7-87ab-dfbd27f62ca3\",\"plan\":\"starter\",\"status\":\"trialing\",\"amountPaise\":199900,\"billingInterval\":\"monthly\",\"seats\":10,\"currentPeriodStart\":\"2026-09-19\",\"currentPeriodEnd\":\"2026-10-19\",\"trialEndDate\":\"2026-10-19\",\"cancelledAt\":null,\"note\":null,\"createdAt\":\"2026-09-19T17:09:47.072Z\",\"updatedAt\":\"2026-09-19T17:09:47.072Z\"},{\"id\":\"7b67b3f0-c10f-7a39-8aeb-afbe87a6e407\",\"tenantId\":\"9fdfb5da-324c-71a5-ae98-3840cc44ae1c\",\"plan\":\"standard\",\"status\":\"trialing\",\"amountPaise\":199900,\"billingInterval\":\"monthly\",\"seats\":10,\"…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.subscriptions.get",
+      "method": "GET",
+      "path": "/admin/subscriptions/{id}",
+      "url": "http://127.0.0.1:3100/admin/admin/subscriptions/858931f9-ae7b-7a24-8238-8c558a9a0274",
+      "summary": "One subscription · console levels: super, support, billing",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "item": {
+          "id": "858931f9-ae7b-7a24-8238-8c558a9a0274",
+          "tenantId": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+          "plan": "pro",
+          "status": "active",
+          "amountPaise": 499900,
+          "billingInterval": "monthly",
+          "seats": 25,
+          "currentPeriodStart": "2026-09-19",
+          "currentPeriodEnd": "2026-10-19",
+          "trialEndDate": null,
+          "cancelledAt": null,
+          "note": "Pilot customer, Kalyan West.",
+          "createdAt": "2026-09-19T17:06:44.359Z",
+          "updatedAt": "2026-09-19T17:09:47.151Z"
+        }
+      }
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.support.request",
+      "method": "POST",
+      "path": "/admin/support-grants",
+      "url": "http://127.0.0.1:3100/admin/admin/support-grants",
+      "summary": "Ask a distributor's owner for a time-boxed window; grants nothing by itself · console levels: super, support",
+      "status": 200,
+      "ms": 9,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:admin:admin.support.request:dc0532ffbfd93262",
+        "id": "01a0d0c5-385f-77c7-8456-231756fab608",
+        "tenantId": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+        "reason": "Ticket #4310: the owner reports that one shop shows a different outstanding in the app and on the statement. We would like to read that shop’s bills and receipts.",
+        "scope": "read_only",
+        "hours": 4
+      },
+      "responseSample": "{\"item\":{\"id\":\"01a0d0c5-385f-77c7-8456-231756fab608\",\"status\":\"requested\",\"scope\":\"read_only\",\"reason\":\"Ticket #4310: the owner reports that one shop shows a different outstanding in the app and on the statement. We would like to read that shop’s bills and receipts.\",\"requestedHours\":4,\"requestedBy\":\"fc49cfb2-2ff4-78cb-a9a4-2d71a738b199\",\"requestedByName\":\"Rohit Nair (Distribution OS)\",\"requestedAt\":\"2026-09-19T17:09:47.165Z\",\"decidedBy\":null,\"decidedAt\":null,\"decisionNote\":null,\"expiresAt\":null,\"revokedBy\":null,\"revokedAt\":null,\"revokeReason\":null,\"active\":false,\"tenantId\":\"01a0baa2-26bc-75bc…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.support.list",
+      "method": "GET",
+      "path": "/admin/support-grants",
+      "url": "http://127.0.0.1:3100/admin/admin/support-grants?limit=5",
+      "summary": "Support requests and windows across every distributor · console levels: super, support, billing",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"01a0d0c5-385f-77c7-8456-231756fab608\",\"status\":\"requested\",\"scope\":\"read_only\",\"reason\":\"Ticket #4310: the owner reports that one shop shows a different outstanding in the app and on the statement. We would like to read that shop’s bills and receipts.\",\"requestedHours\":4,\"requestedBy\":\"fc49cfb2-2ff4-78cb-a9a4-2d71a738b199\",\"requestedByName\":\"Rohit Nair (Distribution OS)\",\"requestedAt\":\"2026-09-19T17:09:47.165Z\",\"decidedBy\":null,\"decidedAt\":null,\"decisionNote\":null,\"expiresAt\":null,\"revokedBy\":null,\"revokedAt\":null,\"revokeReason\":null,\"active\":false,\"tenantId\":\"01a0baa2-26bc-75…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.support.revoke",
+      "method": "POST",
+      "path": "/admin/support-grants/{id}/revoke",
+      "url": "http://127.0.0.1:3100/admin/admin/support-grants/{id}/revoke",
+      "summary": "Withdraw our own request, or hand back a window before it lapses · console levels: super, support",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.users.list",
+      "method": "GET",
+      "path": "/admin/users",
+      "url": "http://127.0.0.1:3100/admin/admin/users?limit=5",
+      "summary": "Global sign-in identities with every distributor they are a member of · console levels: super, support, billing",
+      "status": 200,
+      "ms": 9,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"008fa1f5-ecd7-790e-8467-bcb88d4d3646\",\"username\":\"sandeep.mane\",\"name\":\"Sandeep Mane\",\"phone\":\"+919810000014\",\"locale\":\"mr-IN\",\"status\":\"active\",\"platformRole\":null,\"mustChangePassword\":false,\"lockedUntil\":null,\"lastLoginAt\":null,\"createdAt\":\"2026-09-19T17:06:24.221Z\",\"memberships\":[{\"tenantId\":\"01a0baa2-26bc-75bc-aaac-acd319cf8525\",\"tenantSlug\":\"tarsun\",\"tenantName\":\"Tarsun Enterprises\",\"role\":\"salesperson\",\"status\":\"active\"}]},{\"id\":\"01a0baa2-26cc-76c5-93cb-a791b5358601\",\"username\":\"pilot.owner\",\"name\":\"Pilot Owner\",\"phone\":\"+919000000001\",\"locale\":\"hi-IN\",\"status\":\"active\",…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.users.disable",
+      "method": "POST",
+      "path": "/admin/users/{id}/disable",
+      "url": "http://127.0.0.1:3100/admin/admin/users/{id}/disable",
+      "summary": "Lock one identity out of every distributor and revoke its sessions (audited) · console level: super",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.users.enable",
+      "method": "POST",
+      "path": "/admin/users/{id}/enable",
+      "url": "http://127.0.0.1:3100/admin/admin/users/01a0baa2-c602-7256-a1dc-a8e1fa6caf41/enable",
+      "summary": "Let an identity locked by disable sign in again; ended sessions stay ended (audited) · console level: super",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:admin:admin.users.enable:def7fd3950e9bbb3",
+        "reason": "Locked by mistake; the distributor confirmed it is the right person.",
+        "id": "01a0baa2-c602-7256-a1dc-a8e1fa6caf41"
+      },
+      "responseSample": {
+        "item": {
+          "id": "01a0baa2-c602-7256-a1dc-a8e1fa6caf41",
+          "username": null,
+          "name": "Other owner",
+          "phone": "+91974376222901",
+          "locale": "hi-IN",
+          "status": "active",
+          "platformRole": null,
+          "mustChangePassword": false,
+          "lockedUntil": null,
+          "lastLoginAt": null,
+          "createdAt": "2026-09-19T17:07:04.834Z",
+          "memberships": [
+            {
+              "tenantId": "01a0baa2-c602-7255-ac0c-c4ba00861a58",
+              "tenantSlug": "dl2-37622290",
+              "tenantName": "Other",
+              "role": "owner",
+              "status": "active"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.metrics.overview",
+      "method": "GET",
+      "path": "/admin/metrics",
+      "url": "http://127.0.0.1:3100/admin/admin/metrics",
+      "summary": "Platform counts: tenants, active users, orders and invoices per day, storage · console levels: super, support, billing",
+      "status": 200,
+      "ms": 26,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"generatedAt\":\"2026-09-19T17:09:47.219Z\",\"windowDays\":30,\"tenants\":{\"total\":16,\"active\":16,\"suspended\":0,\"closed\":0},\"tenantsByPlan\":[{\"plan\":\"pilot\",\"count\":12},{\"plan\":\"starter\",\"count\":2},{\"plan\":\"growth\",\"count\":1},{\"plan\":\"pro\",\"count\":1}],\"subscriptions\":[{\"status\":\"trialing\",\"count\":3},{\"status\":\"active\",\"count\":1}],\"activeUsers7d\":7,\"storage\":{\"bytes\":420,\"objects\":6},\"series\":{\"orders\":[{\"day\":\"2026-08-21\",\"value\":27},{\"day\":\"2026-08-22\",\"value\":26},{\"day\":\"2026-08-23\",\"value\":0},{\"day\":\"2026-08-24\",\"value\":27},{\"day\":\"2026-08-25\",\"value\":22},{\"day\":\"2026-08-26\",\"value\":28},{\"day\":\"2…"
+    },
+    {
+      "service": "admin",
+      "operationId": "admin.audit.list",
+      "method": "GET",
+      "path": "/admin/audit",
+      "url": "http://127.0.0.1:3100/admin/admin/audit?limit=5",
+      "summary": "Every platform action: onboarding, suspension, plans, support, user locks and unlocks · console levels: super, support, billing",
+      "status": 200,
+      "ms": 6,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"01a0baa5-401f-70fe-a23a-34ef781e3bf9\",\"actorId\":\"fc49cfb2-2ff4-78cb-a9a4-2d71a738b199\",\"actorRole\":\"platform_admin\",\"action\":\"support.requested\",\"entityType\":\"support\",\"entityId\":\"01a0d0c5-385f-77c7-8456-231756fab608\",\"before\":null,\"after\":{\"hours\":4,\"scope\":\"read_only\",\"reason\":\"Ticket #4310: the owner reports that one shop shows a different outstanding in the app and on the statement. We would like to read that shop’s bills and receipts.\",\"grantId\":\"01a0d0c5-385f-77c7-8456-231756fab608\"},\"deviceId\":null,\"occurredAt\":\"2026-09-19T17:09:47.163Z\",\"tenantId\":\"01a0baa2-26bc-75bc-a…"
+    }
+  ]
+}
