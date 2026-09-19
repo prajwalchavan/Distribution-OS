@@ -377,6 +377,21 @@ export const strings = {
     'This phone no longer holds this write. Record it again, then throw this away.',
   'tray.storeDisk': 'Held on this phone',
   'tray.storeMemory': 'Held in memory only — a reload empties this device',
+  /*
+   * DOS-178 — a payment the office refused. Never "Throw it away": on a settled trip this card is the
+   * only record anywhere that the shop paid. The money goes over the counter to the cashier, who records
+   * it at the office against the same paper-book number, and the card stays on the phone as the link.
+   */
+  'tray.handedOver': 'Handed to the cashier',
+  'tray.handCash':
+    'The office could not take this on the trip. Hand the money and the slip to the cashier, who records it at the office.',
+  'tray.handUpi': 'The money is already in the account. Tell the cashier; the office records it.',
+  'tray.money': '{amount} {mode} from {shop} · book no {no} · {when}',
+  'tray.moneyNoBook': '{amount} {mode} from {shop} · {when}',
+  'tray.handOverBody': '{amount} · {shop} · book no {no} — stays on this phone as handed over',
+  'tray.handOverBodyNoBook': '{amount} · {shop} — stays on this phone as handed over',
+  'tray.handedOverAt': 'Handed to the cashier at {when}',
+  'tray.handedOverCount': 'Handed over: {count}',
 
   // --- D11 trip history ----------------------------------------------------------------------------
   'd11.title': 'Your trips',

@@ -11,10 +11,21 @@
  * is a refusal with a reason in the trade's own words ("trip TRIP-0031 is settled; money is collected
  * while the trip is out"), and the crew decides: send it again now the trip has moved, or throw the
  * write away.
+ *
+ * EXCEPT ON MONEY (DOS-178; never-list #13). A refused doorstep payment gets neither button. "Send it
+ * again" would replay the server's stored refusal (S-73) — the same answer, for ever — and "Throw it
+ * away" would delete the only record anywhere that the shop paid: the phone's, because the office
+ * refused it, and the books', because it never reached them. It gets one button instead, and it is not
+ * destructive: the crew hands the money and the slip to the cashier, who records it at the office
+ * against the same paper-book number. The card then moves to its own section and stays on the phone for
+ * ever. Which refusals are money is `trayActions` reading `@dos/offline`'s money-table list — the TABLE,
+ * never the rejection code, so it cannot drift as the server adds codes.
  */
+import { formatINR, paise } from '@dos/domain'
 import { useNeedsAttention, useOutbox, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
+  Dialog,
   EmptyState,
   Group,
   ListRow,
@@ -28,8 +39,11 @@ import {
   wordFor,
 } from '@dos/ui'
 import { useRouter } from 'expo-router'
+import { useMemo, useState } from 'react'
 
 import { instantWithClock } from '../src/lib/dates'
+import { useLocalRetailers } from '../src/lib/local'
+import { trayActions, type TrayMoney } from '../src/lib/tray'
 
 /** The three tables this app may push, in the words a driver uses for them. */
 const TABLE_WORDS: Readonly<Record<string, string>> = {
@@ -45,12 +59,56 @@ export default function NeedsAttention(): React.JSX.Element {
   const outbox = useOutbox()
   const attention = useNeedsAttention()
   const status = useSyncStatus()
+  /** The payment the crew is confirming they handed over; null while no dialog is open. */
+  const [handing, setHanding] = useState<string | null>(null)
 
   const waiting = outbox.rows.filter((row) => row.status === 'queued' || row.status === 'sending')
   const word = (table: string): string => {
     const key = TABLE_WORDS[table]
     return key === undefined ? table : t(key)
   }
+
+  const cards = useMemo(
+    () => attention.items.map((entry) => ({ entry, card: trayActions(entry) })),
+    [attention.items],
+  )
+  /* A payment already handed over is not work any more: it sits below, with the time, for ever. */
+  const refused = cards.filter(({ card }) => card.handedOverAt === null)
+  const handedOver = cards.filter(({ card }) => card.handedOverAt !== null)
+
+  /** Whose money each card is: the shop is the one thing the rejection itself does not carry. */
+  const shopIds = useMemo(
+    () =>
+      cards
+        .map(({ entry }) => entry.op?.data?.retailer_id)
+        .filter((id): id is string => typeof id === 'string'),
+    [cards],
+  )
+  const shops = useLocalRetailers(shopIds)
+  const shopName = (entry: (typeof cards)[number]['entry']): string => {
+    const id = entry.op?.data?.retailer_id
+    const found = typeof id === 'string' ? shops.byId.get(id) : undefined
+    return found?.name ?? t('d.unknown')
+  }
+
+  /** "₹2,500 Cash from Alan Stores · book no 41 · 6:30 am" — the figures under the office's sentence. */
+  const moneyLine = (money: TrayMoney, shop: string, when: string): string =>
+    money.bookNo === null
+      ? t('tray.moneyNoBook', {
+          amount: formatINR(paise(money.amountPaise)),
+          mode: wordFor(t, money.mode),
+          shop,
+          when,
+        })
+      : t('tray.money', {
+          amount: formatINR(paise(money.amountPaise)),
+          mode: wordFor(t, money.mode),
+          shop,
+          no: money.bookNo,
+          when,
+        })
+
+  const handingEntry = cards.find(({ entry }) => entry.error.opId === handing)
 
   return (
     <Screen
@@ -65,11 +123,19 @@ export default function NeedsAttention(): React.JSX.Element {
           />
           <StatusChip
             testID="tray-rejected-count"
-            label={t('tray.rejectedCount', { count: attention.items.length })}
-            family={attention.items.length === 0 ? 'neutral' : 'brick'}
-            solid={attention.items.length > 0}
+            label={t('tray.rejectedCount', { count: refused.length })}
+            family={refused.length === 0 ? 'neutral' : 'brick'}
+            solid={refused.length > 0}
             figure
           />
+          {handedOver.length === 0 ? null : (
+            <StatusChip
+              testID="tray-handed-count"
+              label={t('tray.handedOverCount', { count: handedOver.length })}
+              family="clay"
+              figure
+            />
+          )}
         </Row>
       }
       testID="tray-screen"
@@ -112,11 +178,11 @@ export default function NeedsAttention(): React.JSX.Element {
           <Txt field="title" desk="section" as="h2">
             {t('tray.rejected')}
           </Txt>
-          {attention.items.length === 0 ? (
+          {refused.length === 0 ? (
             <EmptyState message={t('tray.rejectedEmpty')} testID="tray-rejected-empty" />
           ) : (
             <Stack gap={4}>
-              {attention.items.map((entry) => (
+              {refused.map(({ entry, card }) => (
                 <Stack
                   key={entry.error.opId}
                   gap={3}
@@ -135,8 +201,31 @@ export default function NeedsAttention(): React.JSX.Element {
                       entry.error.createdAt,
                     )}`}
                   </Txt>
+                  {card.money === null ? null : (
+                    <Stack gap={1} testID={`tray-money-${entry.error.opId}`}>
+                      <Txt field="bodyStrong" desk="cell">
+                        {moneyLine(
+                          card.money,
+                          shopName(entry),
+                          instantWithClock(entry.error.createdAt),
+                        )}
+                      </Txt>
+                      <Txt field="body" desk="body" color={colors.text.secondary}>
+                        {t(card.money.instruction)}
+                      </Txt>
+                    </Stack>
+                  )}
                   <Row gap={8} wrap align="center">
-                    {entry.op === null ? (
+                    {card.actions.includes('retry') ? (
+                      <Button
+                        label={t('tray.retry')}
+                        variant="primary"
+                        onPress={() => {
+                          void outbox.retry(entry.error.opId)
+                        }}
+                        testID={`tray-retry-${entry.error.opId}`}
+                      />
+                    ) : card.money === null ? (
                       /*
                        * The phone no longer holds this write — a reload emptied the web's memory store
                        * and the tray was refilled from the office — so "Send it again" would send
@@ -150,30 +239,73 @@ export default function NeedsAttention(): React.JSX.Element {
                       >
                         {t('tray.notOnPhone')}
                       </Txt>
-                    ) : (
+                    ) : null}
+                    {card.actions.includes('handOver') ? (
                       <Button
-                        label={t('tray.retry')}
+                        label={t('tray.handedOver')}
                         variant="primary"
                         onPress={() => {
-                          void outbox.retry(entry.error.opId)
+                          setHanding(entry.error.opId)
                         }}
-                        testID={`tray-retry-${entry.error.opId}`}
+                        testID={`tray-handover-${entry.error.opId}`}
                       />
-                    )}
-                    <Button
-                      label={t('tray.discard')}
-                      variant="destructive"
-                      onPress={() => {
-                        void outbox.discard(entry.error.opId)
-                      }}
-                      testID={`tray-discard-${entry.error.opId}`}
-                    />
+                    ) : null}
+                    {card.actions.includes('discard') ? (
+                      <Button
+                        label={t('tray.discard')}
+                        variant="destructive"
+                        onPress={() => {
+                          void outbox.discard(entry.error.opId)
+                        }}
+                        testID={`tray-discard-${entry.error.opId}`}
+                      />
+                    ) : null}
                   </Row>
                 </Stack>
               ))}
             </Stack>
           )}
         </Stack>
+
+        {handedOver.length === 0 ? null : (
+          <Stack gap={3}>
+            <Txt field="title" desk="section" as="h2">
+              {t('tray.handedOver')}
+            </Txt>
+            <Stack gap={4}>
+              {handedOver.map(({ entry, card }) => (
+                <Stack
+                  key={entry.error.opId}
+                  gap={2}
+                  pad={4}
+                  background="surface"
+                  radius="md"
+                  border="all"
+                  testID={`tray-handed-${entry.error.opId}`}
+                >
+                  {card.money === null ? (
+                    <Txt field="bodyStrong" desk="cell">
+                      {entry.error.message}
+                    </Txt>
+                  ) : (
+                    <Txt field="bodyStrong" desk="cell">
+                      {moneyLine(
+                        card.money,
+                        shopName(entry),
+                        instantWithClock(entry.error.createdAt),
+                      )}
+                    </Txt>
+                  )}
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('tray.handedOverAt', {
+                      when: instantWithClock(card.handedOverAt ?? entry.error.createdAt),
+                    })}
+                  </Txt>
+                </Stack>
+              ))}
+            </Stack>
+          </Stack>
+        )}
 
         <Button
           testID="tray-close"
@@ -184,6 +316,36 @@ export default function NeedsAttention(): React.JSX.Element {
           }}
         />
       </Stack>
+
+      {/* Exactly what is about to be recorded, in the figures the cashier will be handed (UX-00 §6.12). */}
+      <Dialog
+        open={handing !== null && handingEntry?.card.money !== undefined}
+        onClose={() => {
+          setHanding(null)
+        }}
+        title={t('tray.handedOver')}
+        body={
+          handingEntry?.card.money == null
+            ? ''
+            : handingEntry.card.money.bookNo === null
+              ? t('tray.handOverBodyNoBook', {
+                  amount: formatINR(paise(handingEntry.card.money.amountPaise)),
+                  shop: shopName(handingEntry.entry),
+                })
+              : t('tray.handOverBody', {
+                  amount: formatINR(paise(handingEntry.card.money.amountPaise)),
+                  shop: shopName(handingEntry.entry),
+                  no: handingEntry.card.money.bookNo,
+                })
+        }
+        confirmLabel={t('tray.handedOver')}
+        onConfirm={() => {
+          const opId = handing
+          setHanding(null)
+          if (opId !== null) void outbox.handOver(opId)
+        }}
+        testID="tray-handover-dialog"
+      />
     </Screen>
   )
 }

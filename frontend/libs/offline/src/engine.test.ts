@@ -7,7 +7,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { SyncEngine } from './engine.js'
+import { KeptMoneyError, SyncEngine } from './engine.js'
 import { connectionStateFrom } from './connection.js'
 import { OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
 import { createMemoryStore } from './store/memory.js'
@@ -36,6 +36,21 @@ const ORDERS = tableManifest(
 const LINES = tableManifest(
   'sales_order_lines',
   [column('id'), column('order_id'), column('variant_id'), column('entered_qty', 'integer')],
+  { writable: true },
+)
+
+/** DOS-178: an insert-only MONEY table — a person entered rupees into it, so nothing here is ever thrown away. */
+const RECEIPTS = tableManifest(
+  'receipts',
+  [
+    column('id'),
+    column('retailer_id'),
+    column('mode'),
+    column('amount_paise', 'integer'),
+    column('client_receipt_no'),
+    column('trip_id'),
+    column('updated_at'),
+  ],
   { writable: true },
 )
 
@@ -1032,5 +1047,115 @@ describe('16. a stopped engine stops pulling', () => {
 
     expect(settled).toBeLessThan(10)
     expect(pages).toBe(settled)
+  })
+})
+
+// 6b -------------------------------------------------------------------------------------------------------------
+
+/**
+ * DOS-178 — MONEY A PERSON HAS ENTERED IS NEVER OFFERED FOR DELETION (never-list #13, founder answer A of
+ * 2026-09-14).
+ *
+ * A crew takes cash at a door with no signal; the office settles that trip before the phone finds one; the
+ * receipt comes back refused `trip_settled`, correctly. Until this, the tray's only two buttons were "Send it
+ * again" (which replays the stored refusal, S-73) and "Throw it away" — and the second one deleted the outbox
+ * row, which on a settled trip is the ONLY record anywhere that the shop paid.
+ *
+ * The rule is by TABLE, never by code, so it cannot drift as codes are added: a refused op on `receipts`,
+ * `allocations` or `collections` is kept whatever the reason. `handOver` is the way out — the crew hands the
+ * money and the slip to the cashier, and the op stops asking for attention without ever leaving the phone.
+ */
+describe('6b. a refused payment is kept and handed to the cashier', () => {
+  it('DOS-178 discard refuses a rejected op on a money table and keeps its row, outbox entry and error; handOver marks it kept and takes it out of the attention count', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer([...TABLES, RECEIPTS], 'delivery')
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({
+      table: 'receipts',
+      id: 'rc1',
+      op: 'PUT',
+      data: { retailer_id: 'r1', mode: 'cash', amount_paise: 250000, client_receipt_no: '41' },
+    })
+    server.rejections.set(opId, {
+      code: 'trip_settled',
+      messageEn: 'Trip TRIP-0031 is settled; money is collected while the trip is out',
+    })
+    await engine.flush()
+    expect(engine.status().rejected).toBe(1)
+
+    // 1. Throwing it away is refused, and nothing it holds is touched.
+    await expect(engine.discard(opId)).rejects.toBeInstanceOf(KeptMoneyError)
+    expect((await engine.outbox()).find((op) => op.opId === opId)?.status).toBe('rejected')
+    expect(await engine.getRow('receipts', 'rc1')).not.toBeNull()
+    const tray = await engine.needsAttention()
+    expect(tray).toHaveLength(1)
+    expect(tray[0]?.kept).toBe(true)
+    expect(tray[0]?.error.handedOverAt).toBeNull()
+    expect(tray[0]?.op?.data).toMatchObject({ amount_paise: 250000 })
+
+    // 2. Handing it to the cashier keeps every one of those and stops the phone asking.
+    clock += 60_000
+    await engine.handOver(opId)
+    expect(engine.status().rejected).toBe(0)
+    const kept = (await engine.outbox()).find((op) => op.opId === opId)
+    expect(kept?.status).toBe('kept')
+    expect(kept?.data).toMatchObject({ amount_paise: 250000 })
+    const row = await engine.getRow<{ _pending: string | null }>('receipts', 'rc1')
+    expect(row?._pending).toBe('kept')
+    const after = await engine.needsAttention()
+    expect(after).toHaveLength(1)
+    expect(after[0]?.kept).toBe(true)
+    expect(after[0]?.error.handedOverAt).toBe('2026-09-06T06:01:00.000Z')
+
+    // 3. And it is never sent again behind the crew's back: `claim` takes queued ops only.
+    server.uploadCalls.length = 0
+    await engine.flush()
+    expect(server.uploadCalls).toEqual([])
+  })
+
+  it('DOS-178 a refusal on a table that is not money keeps today’s "Throw it away"', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer([...TABLES, RECEIPTS], 'delivery')
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'retailer_required', messageEn: 'The order has no shop' })
+    await engine.flush()
+
+    const tray = await engine.needsAttention()
+    expect(tray[0]?.kept).toBe(false)
+    await engine.discard(opId)
+    expect(await engine.needsAttention()).toEqual([])
+  })
+
+  it('DOS-178 signing out with no queue still keeps the file while money waits for the cashier', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer([...TABLES, RECEIPTS], 'delivery')
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({
+      table: 'receipts',
+      id: 'rc1',
+      op: 'PUT',
+      data: { mode: 'cash', amount_paise: 250000 },
+    })
+    server.rejections.set(opId, { code: 'trip_settled', messageEn: 'Trip is settled' })
+    await engine.flush()
+    await engine.handOver(opId)
+
+    // Nothing is queued and nothing needs attention, yet the phone still carries the shop's money.
+    const result = await engine.end({ keepQueue: false })
+    expect(result.kept).toBe(true)
+    const left = await store.query<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'kept'`,
+    )
+    expect(Number(left[0]?.n ?? 0)).toBe(1)
   })
 })

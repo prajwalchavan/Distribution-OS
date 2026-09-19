@@ -158,7 +158,8 @@ export interface LocalReceipt {
   reference: string | null
   client_receipt_no: string | null
   status: string
-  _pending?: 'queued' | 'sending' | 'rejected' | null
+  /** `kept` is DOS-178: refused by the office and handed to the cashier — still here, no longer ours. */
+  _pending?: 'queued' | 'sending' | 'rejected' | 'kept' | null
 }
 
 export interface LocalVehicle {

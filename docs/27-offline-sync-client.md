@@ -96,7 +96,7 @@ or the stored identity differs, checked at open before any read.
 
 - One table per manifest entry, columns exactly as published (snake_case, JSON types → `TEXT | INTEGER | REAL`), primary key as
   published (`primaryKey` array; two tables have no `id`). Money columns are integers (paise) — never REAL.
-- Every writable table gets two extra local columns: `_pending TEXT` (`NULL | 'queued' | 'sending' | 'rejected'`) and
+- Every writable table gets two extra local columns: `_pending TEXT` (`NULL | 'queued' | 'sending' | 'rejected' | 'kept'`) and
   `_local_rev INTEGER` (bumped on each local write), so a list can show a queued order distinctly and a pull can tell local from
   server rows.
 - System tables:
@@ -104,9 +104,14 @@ or the stored identity differs, checked at open before any read.
     `lastPulledAt`, `lastUploadAt`, `protocol`. `userId` and `tenantId` are the stamp of who the file belongs to, written at open.
   - `_outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT, op_id TEXT UNIQUE, tbl TEXT, row_id TEXT, op TEXT, data TEXT, base_updated_at TEXT,
 idempotency_key TEXT, status TEXT, attempts INTEGER, created_at TEXT, sent_at TEXT, acked_at TEXT, rejection_code TEXT,
-rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
+rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected | kept`. `kept` is DOS-178: a refused write on a
+    MONEY table (`receipts`, `allocations`, `collections` — `MONEY_TABLES`) whose money the crew handed to the cashier. It is never
+    claimed for upload again (a retry only replays the server's stored refusal), never deletable, and it keeps the device file alive
+    through a sign-out, because it is the only record anywhere that the shop paid.
   - `_gps_buffer(ts TEXT, trip_id TEXT, lat REAL, lng REAL, accuracy_m REAL, speed_mps REAL, posted INTEGER)` — delivery only (§8).
-  - `_sync_errors` — a mirror of the server's `sync_errors` rows for this device, so "Needs attention" works offline.
+  - `_sync_errors` — a mirror of the server's `sync_errors` rows for this device, so "Needs attention" works offline. It carries
+    `discarded_at` (the user threw the write away) and `handed_over_at` (DOS-178: the money went to the cashier); a row with
+    either is never re-mirrored by `sync.errors.list`, so it cannot come back asking for attention.
     Mirroring is BEST EFFORT: `sync.errors.list` is STAFF-only, the oRPC client exposes it to every app because the contract is
     shared, and a shop's app is answered 403. A refusal is logged and the tray is not asked for again — it must never turn a
     pull that has already committed into a failed sync (gate, 2026-09-06).
@@ -162,6 +167,11 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 - On 2xx: for each op, `applied` → `acked` and `_pending=NULL`; `rejected` → `rejected`, `_pending='rejected'`, the rejection mirrored
   into `_sync_errors`, and the row kept (never silently dropped). `stale` (LWW veto) additionally re-pulls that row and offers the
   user the server version next to their edit.
+- MONEY IS NEVER THROWN AWAY (DOS-178; never-list #13, founder 2026-09-19). A refused op on a money table — decided by the TABLE,
+  never by the rejection code, so it cannot drift as codes are added — is refused by `engine.discard()` with `KeptMoneyError` and
+  offers no retry either. The way out is `engine.handOver(opId)`: status `kept`, `_pending='kept'`, `handed_over_at` stamped. The
+  crew hands the money and the slip to the cashier, who records an office receipt (no trip) under the same paper-book number as
+  `clientReceiptNo`; the card leaves the "needs attention" count and stays on the phone for ever.
 - On a network failure or 5xx: leave the batch `queued`, back off 1 s → 2 s → 4 s … 60 s, retry forever while online. The upload
   endpoint never answers 4xx by design; a 4xx therefore means a broken token → refresh once, then surface a sign-in prompt, never
   drop the queue.

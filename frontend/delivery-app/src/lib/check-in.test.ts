@@ -20,7 +20,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
-import { checkInBlock, dayEndCash } from './check-in'
+import { checkInBlock, dayEndCash, deviceMoney } from './check-in'
 
 /** The float the cashier handed over at the start of the trip. */
 const FLOAT = 300000
@@ -260,6 +260,54 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(call).not.toBeNull()
     expect(call?.[1]).not.toMatch(/\btripState\b/)
     expect(call?.[1]).toMatch(/\bfigures\b/)
+  })
+
+  /*
+   * DOS-178. A doorstep receipt the office refused is HANDED TO THE CASHIER, and from that moment it is
+   * the cashier's money, not the driver's. It stays on the phone for ever (never-list #13) — so if D8 kept
+   * counting it, "Hand ₹X to the cashier" would ask for the same rupee a second time, at the counter,
+   * against money the driver has already put down.
+   */
+  it('DOS-178 a receipt handed to the cashier leaves the hand-over figure', () => {
+    const rows = [
+      { mode: 'cash', amount_paise: COUNTED, _pending: null },
+      // Refused `trip_settled` and handed over at the counter: the cashier has these notes now.
+      { mode: 'cash', amount_paise: HELD, _pending: 'kept' as const },
+      // Still going: this one is the driver's until the office answers.
+      { mode: 'upi', amount_paise: HELD, _pending: 'queued' as const },
+    ]
+
+    expect(deviceMoney(rows)).toEqual({ cashPaise: COUNTED, allPaise: COUNTED + HELD })
+
+    // And through the arithmetic: the hand-over is the office's figure, with only the UPI named.
+    const money = deviceMoney(rows)
+    expect(
+      dayEndCash({
+        figures: figuresFor('active'),
+        deviceCashPaise: money.cashPaise,
+        deviceAllPaise: money.allPaise,
+      }),
+    ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'd8.uncounted' })
+
+    // Counting it would have asked for the handed-over ₹2,500 again.
+    expect(
+      dayEndCash({
+        figures: figuresFor('active'),
+        deviceCashPaise: COUNTED + HELD,
+        deviceAllPaise: COUNTED + HELD + HELD,
+      }).handOverPaise,
+    ).toBe(FLOAT + COUNTED + HELD)
+  })
+
+  it('DOS-178 guard: app/day.tsx takes its device figures from deviceMoney, not from a raw sum', async () => {
+    const code = withoutComments(await readScreen())
+    expect(code).toMatch(
+      /import\s*\{[^}]*\bdeviceMoney\b[^}]*\}\s*from\s*'\.\.\/src\/lib\/check-in'/,
+    )
+    expect(code.match(/\bdeviceMoney\s*\(/g) ?? []).toHaveLength(1)
+    // The old raw sums are gone: a kept receipt would slip straight back into the hand-over.
+    expect(code).not.toMatch(/receipts\.rows\s*\n?\s*\.filter/)
+    expect(code).not.toMatch(/receipts\.rows\.reduce/)
   })
 
   it('DOS-169 guard: the two sentences D8 can print are real keys in this app\u2019s strings', async () => {

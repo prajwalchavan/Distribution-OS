@@ -510,7 +510,10 @@ export interface OutboxApi {
   pending: number
   rejected: number
   retry: (opId: string) => Promise<void>
+  /** Throws `KeptMoneyError` on a refused money write (DOS-178) — that one goes to the cashier instead. */
   discard: (opId: string) => Promise<void>
+  /** DOS-178: the crew handed this refused payment and its slip to the cashier. Nothing is deleted. */
+  handOver: (opId: string) => Promise<void>
   flush: () => Promise<void>
 }
 
@@ -559,6 +562,10 @@ export function useOutbox(): OutboxApi {
   )
   const retry = useCallback(async (opId: string) => engine?.retry(opId) ?? undefined, [engine])
   const discard = useCallback(async (opId: string) => engine?.discard(opId) ?? undefined, [engine])
+  const handOver = useCallback(
+    async (opId: string) => engine?.handOver(opId) ?? undefined,
+    [engine],
+  )
   const flush = useCallback(async () => engine?.flush() ?? undefined, [engine])
 
   return useMemo(
@@ -570,9 +577,10 @@ export function useOutbox(): OutboxApi {
       rejected: status.rejected,
       retry,
       discard,
+      handOver,
       flush,
     }),
-    [enqueue, enqueueMany, rows, status.pending, status.rejected, retry, discard, flush],
+    [enqueue, enqueueMany, rows, status.pending, status.rejected, retry, discard, handOver, flush],
   )
 }
 

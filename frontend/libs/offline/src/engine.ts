@@ -14,6 +14,7 @@ import { uuidv7 } from '@dos/domain'
 import type { ManifestOutput, PullOutput, SyncOp, SyncTableManifest } from './wire.js'
 
 import { ChangeBus, ERRORS_CHANNEL, OUTBOX_CHANNEL } from './bus.js'
+import { isMoneyTable } from './money.js'
 import {
   createDataTables,
   createSystemTables,
@@ -214,6 +215,25 @@ export class SyncEngineEndedError extends Error {
 }
 
 /**
+ * What `discard()` answers on a refused write that holds money (DOS-178; never-list #13).
+ *
+ * A person counted notes at a door and entered them. The office refused the op — a settled trip, a cancelled
+ * one, a role that may not take money there — and on a settled trip this device's outbox row is the ONLY
+ * record anywhere that the shop paid. So it is never deleted: the crew hands the money and the slip to the
+ * cashier and calls `handOver()`, which stops the phone asking without losing anything.
+ */
+export class KeptMoneyError extends Error {
+  readonly code = 'kept_money'
+
+  constructor(readonly table: string) {
+    super(
+      'Money somebody entered is never thrown away. Hand it to the cashier, who records it at the office.',
+    )
+    this.name = 'KeptMoneyError'
+  }
+}
+
+/**
  * What `end()` did with the file (DOS-167, ruling (m)): `kept` when it survives for this person — asked for,
  * or because the count taken once the last write and pull had landed found something still waiting — and
  * that count.
@@ -401,6 +421,8 @@ export class SyncEngine {
   private pending = 0
   private oldestPendingAt: string | null = null
   private rejected = 0
+  /** Refused payments handed to the cashier and still on this phone (DOS-178) — they keep the file. */
+  private heldMoney = 0
   private backoffMs = BACKOFF_START_MS
   private retryTimer: Timer | null = null
   private pollTimer: Timer | null = null
@@ -739,7 +761,8 @@ export class SyncEngine {
       await this.refreshCounts()
       const pending = this.pending
       const rejected = this.rejected
-      const kept = options.keepQueue || pending + rejected > 0
+      // DOS-178: money handed to the cashier is neither queued nor refused, and it still keeps this file.
+      const kept = options.keepQueue || pending + rejected + this.heldMoney > 0
       /*
        * THE ORDER OF THE LAST STEPS IS THE FIX FOR A NATIVE CRASH (addendum (x)): the wipe; its emit, which re-runs
        * every mounted read — each answers empty now and starts no call; `close()`, which waits for any call still in
@@ -926,7 +949,7 @@ export class SyncEngine {
         try {
           await createSystemTables(store)
           const [row] = await store.query<{ n: number }>(
-            `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending', 'rejected')`,
+            `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending', 'rejected', 'kept')`,
           )
           pending = Number(row?.n ?? 0)
         } catch (error) {
@@ -1150,17 +1173,21 @@ export class SyncEngine {
       return
     }
     if (answer.items.length === 0) return
-    // A rejection the user has already thrown away must not come back on the next sync.
-    const discarded = new Set(
+    /*
+     * A rejection the user has already dealt with must not come back on the next sync — thrown away, or
+     * (DOS-178) handed to the cashier. `INSERT OR REPLACE` writes a whole new row, so without this a
+     * handed-over payment would lose its `handed_over_at` and start asking for attention again.
+     */
+    const settled = new Set(
       (
         await store.query<{ op_id: string }>(
-          `SELECT op_id FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NOT NULL`,
+          `SELECT op_id FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NOT NULL OR handed_over_at IS NOT NULL`,
         )
       ).map((row) => row.op_id),
     )
     await store.transaction(async (tx) => {
       for (const item of answer.items) {
-        if (discarded.has(item.opId)) continue
+        if (settled.has(item.opId)) continue
         await tx.exec(
           `INSERT OR REPLACE INTO ${SYNC_ERRORS_TABLE} (op_id, tbl, row_id, code, message, created_at, discarded_at)
            VALUES (?, ?, ?, ?, ?, ?, NULL)`,
@@ -1555,7 +1582,7 @@ export class SyncEngine {
     tx: SyncStore,
     shape: TableShape,
     rowId: string,
-    value: 'queued' | 'sending' | 'rejected' | null,
+    value: 'queued' | 'sending' | 'rejected' | 'kept' | null,
   ): Promise<void> {
     const key = shape.primaryKey[0] ?? 'id'
     await tx.exec(
@@ -1589,7 +1616,13 @@ export class SyncEngine {
     })
   }
 
-  /** Throwing a rejected write away. Only ever offered on a rejection, and it leaves an audit line. */
+  /**
+   * Throwing a rejected write away. Only ever offered on a rejection, and it leaves an audit line.
+   *
+   * NEVER on money (DOS-178). A refused op on `receipts`, `allocations` or `collections` carries rupees a
+   * person counted at a door, and on a settled trip this row is the only record of them anywhere — so it is
+   * refused here, at the engine, and not merely hidden by whichever screen happens to draw the tray.
+   */
   async discard(opId: string): Promise<void> {
     // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
@@ -1603,8 +1636,11 @@ export class SyncEngine {
       /*
        * A tray item does NOT always have an outbox row behind it: `pullErrors` brings back rejections
        * the server still holds for this device after a reinstall or a cleared browser, and returning
-       * early on a missing op left those un-dismissable for ever.
+       * early on a missing op left those un-dismissable for ever. So the table is read from whichever of
+       * the two the device still has — and a money refusal is refused either way.
        */
+      const table = op?.table ?? (await this.errorTable(store, opId))
+      if (table !== null && isMoneyTable(table)) throw new KeptMoneyError(table)
       await store.exec(`DELETE FROM ${OUTBOX_TABLE} WHERE op_id = ?`, [opId])
       await store.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET discarded_at = ? WHERE op_id = ?`, [
         at,
@@ -1618,6 +1654,50 @@ export class SyncEngine {
       this.bus.emit([op?.table ?? ERRORS_CHANNEL, OUTBOX_CHANNEL, ERRORS_CHANNEL])
       this.emitStatus()
     })
+  }
+
+  /**
+   * THE WAY OUT FOR A REFUSED PAYMENT (DOS-178): the crew handed the money and the slip to the cashier, who
+   * records it at the office against the same paper-book number.
+   *
+   * Nothing is deleted. The op moves to `kept`, which is not a status `claim()` will ever pick up — sending
+   * it again would only replay the server's stored refusal (S-73) — the row's `_pending` says `kept` so D8
+   * stops asking the driver to hand the same rupee over twice, and `_sync_errors.handed_over_at` records
+   * when. It leaves the "need attention" count and never leaves the phone.
+   */
+  async handOver(opId: string): Promise<void> {
+    // The gate (ruling (m)): refused once `end()` has begun.
+    const store = this.requireStore()
+    return this.inHand(async () => {
+      const rows = await store.query<Record<string, SqlValue>>(
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        [opId],
+      )
+      const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
+      const at = new Date(this.now()).toISOString()
+      await store.exec(`UPDATE ${OUTBOX_TABLE} SET status = 'kept' WHERE op_id = ?`, [opId])
+      await store.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET handed_over_at = ? WHERE op_id = ?`, [
+        at,
+        opId,
+      ])
+      if (op !== null) {
+        const shape = this.shapes.get(op.table)
+        if (shape) await this.setPending(store, shape, op.rowId, 'kept')
+      }
+      await this.refreshCounts()
+      this.bus.emit([op?.table ?? ERRORS_CHANNEL, OUTBOX_CHANNEL, ERRORS_CHANNEL])
+      this.emitStatus()
+    })
+  }
+
+  /** The table a tray item names when the op itself is gone: `_sync_errors` is the other half of the record. */
+  private async errorTable(store: SyncStore, opId: string): Promise<string | null> {
+    const rows = await store.query<Record<string, SqlValue>>(
+      `SELECT tbl FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    const table = rows[0]?.tbl
+    return table === undefined || table === null ? null : String(table)
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1689,6 +1769,10 @@ export class SyncEngine {
         message: String(raw.message ?? ''),
         createdAt: String(raw.created_at ?? ''),
         discardedAt: raw.discarded_at === null ? null : String(raw.discarded_at),
+        handedOverAt:
+          raw.handed_over_at === null || raw.handed_over_at === undefined
+            ? null
+            : String(raw.handed_over_at),
       }
       // A sign-out or a stop that began while this read ran ends it here: no call starts after it (addendum (x)).
       if (!this.readsOpen()) return []
@@ -1701,6 +1785,8 @@ export class SyncEngine {
         error,
         op: first === undefined ? null : toOutboxRow(first),
         serverRow: await this.getRow<Record<string, unknown>>(error.table, error.rowId),
+        // DOS-178: decided by the TABLE, so it cannot drift as the server adds refusal codes.
+        kept: isMoneyTable(error.table),
       })
     }
     return items
@@ -1834,9 +1920,17 @@ export class SyncEngine {
     const [rejected] = await store.query<{ n: number }>(
       `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'rejected'`,
     )
+    /*
+     * DOS-178: a payment handed to the cashier is nobody's work any more, so it leaves `rejected` — but it
+     * is still the only record that the shop paid, so it is counted here and a sign-out keeps the file.
+     */
+    const [held] = await store.query<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'kept'`,
+    )
     this.pending = Number(pending?.n ?? 0)
     this.oldestPendingAt = pending?.at ?? null
     this.rejected = Number(rejected?.n ?? 0)
+    this.heldMoney = Number(held?.n ?? 0)
   }
 
   /** Every transport call goes through here, so "online" means "something answered", not a guess. */

@@ -189,8 +189,12 @@ function phoneFiles(): {
       exec: (sql, params) => inner.exec(sql, params),
       async query<T>(sql: string, params?: Parameters<SyncStore['exec']>[1]): Promise<T[]> {
         const door = doors.get(name)
-        // The sweep's count: `status IN ('queued', 'sending', 'rejected')`.
-        if (door !== undefined && sql.includes("'rejected')")) {
+        /*
+         * The sweep's count: `status IN ('queued', 'sending', 'rejected', …)`. Matched on the pair that only
+         * that query carries — DOS-178 added `'kept'` to the end of the list, and a matcher anchored on the
+         * closing bracket stopped seeing it, which let this engine open while the sweep still held the file.
+         */
+        if (door !== undefined && sql.includes("'sending', 'rejected'")) {
           doors.delete(name)
           await door
         }
