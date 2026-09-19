@@ -1,0 +1,896 @@
+{
+ "app": "http://localhost:5185",
+ "api": "127.0.0.1:3100",
+ "db": "postgres://dos:dos@127.0.0.1:5439/dos_test_b2_d183",
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5",
+ "soakMs": 150000,
+ "startedAt": "2026-09-19T20:14:35.995Z",
+ "s1": {
+  "label": "STAGE 1 — tab 1 signed in",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "Updated just now"
+ },
+ "s1Opfs": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ]
+ },
+ "shop": {
+  "id": "0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "name": "Ambika Provision StoreR-0009 · Station Road · Stat"
+ },
+ "orderA": "01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8",
+ "s1Queued": {
+  "label": "STAGE 1 — order A saved on this phone, unsent",
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:44 am · 2 waiting to send"
+ },
+ "sqlOrderABefore": "0",
+ "s1Tab2AfterSignOut": {
+  "label": "STAGE 1 — tab 2 after Sign out",
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "onLine": true,
+  "strip": "(none)"
+ },
+ "s1Tab1AfterSignOut": {
+  "label": "STAGE 1 — tab 1 after the OTHER tab signed out",
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:44 am · 2 waiting to send"
+ },
+ "s1OpfsBeforeClose": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3928064
+  ]
+ },
+ "s2Before": {
+  "label": "RUN B — what the closed window left behind",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "(none)"
+ },
+ "s2OpfsBefore": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3928064
+  ]
+ },
+ "runB": {
+  "signedAtWall": 1789848935521,
+  "calls": [
+   {
+    "ms": 287,
+    "method": "POST",
+    "path": "/sales/sync/upload",
+    "ops": [
+     {
+      "opId": "01a0bb4e-f89c-7010-b76c-7706bccfd77c",
+      "table": "sales_orders",
+      "rowId": "01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8"
+     },
+     {
+      "opId": "01a0bb4e-f89c-7011-a075-ec38086721bd",
+      "table": "sales_order_lines",
+      "rowId": "01a0bb4e-f41d-75d1-a720-7358444f4b2d"
+     }
+    ]
+   },
+   {
+    "ms": 405,
+    "method": "GET",
+    "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+    "ops": null
+   },
+   {
+    "ms": 417,
+    "method": "GET",
+    "path": "/sales/sync/pull?deviceId=01a0bb4e-7cd8-7103-8892-d5bc9b497720&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxNDo0OS42MTVaIn0",
+    "ops": null
+   },
+   {
+    "ms": 525,
+    "method": "GET",
+    "path": "/sales/sync/errors?deviceId=01a0bb4e-7cd8-7103-8892-d5bc9b497720&unresolvedOnly=true&limit=50",
+    "ops": null
+   }
+  ],
+  "firstUploadMs": 287,
+  "firstManifestMs": 405,
+  "firstPullMs": 417,
+  "uploadBeforeManifest": true,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "pullWasDelta": true,
+  "opSendCounts": {
+   "01a0bb4e-f89c-7010-b76c-7706bccfd77c": 1,
+   "01a0bb4e-f89c-7011-a075-ec38086721bd": 1
+  },
+  "resourceTiming": [
+   {
+    "name": "/sales/sync/upload",
+    "ms": 286
+   },
+   {
+    "name": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+    "ms": 404
+   },
+   {
+    "name": "/sales/sync/pull?deviceId=01a0bb4e-7cd8-7103-8892-d5bc9b4977",
+    "ms": 417
+   },
+   {
+    "name": "/sales/sync/errors?deviceId=01a0bb4e-7cd8-7103-8892-d5bc9b49",
+    "ms": 525
+   }
+  ]
+ },
+ "s2After": {
+  "label": "RUN B — after the queue had gone",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "Updated just now"
+ },
+ "sqlOrderA": {
+  "orders": "1",
+  "row": "01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "lines": "1"
+ },
+ "orderB": "01a0bb4f-86ed-7450-b338-da80370a31c7",
+ "sqlOrderBBefore": "0",
+ "s3Boot": {
+  "label": "RUN C — the page booted with no network",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:45 am · 2 waiting to send"
+ },
+ "s3AfterSoak": {
+  "label": "RUN C — after 150 s with no signal",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:45 am · 2 waiting to send"
+ },
+ "retryAttemptsWhileOffline": [
+  {
+   "sinceBootMs": 465,
+   "wall": 1789848965979,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 484,
+   "wall": 1789848965998,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 484,
+   "wall": 1789848965998,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 845,
+   "wall": 1789848966359,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 856,
+   "wall": 1789848966370,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 856,
+   "wall": 1789848966370,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1212,
+   "wall": 1789848966726,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1223,
+   "wall": 1789848966737,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1223,
+   "wall": 1789848966737,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1589,
+   "wall": 1789848967103,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1604,
+   "wall": 1789848967118,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1604,
+   "wall": 1789848967118,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1963,
+   "wall": 1789848967477,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1976,
+   "wall": 1789848967490,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 1976,
+   "wall": 1789848967490,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 2332,
+   "wall": 1789848967846,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 2347,
+   "wall": 1789848967861,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 2347,
+   "wall": 1789848967861,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 2701,
+   "wall": 1789848968215,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 2716,
+   "wall": 1789848968230,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 2716,
+   "wall": 1789848968230,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3069,
+   "wall": 1789848968583,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3084,
+   "wall": 1789848968598,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3084,
+   "wall": 1789848968598,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3422,
+   "wall": 1789848968936,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3436,
+   "wall": 1789848968950,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3436,
+   "wall": 1789848968950,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3789,
+   "wall": 1789848969303,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3803,
+   "wall": 1789848969317,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 3803,
+   "wall": 1789848969317,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4159,
+   "wall": 1789848969673,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4174,
+   "wall": 1789848969688,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4174,
+   "wall": 1789848969688,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4536,
+   "wall": 1789848970050,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4550,
+   "wall": 1789848970064,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4551,
+   "wall": 1789848970065,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4895,
+   "wall": 1789848970409,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4906,
+   "wall": 1789848970420,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 4906,
+   "wall": 1789848970420,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5256,
+   "wall": 1789848970770,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5271,
+   "wall": 1789848970785,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5271,
+   "wall": 1789848970785,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5638,
+   "wall": 1789848971152,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5655,
+   "wall": 1789848971169,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5655,
+   "wall": 1789848971169,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 5996,
+   "wall": 1789848971510,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6008,
+   "wall": 1789848971522,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6008,
+   "wall": 1789848971522,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6359,
+   "wall": 1789848971873,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6375,
+   "wall": 1789848971889,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6375,
+   "wall": 1789848971889,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6723,
+   "wall": 1789848972237,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6738,
+   "wall": 1789848972252,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 6739,
+   "wall": 1789848972253,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7092,
+   "wall": 1789848972606,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7107,
+   "wall": 1789848972621,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7107,
+   "wall": 1789848972621,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7460,
+   "wall": 1789848972974,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7476,
+   "wall": 1789848972990,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7476,
+   "wall": 1789848972990,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7841,
+   "wall": 1789848973355,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7857,
+   "wall": 1789848973371,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 7857,
+   "wall": 1789848973371,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 8218,
+   "wall": 1789848973732,
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 8233,
+   "wall": 1789848973747,
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 8233,
+   "wall": 1789848973747,
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 8438,
+   "wall": 1789848973952,
+   "kind": "failed",
+   "path": "/sales/pricing/bounds",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 8472,
+   "wall": 1789848973986,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 8477,
+   "wall": 1789848973991,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 8503,
+   "wall": 1789848974017,
+   "kind": "request",
+   "path": "/sales/sync/manifest?knownSchemaVersion="
+  },
+  {
+   "sinceBootMs": 8507,
+   "wall": 1789848974021,
+   "kind": "failed",
+   "path": "/sales/sync/manifest?knownSchemaVersion=",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 9516,
+   "wall": 1789848975030,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 9526,
+   "wall": 1789848975040,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 11570,
+   "wall": 1789848977084,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 11582,
+   "wall": 1789848977096,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 15633,
+   "wall": 1789848981147,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 15643,
+   "wall": 1789848981157,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 23689,
+   "wall": 1789848989203,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 23702,
+   "wall": 1789848989216,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 39755,
+   "wall": 1789849005269,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 39764,
+   "wall": 1789849005278,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 71806,
+   "wall": 1789849037320,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 71812,
+   "wall": 1789849037326,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "sinceBootMs": 131883,
+   "wall": 1789849097397,
+   "kind": "request",
+   "path": "/sales/sync/upload"
+  },
+  {
+   "sinceBootMs": 131898,
+   "wall": 1789849097412,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  }
+ ],
+ "runC": {
+  "bootAtWall": 1789848965514,
+  "soakSeconds": 150,
+  "lastNetworkAttemptBeforeTheFlip": {
+   "sinceBootMs": 131898,
+   "wall": 1789849097412,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  "gapFromLastAttemptToFlipMs": 30716,
+  "offlineEventsSeen": [],
+  "onlineEventAtWall": 1789849128128,
+  "onlineEventSeen": true,
+  "flipAtWall": 1789849128128,
+  "onlineEventAfterFlipMs": 0,
+  "anchor": "the browser online event",
+  "calls": [
+   {
+    "msFromAnchor": 38,
+    "method": "POST",
+    "path": "/sales/sync/upload",
+    "ops": [
+     {
+      "opId": "01a0bb4f-bf92-70ab-b89c-023a0a855e07",
+      "table": "sales_orders",
+      "rowId": "01a0bb4f-86ed-7450-b338-da80370a31c7"
+     },
+     {
+      "opId": "01a0bb4f-bf92-70ac-bcb7-39dc658fdfc2",
+      "table": "sales_order_lines",
+      "rowId": "01a0bb4f-bb15-706d-b3db-7870a960c7d8"
+     }
+    ]
+   },
+   {
+    "msFromAnchor": 108,
+    "method": "POST",
+    "path": "/sales/sync/upload",
+    "ops": [
+     {
+      "opId": "01a0bb4f-bf92-70ab-b89c-023a0a855e07",
+      "table": "sales_orders",
+      "rowId": "01a0bb4f-86ed-7450-b338-da80370a31c7"
+     },
+     {
+      "opId": "01a0bb4f-bf92-70ac-bcb7-39dc658fdfc2",
+      "table": "sales_order_lines",
+      "rowId": "01a0bb4f-bb15-706d-b3db-7870a960c7d8"
+     }
+    ]
+   },
+   {
+    "msFromAnchor": 242,
+    "method": "GET",
+    "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+    "ops": null
+   },
+   {
+    "msFromAnchor": 258,
+    "method": "GET",
+    "path": "/sales/sync/pull?deviceId=01a0bb4e-7cd8-7103-8892-d5bc9b497720&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxNTo0MS40ODlaIn0",
+    "ops": null
+   },
+   {
+    "msFromAnchor": 329,
+    "method": "GET",
+    "path": "/sales/sync/errors?deviceId=01a0bb4e-7cd8-7103-8892-d5bc9b497720&unresolvedOnly=true&limit=50",
+    "ops": null
+   }
+  ],
+  "firstUploadMsFromAnchor": 38,
+  "firstManifestMsFromAnchor": 242,
+  "firstPullMsFromAnchor": 258,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "opSendCounts": {
+   "01a0bb4f-bf92-70ab-b89c-023a0a855e07": 2,
+   "01a0bb4f-bf92-70ac-bcb7-39dc658fdfc2": 2
+  }
+ },
+ "s3After": {
+  "label": "RUN C — after the reconnect",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": true,
+  "strip": "Updated just now"
+ },
+ "sqlOrderB": {
+  "orders": "1",
+  "row": "01a0bb4f-86ed-7450-b338-da80370a31c7|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "lines": "1"
+ },
+ "opfsFinal": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3932160
+  ]
+ },
+ "deviceIds": [
+  "01a0bb4e-7cd8-7103-8892-d5bc9b497720"
+ ],
+ "sqlSyncOps": "01a0bb4e-7cd8-7103-8892-d5bc9b497720|4",
+ "verdict": {
+  "runB_uploadBeforeManifest": true,
+  "runB_uploadBeforePull": true,
+  "runB_uploadUnder10s": true,
+  "runB_pullStillHappened": true,
+  "runB_everyOpSentOnce": true,
+  "runB_orderInOfficeOnce": true,
+  "runC_onlineEventSeen": true,
+  "runC_uploadWithin2s": true,
+  "runC_uploadBeforePull": true,
+  "runC_pullStillHappened": true,
+  "runC_everyOpSentOnce": false,
+  "runC_orderInOfficeOnce": true,
+  "PASS": false
+ },
+ "pageErrors": []
+}

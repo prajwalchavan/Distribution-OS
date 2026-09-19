@@ -1,0 +1,44 @@
+{
+  "trip_id": "f352817e-1069-71a5-8321-c2f6c18d529e",
+  "stop_id": "034fa4d2-c09d-7a9d-8e84-90ed0109cd97",
+  "invoice_id": "47343d83-b3c8-732c-95cb-5a487ce262ac",
+  "retailer_id": "da1165a3-5c3b-7efc-9340-850fda7ca0bc",
+  "order_id": "212e15cc-c396-7036-8c5d-f2e5f4772a7d",
+  "delivered_at": "2026-09-19T21:15:05.467Z",
+  "device_id": "01a0bb5f-2668-751a-a94b-84f1841aaf1b",
+  "lines": [
+    {
+      "id": "01a0bb82-3f19-7733-bdd3-058727607487",
+      "invoice_line_id": "bb2f0047-97e5-78ec-b5c6-23fb923cbf97",
+      "delivered_qty_pcs": 0,
+      "returned_qty_pcs": 150,
+      "returned_saleable": true,
+      "reason": "refused"
+    },
+    {
+      "id": "01a0bb82-3f19-7734-9eef-803e3d4ee5d0",
+      "invoice_line_id": "d28a25fd-3350-7877-93c2-ee5c71ce6859",
+      "delivered_qty_pcs": 0,
+      "returned_qty_pcs": 150,
+      "returned_saleable": true,
+      "reason": "refused"
+    },
+    {
+      "id": "01a0bb82-3f19-7735-b92c-aa0886dd266f",
+      "invoice_line_id": "86f77347-8eff-7c7d-8159-d88b58d5ca66",
+      "delivered_qty_pcs": 0,
+      "returned_qty_pcs": 144,
+      "returned_saleable": true,
+      "reason": "refused"
+    }
+  ],
+  "pod": [
+    {
+      "id": "01a0bb85-d520-71ec-bce7-be0ffb278fc0",
+      "kind": "geo",
+      "lat": 19.223718,
+      "lng": 73.098601,
+      "captured_at": "2026-09-19T21:15:05.467Z"
+    }
+  ]
+}

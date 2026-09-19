@@ -1,0 +1,9 @@
+# left-behind check, 01:54:19
+  :3000 health -> 200
+  :3003 health -> 200
+  :3100 health -> 000no answer
+  :5175 metro   -> 200
+  :5185 metro   -> 000no answer (stopped by this proof)
+  git status:
+    ?? QA/evidence/batch2/dos-181-183/
+    ?? QA/evidence/batch2/merge-reviews/apps.md

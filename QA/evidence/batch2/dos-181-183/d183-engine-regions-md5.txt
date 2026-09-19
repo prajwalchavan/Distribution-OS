@@ -1,0 +1,10 @@
+DOS-183 code regions in frontend/libs/offline/src/engine.ts
+md5 of each method body, at f23a9a7 (the commit the task names) and at HEAD 71fa9c3 (main tip, the tree the proof ran on)
+
+start()                    f23a9a7 cce1ec1d27830ace89c2e7f51d60f4c9   HEAD cce1ec1d27830ace89c2e7f51d60f4c9   IDENTICAL   (37 lines)
+drain(reason)              f23a9a7 5d76e8de94e198f79210cd6ad4c61122   HEAD 5d76e8de94e198f79210cd6ad4c61122   IDENTICAL   (6 lines)
+setNetworkHint(online)     f23a9a7 ad0b8405d3757727b7530fd0d574feab   HEAD ad0b8405d3757727b7530fd0d574feab   IDENTICAL   (22 lines)
+flush(options)             f23a9a7 ee9e27eed40506f91a7d22aac95774ad   HEAD ee9e27eed40506f91a7d22aac95774ad   IDENTICAL   (26 lines)
+schedulePoll()             f23a9a7 d995d88806894b993a4ece21be181d41   HEAD d995d88806894b993a4ece21be181d41   IDENTICAL   (13 lines)
+
+ALL IDENTICAL

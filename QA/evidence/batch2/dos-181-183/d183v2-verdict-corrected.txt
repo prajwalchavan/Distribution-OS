@@ -1,0 +1,50 @@
+DOS-183 — BROWSER PROOF, corrected verdict
+read off the HTTP statuses in d183v2-network.json; the first pass's 'sent twice' line counted HTTP ATTEMPTS, not accepted sends
+tree: main 71fa9c3 (contains f23a9a7; the DOS-183 engine regions are byte-identical — see d183-engine-regions-md5.txt)
+app:  sales app on Metro :5185 -> all-in-one :3100 -> postgres dos_test_b2_d183   |  real headed Chromium, one profile
+
+RUN B — the next sign-in over a file whose previous session never ran end()
+  state built: order saved on this phone while offline, then the OTHER tab signed out and the window was closed.
+  Sign in tapped at wall 1789848935521; the OPFS file was on disk, 3 923 968 bytes, header /s80j3azqcg6our25a35...
+  first POST /sync/upload    +287 ms      <-- the finding measured +60 753 ms
+  first GET  /sync/manifest  +405 ms
+  first GET  /sync/pull      +417 ms   (carries a cursor, i.e. a delta pull: True)
+  the page's own resource timing agrees: upload 286 ms, manifest 404 ms, pull 417 ms
+  upload before manifest: True    upload before pull: True
+    op 01a0bb4e-f89c-7010-b76c-7706bccfd77c table=sales_orders       attempts=1 accepted=1 statuses=[200]
+    op 01a0bb4e-f89c-7011-a075-ec38086721bd table=sales_order_lines  attempts=1 accepted=1 statuses=[200]
+  office: sales_orders=1, sales_order_lines=1  ->  01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0
+
+RUN C — a page that BOOTED OFFLINE, sat 150 s with no signal, then found the network
+  browser 'online' event observed: True (fired 0 ms after the radio was restored; anchor = the browser online event)
+  last call attempted before the reconnect: /sales/sync/upload at boot+131898 ms (net::ERR_INTERNET_DISCONNECTED)
+  gap from it to the reconnect: 30716 ms — the engine's backoff was at its 60 s cap, so the
+    next retry was ~29 s away. The upload below is the reconnect, not a retry that happened to fall there.
+  first POST /sync/upload    +38 ms after the online event   <-- the finding measured 49.5 s
+  first GET  /sync/manifest  +242 ms
+  first GET  /sync/pull      +258 ms
+  upload before pull: True
+    op 01a0bb4f-bf92-70ab-b89c-023a0a855e07 table=sales_orders       attempts=2 accepted=1 statuses=[401, 200]
+    op 01a0bb4f-bf92-70ac-bcb7-39dc658fdfc2 table=sales_order_lines  attempts=2 accepted=1 statuses=[401, 200]
+  office: sales_orders=1, sales_order_lines=1  ->  01a0bb4f-86ed-7450-b338-da80370a31c7|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0
+
+  The two HTTP attempts in run C, straight out of the network log:
+    +38 ms  POST /sales/sync/upload -> 401   the access token expired during the 150 s with no signal
+    +49 ms  POST /auth/auth/refresh -> 200   @dos/api-client's ONE transparent refresh per 401
+    +108 ms POST /sales/sync/upload -> 200   the same request retried once, the same two opIds
+    A 401 is refused by the guard before any handler runs, so the ops reached the server ONCE and the office
+    holds one order and one line. It is the client's documented refresh-and-retry, not a double send.
+
+  PASS  B: the upload starts before the manifest AND before the pull
+  PASS  B: it is in the same session start — no 60 s poll wait
+  PASS  B: the pull still happens, and it is a delta
+  PASS  B: every op accepted exactly once
+  PASS  B: the order lands in the office exactly once
+  PASS  C: a real browser online event was observed
+  PASS  C: the flush follows the online event within 2 s
+  PASS  C: the upload still precedes the pull
+  PASS  C: the pull still happens
+  PASS  C: every op accepted exactly once
+  PASS  C: the order lands in the office exactly once
+
+VERDICT: PASS

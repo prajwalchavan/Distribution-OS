@@ -1,0 +1,27 @@
+--- tables
+select name from sqlite_master where type='table' order by name;
+_gps_buffer
+_outbox
+_sync_errors
+_sync_state
+brands
+credit_note_lines
+credit_notes
+deliveries
+delivery_challans
+delivery_lines
+invoice_lines
+invoices
+load_sheets
+manufacturers
+product_variants
+products
+receipts
+retailer_outstanding_summary
+retailers
+sqlite_sequence
+tenant_products
+trip_stops
+trips
+vehicles
+

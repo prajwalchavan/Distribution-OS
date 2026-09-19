@@ -1,0 +1,19 @@
+SIDE NOTE (not a DOS-183 result) — what the page did on the wire while it had NO signal
+window: the 163 s between the offline boot and the reconnect, run C of d183-web-goes-first-v2.mjs
+failed requests in that window: 76 in total
+
+  /auth/auth/refresh                22 attempts; ms since boot: [465, 845, 1212, 1589, 1963, 2332, 2701, 3069, 3422, 3789, 4159, 4536, 4895, 5256, 5638, 5996, 6359, 6723, 7092, 7460, 7841, 8218]
+  /sales/inventory/availability     22 attempts; ms since boot: [484, 856, 1223, 1604, 1976, 2347, 2716, 3084, 3436, 3803, 4174, 4551, 4906, 5271, 5655, 6008, 6375, 6739, 7107, 7476, 7857, 8233]
+  /storage/tenant                   22 attempts; ms since boot: [484, 856, 1223, 1604, 1976, 2347, 2716, 3084, 3436, 3803, 4174, 4550, 4906, 5271, 5655, 6008, 6375, 6738, 7107, 7476, 7857, 8233]
+  /sales/sync/upload                 8 attempts; ms since boot: [8477, 9526, 11582, 15643, 23702, 39764, 71812, 131898]
+
+What the numbers say, and nothing more:
+  * The three non-sync calls fire 22 times each in the first 8.2 s, roughly one every 370 ms,
+    and then make no further attempt for the remaining 155 s of the outage. This proof did not
+    establish why they stop, and it is outside DOS-183; recorded only so a reader is not
+    surprised by them in the network log.
+  * The SYNC ENGINE's own queue backs off cleanly: 8 upload attempts at boot+8.5 s, 9.5, 11.6,
+    15.6, 23.7, 39.8, 71.8, 131.9 s — doubling to the 60 s cap.
+  * That schedule is what lets run C's +38 ms upload be attributed to the RECONNECT and not to a
+    retry that happened to land there: the last attempt was at boot+131 898 ms, the reconnect came
+    30 716 ms later, so the next retry was still about 29 s away.

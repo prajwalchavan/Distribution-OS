@@ -1,0 +1,3142 @@
+{
+ "app": "http://localhost:5185",
+ "api": "127.0.0.1:3100",
+ "db": "postgres://dos:dos@127.0.0.1:5439/dos_test_b2_d183",
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5",
+ "shop": {
+  "id": "0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "name": "Ambika Provision StoreR-0009 · Station Road · Station Road, "
+ },
+ "startedAt": "2026-09-19T20:09:41.048Z",
+ "s1SignedIn": {
+  "label": "STAGE 1 — tab 1 signed in",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ "s1Opfs": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "orderA": "01a0bb4a-3d93-70ab-b0d3-9f8cbaf10df6",
+ "s1Queued": {
+  "label": "STAGE 1 — order A saved on the phone, unsent",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ "s1OpfsQueued": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "sqlOrderABefore": "count\n0\n(1 row)",
+ "s1Tab2": {
+  "label": "STAGE 1 — tab 2, same person, memory store",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now · Not kept in this browser"
+ },
+ "s1Tab2AfterSignOut": {
+  "label": "STAGE 1 — tab 2 after Sign out",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ "s1Tab1AfterTab2SignedOut": {
+  "label": "STAGE 1 — tab 1 after the OTHER tab signed out",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ "s1OpfsBeforeClose": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "s2Before": {
+  "label": "RUN B — the window the closed session left behind",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ "s2OpfsBefore": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "runB": {
+  "signedAtWall": 1789848641060,
+  "calls": [
+   {
+    "ms": 328,
+    "method": "POST",
+    "path": "/sales/sync/upload"
+   },
+   {
+    "ms": 487,
+    "method": "GET",
+    "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "ms": 502,
+    "method": "GET",
+    "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1N"
+   },
+   {
+    "ms": 551,
+    "method": "GET",
+    "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50"
+   }
+  ],
+  "firstUploadMs": 328,
+  "firstManifestMs": 487,
+  "firstPullMs": 502,
+  "uploadBeforeManifest": true,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "uploadCallsCarryingOrderA": 1,
+  "resourceTiming": [
+   {
+    "name": "/sales/sync/upload",
+    "ms": 326
+   },
+   {
+    "name": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+    "ms": 487
+   },
+   {
+    "name": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1NS4wMTlaIn0",
+    "ms": 502
+   },
+   {
+    "name": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+    "ms": 550
+   }
+  ]
+ },
+ "s2After": {
+  "label": "RUN B — after the queue had gone",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ "sqlOrderA": {
+  "orders": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id\n01a0bb4a-3d93-70ab-b0d3-9f8cbaf10df6||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0\n(1 row)",
+  "lines": "count\n1\n(1 row)",
+  "syncOps": "(sql error: ERROR:  column \"payload\" does not exist\nLINE 1: select count(*) from sync_ops where payload::text like '%01a...\n                                            ^\n)"
+ },
+ "orderB": "01a0bb4b-186e-7005-970d-bec5da16eeef",
+ "sqlOrderBBefore": "count\n0\n(1 row)",
+ "s3BootedOffline": {
+  "label": "RUN C — the page booted with no network",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ "runCBootCalls": [
+  {
+   "kind": "request",
+   "path": "/auth/auth/refresh"
+  },
+  {
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "request",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb"
+  },
+  {
+   "kind": "request",
+   "path": "/sales/inventory/availability?limit=500"
+  },
+  {
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "request",
+   "path": "/auth/auth/refresh"
+  },
+  {
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "request",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb"
+  },
+  {
+   "kind": "request",
+   "path": "/sales/inventory/availability?limit=500"
+  },
+  {
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "request",
+   "path": "/auth/auth/refresh"
+  },
+  {
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "request",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb"
+  },
+  {
+   "kind": "request",
+   "path": "/sales/inventory/availability?limit=500"
+  },
+  {
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "kind": "request",
+   "path": "/auth/auth/refresh"
+  },
+  {
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  }
+ ],
+ "runC": {
+  "onlineFlippedAtWall": 1789848687380,
+  "onlineEventAtWall": null,
+  "onlineEventSeen": false,
+  "calls": [
+   {
+    "ms": 36,
+    "method": "POST",
+    "path": "/sales/sync/upload"
+   },
+   {
+    "ms": 93,
+    "method": "POST",
+    "path": "/sales/sync/upload"
+   },
+   {
+    "ms": 211,
+    "method": "GET",
+    "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "ms": 226,
+    "method": "GET",
+    "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDo1M"
+   },
+   {
+    "ms": 291,
+    "method": "GET",
+    "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50"
+   }
+  ],
+  "firstUploadMsAfterOnlineEvent": 36,
+  "firstManifestMsAfterOnlineEvent": 211,
+  "firstPullMsAfterOnlineEvent": 226,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "uploadCallsCarryingOrderB": 2
+ },
+ "s3After": {
+  "label": "RUN C — after the reconnect",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Updated just now"
+ },
+ "sqlOrderB": {
+  "orders": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id\n01a0bb4b-186e-7005-970d-bec5da16eeef||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0\n(1 row)",
+  "lines": "count\n1\n(1 row)",
+  "syncOps": "(sql error: ERROR:  column \"payload\" does not exist\nLINE 1: select count(*) from sync_ops where payload::text like '%01a...\n                                            ^\n)"
+ },
+ "opfsFinal": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "verdict": {
+  "runB_uploadBeforeManifest": true,
+  "runB_uploadBeforePull": true,
+  "runB_uploadUnder10s": true,
+  "runB_pullStillHappened": true,
+  "runB_sentOnce": true,
+  "runB_orderInOfficeOnce": false,
+  "runC_onlineEventSeen": false,
+  "runC_uploadWithin2s": true,
+  "runC_uploadBeforePull": true,
+  "runC_pullStillHappened": true,
+  "runC_sentOnce": false,
+  "runC_orderInOfficeOnce": false,
+  "PASS": false
+ },
+ "pageErrors": [],
+ "net": [
+  {
+   "wall": 1789848583653,
+   "t": 2605,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/login",
+   "body": null
+  },
+  {
+   "wall": 1789848583830,
+   "t": 2782,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/login",
+   "body": null
+  },
+  {
+   "wall": 1789848583832,
+   "t": 2784,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789934983&signature=8966c4564f8f77e1d951",
+   "body": null
+  },
+  {
+   "wall": 1789848583836,
+   "t": 2788,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789934983&signature=8966c4564f8f77e1d951",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848584068,
+   "t": 3020,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest",
+   "body": null
+  },
+  {
+   "wall": 1789848584072,
+   "t": 3024,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest",
+   "body": null
+  },
+  {
+   "wall": 1789848584343,
+   "t": 3295,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848584431,
+   "t": 3383,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848584484,
+   "t": 3436,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584537,
+   "t": 3489,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584583,
+   "t": 3535,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584630,
+   "t": 3582,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584687,
+   "t": 3639,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584748,
+   "t": 3700,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584812,
+   "t": 3764,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584860,
+   "t": 3812,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584911,
+   "t": 3863,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848584965,
+   "t": 3917,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848585019,
+   "t": 3971,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848585083,
+   "t": 4035,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848585143,
+   "t": 4095,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848585212,
+   "t": 4164,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848585267,
+   "t": 4219,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848585329,
+   "t": 4281,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848585391,
+   "t": 4343,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848585452,
+   "t": 4404,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848585519,
+   "t": 4471,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxO",
+   "body": null
+  },
+  {
+   "wall": 1789848585575,
+   "t": 4527,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxO",
+   "body": null
+  },
+  {
+   "wall": 1789848585633,
+   "t": 4585,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyM",
+   "body": null
+  },
+  {
+   "wall": 1789848585677,
+   "t": 4629,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyM",
+   "body": null
+  },
+  {
+   "wall": 1789848585712,
+   "t": 4664,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848585719,
+   "t": 4671,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848598000,
+   "t": 16952,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848598026,
+   "t": 16978,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848598037,
+   "t": 16989,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789934998&signature=1265755ce97631a08903",
+   "body": null
+  },
+  {
+   "wall": 1789848598040,
+   "t": 16992,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789934998&signature=1265755ce97631a08903",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848598054,
+   "t": 17006,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848598069,
+   "t": 17021,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848598099,
+   "t": 17051,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo0M",
+   "body": null
+  },
+  {
+   "wall": 1789848598127,
+   "t": 17079,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo0M",
+   "body": null
+  },
+  {
+   "wall": 1789848598134,
+   "t": 17086,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848598142,
+   "t": 17094,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848599937,
+   "t": 18889,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848599945,
+   "t": 18897,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848599958,
+   "t": 18910,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789934999&signature=e8499180f24ee56dc796",
+   "body": null
+  },
+  {
+   "wall": 1789848599961,
+   "t": 18913,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848599962,
+   "t": 18914,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789934999&signature=e8499180f24ee56dc796",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848599972,
+   "t": 18924,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848599975,
+   "t": 18927,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848599991,
+   "t": 18943,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/pricing/bounds",
+   "body": null
+  },
+  {
+   "wall": 1789848599998,
+   "t": 18950,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848600017,
+   "t": 18969,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1M",
+   "body": null
+  },
+  {
+   "wall": 1789848600044,
+   "t": 18996,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1M",
+   "body": null
+  },
+  {
+   "wall": 1789848600047,
+   "t": 18999,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/pricing/bounds",
+   "body": null
+  },
+  {
+   "wall": 1789848600049,
+   "t": 19001,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848600054,
+   "t": 19006,
+   "tab": "tab1",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848615347,
+   "t": 34299,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848615352,
+   "t": 34304,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848616413,
+   "t": 35365,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848616509,
+   "t": 35461,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848618574,
+   "t": 37526,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848618670,
+   "t": 37622,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848621211,
+   "t": 40163,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848621493,
+   "t": 40445,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848621597,
+   "t": 40549,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935021&signature=1892755ff05eebc3c960",
+   "body": null
+  },
+  {
+   "wall": 1789848622295,
+   "t": 41247,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest",
+   "body": null
+  },
+  {
+   "wall": 1789848622335,
+   "t": 41287,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935021&signature=1892755ff05eebc3c960",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848622471,
+   "t": 41423,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest",
+   "body": null
+  },
+  {
+   "wall": 1789848622568,
+   "t": 41520,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848622736,
+   "t": 41688,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848622841,
+   "t": 41793,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848622969,
+   "t": 41921,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848623025,
+   "t": 41977,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848623210,
+   "t": 42162,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848623338,
+   "t": 42290,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848623499,
+   "t": 42451,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848623683,
+   "t": 42635,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848623844,
+   "t": 42796,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848624020,
+   "t": 42972,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848624196,
+   "t": 43148,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848624373,
+   "t": 43325,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848624533,
+   "t": 43485,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848624710,
+   "t": 43662,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848624886,
+   "t": 43838,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxM",
+   "body": null
+  },
+  {
+   "wall": 1789848625078,
+   "t": 44030,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848625255,
+   "t": 44207,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848625463,
+   "t": 44415,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848625640,
+   "t": 44592,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848625848,
+   "t": 44800,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848626025,
+   "t": 44977,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxN",
+   "body": null
+  },
+  {
+   "wall": 1789848626265,
+   "t": 45217,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxO",
+   "body": null
+  },
+  {
+   "wall": 1789848626434,
+   "t": 45386,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxO",
+   "body": null
+  },
+  {
+   "wall": 1789848626626,
+   "t": 45578,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyM",
+   "body": null
+  },
+  {
+   "wall": 1789848626779,
+   "t": 45731,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyM",
+   "body": null
+  },
+  {
+   "wall": 1789848626907,
+   "t": 45859,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848627027,
+   "t": 45979,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848631036,
+   "t": 49988,
+   "tab": "tab1",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848631132,
+   "t": 50084,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848636222,
+   "t": 55174,
+   "tab": "tab2",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/logout",
+   "body": null
+  },
+  {
+   "wall": 1789848636447,
+   "t": 55399,
+   "tab": "tab2",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/logout",
+   "body": null
+  },
+  {
+   "wall": 1789848641098,
+   "t": 60050,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/login",
+   "body": null
+  },
+  {
+   "wall": 1789848641143,
+   "t": 60095,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/login",
+   "body": null
+  },
+  {
+   "wall": 1789848641167,
+   "t": 60119,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935041&signature=9a77004530f7eefe733d",
+   "body": null
+  },
+  {
+   "wall": 1789848641169,
+   "t": 60121,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935041&signature=9a77004530f7eefe733d",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848641388,
+   "t": 60340,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848641527,
+   "t": 60479,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/upload",
+   "body": null
+  },
+  {
+   "wall": 1789848641547,
+   "t": 60499,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848641551,
+   "t": 60503,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848641562,
+   "t": 60514,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1N",
+   "body": null
+  },
+  {
+   "wall": 1789848641599,
+   "t": 60551,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1N",
+   "body": null
+  },
+  {
+   "wall": 1789848641611,
+   "t": 60563,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848641616,
+   "t": 60568,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848649870,
+   "t": 68822,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848649885,
+   "t": 68837,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848649893,
+   "t": 68845,
+   "tab": "runB",
+   "kind": "response",
+   "status": 401,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848649900,
+   "t": 68852,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848649912,
+   "t": 68864,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935049&signature=b0e94f4527e1559a93a8",
+   "body": null
+  },
+  {
+   "wall": 1789848649914,
+   "t": 68866,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848649915,
+   "t": 68867,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935049&signature=b0e94f4527e1559a93a8",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848649918,
+   "t": 68870,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848649939,
+   "t": 68891,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDozN",
+   "body": null
+  },
+  {
+   "wall": 1789848649990,
+   "t": 68942,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDozN",
+   "body": null
+  },
+  {
+   "wall": 1789848650003,
+   "t": 68955,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848650006,
+   "t": 68958,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848655956,
+   "t": 74908,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848655972,
+   "t": 74924,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848655984,
+   "t": 74936,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848655987,
+   "t": 74939,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848655988,
+   "t": 74940,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848655995,
+   "t": 74947,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848656000,
+   "t": 74952,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848656014,
+   "t": 74966,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/pricing/bounds",
+   "body": null
+  },
+  {
+   "wall": 1789848656022,
+   "t": 74974,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848656036,
+   "t": 74988,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/pricing/bounds",
+   "body": null
+  },
+  {
+   "wall": 1789848656043,
+   "t": 74995,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDo0N",
+   "body": null
+  },
+  {
+   "wall": 1789848656092,
+   "t": 75044,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDo0N",
+   "body": null
+  },
+  {
+   "wall": 1789848656097,
+   "t": 75049,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848656103,
+   "t": 75055,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848667309,
+   "t": 86261,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848667315,
+   "t": 86267,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848668374,
+   "t": 87326,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848668470,
+   "t": 87422,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848670535,
+   "t": 89487,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848670631,
+   "t": 89583,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848672301,
+   "t": 91253,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848672302,
+   "t": 91254,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848672312,
+   "t": 91264,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848672313,
+   "t": 91265,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848672327,
+   "t": 91279,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848672328,
+   "t": 91280,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848672687,
+   "t": 91639,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848672688,
+   "t": 91640,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848672698,
+   "t": 91650,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848672699,
+   "t": 91651,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848672701,
+   "t": 91653,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848672701,
+   "t": 91653,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673057,
+   "t": 92009,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848673058,
+   "t": 92010,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673068,
+   "t": 92020,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848673069,
+   "t": 92021,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848673071,
+   "t": 92023,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673071,
+   "t": 92023,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673428,
+   "t": 92380,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848673429,
+   "t": 92381,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673439,
+   "t": 92391,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848673441,
+   "t": 92393,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848673445,
+   "t": 92397,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673446,
+   "t": 92398,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673813,
+   "t": 92765,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848673815,
+   "t": 92767,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673825,
+   "t": 92777,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848673826,
+   "t": 92778,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848673828,
+   "t": 92780,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848673829,
+   "t": 92781,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674197,
+   "t": 93149,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848674198,
+   "t": 93150,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674209,
+   "t": 93161,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848674210,
+   "t": 93162,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848674213,
+   "t": 93165,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674213,
+   "t": 93165,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674604,
+   "t": 93556,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848674604,
+   "t": 93556,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674615,
+   "t": 93567,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848674617,
+   "t": 93569,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848674619,
+   "t": 93571,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674619,
+   "t": 93571,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674986,
+   "t": 93938,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848674987,
+   "t": 93939,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848674998,
+   "t": 93950,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848674998,
+   "t": 93950,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848675000,
+   "t": 93952,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675001,
+   "t": 93953,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675356,
+   "t": 94308,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848675359,
+   "t": 94311,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675371,
+   "t": 94323,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848675371,
+   "t": 94323,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848675374,
+   "t": 94326,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675374,
+   "t": 94326,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675724,
+   "t": 94676,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848675727,
+   "t": 94679,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675737,
+   "t": 94689,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848675737,
+   "t": 94689,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848675738,
+   "t": 94690,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848675739,
+   "t": 94691,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676104,
+   "t": 95056,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848676105,
+   "t": 95057,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676116,
+   "t": 95068,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848676117,
+   "t": 95069,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848676119,
+   "t": 95071,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676119,
+   "t": 95071,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676484,
+   "t": 95436,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848676485,
+   "t": 95437,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676497,
+   "t": 95449,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848676498,
+   "t": 95450,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848676500,
+   "t": 95452,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676500,
+   "t": 95452,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676850,
+   "t": 95802,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848676851,
+   "t": 95803,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676863,
+   "t": 95815,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848676865,
+   "t": 95817,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848676868,
+   "t": 95820,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848676868,
+   "t": 95820,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677230,
+   "t": 96182,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848677233,
+   "t": 96185,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677243,
+   "t": 96195,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848677244,
+   "t": 96196,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848677246,
+   "t": 96198,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677247,
+   "t": 96199,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677618,
+   "t": 96570,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848677619,
+   "t": 96571,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677631,
+   "t": 96583,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848677632,
+   "t": 96584,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848677634,
+   "t": 96586,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677634,
+   "t": 96586,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848677984,
+   "t": 96936,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848677986,
+   "t": 96938,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678000,
+   "t": 96952,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848678000,
+   "t": 96952,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848678003,
+   "t": 96955,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678003,
+   "t": 96955,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678372,
+   "t": 97324,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848678373,
+   "t": 97325,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678384,
+   "t": 97336,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848678385,
+   "t": 97337,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848678388,
+   "t": 97340,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678388,
+   "t": 97340,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678749,
+   "t": 97701,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848678749,
+   "t": 97701,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678761,
+   "t": 97713,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848678762,
+   "t": 97714,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848678765,
+   "t": 97717,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848678765,
+   "t": 97717,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679134,
+   "t": 98086,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848679135,
+   "t": 98087,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679147,
+   "t": 98099,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848679148,
+   "t": 98100,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848679151,
+   "t": 98103,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679151,
+   "t": 98103,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679514,
+   "t": 98466,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848679515,
+   "t": 98467,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679528,
+   "t": 98480,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848679528,
+   "t": 98480,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848679531,
+   "t": 98483,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679531,
+   "t": 98483,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679889,
+   "t": 98841,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848679890,
+   "t": 98842,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679903,
+   "t": 98855,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848679904,
+   "t": 98856,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848679906,
+   "t": 98858,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848679906,
+   "t": 98858,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848680276,
+   "t": 99228,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848680280,
+   "t": 99232,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/auth/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848680290,
+   "t": 99242,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "body": null
+  },
+  {
+   "wall": 1789848680290,
+   "t": 99242,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/inventory/availability?limit=500",
+   "body": null
+  },
+  {
+   "wall": 1789848680291,
+   "t": 99243,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935055&signature=aa818bdee3c719b95fdb",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848680294,
+   "t": 99246,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/inventory/availability?limit=500",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848680467,
+   "t": 99419,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/pricing/bounds",
+   "body": null
+  },
+  {
+   "wall": 1789848680468,
+   "t": 99420,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/pricing/bounds",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848680496,
+   "t": 99448,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848680501,
+   "t": 99453,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848680526,
+   "t": 99478,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848680530,
+   "t": 99482,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848681532,
+   "t": 100484,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848681537,
+   "t": 100489,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848683575,
+   "t": 102527,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848683587,
+   "t": 102539,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED",
+   "body": null
+  },
+  {
+   "wall": 1789848687416,
+   "t": 106368,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848687425,
+   "t": 106377,
+   "tab": "runB",
+   "kind": "response",
+   "status": 401,
+   "path": "/sales/sync/upload",
+   "body": null
+  },
+  {
+   "wall": 1789848687426,
+   "t": 106378,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848687465,
+   "t": 106417,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848687473,
+   "t": 106425,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/sales/sync/upload",
+   "body": "(729 bytes)"
+  },
+  {
+   "wall": 1789848687565,
+   "t": 106517,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/upload",
+   "body": null
+  },
+  {
+   "wall": 1789848687591,
+   "t": 106543,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848687596,
+   "t": 106548,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848687606,
+   "t": 106558,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDo1M",
+   "body": null
+  },
+  {
+   "wall": 1789848687656,
+   "t": 106608,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMDo1M",
+   "body": null
+  },
+  {
+   "wall": 1789848687671,
+   "t": 106623,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848687692,
+   "t": 106644,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848693697,
+   "t": 112649,
+   "tab": "runB",
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848693704,
+   "t": 112656,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848693708,
+   "t": 112660,
+   "tab": "runB",
+   "kind": "response",
+   "status": 401,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848693708,
+   "t": 112660,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/auth/refresh",
+   "body": null
+  },
+  {
+   "wall": 1789848693720,
+   "t": 112672,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935093&signature=e9c92ff48b103e490a26",
+   "body": null
+  },
+  {
+   "wall": 1789848693724,
+   "t": 112676,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848693725,
+   "t": 112677,
+   "tab": "runB",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789935093&signature=e9c92ff48b103e490a26",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+   "body": null
+  },
+  {
+   "wall": 1789848693727,
+   "t": 112679,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "body": null
+  },
+  {
+   "wall": 1789848693751,
+   "t": 112703,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMToyM",
+   "body": null
+  },
+  {
+   "wall": 1789848693799,
+   "t": 112751,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDoxMToyM",
+   "body": null
+  },
+  {
+   "wall": 1789848693812,
+   "t": 112764,
+   "tab": "runB",
+   "kind": "request",
+   "method": "GET",
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  },
+  {
+   "wall": 1789848693817,
+   "t": 112769,
+   "tab": "runB",
+   "kind": "response",
+   "status": 200,
+   "path": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+   "body": null
+  }
+ ]
+}

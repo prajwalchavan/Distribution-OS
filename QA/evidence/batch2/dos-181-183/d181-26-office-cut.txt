@@ -1,0 +1,8 @@
+=== cutting the office at 2026-09-19T21:04:19Z ===
+adb reverse tcp:3100 removed
+host-16 tcp:8081 tcp:8081
+
+all-in-one pid 49117 stopped
+host :3100 refuses connections (expected)
+
+device cannot reach :3100 (expected)

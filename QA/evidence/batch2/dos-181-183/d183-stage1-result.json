@@ -1,0 +1,86 @@
+{
+ "app": "http://localhost:5185",
+ "api": "127.0.0.1:3100",
+ "db": "postgres://dos:dos@127.0.0.1:5439/dos_test_b2_d183",
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5",
+ "shop": {
+  "id": "0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "name": "Ambika Provision StoreR-0009 · Station Road · Station Road, "
+ },
+ "startedAt": "2026-09-19T20:09:41.048Z",
+ "s1SignedIn": {
+  "label": "STAGE 1 — tab 1 signed in",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ "s1Opfs": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "orderA": "01a0bb4a-3d93-70ab-b0d3-9f8cbaf10df6",
+ "s1Queued": {
+  "label": "STAGE 1 — order A saved on the phone, unsent",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ "s1OpfsQueued": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ "sqlOrderABefore": "count\n0\n(1 row)",
+ "s1Tab2": {
+  "label": "STAGE 1 — tab 2, same person, memory store",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now · Not kept in this browser"
+ },
+ "s1Tab2AfterSignOut": {
+  "label": "STAGE 1 — tab 2 after Sign out",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ "s1Tab1AfterTab2SignedOut": {
+  "label": "STAGE 1 — tab 1 after the OTHER tab signed out",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ "s1OpfsBeforeClose": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ }
+}

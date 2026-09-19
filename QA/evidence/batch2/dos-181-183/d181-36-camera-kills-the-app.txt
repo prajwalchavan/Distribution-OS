@@ -1,0 +1,5 @@
+09-20 02:27:01.285   677  1852 I ActivityManager: Process in.distributionos.delivery (pid 25123) has died: fg  BTOP
+09-20 02:39:15.861   677  1704 I ActivityManager: Process in.distributionos.delivery (pid 26625) has died: fg  BTOP
+MemTotal:        3046940 kB
+MemFree:          346248 kB
+MemAvailable:    1208768 kB

@@ -1,0 +1,57 @@
+# DOS-181 Android device proof — environment
+recorded 2026-09-20 ~02:48 IST on the founder's Mac (macOS 14.6.1)
+
+## Tree
+repo            /Users/prajwalchavan/Desktop/Distribution OS
+branch          main
+HEAD            71fa9c3264c9dcebd0d2891badbce7cdb4065f1e
+                "Merge QA batch 2 lane apps: DOS-181, DOS-182"
+asked-for base  f23a9a7  "Merge QA batch 2 lane engine: DOS-183"
+product tree    UNCHANGED by this proof (git status showed only the two untracked QA folders)
+
+## Why the walk ran on HEAD and not on f23a9a7
+f23a9a7 is the merge of the ENGINE lane (DOS-183). The DOS-181 fix is NOT in it: it lands in
+1b3510b and 3156997 and reaches main only at 71fa9c3, eight commits later. Walking f23a9a7 would
+have proved the OLD, unfixed screen. The walk therefore ran on main's tip, which contains both
+f23a9a7 and the DOS-181 fix, and is the tree main actually has.
+
+## Device
+Pixel_7_API_36 (API 36, arm64), already booted with `-memory 3072 -no-snapshot-save`
+  emulator pid 82296, argv confirmed: `-avd Pixel_7_API_36 -memory 3072 -no-snapshot-save`
+app             in.distributionos.delivery (debug build, lastUpdateTime 2026-09-19 21:11),
+                JS served by Metro, `adb shell pm clear` before the walk so it began at Sign in
+driver          Appium 3.7.0 + UiAutomator2 on http://127.0.0.1:4725 (already running)
+addressing      resource-id (React Native testID) and text ONLY — no raw coordinates anywhere.
+                `d181-lib.mjs` has the locators; `swipeUp` is used only to scroll, never to hit a control.
+
+## Services started for this proof (and stopped again afterwards)
+backend/all-in-one on :3100 — ports :3000-:3007 were held by another lane's services and were NOT killed
+  DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_d181walk
+  logs: d181-all-in-one-3100.log (first run), d181-all-in-one-3100-restart.log (after the office cut)
+delivery app Metro on :8081
+  EXPO_PUBLIC_API_URL=http://127.0.0.1:3100  EXPO_PUBLIC_API_PREFIX=/delivery
+  EXPO_PUBLIC_AUTH_URL=http://127.0.0.1:3100/auth
+  log: d181-metro-8081.log
+adb reverse tcp:8081 and tcp:3100 (there were none before this walk; both removed at the end)
+backend libs rebuilt first: `turbo run build --filter=@dos/core... --filter=@dos/all-in-one` (6/6 ok)
+
+## Databases
+`dos` and `dos_qa` were NOT touched. Every read and write went to **dos_test_b2_d181walk**, created
+for this walk as `CREATE DATABASE dos_test_b2_d181walk TEMPLATE dos_test_b2_d181` (48 migrations,
+same as main's migrations folder).
+
+## Who signed in
+sachin.dalvi / Dos@1234 — delivery driver, Sai Distributors (Dombivli), TRIP-ACTIVE, 10 stops.
+Shops used, both read off the driver's OWN trip:
+  stop 10  Anand General Store  SAI/0438  payment_terms ON (pays on delivery) — the ONLINE press
+  stop  4  Jain Kirana Mart     SAI/0429  payment_terms POST_FULFILLMENT (credit) — the finding's own
+           bill, used for the refusal measurement and for the OFFLINE press
+
+## What could NOT be driven on this emulator
+The proof PHOTOGRAPH. `d4-photo` opens the system camera (expo-image-picker -> com.android.camera2).
+Twice — 02:27:01 and 02:39:15 — Android killed the delivery app while the camera was foregrounded
+(`ActivityManager: Process in.distributionos.delivery ... has died: fg BTOP`, d181-36), so the app
+relaunched on Home and the captured proof was gone. That is an emulator memory limit (3 GB, dev
+bundle + camera), not a product fault, and it is why the online press was made at the cash shop and
+the offline press at the credit shop with "Nothing from this bill" (a failed delivery needs no
+photograph by the screen's own rule: `podRequired = ... && outcome !== 'failed'`).

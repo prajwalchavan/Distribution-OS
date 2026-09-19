@@ -1,0 +1,33 @@
+=== _outbox after the office came back ===
+           seq = 1
+         op_id = 01a0bb79-c01b-7270-981c-612c1c70cc51
+           tbl = trip_stops
+        row_id = 93867b58-bc68-7db5-9926-2773fb2c196c
+            op = PATCH
+        status = acked
+      attempts = 1
+    created_at = 2026-09-19T21:01:53.587Z
+       sent_at = 2026-09-19T21:01:53.855Z
+      acked_at = 2026-09-19T21:01:54.045Z
+rejection_code = 
+
+           seq = 2
+         op_id = 01a0bb85-d584-715b-875d-a9388f2eb257
+           tbl = deliveries
+        row_id = 77833c20-e456-746f-8ed7-686a2989ba62
+            op = PUT
+        status = acked
+      attempts = 8
+    created_at = 2026-09-19T21:15:05.477Z
+       sent_at = 2026-09-19T21:16:30.076Z
+      acked_at = 2026-09-19T21:16:30.735Z
+rejection_code = 
+=== the delivery row on the phone ===
+          id = 77833c20-e456-746f-8ed7-686a2989ba62
+     outcome = failed
+delivered_at = 2026-09-20 02:45:05.467+05:30
+   device_id = 01a0bb5f-2668-751a-a94b-84f1841aaf1b
+=== _sync_errors ===
+count(*)
+--------
+0       

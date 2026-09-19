@@ -1,0 +1,11 @@
+=== stopping what this walk started, 2026-09-19T21:19:54Z ===
+all-in-one :3100 (pid 53351) stopped
+Metro :8081 stopped
+adb reverse tcp:3100 removed
+adb reverse tcp:8081 removed
+--- adb reverses now (walk started with none) ---
+
+--- ports ---
+3100: free
+8081: free
+--- left running, and NOT started by this walk: the emulator (pid 82296), Appium :4723/:4725, the other lane's services on :3000-:3007, the sales Metro on :5175 ---

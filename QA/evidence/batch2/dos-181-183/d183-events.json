@@ -1,0 +1,368 @@
+[
+ {
+  "t": 2783,
+  "kind": "signed-in",
+  "tab": "tab1",
+  "afterMs": 216
+ },
+ {
+  "t": 16804,
+  "kind": "says",
+  "label": "STAGE 1 — tab 1 signed in",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ {
+  "t": 16832,
+  "kind": "opfs",
+  "when": "stage1 signed in",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 16939,
+  "kind": "screenshot",
+  "file": "d183-s1-01-tab1-signed-in.png"
+ },
+ {
+  "t": 18803,
+  "kind": "shop-picked-from-the-device",
+  "id": "0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "name": "Ambika Provision StoreR-0009 · Station Road · Station Road, "
+ },
+ {
+  "t": 18882,
+  "kind": "screenshot",
+  "file": "d183-s1-01b-shops-on-this-device.png"
+ },
+ {
+  "t": 33043,
+  "kind": "page-offline",
+  "tab": "tab1",
+  "offline": true,
+  "navigatorOnLine": false
+ },
+ {
+  "t": 34199,
+  "kind": "draft",
+  "tab": "tab1",
+  "label": "order A",
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "id": "01a0bb4a-3d93-70ab-b0d3-9f8cbaf10df6",
+  "lines": [
+   {
+    "id": "01a0bb4a-74f2-706f-b14d-8f1ca3dace46",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 38741,
+  "kind": "placed-offline",
+  "tab": "tab1",
+  "label": "order A",
+  "orderId": "01a0bb4a-3d93-70ab-b0d3-9f8cbaf10df6",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ {
+  "t": 38744,
+  "kind": "says",
+  "label": "STAGE 1 — order A saved on the phone, unsent",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ {
+  "t": 38804,
+  "kind": "screenshot",
+  "file": "d183-s1-02-order-A-queued-offline.png"
+ },
+ {
+  "t": 38863,
+  "kind": "sql",
+  "when": "order A before any sign-in",
+  "rows": "count\n0\n(1 row)"
+ },
+ {
+  "t": 41172,
+  "kind": "console",
+  "tab": "tab2",
+  "type": "warning",
+  "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5, fallback: Object}"
+ },
+ {
+  "t": 53958,
+  "kind": "says",
+  "label": "STAGE 1 — tab 2, same person, memory store",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now · Not kept in this browser"
+ },
+ {
+  "t": 54033,
+  "kind": "screenshot",
+  "file": "d183-s1-03-tab2-memory.png"
+ },
+ {
+  "t": 58131,
+  "kind": "says",
+  "label": "STAGE 1 — tab 2 after Sign out",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ {
+  "t": 58180,
+  "kind": "screenshot",
+  "file": "d183-s1-04-tab2-after-sign-out.png"
+ },
+ {
+  "t": 58185,
+  "kind": "says",
+  "label": "STAGE 1 — tab 1 after the OTHER tab signed out",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ {
+  "t": 58234,
+  "kind": "screenshot",
+  "file": "d183-s1-05-tab1-after-other-tab-signed-out.png"
+ },
+ {
+  "t": 58243,
+  "kind": "opfs",
+  "when": "stage1 before the window closes",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 58389,
+  "kind": "window-closed",
+  "note": "the profile keeps the OPFS file; no end() ever ran on it"
+ },
+ {
+  "t": 59911,
+  "kind": "says",
+  "label": "RUN B — the window the closed session left behind",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ {
+  "t": 59925,
+  "kind": "opfs",
+  "when": "run B before sign-in",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 59980,
+  "kind": "screenshot",
+  "file": "d183-s2-01-sign-in-form-file-still-there.png"
+ },
+ {
+  "t": 60119,
+  "kind": "signed-in",
+  "tab": "runB",
+  "afterMs": 107
+ },
+ {
+  "t": 62707,
+  "kind": "screenshot",
+  "file": "d183-s2-02-right-after-sign-in.png"
+ },
+ {
+  "t": 68714,
+  "kind": "RUN-B",
+  "signedAtWall": 1789848641060,
+  "firstUploadMs": 328,
+  "firstManifestMs": 487,
+  "firstPullMs": 502,
+  "uploadBeforeManifest": true,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "uploadCallsCarryingOrderA": 1,
+  "resourceTiming": [
+   {
+    "name": "/sales/sync/upload",
+    "ms": 326
+   },
+   {
+    "name": "/sales/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+    "ms": 487
+   },
+   {
+    "name": "/sales/sync/pull?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMDowOTo1NS4wMTlaIn0",
+    "ms": 502
+   },
+   {
+    "name": "/sales/sync/errors?deviceId=01a0bb49-fd51-71fb-b967-6fd7a5749660&unresolvedOnly=true&limit=50",
+    "ms": 550
+   }
+  ]
+ },
+ {
+  "t": 68721,
+  "kind": "says",
+  "label": "RUN B — after the queue had gone",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ {
+  "t": 68806,
+  "kind": "screenshot",
+  "file": "d183-s2-03-after-the-queue-went.png"
+ },
+ {
+  "t": 74771,
+  "kind": "screenshot",
+  "file": "d183-s2-04-orders.png"
+ },
+ {
+  "t": 74898,
+  "kind": "sql",
+  "when": "run B done",
+  "orders": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id\n01a0bb4a-3d93-70ab-b0d3-9f8cbaf10df6||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0\n(1 row)",
+  "lines": "count\n1\n(1 row)",
+  "syncOps": "(sql error: ERROR:  column \"payload\" does not exist\nLINE 1: select count(*) from sync_ops where payload::text like '%01a...\n                                            ^\n)"
+ },
+ {
+  "t": 83745,
+  "kind": "page-offline",
+  "tab": "runB",
+  "offline": true,
+  "flippedAt": 1789848664793
+ },
+ {
+  "t": 86131,
+  "kind": "draft",
+  "tab": "runC",
+  "label": "order B",
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "id": "01a0bb4b-186e-7005-970d-bec5da16eeef",
+  "lines": [
+   {
+    "id": "01a0bb4b-3fc2-7128-a943-46b06ce49972",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 90753,
+  "kind": "screenshot",
+  "file": "d183-s3-01-order-B-queued-offline.png"
+ },
+ {
+  "t": 90778,
+  "kind": "sql",
+  "when": "order B before the reconnect",
+  "rows": "count\n0\n(1 row)"
+ },
+ {
+  "t": 106272,
+  "kind": "says",
+  "label": "RUN C — the page booted with no network",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Offline since 1:40 am · 2 waiting to send"
+ },
+ {
+  "t": 106328,
+  "kind": "screenshot",
+  "file": "d183-s3-02-booted-offline.png"
+ },
+ {
+  "t": 106332,
+  "kind": "page-offline",
+  "tab": "runB",
+  "offline": false,
+  "flippedAt": 1789848687380
+ },
+ {
+  "t": 112539,
+  "kind": "RUN-C",
+  "onlineFlippedAtWall": 1789848687380,
+  "onlineEventAtWall": null,
+  "onlineEventSeen": false,
+  "firstUploadMsAfterOnlineEvent": 36,
+  "firstManifestMsAfterOnlineEvent": 211,
+  "firstPullMsAfterOnlineEvent": 226,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "uploadCallsCarryingOrderB": 2
+ },
+ {
+  "t": 112549,
+  "kind": "says",
+  "label": "RUN C — after the reconnect",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "strip": "Updated just now"
+ },
+ {
+  "t": 112622,
+  "kind": "screenshot",
+  "file": "d183-s3-03-after-the-reconnect.png"
+ },
+ {
+  "t": 118572,
+  "kind": "screenshot",
+  "file": "d183-s3-04-orders.png"
+ },
+ {
+  "t": 118665,
+  "kind": "sql",
+  "when": "run C done",
+  "orders": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id\n01a0bb4b-186e-7005-970d-bec5da16eeef||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0\n(1 row)",
+  "lines": "count\n1\n(1 row)",
+  "syncOps": "(sql error: ERROR:  column \"payload\" does not exist\nLINE 1: select count(*) from sync_ops where payload::text like '%01a...\n                                            ^\n)"
+ }
+]

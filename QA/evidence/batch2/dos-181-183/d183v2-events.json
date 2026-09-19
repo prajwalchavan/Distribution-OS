@@ -1,0 +1,338 @@
+[
+ {
+  "t": 2604,
+  "kind": "signed-in",
+  "tab": "tab1",
+  "afterMs": 182
+ },
+ {
+  "t": 16628,
+  "kind": "says",
+  "label": "STAGE 1 — tab 1 signed in",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "Updated just now"
+ },
+ {
+  "t": 16650,
+  "kind": "opfs",
+  "when": "stage1",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3923968
+  ]
+ },
+ {
+  "t": 18515,
+  "kind": "shop-picked-from-the-device",
+  "id": "0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "name": "Ambika Provision StoreR-0009 · Station Road · Stat"
+ },
+ {
+  "t": 32786,
+  "kind": "radio",
+  "tab": "tab1",
+  "offline": true,
+  "wall": 1789848908377,
+  "navigatorOnLine": false
+ },
+ {
+  "t": 33956,
+  "kind": "draft",
+  "label": "order A",
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "id": "01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8",
+  "lines": [
+   {
+    "id": "01a0bb4e-f41d-75d1-a720-7358444f4b2d",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 38510,
+  "kind": "says",
+  "label": "STAGE 1 — order A saved on this phone, unsent",
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:44 am · 2 waiting to send"
+ },
+ {
+  "t": 38582,
+  "kind": "screenshot",
+  "file": "d183v2-s1-01-order-A-queued-offline.png"
+ },
+ {
+  "t": 38683,
+  "kind": "sql",
+  "when": "order A before the next sign-in",
+  "rows": "0"
+ },
+ {
+  "t": 41080,
+  "kind": "console",
+  "tab": "tab2",
+  "type": "warning",
+  "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5, fallback: Object}"
+ },
+ {
+  "t": 53871,
+  "kind": "says",
+  "label": "STAGE 1 — tab 2, same person, memory store",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "Updated just now · Not kept in this browser"
+ },
+ {
+  "t": 57962,
+  "kind": "says",
+  "label": "STAGE 1 — tab 2 after Sign out",
+  "savedOnPhone": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "onLine": true,
+  "strip": "(none)"
+ },
+ {
+  "t": 57966,
+  "kind": "says",
+  "label": "STAGE 1 — tab 1 after the OTHER tab signed out",
+  "savedOnPhone": true,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:44 am · 2 waiting to send"
+ },
+ {
+  "t": 58022,
+  "kind": "screenshot",
+  "file": "d183v2-s1-02-tab1-when-the-window-closes.png"
+ },
+ {
+  "t": 58130,
+  "kind": "window-closed",
+  "note": "the file keeps the queue; end() never ran on it"
+ },
+ {
+  "t": 59433,
+  "kind": "says",
+  "label": "RUN B — what the closed window left behind",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "(none)"
+ },
+ {
+  "t": 59444,
+  "kind": "opfs",
+  "when": "run B before sign-in",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5"
+  ],
+  "wantedPresent": true,
+  "sizeOfWanted": [
+   3928064
+  ]
+ },
+ {
+  "t": 59500,
+  "kind": "screenshot",
+  "file": "d183v2-s2-01-sign-in-form-file-still-there.png"
+ },
+ {
+  "t": 59620,
+  "kind": "signed-in",
+  "tab": "runB",
+  "afterMs": 94
+ },
+ {
+  "t": 62210,
+  "kind": "screenshot",
+  "file": "d183v2-s2-02-right-after-sign-in.png"
+ },
+ {
+  "t": 70219,
+  "kind": "RUN-B",
+  "signedAtWall": 1789848935521,
+  "firstUploadMs": 287,
+  "firstManifestMs": 405,
+  "firstPullMs": 417,
+  "uploadBeforeManifest": true,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "pullWasDelta": true,
+  "opSendCounts": {
+   "01a0bb4e-f89c-7010-b76c-7706bccfd77c": 1,
+   "01a0bb4e-f89c-7011-a075-ec38086721bd": 1
+  }
+ },
+ {
+  "t": 70230,
+  "kind": "says",
+  "label": "RUN B — after the queue had gone",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/",
+  "onLine": true,
+  "strip": "Updated just now"
+ },
+ {
+  "t": 70305,
+  "kind": "screenshot",
+  "file": "d183v2-s2-03-after-the-queue-went.png"
+ },
+ {
+  "t": 70386,
+  "kind": "sql",
+  "when": "run B done",
+  "orders": "1",
+  "row": "01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "lines": "1"
+ },
+ {
+  "t": 82230,
+  "kind": "radio",
+  "tab": "runB",
+  "offline": true,
+  "wall": 1789848958224
+ },
+ {
+  "t": 84893,
+  "kind": "draft",
+  "label": "order B",
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "id": "01a0bb4f-86ed-7450-b338-da80370a31c7",
+  "lines": [
+   {
+    "id": "01a0bb4f-bb15-706d-b3db-7870a960c7d8",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 89484,
+  "kind": "screenshot",
+  "file": "d183v2-s3-01-order-B-queued-offline.png"
+ },
+ {
+  "t": 89519,
+  "kind": "sql",
+  "when": "order B before the reconnect",
+  "rows": "0"
+ },
+ {
+  "t": 101963,
+  "kind": "says",
+  "label": "RUN C — the page booted with no network",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:45 am · 2 waiting to send"
+ },
+ {
+  "t": 102026,
+  "kind": "screenshot",
+  "file": "d183v2-s3-02-booted-offline.png"
+ },
+ {
+  "t": 102026,
+  "kind": "soak-start",
+  "ms": 150000
+ },
+ {
+  "t": 252059,
+  "kind": "says",
+  "label": "RUN C — after 150 s with no signal",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": false,
+  "strip": "Offline since 1:45 am · 2 waiting to send"
+ },
+ {
+  "t": 252130,
+  "kind": "screenshot",
+  "file": "d183v2-s3-03-after-the-soak.png"
+ },
+ {
+  "t": 252133,
+  "kind": "radio",
+  "tab": "runB",
+  "offline": false,
+  "wall": 1789849128128
+ },
+ {
+  "t": 260297,
+  "kind": "RUN-C",
+  "bootAtWall": 1789848965514,
+  "soakSeconds": 150,
+  "lastNetworkAttemptBeforeTheFlip": {
+   "sinceBootMs": 131898,
+   "wall": 1789849097412,
+   "kind": "failed",
+   "path": "/sales/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  "gapFromLastAttemptToFlipMs": 30716,
+  "offlineEventsSeen": [],
+  "onlineEventAtWall": 1789849128128,
+  "onlineEventSeen": true,
+  "flipAtWall": 1789849128128,
+  "onlineEventAfterFlipMs": 0,
+  "anchor": "the browser online event",
+  "firstUploadMsFromAnchor": 38,
+  "firstManifestMsFromAnchor": 242,
+  "firstPullMsFromAnchor": 258,
+  "uploadBeforePull": true,
+  "pullHappened": true,
+  "opSendCounts": {
+   "01a0bb4f-bf92-70ab-b89c-023a0a855e07": 2,
+   "01a0bb4f-bf92-70ac-bcb7-39dc658fdfc2": 2
+  }
+ },
+ {
+  "t": 260309,
+  "kind": "says",
+  "label": "RUN C — after the reconnect",
+  "savedOnPhone": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "onLine": true,
+  "strip": "Updated just now"
+ },
+ {
+  "t": 260374,
+  "kind": "screenshot",
+  "file": "d183v2-s3-04-after-the-reconnect.png"
+ },
+ {
+  "t": 266340,
+  "kind": "screenshot",
+  "file": "d183v2-s3-05-orders.png"
+ },
+ {
+  "t": 266470,
+  "kind": "sql",
+  "when": "run C done",
+  "orders": "1",
+  "row": "01a0bb4f-86ed-7450-b338-da80370a31c7|draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|0d68f238-eac0-710c-8a12-cd372921b3e0",
+  "lines": "1"
+ }
+]

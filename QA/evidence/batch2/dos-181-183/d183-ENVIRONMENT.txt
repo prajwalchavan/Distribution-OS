@@ -1,0 +1,41 @@
+# DOS-183 browser proof — environment
+recorded 2026-09-20 01:53:22 IST on the founder's Mac (macOS 14.6.1)
+
+## Tree
+repo            /Users/prajwalchavan/Desktop/Distribution OS
+branch          main
+HEAD            71fa9c3264c9dcebd0d2891badbce7cdb4065f1e
+                Merge QA batch 2 lane apps: DOS-181, DOS-182
+asked-for base  f23a9a7  Merge QA batch 2 lane engine: DOS-183
+ancestor?       yes — HEAD contains f23a9a7
+product tree    unchanged by this proof; git status below
+?? QA/evidence/batch2/dos-181-183/
+?? QA/evidence/batch2/merge-reviews/apps.md
+
+## Why the proof ran on HEAD and not on a detached f23a9a7
+f23a9a7 is 12 commits behind main's tip. The five engine regions DOS-183 changed are
+byte-identical at both (d183-engine-regions-md5.txt); the twelve commits in between touch
+@dos/offline only for DOS-178 money-keeping and DOS-180 row reads, never start/drain/
+setNetworkHint/flush/schedulePoll. Running on the tip therefore proves the same code AND
+proves it in the tree main actually has.
+
+## What was started for this proof (and stopped again afterwards)
+backend/all-in-one on :3100  — ports :3000-:3007 were already held by another lane's services;
+                               per the standing rule they were NOT killed.
+  DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_d183   (a lane database; 48 migrations, seeded)
+  log: d183-all-in-one-3100.log
+sales app Metro on :5185 (:5175 was held by another lane)
+  EXPO_PUBLIC_API_URL=http://127.0.0.1:3100  EXPO_PUBLIC_API_PREFIX=/sales  EXPO_PUBLIC_AUTH_URL=http://127.0.0.1:3100/auth
+  log: d183-metro-5185.log
+Playwright headed Chromium (QA/tools/node_modules), one persistent profile per run, in the scratchpad.
+Backend libs rebuilt first: pnpm exec turbo run build --filter=@dos/core... (4/4 ok).
+
+## Databases
+dos and dos_qa were NOT touched. Every read and write of this proof went to dos_test_b2_d183.
+SQL from the prover is guarded: it refuses a URL without 'dos_test' and refuses anything but select/with.
+
+## Who signed in
+rahul.deshmukh / Dos@1234 (salesperson, tenant 01a0999a-28c3-7341-93f5-e0e84b0189a1 M/s. Tarsun Enterprise)
+shop used: Ambika Provision Store 0d68f238-eac0-710c-8a12-cd372921b3e0 — read off the app's OWN Shops list,
+  because a salesperson's device holds only the shops in his reach (the first attempt used a shop from the
+  office database and the screen answered 'That shop is not on this phone' — d183-attempt1-*)

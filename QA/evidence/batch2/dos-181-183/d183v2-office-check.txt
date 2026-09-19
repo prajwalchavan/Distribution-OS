@@ -1,0 +1,17 @@
+== sales_orders rows for the two orders this proof placed ==
+id|state|created_at
+01a0bb4e-bc61-7392-b5ad-3e6a9db2c1d8|draft|2026-09-20 01:45:35.823977+05:30
+01a0bb4f-86ed-7450-b338-da80370a31c7|draft|2026-09-20 01:48:48.242842+05:30
+(2 rows)
+
+== sync_ops for the device that sent them ==
+op_id|device_id|left
+01a0bb4e-f89c-7010-b76c-7706bccfd77c|01a0bb4e-7cd8-7103-8892-d5bc9b497720|{"ok": true}
+01a0bb4e-f89c-7011-a075-ec38086721bd|01a0bb4e-7cd8-7103-8892-d5bc9b497720|{"ok": true}
+01a0bb4f-bf92-70ab-b89c-023a0a855e07|01a0bb4e-7cd8-7103-8892-d5bc9b497720|{"ok": true}
+01a0bb4f-bf92-70ac-bcb7-39dc658fdfc2|01a0bb4e-7cd8-7103-8892-d5bc9b497720|{"ok": true}
+(4 rows)
+
+== any duplicate op_id for that device ==
+op_id|count
+(0 rows)
