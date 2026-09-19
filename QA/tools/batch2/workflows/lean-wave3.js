@@ -762,68 +762,68 @@ const wt = (g) => MAIN + '/.claude/worktrees/b2-' + g.key
 const branchOf = (g) => 'qa/b2-' + g.key
 const build = (g) => g.ids.filter((id) => !g.defer.includes(id))
 
-const blocks = (g) => build(g).map((id) => `n=$(grep -n '^### ${'${id}'} ' "${'${FIND}'}" | head -1 | cut -d: -f1); if [ -n "$n" ]; then sed -n "$n,\\$p" "${'${FIND}'}" | awk 'NR>1 && /^### DOS-/{exit} {print}'; else grep -n '^| ${'${id}'} ' "${'${FIND}'}"; fi`).join(' ; ')
+const blocks = (g) => build(g).map((id) => `n=$(grep -n '^### ${id} ' "${FIND}" | head -1 | cut -d: -f1); if [ -n "$n" ]; then sed -n "$n,\\$p" "${FIND}" | awk 'NR>1 && /^### DOS-/{exit} {print}'; else grep -n '^| ${id} ' "${FIND}"; fi`).join(' ; ')
 
 const env = (g) => `ENVIRONMENT — read carefully:
-- Your worktree is "${'${wt(g)}'}" on branch ${'${branchOf(g)}'}. Start EVERY Bash command with: cd "${'${wt(g)}'}" && export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH && eval "$(fnm env)" && fnm use 24 >/dev/null && export DATABASE_POOL_MAX=3 && export DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/${'${g.db}'}
-- NEVER edit, commit, reset or checkout anything in the main checkout "${'${MAIN}'}" or in another worktree — other groups are live there. You MAY READ ${'${MAIN}'}/QA/.
-- Database: ${'${g.db}'} is a copy of dos_test_batch2b_template; you may drop and recreate ONLY it. Never connect to dos, dos_qa or a template.
+- Your worktree is "${wt(g)}" on branch ${branchOf(g)}. Start EVERY Bash command with: cd "${wt(g)}" && export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH && eval "$(fnm env)" && fnm use 24 >/dev/null && export DATABASE_POOL_MAX=3 && export DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/${g.db}
+- NEVER edit, commit, reset or checkout anything in the main checkout "${MAIN}" or in another worktree — other groups are live there. You MAY READ ${MAIN}/QA/.
+- Database: ${g.db} is a copy of dos_test_batch2b_template; you may drop and recreate ONLY it. Never connect to dos, dos_qa or a template.
 - 8 GB RAM shared with other agents: ONE spec or test file per command unless a step names a wider gate; typecheck and lint only the packages you touched.
 - Libraries are consumed from dist: after editing @dos/contracts or @dos/core rebuild them (cd backend && pnpm exec turbo run build --filter=<pkg>...).
 - No git stash, reset --hard, rebase, push or branch deletion.
 - Do NOT start dev servers, emulators or simulators. Do NOT edit docs/22, docs/18, CLAUDE.md or anything under QA/.
 - THIS GROUP OWNS THESE FILES; another group owns every other file. Staying inside them is what keeps 16 lanes mergeable:
-${'${g.ownsFiles.map((f) => "  " + f).join("\n")}'}`
+${g.ownsFiles.map((f) => "  " + f).join("\n")}`
 
-const preparePrompt = (g) => `Prepare an isolated lane for Distribution OS QA batch 2, lean group ${'${g.key}'}. Mechanical setup only — write no product code.
+const preparePrompt = (g) => `Prepare an isolated lane for Distribution OS QA batch 2, lean group ${g.key}. Mechanical setup only — write no product code.
 
-${'${LIMITS}'}
+${LIMITS}
 
-1. cd "${'${MAIN}'}" && git rev-parse --short main — record it as the base.
-2. If "${'${wt(g)}'}" does not exist: git -C "${'${MAIN}'}" worktree add -b ${'${branchOf(g)}'} "${'${wt(g)}'}" main. If it exists, cd into it, confirm the branch is ${'${branchOf(g)}'} and git merge --ff-only main (return blocked if it cannot fast-forward).
-3. Database: dropdb -h 127.0.0.1 -p 5439 -U dos --force ${'${g.db}'} 2>/dev/null; createdb -h 127.0.0.1 -p 5439 -U dos -T dos_test_batch2b_template ${'${g.db}'}
-4. In the worktree: printf 'DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/${'${g.db}'}\n' > backend/.env.local if the repo uses one, else make sure backend/.env in THIS worktree points at ${'${g.db}'} and nothing else.
+1. cd "${MAIN}" && git rev-parse --short main — record it as the base.
+2. If "${wt(g)}" does not exist: git -C "${MAIN}" worktree add -b ${branchOf(g)} "${wt(g)}" main. If it exists, cd into it, confirm the branch is ${branchOf(g)} and git merge --ff-only main (return blocked if it cannot fast-forward).
+3. Database: dropdb -h 127.0.0.1 -p 5439 -U dos --force ${g.db} 2>/dev/null; createdb -h 127.0.0.1 -p 5439 -U dos -T dos_test_batch2b_template ${g.db}
+4. In the worktree: printf 'DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/${g.db}\n' > backend/.env.local if the repo uses one, else make sure backend/.env in THIS worktree points at ${g.db} and nothing else.
 5. cd backend && pnpm install && pnpm exec turbo run build --filter='./libs/*' && pnpm db:migrate ; cd ../frontend && pnpm install
 6. git status --short must be clean apart from the .env you pointed at your own database. Return the structured result.`
 
-const implPrompt = (g) => `You are fixing a batch of small, already-triaged defects in Distribution OS, in an isolated worktree, as a careful senior engineer. Group: ${'${g.key}'} (${'${g.app}'}). Items: ${'${build(g).join(", ")}'}.
+const implPrompt = (g) => `You are fixing a batch of small, already-triaged defects in Distribution OS, in an isolated worktree, as a careful senior engineer. Group: ${g.key} (${g.app}). Items: ${build(g).join(", ")}.
 
-${'${env(g)}'}
+${env(g)}
 
-${'${RULES}'}
+${RULES}
 
-${'${LIMITS}'}
+${LIMITS}
 
-${'${g.defer.length ? "DO NOT BUILD these items — their design still waits on a founder answer: " + g.defer.join(", ") + ". Leave their code untouched and list them in itemsSkipped." : ""}'}
-${'${g.notes ? "GROUP NOTES from the planner: " + g.notes : ""}'}
+${g.defer.length ? "DO NOT BUILD these items — their design still waits on a founder answer: " + g.defer.join(", ") + ". Leave their code untouched and list them in itemsSkipped." : ""}
+${g.notes ? "GROUP NOTES from the planner: " + g.notes : ""}
 
 INPUTS (read all before editing):
-  cat "${'${VERD}'}/lean-${'${g.key}'}.md"   # the Fable design for this group; binding
-  ${'${blocks(g)}'}
+  cat "${VERD}/lean-${g.key}.md"   # the Fable design for this group; binding
+  ${blocks(g)}
 Re-read every source file before editing: main has moved a long way since the designs were written.
 
 For EACH item, in the order listed:
 STEP 1: write the red-first test the design names (its name carries the finding id), run it, and confirm it FAILS for the design's reason. Keep the excerpt.
 STEP 2: make the smallest fix that turns it green, inside this group's own files.
 STEP 3: run that test file whole, then typecheck and lint the packages you touched; prettier --write on touched files.
-STEP 4: commit that item alone: "fix(<ID>): <one line>" + two sentences + "Test: <file> › <name>" + ${'${CO}'}.
+STEP 4: commit that item alone: "fix(<ID>): <one line>" + two sentences + "Test: <file> › <name>" + ${CO}.
 If an item's design is wrong once you read the code, fix the real cause and say so in deviations. If an item cannot be done without leaving this group's files, skip it and say why — do not reach into another group's files.
 Finish with git status clean and return the structured result.`
 
-const verifyPrompt = (g, impl) => `You are the adversarial verifier of lean group ${'${g.key}'} for Distribution OS. Assume every item is wrong until proven right. You make no commits.
+const verifyPrompt = (g, impl) => `You are the adversarial verifier of lean group ${g.key} for Distribution OS. Assume every item is wrong until proven right. You make no commits.
 
-${'${env(g)}'}
+${env(g)}
 
-${'${RULES}'}
+${RULES}
 
-${'${LIMITS}'}
+${LIMITS}
 
 Implementer report:
-${'${JSON.stringify(impl, null, 1)}'}
+${JSON.stringify(impl, null, 1)}
 
 Design and findings:
-  cat "${'${VERD}'}/lean-${'${g.key}'}.md"
-  ${'${blocks(g)}'}
+  cat "${VERD}/lean-${g.key}.md"
+  ${blocks(g)}
 
 1. git log --oneline main..HEAD — one commit per item, and no file outside this group's owned list.
 2. PROVE RED, per item commit C: git diff C^ C -- . ':(exclude)**/*.spec.ts' ':(exclude)**/*.test.ts' ':(exclude)**/*.test.tsx' ':(exclude)**/pnpm-lock.yaml' ':(exclude)**/package.json' ':(exclude)docs/**' ':(exclude)**/README.md' | git apply -R ; rebuild any affected library; run that item's test and confirm it FAILS for the finding's reason; restore with git checkout -- . , delete untracked leftovers, rebuild.
@@ -832,80 +832,80 @@ Design and findings:
 5. git status clean at the end.
 verdict 'pass' only when every built item was red before and green after and no blocker or major remains.`
 
-const repairPrompt = (g, impl, v) => `You are repairing lean group ${'${g.key}'} for Distribution OS after an adversarial review.
+const repairPrompt = (g, impl, v) => `You are repairing lean group ${g.key} for Distribution OS after an adversarial review.
 
-${'${env(g)}'}
+${env(g)}
 
-${'${RULES}'}
+${RULES}
 
-${'${LIMITS}'}
+${LIMITS}
 
-Implementer report: ${'${JSON.stringify(impl, null, 1)}'}
-Verifier verdict: ${'${JSON.stringify(v, null, 1)}'}
+Implementer report: ${JSON.stringify(impl, null, 1)}
+Verifier verdict: ${JSON.stringify(v, null, 1)}
 
-Fix every blocker and major with NEW commits "fix(<ID>): address review — <short>" (${'${CO}'}); never rewrite history. Re-run the affected tests, the whole touched test files, typecheck and lint. git status clean. Return the updated structured result.`
+Fix every blocker and major with NEW commits "fix(<ID>): address review — <short>" (${CO}); never rewrite history. Re-run the affected tests, the whole touched test files, typecheck and lint. git status clean. Return the updated structured result.`
 
 const reviewPrompt = (g, built) => `You are Fable, the ARCHITECT of the Distribution OS QA programme. Review one lean group before it merges into main. Read-only: edit nothing except the ONE output file below; run no builds, tests or git writes; do not touch .claude/worktrees.
 
-GROUP ${'${g.key}'} (${'${g.app}'}), branch ${'${branchOf(g)}'}:
-  git -C "${'${MAIN}'}" log --oneline main..${'${branchOf(g)}'} ; git -C "${'${MAIN}'}" diff main...${'${branchOf(g)}'}
+GROUP ${g.key} (${g.app}), branch ${branchOf(g)}:
+  git -C "${MAIN}" log --oneline main..${branchOf(g)} ; git -C "${MAIN}" diff main...${branchOf(g)}
 Design and findings:
-  cat "${'${VERD}'}/lean-${'${g.key}'}.md"
-  ${'${blocks(g)}'}
-Build reports: ${'${JSON.stringify(built, null, 1)}'}
-${'${g.defer.length ? "Items deliberately NOT built (awaiting a founder answer): " + g.defer.join(", ") + ". Their absence is correct; say so rather than raising it." : ""}'}
+  cat "${VERD}/lean-${g.key}.md"
+  ${blocks(g)}
+Build reports: ${JSON.stringify(built, null, 1)}
+${g.defer.length ? "Items deliberately NOT built (awaiting a founder answer): " + g.defer.join(", ") + ". Their absence is correct; say so rather than raising it." : ""}
 
 Judge: the fix matches the design and the product rules; the tests would fail without the fix and are not weakened; nothing leaked outside this group's owned files; conflicts with main now and with the groups still to merge; which platform walks (web, Android, iOS) this group still needs; any real defect you see outside the group, with file:line.
 Be adversarial — you are the last reader before main.
 
-Write ${'${REV}'}/${'${g.key}'}.md (under 80 lines: **Decision:** MERGE | MERGE AFTER FIXES | DO NOT MERGE; Blockers with file:line and the exact fix; Minors; Conflicts; Walks; Defects outside) and return the structured summary.`
+Write ${REV}/${g.key}.md (under 80 lines: **Decision:** MERGE | MERGE AFTER FIXES | DO NOT MERGE; Blockers with file:line and the exact fix; Minors; Conflicts; Walks; Defects outside) and return the structured summary.`
 
-const integratePrompt = (g, repairOf) => `You are the INTEGRATOR of lean group ${'${g.key}'} for Distribution OS. Merge main into the lane, resolve every review blocker, prove the merged tree green and commit. You do NOT merge into main.
+const integratePrompt = (g, repairOf) => `You are the INTEGRATOR of lean group ${g.key} for Distribution OS. Merge main into the lane, resolve every review blocker, prove the merged tree green and commit. You do NOT merge into main.
 
-${'${env(g)}'}
-- INTEGRATOR git: you may merge main INTO ${'${branchOf(g)}'}, use checkout --ours/--theirs while resolving, and merge --abort.
+${env(g)}
+- INTEGRATOR git: you may merge main INTO ${branchOf(g)}, use checkout --ours/--theirs while resolving, and merge --abort.
 
-${'${RULES}'}
+${RULES}
 
-${'${LIMITS}'}
+${LIMITS}
 
-REVIEW (binding): cat "${'${REV}'}/${'${g.key}'}.md"
+REVIEW (binding): cat "${REV}/${g.key}.md"
 Every Blocker there was raised against the branch AS REVIEWED: a commit that already existed when the review was written is NEVER its fix. Resolve each with a new commit — a test that fails for the blocker's reason, then the fix — or return blocked with the reason.
 STEPS:
-1. git merge main -m "Merge main into ${'${branchOf(g)}'} before merging it back" (resolve keeping both sides; merge --abort and return blocked if a conflict is not explained by this group).
-2. cd backend && pnpm install && pnpm exec turbo run build --filter='./libs/*'; recreate ${'${g.db}'} from the template and pnpm db:migrate; cd ../frontend && pnpm install (commit a changed lockfile).
+1. git merge main -m "Merge main into ${branchOf(g)} before merging it back" (resolve keeping both sides; merge --abort and return blocked if a conflict is not explained by this group).
+2. cd backend && pnpm install && pnpm exec turbo run build --filter='./libs/*'; recreate ${g.db} from the template and pnpm db:migrate; cd ../frontend && pnpm install (commit a changed lockfile).
 3. The review blockers, as above; apply a minor only when it is one line inside this group's files.
 4. Gates on the merged tree:
    - backend, if touched: every spec file the group touched (one per command); pnpm --filter @dos/core exec vitest run src/docs/examples.spec.ts; the service spec of every service that mounts a touched module; typecheck and lint for touched packages; pnpm docs:readme then pnpm docs:readme:check (commit changed READMEs).
    - frontend, if touched: pnpm lint; pnpm typecheck; pnpm exec turbo run test --continue --concurrency=1 — this includes the kit's CROSS-APP GUARDS (document-urls.test.ts, parity.test.ts and the rest), which a wave-1 integration skipped and turned main red; pnpm format:check; pnpm exec turbo run build --concurrency=1, then remove untracked build output.
    A red test or guard is a blocker unless the identical command shows the identical failure on main — then return blocked and say so in notes.
-5. git status clean. Return the structured result with headCommit = git rev-parse --short HEAD.${'${repairOf ? "\n\nREPAIR ROUND: the integration verifier found problems; fix every blocker and major with new commits and return the updated result:\n" + JSON.stringify(repairOf, null, 1) : ""}'}`
+5. git status clean. Return the structured result with headCommit = git rev-parse --short HEAD.${repairOf ? "\n\nREPAIR ROUND: the integration verifier found problems; fix every blocker and major with new commits and return the updated result:\n" + JSON.stringify(repairOf, null, 1) : ""}`
 
-const iverifyPrompt = (g, r) => `You verify the integration of lean group ${'${g.key}'} before it merges into main. Assume something was dropped or a review blocker is still open. You make no commits.
+const iverifyPrompt = (g, r) => `You verify the integration of lean group ${g.key} before it merges into main. Assume something was dropped or a review blocker is still open. You make no commits.
 
-${'${env(g)}'}
+${env(g)}
 
-${'${LIMITS}'}
+${LIMITS}
 
-Integrator report: ${'${JSON.stringify(r, null, 1)}'}
-1. git log --oneline -20; HEAD equals ${'${r.headCommit}'}; tree clean.
+Integrator report: ${JSON.stringify(r, null, 1)}
+1. git log --oneline -20; HEAD equals ${r.headCommit}; tree clean.
 2. For each merge commit: git show --cc; every hunk from both sides survived in the conflicted files.
-3. REVIEW BLOCKERS: read them yourself (cat "${'${REV}'}/${'${g.key}'}.md"). For EACH, read the file:line it names ON HEAD and show the code that resolves it; a commit that existed when the review was written never counts unless the review says so; prove one blocker fix red by reversing its non-test change, then restore.
+3. REVIEW BLOCKERS: read them yourself (cat "${REV}/${g.key}.md"). For EACH, read the file:line it names ON HEAD and show the code that resolves it; a commit that existed when the review was written never counts unless the review says so; prove one blocker fix red by reversing its non-test change, then restore.
 4. Re-run the group's own test files; for a frontend group also pnpm exec turbo run test --continue --concurrency=1 in frontend; for a backend group the touched spec files and docs:readme:check.
 verdict 'pass' only when nothing was dropped, every blocker is resolved on HEAD and the tests pass.`
 
-const mergePrompt = (g, r) => `Merge the verified lean group ${'${g.key}'} into main for Distribution OS. Only git in "${'${MAIN}'}" (quote the path); never build, test or touch worktrees.
-0. While "${'${MAIN}'}/.git/index.lock" exists, wait 20 s and check again, for up to 10 minutes.
-1. git -C "${'${MAIN}'}" rev-parse --abbrev-ref HEAD prints main; git -C "${'${MAIN}'}" status --short shows changes only under QA/ (else return blocked).
-2. git -C "${'${MAIN}'}" rev-parse --short ${'${branchOf(g)}'} equals ${'${r.headCommit}'} (else blocked).
-3. git -C "${'${MAIN}'}" merge-tree --write-tree main ${'${branchOf(g)}'} reports no conflict (else blocked). If any commit in git -C "${'${MAIN}'}" log ${'${branchOf(g)}'}..main touches a file this branch changed, return blocked: it needs re-integration.
-4. git -C "${'${MAIN}'}" merge --no-ff ${'${branchOf(g)}'} -m "Merge QA batch 2 lean group ${'${g.key}'}: ${'${build(g).join(", ")}'}
+const mergePrompt = (g, r) => `Merge the verified lean group ${g.key} into main for Distribution OS. Only git in "${MAIN}" (quote the path); never build, test or touch worktrees.
+0. While "${MAIN}/.git/index.lock" exists, wait 20 s and check again, for up to 10 minutes.
+1. git -C "${MAIN}" rev-parse --abbrev-ref HEAD prints main; git -C "${MAIN}" status --short shows changes only under QA/ (else return blocked).
+2. git -C "${MAIN}" rev-parse --short ${branchOf(g)} equals ${r.headCommit} (else blocked).
+3. git -C "${MAIN}" merge-tree --write-tree main ${branchOf(g)} reports no conflict (else blocked). If any commit in git -C "${MAIN}" log ${branchOf(g)}..main touches a file this branch changed, return blocked: it needs re-integration.
+4. git -C "${MAIN}" merge --no-ff ${branchOf(g)} -m "Merge QA batch 2 lean group ${g.key}: ${build(g).join(", ")}
 
-Built test-first with an adversarial verifier; merge review by Fable (architect) at QA/evidence/batch2/merge-reviews/${'${g.key}'}.md; integration verified on the merged tree with the full frontend gate including the kit cross-app guards.
+Built test-first with an adversarial verifier; merge review by Fable (architect) at QA/evidence/batch2/merge-reviews/${g.key}.md; integration verified on the merged tree with the full frontend gate including the kit cross-app guards.
 
-${'${CO}'}"
-5. On any conflict: git -C "${'${MAIN}'}" merge --abort and return blocked.
-6. git -C "${'${MAIN}'}" push -q origin main (retry once). Return mainHead = git -C "${'${MAIN}'}" rev-parse --short HEAD.`
+${CO}"
+5. On any conflict: git -C "${MAIN}" merge --abort and return blocked.
+6. git -C "${MAIN}" push -q origin main (retry once). Return mainHead = git -C "${MAIN}" rev-parse --short HEAD.`
 
 const serious = (v) => !v || v.verdict !== 'pass' || v.problems.some((p) => p.severity !== 'minor')
 const ivBad = (x) => !x || x.verdict !== 'pass' || x.problems.some((p) => p.severity !== 'minor')
@@ -923,27 +923,27 @@ for (const g of GROUPS) settled[g.key] = new Promise((res) => { settle[g.key] = 
 async function runGroup(g) {
   const out = { group: g.key, app: g.app, ids: g.ids, deferred: g.defer }
   try {
-    if (g.after.length) log(`${'${g.key}'}: waiting for ${'${g.after.join(", ")}'}`)
+    if (g.after.length) log(`${g.key}: waiting for ${g.after.join(", ")}`)
     await Promise.all(g.after.map((k) => settled[k]))
     await acquire()
     try {
-      const prep = await agent(preparePrompt(g), { label: `prep:${'${g.key}'}`, phase: 'Prepare', schema: PREP, model: 'sonnet', effort: 'low' })
+      const prep = await agent(preparePrompt(g), { label: `prep:${g.key}`, phase: 'Prepare', schema: PREP, model: 'sonnet', effort: 'low' })
       if (!prep || prep.status !== 'ready') { out.final = 'prepare-blocked'; out.prepare = prep; return out }
       out.base = prep.base
 
-      let b = await agent(implPrompt(g), { label: `impl:${'${g.key}'}`, phase: 'Build', schema: RESULT, model: g.model })
+      let b = await agent(implPrompt(g), { label: `impl:${g.key}`, phase: 'Build', schema: RESULT, model: g.model })
       if (!b) { out.final = 'agent-failed'; return out }
-      let v = await agent(verifyPrompt(g, b), { label: `verify:${'${g.key}'}`, phase: 'Build', schema: VERDICT, model: g.model })
+      let v = await agent(verifyPrompt(g, b), { label: `verify:${g.key}`, phase: 'Build', schema: VERDICT, model: g.model })
       if (serious(v)) {
-        const r = await agent(repairPrompt(g, b, v), { label: `repair:${'${g.key}'}`, phase: 'Build', schema: RESULT, model: g.model })
-        if (r) { b = r; v = await agent(verifyPrompt(g, b), { label: `reverify:${'${g.key}'}`, phase: 'Build', schema: VERDICT, model: g.model }) }
+        const r = await agent(repairPrompt(g, b, v), { label: `repair:${g.key}`, phase: 'Build', schema: RESULT, model: g.model })
+        if (r) { b = r; v = await agent(verifyPrompt(g, b), { label: `reverify:${g.key}`, phase: 'Build', schema: VERDICT, model: g.model }) }
       }
       out.impl = b
       out.verdict = v
       if (serious(v)) { out.final = 'not-verified'; return out }
 
       const built = { commits: b.commits, itemsDone: b.itemsDone, itemsSkipped: b.itemsSkipped, deviations: b.deviations, verifier: { verdict: v.verdict, problems: v.problems } }
-      const review = await agent(reviewPrompt(g, built), { label: `review:${'${g.key}'}`, phase: 'Review', schema: REVIEW, model: 'fable' })
+      const review = await agent(reviewPrompt(g, built), { label: `review:${g.key}`, phase: 'Review', schema: REVIEW, model: 'fable' })
       out.review = review
       if (!review || review.decision === 'DO NOT MERGE') { out.final = 'review-blocked'; return out }
     } finally {
@@ -953,20 +953,20 @@ async function runGroup(g) {
     const m = await serialized(async () => {
       await acquire()
       try {
-        log(`${'${g.key}'}: integrating`)
-        let integ = await agent(integratePrompt(g, null), { label: `integrate:${'${g.key}'}`, phase: 'Integrate', schema: INTEG, model: 'opus' })
+        log(`${g.key}: integrating`)
+        let integ = await agent(integratePrompt(g, null), { label: `integrate:${g.key}`, phase: 'Integrate', schema: INTEG, model: 'opus' })
         if (!integ || integ.status !== 'ready') return { final: 'integration-blocked', integration: integ }
-        let iv = await agent(iverifyPrompt(g, integ), { label: `integ-verify:${'${g.key}'}`, phase: 'Integrate', schema: IVERDICT, model: 'opus' })
+        let iv = await agent(iverifyPrompt(g, integ), { label: `integ-verify:${g.key}`, phase: 'Integrate', schema: IVERDICT, model: 'opus' })
         if (ivBad(iv)) {
-          const again = await agent(integratePrompt(g, iv), { label: `integrate-repair:${'${g.key}'}`, phase: 'Integrate', schema: INTEG, model: 'opus' })
+          const again = await agent(integratePrompt(g, iv), { label: `integrate-repair:${g.key}`, phase: 'Integrate', schema: INTEG, model: 'opus' })
           if (again && again.status === 'ready') {
             integ = again
-            iv = await agent(iverifyPrompt(g, integ), { label: `integ-reverify:${'${g.key}'}`, phase: 'Integrate', schema: IVERDICT, model: 'opus' })
+            iv = await agent(iverifyPrompt(g, integ), { label: `integ-reverify:${g.key}`, phase: 'Integrate', schema: IVERDICT, model: 'opus' })
           }
         }
         if (ivBad(iv)) return { final: 'integration-verify-failed', integration: integ, integrationVerdict: iv }
-        const merged = await agent(mergePrompt(g, integ), { label: `merge:${'${g.key}'}`, phase: 'Integrate', schema: MERGED, model: 'sonnet', effort: 'low' })
-        log(`${'${g.key}'}: ${'${merged && merged.status === "merged" ? "merged " + merged.mainHead : "merge blocked"}'}`)
+        const merged = await agent(mergePrompt(g, integ), { label: `merge:${g.key}`, phase: 'Integrate', schema: MERGED, model: 'sonnet', effort: 'low' })
+        log(`${g.key}: ${merged && merged.status === "merged" ? "merged " + merged.mainHead : "merge blocked"}`)
         return { final: merged && merged.status === 'merged' ? 'merged' : 'merge-blocked', integration: integ, integrationVerdict: iv, merge: merged }
       } finally {
         release()
