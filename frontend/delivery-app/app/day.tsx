@@ -151,6 +151,13 @@ export default function DaySummary(): React.JSX.Element {
    * which asked the driver for the same rupee twice. On a settled trip it adds nothing at all: those
    * figures are the ones the office settled with, and a receipt arriving afterwards is refused
    * `trip_settled` — that money goes over the counter to the cashier. Both rules are `dayEndCash`.
+   *
+   * It is handed the PREVIEW and no trip state of its own. `tripState` below is local-first
+   * (`useLocalTrips`, and the `trips.get` fallback is off while the phone holds the row), so it lags
+   * a desk settling by one delta pull — branching the money on it would run the not-settled
+   * arithmetic over settled figures for exactly as long as that window lasts, which is the double
+   * count this slice exists to remove. The preview carries the state it answered with. `tripState`
+   * still drives the chip and the check-in gate: those are about this phone's trip, not the money.
    */
   /*
    * The stop list of a trip this phone does not hold (a settled one opened from D11) comes from the
@@ -186,7 +193,6 @@ export default function DaySummary(): React.JSX.Element {
     .reduce((sum, row) => sum + row.amount_paise, 0)
   const deviceAllPaise = receipts.rows.reduce((sum, row) => sum + row.amount_paise, 0)
   const { handOverPaise, uncountedAllPaise, note } = dayEndCash({
-    tripState,
     figures,
     deviceCashPaise,
     deviceAllPaise,

@@ -29,13 +29,21 @@ const COUNTED = 500000
 /** Doorstep money still sitting in this phone's outbox. */
 const HELD = 250000
 
-/** What `trips.settlementPreview` answers for the trip above once the office has counted ₹5,000. */
-const FIGURES = {
-  expectedCashPaise: FLOAT + COUNTED,
-  cashCollectedPaise: COUNTED,
-  upiCollectedPaise: 0,
-  chequeCollectedPaise: 0,
-} as const
+/**
+ * What `trips.settlementPreview` answers for the trip above once the office has counted ₹5,000.
+ *
+ * ONE SNAPSHOT. The preview carries the state it answered with (`SettlementPreviewOutput.tripState`),
+ * and the rule below reads THAT state, never the screen's own trip row — see the third case.
+ */
+function figuresFor(tripState: string) {
+  return {
+    tripState,
+    expectedCashPaise: FLOAT + COUNTED,
+    cashCollectedPaise: COUNTED,
+    upiCollectedPaise: 0,
+    chequeCollectedPaise: 0,
+  } as const
+}
 
 interface NodeFs {
   readFileSync: (path: string, encoding: 'utf8') => string
@@ -53,6 +61,13 @@ async function readScreen(): Promise<string> {
   const { readFileSync } = (await import(NODE_FS)) as NodeFs
   const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
   return readFileSync(fileURLToPath(new URL('../../app/day.tsx', import.meta.url)), 'utf8')
+}
+
+/** This app's string table, to prove the keys the rule returns are really declared. */
+async function readStrings(): Promise<string> {
+  const { readFileSync } = (await import(NODE_FS)) as NodeFs
+  const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+  return readFileSync(fileURLToPath(new URL('../strings.ts', import.meta.url)), 'utf8')
 }
 
 /** Block and line comments removed, so a comment that quotes the old rule is not counted. */
@@ -100,8 +115,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // there is no sentence about uncounted money.
     expect(
       dayEndCash({
-        tripState: 'active',
-        figures: FIGURES,
+        figures: figuresFor('active'),
         deviceCashPaise: COUNTED,
         deviceAllPaise: COUNTED,
       }),
@@ -111,8 +125,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // screen says why the figure is bigger than the office's.
     expect(
       dayEndCash({
-        tripState: 'closing',
-        figures: FIGURES,
+        figures: figuresFor('closing'),
         deviceCashPaise: COUNTED + HELD,
         deviceAllPaise: COUNTED + HELD,
       }),
@@ -126,8 +139,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // counted; the held money is named as the cashier's, never added to the hand-over again.
     expect(
       dayEndCash({
-        tripState: 'settled',
-        figures: FIGURES,
+        figures: figuresFor('settled'),
         deviceCashPaise: COUNTED + HELD,
         deviceAllPaise: COUNTED + HELD,
       }),
@@ -140,8 +152,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // A hand-over short of the tolerance the owner accepted closes the trip the same way.
     expect(
       dayEndCash({
-        tripState: 'settled_with_variance',
-        figures: FIGURES,
+        figures: figuresFor('settled_with_variance'),
         deviceCashPaise: COUNTED + HELD,
         deviceAllPaise: COUNTED + HELD,
       }),
@@ -155,8 +166,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // the note names all of it, the hand-over figure only the cash half.
     expect(
       dayEndCash({
-        tripState: 'active',
-        figures: FIGURES,
+        figures: figuresFor('active'),
         deviceCashPaise: COUNTED,
         deviceAllPaise: COUNTED + HELD,
       }),
@@ -165,8 +175,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // The office is ahead of the phone (a receipt the desk recorded itself): nothing is subtracted.
     expect(
       dayEndCash({
-        tripState: 'active',
-        figures: FIGURES,
+        figures: figuresFor('active'),
         deviceCashPaise: 0,
         deviceAllPaise: 0,
       }),
@@ -175,12 +184,50 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // No signal to read the preview with: the screen has no office figure to show at all.
     expect(
       dayEndCash({
-        tripState: 'active',
         figures: undefined,
         deviceCashPaise: COUNTED + HELD,
         deviceAllPaise: COUNTED + HELD,
       }),
     ).toEqual({ handOverPaise: null, uncountedAllPaise: 0, note: null })
+  })
+
+  it('DOS-169 the trip state comes from the same snapshot as the figures, so a desk settling mid-screen cannot double-count', () => {
+    // THE WINDOW THIS CLOSES. The cashier settles the trip while the driver is standing on D8. The
+    // preview refetches and already answers with the SETTLED figures — but the phone's own trip row
+    // is local-first (`useLocalTrips`, filtered to the open states) and still reads `closing` until
+    // the next delta pull lands. A rule that branches on the screen's row therefore runs the
+    // NOT-settled arithmetic over settled figures: it adds the ₹2,500 this phone still holds on top
+    // of a hand-over the office has already closed, and prints "the cash part is already in the
+    // figure above" for money the server will refuse `trip_settled`. That is precisely the double
+    // count DOS-169 exists to remove, shown to a driver at the counter.
+    //
+    // So the state is read off the snapshot that produced the figures, and there is no second state
+    // to disagree with it: `dayEndCash` takes no trip state of its own.
+    expect(
+      dayEndCash({
+        figures: figuresFor('settled'),
+        deviceCashPaise: COUNTED + HELD,
+        deviceAllPaise: COUNTED + HELD,
+      }),
+    ).toEqual({
+      handOverPaise: FLOAT + COUNTED,
+      uncountedAllPaise: HELD,
+      note: 'd8.uncountedSettled',
+    })
+
+    // And the other way round, which is the same rule: the office has NOT settled yet, so whatever
+    // the phone's row says, the live figures are counted the live way.
+    expect(
+      dayEndCash({
+        figures: figuresFor('closing'),
+        deviceCashPaise: COUNTED + HELD,
+        deviceAllPaise: COUNTED + HELD,
+      }),
+    ).toEqual({
+      handOverPaise: FLOAT + COUNTED + HELD,
+      uncountedAllPaise: HELD,
+      note: 'd8.uncounted',
+    })
   })
 
   it('DOS-169 guard: app/day.tsx takes the button rule from checkInBlock and the hand-over figure from dayEndCash, and no longer disables check-in on the trip state alone', async () => {
@@ -204,5 +251,23 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     // The uncounted sentence is whichever one `dayEndCash` chose, not a hard-coded key.
     expect(code).toMatch(/testID="d8-uncounted"/)
     expect(code).not.toMatch(/t\(\s*'d8\.uncounted'/)
+
+    // ONE SNAPSHOT: the screen hands the rule its preview and nothing else about the trip's state.
+    // The screen's own `tripState` is local-first and lags a settlement by one delta pull; passing
+    // it here is the double count proved above. It still drives the chip and the check-in gate,
+    // which are about this phone's trip and not about the office's figures.
+    const call = /dayEndCash\(\{([\s\S]*?)\}\)/.exec(code)
+    expect(call).not.toBeNull()
+    expect(call?.[1]).not.toMatch(/\btripState\b/)
+    expect(call?.[1]).toMatch(/\bfigures\b/)
+  })
+
+  it('DOS-169 guard: the two sentences D8 can print are real keys in this app\u2019s strings', async () => {
+    // `Translator` is `(key: string, ...) => string`, so a renamed key type-checks and ships a raw
+    // `d8.uncountedSettled` to a driver with every gate above still green.
+    const strings = await readStrings()
+    for (const key of ['d8.uncounted', 'd8.uncountedSettled', 'd8.pendingBlocks']) {
+      expect(strings).toContain(`'${key}':`)
+    }
   })
 })

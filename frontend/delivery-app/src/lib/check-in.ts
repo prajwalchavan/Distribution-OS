@@ -10,14 +10,27 @@
  * the moment it lands. The phone therefore adds only what it STILL HOLDS; anything else asks the
  * driver for the same rupee twice.
  *
+ * The state it branches on is the one the PREVIEW answered with, never the screen's local-first trip
+ * row: the office may settle while the driver is standing on D8, and the row catches up a delta pull
+ * later. Figures and the rule that reads them come from one snapshot or they disagree in that window.
+ *
  * And once the trip has settled, the phone adds nothing at all. The figures of a settled trip are
  * the figures it settled with, and a receipt that reaches the office afterwards is refused
  * `trip_settled` (founder, 2026-09-14) — that money goes to the cashier over the counter, so the
  * screen names it instead of folding it into a hand-over the office has already closed.
  */
 
-/** The part of `trips.settlementPreview` the arithmetic below needs. */
+/**
+ * The part of `trips.settlementPreview` the arithmetic below needs — ONE SNAPSHOT.
+ *
+ * The state rides WITH the figures on purpose. The screen's own trip row is local-first and lags a
+ * settlement by one delta pull, so branching on it would run the not-settled arithmetic over settled
+ * figures and ask the driver for the same rupee twice; the preview carries the state it answered
+ * with, and that is the only state this file reads.
+ */
 export interface DayEndFigures {
+  /** The trip's state as of the moment these figures were computed. */
+  readonly tripState: string
   /** `openingCashPaise + Σ cash receipts − Σ expenses`, as the office counts it. */
   readonly expectedCashPaise: number
   readonly cashCollectedPaise: number
@@ -71,7 +84,6 @@ export function checkInBlock(input: {
  * holding a ₹2,500 UPI receipt with nothing said.
  */
 export function dayEndCash(input: {
-  readonly tripState: string | null
   readonly figures: DayEndFigures | undefined
   readonly deviceCashPaise: number
   readonly deviceAllPaise: number
@@ -83,8 +95,12 @@ export function dayEndCash(input: {
     figures.cashCollectedPaise + figures.upiCollectedPaise + figures.chequeCollectedPaise
   const uncountedAllPaise = Math.max(0, input.deviceAllPaise - counted)
 
-  /* A closed trip reports the figures it settled with; nothing on this phone is added to them. */
-  if (input.tripState === 'settled' || input.tripState === 'settled_with_variance') {
+  /*
+   * A closed trip reports the figures it settled with; nothing on this phone is added to them. The
+   * state is the SNAPSHOT'S, not the screen's: the office can settle while the driver is standing on
+   * this screen, and the preview says so a pull before the phone's own trip row does.
+   */
+  if (figures.tripState === 'settled' || figures.tripState === 'settled_with_variance') {
     return {
       handOverPaise: figures.expectedCashPaise,
       uncountedAllPaise,
