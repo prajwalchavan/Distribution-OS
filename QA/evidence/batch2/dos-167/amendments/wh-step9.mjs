@@ -1,0 +1,22 @@
+// Step 9 — the other hand signs out; the phone gets its signal back; the FIRST hand signs in and the
+// kept pick goes first.
+import * as A from './wh-lib.mjs'
+await A.newSession()
+await A.sleep(2500)
+await A.dismissSystemDialogs()
+await A.clickText('Close', { timeout: 6000 }).catch(() => {})
+await A.sleep(1200)
+await A.clickText('More', { timeout: 15000 }).catch(() => {})
+await A.sleep(2000)
+await A.clickText('Settings', { timeout: 15000 }).catch(() => {})
+await A.sleep(3000)
+await A.scrollIntoView('Sign out').catch(() => {})
+await A.tapId('x4-sign-out', { timeout: 20000, label: 'Sign out (Sunita)' })
+await A.sleep(3000)
+await A.shot('wh-23-other-person-signing-out')
+A.log('sheet or straight out:', await A.texts(1200))
+await A.tapId('leave-keep', { timeout: 6000, label: 'keep' }).catch(() => A.log('no leave sheet — she had nothing unsent'))
+await A.sleep(6000)
+await A.shot('wh-24-signed-out-other')
+A.log('screen:', await A.texts(800))
+await A.quit()
