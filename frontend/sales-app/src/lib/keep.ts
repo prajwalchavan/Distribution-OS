@@ -20,6 +20,11 @@ const KEEP_WORDS = {
   queuedTitle: { device: 's3.queuedTitle', tab: 's3.queuedTitleTab' },
   queuedBody: { device: 's3.queuedBody', tab: 's3.queuedBodyTab' },
   trayOffline: { device: 's5.trayOffline', tab: 's5.trayOfflineTab' },
+  /*
+   * The sentence at the top of one queued order (S5), which the first pass missed (merge review,
+   * 2026-09-19): it is the same claim DOS-180 had just taken off the S3 banner, one screen later.
+   */
+  queuedExplain: { device: 's5.queuedExplain', tab: 's5.queuedExplainTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS

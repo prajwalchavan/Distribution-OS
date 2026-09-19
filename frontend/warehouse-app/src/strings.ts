@@ -285,7 +285,6 @@ export const strings = {
   'w5.allPicked': 'Every line picked or short',
   /* Picking has no Save step (UX-00 section 9.4): this button goes to packing, so it says so. */
   'w5.confirm': 'Take it to packing',
-  'w5.savedLine': 'Line saved on this phone',
   'w5.notStarted': 'This sheet has not been started',
   'w5.cancelIsManager': 'A wave is cancelled by the manager.',
   'w5.viewTodo': 'To pick',
@@ -296,6 +295,8 @@ export const strings = {
   'w5.pickedAll': 'Picked in full',
   'w5.status': 'Sheet is {status}',
   'w5.offlineNote': 'Picks are saved on this phone and sent when there is a signal.',
+  'w5.offlineNoteTab':
+    'Picks are held in this tab only, not saved, and sent when there is a signal.',
   'w5.scanToPick': 'Scan a carton',
 
   // ---------------------------------------------------------------- W6 pack

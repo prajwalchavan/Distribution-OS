@@ -281,6 +281,8 @@ export const strings = {
     'This is a draft. Submitting it is what gives it a number and checks the shop’s credit.',
   's5.queuedExplain':
     'Saved on this phone and waiting for a signal. Nothing has reached the office yet.',
+  's5.queuedExplainTab':
+    'Held in this tab only, not saved, and waiting for a signal. Nothing has reached the office yet, and closing this tab loses it.',
   's5.cancel': 'Cancel this order',
   's5.cancelTitle': 'Cancel this order',
   's5.cancelBody': 'Order {order} for {shop} will be cancelled and its stock released.',

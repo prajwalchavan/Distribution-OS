@@ -283,7 +283,7 @@ export default function PickingSheet(): React.JSX.Element {
          */}
         {status.online ? null : (
           <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-offline">
-            {t('w5.offlineNote')}
+            {t(keepKey('offlineNote', status.persistent))}
           </Txt>
         )}
         {scanNote === null ? null : (

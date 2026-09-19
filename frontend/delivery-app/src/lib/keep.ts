@@ -15,6 +15,12 @@ import { keepClaim } from '@dos/offline'
 /** Each place a delivery screen claims a keep: the phone's word, and the word when nothing is kept. */
 const KEEP_WORDS = {
   savedOnPhone: { device: 'd.savedOnPhone', tab: 'd.savedOnPhoneTab' },
+  /*
+   * The paragraph under the Record button on D4 and D5, which the first pass missed (merge review,
+   * 2026-09-19): on the money screen it promised the receipt stayed on the phone three lines below a
+   * button this rule had already made honest, with the strip above both saying the opposite.
+   */
+  offlineWrite: { device: 'd.offlineWrite', tab: 'd.offlineWriteTab' },
   recordDelivery: { device: 'd4.recordOffline', tab: 'd4.recordOfflineTab' },
   recordMoney: { device: 'd5.recordOffline', tab: 'd5.recordOfflineTab' },
   recordedMoney: { device: 'd5.recordedQueued', tab: 'd5.recordedQueuedTab' },

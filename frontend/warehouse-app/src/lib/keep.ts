@@ -14,6 +14,11 @@ import { keepClaim } from '@dos/offline'
 /** Each place a warehouse screen claims a keep: the phone's word, and the word when nothing is kept. */
 const KEEP_WORDS = {
   savedOnDevice: { device: 'w.savedOnDevice', tab: 'w.savedOnDeviceTab' },
+  /*
+   * The note under the sheet's filter on W5, which the first pass missed (merge review, 2026-09-19):
+   * the chip on each line was honest and the paragraph above them was not, on the same screen.
+   */
+  offlineNote: { device: 'w5.offlineNote', tab: 'w5.offlineNoteTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS

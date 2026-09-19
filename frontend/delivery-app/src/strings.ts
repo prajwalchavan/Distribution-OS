@@ -102,6 +102,8 @@ export const strings = {
   'd.savedOnPhoneTab':
     'Held in this tab only — not saved. It goes as soon as there is a signal; close this tab and it is gone.',
   'd.offlineWrite': 'No signal — this stays on the phone until there is one.',
+  'd.offlineWriteTab':
+    'No signal — this is held in this tab only, not saved. Close this tab and it is gone.',
   'd.trip': 'Trip',
   'd.vehicle': 'Vehicle',
   'd.stopsN': '{done} of {total} stops done',

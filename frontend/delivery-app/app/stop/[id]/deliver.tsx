@@ -672,7 +672,7 @@ export default function AtTheDoor(): React.JSX.Element {
 
         {status.online ? null : (
           <Txt field="body" desk="body" color={colors.text.secondary} testID="d4-offline">
-            {`${t('d.offlineWrite')} ${t('d4.creditNoteQueued')}`}
+            {`${t(keepKey('offlineWrite', status.persistent))} ${t('d4.creditNoteQueued')}`}
           </Txt>
         )}
 

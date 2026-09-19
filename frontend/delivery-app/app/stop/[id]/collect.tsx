@@ -361,7 +361,7 @@ export default function Collect(): React.JSX.Element {
 
         {status.online ? null : (
           <Txt field="body" desk="body" color={colors.text.secondary} testID="d5-offline">
-            {`${t('d.offlineWrite')} ${t('d5.offlineNoNumber')}`}
+            {`${t(keepKey('offlineWrite', status.persistent))} ${t('d5.offlineNoNumber')}`}
           </Txt>
         )}
 
