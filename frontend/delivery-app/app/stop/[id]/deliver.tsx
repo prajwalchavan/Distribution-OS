@@ -23,11 +23,12 @@ import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react
 import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
+  Group,
+  ListRow,
   Money,
   QtyStepper,
   Row,
   Screen,
-  Segments,
   Sheet,
   Stack,
   StatusChip,
@@ -806,19 +807,27 @@ export default function AtTheDoor(): React.JSX.Element {
                         </Txt>
                         {/* ONE decision (DOS-058): the reason decides where the pieces go. "Shop refused it"
                             puts them back on the van; "Damaged" and "Past its date" send them to the damaged /
-                            expiry bin, and the server refuses a damaged or expired line marked saleable. */}
-                        <Segments
-                          testID={`d4-reason-${line.id}`}
-                          items={LINE_REASONS.slice(0, 3).map((code) => ({
-                            id: code,
-                            label: wordFor(t, code),
-                          }))}
-                          value={entry?.reason ?? 'refused'}
-                          onChange={(id) => {
-                            const code = id as DeliveryLineReason
-                            set({ reason: code, returnedSaleable: isSaleableReturn(code) })
-                          }}
-                        />
+                            expiry bin, and the server refuses a damaged or expired line marked saleable.
+
+                            STACKED, NOT SHARED (DOS-163). These three side by side were wider than the line
+                            card on a 402 pt iPhone, and "Past its date" — the one that routes stock to the
+                            expiry bin — was the half a driver could not read. Three labels of the trade's own
+                            length do not fit one phone line, so they take a row each, exactly as D3's "Why was
+                            nothing delivered?" sheet does. The words themselves are never shortened: the desk,
+                            the shop's proof screen and the credit note read the same keys. */}
+                        <Group testID={`d4-reason-${line.id}`}>
+                          {LINE_REASONS.slice(0, 3).map((code) => (
+                            <ListRow
+                              key={code}
+                              testID={`d4-reason-${line.id}-${code}`}
+                              primary={wordFor(t, code)}
+                              state={(entry?.reason ?? 'refused') === code ? 'selected' : 'default'}
+                              onPress={() => {
+                                set({ reason: code, returnedSaleable: isSaleableReturn(code) })
+                              }}
+                            />
+                          ))}
+                        </Group>
                         <Txt
                           field="label"
                           desk="meta"
