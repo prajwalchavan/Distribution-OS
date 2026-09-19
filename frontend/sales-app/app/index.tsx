@@ -26,6 +26,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'expo-router'
 
 import { clockOnly, shortInstant, startOfIstDay, today } from '../src/lib/dates'
+import { keepKey } from '../src/lib/keep'
 import {
   useBeatShops,
   useBeats,
@@ -227,7 +228,7 @@ export default function Beat(): React.JSX.Element {
 
         {local.online ? null : (
           <Txt field="label" desk="meta" color={colors.text.secondary}>
-            {t('s0.offlineNote')}
+            {t(keepKey('offlineRead', local.persistent))}
           </Txt>
         )}
         {/* Only on a store that has RESOLVED and cannot keep: never while it is still opening (ruling 3 (ee)). */}

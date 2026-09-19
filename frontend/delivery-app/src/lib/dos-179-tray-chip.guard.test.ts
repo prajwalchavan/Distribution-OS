@@ -49,20 +49,27 @@ function valueOf(strings: string, key: string): string | null {
 }
 
 describe('DOS-179 the waiting chip on D10 says where the op really is', () => {
-  it('DOS-179 word.queued has a tab twin, and only one of the two names the phone', async () => {
+  it('DOS-179 the chip has both words, out of the namespace wordFor can reach', async () => {
     const strings = await read('../strings.ts')
-    const device = valueOf(strings, 'word.queued')
-    const tab = valueOf(strings, 'word.queuedTab')
+    const device = valueOf(strings, 'tray.waitingOnPhone')
+    const tab = valueOf(strings, 'tray.waitingInTab')
 
     expect({
       device,
       tabDeclared: tab !== null,
+      /*
+       * And `word.queued` is GONE. A keep claim under `word.` is reachable through `wordFor`, which
+       * builds its key from the value, so no screen has to name it — which is how this one survived two
+       * passes of the sweep. Out of that namespace it can only be reached by name.
+       */
+      stillUnderWord: /'word\.queued'/.test(strings),
       deviceSaysPhone: device === null ? 'missing' : /this phone/i.test(device),
       tabSaysPhone: tab === null ? 'missing' : /this phone/i.test(tab),
       tabSaysTab: tab === null ? 'missing' : /this tab/i.test(tab),
     }).toEqual({
       device: 'On this phone',
       tabDeclared: true,
+      stillUnderWord: false,
       deviceSaysPhone: true,
       tabSaysPhone: false,
       tabSaysTab: true,
@@ -80,7 +87,7 @@ describe('DOS-179 the waiting chip on D10 says where the op really is', () => {
       // The sending half is not a keep claim at all and keeps its own word.
       sendingWord: /'word\.sending'/.test(screen),
       // And the device key is never reached for by name either.
-      direct: /t\('word\.queued'/.test(screen),
+      direct: /t\('tray\.waitingOnPhone'/.test(screen),
     }).toEqual({
       rawStatusLabel: false,
       viaHelper: true,

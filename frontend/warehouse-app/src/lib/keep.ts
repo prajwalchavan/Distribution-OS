@@ -19,6 +19,13 @@ const KEEP_WORDS = {
    * the chip on each line was honest and the paragraph above them was not, on the same screen.
    */
   offlineNote: { device: 'w5.offlineNote', tab: 'w5.offlineNoteTab' },
+  /*
+   * X4's two table counts, found by the repo-wide sweep of the strings catalogue (merge review,
+   * 2026-09-19). They sit in the same screen as the panel that says whether the store keeps anything,
+   * so on a browser with no OPFS the KPI and the panel beside it contradicted each other.
+   */
+  tables: { device: 'x4.tablesLabel', tab: 'x4.tablesLabelTab' },
+  tablesCount: { device: 'x4.tables', tab: 'x4.tablesTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS

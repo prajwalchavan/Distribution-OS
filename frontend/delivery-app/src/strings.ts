@@ -151,7 +151,9 @@ export const strings = {
   'd1.addExpense': 'Add an expense',
   'd1.tracking': 'Location is on for this trip',
   'd1.trackingOff': 'Location is off',
+  /* DOS-179 — the points this trip has recorded and not sent yet; `keepKey('trackingHeld', …)` chooses. */
   'd1.trackingHeld': '{count} points held on this phone',
+  'd1.trackingHeldTab': '{count} points held in this tab only',
   'd1.trackingWeb': 'A browser tab stops sending when it is hidden — keep this tab open.',
   'd1.trackingForeground':
     'The office sees the vehicle while this app is open. It stops when you switch away.',
@@ -434,6 +436,16 @@ export const strings = {
     '{amount} · {shop} · book no {no} — marked handed over in this tab only, not saved. What lasts is the entry the cashier makes at the office.',
   'tray.handOverBodyNoBookTab':
     '{amount} · {shop} — marked handed over in this tab only, not saved. What lasts is the entry the cashier makes at the office.',
+  /*
+   * DOS-179 — the chip on every waiting row of D10, and the reason it is NOT under `word.`: `wordFor`
+   * builds its key from the VALUE (`word.${status}`), so the old `word.queued` — "On this phone" — was
+   * reachable with no screen ever naming it, which is how it survived two passes of this sweep twenty
+   * lines under `tray.storeMemory`, over rows that include doorstep receipts. Out of that namespace it
+   * can only be reached by name, and `keepKey('waitingChip', …)` is the only thing that reaches it.
+   * "In this tab only" reads as a place, like its twin, so the chip keeps its shape and its width.
+   */
+  'tray.waitingOnPhone': 'On this phone',
+  'tray.waitingInTab': 'In this tab only',
   'tray.handedOverAt': 'Handed to the cashier at {when}',
   'tray.handedOverCount': 'Handed over: {count}',
 
@@ -449,7 +461,9 @@ export const strings = {
   // --- D12 me --------------------------------------------------------------------------------------
   'd12.title': 'Me',
   'd12.thisDevice': 'This phone',
+  /* DOS-179 — what the store is holding, said next to what the store IS; `keepKey('tables', …)` chooses. */
   'd12.tablesLabel': 'Tables on this phone',
+  'd12.tablesLabelTab': 'Tables in this tab',
   'd12.pending': 'Waiting to send: {count}',
   'd12.devices': 'Your devices',
   'd12.device': 'A device',
@@ -504,15 +518,6 @@ export const strings = {
   'word.PRE': 'Paid in advance',
   'word.ON': 'Pays on delivery',
   'word.POST_FULFILLMENT': 'Credit',
-  /*
-   * DOS-179 — the chip on every waiting row of D10. `wordFor` builds its key from the VALUE, so this one
-   * is never written out in a screen and survived two passes of the sweep; it still claims a keep, on the
-   * one screen that prints `tray.storeMemory` twenty lines above it, over rows that include doorstep
-   * receipts. `keepKey('waitingChip', …)` chooses. "In this tab" reads as a place, like its twin, so the
-   * chip stays the same width and the same shape of answer to "where is my work?".
-   */
-  'word.queued': 'On this phone',
-  'word.queuedTab': 'In this tab only',
   'word.sending': 'Sending',
   'word.photo': 'Photo',
   'word.signature': 'Signature',

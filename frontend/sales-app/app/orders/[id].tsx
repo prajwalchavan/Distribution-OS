@@ -210,7 +210,7 @@ export default function OrderDetail(): React.JSX.Element {
         <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
           <Stack gap={1}>
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {isDraft ? t('s5.deviceTotal') : t('s5.orderTotal')}
+              {isDraft ? t(keepKey('deviceTotal', local.persistent)) : t('s5.orderTotal')}
             </Txt>
             <Money value={totalPaise} size="moneyL" />
           </Stack>

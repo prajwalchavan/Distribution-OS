@@ -25,6 +25,18 @@ const KEEP_WORDS = {
    * 2026-09-19): it is the same claim DOS-180 had just taken off the S3 banner, one screen later.
    */
   queuedExplain: { device: 's5.queuedExplain', tab: 's5.queuedExplainTab' },
+  /*
+   * The five this app had left, found by the repo-wide sweep of the strings catalogue rather than by
+   * reading one screen at a time (merge review, 2026-09-19). Four of them are about the COPY the device
+   * is holding — the beat, the catalogue count, the stock list, a shop's bill totals — and the fifth is
+   * the total under a draft order, which is the rep's own unsent work. A re-pull can replace the copy;
+   * it cannot replace the draft, and either way the sentence has to agree with the strip above it.
+   */
+  offlineRead: { device: 's0.offlineNote', tab: 's0.offlineNoteTab' },
+  catalogCount: { device: 's3.addItemsMeta', tab: 's3.addItemsMetaTab' },
+  deviceTotal: { device: 's5.deviceTotal', tab: 's5.deviceTotalTab' },
+  stockItems: { device: 's11.stockNeedsSignal', tab: 's11.stockNeedsSignalTab' },
+  billTotals: { device: 's12.offline', tab: 's12.offlineTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS

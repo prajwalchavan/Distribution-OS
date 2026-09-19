@@ -82,8 +82,15 @@ export const strings = {
   'x4.thisDevice': 'This device',
   'x4.storeMemory': 'Held in memory only — a reload empties this device',
   'x4.storeDisk': 'Held on this device',
+  /*
+   * DOS-179 — what the store is holding, said next to what the store IS. Both go through
+   * `keepKey('tablesCount' | 'tables', …)`: on a browser with no OPFS the panel beside them already
+   * reads "Held in memory only", and "Tables on this device" underneath it said the opposite.
+   */
   'x4.tables': '{count} tables on this device',
+  'x4.tablesTab': '{count} tables in this tab',
   'x4.tablesLabel': 'Tables on this device',
+  'x4.tablesLabelTab': 'Tables in this tab',
   'x4.pending': '{count} waiting to send',
 
   // ---------------------------------------------------------------- shared vocabulary

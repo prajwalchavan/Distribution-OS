@@ -46,11 +46,18 @@ const KEEP_WORDS = {
    * "On this phone", on the same screen that prints `tray.storeMemory` above the list and now takes its
    * hand-over dialog through this helper. Those rows include doorstep receipts.
    */
-  waitingChip: { device: 'word.queued', tab: 'word.queuedTab' },
+  waitingChip: { device: 'tray.waitingOnPhone', tab: 'tray.waitingInTab' },
   pending: { device: 'd8.pending', tab: 'd8.pendingTab' },
   pendingBlocks: { device: 'd8.pendingBlocks', tab: 'd8.pendingBlocksTab' },
   uncounted: { device: 'd8.uncounted', tab: 'd8.uncountedTab' },
   uncountedSettled: { device: 'd8.uncountedSettled', tab: 'd8.uncountedSettledTab' },
+  /*
+   * The last two this app had, found by the repo-wide sweep of the strings catalogue rather than by
+   * reading a screen: the GPS points D1 says the phone is holding for this trip, and the table count on
+   * D12 — which sits in the same `KpiStrip` as the panel that says whether the store keeps anything.
+   */
+  trackingHeld: { device: 'd1.trackingHeld', tab: 'd1.trackingHeldTab' },
+  tables: { device: 'd12.tablesLabel', tab: 'd12.tablesLabelTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS

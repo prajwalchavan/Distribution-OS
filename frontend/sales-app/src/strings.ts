@@ -96,7 +96,10 @@ export const strings = {
 
   // --- shared honesty lines about the phone's own copy ---------------------------------------
   's0.filling': 'Still loading the beat onto this phone',
+  /* DOS-179 — whose copy it is; `keepKey('offlineRead', …)` chooses. */
   's0.offlineNote': 'No signal. Everything on this screen is the copy on this phone.',
+  's0.offlineNoteTab':
+    'No signal. Everything on this screen is the copy held in this tab, and none of it is saved.',
   's0.offlineChip': 'No signal',
   's0.needsSignal': 'This needs a signal',
   's0.notPersisted': 'This browser will not keep the offline copy after you close it',
@@ -229,7 +232,9 @@ export const strings = {
   's3.removeLine': 'Remove',
   's3.repeatLast': 'Repeat last order ({count})',
   's3.addItems': 'Add items',
+  /* DOS-179 — the catalogue count, said by whoever is actually holding it. */
   's3.addItemsMeta': 'On this phone: {count} items',
+  's3.addItemsMetaTab': 'In this tab: {count} items',
   's3.searchItems': 'Search by item or brand',
   's3.addOneCase': 'Add a case',
   's3.caseOf': '{pieces} pc case',
@@ -271,7 +276,12 @@ export const strings = {
   's5.expected': 'Delivery expected',
   's5.note': 'Note',
   's5.orderTotal': 'Order total',
+  /*
+   * DOS-179 — the total under a DRAFT order, worked out from what the device holds. On a browser with
+   * no OPFS that draft is the rep's own unsent work, so the label says where it is being worked out.
+   */
   's5.deviceTotal': 'Price on this phone',
+  's5.deviceTotalTab': 'Price in this tab',
   's5.submit': 'Submit order',
   's5.submitted': 'Submitted',
   's5.submitNeedsSignal': 'Submitting needs a signal — the office gives the number',
@@ -419,7 +429,10 @@ export const strings = {
   's11.dealsMeta': 'Live today. The order screen applies them on its own.',
   's11.dealWindow': '{from} to {to} · from {trigger}',
   's11.noDeals': 'No deal is running today',
+  /* DOS-179 — the items are on the phone only when the phone is keeping them. */
   's11.stockNeedsSignal': 'Stock figures need a signal; the items themselves are on the phone',
+  's11.stockNeedsSignalTab':
+    'Stock figures need a signal; the items themselves are held in this tab only',
   's11.mrpNote': 'The figure is the printed MRP, not what the shop pays.',
 
   // --- S12 the shop's bills ----------------------------------------------------------------------
@@ -427,8 +440,11 @@ export const strings = {
   's12.due': 'Due {when} · {age} days',
   's12.ofTotal': 'of {total}',
   's12.billed': 'Billed {when}',
+  /* DOS-179 — where the totals came from, when the signal is gone and the store may be too. */
   's12.offline':
     'No signal: these are bill totals from this phone, not what is still open on each one.',
+  's12.offlineTab':
+    'No signal: these are bill totals held in this tab, not what is still open on each one.',
 
   // --- S13 inbox -----------------------------------------------------------------------------------
   's13.title': 'Inbox',

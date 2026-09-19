@@ -67,6 +67,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 0,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     expect(queued.title).toBe('3 changes have not reached the office')
     expect(queued.attention).toBeNull()
@@ -81,6 +82,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 2,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     expect(refused.title).toContain('2 need attention')
     expect(refused.attention).toBeNull()
@@ -93,6 +95,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 2,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     expect(both.title).toBe('1 change has not reached the office')
     expect(both.attention).toBe('2 need attention')
@@ -104,6 +107,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 0,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     expect(switching.title).toBe('4 changes have not reached the office')
     expect(switching.body).toBe(
@@ -143,6 +147,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 0,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     // One order the office refused and nothing queued: it waits in Needs attention, it does not go.
     const refusedOnly = leaveSentence({
@@ -151,6 +156,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 1,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     const refusedSwitch = leaveSentence({
       mode: 'switch',
@@ -158,6 +164,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 2,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     // Two queued and one refused: the sheet tells the two apart.
     const both = leaveSentence({
@@ -166,6 +173,7 @@ describe('DOS-167 the sales leave sheet', () => {
       rejected: 1,
       name: RAHUL,
       tenantName: TARSUN,
+      persistent: true,
     })
     const NEW_KEYS = [
       'leave.title.one',

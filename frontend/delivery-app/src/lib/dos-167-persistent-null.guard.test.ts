@@ -83,7 +83,8 @@ const SCREENS: readonly Screen[] = [
     path: '../../app/settings.tsx',
     memoryKey: 'tray.storeMemory',
     diskKey: 'tray.storeDisk',
-    offers: [],
+    /* The table count in the KPI strip above the panel that says what the store is (DOS-179 sweep). */
+    offers: ['tables'],
   },
   {
     path: '../../app/attention.tsx',

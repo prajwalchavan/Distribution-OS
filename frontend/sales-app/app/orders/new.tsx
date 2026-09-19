@@ -586,7 +586,10 @@ export default function OrderEntry(): React.JSX.Element {
           )}
         </Panel>
 
-        <Panel title={t('s3.addItems')} meta={t('s3.addItemsMeta', { count: catalog.length })}>
+        <Panel
+          title={t('s3.addItems')}
+          meta={t(keepKey('catalogCount', local.persistent), { count: catalog.length })}
+        >
           <Stack gap={3}>
             <Search
               testID="item-search"

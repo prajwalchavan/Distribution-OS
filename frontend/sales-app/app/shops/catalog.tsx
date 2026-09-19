@@ -28,6 +28,7 @@ import {
 import { useMemo, useState } from 'react'
 
 import { shortDate, today } from '../../src/lib/dates'
+import { keepKey } from '../../src/lib/keep'
 import { useCatalog, useLocalState, useSchemes } from '../../src/lib/local'
 import { useGodownStock } from '../../src/lib/stock'
 import { LocalAsync, PageTabs, Panel } from '../../src/lib/ui'
@@ -145,7 +146,7 @@ export default function Catalog(): React.JSX.Element {
             />
             {view === 'stock' && !local.online ? (
               <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
-                {t('s11.stockNeedsSignal')}
+                {t(keepKey('stockItems', local.persistent))}
               </Txt>
             ) : null}
             <LocalAsync

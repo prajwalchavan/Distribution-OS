@@ -383,7 +383,9 @@ export default function TodaysTrip(): React.JSX.Element {
               {tracking === null || tracking.buffered === 0 ? null : (
                 <StatusChip
                   testID="d1-tracking-buffer"
-                  label={t('d1.trackingHeld', { count: tracking.buffered })}
+                  label={t(keepKey('trackingHeld', status.persistent), {
+                    count: tracking.buffered,
+                  })}
                   family="ochre"
                   figure
                 />
