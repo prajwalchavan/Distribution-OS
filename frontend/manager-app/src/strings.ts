@@ -424,6 +424,7 @@ export const strings = {
   'm7t.billsEmpty': 'Every packed bill is already on a trip',
   'm7t.more': 'More bills',
   'm7t.onTrip': 'On {trip}',
+  'm7t.heldOnTrip': 'Out on {trip} — back after check-in',
   'm7t.confirmTitle': 'Plan the trip',
   'm7t.confirmBody': '{vehicle} · {date} · {driver} · {stops} stops · {total}',
   'm7t.addBill': 'Add a bill',

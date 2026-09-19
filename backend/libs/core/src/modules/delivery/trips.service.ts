@@ -82,7 +82,7 @@ import {
   lockStop,
   lockTrip,
   PIN_HOLDERS,
-  plannedOnOpenTrips,
+  ridingTrips,
   STOCK_VIEWERS,
   STOP_TERMINAL,
   stopEventsTo,
@@ -156,14 +156,18 @@ export const TRIP_SERIES = 'TRIP'
 /** How far a planned collection may be from the bills on the stop before it is a planning mistake: none. */
 const MAX_STOPS_PER_TRIP = 80
 
+/** `OrdersService.fulfilmentOrders` answers at most 200 orders per call; the depart gate reads in pages of it. */
+const MAX_ORDERS_PER_READ = 200
+
 /**
  * Trips and their stops: the plan, the departure, the road, the return.
  *
  * WAREHOUSE DISPATCHES (coordination §4 item 4): `packed → dispatched` happens at
- * `warehouse.loadSheets.confirm`. `depart` here dispatches only the orders the godown has not, and
- * treats an already-dispatched order as a no-op. The godown → vehicle transfer is warehouse's too; this
- * module only asks `LoadSheetsService.confirmedForTrip` whether the load is out, and
- * `LoadSheetsService.draftsForTrip` whether a draft sheet still holds the departure back (QA DOS-043).
+ * `warehouse.loadSheets.confirm`, and nowhere else. `depart` here verifies and never dispatches: it refuses
+ * a trip that still carries a packed bill (QA DOS-172) and passes an already-dispatched one. The godown →
+ * vehicle transfer is warehouse's too; this module only asks `LoadSheetsService.confirmedForTrip` whether
+ * the load is out, and `LoadSheetsService.draftsForTrip` whether a draft sheet still holds the departure
+ * back (QA DOS-043).
  *
  * Every state move is `tripMachine` / `stopMachine` through `tripTransition` / `stopTransition`; the
  * one column written outside a machine is `trip_stops.state = 'skipped'` on a cancelled trip, which
@@ -327,16 +331,18 @@ export class TripsService {
   }
 
   /**
-   * The trip planning board (QA DOS-131): the crew on `date` and the packed bills no open trip carries
-   * yet — what the godown (W10) and the desk (M7) plan a trip from, and what W7 narrows a load with.
+   * The trip planning board (QA DOS-131): the crew on `date` and the packed bills no trip carries yet —
+   * what the godown (W10) and the desk (M7) plan a trip from, and what W7 narrows a load with.
    *
    * The crew is named through tenancy (`activeMembersWithRole`: ids and names, no phone, no username); a
    * member is busy when it is the driver or the helper of a trip that day that is not settled, settled
    * with variance or cancelled — `create`'s own rule. The bills are one page of orders' packed queue
-   * (newest first, the cursor an order id), each order's live bill from billing, minus the bills
-   * `plannedOnOpenTrips` finds: the very predicate `insertStop` refuses with 409, so the board never
-   * offers a bill a plan would be refused. One bounded page (≤ 200 orders) plus three batched lookups
-   * per call (docs/20 rule 3); a page may carry fewer bills than `limit` while `nextCursor` is set.
+   * (newest first, the cursor an order id), each order's live bill from billing, sorted by `ridingTrips`:
+   * the very predicate `insertStop` refuses with 409, so the board never offers a bill a plan would be
+   * refused. A bill riding no trip is in `bills`; one that came back undelivered on a van still out is in
+   * `held`, with that trip (QA DOS-172); one planned on an open trip is left out. One bounded page (≤ 200
+   * orders) plus three batched lookups per call (docs/20 rule 3); a page may carry fewer bills than
+   * `limit` while `nextCursor` is set.
    */
   async planning(
     input: z.infer<typeof TripPlanningInput>,
@@ -387,32 +393,38 @@ export class TripsService {
         tx,
         page.map((order) => order.orderId),
       )
-      const planned = await plannedOnOpenTrips(
+      const riding = await ridingTrips(
         tx,
         [...live.values()].map((bill) => bill.id),
       )
-      const bills = page.flatMap((order) => {
+      const bills: z.infer<typeof TripPlanningOutput>['bills'] = []
+      const held: z.infer<typeof TripPlanningOutput>['held'] = []
+      for (const order of page) {
         const bill = live.get(order.orderId)
-        if (bill === undefined || planned.has(bill.id)) return []
-        return [
-          {
-            invoiceId: bill.id,
-            invoiceNo: bill.invoiceNo,
-            invoiceTotalPaise: bill.totalPaise,
-            orderId: order.orderId,
-            orderNo: order.orderNo,
-            retailerId: order.retailerId,
-            retailerName: order.retailerName,
-            beatId: order.beatId,
-            beatName: order.beatName,
-          },
-        ]
-      })
+        if (bill === undefined) continue
+        const row = {
+          invoiceId: bill.id,
+          invoiceNo: bill.invoiceNo,
+          invoiceTotalPaise: bill.totalPaise,
+          orderId: order.orderId,
+          orderNo: order.orderNo,
+          retailerId: order.retailerId,
+          retailerName: order.retailerName,
+          beatId: order.beatId,
+          beatName: order.beatName,
+        }
+        const onTrip = riding.get(bill.id)
+        if (onTrip === undefined) bills.push(row)
+        // QA DOS-172: back on the van, which has not checked in — shown with its trip, never plannable.
+        else if (onTrip.how === 'returned_on_road')
+          held.push({ ...row, onTripId: onTrip.tripId, onTripNo: onTrip.tripNo })
+      }
       const last = page[page.length - 1]
       return {
         date,
         crew,
         bills,
+        held,
         nextCursor: rows.length > input.limit && last ? last.orderId : null,
       }
     })
@@ -461,12 +473,14 @@ export class TripsService {
    * `loading → active`: the crew's step (docs/23 D2), or the desk's from the office, never the godown's
    * (DOORSTEP, QA DOS-043). Refused 409 `load_sheet_not_confirmed` while any load sheet of the trip is
    * still a draft: one linked by `trip_id`, or one carrying a bill planned on one of its stops (the
-   * warehouse app builds a sheet for the vehicle and may leave `trip_id` empty); a trip with no load
-   * sheet at all still departs. Needs the driver's granted location consent (DPDP, 403
-   * `gps_consent_missing`; a denied OS permission on the phone never blocks a trip). Orders on the trip
-   * the godown has NOT dispatched through a confirmed load sheet are dispatched here; an
-   * already-dispatched order is a no-op (coordination §4 item 4). The departure is audited; a replay
-   * and a refusal write no row (the short-circuit returns first, a throw rolls the transaction back).
+   * warehouse app builds a sheet for the vehicle and may leave `trip_id` empty). Refused 409
+   * `bill_not_loaded` while a bill planned on the trip is still `packed` (QA DOS-172): warehouse dispatches
+   * at `loadSheets.confirm`, after the manager's approval, the blind count, the challan and the e-way bill
+   * check, so `depart` verifies and never dispatches. A trip whose bills are all dispatched, or one with
+   * none and van sales on, departs. Both refusals come before the driver's granted location consent (DPDP,
+   * 403 `gps_consent_missing`; a denied OS permission on the phone never blocks a trip). The departure is
+   * audited; a replay and a refusal write no row (the short-circuit returns first, a throw rolls the
+   * transaction back).
    */
   async depart(input: DepartIn): Promise<DepartOut> {
     requireRole(DOORSTEP)
@@ -483,7 +497,8 @@ export class TripsService {
           throw new ORPCError('CONFLICT', {
             message: 'a trip with no stops and no van sales has nowhere to go',
           })
-        // The bills planned on this trip's stops: the load sheet gate looks for them, and they leave with it.
+        // The bills planned on this trip's stops: the draft-sheet gate looks for them, and the load-out gate
+        // below checks each one already left the godown on a confirmed sheet.
         const planned = await tx
           .select({ orderId: deliveries.orderId })
           .from(deliveries)
@@ -499,6 +514,10 @@ export class TripsService {
             message: `the load sheet of trip ${trip.tripNo ?? trip.id} has not been counted out at the godown yet; the vehicle leaves after the load-out check`,
             data: { code: 'load_sheet_not_confirmed', loadSheetIds: drafts },
           })
+        // QA DOS-172: a bill leaves the godown only through a confirmed load sheet, whose confirm dispatches
+        // it. One batched read; a bill still packed — or an order the read does not return — holds the
+        // vehicle back, and nothing is dispatched here.
+        await this.assertEveryBillLoaded(tx, trip, orderIds)
         if (!trip.driverId || !(await driverConsentGranted(tx, trip.driverId)))
           throw new ORPCError('FORBIDDEN', {
             message:
@@ -506,8 +525,6 @@ export class TripsService {
             data: { code: 'gps_consent_missing', driverId: trip.driverId },
           })
         const now = whenOr(input.occurredAt, new Date())
-        for (const orderId of orderIds)
-          await this.dispatchIfPacked(tx, orderId, input.deviceId ?? null)
         const next = await this.updateTrip(tx, trip.id, {
           state: to,
           startedAt: now,
@@ -981,21 +998,48 @@ export class TripsService {
       })
   }
 
-  /** An order the godown packed but never put on a confirmed load sheet leaves with the trip. */
-  private async dispatchIfPacked(tx: Db, orderId: string, deviceId: string | null): Promise<void> {
-    const order = await this.orders.findOrder(tx, orderId)
-    if (!order) return
-    if (
-      order.state === 'dispatched' ||
-      order.state === 'delivered' ||
-      order.state === 'partially_delivered'
-    )
-      return
-    if (order.state !== 'packed')
+  /**
+   * The departure gate on the bills (QA DOS-172): every order planned on the trip must already have left
+   * the godown through a confirmed load sheet. Dispatched, delivered and partially delivered orders pass;
+   * any other state but `packed` keeps the old refusal; a `packed` order, or one the batched read does not
+   * return (fail closed), is refused 409 `bill_not_loaded` with every such order named. Nothing is
+   * dispatched here.
+   */
+  private async assertEveryBillLoaded(
+    tx: Db,
+    trip: TripRow,
+    orderIds: readonly string[],
+  ): Promise<void> {
+    if (orderIds.length === 0) return
+    const found = new Map<string, { state: string; orderNo: string | null }>()
+    for (let at = 0; at < orderIds.length; at += MAX_ORDERS_PER_READ)
+      for (const order of await this.orders.fulfilmentOrders(
+        tx,
+        orderIds.slice(at, at + MAX_ORDERS_PER_READ),
+      ))
+        found.set(order.orderId, { state: order.state, orderNo: order.orderNo })
+    const notLoaded: string[] = []
+    for (const orderId of orderIds) {
+      const order = found.get(orderId)
+      if (order === undefined || order.state === 'packed') {
+        notLoaded.push(orderId)
+        continue
+      }
+      if (
+        order.state === 'dispatched' ||
+        order.state === 'delivered' ||
+        order.state === 'partially_delivered'
+      )
+        continue
       throw new ORPCError('CONFLICT', {
-        message: `order ${order.orderNo ?? order.id} is ${order.state}; only a packed bill leaves on a trip`,
+        message: `order ${order.orderNo ?? orderId} is ${order.state}; only a packed bill leaves on a trip`,
       })
-    await this.orders.applyFulfilmentEvent(tx, order.id, 'dispatch', deviceId, 'trip depart')
+    }
+    if (notLoaded.length > 0)
+      throw new ORPCError('CONFLICT', {
+        message: `${String(notLoaded.length)} bill(s) on trip ${trip.tripNo ?? trip.id} have not been counted out at the godown: ${notLoaded.map((id) => found.get(id)?.orderNo ?? id).join(', ')}; build and confirm the load sheet first`,
+        data: { code: 'bill_not_loaded', orderIds: notLoaded },
+      })
   }
 
   /** The doorstep failure, shared by `stops.fail` and `trips.return`. Stock stays on the van. */
@@ -1084,11 +1128,12 @@ export class TripsService {
 
   /**
    * A stop and the planned `deliveries` row (outcome null) per bill on it, so `depart`, `fail` and
-   * `record` know which documents ride on the van. Each bill must be the shop's own, issued, and not
-   * already planned on another open stop — asked through `plannedOnOpenTrips`, the one ids-only
-   * predicate the trip planning board shares, whatever the planner's role (QA DOS-131). Two planners of
-   * one bill take turns: each bill of the stop is held by a transaction-scoped advisory lock before the
-   * guard runs, so the second planner's guard sees the first planner's committed row.
+   * `record` know which documents ride on the van. Each bill must be the shop's own, issued, not already
+   * planned on another open stop, and not riding back on a van that has not checked in (409 `bill_on_road`,
+   * QA DOS-172: this trip included) — asked through `ridingTrips`, the one ids-only predicate the trip
+   * planning board shares, whatever the planner's role (QA DOS-131). Two planners of one bill take turns:
+   * each bill of the stop is held by a transaction-scoped advisory lock before the guard runs, so the
+   * second planner's guard sees the first planner's committed row.
    */
   private async insertStop(
     tx: Db,
@@ -1123,10 +1168,16 @@ export class TripsService {
       orderIds.set(invoiceId, bill.orderId)
       // QA DOS-131: under the caller's own RLS a warehouse planner, or another crew, saw no planned row
       // and this 409 never fired; the shared ids-only predicate runs as `system`.
-      const openTrip = (await plannedOnOpenTrips(tx, [invoiceId])).get(invoiceId)
-      if (openTrip !== undefined)
+      const riding = (await ridingTrips(tx, [invoiceId])).get(invoiceId)
+      if (riding?.how === 'planned')
         throw new ORPCError('CONFLICT', {
-          message: `invoice ${ref.invoiceNo ?? invoiceId} is already planned on trip ${openTrip}`,
+          message: `invoice ${ref.invoiceNo ?? invoiceId} is already planned on trip ${riding.tripId}`,
+        })
+      // QA DOS-172: the goods ride back on the van until it checks in; no trip plans the bill before then.
+      if (riding?.how === 'returned_on_road')
+        throw new ORPCError('CONFLICT', {
+          message: `invoice ${ref.invoiceNo ?? invoiceId} came back undelivered and is still out on trip ${riding.tripNo ?? riding.tripId}; plan it again after that trip checks in`,
+          data: { code: 'bill_on_road', tripId: riding.tripId },
         })
     }
     try {

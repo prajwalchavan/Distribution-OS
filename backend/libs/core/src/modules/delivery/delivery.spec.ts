@@ -29,6 +29,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
+import { loadOut } from '../../testing/load-out.js'
 import { BillingModule } from '../billing/index.js'
 import { FilesModule } from '../files/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
@@ -639,7 +640,7 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(busy.status).toBe(409)
   })
 
-  it('loads, confirms the van stock on a load sheet, and departs with consent; bills dispatch at depart', async () => {
+  it('loads, confirms the van stock on a load sheet, and departs with consent; bills dispatch at the load-out', async () => {
     const loading = await call<{ item: TripBody }>(
       app,
       packer,
@@ -650,9 +651,11 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(loading.status).toBe(200)
     expect(loading.body.item.state).toBe('loading')
 
-    // the godown's own paperwork: free van stock for the van sale later on
+    // the godown's own paperwork: the four bills on the stops, and free van stock for the van sale later
+    // on. A bill leaves the godown only on a confirmed load sheet (QA DOS-172).
     const sheetId = uuidv7()
-    const sheet = await call<{ item: { status: string } }>(
+    const loadedBills = [billA1, billB1, billA2, billB2].map((bill) => bill.orderId)
+    const sheet = await call<{ item: { status: string; expectedPackages: number } }>(
       app,
       manager,
       'POST',
@@ -662,24 +665,27 @@ describeDb('delivery (DATABASE_URL)', () => {
         id: sheetId,
         toLocationId: vehicleLocation,
         tripId,
+        orderIds: loadedBills,
         vanStock: [{ lotId: lotB, qtyPcs: 48 }],
       },
     )
     expect(sheet.status).toBe(200)
-    const confirmed = await call<{ item: { status: string } }>(
+    expect(sheet.body.item.expectedPackages).toBe(4)
+    const confirmed = await call<{ item: { status: string }; dispatched: string[] }>(
       app,
       manager,
       'POST',
       `/warehouse/load-sheets/${sheetId}/confirm`,
       {
         idempotencyKey: `sheet-confirm-${run}`,
-        countedPackages: 0,
+        countedPackages: 4,
         challanId: uuidv7(),
         countedVanStock: [{ lotId: lotB, qtyPcs: 48 }],
       },
     )
     expect(confirmed.status).toBe(200)
     expect(confirmed.body.item.status).toBe('confirmed')
+    expect(confirmed.body.dispatched).toEqual(loadedBills)
     expect(await balanceOf(lotB, vehicleLocation)).toBe(48)
 
     // the helper departs: the DRIVER's consent is what counts
@@ -1900,6 +1906,17 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(200)
+    // The godown counts the bill out on a confirmed sheet first: no trip departs with a bill no sheet
+    // counted out (QA DOS-172), and that refusal comes before the consent check below.
+    expect(
+      (
+        await loadOut(
+          app,
+          { godown: packer, approver: manager },
+          { tripId: trip2, orderIds: [billB3.orderId], tag: `trip2-${run}` },
+        )
+      ).dispatched,
+    ).toEqual([billB3.orderId])
     const blocked = await call<{ data?: { code?: string } }>(
       app,
       otherDriver,
@@ -2372,13 +2389,13 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(unlinkedSheet.body.item.status).toBe('draft')
 
     const depart = (tag: string) =>
-      call<{ item: TripBody; data?: { code?: string; loadSheetIds?: string[] } }>(
-        app,
-        driver,
-        'POST',
-        `/delivery/trips/${trip3}/depart`,
-        { idempotencyKey: `dos043-depart-${tag}-${run}`, startOdometerKm: 41_900 },
-      )
+      call<{
+        item: TripBody
+        data?: { code?: string; loadSheetIds?: string[]; orderIds?: string[] }
+      }>(app, driver, 'POST', `/delivery/trips/${trip3}/depart`, {
+        idempotencyKey: `dos043-depart-${tag}-${run}`,
+        startOdometerKm: 41_900,
+      })
     const cancelSheet = async (sheetId: string) =>
       (
         await call(app, manager, 'POST', `/warehouse/load-sheets/${sheetId}/cancel`, {
@@ -2405,9 +2422,26 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(unlinkedOnly.body.data?.loadSheetIds).toEqual([unlinked])
     expect(await stateOf()).toBe('loading')
 
-    // No draft left: the crew departs, the bill leaves with the trip, and the departure is audited once.
+    // No draft left, yet nobody has counted the bill out: the crew still waits (QA DOS-172), and the
+    // refusal writes no audit row and no event.
     expect(await cancelSheet(unlinked)).toBe(200)
-    const departed = await depart('c')
+    const uncounted = await depart('c')
+    expect(uncounted.status, JSON.stringify(uncounted.body)).toBe(409)
+    expect(uncounted.body.data?.code).toBe('bill_not_loaded')
+    expect(uncounted.body.data?.orderIds).toEqual([bill.orderId])
+    expect(await stateOf()).toBe('loading')
+    expect(await orderState(bill.orderId)).toBe('packed')
+    expect(await outboxTypes(trip3)).not.toContain('TripDeparted')
+    expect(await auditRows('trip.depart')).toEqual([])
+
+    // The godown counts it out on a confirmed sheet: the crew departs, the bill left with that sheet, and
+    // the departure is audited once.
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: trip3, orderIds: [bill.orderId], tag: `dos043-${run}` },
+    )
+    const departed = await depart('d')
     expect(departed.status).toBe(200)
     expect(departed.body.item.state).toBe('active')
     expect(await orderState(bill.orderId)).toBe('dispatched')
@@ -2736,6 +2770,12 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(200)
+    // A bill leaves the godown only on a confirmed load sheet (QA DOS-172).
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: tripOffline, orderIds: [bill.orderId], tag: `dos056-${run}` },
+    )
     const departed = await call<{ item: TripBody }>(
       app,
       driver,

@@ -352,9 +352,9 @@ export function casesAndLoose(
  * doorstep write policy is the crew's and the desk's), the driver's consent a HELPER reads at depart
  * (a consent row is its owner's), the crew's own GPS batch (`trip_points` is readable by the owner and
  * the manager only, and PostgreSQL applies the SELECT policy to the rows an
- * `INSERT … ON CONFLICT … RETURNING` proposes), and which bills already ride on an open trip, for a
- * planner whose `deliveries_read` policy hides them (`plannedOnOpenTrips` below: the double-plan guard
- * and the trip planning board, QA DOS-131; ids only). `actor_id` never changes, so every row still
+ * `INSERT … ON CONFLICT … RETURNING` proposes), and which bills already ride on a trip, for a planner or
+ * a godown whose `deliveries_read` policy hides them (`ridingTrips` below: the double-plan guard, the trip
+ * planning board and the godown's road hold, QA DOS-131 and DOS-172; ids only). `actor_id` never changes, so every row still
  * records who did it; nothing is widened beyond the statement.
  */
 export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> {
@@ -370,42 +370,91 @@ export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> 
   }
 }
 
+/** The trip a bill rides, and how (QA DOS-172). */
+export interface RidingTrip {
+  tripId: string
+  tripNo: string | null
+  /**
+   * `planned`: an outcome-null delivery of a trip that is not settled, settled with variance or
+   * cancelled — the bill is on the plan. `returned_on_road`: a `failed` delivery of an `active` trip — the
+   * shop did not take it and the goods ride back on the van, which has not checked in yet.
+   */
+  how: 'planned' | 'returned_on_road'
+}
+
 /**
- * Which of `invoiceIds` already ride on an OPEN trip — an outcome-null `deliveries` row of a trip that
- * is not settled, settled with variance or cancelled — as invoice id → trip id. ONE predicate for the
- * double-plan guard in `insertStop` (409) and the trip planning board (`trips.planning`), so the board
- * never offers a bill the guard would refuse (QA DOS-131).
+ * Which of `invoiceIds` ride on a trip, as invoice id → the trip and how. A bill rides a trip in two ways:
+ * it is PLANNED on an open one (an outcome-null delivery of a trip that is not settled, settled with
+ * variance or cancelled), or it CAME BACK on an active one (a `failed` delivery — a closed shop, a refusal
+ * at the door, a stop the crew failed offline — whose van is still out). `trips.return` puts the trip in
+ * `closing`, which frees a failed bill: the van is at the dock, and the bill may be planned and loaded
+ * again. A planned row wins over a failed one when a bill has both.
+ *
+ * ONE predicate for the double-plan guard in `insertStop` (409), the trip planning board
+ * (`trips.planning`: `bills` and `held`, QA DOS-131) and, through `returnedOnTheRoad`, the godown's own
+ * doors (`loadSheets.create` and `packs.list?status=awaiting_load`, registered at start-up), so no screen
+ * offers a bill a door would refuse.
  *
  * The select runs as `system`: `deliveries_read` admits the desk, the trip's own crew and the shop,
  * never the godown, so under a warehouse planner's role — or another crew's — the planned row was
- * invisible and the guard passed silently. It answers ids only, never a doorstep row, behind a literal
- * tenant fence (`deliveries_invoice_idx`). A cancelled trip's outcome-null rows block nothing, which is
- * why no partial unique index can say this.
+ * invisible and the guard passed silently. It answers ids and a trip number only, never a doorstep row,
+ * behind a literal tenant fence (`deliveries_invoice_idx`). A cancelled trip's outcome-null rows block
+ * nothing, which is why no partial unique index can say this.
  */
-export async function plannedOnOpenTrips(
+export async function ridingTrips(
   tx: Db,
   invoiceIds: readonly string[],
-): Promise<Map<string, string>> {
+): Promise<Map<string, RidingTrip>> {
   const wanted = [...new Set(invoiceIds)]
   if (wanted.length === 0) return new Map()
   const { tenantId } = currentTenant()
   const rows = await asSystemRole(tx, () =>
     tx
-      .select({ invoiceId: deliveries.invoiceId, tripId: deliveries.tripId })
+      .select({
+        invoiceId: deliveries.invoiceId,
+        tripId: deliveries.tripId,
+        tripNo: trips.tripNo,
+        outcome: deliveries.outcome,
+      })
       .from(deliveries)
       .innerJoin(trips, eq(trips.id, deliveries.tripId))
       .where(
         and(
           eq(deliveries.tenantId, tenantId),
           inArray(deliveries.invoiceId, wanted),
-          sql`${deliveries.outcome} is null`,
-          sql`${trips.state} not in ('settled', 'settled_with_variance', 'cancelled')`,
+          sql`((${deliveries.outcome} is null
+                and ${trips.state} not in ('settled', 'settled_with_variance', 'cancelled'))
+               or (${deliveries.outcome} = 'failed' and ${trips.state} = 'active'))`,
         ),
-      ),
+      )
+      .orderBy(sql`(${deliveries.outcome} is null) desc`, asc(deliveries.id)),
   )
-  const planned = new Map<string, string>()
-  for (const row of rows) if (!planned.has(row.invoiceId)) planned.set(row.invoiceId, row.tripId)
-  return planned
+  const riding = new Map<string, RidingTrip>()
+  for (const row of rows)
+    if (!riding.has(row.invoiceId))
+      riding.set(row.invoiceId, {
+        tripId: row.tripId,
+        tripNo: row.tripNo,
+        how: row.outcome === null ? 'planned' : 'returned_on_road',
+      })
+  return riding
+}
+
+/**
+ * The bills of `invoiceIds` that came back undelivered and still ride a van that has not checked in, as
+ * invoice id → that trip: `ridingTrips` narrowed to `returned_on_road` (QA DOS-172). Delivery hands this to
+ * `LoadSheetsService.registerRoadHold` at start-up, so the godown refuses and hides such a bill without
+ * warehouse ever naming `deliveries` or `trips`.
+ */
+export async function returnedOnTheRoad(
+  tx: Db,
+  invoiceIds: readonly string[],
+): Promise<Map<string, { tripId: string; tripNo: string | null }>> {
+  const held = new Map<string, { tripId: string; tripNo: string | null }>()
+  for (const [invoiceId, riding] of await ridingTrips(tx, invoiceIds))
+    if (riding.how === 'returned_on_road')
+      held.set(invoiceId, { tripId: riding.tripId, tripNo: riding.tripNo })
+  return held
 }
 
 // ---------------------------------------------------------------------------------------------------------------

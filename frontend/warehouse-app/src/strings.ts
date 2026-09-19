@@ -474,6 +474,7 @@ export const strings = {
   'w10.billsEmpty': 'Every packed bill is already on a trip',
   'w10.more': 'More bills',
   'w10.onTrip': 'On {trip}',
+  'w10.heldOnTrip': 'Out on {trip} — back after check-in',
   'w10.planConfirm': 'Plan the trip',
   'w10.planConfirmTitle': '{vehicle} for {date}?',
   'w10.planConfirmBody': '{driver} · {stops} stops · {bills} bills',

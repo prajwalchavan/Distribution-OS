@@ -106,10 +106,11 @@ export const LoadSheetStatusSchema = z.enum(['draft', 'confirmed', 'cancelled'])
 export type LoadSheetStatus = z.infer<typeof LoadSheetStatusSchema>
 
 /**
- * Where a pack stands on its way to a vehicle. `awaiting_load`: the order is still `packed` and is on no
- * draft or confirmed load sheet — exactly the orders `loadSheets.create` accepts (DOS-133). So a
- * dispatched, delivered or cancelled order never appears, and neither does one returned undelivered
- * while its confirmed sheet still lists it.
+ * Where a pack stands on its way to a vehicle. `awaiting_load`: the order is still `packed`, on no draft
+ * sheet, and not riding back on a van that has not checked in (QA DOS-172) — exactly the orders
+ * `loadSheets.create` accepts (DOS-133). So a dispatched, delivered or cancelled order never appears. A
+ * confirmed sheet is the record of one load-out and holds nothing: an order returned undelivered after its
+ * sheet was confirmed appears again once its trip has checked in.
  */
 export const PackListStatusSchema = z.enum(['awaiting_load'])
 export type PackListStatus = z.infer<typeof PackListStatusSchema>
@@ -644,10 +645,17 @@ export const PacksListInput = z.object({
   orderId: IdSchema.optional(),
   /** False lists the backlog: packed, not yet billed. */
   invoiced: QueryBoolSchema.optional(),
-  /** `awaiting_load` lists only what `loadSheets.create` accepts: packed, on no draft or confirmed sheet. */
+  /**
+   * `awaiting_load` lists only what `loadSheets.create` accepts: packed, on no draft sheet, and not riding
+   * back on a van that has not checked in (QA DOS-172).
+   */
   status: PackListStatusSchema.optional(),
   ...CursorInput,
 })
+/**
+ * `nextCursor` is the last pack SCANNED while more exist. With `status=awaiting_load` a pack held on the
+ * road is scanned and left out, so a page may hold fewer than `limit` while `nextCursor` is set.
+ */
 export const PacksListOutput = z.object({
   items: z.array(PackListItemSchema),
   nextCursor: z.string().nullable(),
@@ -669,7 +677,9 @@ export const LoadSheetVanStockInput = z.object({
 
 /**
  * Builds the sheet WITHOUT moving anything: every order must be `packed`, have a pack confirmation and
- * not be on another live sheet, and `toLocationId` must be an active `vehicle` location. The orders are
+ * not be on a draft sheet (409 `already on load sheet`; a confirmed sheet holds nothing), its bill must not
+ * still ride a trip that has not checked in (409 `bill_on_road`, `data.orderIds` / `data.tripIds`, QA
+ * DOS-172), and `toLocationId` must be an active `vehicle` location. The orders are
  * kept in the order the caller supplies — "last stop first" is the app's job, because reading
  * `trip_stops` would make warehouse depend on delivery (coordination §4 item 3).
  */
