@@ -119,8 +119,10 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 - `deviceId`: UUIDv7 generated once per install, kept in `platform.storage` (secure store) and mirrored in `_sync_state`. Sign-out
   wipes the read set and deletes the file, and keeps the `deviceId`. With unsent changes (queued or refused) the app asks, and
   what it offers is decided (founder, 2026-09-13): send them now while there is a signal, or sign out keeping them — the file
-  and its queue stay on the phone for that person only; the queued ones go out the next time that person signs in there;
-  refused ones wait in Needs attention (§12).
+  and its queue stay on the phone for that person only; the queued ones go out **FIRST** — before the handshake and the
+  first pull of every start of that person's engine over that file, whether the file was kept by `end()` or left by a
+  crash, a closed tab or a session that ended by itself, and before the pull on every reconnect and every poll tick
+  (DOS-183, 2026-09-20); refused ones wait in Needs attention (§12).
 - Row `id`: UUIDv7 generated on the device at creation (the contract's `MutationBase` shape).
 - `opId`: UUIDv7 per queued op. `idempotencyKey = opId`. A retry of the same op reuses both; the server's `sync_ops`
   `(tenant_id, device_id, op_id)` makes a replay return the stored outcome.
@@ -145,7 +147,9 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
    wins locally until the server answers; the veto decides on the server).
 4. Save `cursor` and `lastPulledAt = asOf` only after the transaction commits.
 5. Schedule: on foreground, after every successful upload batch, every 60 s while online and the app is in the foreground, and on a
-   manual pull-to-refresh. Never on a timer in the background (battery; docs/07 §7.5 says GPS is the only background work).
+   manual pull-to-refresh. Never on a timer in the background (battery; docs/07 §7.5 says GPS is the only background work). The
+   queue is DRAINED BEFORE each pull the engine schedules itself — start, reconnect, poll (DOS-183) — and the pull still follows
+   whether that upload worked, sent nothing, or failed; a screen's own `sync()` does not wait for it.
 6. Numeric columns arrive as JSON numbers (paise); store as INTEGER. Dates arrive ISO; store as TEXT.
 
 ## 6. Outbox and upload
@@ -171,6 +175,14 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   op over 1 MiB of JSON, §15) → mark rejected with the server's sentence in the tray; keep the row, never retry it (DOS-166,
   DOS-056).
 - Queue survives restarts (it is a table). A pending count and the oldest queued time feed the status object.
+- **No upload before the device can answer, and every kicked flush names its own failure** (merge review of DOS-183,
+  2026-09-20). A flush that lands before the store's shapes are loaded — a reconnect hint arriving during the opening
+  seconds — does nothing at all: uploading there would mark no row, so `settle` would clear no row either and the local
+  copy would keep `_pending='queued'` on an op the server already has, a "waiting" chip that also holds the row back
+  from every pull. The op stays in the outbox and that start's own drain sends it. The three flushes the engine kicks
+  for itself and does not wait on — a write, a retry of a refused op, the backoff timer — each catch and NAME their
+  failure (`flush(write)`, `flush(retry)`, `flush(retry-timer)`), so a device store that blinked is a line in the log
+  and never an unhandled rejection.
 
 ## 7. Conflict rules
 
@@ -207,6 +219,13 @@ ever**, on every read-only app (owner, manager, retailer). `online` is now _the 
 service_ — a claim about the last thing we tried, not about the clock. Freshness is a different question and the strip
 already answers it from `lastPulledAt` ("Stock as of 9:40 am" past four hours, UX-00 §6.11). The poll is never gated on
 the state it produces: **the poll is the probe**.
+
+**A hint that the radio is back is ACTED ON unless the engine itself already knew (DOS-183, 2026-09-20)** — that is,
+unless it had been told the radio was on AND its last call reached a service. `navigator.onLine` is never the reason to
+ignore one: inside the browser's own `online` handler that flag is already true, so a page that booted in a dead spot
+answered "I knew that" to the only event that says the radio is back and sat on its queue for the next poll (measured
+at 49.5 s). A spurious hint on a page that never gave one costs a single probe, which is what this section already
+calls the honest thing. The reconnect IS the retry: the backoff timer is cleared, so no op is sent twice.
 
 ```ts
 interface SyncStatus {
@@ -276,8 +295,8 @@ refused, signing out is one tap: the read set is dropped and the file deleted, a
 distributors are deleted when they hold nothing unsent. From the tap on the phone refuses new writes with a sentence; a
 write already in hand is finished, counted and kept for that person. With anything queued or refused the app names the count and the
 person and offers "Send now" only while online, or "Sign out, keep here": the file keeps only that queue and its refusals, for
-that person only; the queued ones go out the next time that person signs in on this phone, before the re-snapshot, and the
-refused ones wait in Needs attention for that person to fix or discard. Discarding is never
+that person only; the queued ones go out the next time that person signs in on this phone, before anything is pulled —
+re-snapshot or delta (DOS-183) — and the refused ones wait in Needs attention for that person to fix or discard. Discarding is never
 offered at sign-out; it stays in the Needs-attention tray (§11). A store that cannot keep (§2, memory) never offers to keep, nor
 to switch anyway: the sheet says the browser cannot keep them and offers "Send now" while online, and Cancel; the sign-out waits
 for a signal, and refused ones are fixed or discarded in Needs attention (ruling 2 (t), 2026-09-14). A session that ends by itself (a refresh answered 401) keeps the
@@ -321,20 +340,30 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     `signOutOnDevice` clears the session before any network call and revokes only once the leaving has settled; a sign-in waits
     for the leaving; the leaving is told when the session has left the platform store; a refresh in flight at the sign-out signs
     nobody back in and never replaces the next person's session.
+17. The queue goes FIRST (DOS-183), asserted on the transport's call order and never on a clock or a poll interval: a start over a
+    file that still holds its read set records `upload` before `manifest` and `pull`, sends the kept op under its original `opId`
+    and pulls the delta from the file's own cursor; the poll tick drains before it pulls; a page that booted with no network
+    uploads the moment the radio is reported back, with no screen calling `flush()`; a reconnect landing on an armed retry timer
+    still sends each op exactly once (`applied` is 1); and a flush that throws neither blocks that start's pull nor kills the
+    chain — the step is named in the log and the very next flush sends what was waiting. A radio-back hint landing in the
+    opening seconds, before the shapes exist, leaves NO row stuck on "waiting": the op is sent once by that start's own drain,
+    `_pending` is cleared, and the pull that follows is allowed to bring the server's version of that row down. Each of the
+    three flushes the engine kicks for itself writes a named line when the device store throws under `claim`, and no rejection
+    goes unhandled.
 
 ## 14. Failure modes
 
-| Failure                                   | Behaviour                                                                                                                                                                                                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Device clock wrong                        | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational                                                                                                                                  |
-| App killed mid-upload                     | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome)                                                                                                          |
-| Server rolled forward (new manifest)      | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot)                                                                                                                                  |
-| Token expired while offline               | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue                                                                                                                                   |
-| Another person signs in on this phone     | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167)                                                                                                                                           |
-| Sign out tapped while a write is in hand  | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167)                                                                                                              |
-| Storage full                              | writes fail loudly ("Phone storage is full"); nothing is silently dropped                                                                                                                                                                  |
-| The device store will not open            | bounded at `OPEN_DEADLINE_MS` = 15 s, then an announced memory store; a handle that lands late is closed, never destroyed (ruling 3 (cc))                                                                                                  |
-| The device store opens and cannot be used | closed and left alone — never destroyed — said as `offline: the device store could not be used; running in memory`, and the SAME start sequence runs once more in memory, so the app still signs in and still syncs online (ruling 3 (cc)) |
+| Failure                                   | Behaviour                                                                                                                                                                                                                                                   |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Device clock wrong                        | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational                                                                                                                                                   |
+| App killed mid-upload                     | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome), and they go BEFORE the first pull of that start; a flush that fails never blocks that pull, nor the next flush (DOS-183) |
+| Server rolled forward (new manifest)      | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot)                                                                                                                                                   |
+| Token expired while offline               | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue                                                                                                                                                    |
+| Another person signs in on this phone     | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167)                                                                                                                                                            |
+| Sign out tapped while a write is in hand  | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167)                                                                                                                               |
+| Storage full                              | writes fail loudly ("Phone storage is full"); nothing is silently dropped                                                                                                                                                                                   |
+| The device store will not open            | bounded at `OPEN_DEADLINE_MS` = 15 s, then an announced memory store; a handle that lands late is closed, never destroyed (ruling 3 (cc))                                                                                                                   |
+| The device store opens and cannot be used | closed and left alone — never destroyed — said as `offline: the device store could not be used; running in memory`, and the SAME start sequence runs once more in memory, so the app still signs in and still syncs online (ruling 3 (cc))                  |
 
 **A store that will not open is announced, bounded and never a hang (ruling 3 (cc), 2026-09-19).** The re-proof's real
 harm was not the corruption but the silence: `start()` rethrew, the engine stood `started` with `ready: false` for the
