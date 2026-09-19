@@ -1,0 +1,4415 @@
+{
+  "service": "retailer",
+  "ranAt": "2026-09-19T17:09:46.770Z",
+  "summary": {
+    "OK": 49,
+    "EXPECTED": 126,
+    "BROKEN": 0,
+    "SKIPPED": 12
+  },
+  "results": [
+    {
+      "service": "retailer",
+      "operationId": "delivery.vehicles.upsert",
+      "method": "POST",
+      "path": "/delivery/vehicles",
+      "url": "http://127.0.0.1:3100/retailer/delivery/vehicles",
+      "summary": "Create or update a vehicle (and its stock location)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/vehicles",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.vehicles.upsert:e4d5302bfd2622b7",
+        "id": "01920000-0000-7000-8000-00000000c0de",
+        "regNo": "MH-05-SM-0001",
+        "kind": "pickup",
+        "active": true,
+        "name": "Smoke van"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/vehicles",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.create",
+      "method": "POST",
+      "path": "/delivery/trips",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips",
+      "summary": "Plan a trip with its stops",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.trips.create:d9323a09011985bd",
+        "id": "01a0d0c5-6e00-7fe1-8078-8a7c7f790320",
+        "tripDate": "2026-09-26",
+        "vehicleId": "ed6a6781-433c-77fe-9319-7da08b1bdd97",
+        "driverId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63",
+        "helperId": "b16c590d-3b76-7929-a5b6-557a56b31c9a",
+        "vanSalesEnabled": true,
+        "openingCashPaise": 200000,
+        "stops": [
+          {
+            "id": "01a0d0c5-081b-789d-81c9-72c4de08aacb",
+            "sequence": 1,
+            "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+            "invoiceIds": []
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.reorder",
+      "method": "POST",
+      "path": "/delivery/trips/{id}/stops/reorder",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/stops/reorder",
+      "summary": "Re-sequence the open stops of a trip",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips/:id/stops/reorder",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "override",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.stops.reorder:884c507e4ebbc665",
+        "id": "dda35990-f442-7931-8da4-5808f09a33b6",
+        "order": [
+          {
+            "stopId": "7dd63add-5883-761e-93d6-88b9e38c81fb",
+            "sequence": 1
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips/:id/stops/reorder",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.startLoading",
+      "method": "POST",
+      "path": "/delivery/trips/{id}/start-loading",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/start-loading",
+      "summary": "planned → loading: the godown builds the load sheet",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips/:id/start-loading",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.trips.startLoading:ac48187380d3854a",
+        "id": "dda35990-f442-7931-8da4-5808f09a33b6"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips/:id/start-loading",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.depart",
+      "method": "POST",
+      "path": "/delivery/trips/{id}/depart",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/depart",
+      "summary": "Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips/:id/depart",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.trips.depart:34ed2a177a99eb27",
+        "startOdometerKm": 41200,
+        "id": "dda35990-f442-7931-8da4-5808f09a33b6"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips/:id/depart",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.add",
+      "method": "POST",
+      "path": "/delivery/trips/{id}/stops",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/stops",
+      "summary": "Add a stop to a trip (a late bill, or the shop a van sale goes to)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips/:id/stops",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.stops.add:5e7db94bc2692960",
+        "stop": {
+          "id": "01a0d0c5-20e7-7670-820a-603054e14dd0",
+          "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+          "invoiceIds": []
+        }
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips/:id/stops",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.start",
+      "method": "POST",
+      "path": "/delivery/stops/{id}/start",
+      "url": "http://127.0.0.1:3100/retailer/delivery/stops/7dd63add-5883-761e-93d6-88b9e38c81fb/start",
+      "summary": "Heading to the stop: pending → started",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/stops/:id/start",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.stops.start:101e3a652f5b3f04"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/stops/:id/start",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.arrive",
+      "method": "POST",
+      "path": "/delivery/stops/{id}/arrive",
+      "url": "http://127.0.0.1:3100/retailer/delivery/stops/7dd63add-5883-761e-93d6-88b9e38c81fb/arrive",
+      "summary": "At the door: started → arrived, with the geofence distance as evidence",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/stops/:id/arrive",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.stops.arrive:e369ce972eac0334",
+        "lat": 19.2437,
+        "lng": 73.1355,
+        "accuracyM": 8
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/stops/:id/arrive",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.deliveries.record",
+      "method": "POST",
+      "path": "/delivery/deliveries",
+      "url": "http://127.0.0.1:3100/retailer/delivery/deliveries",
+      "summary": "Deliver a bill in full or in part with proof; a shortfall or return raises one credit note",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/deliveries",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.deliveries.record:59d8db38bdaf0305",
+        "id": "629030dc-32c4-7cba-ba3f-5127439be20b",
+        "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+        "stopId": "4a5f6910-67eb-75a3-86b5-1a7d0e5dd623",
+        "invoiceId": "8fa1b62b-4d9a-7bd6-a82a-f8e1fffb10a5",
+        "receiverName": "Shop owner",
+        "lines": [
+          {
+            "id": "01a0d0c5-a26c-765d-8082-dfb5c3d7bc65",
+            "invoiceLineId": "485966c8-e1c8-7d1f-a2fa-fb215cba7e24",
+            "deliveredQtyPcs": 60,
+            "returnedQtyPcs": 0,
+            "returnedSaleable": true
+          },
+          {
+            "id": "01a0d0c5-6da7-735b-8a5f-ff5015b8c9a3",
+            "invoiceLineId": "6c9f4fb0-3d78-76e7-8ec3-2be5ac5294f5",
+            "deliveredQtyPcs": 75,
+            "returnedQtyPcs": 0,
+            "returnedSaleable": true
+          },
+          {
+            "id": "01a0d0c5-a19c-76e3-8675-f88d73442e2c",
+            "invoiceLineId": "dee87c1d-74c4-7e5e-b09a-60ebf6390fef",
+            "deliveredQtyPcs": 144,
+            "returnedQtyPcs": 0,
+            "returnedSaleable": true
+          }
+        ],
+        "pod": [
+          {
+            "id": "01a0d0c5-f93a-715b-849d-e60ba6f4fbf4",
+            "kind": "signature",
+            "inline": {
+              "mimeType": "image/png",
+              "contentBase64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+            }
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/deliveries",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.deliveries.addPod",
+      "method": "POST",
+      "path": "/delivery/deliveries/{id}/pod",
+      "url": "http://127.0.0.1:3100/retailer/delivery/deliveries/f94eb73c-18f8-7ac5-967a-fd7ef8a6005f/pod",
+      "summary": "Attach proof of delivery that arrived after the delivery",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/deliveries/:id/pod",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.deliveries.addPod:cce1f9ba9e6b1a1c",
+        "evidence": {
+          "id": "01a0d0c5-3682-7447-8d54-fc90b405c906",
+          "kind": "geo",
+          "payload": {
+            "distanceM": 40
+          },
+          "lat": 19.2437,
+          "lng": 73.1355
+        },
+        "id": "f94eb73c-18f8-7ac5-967a-fd7ef8a6005f",
+        "evidence.id": "608e932f-518a-7ece-aec3-af9e4641f6a5"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/deliveries/:id/pod",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.collections.record",
+      "method": "POST",
+      "path": "/delivery/collections",
+      "url": "http://127.0.0.1:3100/retailer/delivery/collections",
+      "summary": "Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/collections",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.collections.record:01d1df8a769088a8",
+        "id": "01a0d0c5-bf06-7f4f-8d02-502b3f40a082",
+        "receiptId": "01a0d0c5-e40c-7df7-8c7e-2756d0e2ef03",
+        "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+        "stopId": "4a5f6910-67eb-75a3-86b5-1a7d0e5dd623",
+        "retailerId": "afe18716-a7e7-7e88-b68a-e8101898ebe0",
+        "mode": "cash",
+        "amountPaise": 100,
+        "note": "One rupee on account, from the API docs"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/collections",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.vanSales.create",
+      "method": "POST",
+      "path": "/delivery/van-sales",
+      "url": "http://127.0.0.1:3100/retailer/delivery/van-sales",
+      "summary": "Sell from van stock: order, bill on the normal series, delivery and collection in one call",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/van-sales",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "override",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.vanSales.create:9991977d94846151",
+        "id": "76b4f117-b989-7031-87af-07450729abd1",
+        "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+        "retailerId": "5fb34e1c-915e-7162-8085-562a2e838389",
+        "invoiceId": "bdc6afe5-23f4-794b-b273-b03026eff532",
+        "deliveryId": "6301fd04-bb6c-7f91-9c18-aace444c0538",
+        "lines": [
+          {
+            "id": "7aad0a2d-731f-7070-bda3-7bb93aa57bce",
+            "variantId": "30f38ab4-2bfa-7be9-90de-a3acb99f7f68",
+            "enteredQty": 1,
+            "enteredUnit": "piece"
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/van-sales",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.expenses.record",
+      "method": "POST",
+      "path": "/delivery/expenses",
+      "url": "http://127.0.0.1:3100/retailer/delivery/expenses",
+      "summary": "Record a trip expense with its proof",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/expenses",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.expenses.record:214b74e1bc0fba83",
+        "id": "5ba35115-d170-75ed-9149-872fb2101581",
+        "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+        "kind": "diesel",
+        "amountPaise": 100,
+        "note": "Diesel at the Kalyan bypass pump"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/expenses",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.gps.points",
+      "method": "POST",
+      "path": "/gps/points",
+      "url": "http://127.0.0.1:3100/retailer/gps/points",
+      "summary": "A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /gps/points",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.gps.points:285183f6df456337",
+        "tripId": "dda35990-f442-7931-8da4-5808f09a33b6",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302",
+        "points": [
+          {
+            "recordedAt": "2026-09-04T10:30:00.000Z",
+            "lat": 19.2403,
+            "lng": 73.1305,
+            "accuracyM": 8,
+            "speedMps": 4,
+            "heading": 90,
+            "battery": 80
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /gps/points",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.fail",
+      "method": "POST",
+      "path": "/delivery/stops/{id}/fail",
+      "url": "http://127.0.0.1:3100/retailer/delivery/stops/7dd63add-5883-761e-93d6-88b9e38c81fb/fail",
+      "summary": "Nothing delivered: arrived → failed with a reason; stock stays on the van",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/stops/:id/fail",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.stops.fail:620999cfd4a17a8a",
+        "failureReason": "shop_closed"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/stops/:id/fail",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.return",
+      "method": "POST",
+      "path": "/delivery/trips/{id}/return",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/return",
+      "summary": "Check in: active → closing; open stops fail and their orders go back to packed",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips/:id/return",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.trips.return:fbbe42281a32b07a",
+        "endOdometerKm": 41260,
+        "id": "dda35990-f442-7931-8da4-5808f09a33b6"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips/:id/return",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.settlementPreview",
+      "method": "GET",
+      "path": "/delivery/trips/{id}/settlement",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/settlement",
+      "summary": "The check-in cockpit: expected cash, collections by mode, expenses, van stock",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/trips/:id/settlement",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/trips/:id/settlement",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.settle",
+      "method": "POST",
+      "path": "/delivery/trips/{tripId}/settle",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/settle",
+      "summary": "Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/trips/:tripId/settle",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.trips.settle:a3b3e04ca8e2a37f",
+        "id": "01a0d0c5-669a-77cf-81a6-4c6d3a466228",
+        "handedOverCashPaise": 200000,
+        "counted": [],
+        "note": "Counted with the crew at the depot",
+        "acceptVariance": false
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/trips/:tripId/settle",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.gps.trace",
+      "method": "GET",
+      "path": "/delivery/trips/{id}/trace",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/trace?limit=5",
+      "summary": "Replay a trip's track (audited read)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/trips/:id/trace",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/trips/:id/trace",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.get",
+      "method": "GET",
+      "path": "/delivery/trips/{id}",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6",
+      "summary": "One trip with stops, collections, expenses, settlement and the tenant's policy",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/trips/:id",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/trips/:id",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.next",
+      "method": "GET",
+      "path": "/delivery/trips/{id}/next-stop",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/dda35990-f442-7931-8da4-5808f09a33b6/next-stop",
+      "summary": "The next open stop of a trip with the shop to visit",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/trips/:id/next-stop",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/trips/:id/next-stop",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.deliveries.list",
+      "method": "GET",
+      "path": "/delivery/deliveries",
+      "url": "http://127.0.0.1:3100/retailer/delivery/deliveries?limit=5",
+      "summary": "Delivery register (a shop sees only its own bills' deliveries)",
+      "status": 200,
+      "ms": 8,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"f94eb73c-18f8-7ac5-967a-fd7ef8a6005f\",\"tripId\":\"c78285c6-baa4-735e-83ac-fbedeeb00375\",\"stopId\":\"40c5a2bd-6f3a-7cac-bbbe-0f2c5ab8c0ba\",\"orderId\":\"7af06966-f1e0-79f2-b1c6-c1541d39d272\",\"invoiceId\":\"87a3832e-8343-7123-a6e6-0ef97ca7870b\",\"invoiceNo\":\"INV/0620\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"outcome\":\"delivered\",\"deliveredBy\":null,\"deliveredAt\":\"2026-08-27T05:10:00.000Z\",\"receiverName\":\"Jayesh Shah\",\"note\":null,\"deviceId\":null,\"shortPcs\":0,\"returnedPcs\":0,\"creditNoteId\":null,\"podKinds\":[\"photo\"],\"createdAt\":\"2026-09-19T17:06:32.357Z\"},{\"id\":\"d8fd1e5d-e748-7e97…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.deliveries.get",
+      "method": "GET",
+      "path": "/delivery/deliveries/{id}",
+      "url": "http://127.0.0.1:3100/retailer/delivery/deliveries/f94eb73c-18f8-7ac5-967a-fd7ef8a6005f",
+      "summary": "One delivery with its lines, proof (signed read URLs) and credit note",
+      "status": 200,
+      "ms": 6,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"f94eb73c-18f8-7ac5-967a-fd7ef8a6005f\",\"tripId\":\"c78285c6-baa4-735e-83ac-fbedeeb00375\",\"stopId\":\"40c5a2bd-6f3a-7cac-bbbe-0f2c5ab8c0ba\",\"orderId\":\"7af06966-f1e0-79f2-b1c6-c1541d39d272\",\"invoiceId\":\"87a3832e-8343-7123-a6e6-0ef97ca7870b\",\"invoiceNo\":\"INV/0620\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"outcome\":\"delivered\",\"deliveredBy\":null,\"deliveredAt\":\"2026-08-27T05:10:00.000Z\",\"receiverName\":\"Jayesh Shah\",\"note\":null,\"deviceId\":null,\"shortPcs\":0,\"returnedPcs\":0,\"creditNoteId\":null,\"podKinds\":[\"photo\"],\"createdAt\":\"2026-09-19T17:06:32.357Z\",\"lines\":[{\"id\":\"05a0dd67-c63…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "health.ping",
+      "method": "GET",
+      "path": "/health/ping",
+      "url": "http://127.0.0.1:3100/retailer/health/ping",
+      "summary": "Liveness + database reachability",
+      "status": 200,
+      "ms": 2,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "ok": true,
+        "version": "0.0.0",
+        "db": "up",
+        "time": "2026-09-19T17:09:45.875Z"
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.me",
+      "method": "GET",
+      "path": "/tenancy/me",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/me",
+      "summary": "Current user, tenant and membership",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "user": {
+          "id": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+          "username": "ramesh.gupta",
+          "phone": "+919810000101",
+          "name": "Ramesh Gupta",
+          "locale": "hi-IN"
+        },
+        "tenant": {
+          "id": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+          "slug": "tarsun",
+          "legalName": "Tarsun Enterprises",
+          "gstin": "27CNGPP9039R1ZX",
+          "stateCode": "27",
+          "plan": "pilot",
+          "status": "active"
+        },
+        "membership": {
+          "id": "09cb983a-bb31-79cf-bc3e-993d8ca0f45e",
+          "tenantId": "01a0baa2-26bc-75bc-aaac-acd319cf8525",
+          "userId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+          "role": "retailer",
+          "status": "active"
+        }
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.staff.list",
+      "method": "GET",
+      "path": "/tenancy/staff",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/staff",
+      "summary": "People who work in this distributor",
+      "status": 403,
+      "ms": 4,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenancy/staff",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenancy/staff",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.staff.create",
+      "method": "POST",
+      "path": "/tenancy/staff",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/staff",
+      "summary": "Add a staff member with a temporary password",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenancy/staff",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenancy.staff.create:1ba6d49315a176d7",
+        "id": "01a0d0c5-c3c0-7282-8e0b-07d37fa74816",
+        "userId": "01a0d0c5-ba66-7e54-8b7c-11a5d7468bc9",
+        "username": "demo.docs.staff8",
+        "name": "Demo Docs Staff",
+        "phone": "+919000000109",
+        "role": "salesperson",
+        "locale": "en-IN",
+        "temporaryPassword": "Dos@1234"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenancy/staff",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.staff.update",
+      "method": "POST",
+      "path": "/tenancy/staff/update",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/staff/update",
+      "summary": "Edit a staff member's name, phone or locale",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenancy/staff/update",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenancy.staff.update:dce69603a630a8dc",
+        "userId": "b16c590d-3b76-7929-a5b6-557a56b31c9a",
+        "name": "Demo Docs Staff (edited)",
+        "locale": "en-IN"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenancy/staff/update",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.staff.setPassword",
+      "method": "POST",
+      "path": "/tenancy/staff/set-password",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/staff/set-password",
+      "summary": "Reset a staff password; they must change it at next sign-in",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (would change a demo user password)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.staff.setStatus",
+      "method": "POST",
+      "path": "/tenancy/staff/set-status",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/staff/set-status",
+      "summary": "Enable or disable a staff membership (disabling revokes their sessions)",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (would disable a demo user)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.branding.get",
+      "method": "GET",
+      "path": "/tenancy/branding",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/branding",
+      "summary": "The distributor's own name, logo and footer for every screen and document",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "displayName": "Tarsun Enterprise",
+        "legalName": "Tarsun Enterprises",
+        "gstin": "27CNGPP9039R1ZX",
+        "stateCode": "27",
+        "fssai": null,
+        "address": null,
+        "logoObjectKey": "tenant/01a0baa2-26bc-75bc-aaac-acd319cf8525/branding/logo.jpg",
+        "logoUrl": "/storage/tenant/01a0baa2-26bc-75bc-aaac-acd319cf8525/branding/logo.jpg?expires=1789924185&signature=112c01d7869427278245ee38d266bd86e921d4fa9b52d11e87e6331bb304b159",
+        "invoiceFooter": "Goods once sold will not be taken back. Subject to Kalyan jurisdiction.",
+        "upiVpa": "tarsun@okhdfcbank"
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.settings.get",
+      "method": "GET",
+      "path": "/tenancy/settings",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/settings",
+      "summary": "Tenant settings (secret.* keys to the owner only)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenancy/settings",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenancy/settings",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.settings.set",
+      "method": "POST",
+      "path": "/tenancy/settings",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/settings",
+      "summary": "Set tenant settings (owner only, audited per key)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenancy/settings",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenancy.settings.set:dfc7b46d44b38ca6",
+        "items": [
+          {
+            "key": "branding.invoice_footer",
+            "value": "Goods once sold will not be taken back. Subject to Kalyan jurisdiction."
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenancy/settings",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.numbering.list",
+      "method": "GET",
+      "path": "/tenancy/numbering-series",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/numbering-series",
+      "summary": "Document number series for a financial year (owner only)",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenancy/numbering-series",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenancy/numbering-series",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.numbering.upsert",
+      "method": "POST",
+      "path": "/tenancy/numbering-series",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/numbering-series",
+      "summary": "Set a series prefix and starting number; locked once the first number is issued",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenancy/numbering-series",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenancy.numbering.upsert:2790da160057f52d",
+        "seriesCode": "INV-B2C",
+        "prefix": "B2C/",
+        "startingNo": 1,
+        "allocationMode": "server"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenancy/numbering-series",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.featureFlags.list",
+      "method": "GET",
+      "path": "/tenancy/feature-flags",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/feature-flags",
+      "summary": "Which features are switched on for this distributor",
+      "status": 200,
+      "ms": 3,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "items": [
+          {
+            "flag": "van_sales",
+            "enabled": true
+          },
+          {
+            "flag": "brand_dms_import",
+            "enabled": true
+          },
+          {
+            "flag": "claims_ui",
+            "enabled": false
+          },
+          {
+            "flag": "retailer_app",
+            "enabled": true
+          },
+          {
+            "flag": "e_invoicing",
+            "enabled": false
+          }
+        ]
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.featureFlags.set",
+      "method": "POST",
+      "path": "/tenancy/feature-flags",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/feature-flags",
+      "summary": "Switch features on or off (owner only, audited)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenancy/feature-flags",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenancy.featureFlags.set:4c1b4b34e7c466f0",
+        "items": [
+          {
+            "flag": "retailer_app",
+            "enabled": true
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenancy/feature-flags",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.tenant.update",
+      "method": "POST",
+      "path": "/tenancy/tenant",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/tenant",
+      "summary": "Edit the legal name, GSTIN and state (owner only, audited)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenancy/tenant",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenancy.tenant.update:5f0101996eecdd94",
+        "legalName": "Tarsun Enterprises",
+        "stateCode": "27"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenancy/tenant",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.audit.list",
+      "method": "GET",
+      "path": "/tenancy/audit",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/audit?limit=5",
+      "summary": "Who changed what: prices, credit, approvals, settings, exports, trace reads",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenancy/audit",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenancy/audit",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.support.list",
+      "method": "GET",
+      "path": "/tenancy/support-grants",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/support-grants?limit=5",
+      "summary": "Requests from Distribution OS support to look inside this distributor",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenancy/support-grants",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenancy/support-grants",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.support.approve",
+      "method": "POST",
+      "path": "/tenancy/support-grants/{id}/approve",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/support-grants/{id}/approve",
+      "summary": "Open a time-boxed support window (the owner may shorten it, never lengthen it)",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "no support request is waiting for the owner to answer",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenancy.support.revoke",
+      "method": "POST",
+      "path": "/tenancy/support-grants/{id}/revoke",
+      "url": "http://127.0.0.1:3100/retailer/tenancy/support-grants/{id}/revoke",
+      "summary": "Refuse a support request, or close a window that is already open",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "catalog.search",
+      "method": "GET",
+      "path": "/catalog/variants",
+      "url": "http://127.0.0.1:3100/retailer/catalog/variants?limit=5",
+      "summary": "Search the global product master",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"variantId\":\"00991e15-fd1e-7637-a093-bfec3e357a26\",\"productId\":\"e372ac76-8d93-7f4d-9917-39ca853935f8\",\"manufacturerId\":\"f0ec9ff8-b411-7562-9f03-5dd39bfae2a4\",\"brandId\":\"c12995d6-092a-761a-96bd-a89df7a2ad73\",\"name\":\"Chamak Detergent Bar 250 g\",\"productName\":\"Chamak Detergent Bar\",\"productNameHi\":null,\"brandName\":\"Chamak\",\"manufacturerName\":\"Shubhda Consumer Care\",\"netQty\":250,\"netUnit\":\"g\",\"promoExtra\":null,\"defaultCaseSize\":48,\"hsnCode\":\"3401\",\"ean\":null,\"mrpPaise\":2000,\"status\":\"active\"},{\"variantId\":\"01a0baa2-bc11-7451-a04f-a7dffe6e8897\",\"productId\":\"01a0baa2-bc54-71f1-b688-ffa09d…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "catalog.manufacturers",
+      "method": "GET",
+      "path": "/catalog/manufacturers",
+      "url": "http://127.0.0.1:3100/retailer/catalog/manufacturers",
+      "summary": "Manufacturers with their brands",
+      "status": 200,
+      "ms": 3,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"9ffe0e7b-e760-74eb-8171-b39a75f76666\",\"name\":\"Alan's Food Products\",\"legalName\":\"Alan's Food Products Private Limited\",\"gstin\":null,\"brands\":[{\"id\":\"e6e3b0e8-3dc9-79c0-ab6a-2ac9a11ee5b5\",\"manufacturerId\":\"9ffe0e7b-e760-74eb-8171-b39a75f76666\",\"name\":\"Masti Oye\"}]},{\"id\":\"f853335e-9036-74bd-9618-108112d7fcf5\",\"name\":\"Annapurna Agro Foods\",\"legalName\":\"Annapurna Agro Foods Limited, Kalyan\",\"gstin\":null,\"brands\":[{\"id\":\"7845dad6-75b8-785b-a6fc-6e1040caf7fe\",\"manufacturerId\":\"f853335e-9036-74bd-9618-108112d7fcf5\",\"name\":\"Annapurna\"}]},{\"id\":\"4550d93e-364b-774c-97c9-b0a41523d4fd\",\"…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "catalog.propose",
+      "method": "POST",
+      "path": "/catalog/proposals",
+      "url": "http://127.0.0.1:3100/retailer/catalog/proposals",
+      "summary": "Propose a missing product; usable immediately",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /catalog/proposals",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:catalog.propose:a97cee851ab380dd",
+        "productId": "01a0d0c5-a0af-702a-81dc-586a63aff253",
+        "variantId": "01a0d0c5-db35-7f5c-81c3-4b82a09130ef",
+        "manufacturerId": "9ffe0e7b-e760-74eb-8171-b39a75f76666",
+        "brandId": "215e2935-1509-71d7-b3e9-9b23bca6ec3f",
+        "productName": "Demo Proposed Namkeen",
+        "productNameHi": "डेमो नमकीन",
+        "category": "namkeen",
+        "variantName": "Demo Proposed Namkeen 50 g",
+        "netQty": 50,
+        "netUnit": "g",
+        "promoExtra": 1,
+        "defaultCaseSize": 24,
+        "hsnCode": "22021010",
+        "ean": "8901234567890",
+        "mrpPaise": 4000
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /catalog/proposals",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.list",
+      "method": "GET",
+      "path": "/tenant-catalog/products",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/products?limit=5",
+      "summary": "What this distributor sells (no cost)",
+      "status": 200,
+      "ms": 9,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"variantId\":\"00991e15-fd1e-7637-a093-bfec3e357a26\",\"productId\":\"e372ac76-8d93-7f4d-9917-39ca853935f8\",\"manufacturerId\":\"f0ec9ff8-b411-7562-9f03-5dd39bfae2a4\",\"brandId\":\"c12995d6-092a-761a-96bd-a89df7a2ad73\",\"name\":\"Chamak Detergent Bar 250 g\",\"productName\":\"Chamak Detergent Bar\",\"productNameHi\":null,\"brandName\":\"Chamak\",\"manufacturerName\":\"Shubhda Consumer Care\",\"netQty\":250,\"netUnit\":\"g\",\"promoExtra\":null,\"defaultCaseSize\":48,\"hsnCode\":\"3401\",\"ean\":null,\"mrpPaise\":2000,\"status\":\"active\",\"tenantProductId\":\"e5e84704-5d9a-783f-b4a6-dd0c1abb35ef\",\"listed\":true,\"localAlias\":null,\"caseSi…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.upsertListing",
+      "method": "POST",
+      "path": "/tenant-catalog/products",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/products",
+      "summary": "List/unlist a variant and set order rules",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenant-catalog/products",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenantCatalog.upsertListing:41700c3fb5f57175",
+        "id": "01a0d0c5-8d62-774d-856b-d7c11d6972bd",
+        "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "listed": true,
+        "minOrderQty": 1,
+        "orderIncrement": 1,
+        "sortOrder": 4
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenant-catalog/products",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.suppliers",
+      "method": "GET",
+      "path": "/tenant-catalog/suppliers",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/suppliers",
+      "summary": "Suppliers of this distributor",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenant-catalog/suppliers",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenant-catalog/suppliers",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.upsertSupplier",
+      "method": "POST",
+      "path": "/tenant-catalog/suppliers",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/suppliers",
+      "summary": "Create or update a supplier",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenant-catalog/suppliers",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenantCatalog.upsertSupplier:99974579e14c30c6",
+        "id": "01a0d0c5-79e5-715d-8d76-b5322d76aa54",
+        "name": "Demo Supplier (docs)",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "phone": "+919876543210",
+        "eInvoicing": false,
+        "paymentTermsDays": 7,
+        "active": true
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenant-catalog/suppliers",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.costs",
+      "method": "GET",
+      "path": "/tenant-catalog/costs",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/costs?limit=5",
+      "summary": "Purchase costs (owner/manager/accountant read)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenant-catalog/costs",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenant-catalog/costs",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.upsertCost",
+      "method": "POST",
+      "path": "/tenant-catalog/costs",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/costs",
+      "summary": "Set purchase cost (owner/manager only)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenant-catalog/costs",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenantCatalog.upsertCost:b0fbcd52cb373059",
+        "id": "01a0d0c5-f761-7b55-844d-2f72de8830cd",
+        "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "supplierId": "f1628129-b97c-78f4-9493-252df802df40",
+        "purchaseRatePaise": 2062,
+        "landedCostPaise": 2093,
+        "ptdPaise": 2062,
+        "schemeMarginBps": 1200
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenant-catalog/costs",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.repAuthorisations.list",
+      "method": "GET",
+      "path": "/tenant-catalog/rep-authorisations",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/rep-authorisations",
+      "summary": "Which brands a rep may sell (a salesperson sees only its own)",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenant-catalog/rep-authorisations",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenant-catalog/rep-authorisations",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.repAuthorisations.set",
+      "method": "POST",
+      "path": "/tenant-catalog/rep-authorisations",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/rep-authorisations",
+      "summary": "Replace a rep's authorised brands (owner/manager)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenant-catalog/rep-authorisations",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenantCatalog.repAuthorisations.set:1454bac2205d712c",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "items": [
+          {
+            "id": "01a0d0c5-b062-7260-8026-a2d9184c01a1",
+            "brandId": "215e2935-1509-71d7-b3e9-9b23bca6ec3f",
+            "employedBy": "distributor"
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenant-catalog/rep-authorisations",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.brands.list",
+      "method": "GET",
+      "path": "/tenant-catalog/brands",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/brands",
+      "summary": "Per-brand operating mode: fulfilment, Tally source, cash discount, claims",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenant-catalog/brands",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenant-catalog/brands",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.brands.upsert",
+      "method": "POST",
+      "path": "/tenant-catalog/brands",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/brands",
+      "summary": "Set how this distributor runs a brand (owner/manager)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenant-catalog/brands",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenantCatalog.brands.upsert:d4f9f30c411b3a60",
+        "id": "01a0d0c5-e16f-771f-836a-85e1ef956e9b",
+        "brandId": "215e2935-1509-71d7-b3e9-9b23bca6ec3f",
+        "fulfilmentMode": "own",
+        "tallyExportSource": "dos",
+        "cashDiscountMode": "at_receipt_financial_cn",
+        "claimChannel": "dos",
+        "salesForce": "distributor"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenant-catalog/brands",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.packConfigs.list",
+      "method": "GET",
+      "path": "/tenant-catalog/pack-configs",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/pack-configs?limit=5",
+      "summary": "Buy-side pack sizes per supplier and variant",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /tenant-catalog/pack-configs",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /tenant-catalog/pack-configs",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "tenantCatalog.packConfigs.upsert",
+      "method": "POST",
+      "path": "/tenant-catalog/pack-configs",
+      "url": "http://127.0.0.1:3100/retailer/tenant-catalog/pack-configs",
+      "summary": "Set a supplier pack size for a variant (owner/manager)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /tenant-catalog/pack-configs",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:tenantCatalog.packConfigs.upsert:634654c593beda00",
+        "id": "01a0d0c5-0211-7e4e-83b8-7a21fb5e492d",
+        "supplierId": "f1628129-b97c-78f4-9493-252df802df40",
+        "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "pcsPerCase": 24,
+        "supplierCode": "DOCS-PACK-24",
+        "marginBasis": "ptd"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /tenant-catalog/pack-configs",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.list",
+      "method": "GET",
+      "path": "/retailers",
+      "url": "http://127.0.0.1:3100/retailer/retailers?limit=5",
+      "summary": "Retailers of this distributor (retailer role: only its own, without credit)",
+      "status": 200,
+      "ms": 6,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "items": [
+          {
+            "id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+            "name": "Shree Ganesh Kirana",
+            "ownerName": "Jayesh Shah",
+            "phone": "+919892000001",
+            "altPhone": null,
+            "address": {
+              "line1": "Shop 3, Station Road",
+              "area": "Station Road, Kalyan West",
+              "city": "Kalyan",
+              "pincode": "421301"
+            },
+            "lat": 19.234777,
+            "lng": 73.130348,
+            "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b",
+            "gstRegType": "unregistered",
+            "gstin": null,
+            "stateCode": "27",
+            "paymentTerms": "POST_FULFILLMENT",
+            "cashDiscountBps": 0,
+            "cashDiscountDays": 0,
+            "active": true
+          }
+        ],
+        "nextCursor": null
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.upsert",
+      "method": "POST",
+      "path": "/retailers",
+      "url": "http://127.0.0.1:3100/retailer/retailers",
+      "summary": "Create or update a retailer; code is server-assigned",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /retailers",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:retailers.upsert:d44409acc6f684f7",
+        "id": "01a0d0c5-bbcb-76ef-8cd4-365f05847685",
+        "name": "Demo Kirana Store (docs)",
+        "ownerName": "Demo Shopkeeper",
+        "phone": "+919876543210",
+        "altPhone": "+919876543210",
+        "address": {
+          "line1": "12 Station Road",
+          "line2": "Shop 3, Ganesh Building",
+          "landmark": "Opposite the bus depot",
+          "area": "Kalyan West",
+          "city": "Kalyan",
+          "pincode": "421301"
+        },
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b",
+        "gstRegType": "regular",
+        "gstin": "27AAPFU0939F1ZV",
+        "stateCode": "27",
+        "paymentTerms": "POST_FULFILLMENT",
+        "cashDiscountBps": 0,
+        "cashDiscountDays": 0,
+        "active": true
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /retailers",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.get",
+      "method": "GET",
+      "path": "/retailers/{id}",
+      "url": "http://127.0.0.1:3100/retailer/retailers/34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+      "summary": "One retailer (retailer role: only its own, without credit)",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "item": {
+          "id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+          "name": "Shree Ganesh Kirana",
+          "ownerName": "Jayesh Shah",
+          "phone": "+919892000001",
+          "altPhone": null,
+          "address": {
+            "line1": "Shop 3, Station Road",
+            "area": "Station Road, Kalyan West",
+            "city": "Kalyan",
+            "pincode": "421301"
+          },
+          "lat": 19.234777,
+          "lng": 73.130348,
+          "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b",
+          "gstRegType": "unregistered",
+          "gstin": null,
+          "stateCode": "27",
+          "paymentTerms": "POST_FULFILLMENT",
+          "cashDiscountBps": 0,
+          "cashDiscountDays": 0,
+          "active": true
+        }
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.setCredit",
+      "method": "POST",
+      "path": "/retailers/{id}/credit",
+      "url": "http://127.0.0.1:3100/retailer/retailers/34191c43-f0bc-70ab-a39d-fcbe8f94ae36/credit",
+      "summary": "Set tier and credit terms (owner/manager/accountant only)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /retailers/:id/credit",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:retailers.setCredit:05ed761328ad6f80",
+        "tier": "A",
+        "creditLimitPaise": 2680000,
+        "creditLimitBills": 1,
+        "creditDays": 7,
+        "creditMode": "indicate"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /retailers/:id/credit",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.linkIdentity",
+      "method": "POST",
+      "path": "/retailers/{id}/link",
+      "url": "http://127.0.0.1:3100/retailer/retailers/{id}/link",
+      "summary": "Link the retailer to its global identity by phone",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.updateOwn",
+      "method": "POST",
+      "path": "/retailers/me",
+      "url": "http://127.0.0.1:3100/retailer/retailers/me",
+      "summary": "The shop edits its own contact and GST details (never credit, tier or beat)",
+      "status": 200,
+      "ms": 17,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:retailers.updateOwn:ab7246fcc78055af",
+        "id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "ownerName": "Demo Shopkeeper"
+      },
+      "responseSample": {
+        "item": {
+          "id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+          "name": "Shree Ganesh Kirana",
+          "ownerName": "Demo Shopkeeper",
+          "phone": "+919892000001",
+          "altPhone": null,
+          "address": {
+            "line1": "Shop 3, Station Road",
+            "area": "Station Road, Kalyan West",
+            "city": "Kalyan",
+            "pincode": "421301"
+          },
+          "lat": 19.234777,
+          "lng": 73.130348,
+          "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b",
+          "gstRegType": "unregistered",
+          "gstin": null,
+          "stateCode": "27",
+          "paymentTerms": "POST_FULFILLMENT",
+          "cashDiscountBps": 0,
+          "cashDiscountDays": 0,
+          "active": true
+        }
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.beats.list",
+      "method": "GET",
+      "path": "/beats",
+      "url": "http://127.0.0.1:3100/retailer/beats",
+      "summary": "Beats of this distributor",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /beats",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /beats",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.beats.upsert",
+      "method": "POST",
+      "path": "/beats",
+      "url": "http://127.0.0.1:3100/retailer/beats",
+      "summary": "Create or update a beat",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /beats",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:retailers.beats.upsert:31d0ced2578c3e8e",
+        "id": "01a0d0c5-e824-7018-88a7-3f5f48c616b0",
+        "name": "Demo Beat (docs)",
+        "area": "Kalyan West",
+        "visitDays": [],
+        "active": true
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /beats",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.beats.assign",
+      "method": "POST",
+      "path": "/beats/{id}/assign",
+      "url": "http://127.0.0.1:3100/retailer/beats/7298470d-3ffc-768f-b3f7-c0b7bdb3a07b/assign",
+      "summary": "Assign a salesperson to a beat for a date range",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /beats/:id/assign",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:retailers.beats.assign:0d975d3324b4a04a",
+        "assignmentId": "01a0d0c5-9330-7a0a-852d-00587cf80c19",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "validFrom": "2026-09-04",
+        "validTo": "2026-09-04"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /beats/:id/assign",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.beats.assignments.list",
+      "method": "GET",
+      "path": "/beats/assignments",
+      "url": "http://127.0.0.1:3100/retailer/beats/assignments?limit=5",
+      "summary": "Who is on which beat on a date (a salesperson sees only its own)",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /beats/assignments",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /beats/assignments",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.visits.record",
+      "method": "POST",
+      "path": "/visits",
+      "url": "http://127.0.0.1:3100/retailer/visits",
+      "summary": "Record a shop visit (own)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /visits",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:retailers.visits.record:c21c5db24ecd6744",
+        "id": "01a0d0c5-a44c-7f1a-8f2c-148065c84f73",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "endedAt": null,
+        "outcome": "ordered",
+        "reason": null,
+        "lat": 19.2403,
+        "lng": 73.1305,
+        "note": null
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /visits",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "retailers.visits.list",
+      "method": "GET",
+      "path": "/visits",
+      "url": "http://127.0.0.1:3100/retailer/visits?limit=5",
+      "summary": "Visits by retailer / rep / period",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /visits",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /visits",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.priceLists.list",
+      "method": "GET",
+      "path": "/pricing/price-lists",
+      "url": "http://127.0.0.1:3100/retailer/pricing/price-lists",
+      "summary": "Price lists with their rates",
+      "status": 403,
+      "ms": 4,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /pricing/price-lists",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /pricing/price-lists",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.priceLists.upsert",
+      "method": "POST",
+      "path": "/pricing/price-lists",
+      "url": "http://127.0.0.1:3100/retailer/pricing/price-lists",
+      "summary": "Create or update a price list",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /pricing/price-lists",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.priceLists.upsert:a333c1c011fe9194",
+        "id": "01a0d0c5-e3f7-718b-8465-688284fe43a4",
+        "name": "Demo Price List (docs)",
+        "tier": "A",
+        "isDefault": false,
+        "validFrom": "2026-09-04",
+        "validTo": "2026-09-04",
+        "active": true
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /pricing/price-lists",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.priceLists.setItems",
+      "method": "POST",
+      "path": "/pricing/price-lists/{priceListId}/items",
+      "url": "http://127.0.0.1:3100/retailer/pricing/price-lists/2245a710-5188-7549-be0c-2ff17b72f4c8/items",
+      "summary": "Set rates on a price list (upsert per variant)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /pricing/price-lists/:priceListId/items",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.priceLists.setItems:46ab68b3d9236c32",
+        "items": [
+          {
+            "id": "144c61f6-d2a2-709d-95e7-cba7f9fea8be",
+            "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+            "ratePaise": 2309,
+            "inclusiveOfGst": false
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /pricing/price-lists/:priceListId/items",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.overrides.list",
+      "method": "GET",
+      "path": "/pricing/overrides",
+      "url": "http://127.0.0.1:3100/retailer/pricing/overrides?limit=5",
+      "summary": "Retailer-specific rates",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /pricing/overrides",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /pricing/overrides",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.overrides.upsert",
+      "method": "POST",
+      "path": "/pricing/overrides",
+      "url": "http://127.0.0.1:3100/retailer/pricing/overrides",
+      "summary": "Set a retailer-specific rate",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /pricing/overrides",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.overrides.upsert:069cba7eb5f3ac43",
+        "id": "01a0d0c5-9078-7f1e-8d51-cfe27faa70c6",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "ratePaise": 2309,
+        "final": false,
+        "validFrom": "2026-09-04",
+        "validTo": "2026-09-04",
+        "note": "Agreed with the shopkeeper"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /pricing/overrides",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.schemes.list",
+      "method": "GET",
+      "path": "/pricing/schemes",
+      "url": "http://127.0.0.1:3100/retailer/pricing/schemes?limit=5",
+      "summary": "Schemes (the single table the engine reads; the field and the shop get the public shape)",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"00f2f198-e9c3-78e9-b8c0-7a5a252c94e8\",\"name\":\"Campa 2 L — festive 2 bottles free per 2 cases (expired)\",\"brandId\":\"215e2935-1509-71d7-b3e9-9b23bca6ec3f\",\"scope\":{\"variantIds\":[\"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4\",\"b7a018cb-ddc6-7739-a19d-3dad14a2e303\",\"0e79d150-f91d-71ef-bbf5-c79a1911a5bb\"]},\"triggerKind\":\"qty\",\"triggerMin\":2,\"triggerUnit\":\"case\",\"slabs\":null,\"rewardKind\":\"free_qty\",\"rewardValue\":2,\"freeVariantId\":\"346f1104-b9ad-72bd-bcd0-b6fa55a9eae4\",\"applicability\":{},\"validFrom\":\"2026-05-22\",\"validTo\":\"2026-07-21\",\"stackable\":true,\"final\":false,\"gstOnFreeGoods\":false,\"pr…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.schemes.upsert",
+      "method": "POST",
+      "path": "/pricing/schemes",
+      "url": "http://127.0.0.1:3100/retailer/pricing/schemes",
+      "summary": "Create or update a scheme; a change to its economics bumps the version",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /pricing/schemes",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.schemes.upsert:15aefd23e614b835",
+        "id": "01a0d0c5-4314-7b38-8d13-c876c4d6c572",
+        "name": "Demo Scheme (docs) — 12+1 free",
+        "scope": {
+          "all": true
+        },
+        "triggerKind": "qty",
+        "triggerMin": 12,
+        "triggerUnit": "pcs",
+        "rewardKind": "free_qty",
+        "rewardValue": 1,
+        "freeVariantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "applicability": {},
+        "validFrom": "2026-09-01",
+        "validTo": "2026-09-30",
+        "stackable": true,
+        "final": false,
+        "fundingSource": "company",
+        "claimable": false,
+        "claimWindowDays": 7,
+        "gstOnFreeGoods": false,
+        "pricingDateMode": "order",
+        "active": false
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /pricing/schemes",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.quote",
+      "method": "POST",
+      "path": "/pricing/quote",
+      "url": "http://127.0.0.1:3100/retailer/pricing/quote",
+      "summary": "Price an order with the pure engine (no side effects)",
+      "status": 200,
+      "ms": 16,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "pricingDate": "2026-09-04",
+        "deliveryDate": "2026-09-04",
+        "lines": [
+          {
+            "lineId": "01a0d0c5-ac82-708e-8bee-29867d39012c",
+            "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+            "qtyPcs": 12
+          }
+        ]
+      },
+      "responseSample": "{\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"pricingDate\":\"2026-09-04\",\"lines\":[{\"lineId\":\"01a0d0c5-ac82-708e-8bee-29867d39012c\",\"variantId\":\"f71bf137-50de-7182-a0d9-c83f1a613a57\",\"qtyPcs\":12,\"caseSize\":24,\"listRatePaise\":2309,\"ratePaise\":2309,\"grossPaise\":27708,\"discountPaise\":0,\"bargainPaise\":0,\"freeQtyPcs\":0,\"freeItems\":[],\"appliedRules\":[],\"lineNetPaise\":27708,\"gstBps\":1200,\"taxPaise\":3325,\"lineTotalPaise\":31033}],\"orderRules\":[],\"cashDiscountBps\":0,\"cashDiscountPaise\":0,\"totals\":{\"grossPaise\":27708,\"discountPaise\":0,\"bargainPaise\":0,\"netPaise\":27708,\"taxPaise\":3325,\"roundOffPaise…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.bargains.request",
+      "method": "POST",
+      "path": "/pricing/bargains",
+      "url": "http://127.0.0.1:3100/retailer/pricing/bargains",
+      "summary": "Ask for a lower rate; auto-approved within the rep bound",
+      "status": 200,
+      "ms": 15,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.bargains.request:3ed33deab06a6e81",
+        "id": "01a0d0c5-1a3e-779e-8c4a-f0e62fcf9a62",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "askedRatePaise": 2194,
+        "qtyPcs": 12,
+        "note": "Confirmed on phone with the shopkeeper"
+      },
+      "responseSample": {
+        "item": {
+          "id": "01a0d0c5-1a3e-779e-8c4a-f0e62fcf9a62",
+          "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+          "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+          "orderId": null,
+          "requestedBy": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+          "listRatePaise": 2263,
+          "askedRatePaise": 2194,
+          "approvedRatePaise": null,
+          "status": "requested",
+          "decidedBy": null,
+          "decidedAt": null,
+          "expiresAt": null,
+          "note": "Confirmed on phone with the shopkeeper",
+          "createdAt": "2026-09-19T17:09:46.031Z"
+        }
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.bargains.list",
+      "method": "GET",
+      "path": "/pricing/bargains",
+      "url": "http://127.0.0.1:3100/retailer/pricing/bargains?limit=5",
+      "summary": "Bargain requests (a shop sees the outcome of its own)",
+      "status": 200,
+      "ms": 5,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "items": [
+          {
+            "id": "01a0d0c5-1a3e-779e-8c4a-f0e62fcf9a62",
+            "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+            "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+            "orderId": null,
+            "requestedBy": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+            "listRatePaise": 2263,
+            "askedRatePaise": 2194,
+            "approvedRatePaise": null,
+            "status": "requested",
+            "decidedBy": null,
+            "decidedAt": null,
+            "expiresAt": null,
+            "note": "Confirmed on phone with the shopkeeper",
+            "createdAt": "2026-09-19T17:09:46.031Z"
+          }
+        ],
+        "nextCursor": null
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.bargains.decide",
+      "method": "POST",
+      "path": "/pricing/bargains/{id}/decide",
+      "url": "http://127.0.0.1:3100/retailer/pricing/bargains/01a0d0c5-1a3e-779e-8c4a-f0e62fcf9a62/decide",
+      "summary": "Approve or reject a bargain (back office)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /pricing/bargains/:id/decide",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.bargains.decide:f84cb3a61ddfbb6f",
+        "decision": "approve",
+        "approvedRatePaise": 2194,
+        "note": "Confirmed on phone with the shopkeeper"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /pricing/bargains/:id/decide",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.bounds.set",
+      "method": "POST",
+      "path": "/pricing/bounds",
+      "url": "http://127.0.0.1:3100/retailer/pricing/bounds",
+      "summary": "How far a rep may discount without asking (owner only)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /pricing/bounds",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:pricing.bounds.set:57c0ab2f7abb5953",
+        "id": "01a0d0c5-b26e-76fe-8b98-bf100dbf8e6e",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "maxDiscountBps": 500,
+        "maxOrderDiscountPaise": 12000
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /pricing/bounds",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "pricing.bounds.list",
+      "method": "GET",
+      "path": "/pricing/bounds",
+      "url": "http://127.0.0.1:3100/retailer/pricing/bounds",
+      "summary": "Rep auto-approve bounds (a salesperson sees only its own)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /pricing/bounds",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /pricing/bounds",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.locations.list",
+      "method": "GET",
+      "path": "/inventory/locations",
+      "url": "http://127.0.0.1:3100/retailer/inventory/locations",
+      "summary": "Stock locations: godown, vehicles, damaged bin",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /inventory/locations",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /inventory/locations",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.locations.upsert",
+      "method": "POST",
+      "path": "/inventory/locations",
+      "url": "http://127.0.0.1:3100/retailer/inventory/locations",
+      "summary": "Create or update a stock location",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/locations",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.locations.upsert:f7c2302792f8ddfb",
+        "id": "01a0d0c5-98df-760c-8b50-f1b17936b609",
+        "kind": "warehouse",
+        "name": "Demo Godown (docs)",
+        "negativeAllowed": false,
+        "active": true
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/locations",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.stock.sellable",
+      "method": "GET",
+      "path": "/inventory/sellable",
+      "url": "http://127.0.0.1:3100/retailer/inventory/sellable?limit=5",
+      "summary": "Available-to-promise stock per lot per location",
+      "status": 200,
+      "ms": 12,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"variantId\":\"f086f3e3-3697-7439-98d9-f20c231c110a\",\"locationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"lotId\":\"00106d03-d980-73ae-a720-b3369ea572f7\",\"batchNo\":\"RCP20260814\",\"mrpPaise\":5000,\"expiryDate\":\"2027-05-11\",\"available\":5,\"variantName\":\"Campa Cola 1 L\",\"productName\":\"Campa Cola\",\"brandName\":\"Campa\"},{\"variantId\":\"00991e15-fd1e-7637-a093-bfec3e357a26\",\"locationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"lotId\":\"005c43fd-3477-7558-8fe5-43c6f69b3a89\",\"batchNo\":\"SC20260611\",\"mrpPaise\":2000,\"expiryDate\":\"2028-06-10\",\"available\":14,\"variantName\":\"Chamak Detergent Bar 250 g\",\"produ…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.stock.availability",
+      "method": "GET",
+      "path": "/inventory/availability",
+      "url": "http://127.0.0.1:3100/retailer/inventory/availability?limit=5",
+      "summary": "Available-to-promise per item at the godown orders reserve from (the order screens' stock hint)",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "items": [
+          {
+            "variantId": "00991e15-fd1e-7637-a093-bfec3e357a26",
+            "available": 480
+          },
+          {
+            "variantId": "01e9bd5b-bcea-7439-a974-5cfd04585764",
+            "available": 249
+          },
+          {
+            "variantId": "03ddc45e-c10a-7adb-a00d-669f8c90996a",
+            "available": 120
+          },
+          {
+            "variantId": "04c20c58-f9fd-7c12-b121-8208c35bfd98",
+            "available": 553
+          },
+          {
+            "variantId": "054a1a8b-473f-7056-a62b-db00c8ecc442",
+            "available": 960
+          }
+        ],
+        "nextCursor": "054a1a8b-473f-7056-a62b-db00c8ecc442"
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.stock.balances",
+      "method": "GET",
+      "path": "/inventory/balances",
+      "url": "http://127.0.0.1:3100/retailer/inventory/balances?limit=5",
+      "summary": "On-hand and reserved per lot per location (stock keepers only)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /inventory/balances",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /inventory/balances",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.stock.adjust",
+      "method": "POST",
+      "path": "/inventory/adjustments",
+      "url": "http://127.0.0.1:3100/retailer/inventory/adjustments",
+      "summary": "Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/adjustments",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.stock.adjust:7272794f43ae04c6",
+        "lotId": "cb5df43d-cc5e-738c-8590-4813f843e143",
+        "locationId": "01a0baa2-26e3-73aa-9bf7-aaabca9f07fa",
+        "qtyDelta": -1,
+        "reason": "adjustment",
+        "note": "Confirmed on phone with the shopkeeper"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/adjustments",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.stock.transfer",
+      "method": "POST",
+      "path": "/inventory/transfers",
+      "url": "http://127.0.0.1:3100/retailer/inventory/transfers",
+      "summary": "Move pieces of a lot between locations",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/transfers",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.stock.transfer:d4771820c3f212d2",
+        "lotId": "cb5df43d-cc5e-738c-8590-4813f843e143",
+        "fromLocationId": "01a0baa2-26e3-73aa-9bf7-aaabca9f07fa",
+        "toLocationId": "3bbe6b52-7dd7-7540-aad6-94ff815e8d8b",
+        "qtyPcs": 1,
+        "note": "Confirmed on phone with the shopkeeper"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/transfers",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.stock.ledger",
+      "method": "GET",
+      "path": "/inventory/ledger",
+      "url": "http://127.0.0.1:3100/retailer/inventory/ledger?limit=5",
+      "summary": "Append-only stock ledger",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /inventory/ledger",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /inventory/ledger",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.lots.upsert",
+      "method": "POST",
+      "path": "/inventory/lots",
+      "url": "http://127.0.0.1:3100/retailer/inventory/lots",
+      "summary": "Find or create a lot (variant + batch + MRP)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/lots",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.lots.upsert:e6929c70aa87ac4f",
+        "id": "01a0d0c5-ca83-7bb5-8b33-707367fa51c1",
+        "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+        "batchNo": "DOCS-B1",
+        "mrpPaise": 2000,
+        "mfgDate": "2026-09-04",
+        "expiryDate": "2026-09-04"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/lots",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.cycleCounts.open",
+      "method": "POST",
+      "path": "/inventory/cycle-counts",
+      "url": "http://127.0.0.1:3100/retailer/inventory/cycle-counts",
+      "summary": "Open a physical count of a location (expected pieces frozen per lot)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/cycle-counts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.cycleCounts.open:0bc3efc0c2d5f15f",
+        "id": "01a0d0c5-936f-712e-8006-5ade4afde3b2",
+        "locationId": "01a0baa2-26e3-73aa-9bf7-aaabca9f07fa",
+        "lotIds": [
+          "cb5df43d-cc5e-738c-8590-4813f843e143"
+        ],
+        "note": "Opened from the API docs"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/cycle-counts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.cycleCounts.list",
+      "method": "GET",
+      "path": "/inventory/cycle-counts",
+      "url": "http://127.0.0.1:3100/retailer/inventory/cycle-counts?limit=5",
+      "summary": "Cycle counts by location and status",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /inventory/cycle-counts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /inventory/cycle-counts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.cycleCounts.count",
+      "method": "POST",
+      "path": "/inventory/cycle-counts/{id}/count",
+      "url": "http://127.0.0.1:3100/retailer/inventory/cycle-counts/b24cd950-8b2b-7979-b757-948dfe93be0a/count",
+      "summary": "Record counted pieces per lot (blind)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/cycle-counts/:id/count",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.cycleCounts.count:bdd66dbb8feac20b",
+        "lines": [
+          {
+            "lotId": "00106d03-d980-73ae-a720-b3369ea572f7",
+            "countedPcs": 5999
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/cycle-counts/:id/count",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.cycleCounts.post",
+      "method": "POST",
+      "path": "/inventory/cycle-counts/{id}/post",
+      "url": "http://127.0.0.1:3100/retailer/inventory/cycle-counts/b24cd950-8b2b-7979-b757-948dfe93be0a/post",
+      "summary": "Post the differences as cycle_count ledger rows (back office)",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /inventory/cycle-counts/:id/post",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:inventory.cycleCounts.post:2a40429eac2469ba"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /inventory/cycle-counts/:id/post",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "inventory.cycleCounts.get",
+      "method": "GET",
+      "path": "/inventory/cycle-counts/{id}",
+      "url": "http://127.0.0.1:3100/retailer/inventory/cycle-counts/b24cd950-8b2b-7979-b757-948dfe93be0a",
+      "summary": "One cycle count with its lines",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /inventory/cycle-counts/:id",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /inventory/cycle-counts/:id",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.create",
+      "method": "POST",
+      "path": "/orders",
+      "url": "http://127.0.0.1:3100/retailer/orders",
+      "summary": "Create a priced draft order",
+      "status": 200,
+      "ms": 38,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:orders.create:5cca46575ac195aa",
+        "id": "7c1e7562-da7c-701a-b525-508e45beeeed",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "source": "retailer_app",
+        "pricingDateMode": "order",
+        "paymentTerms": "PRE",
+        "fulfilFromLocationId": "01a0baa2-26e3-73aa-9bf7-aaabca9f07fa",
+        "expectedDeliveryDate": "2026-09-04",
+        "note": null,
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302",
+        "lines": [
+          {
+            "id": "01a0d0c5-062c-7dfa-83df-408dbc26fc22",
+            "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+            "enteredQty": 12,
+            "enteredUnit": "piece"
+          }
+        ]
+      },
+      "responseSample": "{\"item\":{\"id\":\"7c1e7562-da7c-701a-b525-508e45beeeed\",\"orderNo\":null,\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"draft\",\"source\":\"retailer_app\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"salespersonId\":null,\"pricingDateMode\":\"order\",\"paymentTerms\":\"PRE\",\"fulfilFromLocationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"externalRef\":null,\"subtotalPaise\":27156,\"discountPaise\":0,\"taxPaise\":3259,\"roundOffPaise\":-15,\"totalPaise\":30400,\"approvalFlags\":[],\"expectedDeliveryDate\":\"2026-09-04\",\"note\":null,\"submittedAt\":null,\"confirmedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.list",
+      "method": "GET",
+      "path": "/orders",
+      "url": "http://127.0.0.1:3100/retailer/orders?limit=5",
+      "summary": "Orders (a retailer or a salesperson sees only its own)",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"fcc561d4-a471-7fd9-b7d9-39cbafeefb20\",\"orderNo\":\"SO-0450\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"delivered\",\"source\":\"salesperson\",\"createdBy\":\"008fa1f5-ecd7-790e-8467-bcb88d4d3646\",\"salespersonId\":\"008fa1f5-ecd7-790e-8467-bcb88d4d3646\",\"pricingDateMode\":\"order\",\"paymentTerms\":\"POST_FULFILLMENT\",\"fulfilFromLocationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"externalRef\":null,\"subtotalPaise\":903480,\"discountPaise\":0,\"taxPaise\":108418,\"roundOffPaise\":2,\"totalPaise\":1011900,\"approvalFlags\":[],\"expectedDeliveryDate\":null,\"note\":null,\"submittedAt\":\"2026-08-06T…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.setLines",
+      "method": "POST",
+      "path": "/orders/{id}/lines",
+      "url": "http://127.0.0.1:3100/retailer/orders/7c1e7562-da7c-701a-b525-508e45beeeed/lines",
+      "summary": "Replace the lines of a draft and re-price it",
+      "status": 200,
+      "ms": 27,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:orders.setLines:f96fce54f0e790e6",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302",
+        "lines": [
+          {
+            "id": "01a0d0c5-429d-71f8-8ef6-53e4cf751980",
+            "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+            "enteredQty": 12,
+            "enteredUnit": "piece"
+          }
+        ]
+      },
+      "responseSample": "{\"item\":{\"id\":\"7c1e7562-da7c-701a-b525-508e45beeeed\",\"orderNo\":null,\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"draft\",\"source\":\"retailer_app\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"salespersonId\":null,\"pricingDateMode\":\"order\",\"paymentTerms\":\"PRE\",\"fulfilFromLocationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"externalRef\":null,\"subtotalPaise\":27156,\"discountPaise\":0,\"taxPaise\":3259,\"roundOffPaise\":-15,\"totalPaise\":30400,\"approvalFlags\":[],\"expectedDeliveryDate\":\"2026-09-04\",\"note\":null,\"submittedAt\":null,\"confirmedAt\":null,\"cancelledAt\":null,\"cancelReason\":null,\"…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.repeatLast",
+      "method": "POST",
+      "path": "/orders/repeat-last",
+      "url": "http://127.0.0.1:3100/retailer/orders/repeat-last",
+      "summary": "Draft a repeat of the retailer's last order, re-priced today",
+      "status": 200,
+      "ms": 27,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:orders.repeatLast:6c9dc4c870128c2a",
+        "id": "41bfcbca-8471-7da8-b60e-3570ab227d1a",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "source": "retailer_app",
+        "expectedDeliveryDate": "2026-09-04",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": "{\"item\":{\"id\":\"41bfcbca-8471-7da8-b60e-3570ab227d1a\",\"orderNo\":null,\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"draft\",\"source\":\"retailer_app\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"salespersonId\":null,\"pricingDateMode\":\"order\",\"paymentTerms\":\"POST_FULFILLMENT\",\"fulfilFromLocationId\":null,\"externalRef\":null,\"subtotalPaise\":1053846,\"discountPaise\":0,\"taxPaise\":199142,\"roundOffPaise\":12,\"totalPaise\":1253000,\"approvalFlags\":[],\"expectedDeliveryDate\":\"2026-09-04\",\"note\":\"Repeat of dccd17bd-1c53-7b90-bc39-006ab20329ec\",\"submittedAt\":null,\"confirmedAt\":null,\"cancelledAt…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.submit",
+      "method": "POST",
+      "path": "/orders/{id}/submit",
+      "url": "http://127.0.0.1:3100/retailer/orders/7c1e7562-da7c-701a-b525-508e45beeeed/submit",
+      "summary": "Submit: assign the order number, raise approvals or auto-confirm (a shop: its own draft)",
+      "status": 200,
+      "ms": 22,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:orders.submit:71a882f7fea4cc95",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": "{\"item\":{\"id\":\"7c1e7562-da7c-701a-b525-508e45beeeed\",\"orderNo\":\"SO-0888\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"submitted\",\"source\":\"retailer_app\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"salespersonId\":null,\"pricingDateMode\":\"order\",\"paymentTerms\":\"PRE\",\"fulfilFromLocationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"externalRef\":null,\"subtotalPaise\":27156,\"discountPaise\":0,\"taxPaise\":3259,\"roundOffPaise\":-15,\"totalPaise\":30400,\"approvalFlags\":[\"bargain\"],\"expectedDeliveryDate\":\"2026-09-04\",\"note\":null,\"submittedAt\":\"2026-09-19T17:09:46.211Z\",\"confirmedAt\":null,…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.confirm",
+      "method": "POST",
+      "path": "/orders/{id}/confirm",
+      "url": "http://127.0.0.1:3100/retailer/orders/7c1e7562-da7c-701a-b525-508e45beeeed/confirm",
+      "summary": "Confirm and reserve stock (back office)",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /orders/:id/confirm",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:orders.confirm:374b2cf232aed8ac",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /orders/:id/confirm",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.cancel",
+      "method": "POST",
+      "path": "/orders/{id}/cancel",
+      "url": "http://127.0.0.1:3100/retailer/orders/{id}/cancel",
+      "summary": "Cancel an order and release its reservations",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.lastPlaced",
+      "method": "GET",
+      "path": "/orders/last-placed",
+      "url": "http://127.0.0.1:3100/retailer/orders/last-placed?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+      "summary": "The shop's most recently placed order with its lines, which is what Order again repeats (writes nothing)",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"7c1e7562-da7c-701a-b525-508e45beeeed\",\"orderNo\":\"SO-0888\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"submitted\",\"source\":\"retailer_app\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"salespersonId\":null,\"pricingDateMode\":\"order\",\"paymentTerms\":\"PRE\",\"fulfilFromLocationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"externalRef\":null,\"subtotalPaise\":27156,\"discountPaise\":0,\"taxPaise\":3259,\"roundOffPaise\":-15,\"totalPaise\":30400,\"approvalFlags\":[\"bargain\"],\"expectedDeliveryDate\":\"2026-09-04\",\"note\":null,\"submittedAt\":\"2026-09-19T17:09:46.211Z\",\"confirmedAt\":null,…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.get",
+      "method": "GET",
+      "path": "/orders/{id}",
+      "url": "http://127.0.0.1:3100/retailer/orders/7c1e7562-da7c-701a-b525-508e45beeeed",
+      "summary": "One order with lines, transitions and approvals",
+      "status": 200,
+      "ms": 6,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"7c1e7562-da7c-701a-b525-508e45beeeed\",\"orderNo\":\"SO-0888\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"state\":\"submitted\",\"source\":\"retailer_app\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"salespersonId\":null,\"pricingDateMode\":\"order\",\"paymentTerms\":\"PRE\",\"fulfilFromLocationId\":\"01a0baa2-26e3-73aa-9bf7-aaabca9f07fa\",\"externalRef\":null,\"subtotalPaise\":27156,\"discountPaise\":0,\"taxPaise\":3259,\"roundOffPaise\":-15,\"totalPaise\":30400,\"approvalFlags\":[\"bargain\"],\"expectedDeliveryDate\":\"2026-09-04\",\"note\":null,\"submittedAt\":\"2026-09-19T17:09:46.211Z\",\"confirmedAt\":null,…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.approvals.list",
+      "method": "GET",
+      "path": "/approvals",
+      "url": "http://127.0.0.1:3100/retailer/approvals?limit=5",
+      "summary": "Approval queue (back office)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /approvals",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /approvals",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "orders.approvals.decide",
+      "method": "POST",
+      "path": "/approvals/{id}/decide",
+      "url": "http://127.0.0.1:3100/retailer/approvals/01a0baa5-3c6d-723e-a024-7adcbcc86f9c/decide",
+      "summary": "Approve or reject; the last approval approved confirms the order",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /approvals/:id/decide",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:orders.approvals.decide:4a34341adcd85bce",
+        "decision": "approve",
+        "note": "Approved from the API docs",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /approvals/:id/decide",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.create",
+      "method": "POST",
+      "path": "/receipts",
+      "url": "http://127.0.0.1:3100/retailer/receipts",
+      "summary": "Record money from a shop and allocate it to bills (desk and delivery crew)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /receipts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.receipts.create:2d47e950bc02a52d",
+        "id": "01a0d0c5-53e1-7c9d-83b0-bccbfd24decb",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "receivedAt": "2026-09-04T10:30:00.000Z",
+        "reference": "text",
+        "upiVpa": "text",
+        "chequeDate": "2026-09-04",
+        "bankName": "text",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302",
+        "clientReceiptNo": "SO-0042",
+        "note": "Confirmed on phone with the shopkeeper",
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "strategy": "fifo"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /receipts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.list",
+      "method": "GET",
+      "path": "/receipts",
+      "url": "http://127.0.0.1:3100/retailer/receipts?limit=5",
+      "summary": "Receipts (a shop sees only its own)",
+      "status": 200,
+      "ms": 14,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"83712552-7beb-7da0-933b-a571f701c1e4\",\"receiptNo\":\"RCPT-0706\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"mode\":\"bank_transfer\",\"amountPaise\":551100,\"allocatedPaise\":551100,\"unallocatedPaise\":0,\"cashDiscountPaise\":0,\"status\":\"collected\",\"receivedAt\":\"2026-09-19T09:00:00.000Z\",\"receivedBy\":\"3188dd91-43ff-768a-97cc-b63c11bb00a0\",\"tripId\":null,\"reference\":\"NEFT800000705\",\"upiVpa\":null,\"chequeDate\":null,\"bankName\":null,\"deviceId\":null,\"clientReceiptNo\":null,\"reversesReceiptId\":null,\"depositedAt\":null,\"depositRef\":null,\"depositAccountId\":null,\"bouncedAt\":null,\"bounceReason…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.get",
+      "method": "GET",
+      "path": "/receipts/{id}",
+      "url": "http://127.0.0.1:3100/retailer/receipts/83712552-7beb-7da0-933b-a571f701c1e4",
+      "summary": "One receipt with its allocations and its reversal, if any",
+      "status": 200,
+      "ms": 10,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"83712552-7beb-7da0-933b-a571f701c1e4\",\"receiptNo\":\"RCPT-0706\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"mode\":\"bank_transfer\",\"amountPaise\":551100,\"allocatedPaise\":551100,\"unallocatedPaise\":0,\"cashDiscountPaise\":0,\"status\":\"collected\",\"receivedAt\":\"2026-09-19T09:00:00.000Z\",\"receivedBy\":\"3188dd91-43ff-768a-97cc-b63c11bb00a0\",\"tripId\":null,\"reference\":\"NEFT800000705\",\"upiVpa\":null,\"chequeDate\":null,\"bankName\":null,\"deviceId\":null,\"clientReceiptNo\":null,\"reversesReceiptId\":null,\"depositedAt\":null,\"depositRef\":null,\"depositAccountId\":null,\"bouncedAt\":null,\"bounceReason\":…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.document",
+      "method": "GET",
+      "path": "/receipts/{id}/document",
+      "url": "http://127.0.0.1:3100/retailer/receipts/83712552-7beb-7da0-933b-a571f701c1e4/document",
+      "summary": "The printable receipt (A5 or 80 mm thermal) with the distributor branding",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "status": "queued",
+        "objectKey": null,
+        "url": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.bounce",
+      "method": "POST",
+      "path": "/receipts/{id}/bounce",
+      "url": "http://127.0.0.1:3100/retailer/receipts/{id}/bounce",
+      "summary": "Return a bounced cheque and restore the outstanding exactly",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (would return a seeded cheque and book a real bank charge against the demo books)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.payments.initiate",
+      "method": "POST",
+      "path": "/receivables/payments/initiate",
+      "url": "http://127.0.0.1:3100/retailer/receivables/payments/initiate",
+      "summary": "A shop starts an online payment against its own bills",
+      "status": 200,
+      "ms": 16,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.payments.initiate:de3b78a7d983e4e6",
+        "id": "01a0d0c5-7c4a-76bc-884c-51e942b1c5ab",
+        "amountPaise": 4000,
+        "invoiceIds": [
+          "6c3fd7a4-a41f-737c-92f9-4311e7fa8e89"
+        ],
+        "note": "Confirmed on phone with the shopkeeper"
+      },
+      "responseSample": {
+        "intentId": "01a0d0c5-7c4a-76bc-884c-51e942b1c5ab",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "amountPaise": 4000,
+        "upiQrPayload": "upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=40.00&tr=PAY-51e942b1c5ab&tn=PAY-51e942b1c5ab&cu=INR",
+        "upiIntentUrl": "upi://pay?pa=tarsun%40okhdfcbank&pn=Tarsun%20Enterprise&am=40.00&tr=PAY-51e942b1c5ab&tn=PAY-51e942b1c5ab&cu=INR",
+        "payeeVpa": "tarsun@okhdfcbank",
+        "payeeName": "Tarsun Enterprise",
+        "paymentRef": "PAY-51e942b1c5ab",
+        "expiresAt": "2026-09-19T17:39:46.291Z",
+        "bills": []
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.allocations.create",
+      "method": "POST",
+      "path": "/allocations",
+      "url": "http://127.0.0.1:3100/retailer/allocations",
+      "summary": "Allocate on-account money or a credit note to specific bills",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /allocations",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.allocations.create:31c86dedfbc4e776",
+        "id": "01a0d0c5-7245-7ce6-8572-06ebf36b5428",
+        "sourceType": "receipt",
+        "sourceId": "adb19320-a3a3-7ba6-b20a-374afdc511e5",
+        "lines": [
+          {
+            "id": "01a0d0c5-dc50-77dc-8fde-1caada62765c",
+            "invoiceId": "6c3fd7a4-a41f-737c-92f9-4311e7fa8e89",
+            "amountPaise": 4000
+          }
+        ],
+        "lines[0].invoiceId": "8c170ea4-7d89-7a8d-bc87-b7efb27080c8",
+        "lines[0].amountPaise": 1
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /allocations",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.allocations.remove",
+      "method": "POST",
+      "path": "/allocations/{id}/remove",
+      "url": "http://127.0.0.1:3100/retailer/allocations/{id}/remove",
+      "summary": "Undo one allocation without reversing the money",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (would delete a seeded allocation and reopen the bill it settled)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.outstanding.get",
+      "method": "GET",
+      "path": "/receivables/outstanding/{retailerId}",
+      "url": "http://127.0.0.1:3100/retailer/receivables/outstanding/34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+      "summary": "One shop's dues with its open bills",
+      "status": 200,
+      "ms": 12,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"outstandingPaise\":2523300,\"overduePaise\":2523300,\"unallocatedCreditPaise\":0,\"openBills\":5,\"oldestDueDate\":\"2026-08-24\",\"oldestInvoiceDate\":\"2026-08-17\",\"lastReceiptAt\":\"2026-09-19T09:00:00.000Z\",\"lastReceiptPaise\":551100,\"buckets\":{\"b0_7\":547200,\"b8_15\":378300,\"b16_30\":1597800,\"b31_60\":0,\"b61_90\":0,\"b90plus\":0},\"asOf\":\"2026-09-19\",\"bills\":[{\"id\":\"b9ec3312-5bc2-78ed-b22f-081cc3c621af\",\"invoiceNo\":\"INV/0524\",\"invoiceDate\":\"2026-08-17\",\"dueDate\":\"2026-08-24\",\"totalPaise\":520400,\"openPaise\":285500,\"ageDays\":26,\"bucket\":\"b16_30\",\"cashDiscountBps…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.outstanding.list",
+      "method": "GET",
+      "path": "/receivables/outstanding",
+      "url": "http://127.0.0.1:3100/retailer/receivables/outstanding?limit=5",
+      "summary": "The ageing register: dues by shop, bucket and beat",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /receivables/outstanding",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /receivables/outstanding",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.creditCheck",
+      "method": "GET",
+      "path": "/receivables/credit-check",
+      "url": "http://127.0.0.1:3100/retailer/receivables/credit-check?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+      "summary": "Whether this order fits the shop's credit terms",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /receivables/credit-check",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /receivables/credit-check",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.ledger.get",
+      "method": "GET",
+      "path": "/receivables/ledger/{retailerId}",
+      "url": "http://127.0.0.1:3100/retailer/receivables/ledger/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?limit=5",
+      "summary": "A shop's statement of account with a running balance",
+      "status": 200,
+      "ms": 18,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"openingPaise\":0,\"items\":[{\"date\":\"2026-06-22\",\"kind\":\"invoice\",\"refId\":\"9f01d6a6-eea2-7bf9-8fb1-17b82bfbf5a7\",\"refNo\":\"INV/0001\",\"narration\":null,\"debitPaise\":524200,\"creditPaise\":0,\"balancePaise\":524200},{\"date\":\"2026-06-26\",\"kind\":\"invoice\",\"refId\":\"72265f2b-b69d-7767-be04-d59455fa4960\",\"refNo\":\"INV/0037\",\"narration\":null,\"debitPaise\":1196300,\"creditPaise\":0,\"balancePaise\":1720500},{\"date\":\"2026-07-03\",\"kind\":\"invoice\",\"refId\":\"b0b52a8a-59cb-7c1f-adb8-b3d92bee9155\",\"refNo\":\"INV/0103\",\"narration\":null,\"debitPaise\":322600,\"creditPaise\":0,\"balancePaise\":2043100},{\"date\":\"2026-07-06\",\"kind\":\"r…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.statements.send",
+      "method": "POST",
+      "path": "/receivables/statements",
+      "url": "http://127.0.0.1:3100/retailer/receivables/statements",
+      "summary": "Queue statements for a beat or a list of shops",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /receivables/statements",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.statements.send:535bfba01977ad40",
+        "id": "01a0d0c5-0207-76b3-8f9f-2db546ca743b",
+        "retailerIds": [
+          "34191c43-f0bc-70ab-a39d-fcbe8f94ae36"
+        ],
+        "from": "2026-09-04",
+        "to": "2026-09-04",
+        "channel": "whatsapp",
+        "includeUpiQr": true,
+        "overdueOnly": false
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /receivables/statements",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.writeOffs.create",
+      "method": "POST",
+      "path": "/receivables/write-offs",
+      "url": "http://127.0.0.1:3100/retailer/receivables/write-offs",
+      "summary": "Write off a bad debt (owner only)",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.cashDiscounts.list",
+      "method": "GET",
+      "path": "/receivables/cash-discounts",
+      "url": "http://127.0.0.1:3100/retailer/receivables/cash-discounts?limit=5",
+      "summary": "Cash-discount windows still open, soonest first",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /receivables/cash-discounts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /receivables/cash-discounts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.accounts.list",
+      "method": "GET",
+      "path": "/receivables/accounts",
+      "url": "http://127.0.0.1:3100/retailer/receivables/accounts",
+      "summary": "Chart of accounts with balances (trial balance)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /receivables/accounts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /receivables/accounts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.journal.list",
+      "method": "GET",
+      "path": "/receivables/journal",
+      "url": "http://127.0.0.1:3100/retailer/receivables/journal?limit=5",
+      "summary": "The day book: journal entries with their lines (back office)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /receivables/journal",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /receivables/journal",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.ageing.rebuild",
+      "method": "POST",
+      "path": "/receivables/ageing/rebuild",
+      "url": "http://127.0.0.1:3100/retailer/receivables/ageing/rebuild",
+      "summary": "Recompute the outstanding summary and the ageing snapshot (owner only)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /receivables/ageing/rebuild",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.ageing.rebuild:e4187799300bcb1a",
+        "id": "01a0d0c5-d907-7107-86e8-3b840030149d",
+        "asOf": "2026-09-04",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /receivables/ageing/rebuild",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.ageing.history",
+      "method": "GET",
+      "path": "/receivables/ageing/history",
+      "url": "http://127.0.0.1:3100/retailer/receivables/ageing/history?from=2026-08-01&to=2026-09-30",
+      "summary": "Outstanding and ageing buckets over time, from the nightly snapshots",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /receivables/ageing/history",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /receivables/ageing/history",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.queue",
+      "method": "GET",
+      "path": "/billing/queue",
+      "url": "http://127.0.0.1:3100/retailer/billing/queue?limit=5",
+      "summary": "Orders waiting to be billed, oldest first",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /billing/queue",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /billing/queue",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.issueForPack",
+      "method": "POST",
+      "path": "/warehouse/packs/{packId}/invoice",
+      "url": "http://127.0.0.1:3100/retailer/warehouse/packs/223c021d-74a7-724b-8e82-673db4840647/invoice",
+      "summary": "Bill a pack that was confirmed without an invoice (stock has already left)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /warehouse/packs/:packId/invoice",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.invoices.issueForPack:04c71cac7f1af6d4",
+        "id": "01a0d0c5-5462-70eb-821f-9f6f1b659c08"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /warehouse/packs/:packId/invoice",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.issueVanSale",
+      "method": "POST",
+      "path": "/invoices/van-sale",
+      "url": "http://127.0.0.1:3100/retailer/invoices/van-sale",
+      "summary": "Bill a sale off the van, from vehicle stock and the tenant series",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /invoices/van-sale",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.invoices.issueVanSale:a041233180785b7d",
+        "id": "01a0d0c5-a028-749c-89a7-afc1c73704c6",
+        "orderId": "dccd17bd-1c53-7b90-bc39-006ab20329ec",
+        "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+        "invoiceDate": "2026-09-04",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /invoices/van-sale",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.importBrandDms",
+      "method": "POST",
+      "path": "/invoices/brand-dms",
+      "url": "http://127.0.0.1:3100/retailer/invoices/brand-dms",
+      "summary": "Store a brand DMS's own invoice verbatim; never a second legal document",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /invoices/brand-dms",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.invoices.importBrandDms:87011ac077352e95",
+        "id": "01a0d0c5-64bb-738b-8df3-e45236ec2815",
+        "orderId": "dccd17bd-1c53-7b90-bc39-006ab20329ec",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "externalInvoiceNo": "SO-0042",
+        "seriesCode": "R-0001",
+        "invoiceDate": "2026-09-04",
+        "buyerGstin": "27AAPFU0939F1ZV",
+        "placeOfSupplyState": "27",
+        "roundOffPaise": 0,
+        "lines": [
+          {
+            "id": "01a0d0c5-84d5-7245-8c77-79dcf81bb63b",
+            "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+            "description": "Confirmed on phone with the shopkeeper",
+            "hsnCode": "22021010",
+            "qtyPcs": 12,
+            "freeQtyPcs": 0,
+            "ratePaise": 4000,
+            "discountPaise": 0,
+            "gstBps": 500,
+            "cessBps": 0,
+            "batchNo": "SO-0042",
+            "expiryDate": "2026-09-04",
+            "mrpPaise": 4000,
+            "enteredQty": 12,
+            "enteredUnit": "piece",
+            "packSizeAtEntry": 24
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /invoices/brand-dms",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.cancel",
+      "method": "POST",
+      "path": "/invoices/{id}/cancel",
+      "url": "http://127.0.0.1:3100/retailer/invoices/{id}/cancel",
+      "summary": "Cancel before dispatch, keeping the number; stock and money come back",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.get",
+      "method": "GET",
+      "path": "/invoices/{id}",
+      "url": "http://127.0.0.1:3100/retailer/invoices/dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a",
+      "summary": "One bill with its lines, its credit notes and what is still due",
+      "status": 200,
+      "ms": 11,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a\",\"invoiceNo\":\"INV/0817\",\"seriesCode\":\"INV\",\"fy\":\"2026-27\",\"invoiceDate\":\"2026-09-17\",\"orderId\":\"2ab54a97-1837-7693-b7e7-9ee00e41b4cb\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"source\":\"pack\",\"externalInvoiceNo\":null,\"state\":\"paid\",\"supplyType\":\"B2C\",\"sellerGstin\":\"27CNGPP9039R1ZX\",\"buyerGstin\":null,\"buyerName\":\"Shree Ganesh Kirana\",\"buyerAddress\":{\"line1\":\"Shop 3, Station Road\",\"area\":\"Station Road, Kalyan West\",\"city\":\"Kalyan\",\"pincode\":\"421301\"},\"placeOfSupplyState\":\"27\",\"buyerFssai\":null,\"sellerFssai\":\"11525012000456\",\"isInterSt…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.list",
+      "method": "GET",
+      "path": "/invoices",
+      "url": "http://127.0.0.1:3100/retailer/invoices?limit=5",
+      "summary": "The sales register (a shop sees only its own bills)",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"f11bd303-27cc-7f6d-91b4-2489785f9960\",\"invoiceNo\":\"INV/0205\",\"externalInvoiceNo\":null,\"seriesCode\":\"INV\",\"fy\":\"2026-27\",\"invoiceDate\":\"2026-07-14\",\"source\":\"pack\",\"state\":\"paid\",\"orderId\":\"27d957c2-7b43-7088-a5af-aaa848da32aa\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"buyerName\":\"Shree Ganesh Kirana\",\"supplyType\":\"B2C\",\"taxablePaise\":928888,\"cgstPaise\":58034,\"sgstPaise\":58034,\"igstPaise\":0,\"cessPaise\":10372,\"roundOffPaise\":-28,\"totalPaise\":1055300,\"dueDate\":\"2026-07-21\",\"amountDuePaise\":0,\"hasIrn\":false,\"hasPdf\":false},{\"id\":\"dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a\",\"i…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.upiQr",
+      "method": "GET",
+      "path": "/invoices/{id}/upi-qr",
+      "url": "http://127.0.0.1:3100/retailer/invoices/dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a/upi-qr",
+      "summary": "UPI intent for the amount still due on this bill",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "payload": null,
+        "amountPaise": 0,
+        "vpa": "tarsun@okhdfcbank",
+        "payeeName": "Tarsun Enterprise",
+        "invoiceNo": "INV/0817"
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.pdf",
+      "method": "GET",
+      "path": "/invoices/{id}/pdf",
+      "url": "http://127.0.0.1:3100/retailer/invoices/dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a/pdf",
+      "summary": "Pre-signed URL for the printed bill, or queue the render",
+      "status": 200,
+      "ms": 6,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "status": "queued",
+        "objectKey": null,
+        "url": null,
+        "expiresAt": null
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.setEwayBill",
+      "method": "POST",
+      "path": "/invoices/{id}/eway-bill",
+      "url": "http://127.0.0.1:3100/retailer/invoices/dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a/eway-bill",
+      "summary": "Record the e-way bill number typed from the government portal",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /invoices/:id/eway-bill",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.invoices.setEwayBill:3ac7d83d7d8ae32b",
+        "ewayBillNo": "291012345678",
+        "validUntil": "2026-09-04T10:30:00.000Z",
+        "transportMode": "text",
+        "vehicleNo": "SO-0042"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /invoices/:id/eway-bill",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.invoices.requestIrn",
+      "method": "POST",
+      "path": "/invoices/{id}/irn",
+      "url": "http://127.0.0.1:3100/retailer/invoices/dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a/irn",
+      "summary": "Local e-invoice stub behind the e_invoicing flag; never an external call",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /invoices/:id/irn",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.invoices.requestIrn:d4d72727f056fa31"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /invoices/:id/irn",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.creditNotes.create",
+      "method": "POST",
+      "path": "/credit-notes",
+      "url": "http://127.0.0.1:3100/retailer/credit-notes",
+      "summary": "Draft a credit note against an issued bill, at the original rate",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /credit-notes",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.creditNotes.create:fdd7d59e7648ae17",
+        "id": "01a0d0c5-ca27-7d3c-8f51-ce799e9f34e3",
+        "invoiceId": "dc4e395d-d3a5-7fbd-b05c-cc97e4d2613a",
+        "reason": "short_delivery",
+        "noteDate": "2026-09-04",
+        "deliveryId": "01a06dc8-2915-7186-8629-a80d3fe45184",
+        "restockLocationId": "01a0baa2-26e3-73aa-9bf7-aaabca9f07fa",
+        "note": "Confirmed on phone with the shopkeeper",
+        "autoIssue": false,
+        "lines": [
+          {
+            "id": "01a0d0c5-0d47-71f9-8044-7b52520c07ab",
+            "invoiceLineId": "01a06d4a-aaee-73cb-8b2a-08ff3ce05549",
+            "qtyPcs": 12,
+            "saleable": true,
+            "ratePaise": 4000
+          }
+        ],
+        "lines[0].invoiceLineId": "5763db2e-959b-711a-9f8e-bc91224c2b66",
+        "lines[0].qtyPcs": 1
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /credit-notes",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.creditNotes.list",
+      "method": "GET",
+      "path": "/credit-notes",
+      "url": "http://127.0.0.1:3100/retailer/credit-notes?limit=5",
+      "summary": "Credit notes (a shop sees only its own)",
+      "status": 200,
+      "ms": 5,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"c1e83f3c-2a1a-7c3f-888b-6d8f07ba5953\",\"creditNoteNo\":\"CN/0022\",\"noteDate\":\"2026-08-03\",\"invoiceId\":\"05a048e4-0561-737c-9ec3-4fbd14db6143\",\"invoiceNo\":\"INV/0406\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"reason\":\"short_delivery\",\"state\":\"issued\",\"taxablePaise\":125182,\"cgstPaise\":7511,\"sgstPaise\":7511,\"igstPaise\":0,\"cessPaise\":0,\"totalPaise\":140200},{\"id\":\"bad3ea28-03c4-7f81-ba1c-292a751db7d4\",\"creditNoteNo\":\"CN/9002\",\"noteDate\":\"2026-08-27\",\"invoiceId\":\"87a3832e-8343-7123-a6e6-0ef97ca7870b\",\"invoiceNo\":\"INV/0620\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"r…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.creditNotes.issue",
+      "method": "POST",
+      "path": "/credit-notes/{id}/issue",
+      "url": "http://127.0.0.1:3100/retailer/credit-notes/3a59e373-1ca7-7f2a-895a-66afe3db425c/issue",
+      "summary": "Number the note, restock the pieces and credit the shop",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /credit-notes/:id/issue",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:billing.creditNotes.issue:ad7080d8ab43237c",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /credit-notes/:id/issue",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.creditNotes.cancel",
+      "method": "POST",
+      "path": "/credit-notes/{id}/cancel",
+      "url": "http://127.0.0.1:3100/retailer/credit-notes/{id}/cancel",
+      "summary": "Cancel a draft note (an issued one is reversed, not cancelled)",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.creditNotes.get",
+      "method": "GET",
+      "path": "/credit-notes/{id}",
+      "url": "http://127.0.0.1:3100/retailer/credit-notes/3a59e373-1ca7-7f2a-895a-66afe3db425c",
+      "summary": "One credit note with its lines",
+      "status": 200,
+      "ms": 9,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"3a59e373-1ca7-7f2a-895a-66afe3db425c\",\"creditNoteNo\":\"CN/9001\",\"seriesCode\":\"CN\",\"fy\":\"2026-27\",\"noteDate\":\"2026-09-07\",\"invoiceId\":\"66797228-25f9-7626-ade7-e93d5b4780e0\",\"invoiceNo\":\"INV/0717\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"reason\":\"return_saleable\",\"state\":\"issued\",\"deliveryId\":null,\"isInterState\":false,\"taxablePaise\":55128,\"cgstPaise\":7718,\"sgstPaise\":7718,\"igstPaise\":0,\"cessPaise\":6615,\"roundOffPaise\":21,\"totalPaise\":77200,\"irn\":null,\"pdfObjectKey\":null,\"issuedBy\":\"3188dd91-43ff-768a-97cc-b63c11bb00a0\",\"issuedAt\":\"2026-09-07T13:45:00.000Z\",\"note\":\"One c…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.registers.gstSummary",
+      "method": "GET",
+      "path": "/billing/gst-summary",
+      "url": "http://127.0.0.1:3100/retailer/billing/gst-summary?from=2026-09-19&to=2026-09-19",
+      "summary": "GSTR-1-shaped HSN or rate summary, credit notes reported separately",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /billing/gst-summary",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /billing/gst-summary",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "billing.registers.salesRegister",
+      "method": "GET",
+      "path": "/billing/sales-register",
+      "url": "http://127.0.0.1:3100/retailer/billing/sales-register?from=2026-09-19&to=2026-09-19&limit=5",
+      "summary": "Invoice-wise sales register with running totals",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /billing/sales-register",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /billing/sales-register",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "sync.upload",
+      "method": "POST",
+      "path": "/sync/upload",
+      "url": "http://127.0.0.1:3100/retailer/sync/upload",
+      "summary": "Offline write batch (never 4xx; rejections are 2xx + sync_errors)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /sync/upload",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "protocol": 1,
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302",
+        "ops": [
+          {
+            "opId": "docs-sync-op-1",
+            "op": "PUT",
+            "table": "sales_orders",
+            "id": "01a0d0c5-48d1-7661-83d6-7dc11c8653eb",
+            "data": {
+              "retailer_id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+              "source": "salesperson",
+              "note": "Draft uploaded from the API docs"
+            },
+            "baseUpdatedAt": "2026-09-04T10:30:00.000Z",
+            "clientTime": "2026-09-04T10:30:00.000Z"
+          }
+        ]
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /sync/upload",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "sync.errors.list",
+      "method": "GET",
+      "path": "/sync/errors",
+      "url": "http://127.0.0.1:3100/retailer/sync/errors?limit=5",
+      "summary": "Rejected offline writes for the \"Needs attention\" tray (own rows for field roles)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /sync/errors",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /sync/errors",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "sync.manifest",
+      "method": "GET",
+      "path": "/sync/manifest",
+      "url": "http://127.0.0.1:3100/retailer/sync/manifest",
+      "summary": "Tables, columns and schema version the device of this role should hold",
+      "status": 200,
+      "ms": 4,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"protocol\":1,\"schemaVersion\":\"d741ae98e9c2fcd4\",\"changed\":true,\"role\":\"retailer\",\"tables\":[{\"table\":\"sales_orders\",\"primaryKey\":[\"id\"],\"columns\":[{\"name\":\"id\",\"type\":\"string\",\"nullable\":false},{\"name\":\"tenant_id\",\"type\":\"string\",\"nullable\":false},{\"name\":\"order_no\",\"type\":\"string\",\"nullable\":true},{\"name\":\"retailer_id\",\"type\":\"string\",\"nullable\":false},{\"name\":\"state\",\"type\":\"string\",\"nullable\":false},{\"name\":\"source\",\"type\":\"string\",\"nullable\":false},{\"name\":\"created_by\",\"type\":\"string\",\"nullable\":false},{\"name\":\"salesperson_id\",\"type\":\"string\",\"nullable\":true},{\"name\":\"pricing_date_mode\",\"t…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "sync.pull",
+      "method": "GET",
+      "path": "/sync/pull",
+      "url": "http://127.0.0.1:3100/retailer/sync/pull?deviceId=fe0ddf05-dc37-7a99-90db-ebacb7375302&limit=5",
+      "summary": "Delta download of the device read set since a cursor (never a cost column)",
+      "status": 200,
+      "ms": 28,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"changes\":[{\"table\":\"sales_orders\",\"rows\":[],\"deleted\":[]},{\"table\":\"sales_order_lines\",\"rows\":[],\"deleted\":[]},{\"table\":\"invoices\",\"rows\":[],\"deleted\":[]},{\"table\":\"invoice_lines\",\"rows\":[],\"deleted\":[]},{\"table\":\"credit_notes\",\"rows\":[],\"deleted\":[]},{\"table\":\"credit_note_lines\",\"rows\":[],\"deleted\":[]},{\"table\":\"manufacturers\",\"rows\":[{\"id\":\"75cbe6e2-f6db-7ecd-843d-c65e92523931\",\"name\":\"Reliance Consumer Products\",\"legal_name\":\"Reliance Consumer Products Limited\",\"gstin\":null,\"fssai_license\":\"10015043001234\",\"website\":\"https://www.relianceconsumerproducts.com\",\"created_at\":\"2026-09-19 22:36…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "files.uploadUrl",
+      "method": "POST",
+      "path": "/files/upload-url",
+      "url": "http://127.0.0.1:3100/retailer/files/upload-url",
+      "summary": "Mint a pre-signed upload for a logo, POD photo, expense proof, claim evidence or import",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /files/upload-url",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:files.uploadUrl:20e14376474784c8",
+        "id": "01a0d0c5-6e7a-770c-8941-455fa303b080",
+        "domain": "pod",
+        "entityId": "01a0d0c5-61a4-7eab-89d8-de48c51ccfe3",
+        "mimeType": "image/jpeg",
+        "bytes": 20480
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /files/upload-url",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "files.readUrl",
+      "method": "GET",
+      "path": "/files/read-url",
+      "url": "http://127.0.0.1:3100/retailer/files/read-url?objectKey=tenant%2F01a0baa2-26bc-75bc-aaac-acd319cf8525%2Flogo%2F01a0baa2-26bc-75bc-aaac-acd319cf8525%2F01a0d0c5-b248-7f88-8e93-51be48deb0b2.png",
+      "summary": "A short-lived read URL for an object key this role may open",
+      "status": 200,
+      "ms": 3,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": {
+        "url": "/storage/tenant/01a0baa2-26bc-75bc-aaac-acd319cf8525/logo/01a0baa2-26bc-75bc-aaac-acd319cf8525/01a0d0c5-b248-7f88-8e93-51be48deb0b2.png?expires=1789838686&signature=31fb8b50fbfe4172a25b1f443da7135fba3e7f2c3f3280bb96c516a63912d0aa",
+        "expiresAt": "2026-09-19T17:24:46.482Z"
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.vehicles.list",
+      "method": "GET",
+      "path": "/delivery/vehicles",
+      "url": "http://127.0.0.1:3100/retailer/delivery/vehicles",
+      "summary": "Vehicles of this distributor",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/vehicles",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/vehicles",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.vehicles.positions",
+      "method": "GET",
+      "path": "/delivery/vehicle-positions",
+      "url": "http://127.0.0.1:3100/retailer/delivery/vehicle-positions",
+      "summary": "Where every vehicle is now — the live map (audited read)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/vehicle-positions",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/vehicle-positions",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.consents.grant",
+      "method": "POST",
+      "path": "/delivery/consents",
+      "url": "http://127.0.0.1:3100/retailer/delivery/consents",
+      "summary": "Record the caller's answer to the location-tracking notice (DPDP)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /delivery/consents",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:delivery.consents.grant:f211b8ca0b1472ed",
+        "id": "01a0d0c5-8ce7-78a1-8605-6d100a3151f6",
+        "granted": true,
+        "noticeVersion": "gps-notice-2026-09",
+        "locale": "en-IN"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /delivery/consents",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.consents.get",
+      "method": "GET",
+      "path": "/delivery/consents",
+      "url": "http://127.0.0.1:3100/retailer/delivery/consents",
+      "summary": "The current location consent of the caller (or of a driver, for the desk)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/consents",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/consents",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.list",
+      "method": "GET",
+      "path": "/delivery/trips",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips?limit=5",
+      "summary": "Trips (the crew sees only its own)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/trips",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/trips",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.planning",
+      "method": "GET",
+      "path": "/delivery/trip-planning",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trip-planning?limit=5",
+      "summary": "Plan a trip: the crew on a date and the packed bills not yet on an open trip (the godown and the desk)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/trip-planning",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/trip-planning",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.trips.cancel",
+      "method": "POST",
+      "path": "/delivery/trips/{id}/cancel",
+      "url": "http://127.0.0.1:3100/retailer/delivery/trips/{id}/cancel",
+      "summary": "Cancel a trip that has not left (planned / loading)",
+      "status": null,
+      "ms": 0,
+      "classification": "SKIPPED",
+      "message": "",
+      "reason": "destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)",
+      "exampleSource": "none"
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.stops.list",
+      "method": "GET",
+      "path": "/delivery/stops",
+      "url": "http://127.0.0.1:3100/retailer/delivery/stops?limit=5",
+      "summary": "Stops (a shop sees only its own, with an ETA and never a coordinate)",
+      "status": 200,
+      "ms": 13,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"f9cae671-9342-7484-8641-70c35a273e11\",\"tripId\":\"db14afcc-f1d4-7a5c-8d09-54a5f1ac93c3\",\"sequence\":1,\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"state\":\"delivered\",\"failureReason\":null,\"failureNote\":null,\"plannedCollectionPaise\":null,\"etaAt\":\"2026-06-22T03:30:00.000Z\",\"startedAt\":\"2026-06-22T03:30:00.000Z\",\"arrivedAt\":\"2026-06-22T03:40:00.000Z\",\"completedAt\":\"2026-06-22T03:50:00.000Z\",\"arrivedLat\":null,\"arrivedLng\":null,\"vehicleRegNo\":null,\"deliveries\":[{\"id\":\"d4346915-6f64-7aba-a41d-595a9ed9a082\",\"invoiceId\":\"9f01d6a6-eea2-7bf9-8fb1…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.collections.list",
+      "method": "GET",
+      "path": "/delivery/collections",
+      "url": "http://127.0.0.1:3100/retailer/delivery/collections?limit=5",
+      "summary": "What the crew collected, with totals by mode",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/collections",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/collections",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "delivery.expenses.list",
+      "method": "GET",
+      "path": "/delivery/expenses",
+      "url": "http://127.0.0.1:3100/retailer/delivery/expenses?limit=5",
+      "summary": "Trip expenses with a total",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /delivery/expenses",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /delivery/expenses",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.messages.list",
+      "method": "GET",
+      "path": "/notifications/messages",
+      "url": "http://127.0.0.1:3100/retailer/notifications/messages?limit=5",
+      "summary": "Message log (staff) and inbox (a shop sees only messages to its own shop)",
+      "status": 200,
+      "ms": 11,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"ee36689d-92e7-7b8c-a9b6-b884b9cb5344\",\"channel\":\"whatsapp\",\"templateKey\":\"order_confirmed\",\"destination\":\"+919892000001\",\"recipientUserId\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"recipientRetailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"senderName\":\"M/s. Tarsun Enterprise\",\"locale\":\"en-IN\",\"body\":\"Your order SO-0874 of ₹12,837.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise\",\"status\":\"delivered\",\"refType\":\"order\",\"refId\":\"dccd17bd-1c53-7b90-bc39-006ab20329ec\",\"scheduledAt\":null,\"sentAt\":\"20…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.messages.get",
+      "method": "GET",
+      "path": "/notifications/messages/{id}",
+      "url": "http://127.0.0.1:3100/retailer/notifications/messages/ee36689d-92e7-7b8c-a9b6-b884b9cb5344",
+      "summary": "One message with its variables and retry state (a push / WhatsApp tap lands here)",
+      "status": 200,
+      "ms": 8,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"ee36689d-92e7-7b8c-a9b6-b884b9cb5344\",\"channel\":\"whatsapp\",\"templateKey\":\"order_confirmed\",\"destination\":\"+919892000001\",\"recipientUserId\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"recipientRetailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"senderName\":\"M/s. Tarsun Enterprise\",\"locale\":\"en-IN\",\"body\":\"Your order SO-0874 of ₹12,837.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise\",\"status\":\"delivered\",\"refType\":\"order\",\"refId\":\"dccd17bd-1c53-7b90-bc39-006ab20329ec\",\"scheduledAt\":null,\"sentAt\":\"2026…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.messages.send",
+      "method": "POST",
+      "path": "/notifications/messages/send",
+      "url": "http://127.0.0.1:3100/retailer/notifications/messages/send",
+      "summary": "Send a bill, receipt or statement to one shop now (queued; the worker sends it)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/messages/send",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.messages.send:80076c148e7bda7e",
+        "id": "01a0d0c5-ad86-7525-8674-1d88e1b8de03",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "templateKey": "invoice_issued",
+        "refType": "invoice",
+        "refId": "6c3fd7a4-a41f-737c-92f9-4311e7fa8e89",
+        "variables": {
+          "invoiceNo": "INV/26-27/0042",
+          "totalRupees": "₹1,234.50",
+          "dueDate": "2026-09-30",
+          "upiLink": "upi://pay?pa=tarsun@okhdfcbank&pn=Tarsun%20Enterprises&am=1234.50&cu=INR"
+        }
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/messages/send",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.messages.resend",
+      "method": "POST",
+      "path": "/notifications/messages/{id}/resend",
+      "url": "http://127.0.0.1:3100/retailer/notifications/messages/fae504d3-8e27-7da5-9bf2-979f914c45b7/resend",
+      "summary": "Requeue a failed message (attempts are kept; a delivered one is never resent)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/messages/:id/resend",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.messages.resend:2094df088988f8c1"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/messages/:id/resend",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.messages.markRead",
+      "method": "POST",
+      "path": "/notifications/messages/{id}/read",
+      "url": "http://127.0.0.1:3100/retailer/notifications/messages/ee36689d-92e7-7b8c-a9b6-b884b9cb5344/read",
+      "summary": "Mark my own push / in-app notice read (never a WhatsApp or SMS row)",
+      "status": 400,
+      "ms": 7,
+      "classification": "EXPECTED",
+      "message": "channel_not_markable: a whatsapp message's read state comes from the provider",
+      "reason": "business refusal with a clear message",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.messages.markRead:421c1a75b2ad7ac8"
+      },
+      "responseSample": {
+        "defined": false,
+        "code": "BAD_REQUEST",
+        "status": 400,
+        "message": "channel_not_markable: a whatsapp message's read state comes from the provider"
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.templates.list",
+      "method": "GET",
+      "path": "/notifications/templates",
+      "url": "http://127.0.0.1:3100/retailer/notifications/templates?limit=5",
+      "summary": "Platform defaults plus this distributor’s overrides, per key, channel and language",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /notifications/templates",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /notifications/templates",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.templates.upsert",
+      "method": "POST",
+      "path": "/notifications/templates",
+      "url": "http://127.0.0.1:3100/retailer/notifications/templates",
+      "summary": "Set this distributor’s own wording for a key, channel and language",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/templates",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.templates.upsert:56f30447aaa262bb",
+        "id": "5cbaf91f-c08e-75cf-8bb3-39cd69cfb345",
+        "key": "invoice_issued",
+        "channel": "whatsapp",
+        "locale": "en-IN",
+        "providerTemplateName": "invoice_issued_tarsun_en",
+        "body": "Namaste! Bill {{invoiceNo}} of {{totalRupees}} is ready — pay by {{dueDate}} to keep your 2% cash discount. UPI: {{upiLink}} — {{distributorName}}, Kalyan West",
+        "variables": [
+          "invoiceNo",
+          "totalRupees",
+          "dueDate",
+          "upiLink"
+        ],
+        "active": true
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/templates",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.broadcasts.create",
+      "method": "POST",
+      "path": "/notifications/broadcasts",
+      "url": "http://127.0.0.1:3100/retailer/notifications/broadcasts",
+      "summary": "Send a template to every shop on a beat or a named list (queued per shop)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/broadcasts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.broadcasts.create:78d3647ae6f340df",
+        "id": "01a0d0c5-d9b3-7d0a-80b5-e61c743e7272",
+        "channel": "whatsapp",
+        "templateKey": "scheme_announcement",
+        "variables": {
+          "schemeName": "Campa 750 ml: buy 12 get 1 free",
+          "validTill": "30 Sep 2026"
+        },
+        "audience": {
+          "kind": "beat",
+          "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b"
+        }
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/broadcasts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.broadcasts.list",
+      "method": "GET",
+      "path": "/notifications/broadcasts",
+      "url": "http://127.0.0.1:3100/retailer/notifications/broadcasts?limit=5",
+      "summary": "Broadcast history with delivery counts",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /notifications/broadcasts",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /notifications/broadcasts",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.broadcasts.get",
+      "method": "GET",
+      "path": "/notifications/broadcasts/{id}",
+      "url": "http://127.0.0.1:3100/retailer/notifications/broadcasts/e4f2921a-3c07-7838-94bf-b945117a5174",
+      "summary": "One broadcast with counts and every recipient’s outcome",
+      "status": 403,
+      "ms": 1,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /notifications/broadcasts/:id",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /notifications/broadcasts/:id",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.pushTokens.register",
+      "method": "POST",
+      "path": "/notifications/push-tokens",
+      "url": "http://127.0.0.1:3100/retailer/notifications/push-tokens",
+      "summary": "Register or refresh this device’s push token for the signed-in staff member",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/push-tokens",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.pushTokens.register:8cf3b69ee304861d",
+        "id": "01a0d0c5-5b9b-7d15-8af4-553d5e4c16c7",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302",
+        "token": "ExponentPushToken[docs-example]",
+        "platform": "android"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/push-tokens",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.pushTokens.unregister",
+      "method": "POST",
+      "path": "/notifications/push-tokens/{id}/unregister",
+      "url": "http://127.0.0.1:3100/retailer/notifications/push-tokens/01a0d0c5-5b9b-7d15-8af4-553d5e4c16c7/unregister",
+      "summary": "Remove my own device’s push token (sign-out)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/push-tokens/:id/unregister",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.pushTokens.unregister:c7023a658b71fae6"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/push-tokens/:id/unregister",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.inbound.list",
+      "method": "GET",
+      "path": "/notifications/inbound",
+      "url": "http://127.0.0.1:3100/retailer/notifications/inbound?limit=5",
+      "summary": "Texts and photos shops sent us, for triage (a rep sees its own beats’ shops)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /notifications/inbound",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /notifications/inbound",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "notifications.inbound.markHandled",
+      "method": "POST",
+      "path": "/notifications/inbound/{id}/handled",
+      "url": "http://127.0.0.1:3100/retailer/notifications/inbound/494b1a11-6727-738b-9f37-0f07639db9db/handled",
+      "summary": "Mark an inbound message handled (the text itself is never edited)",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /notifications/inbound/:id/handled",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:notifications.inbound.markHandled:1944dc8cc99a3c54"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /notifications/inbound/:id/handled",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.intake.parseText",
+      "method": "POST",
+      "path": "/ai/intake/text",
+      "url": "http://127.0.0.1:3100/retailer/ai/intake/text",
+      "summary": "Read a message into a draft order (never creates an order)",
+      "status": 200,
+      "ms": 40,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.intake.parseText:acbbab9f4785688b",
+        "id": "01a0d0c5-af47-789c-84c2-7baad1554b27",
+        "source": "whatsapp",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "text": "2 case Campa Campa Cola Campa Cola 1 L"
+      },
+      "responseSample": "{\"item\":{\"id\":\"01a0d0c5-af47-789c-84c2-7baad1554b27\",\"source\":\"whatsapp\",\"status\":\"needs_review\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"inboundMessageId\":null,\"preview\":\"2 case Campa Campa Cola Campa Cola 1 L\",\"lineCount\":1,\"matchedLineCount\":0,\"unmatchedLineCount\":0,\"confidenceBps\":4500,\"needsHumanConfirmation\":true,\"orderId\":null,\"orderNo\":null,\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"reviewedBy\":null,\"reviewedAt\":null,\"rejectReason\":null,\"createdAt\":\"2026-09-19T17:09:46.568Z\",\"rawText\":\"2 case Campa Campa Cola Campa Cola 1 L\",\"tr…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.intake.transcribe",
+      "method": "POST",
+      "path": "/ai/intake/voice",
+      "url": "http://127.0.0.1:3100/retailer/ai/intake/voice",
+      "summary": "Transcribe a voice note and read it into a draft order",
+      "status": 200,
+      "ms": 59,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.intake.transcribe:0158986b39c1475f",
+        "id": "01a0d0c5-1bef-77ae-8677-92e984d59e51",
+        "audioObjectKey": "tenant/01a0baa2-26bc-75bc-aaac-acd319cf8525/voice/01a0d0c5-1bef-77ae-8677-92e984d59e51/note.m4a",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "language": "en-IN",
+        "durationMs": 4200
+      },
+      "responseSample": "{\"item\":{\"id\":\"01a0d0c5-1bef-77ae-8677-92e984d59e51\",\"source\":\"voice\",\"status\":\"parsed\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"inboundMessageId\":null,\"preview\":\"do case Rajwadi Jeera Masala Soda 1.25 L aur do case Sunbake Glucose 55 g\",\"lineCount\":2,\"matchedLineCount\":2,\"unmatchedLineCount\":0,\"confidenceBps\":10000,\"needsHumanConfirmation\":true,\"orderId\":null,\"orderNo\":null,\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"reviewedBy\":null,\"reviewedAt\":null,\"rejectReason\":null,\"createdAt\":\"2026-09-19T17:09:46.608Z\",\"rawText\":null,\"transcript\"…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.drafts.list",
+      "method": "GET",
+      "path": "/ai/drafts",
+      "url": "http://127.0.0.1:3100/retailer/ai/drafts?limit=5",
+      "summary": "The draft queue (a shop sees only its own)",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"items\":[{\"id\":\"42103d88-7f3b-7a80-909c-e181499c2994\",\"source\":\"whatsapp\",\"status\":\"needs_review\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"inboundMessageId\":\"62478be5-cf50-7c03-aed6-3cf29653ab14\",\"preview\":\"bhai 2 case campa 1L kal bhej dena aur wo naya wala chips\",\"lineCount\":2,\"matchedLineCount\":1,\"unmatchedLineCount\":0,\"confidenceBps\":6100,\"needsHumanConfirmation\":true,\"orderId\":null,\"orderNo\":null,\"createdBy\":null,\"reviewedBy\":null,\"reviewedAt\":null,\"rejectReason\":null,\"createdAt\":\"2026-09-19T03:10:00.000Z\"},{\"id\":\"241fc1eb-653e-7c93-82a5-f…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.drafts.get",
+      "method": "GET",
+      "path": "/ai/drafts/{id}",
+      "url": "http://127.0.0.1:3100/retailer/ai/drafts/42103d88-7f3b-7a80-909c-e181499c2994",
+      "summary": "One draft with its text, transcript and lines",
+      "status": 200,
+      "ms": 7,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "none",
+      "responseSample": "{\"item\":{\"id\":\"42103d88-7f3b-7a80-909c-e181499c2994\",\"source\":\"whatsapp\",\"status\":\"needs_review\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"inboundMessageId\":\"62478be5-cf50-7c03-aed6-3cf29653ab14\",\"preview\":\"bhai 2 case campa 1L kal bhej dena aur wo naya wala chips\",\"lineCount\":2,\"matchedLineCount\":1,\"unmatchedLineCount\":0,\"confidenceBps\":6100,\"needsHumanConfirmation\":true,\"orderId\":null,\"orderNo\":null,\"createdBy\":null,\"reviewedBy\":null,\"reviewedAt\":null,\"rejectReason\":null,\"createdAt\":\"2026-09-19T03:10:00.000Z\",\"rawText\":\"bhai 2 case campa 1L kal…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.drafts.confirm",
+      "method": "POST",
+      "path": "/ai/drafts/{id}/confirm",
+      "url": "http://127.0.0.1:3100/retailer/ai/drafts/01a0d0c5-af47-789c-84c2-7baad1554b27/confirm",
+      "summary": "Confirm the corrected lines: creates and submits a normal sales order",
+      "status": 200,
+      "ms": 57,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.drafts.confirm:c48a7215ee41d291",
+        "orderId": "01a0d0c5-39dc-7ec1-8d97-ad556700ae65",
+        "retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+        "lines": [
+          {
+            "id": "01a0d0c5-47af-7508-83c8-3e16ad2144d0",
+            "variantId": "85a4986d-0605-7950-84b3-7b9b34752804",
+            "enteredQty": 2,
+            "enteredUnit": "case",
+            "draftLineNo": 1
+          }
+        ],
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": "{\"item\":{\"id\":\"01a0d0c5-af47-789c-84c2-7baad1554b27\",\"source\":\"whatsapp\",\"status\":\"confirmed\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"inboundMessageId\":null,\"preview\":\"2 case Campa Campa Cola Campa Cola 1 L\",\"lineCount\":1,\"matchedLineCount\":0,\"unmatchedLineCount\":0,\"confidenceBps\":4500,\"needsHumanConfirmation\":true,\"orderId\":\"01a0d0c5-39dc-7ec1-8d97-ad556700ae65\",\"orderNo\":\"SO-0889\",\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"reviewedBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"reviewedAt\":\"2026-09-19T17:09:46.727Z\",\"rejectReason\":null,\"…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.drafts.reject",
+      "method": "POST",
+      "path": "/ai/drafts/{id}/reject",
+      "url": "http://127.0.0.1:3100/retailer/ai/drafts/01a0d0c5-1bef-77ae-8677-92e984d59e51/reject",
+      "summary": "Throw the draft away with a reason",
+      "status": 200,
+      "ms": 13,
+      "classification": "OK",
+      "message": "",
+      "reason": "",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.drafts.reject:2ca9d04cdb6a851d",
+        "reason": "Not an order — the shop asked for a bill copy"
+      },
+      "responseSample": "{\"item\":{\"id\":\"01a0d0c5-1bef-77ae-8677-92e984d59e51\",\"source\":\"voice\",\"status\":\"rejected\",\"retailerId\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"retailerName\":\"Shree Ganesh Kirana\",\"inboundMessageId\":null,\"preview\":\"do case Rajwadi Jeera Masala Soda 1.25 L aur do case Sunbake Glucose 55 g\",\"lineCount\":2,\"matchedLineCount\":2,\"unmatchedLineCount\":0,\"confidenceBps\":10000,\"needsHumanConfirmation\":true,\"orderId\":null,\"orderNo\":null,\"createdBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"reviewedBy\":\"d1dafe6b-235f-73f2-bc56-0bb04b8278ac\",\"reviewedAt\":\"2026-09-19T17:09:46.742Z\",\"rejectReason\":\"Not an order…"
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.forecast.run",
+      "method": "POST",
+      "path": "/ai/forecast/run",
+      "url": "http://127.0.0.1:3100/retailer/ai/forecast/run",
+      "summary": "Queue a demand forecast pass (one per day per location)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /ai/forecast/run",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.forecast.run:dad937f56436d84d",
+        "id": "01a0d0c5-3e6c-7663-8d88-5f497b5fd04c",
+        "locationId": "01a0baa2-26e3-73aa-9bf7-aaabca9f07fa",
+        "horizonDays": 14
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /ai/forecast/run",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.forecast.list",
+      "method": "GET",
+      "path": "/ai/forecast",
+      "url": "http://127.0.0.1:3100/retailer/ai/forecast?limit=5",
+      "summary": "Reorder suggestions with days of cover (no cost, no value)",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /ai/forecast",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /ai/forecast",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.routing.plan",
+      "method": "POST",
+      "path": "/ai/routing/trips/{tripId}/plan",
+      "url": "http://127.0.0.1:3100/retailer/ai/routing/trips/72649337-4c50-7033-a988-ca5cf4406f9c/plan",
+      "summary": "Sequence a trip's open stops; writes nothing on the trip",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /ai/routing/trips/:tripId/plan",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.routing.plan:71adda475e0c8bb8",
+        "id": "01a0d0c5-97fd-7a78-8a70-7de3e4f33fa4"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /ai/routing/trips/:tripId/plan",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.routing.get",
+      "method": "GET",
+      "path": "/ai/routing/trips/{tripId}/plan",
+      "url": "http://127.0.0.1:3100/retailer/ai/routing/trips/72649337-4c50-7033-a988-ca5cf4406f9c/plan",
+      "summary": "The trip's current route plan, or null when none was computed",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call GET /ai/routing/trips/:tripId/plan",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "none",
+      "responseSample": {
+        "message": "the retailer role may not call GET /ai/routing/trips/:tripId/plan",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "ai.routing.apply",
+      "method": "POST",
+      "path": "/ai/routing/trips/{tripId}/plan/apply",
+      "url": "http://127.0.0.1:3100/retailer/ai/routing/trips/72649337-4c50-7033-a988-ca5cf4406f9c/plan/apply",
+      "summary": "Write the planned sequence onto the trip through delivery.stops.reorder",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /ai/routing/trips/:tripId/plan/apply",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:ai.routing.apply:90b829d96eb98739",
+        "id": "01a0d0c5-9251-7b6c-8478-3bb2ee9fa01b",
+        "deviceId": "fe0ddf05-dc37-7a99-90db-ebacb7375302"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /ai/routing/trips/:tripId/plan/apply",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.deposit",
+      "method": "POST",
+      "path": "/receipts/deposit",
+      "url": "http://127.0.0.1:3100/retailer/receipts/deposit",
+      "summary": "Bank a batch of cash and cheque receipts",
+      "status": 403,
+      "ms": 3,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /receipts/deposit",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.receipts.deposit:4856f3a4368b53cb",
+        "id": "01a0d0c5-0552-738c-8b71-9ef25cffb070",
+        "receiptIds": [
+          "01a06da9-9601-7d56-805d-ee3f6c00168f"
+        ],
+        "depositAccountCode": "BANK",
+        "depositedAt": "2026-09-04T10:30:00.000Z",
+        "depositRef": "text"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /receipts/deposit",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    },
+    {
+      "service": "retailer",
+      "operationId": "receivables.receipts.reverse",
+      "method": "POST",
+      "path": "/receipts/{id}/reverse",
+      "url": "http://127.0.0.1:3100/retailer/receipts/83712552-7beb-7da0-933b-a571f701c1e4/reverse",
+      "summary": "Reverse a receipt with a mirror receipt; the original is never edited",
+      "status": 403,
+      "ms": 2,
+      "classification": "EXPECTED",
+      "message": "the retailer role may not call POST /receipts/:id/reverse",
+      "reason": "role retailer may not call this procedure",
+      "exampleSource": "contract",
+      "requestBody": {
+        "idempotencyKey": "smoke:retailer:receivables.receipts.reverse:b27166746073bcaf",
+        "reversalId": "01a06def-1b33-776f-8834-c0ea873eee5a",
+        "reason": "Confirmed on phone with the shopkeeper"
+      },
+      "responseSample": {
+        "message": "the retailer role may not call POST /receipts/:id/reverse",
+        "error": "Forbidden",
+        "statusCode": 403
+      }
+    }
+  ]
+}

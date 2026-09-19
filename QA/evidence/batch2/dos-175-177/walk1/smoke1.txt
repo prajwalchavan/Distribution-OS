@@ -1,0 +1,1758 @@
+$ tsx tools/smoke-endpoints.mts --base http://127.0.0.1:3100
+smoke: 8 service(s), tenant 01a0baa2-26bc-75bc-aaac-acd319cf8525, database dos_test_b2_d175
+       destructive procedures are skipped (pass --destructive to include them)
+
+── auth-service ────────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+POST    /auth/login                                    200    32     OK       
+POST    /auth/platform/login                           200    33     OK       
+POST    /auth/refresh                                  200    14     OK       
+POST    /auth/platform/refresh                         200    22     OK       
+POST    /auth/switch-tenant                            200    6      OK       
+GET     /auth/me                                       200    6      OK       
+GET     /auth/sessions                                 200    3      OK       
+GET     /health/ping                                   200    2      OK       
+GET     /auth/platform/me                              403    2      EXPECTED this endpoint belongs to the Distribution OS console; sign in at POST /auth/plat
+POST    /auth/platform/support-pass                    403    1      EXPECTED this endpoint belongs to the Distribution OS console; sign in at POST /auth/plat
+POST    /auth/forgot-password                          200    6      OK       
+POST    /auth/reset-password                           400    3      EXPECTED token is not a password reset token
+GET     /.well-known/jwks.json                         200    2      OK       
+POST    /auth/sessions/revoke                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /auth/logout                                   200    4      OK       
+POST    /auth/change-password                          -      0      SKIPPED  destructive, needs --destructive (would change the demo password every other too
+   auth: 11 OK · 3 expected · 0 BROKEN · 2 skipped  (of 16)
+
+── owner-service ───────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+POST    /delivery/vehicles                             200    30     OK       
+POST    /docint/documents                              200    12     OK       
+POST    /delivery/trips                                200    30     OK       
+POST    /docint/documents/{id}/pages/upload-urls       200    5      OK       
+POST    /delivery/trips/{id}/stops/reorder             200    21     OK       
+POST    /docint/documents/{id}/pages                   200    16     OK       
+POST    /delivery/trips/{id}/start-loading             200    12     OK       
+POST    /docint/documents/{id}/qr                      200    11     OK       
+POST    /delivery/trips/{id}/depart                    200    20     OK       
+POST    /docint/documents/{id}/submit                  200    47     OK       
+POST    /delivery/trips/{id}/stops                     200    14     OK       
+POST    /delivery/stops/{id}/start                     -      0      SKIPPED  no open stop with a bill on the throwaway trip
+POST    /delivery/stops/{id}/arrive                    -      0      SKIPPED  no open stop with a bill on the throwaway trip
+POST    /delivery/deliveries                           -      0      SKIPPED  no planned bill on the throwaway trip (no packed bill was free to ride on it)
+POST    /delivery/deliveries/{id}/pod                  200    13     OK       
+POST    /delivery/collections                          200    42     OK       
+POST    /docint/extractions/{id}/matches/reject        200    12     OK       
+POST    /delivery/van-sales                            200    199    OK       
+POST    /docint/extractions/{id}/matches/accept        200    29     OK       
+POST    /delivery/expenses                             200    13     OK       
+POST    /docint/extractions/{id}/matches/choose        200    18     OK       
+POST    /gps/points                                    200    6      OK       
+POST    /docint/extractions/{id}/rematch               200    25     OK       
+POST    /delivery/stops/{id}/fail                      200    24     OK       
+POST    /docint/documents/{id}/extract                 200    72     OK       
+POST    /docint/documents/{id}/review                  200    41     OK       
+POST    /docint/review-sessions/{id}/heartbeat         200    8      OK       
+POST    /docint/review-sessions/{id}                   200    34     OK       
+POST    /docint/review-sessions/{id}/submit            200    28     OK       
+POST    /docint/review-sessions/{id}/release           200    16     OK       
+POST    /delivery/trips/{id}/return                    200    31     OK       
+POST    /docint/documents/{id}/approve                 200    30     OK       
+GET     /delivery/trips/{id}/settlement                200    12     OK       
+POST    /delivery/trips/{tripId}/settle                200    36     OK       
+GET     /delivery/trips/{id}/trace                     200    10     OK       
+GET     /delivery/trips/{id}                           200    18     OK       
+GET     /delivery/trips/{id}/next-stop                 200    6      OK       
+GET     /delivery/deliveries                           200    16     OK       
+GET     /delivery/deliveries/{id}                      200    18     OK       
+GET     /health/ping                                   200    3      OK       
+GET     /tenancy/me                                    200    7      OK       
+GET     /tenancy/staff                                 200    10     OK       
+POST    /tenancy/staff                                 200    49     OK       
+POST    /tenancy/staff/update                          200    11     OK       
+POST    /tenancy/staff/set-password                    -      0      SKIPPED  destructive, needs --destructive (would change a demo user password)
+POST    /tenancy/staff/set-status                      -      0      SKIPPED  destructive, needs --destructive (would disable a demo user)
+GET     /tenancy/branding                              200    4      OK       
+GET     /tenancy/settings                              200    5      OK       
+POST    /tenancy/settings                              200    8      OK       
+GET     /tenancy/numbering-series                      200    5      OK       
+POST    /tenancy/numbering-series                      200    7      OK       
+GET     /tenancy/feature-flags                         200    4      OK       
+POST    /tenancy/feature-flags                         200    5      OK       
+POST    /tenancy/tenant                                200    8      OK       
+GET     /tenancy/audit                                 200    6      OK       
+GET     /tenancy/support-grants                        200    6      OK       
+POST    /tenancy/support-grants/{id}/approve           200    10     OK       
+POST    /tenancy/support-grants/{id}/revoke            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /catalog/variants                              200    8      OK       
+GET     /catalog/manufacturers                         200    5      OK       
+POST    /catalog/proposals                             200    9      OK       
+GET     /tenant-catalog/products                       200    12     OK       
+POST    /tenant-catalog/products                       200    7      OK       
+GET     /tenant-catalog/suppliers                      200    5      OK       
+POST    /tenant-catalog/suppliers                      200    6      OK       
+GET     /tenant-catalog/costs                          200    5      OK       
+POST    /tenant-catalog/costs                          200    8      OK       
+GET     /tenant-catalog/rep-authorisations             200    7      OK       
+POST    /tenant-catalog/rep-authorisations             200    11     OK       
+GET     /tenant-catalog/brands                         200    7      OK       
+POST    /tenant-catalog/brands                         200    8      OK       
+GET     /tenant-catalog/pack-configs                   200    4      OK       
+POST    /tenant-catalog/pack-configs                   200    8      OK       
+GET     /retailers                                     200    8      OK       
+POST    /retailers                                     200    17     OK       
+GET     /retailers/{id}                                200    4      OK       
+POST    /retailers/{id}/credit                         200    9      OK       
+POST    /retailers/{id}/link                           -      0      SKIPPED  destructive, needs --destructive (would invite a made-up phone into a demo shop 
+POST    /retailers/me                                  403    3      EXPECTED the owner role may not call POST /retailers/me
+GET     /beats                                         200    4      OK       
+POST    /beats                                         200    7      OK       
+POST    /beats/{id}/assign                             200    6      OK       
+GET     /beats/assignments                             200    8      OK       
+POST    /visits                                        200    11     OK       
+GET     /visits                                        200    8      OK       
+GET     /pricing/price-lists                           200    21     OK       
+POST    /pricing/price-lists                           200    7      OK       
+POST    /pricing/price-lists/{priceListId}/items       200    15     OK       
+GET     /pricing/overrides                             200    6      OK       
+POST    /pricing/overrides                             200    7      OK       
+GET     /pricing/schemes                               200    7      OK       
+POST    /pricing/schemes                               200    9      OK       
+POST    /pricing/quote                                 200    13     OK       
+POST    /pricing/bargains                              200    15     OK       
+GET     /pricing/bargains                              200    5      OK       
+POST    /pricing/bargains/{id}/decide                  200    7      OK       
+POST    /pricing/bounds                                200    9      OK       
+GET     /pricing/bounds                                200    4      OK       
+GET     /inventory/locations                           200    7      OK       
+POST    /inventory/locations                           200    6      OK       
+GET     /inventory/sellable                            200    12     OK       
+GET     /inventory/availability                        200    8      OK       
+GET     /inventory/balances                            200    9      OK       
+POST    /inventory/adjustments                         200    9      OK       
+POST    /inventory/transfers                           200    12     OK       
+GET     /inventory/ledger                              200    8      OK       
+POST    /inventory/lots                                200    8      OK       
+POST    /inventory/cycle-counts                        200    10     OK       
+GET     /inventory/cycle-counts                        200    5      OK       
+POST    /inventory/cycle-counts/{id}/count             200    8      OK       
+POST    /inventory/cycle-counts/{id}/post              409    4      EXPECTED cycle count b24cd950-8b2b-7979-b757-948dfe93be0a is open; every line must be cou
+GET     /inventory/cycle-counts/{id}                   200    4      OK       
+POST    /procurement/supplier-invoices                 200    20     OK       
+GET     /procurement/supplier-invoices                 200    7      OK       
+GET     /procurement/supplier-invoices/{id}            200    9      OK       
+POST    /procurement/supplier-invoices/{id}/lines/{lin 200    9      OK       
+POST    /procurement/supplier-invoices/{id}/dispute    409    3      EXPECTED supplier invoice GOD/26-27/00612 is received; only an extracted, in-review or ap
+POST    /procurement/supplier-invoices/{id}/cancel     -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /procurement/grns                              200    8      OK       
+GET     /procurement/grns                              200    3      OK       
+POST    /procurement/grns/{id}/count                   200    7      OK       
+POST    /procurement/grns/{id}/post                    200    5      OK       
+GET     /procurement/grns/{id}                         200    4      OK       
+GET     /procurement/discrepancies                     200    3      OK       
+POST    /procurement/discrepancies/{id}/resolve        200    5      OK       
+POST    /procurement/purchase-orders                   200    6      OK       
+GET     /procurement/purchase-orders                   200    3      OK       
+POST    /orders                                        200    20     OK       
+GET     /orders                                        200    4      OK       
+POST    /orders/{id}/lines                             200    29     OK       
+POST    /orders/repeat-last                            200    31     OK       
+POST    /orders/{id}/submit                            200    20     OK       
+POST    /orders/{id}/confirm                           409    5      EXPECTED SO-0880 is waiting on 1 decision(s) (credit limit); approve or reject each in th
+POST    /orders/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /orders/last-placed                            200    8      OK       
+GET     /orders/{id}                                   200    7      OK       
+GET     /approvals                                     200    9      OK       
+POST    /approvals/{id}/decide                         200    30     OK       
+POST    /receipts                                      200    31     OK       
+GET     /receipts                                      200    43     OK       
+GET     /receipts/{id}                                 200    10     OK       
+GET     /receipts/{id}/document                        200    6      OK       
+POST    /receipts/{id}/bounce                          -      0      SKIPPED  destructive, needs --destructive (would return a seeded cheque and book a real b
+POST    /receivables/payments/initiate                 403    3      EXPECTED the owner role may not call POST /receivables/payments/initiate
+POST    /allocations                                   409    9      EXPECTED bill OPEN/0006 belongs to another shop
+POST    /allocations/{id}/remove                       -      0      SKIPPED  destructive, needs --destructive (would delete a seeded allocation and reopen th
+GET     /receivables/outstanding/{retailerId}          200    8      OK       
+GET     /receivables/outstanding                       200    9      OK       
+GET     /receivables/credit-check                      200    4      OK       
+GET     /receivables/ledger/{retailerId}               200    26     OK       
+POST    /receivables/statements                        200    5      OK       
+POST    /receivables/write-offs                        -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /receivables/cash-discounts                    200    24     OK       
+GET     /receivables/accounts                          200    69     OK       
+GET     /receivables/journal                           200    9      OK       
+POST    /receivables/ageing/rebuild                    200    11     OK       
+GET     /receivables/ageing/history                    200    7      OK       
+GET     /billing/queue                                 200    6      OK       
+POST    /warehouse/packs/{packId}/invoice              404    6      BROKEN   pack 01a06dfc-c72b-7578-8d88-28f8e0d9054b not found
+POST    /invoices/van-sale                             200    43     OK       
+POST    /invoices/brand-dms                            200    23     OK       
+POST    /invoices/{id}/cancel                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /invoices/{id}                                 200    23     OK       
+GET     /invoices                                      200    10     OK       
+GET     /invoices/{id}/upi-qr                          200    5      OK       
+GET     /invoices/{id}/pdf                             200    3      OK       
+POST    /invoices/{id}/eway-bill                       200    7      OK       
+POST    /invoices/{id}/irn                             200    5      OK       
+POST    /credit-notes                                  400    9      EXPECTED line 01a06d4a-aaee-73cb-8b2a-08ff3ce05549 does not belong to bill INV/9007
+GET     /credit-notes                                  200    4      OK       
+POST    /credit-notes/{id}/issue                       200    6      OK       
+POST    /credit-notes/{id}/cancel                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /credit-notes/{id}                             200    5      OK       
+GET     /billing/gst-summary                           200    7      OK       
+GET     /billing/sales-register                        200    5      OK       
+GET     /warehouse/queue                               200    9      OK       
+POST    /warehouse/picklists                           200    25     OK       
+GET     /warehouse/picklists                           200    6      OK       
+GET     /warehouse/picklists/{id}                      200    10     OK       
+POST    /warehouse/picklists/{id}/start                200    15     OK       
+POST    /warehouse/picklists/{id}/pick                 200    20     OK       
+POST    /warehouse/picklists/{id}/cancel               -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /warehouse/orders/{orderId}/pack               200    34     OK       
+GET     /warehouse/packs                               200    9      OK       
+GET     /warehouse/packs/{id}                          200    10     OK       
+POST    /warehouse/load-sheets                         200    30     OK       
+GET     /warehouse/load-sheets                         200    6      OK       
+GET     /warehouse/load-sheets/{id}                    200    15     OK       
+POST    /warehouse/load-sheets/{id}/approve            409    5      EXPECTED load sheet 32222013-6da8-7687-91f7-f8959fd1ed6d was already approved by a1cbd424
+POST    /warehouse/load-sheets/{id}/confirm            200    78     OK       
+POST    /warehouse/load-sheets/{id}/cancel             -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /warehouse/challans                            200    5      OK       
+GET     /warehouse/challans/{id}                       200    8      OK       
+GET     /warehouse/challans/{id}/pdf                   200    5      OK       
+POST    /warehouse/challans/{id}/ewb                   409    4      EXPECTED challan DC-0083 already carries e-way bill 291012345678
+GET     /warehouse/reservations                        200    8      OK       
+POST    /warehouse/reservations/release                409    10     EXPECTED order SO-0869 is packed; holds are only freed while it is confirmed
+POST    /sync/upload                                   200    12     OK       
+GET     /sync/errors                                   200    6      OK       
+GET     /sync/manifest                                 200    5      OK       
+GET     /sync/pull                                     200    52     OK       
+POST    /files/upload-url                              200    10     OK       
+GET     /files/read-url                                200    4      OK       
+GET     /delivery/vehicles                             200    5      OK       
+GET     /delivery/vehicle-positions                    200    10     OK       
+POST    /delivery/consents                             200    9      OK       
+GET     /delivery/consents                             200    4      OK       
+GET     /delivery/trips                                200    9      OK       
+GET     /delivery/trip-planning                        200    24     OK       
+POST    /delivery/trips/{id}/cancel                    -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /delivery/stops                                200    10     OK       
+GET     /delivery/collections                          200    8      OK       
+GET     /delivery/expenses                             200    8      OK       
+GET     /docint/documents                              200    15     OK       
+GET     /docint/documents/{id}                         200    10     OK       
+GET     /docint/documents/{id}/status                  200    7      OK       
+GET     /docint/documents/{id}/page-url                200    6      OK       
+GET     /docint/documents/{id}/extractions             200    8      OK       
+GET     /docint/extractions/{id}                       200    6      OK       
+GET     /docint/extractions/{extractionId}/candidates  200    10     OK       
+GET     /docint/queue                                  200    20     OK       
+GET     /docint/stats                                  200    14     OK       
+POST    /integrations/imports                          200    79     OK       
+GET     /integrations/imports                          200    6      OK       
+GET     /integrations/imports/{id}                     200    10     OK       
+GET     /integrations/imports/{id}/preview             200    7      OK       
+POST    /integrations/imports/{id}/mapping             200    12     OK       
+POST    /integrations/imports/{id}/dry-run             200    18     OK       
+GET     /integrations/imports/{id}/rows                200    7      OK       
+POST    /integrations/imports/{id}/rows/{rowId}/review 200    15     OK       
+POST    /integrations/imports/{id}/commit              200    116    OK       
+POST    /integrations/imports/{id}/confirm             200    9      OK       
+POST    /integrations/imports/{id}/rollback            409    6      EXPECTED the import is confirmed; it cannot be rolled back now
+POST    /integrations/imports/{id}/cancel              -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /integrations/import-profiles                  200    7      OK       
+POST    /integrations/import-profiles                  200    9      OK       
+POST    /integrations/exports                          200    126    OK       
+GET     /integrations/exports                          200    6      OK       
+GET     /integrations/exports/{id}                     200    5      OK       
+GET     /integrations/exports/{id}/download-url        200    5      OK       
+GET     /integrations/tally/mappings                   200    9      OK       
+POST    /integrations/tally/mappings                   200    14     OK       
+GET     /integrations/tally/sync-ledger                200    18     OK       
+GET     /claims/policies                               200    7      OK       
+POST    /claims/policies                               200    8      OK       
+GET     /claims/periods                                200    1219   OK       
+GET     /claims/ageing                                 200    9      OK       
+GET     /claims/register                               200    8      OK       
+GET     /claims/reconcile                              200    6      OK       
+POST    /claims                                        200    14     OK       
+GET     /claims                                        200    8      OK       
+GET     /claims/{id}                                   200    12     OK       
+POST    /claims/{id}/build                             200    34     OK       
+GET     /claims/{id}/lines                             200    6      OK       
+POST    /claims/{id}/lines                             200    12     OK       
+POST    /claims/{id}/lines/{lineId}/adjust             200    11     OK       
+POST    /claims/{id}/lines/{lineId}/remove             200    16     OK       
+POST    /claims/{id}/evidence                          200    11     OK       
+POST    /claims/{id}/submit                            200    38     OK       
+POST    /claims/{id}/acknowledge                       200    9      OK       
+POST    /claims/{id}/settlements                       200    20     OK       
+POST    /claims/{id}/reject                            409    6      EXPECTED claim CLM-0023 is partially_settled; cannot reject
+POST    /claims/{id}/write-off                         -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /claims/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /claims/{id}/statements                        200    33     OK       
+GET     /claims/{id}/statements                        200    5      OK       
+GET     /notifications/messages                        200    13     OK       
+GET     /notifications/messages/{id}                   200    6      OK       
+POST    /notifications/messages/send                   200    16     OK       
+POST    /notifications/messages/{id}/resend            200    10     OK       
+POST    /notifications/messages/{id}/read              200    9      OK       
+GET     /notifications/templates                       200    6      OK       
+POST    /notifications/templates                       200    7      OK       
+POST    /notifications/broadcasts                      200    44     OK       
+GET     /notifications/broadcasts                      200    6      OK       
+GET     /notifications/broadcasts/{id}                 200    7      OK       
+POST    /notifications/push-tokens                     200    7      OK       
+POST    /notifications/push-tokens/{id}/unregister     200    4      OK       
+GET     /notifications/inbound                         200    10     OK       
+POST    /notifications/inbound/{id}/handled            200    6      OK       
+GET     /reporting/dashboard/owner                     200    8      OK       
+GET     /reporting/dashboard/rep                       200    6      OK       
+GET     /reporting/series                              200    5      OK       
+GET     /reporting/series/sales                        200    5      OK       
+GET     /reporting/series/collections                  200    4      OK       
+GET     /reporting/series/outstanding                  200    5      OK       
+GET     /reporting/series/ageing                       200    11     OK       
+GET     /reporting/series/growth                       200    6      OK       
+GET     /reporting/series/brand-mix                    200    5      OK       
+GET     /reporting/series/category-mix                 200    5      OK       
+GET     /reporting/series/top-shops                    200    9      OK       
+GET     /reporting/series/top-beats                    200    6      OK       
+GET     /reporting/series/productivity                 200    5      OK       
+GET     /reporting/series/fill-rate                    200    4      OK       
+GET     /reporting/series/delivery-performance         200    5      OK       
+GET     /reporting/series/stock                        200    5      OK       
+GET     /reporting/series/gross-margin                 200    4      OK       
+GET     /reporting/series/scheme-spend                 200    5      OK       
+GET     /reporting/registers/daily-sales               200    8      OK       
+GET     /reporting/registers/rep-daily                 200    7      OK       
+GET     /reporting/retailers/{id}/behaviour            200    4      OK       
+GET     /reporting/retailers/{id}/series               200    6      OK       
+GET     /reporting/retailers/lapsed                    200    7      OK       
+GET     /reporting/registers/rep-productivity          200    10     OK       
+GET     /reporting/registers/scheme-spend              200    17     OK       
+GET     /reporting/registers/stock-value               200    33     OK       
+GET     /reporting/registers/fill-rate                 200    12     OK       
+GET     /reporting/registers/delivery-performance      200    20     OK       
+GET     /reporting/registers/collections               200    7      OK       
+GET     /reporting/registers/gst-sales                 200    10     OK       
+GET     /reporting/registers/gst-purchase              200    8      OK       
+POST    /reporting/exports                             200    20     OK       
+GET     /reporting/exports/{id}                        200    5      OK       
+POST    /incentives/targets                            200    16     OK       
+GET     /incentives/targets                            200    9      OK       
+POST    /incentives/targets/bulk                       200    13     OK       
+POST    /incentives/targets/what-if                    200    3      OK       
+GET     /incentives/targets/{id}                       200    6      OK       
+POST    /incentives/targets/{id}/remove                200    11     OK       
+POST    /incentives/targets/{id}/refresh               200    7      OK       
+GET     /incentives/progress                           403    2      EXPECTED the owner role may not call GET /incentives/progress
+GET     /incentives/progress/team                      200    7      OK       
+POST    /incentives/statements/compute                 200    13     OK       
+POST    /incentives/statements/{id}/approve            200    9      OK       
+POST    /incentives/statements/{id}/reopen             200    9      OK       
+GET     /incentives/statements/{id}                    200    5      OK       
+GET     /incentives/statements                         200    6      OK       
+POST    /ai/intake/text                                200    45     OK       
+POST    /ai/intake/voice                               200    61     OK       
+GET     /ai/drafts                                     200    12     OK       
+GET     /ai/drafts/{id}                                200    7      OK       
+POST    /ai/drafts/{id}/confirm                        200    66     OK       
+POST    /ai/drafts/{id}/reject                         200    10     OK       
+POST    /ai/forecast/run                               200    8      OK       
+GET     /ai/forecast                                   200    8      OK       
+POST    /ai/routing/trips/{tripId}/plan                200    12     OK       
+GET     /ai/routing/trips/{tripId}/plan                200    6      OK       
+POST    /ai/routing/trips/{tripId}/plan/apply          200    24     OK       
+POST    /receipts/deposit                              200    11     OK       
+POST    /docint/documents/{id}/reject                  200    12     OK       
+POST    /receipts/{id}/reverse                         200    21     OK       
+   owner: 307 OK · 13 expected · 1 BROKEN · 20 skipped  (of 341)
+
+── manager-service ─────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+POST    /delivery/vehicles                             200    20     OK       
+POST    /docint/documents                              200    13     OK       
+POST    /delivery/trips                                200    34     OK       
+POST    /docint/documents/{id}/pages/upload-urls       200    4      OK       
+POST    /delivery/trips/{id}/stops/reorder             200    11     OK       
+POST    /docint/documents/{id}/pages                   200    8      OK       
+POST    /delivery/trips/{id}/start-loading             200    9      OK       
+POST    /docint/documents/{id}/qr                      200    6      OK       
+POST    /delivery/trips/{id}/depart                    -      0      SKIPPED  could not load the throwaway trip out before it departs: warehouse.loadSheets.cr
+POST    /docint/documents/{id}/submit                  200    33     OK       
+POST    /delivery/trips/{id}/stops                     200    13     OK       
+POST    /delivery/stops/{id}/start                     409    4      EXPECTED trip TRIP-0002 is loading; the crew works a stop while the trip is active
+POST    /delivery/stops/{id}/arrive                    409    5      EXPECTED trip TRIP-0002 is loading; the crew works a stop while the trip is active
+POST    /delivery/deliveries                           409    4      EXPECTED trip TRIP-0002 is loading; a bill is delivered while the trip is out
+POST    /delivery/deliveries/{id}/pod                  200    11     OK       
+POST    /delivery/collections                          409    3      EXPECTED trip TRIP-0002 is loading; money is collected while the trip is out
+POST    /docint/extractions/{id}/matches/reject        200    7      OK       
+POST    /delivery/van-sales                            200    91     OK       
+POST    /docint/extractions/{id}/matches/accept        200    12     OK       
+POST    /delivery/expenses                             409    4      EXPECTED trip TRIP-0002 is loading; an expense belongs to a trip that is out
+POST    /docint/extractions/{id}/matches/choose        200    10     OK       
+POST    /gps/points                                    200    3      OK       
+POST    /docint/extractions/{id}/rematch               200    15     OK       
+POST    /delivery/stops/{id}/fail                      409    6      EXPECTED trip TRIP-0002 is loading; the crew works a stop while the trip is active
+POST    /docint/documents/{id}/extract                 200    45     OK       
+POST    /docint/documents/{id}/review                  200    22     OK       
+POST    /docint/review-sessions/{id}/heartbeat         200    5      OK       
+POST    /docint/review-sessions/{id}                   200    21     OK       
+POST    /docint/review-sessions/{id}/submit            400    13     EXPECTED 1 red check(s) still fail; fix them before submitting
+POST    /docint/review-sessions/{id}/release           200    10     OK       
+POST    /delivery/trips/{id}/return                    409    5      EXPECTED trip: cannot apply "return" in state "loading"
+POST    /docint/documents/{id}/approve                 200    19     OK       
+GET     /delivery/trips/{id}/settlement                200    11     OK       
+POST    /delivery/trips/{tripId}/settle                409    8      EXPECTED trip TRIP-0002 is loading; a trip is settled after it returns (closing)
+GET     /delivery/trips/{id}/trace                     200    5      OK       
+GET     /delivery/trips/{id}                           200    16     OK       
+GET     /delivery/trips/{id}/next-stop                 200    9      OK       
+GET     /delivery/deliveries                           200    14     OK       
+GET     /delivery/deliveries/{id}                      200    11     OK       
+GET     /health/ping                                   200    2      OK       
+GET     /tenancy/me                                    200    5      OK       
+GET     /tenancy/staff                                 200    6      OK       
+POST    /tenancy/staff                                 200    35     OK       
+POST    /tenancy/staff/update                          200    8      OK       
+POST    /tenancy/staff/set-password                    -      0      SKIPPED  destructive, needs --destructive (would change a demo user password)
+POST    /tenancy/staff/set-status                      -      0      SKIPPED  destructive, needs --destructive (would disable a demo user)
+GET     /tenancy/branding                              200    4      OK       
+GET     /tenancy/settings                              200    3      OK       
+POST    /tenancy/settings                              403    2      EXPECTED the manager role may not call POST /tenancy/settings
+GET     /tenancy/numbering-series                      403    2      EXPECTED the manager role may not call GET /tenancy/numbering-series
+POST    /tenancy/numbering-series                      403    2      EXPECTED the manager role may not call POST /tenancy/numbering-series
+GET     /tenancy/feature-flags                         200    3      OK       
+POST    /tenancy/feature-flags                         403    2      EXPECTED the manager role may not call POST /tenancy/feature-flags
+POST    /tenancy/tenant                                403    2      EXPECTED the manager role may not call POST /tenancy/tenant
+GET     /tenancy/audit                                 200    4      OK       
+GET     /tenancy/support-grants                        403    2      EXPECTED the manager role may not call GET /tenancy/support-grants
+POST    /tenancy/support-grants/{id}/approve           -      0      SKIPPED  no support request is waiting for the owner to answer
+POST    /tenancy/support-grants/{id}/revoke            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /catalog/variants                              200    6      OK       
+GET     /catalog/manufacturers                         200    4      OK       
+POST    /catalog/proposals                             200    5      OK       
+GET     /tenant-catalog/products                       200    8      OK       
+POST    /tenant-catalog/products                       200    9      OK       
+GET     /tenant-catalog/suppliers                      200    3      OK       
+POST    /tenant-catalog/suppliers                      200    5      OK       
+GET     /tenant-catalog/costs                          200    3      OK       
+POST    /tenant-catalog/costs                          200    3      OK       
+GET     /tenant-catalog/rep-authorisations             200    6      OK       
+POST    /tenant-catalog/rep-authorisations             200    7      OK       
+GET     /tenant-catalog/brands                         200    5      OK       
+POST    /tenant-catalog/brands                         200    6      OK       
+GET     /tenant-catalog/pack-configs                   200    3      OK       
+POST    /tenant-catalog/pack-configs                   200    5      OK       
+GET     /retailers                                     200    5      OK       
+POST    /retailers                                     200    8      OK       
+GET     /retailers/{id}                                200    4      OK       
+POST    /retailers/{id}/credit                         200    7      OK       
+POST    /retailers/{id}/link                           -      0      SKIPPED  destructive, needs --destructive (would invite a made-up phone into a demo shop 
+POST    /retailers/me                                  403    2      EXPECTED the manager role may not call POST /retailers/me
+GET     /beats                                         200    4      OK       
+POST    /beats                                         200    5      OK       
+POST    /beats/{id}/assign                             200    6      OK       
+GET     /beats/assignments                             200    6      OK       
+POST    /visits                                        200    7      OK       
+GET     /visits                                        200    5      OK       
+GET     /pricing/price-lists                           200    18     OK       
+POST    /pricing/price-lists                           200    5      OK       
+POST    /pricing/price-lists/{priceListId}/items       200    12     OK       
+GET     /pricing/overrides                             200    5      OK       
+POST    /pricing/overrides                             200    5      OK       
+GET     /pricing/schemes                               200    5      OK       
+POST    /pricing/schemes                               200    6      OK       
+POST    /pricing/quote                                 200    12     OK       
+POST    /pricing/bargains                              200    14     OK       
+GET     /pricing/bargains                              200    4      OK       
+POST    /pricing/bargains/{id}/decide                  200    7      OK       
+POST    /pricing/bounds                                403    2      EXPECTED the manager role may not call POST /pricing/bounds
+GET     /pricing/bounds                                200    6      OK       
+GET     /inventory/locations                           200    4      OK       
+POST    /inventory/locations                           200    6      OK       
+GET     /inventory/sellable                            200    11     OK       
+GET     /inventory/availability                        200    9      OK       
+GET     /inventory/balances                            200    8      OK       
+POST    /inventory/adjustments                         200    9      OK       
+POST    /inventory/transfers                           200    12     OK       
+GET     /inventory/ledger                              200    5      OK       
+POST    /inventory/lots                                200    6      OK       
+POST    /inventory/cycle-counts                        200    10     OK       
+GET     /inventory/cycle-counts                        200    5      OK       
+POST    /inventory/cycle-counts/{id}/count             200    9      OK       
+POST    /inventory/cycle-counts/{id}/post              409    5      EXPECTED cycle count b24cd950-8b2b-7979-b757-948dfe93be0a is open; every line must be cou
+GET     /inventory/cycle-counts/{id}                   200    5      OK       
+POST    /procurement/supplier-invoices                 200    11     OK       
+GET     /procurement/supplier-invoices                 200    6      OK       
+GET     /procurement/supplier-invoices/{id}            200    7      OK       
+POST    /procurement/supplier-invoices/{id}/lines/{lin 200    13     OK       
+POST    /procurement/supplier-invoices/{id}/dispute    200    10     OK       
+POST    /procurement/supplier-invoices/{id}/cancel     -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /procurement/grns                              200    10     OK       
+GET     /procurement/grns                              200    4      OK       
+POST    /procurement/grns/{id}/count                   200    14     OK       
+POST    /procurement/grns/{id}/post                    200    8      OK       
+GET     /procurement/grns/{id}                         200    6      OK       
+GET     /procurement/discrepancies                     200    3      OK       
+POST    /procurement/discrepancies/{id}/resolve        404    5      BROKEN   discrepancy 01a0baa5-046a-76d6-9216-0784344790b5 not found
+POST    /procurement/purchase-orders                   200    7      OK       
+GET     /procurement/purchase-orders                   200    5      OK       
+POST    /orders                                        200    37     OK       
+GET     /orders                                        200    5      OK       
+POST    /orders/{id}/lines                             200    43     OK       
+POST    /orders/repeat-last                            200    50     OK       
+POST    /orders/{id}/submit                            200    36     OK       
+POST    /orders/{id}/confirm                           200    10     OK       
+POST    /orders/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /orders/last-placed                            200    11     OK       
+GET     /orders/{id}                                   200    10     OK       
+GET     /approvals                                     200    10     OK       
+POST    /approvals/{id}/decide                         200    11     OK       
+POST    /receipts                                      200    12     OK       
+GET     /receipts                                      200    42     OK       
+GET     /receipts/{id}                                 200    10     OK       
+GET     /receipts/{id}/document                        200    6      OK       
+POST    /receipts/{id}/bounce                          -      0      SKIPPED  destructive, needs --destructive (would return a seeded cheque and book a real b
+POST    /receivables/payments/initiate                 403    3      EXPECTED the manager role may not call POST /receivables/payments/initiate
+POST    /allocations                                   409    8      EXPECTED bill SO-0042 belongs to another shop
+POST    /allocations/{id}/remove                       -      0      SKIPPED  destructive, needs --destructive (would delete a seeded allocation and reopen th
+GET     /receivables/outstanding/{retailerId}          200    7      OK       
+GET     /receivables/outstanding                       200    7      OK       
+GET     /receivables/credit-check                      200    5      OK       
+GET     /receivables/ledger/{retailerId}               200    22     OK       
+POST    /receivables/statements                        200    7      OK       
+POST    /receivables/write-offs                        -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /receivables/cash-discounts                    200    21     OK       
+GET     /receivables/accounts                          200    40     OK       
+GET     /receivables/journal                           200    6      OK       
+POST    /receivables/ageing/rebuild                    403    2      EXPECTED the manager role may not call POST /receivables/ageing/rebuild
+GET     /receivables/ageing/history                    200    4      OK       
+GET     /billing/queue                                 200    6      OK       
+POST    /warehouse/packs/{packId}/invoice              400    5      EXPECTED pack 223c021d-74a7-724b-8e82-673db4840647 moved no stock; there is nothing to bi
+POST    /invoices/van-sale                             -      0      SKIPPED  no unbilled van-sale order, or no vehicle location
+POST    /invoices/brand-dms                            409    4      EXPECTED invoice SO-0042 has been imported before (01a0d0c5-64bb-738b-8df3-e45236ec2815);
+POST    /invoices/{id}/cancel                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /invoices/{id}                                 200    6      OK       
+GET     /invoices                                      200    5      OK       
+GET     /invoices/{id}/upi-qr                          200    4      OK       
+GET     /invoices/{id}/pdf                             200    4      OK       
+POST    /invoices/{id}/eway-bill                       200    9      OK       
+POST    /invoices/{id}/irn                             200    5      OK       
+POST    /credit-notes                                  400    6      EXPECTED line 01a06d4a-aaee-73cb-8b2a-08ff3ce05549 does not belong to bill INV/9009
+GET     /credit-notes                                  200    5      OK       
+POST    /credit-notes/{id}/issue                       200    7      OK       
+POST    /credit-notes/{id}/cancel                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /credit-notes/{id}                             200    6      OK       
+GET     /billing/gst-summary                           200    7      OK       
+GET     /billing/sales-register                        200    5      OK       
+GET     /warehouse/queue                               200    9      OK       
+POST    /warehouse/picklists                           200    34     OK       
+GET     /warehouse/picklists                           200    6      OK       
+GET     /warehouse/picklists/{id}                      200    12     OK       
+POST    /warehouse/picklists/{id}/start                200    18     OK       
+POST    /warehouse/picklists/{id}/pick                 200    14     OK       
+POST    /warehouse/picklists/{id}/cancel               -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /warehouse/orders/{orderId}/pack               200    46     OK       
+GET     /warehouse/packs                               200    9      OK       
+GET     /warehouse/packs/{id}                          200    9      OK       
+POST    /warehouse/load-sheets                         200    15     OK       
+GET     /warehouse/load-sheets                         200    5      OK       
+GET     /warehouse/load-sheets/{id}                    200    18     OK       
+POST    /warehouse/load-sheets/{id}/approve            200    13     OK       
+POST    /warehouse/load-sheets/{id}/confirm            400    4      EXPECTED nothing on this sheet has left the rack yet; pack the orders first
+POST    /warehouse/load-sheets/{id}/cancel             -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /warehouse/challans                            200    4      OK       
+GET     /warehouse/challans/{id}                       200    7      OK       
+GET     /warehouse/challans/{id}/pdf                   200    5      OK       
+POST    /warehouse/challans/{id}/ewb                   409    4      EXPECTED challan DC-0083 already carries e-way bill 291012345678
+GET     /warehouse/reservations                        200    7      OK       
+POST    /warehouse/reservations/release                409    7      EXPECTED order SO-0869 is packed; holds are only freed while it is confirmed
+POST    /sync/upload                                   200    4      OK       
+GET     /sync/errors                                   200    5      OK       
+GET     /sync/manifest                                 200    3      OK       
+GET     /sync/pull                                     200    30     OK       
+POST    /files/upload-url                              200    5      OK       
+GET     /files/read-url                                200    3      OK       
+GET     /delivery/vehicles                             200    9      OK       
+GET     /delivery/vehicle-positions                    200    7      OK       
+POST    /delivery/consents                             200    7      OK       
+GET     /delivery/consents                             200    7      OK       
+GET     /delivery/trips                                200    6      OK       
+GET     /delivery/trip-planning                        200    13     OK       
+POST    /delivery/trips/{id}/cancel                    -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /delivery/stops                                200    8      OK       
+GET     /delivery/collections                          200    7      OK       
+GET     /delivery/expenses                             200    4      OK       
+GET     /docint/documents                              200    8      OK       
+GET     /docint/documents/{id}                         200    5      OK       
+GET     /docint/documents/{id}/status                  200    4      OK       
+GET     /docint/documents/{id}/page-url                200    3      OK       
+GET     /docint/documents/{id}/extractions             200    4      OK       
+GET     /docint/extractions/{id}                       200    4      OK       
+GET     /docint/extractions/{extractionId}/candidates  200    8      OK       
+GET     /docint/queue                                  200    11     OK       
+GET     /docint/stats                                  200    5      OK       
+POST    /integrations/imports                          200    30     OK       
+GET     /integrations/imports                          200    4      OK       
+GET     /integrations/imports/{id}                     200    4      OK       
+GET     /integrations/imports/{id}/preview             200    4      OK       
+POST    /integrations/imports/{id}/mapping             200    7      OK       
+POST    /integrations/imports/{id}/dry-run             200    11     OK       
+GET     /integrations/imports/{id}/rows                200    4      OK       
+POST    /integrations/imports/{id}/rows/{rowId}/review 200    8      OK       
+POST    /integrations/imports/{id}/commit              200    64     OK       
+POST    /integrations/imports/{id}/confirm             200    6      OK       
+POST    /integrations/imports/{id}/rollback            409    4      EXPECTED the import is confirmed; it cannot be rolled back now
+POST    /integrations/imports/{id}/cancel              -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /integrations/import-profiles                  200    5      OK       
+POST    /integrations/import-profiles                  200    5      OK       
+POST    /integrations/exports                          200    6      OK       
+GET     /integrations/exports                          200    3      OK       
+GET     /integrations/exports/{id}                     200    3      OK       
+GET     /integrations/exports/{id}/download-url        200    4      OK       
+GET     /integrations/tally/mappings                   200    6      OK       
+POST    /integrations/tally/mappings                   200    7      OK       
+GET     /integrations/tally/sync-ledger                200    4      OK       
+GET     /claims/policies                               200    6      OK       
+POST    /claims/policies                               403    2      EXPECTED the manager role may not call POST /claims/policies
+GET     /claims/periods                                200    1276   OK       
+GET     /claims/ageing                                 200    5      OK       
+GET     /claims/register                               200    4      OK       
+GET     /claims/reconcile                              200    3      OK       
+POST    /claims                                        200    8      OK       
+GET     /claims                                        200    4      OK       
+GET     /claims/{id}                                   200    6      OK       
+POST    /claims/{id}/build                             200    23     OK       
+GET     /claims/{id}/lines                             200    4      OK       
+POST    /claims/{id}/lines                             200    14     OK       
+POST    /claims/{id}/lines/{lineId}/adjust             200    9      OK       
+POST    /claims/{id}/lines/{lineId}/remove             200    12     OK       
+POST    /claims/{id}/evidence                          200    7      OK       
+POST    /claims/{id}/submit                            200    23     OK       
+POST    /claims/{id}/acknowledge                       200    7      OK       
+POST    /claims/{id}/settlements                       200    11     OK       
+POST    /claims/{id}/reject                            409    4      EXPECTED claim CLM-0024 is partially_settled; cannot reject
+POST    /claims/{id}/write-off                         -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /claims/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /claims/{id}/statements                        200    14     OK       
+GET     /claims/{id}/statements                        200    2      OK       
+GET     /notifications/messages                        200    5      OK       
+GET     /notifications/messages/{id}                   200    3      OK       
+POST    /notifications/messages/send                   200    6      OK       
+POST    /notifications/messages/{id}/resend            200    5      OK       
+POST    /notifications/messages/{id}/read              404    4      BROKEN   message fe0e3c28-1398-7e34-9633-c17e07ddad1d not found
+GET     /notifications/templates                       200    3      OK       
+POST    /notifications/templates                       200    4      OK       
+POST    /notifications/broadcasts                      200    17     OK       
+GET     /notifications/broadcasts                      200    4      OK       
+GET     /notifications/broadcasts/{id}                 200    5      OK       
+POST    /notifications/push-tokens                     200    4      OK       
+POST    /notifications/push-tokens/{id}/unregister     200    3      OK       
+GET     /notifications/inbound                         200    4      OK       
+POST    /notifications/inbound/{id}/handled            200    4      OK       
+GET     /reporting/dashboard/owner                     200    4      OK       
+GET     /reporting/dashboard/rep                       200    3      OK       
+GET     /reporting/series                              200    3      OK       
+GET     /reporting/series/sales                        200    3      OK       
+GET     /reporting/series/collections                  200    3      OK       
+GET     /reporting/series/outstanding                  200    3      OK       
+GET     /reporting/series/ageing                       200    4      OK       
+GET     /reporting/series/growth                       200    4      OK       
+GET     /reporting/series/brand-mix                    200    3      OK       
+GET     /reporting/series/category-mix                 200    4      OK       
+GET     /reporting/series/top-shops                    200    5      OK       
+GET     /reporting/series/top-beats                    200    3      OK       
+GET     /reporting/series/productivity                 200    2      OK       
+GET     /reporting/series/fill-rate                    200    3      OK       
+GET     /reporting/series/delivery-performance         200    3      OK       
+GET     /reporting/series/stock                        200    4      OK       
+GET     /reporting/series/gross-margin                 403    2      EXPECTED the manager role may not call GET /reporting/series/gross-margin
+GET     /reporting/series/scheme-spend                 200    3      OK       
+GET     /reporting/registers/daily-sales               200    3      OK       
+GET     /reporting/registers/rep-daily                 200    4      OK       
+GET     /reporting/retailers/{id}/behaviour            200    4      OK       
+GET     /reporting/retailers/{id}/series               200    4      OK       
+GET     /reporting/retailers/lapsed                    200    4      OK       
+GET     /reporting/registers/rep-productivity          200    6      OK       
+GET     /reporting/registers/scheme-spend              200    10     OK       
+GET     /reporting/registers/stock-value               200    26     OK       
+GET     /reporting/registers/fill-rate                 200    7      OK       
+GET     /reporting/registers/delivery-performance      200    12     OK       
+GET     /reporting/registers/collections               200    4      OK       
+GET     /reporting/registers/gst-sales                 200    7      OK       
+GET     /reporting/registers/gst-purchase              200    6      OK       
+POST    /reporting/exports                             200    6      OK       
+GET     /reporting/exports/{id}                        200    3      OK       
+POST    /incentives/targets                            403    2      EXPECTED the manager role may not call POST /incentives/targets
+GET     /incentives/targets                            200    6      OK       
+POST    /incentives/targets/bulk                       403    2      EXPECTED the manager role may not call POST /incentives/targets/bulk
+POST    /incentives/targets/what-if                    200    2      OK       
+GET     /incentives/targets/{id}                       200    4      OK       
+POST    /incentives/targets/{id}/remove                403    2      EXPECTED the manager role may not call POST /incentives/targets/:id/remove
+POST    /incentives/targets/{id}/refresh               200    5      OK       
+GET     /incentives/progress                           403    2      EXPECTED the manager role may not call GET /incentives/progress
+GET     /incentives/progress/team                      200    5      OK       
+POST    /incentives/statements/compute                 200    10     OK       
+POST    /incentives/statements/{id}/approve            403    2      EXPECTED the manager role may not call POST /incentives/statements/:id/approve
+POST    /incentives/statements/{id}/reopen             403    2      EXPECTED the manager role may not call POST /incentives/statements/:id/reopen
+GET     /incentives/statements/{id}                    200    4      OK       
+GET     /incentives/statements                         200    4      OK       
+POST    /ai/intake/text                                200    35     OK       
+POST    /ai/intake/voice                               200    50     OK       
+GET     /ai/drafts                                     200    7      OK       
+GET     /ai/drafts/{id}                                200    5      OK       
+POST    /ai/drafts/{id}/confirm                        200    47     OK       
+POST    /ai/drafts/{id}/reject                         200    11     OK       
+POST    /ai/forecast/run                               200    5      OK       
+GET     /ai/forecast                                   200    8      OK       
+POST    /ai/routing/trips/{tripId}/plan                200    11     OK       
+GET     /ai/routing/trips/{tripId}/plan                200    7      OK       
+POST    /ai/routing/trips/{tripId}/plan/apply          409    8      EXPECTED a route plan has already been applied to this trip
+POST    /receipts/deposit                              409    5      EXPECTED receipt RCPT-9006 is cancelled, not collected
+POST    /docint/documents/{id}/reject                  200    20     OK       
+POST    /receipts/{id}/reverse                         409    5      EXPECTED receipt RCPT-9006 is already cancelled
+   manager: 279 OK · 40 expected · 2 BROKEN · 20 skipped  (of 341)
+
+── sales-service ───────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+GET     /health/ping                                   200    2      OK       
+GET     /tenancy/me                                    200    5      OK       
+GET     /tenancy/staff                                 403    2      EXPECTED the salesperson role may not call GET /tenancy/staff
+POST    /tenancy/staff                                 403    2      EXPECTED the salesperson role may not call POST /tenancy/staff
+POST    /tenancy/staff/update                          403    2      EXPECTED the salesperson role may not call POST /tenancy/staff/update
+POST    /tenancy/staff/set-password                    -      0      SKIPPED  destructive, needs --destructive (would change a demo user password)
+POST    /tenancy/staff/set-status                      -      0      SKIPPED  destructive, needs --destructive (would disable a demo user)
+GET     /tenancy/branding                              200    5      OK       
+GET     /tenancy/settings                              200    3      OK       
+POST    /tenancy/settings                              403    2      EXPECTED the salesperson role may not call POST /tenancy/settings
+GET     /tenancy/numbering-series                      403    2      EXPECTED the salesperson role may not call GET /tenancy/numbering-series
+POST    /tenancy/numbering-series                      403    2      EXPECTED the salesperson role may not call POST /tenancy/numbering-series
+GET     /tenancy/feature-flags                         200    4      OK       
+POST    /tenancy/feature-flags                         403    1      EXPECTED the salesperson role may not call POST /tenancy/feature-flags
+POST    /tenancy/tenant                                403    2      EXPECTED the salesperson role may not call POST /tenancy/tenant
+GET     /tenancy/audit                                 403    2      EXPECTED the salesperson role may not call GET /tenancy/audit
+GET     /tenancy/support-grants                        403    2      EXPECTED the salesperson role may not call GET /tenancy/support-grants
+POST    /tenancy/support-grants/{id}/approve           -      0      SKIPPED  no support request is waiting for the owner to answer
+POST    /tenancy/support-grants/{id}/revoke            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /catalog/variants                              200    8      OK       
+GET     /catalog/manufacturers                         200    4      OK       
+POST    /catalog/proposals                             200    10     OK       
+GET     /tenant-catalog/products                       200    10     OK       
+POST    /tenant-catalog/products                       403    2      EXPECTED the salesperson role may not call POST /tenant-catalog/products
+GET     /tenant-catalog/suppliers                      200    3      OK       
+POST    /tenant-catalog/suppliers                      403    2      EXPECTED the salesperson role may not call POST /tenant-catalog/suppliers
+GET     /tenant-catalog/costs                          403    2      EXPECTED the salesperson role may not call GET /tenant-catalog/costs
+POST    /tenant-catalog/costs                          403    1      EXPECTED the salesperson role may not call POST /tenant-catalog/costs
+GET     /tenant-catalog/rep-authorisations             200    5      OK       
+POST    /tenant-catalog/rep-authorisations             403    2      EXPECTED the salesperson role may not call POST /tenant-catalog/rep-authorisations
+GET     /tenant-catalog/brands                         200    5      OK       
+POST    /tenant-catalog/brands                         403    1      EXPECTED the salesperson role may not call POST /tenant-catalog/brands
+GET     /tenant-catalog/pack-configs                   403    1      EXPECTED the salesperson role may not call GET /tenant-catalog/pack-configs
+POST    /tenant-catalog/pack-configs                   403    2      EXPECTED the salesperson role may not call POST /tenant-catalog/pack-configs
+GET     /retailers                                     200    6      OK       
+POST    /retailers                                     200    9      OK       
+GET     /retailers/{id}                                200    4      OK       
+POST    /retailers/{id}/credit                         403    2      EXPECTED the salesperson role may not call POST /retailers/:id/credit
+POST    /retailers/{id}/link                           -      0      SKIPPED  destructive, needs --destructive (would invite a made-up phone into a demo shop 
+POST    /retailers/me                                  403    2      EXPECTED the salesperson role may not call POST /retailers/me
+GET     /beats                                         200    4      OK       
+POST    /beats                                         403    2      EXPECTED the salesperson role may not call POST /beats
+POST    /beats/{id}/assign                             403    2      EXPECTED the salesperson role may not call POST /beats/:id/assign
+GET     /beats/assignments                             200    5      OK       
+POST    /visits                                        200    8      OK       
+GET     /visits                                        200    5      OK       
+GET     /pricing/price-lists                           200    18     OK       
+POST    /pricing/price-lists                           403    2      EXPECTED the salesperson role may not call POST /pricing/price-lists
+POST    /pricing/price-lists/{priceListId}/items       403    2      EXPECTED the salesperson role may not call POST /pricing/price-lists/:priceListId/items
+GET     /pricing/overrides                             200    5      OK       
+POST    /pricing/overrides                             403    2      EXPECTED the salesperson role may not call POST /pricing/overrides
+GET     /pricing/schemes                               200    8      OK       
+POST    /pricing/schemes                               403    2      EXPECTED the salesperson role may not call POST /pricing/schemes
+POST    /pricing/quote                                 200    14     OK       
+POST    /pricing/bargains                              200    17     OK       
+GET     /pricing/bargains                              200    4      OK       
+POST    /pricing/bargains/{id}/decide                  -      0      SKIPPED  no bargain is awaiting a decision
+POST    /pricing/bounds                                403    2      EXPECTED the salesperson role may not call POST /pricing/bounds
+GET     /pricing/bounds                                200    3      OK       
+GET     /inventory/locations                           200    5      OK       
+POST    /inventory/locations                           403    2      EXPECTED the salesperson role may not call POST /inventory/locations
+GET     /inventory/sellable                            200    11     OK       
+GET     /inventory/availability                        200    7      OK       
+GET     /inventory/balances                            403    2      EXPECTED the salesperson role may not call GET /inventory/balances
+POST    /inventory/adjustments                         403    2      EXPECTED the salesperson role may not call POST /inventory/adjustments
+POST    /inventory/transfers                           403    2      EXPECTED the salesperson role may not call POST /inventory/transfers
+GET     /inventory/ledger                              403    2      EXPECTED the salesperson role may not call GET /inventory/ledger
+POST    /inventory/lots                                403    2      EXPECTED the salesperson role may not call POST /inventory/lots
+POST    /inventory/cycle-counts                        403    2      EXPECTED the salesperson role may not call POST /inventory/cycle-counts
+GET     /inventory/cycle-counts                        403    2      EXPECTED the salesperson role may not call GET /inventory/cycle-counts
+POST    /inventory/cycle-counts/{id}/count             403    2      EXPECTED the salesperson role may not call POST /inventory/cycle-counts/:id/count
+POST    /inventory/cycle-counts/{id}/post              403    3      EXPECTED the salesperson role may not call POST /inventory/cycle-counts/:id/post
+GET     /inventory/cycle-counts/{id}                   403    2      EXPECTED the salesperson role may not call GET /inventory/cycle-counts/:id
+POST    /orders                                        200    62     OK       
+GET     /orders                                        200    5      OK       
+POST    /orders/{id}/lines                             200    36     OK       
+POST    /orders/repeat-last                            200    37     OK       
+POST    /orders/{id}/submit                            200    39     OK       
+POST    /orders/{id}/confirm                           403    2      EXPECTED the salesperson role may not call POST /orders/:id/confirm
+POST    /orders/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /orders/last-placed                            200    11     OK       
+GET     /orders/{id}                                   200    9      OK       
+GET     /approvals                                     403    2      EXPECTED the salesperson role may not call GET /approvals
+POST    /approvals/{id}/decide                         403    2      EXPECTED the salesperson role may not call POST /approvals/:id/decide
+POST    /receipts                                      403    2      EXPECTED the salesperson role may not call POST /receipts
+GET     /receipts                                      403    2      EXPECTED the salesperson role may not call GET /receipts
+GET     /receipts/{id}                                 403    2      EXPECTED the salesperson role may not call GET /receipts/:id
+GET     /receipts/{id}/document                        403    2      EXPECTED the salesperson role may not call GET /receipts/:id/document
+POST    /receipts/{id}/bounce                          -      0      SKIPPED  destructive, needs --destructive (would return a seeded cheque and book a real b
+POST    /receivables/payments/initiate                 403    2      EXPECTED the salesperson role may not call POST /receivables/payments/initiate
+POST    /allocations                                   403    3      EXPECTED the salesperson role may not call POST /allocations
+POST    /allocations/{id}/remove                       -      0      SKIPPED  destructive, needs --destructive (would delete a seeded allocation and reopen th
+GET     /receivables/outstanding/{retailerId}          200    12     OK       
+GET     /receivables/outstanding                       403    2      EXPECTED the salesperson role may not call GET /receivables/outstanding
+GET     /receivables/credit-check                      200    7      OK       
+GET     /receivables/ledger/{retailerId}               200    22     OK       
+POST    /receivables/statements                        403    3      EXPECTED the salesperson role may not call POST /receivables/statements
+POST    /receivables/write-offs                        -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /receivables/cash-discounts                    403    2      EXPECTED the salesperson role may not call GET /receivables/cash-discounts
+GET     /receivables/accounts                          403    2      EXPECTED the salesperson role may not call GET /receivables/accounts
+GET     /receivables/journal                           403    3      EXPECTED the salesperson role may not call GET /receivables/journal
+POST    /receivables/ageing/rebuild                    403    2      EXPECTED the salesperson role may not call POST /receivables/ageing/rebuild
+GET     /receivables/ageing/history                    403    3      EXPECTED the salesperson role may not call GET /receivables/ageing/history
+GET     /billing/queue                                 403    2      EXPECTED the salesperson role may not call GET /billing/queue
+POST    /warehouse/packs/{packId}/invoice              403    2      EXPECTED the salesperson role may not call POST /warehouse/packs/:packId/invoice
+POST    /invoices/van-sale                             403    3      EXPECTED the salesperson role may not call POST /invoices/van-sale
+POST    /invoices/brand-dms                            403    3      EXPECTED the salesperson role may not call POST /invoices/brand-dms
+POST    /invoices/{id}/cancel                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /invoices/{id}                                 200    14     OK       
+GET     /invoices                                      200    8      OK       
+GET     /invoices/{id}/upi-qr                          403    3      EXPECTED the salesperson role may not call GET /invoices/:id/upi-qr
+GET     /invoices/{id}/pdf                             200    7      OK       
+POST    /invoices/{id}/eway-bill                       403    3      EXPECTED the salesperson role may not call POST /invoices/:id/eway-bill
+POST    /invoices/{id}/irn                             403    3      EXPECTED the salesperson role may not call POST /invoices/:id/irn
+POST    /credit-notes                                  403    3      EXPECTED the salesperson role may not call POST /credit-notes
+GET     /credit-notes                                  200    6      OK       
+POST    /credit-notes/{id}/issue                       403    2      EXPECTED the salesperson role may not call POST /credit-notes/:id/issue
+POST    /credit-notes/{id}/cancel                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /credit-notes/{id}                             200    12     OK       
+GET     /billing/gst-summary                           403    2      EXPECTED the salesperson role may not call GET /billing/gst-summary
+GET     /billing/sales-register                        403    3      EXPECTED the salesperson role may not call GET /billing/sales-register
+POST    /sync/upload                                   200    5      OK       
+GET     /sync/errors                                   200    6      OK       
+GET     /sync/manifest                                 200    5      OK       
+GET     /sync/pull                                     200    45     OK       
+GET     /notifications/messages                        200    13     OK       
+GET     /notifications/messages/{id}                   200    8      OK       
+POST    /notifications/messages/send                   403    2      EXPECTED the salesperson role may not call POST /notifications/messages/send
+POST    /notifications/messages/{id}/resend            403    3      EXPECTED the salesperson role may not call POST /notifications/messages/:id/resend
+POST    /notifications/messages/{id}/read              200    13     OK       
+GET     /notifications/templates                       403    2      EXPECTED the salesperson role may not call GET /notifications/templates
+POST    /notifications/templates                       403    2      EXPECTED the salesperson role may not call POST /notifications/templates
+POST    /notifications/broadcasts                      403    1      EXPECTED the salesperson role may not call POST /notifications/broadcasts
+GET     /notifications/broadcasts                      403    2      EXPECTED the salesperson role may not call GET /notifications/broadcasts
+GET     /notifications/broadcasts/{id}                 403    2      EXPECTED the salesperson role may not call GET /notifications/broadcasts/:id
+POST    /notifications/push-tokens                     200    9      OK       
+POST    /notifications/push-tokens/{id}/unregister     200    6      OK       
+GET     /notifications/inbound                         200    7      OK       
+POST    /notifications/inbound/{id}/handled            200    7      OK       
+GET     /reporting/dashboard/owner                     403    2      EXPECTED the salesperson role may not call GET /reporting/dashboard/owner
+GET     /reporting/dashboard/rep                       200    7      OK       
+GET     /reporting/series                              403    2      EXPECTED the salesperson role may not call GET /reporting/series
+GET     /reporting/series/sales                        403    2      EXPECTED the salesperson role may not call GET /reporting/series/sales
+GET     /reporting/series/collections                  403    2      EXPECTED the salesperson role may not call GET /reporting/series/collections
+GET     /reporting/series/outstanding                  403    2      EXPECTED the salesperson role may not call GET /reporting/series/outstanding
+GET     /reporting/series/ageing                       403    3      EXPECTED the salesperson role may not call GET /reporting/series/ageing
+GET     /reporting/series/growth                       403    2      EXPECTED the salesperson role may not call GET /reporting/series/growth
+GET     /reporting/series/brand-mix                    403    2      EXPECTED the salesperson role may not call GET /reporting/series/brand-mix
+GET     /reporting/series/category-mix                 403    2      EXPECTED the salesperson role may not call GET /reporting/series/category-mix
+GET     /reporting/series/top-shops                    403    2      EXPECTED the salesperson role may not call GET /reporting/series/top-shops
+GET     /reporting/series/top-beats                    403    2      EXPECTED the salesperson role may not call GET /reporting/series/top-beats
+GET     /reporting/series/productivity                 200    5      OK       
+GET     /reporting/series/fill-rate                    403    2      EXPECTED the salesperson role may not call GET /reporting/series/fill-rate
+GET     /reporting/series/delivery-performance         403    2      EXPECTED the salesperson role may not call GET /reporting/series/delivery-performance
+GET     /reporting/series/stock                        403    2      EXPECTED the salesperson role may not call GET /reporting/series/stock
+GET     /reporting/series/gross-margin                 403    2      EXPECTED the salesperson role may not call GET /reporting/series/gross-margin
+GET     /reporting/series/scheme-spend                 403    2      EXPECTED the salesperson role may not call GET /reporting/series/scheme-spend
+GET     /reporting/registers/daily-sales               403    2      EXPECTED the salesperson role may not call GET /reporting/registers/daily-sales
+GET     /reporting/registers/rep-daily                 200    6      OK       
+GET     /reporting/retailers/{id}/behaviour            200    7      OK       
+GET     /reporting/retailers/{id}/series               200    8      OK       
+GET     /reporting/retailers/lapsed                    200    8      OK       
+GET     /reporting/registers/rep-productivity          200    6      OK       
+GET     /reporting/registers/scheme-spend              403    2      EXPECTED the salesperson role may not call GET /reporting/registers/scheme-spend
+GET     /reporting/registers/stock-value               403    2      EXPECTED the salesperson role may not call GET /reporting/registers/stock-value
+GET     /reporting/registers/fill-rate                 403    2      EXPECTED the salesperson role may not call GET /reporting/registers/fill-rate
+GET     /reporting/registers/delivery-performance      403    3      EXPECTED the salesperson role may not call GET /reporting/registers/delivery-performance
+GET     /reporting/registers/collections               403    2      EXPECTED the salesperson role may not call GET /reporting/registers/collections
+GET     /reporting/registers/gst-sales                 403    2      EXPECTED the salesperson role may not call GET /reporting/registers/gst-sales
+GET     /reporting/registers/gst-purchase              403    2      EXPECTED the salesperson role may not call GET /reporting/registers/gst-purchase
+POST    /reporting/exports                             403    2      EXPECTED the salesperson role may not call POST /reporting/exports
+GET     /reporting/exports/{id}                        403    2      EXPECTED the salesperson role may not call GET /reporting/exports/:id
+POST    /incentives/targets                            403    2      EXPECTED the salesperson role may not call POST /incentives/targets
+GET     /incentives/targets                            200    9      OK       
+POST    /incentives/targets/bulk                       403    2      EXPECTED the salesperson role may not call POST /incentives/targets/bulk
+POST    /incentives/targets/what-if                    403    3      EXPECTED the salesperson role may not call POST /incentives/targets/what-if
+GET     /incentives/targets/{id}                       200    6      OK       
+POST    /incentives/targets/{id}/remove                403    1      EXPECTED the salesperson role may not call POST /incentives/targets/:id/remove
+POST    /incentives/targets/{id}/refresh               403    3      EXPECTED the salesperson role may not call POST /incentives/targets/:id/refresh
+GET     /incentives/progress                           200    11     OK       
+GET     /incentives/progress/team                      403    2      EXPECTED the salesperson role may not call GET /incentives/progress/team
+POST    /incentives/statements/compute                 403    3      EXPECTED the salesperson role may not call POST /incentives/statements/compute
+POST    /incentives/statements/{id}/approve            403    2      EXPECTED the salesperson role may not call POST /incentives/statements/:id/approve
+POST    /incentives/statements/{id}/reopen             403    2      EXPECTED the salesperson role may not call POST /incentives/statements/:id/reopen
+GET     /incentives/statements/{id}                    200    5      OK       
+GET     /incentives/statements                         200    4      OK       
+POST    /ai/intake/text                                200    38     OK       
+POST    /ai/intake/voice                               200    53     OK       
+GET     /ai/drafts                                     200    7      OK       
+GET     /ai/drafts/{id}                                200    6      OK       
+POST    /ai/drafts/{id}/confirm                        200    33     OK       
+POST    /ai/drafts/{id}/reject                         200    8      OK       
+POST    /ai/forecast/run                               403    2      EXPECTED the salesperson role may not call POST /ai/forecast/run
+GET     /ai/forecast                                   403    2      EXPECTED the salesperson role may not call GET /ai/forecast
+POST    /ai/routing/trips/{tripId}/plan                403    3      EXPECTED the salesperson role may not call POST /ai/routing/trips/:tripId/plan
+GET     /ai/routing/trips/{tripId}/plan                403    2      EXPECTED the salesperson role may not call GET /ai/routing/trips/:tripId/plan
+POST    /ai/routing/trips/{tripId}/plan/apply          403    3      EXPECTED the salesperson role may not call POST /ai/routing/trips/:tripId/plan/apply
+POST    /receipts/deposit                              403    2      EXPECTED the salesperson role may not call POST /receipts/deposit
+POST    /receipts/{id}/reverse                         403    3      EXPECTED the salesperson role may not call POST /receipts/:id/reverse
+   sales: 73 OK · 114 expected · 0 BROKEN · 12 skipped  (of 199)
+
+── warehouse-service ───────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+POST    /delivery/vehicles                             403    2      EXPECTED the warehouse role may not call POST /delivery/vehicles
+POST    /docint/documents                              200    9      OK       
+POST    /delivery/trips                                200    45     OK       
+POST    /docint/documents/{id}/pages/upload-urls       200    4      OK       
+POST    /delivery/trips/{id}/stops/reorder             403    2      EXPECTED the warehouse role may not call POST /delivery/trips/:id/stops/reorder
+POST    /docint/documents/{id}/pages                   200    9      OK       
+POST    /delivery/trips/{id}/start-loading             200    13     OK       
+POST    /docint/documents/{id}/qr                      200    9      OK       
+POST    /delivery/trips/{id}/depart                    403    1      EXPECTED the warehouse role may not call POST /delivery/trips/:id/depart
+POST    /docint/documents/{id}/submit                  200    39     OK       
+POST    /delivery/trips/{id}/stops                     200    18     OK       
+POST    /delivery/stops/{id}/start                     403    2      EXPECTED the warehouse role may not call POST /delivery/stops/:id/start
+POST    /delivery/stops/{id}/arrive                    403    2      EXPECTED the warehouse role may not call POST /delivery/stops/:id/arrive
+POST    /delivery/deliveries                           403    2      EXPECTED the warehouse role may not call POST /delivery/deliveries
+POST    /delivery/deliveries/{id}/pod                  403    2      EXPECTED the warehouse role may not call POST /delivery/deliveries/:id/pod
+POST    /delivery/collections                          403    1      EXPECTED the warehouse role may not call POST /delivery/collections
+POST    /docint/extractions/{id}/matches/reject        403    2      EXPECTED the warehouse role may not call POST /docint/extractions/:id/matches/reject
+POST    /delivery/van-sales                            403    1      EXPECTED the warehouse role may not call POST /delivery/van-sales
+POST    /docint/extractions/{id}/matches/accept        403    2      EXPECTED the warehouse role may not call POST /docint/extractions/:id/matches/accept
+POST    /delivery/expenses                             403    1      EXPECTED the warehouse role may not call POST /delivery/expenses
+POST    /docint/extractions/{id}/matches/choose        403    2      EXPECTED the warehouse role may not call POST /docint/extractions/:id/matches/choose
+POST    /gps/points                                    403    2      EXPECTED the warehouse role may not call POST /gps/points
+POST    /docint/extractions/{id}/rematch               403    2      EXPECTED the warehouse role may not call POST /docint/extractions/:id/rematch
+POST    /delivery/stops/{id}/fail                      403    1      EXPECTED the warehouse role may not call POST /delivery/stops/:id/fail
+POST    /docint/documents/{id}/extract                 403    2      EXPECTED the warehouse role may not call POST /docint/documents/:id/extract
+POST    /docint/documents/{id}/review                  403    2      EXPECTED the warehouse role may not call POST /docint/documents/:id/review
+POST    /docint/review-sessions/{id}/heartbeat         403    2      EXPECTED the warehouse role may not call POST /docint/review-sessions/:id/heartbeat
+POST    /docint/review-sessions/{id}                   403    2      EXPECTED the warehouse role may not call POST /docint/review-sessions/:id
+POST    /docint/review-sessions/{id}/submit            403    2      EXPECTED the warehouse role may not call POST /docint/review-sessions/:id/submit
+POST    /docint/review-sessions/{id}/release           403    2      EXPECTED the warehouse role may not call POST /docint/review-sessions/:id/release
+POST    /delivery/trips/{id}/return                    403    3      EXPECTED the warehouse role may not call POST /delivery/trips/:id/return
+POST    /docint/documents/{id}/approve                 403    2      EXPECTED the warehouse role may not call POST /docint/documents/:id/approve
+GET     /delivery/trips/{id}/settlement                403    2      EXPECTED the warehouse role may not call GET /delivery/trips/:id/settlement
+POST    /delivery/trips/{tripId}/settle                403    2      EXPECTED the warehouse role may not call POST /delivery/trips/:tripId/settle
+GET     /delivery/trips/{id}/trace                     403    2      EXPECTED the warehouse role may not call GET /delivery/trips/:id/trace
+GET     /delivery/trips/{id}                           200    13     OK       
+GET     /delivery/trips/{id}/next-stop                 200    10     OK       
+GET     /delivery/deliveries                           403    2      EXPECTED the warehouse role may not call GET /delivery/deliveries
+GET     /delivery/deliveries/{id}                      403    2      EXPECTED the warehouse role may not call GET /delivery/deliveries/:id
+GET     /health/ping                                   200    2      OK       
+GET     /tenancy/me                                    200    5      OK       
+GET     /tenancy/staff                                 403    2      EXPECTED the warehouse role may not call GET /tenancy/staff
+POST    /tenancy/staff                                 403    1      EXPECTED the warehouse role may not call POST /tenancy/staff
+POST    /tenancy/staff/update                          403    2      EXPECTED the warehouse role may not call POST /tenancy/staff/update
+POST    /tenancy/staff/set-password                    -      0      SKIPPED  destructive, needs --destructive (would change a demo user password)
+POST    /tenancy/staff/set-status                      -      0      SKIPPED  destructive, needs --destructive (would disable a demo user)
+GET     /tenancy/branding                              200    5      OK       
+GET     /tenancy/settings                              200    4      OK       
+POST    /tenancy/settings                              403    2      EXPECTED the warehouse role may not call POST /tenancy/settings
+GET     /tenancy/numbering-series                      403    2      EXPECTED the warehouse role may not call GET /tenancy/numbering-series
+POST    /tenancy/numbering-series                      403    3      EXPECTED the warehouse role may not call POST /tenancy/numbering-series
+GET     /tenancy/feature-flags                         200    3      OK       
+POST    /tenancy/feature-flags                         403    6      EXPECTED the warehouse role may not call POST /tenancy/feature-flags
+POST    /tenancy/tenant                                403    2      EXPECTED the warehouse role may not call POST /tenancy/tenant
+GET     /tenancy/audit                                 403    2      EXPECTED the warehouse role may not call GET /tenancy/audit
+GET     /tenancy/support-grants                        403    1      EXPECTED the warehouse role may not call GET /tenancy/support-grants
+POST    /tenancy/support-grants/{id}/approve           -      0      SKIPPED  no support request is waiting for the owner to answer
+POST    /tenancy/support-grants/{id}/revoke            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /catalog/variants                              200    8      OK       
+GET     /catalog/manufacturers                         200    4      OK       
+POST    /catalog/proposals                             200    6      OK       
+GET     /tenant-catalog/products                       200    10     OK       
+POST    /tenant-catalog/products                       403    2      EXPECTED the warehouse role may not call POST /tenant-catalog/products
+GET     /tenant-catalog/suppliers                      200    3      OK       
+POST    /tenant-catalog/suppliers                      403    2      EXPECTED the warehouse role may not call POST /tenant-catalog/suppliers
+GET     /tenant-catalog/costs                          403    2      EXPECTED the warehouse role may not call GET /tenant-catalog/costs
+POST    /tenant-catalog/costs                          403    2      EXPECTED the warehouse role may not call POST /tenant-catalog/costs
+GET     /tenant-catalog/rep-authorisations             200    4      OK       
+POST    /tenant-catalog/rep-authorisations             403    2      EXPECTED the warehouse role may not call POST /tenant-catalog/rep-authorisations
+GET     /tenant-catalog/brands                         200    4      OK       
+POST    /tenant-catalog/brands                         403    2      EXPECTED the warehouse role may not call POST /tenant-catalog/brands
+GET     /tenant-catalog/pack-configs                   200    3      OK       
+POST    /tenant-catalog/pack-configs                   403    2      EXPECTED the warehouse role may not call POST /tenant-catalog/pack-configs
+GET     /retailers                                     200    5      OK       
+POST    /retailers                                     200    13     OK       
+GET     /retailers/{id}                                200    4      OK       
+POST    /retailers/{id}/credit                         403    2      EXPECTED the warehouse role may not call POST /retailers/:id/credit
+POST    /retailers/{id}/link                           -      0      SKIPPED  destructive, needs --destructive (would invite a made-up phone into a demo shop 
+POST    /retailers/me                                  403    2      EXPECTED the warehouse role may not call POST /retailers/me
+GET     /beats                                         200    6      OK       
+POST    /beats                                         403    2      EXPECTED the warehouse role may not call POST /beats
+POST    /beats/{id}/assign                             403    2      EXPECTED the warehouse role may not call POST /beats/:id/assign
+GET     /beats/assignments                             200    5      OK       
+POST    /visits                                        200    6      OK       
+GET     /visits                                        200    5      OK       
+GET     /inventory/locations                           200    4      OK       
+POST    /inventory/locations                           200    6      OK       
+GET     /inventory/sellable                            200    9      OK       
+GET     /inventory/availability                        200    6      OK       
+GET     /inventory/balances                            200    6      OK       
+POST    /inventory/adjustments                         200    8      OK       
+POST    /inventory/transfers                           200    11     OK       
+GET     /inventory/ledger                              200    4      OK       
+POST    /inventory/lots                                200    5      OK       
+POST    /inventory/cycle-counts                        200    9      OK       
+GET     /inventory/cycle-counts                        200    4      OK       
+POST    /inventory/cycle-counts/{id}/count             200    8      OK       
+POST    /inventory/cycle-counts/{id}/post              403    2      EXPECTED the warehouse role may not call POST /inventory/cycle-counts/:id/post
+GET     /inventory/cycle-counts/{id}                   200    4      OK       
+POST    /procurement/supplier-invoices                 403    2      EXPECTED the warehouse role may not call POST /procurement/supplier-invoices
+GET     /procurement/supplier-invoices                 403    2      EXPECTED the warehouse role may not call GET /procurement/supplier-invoices
+GET     /procurement/supplier-invoices/{id}            403    2      EXPECTED the warehouse role may not call GET /procurement/supplier-invoices/:id
+POST    /procurement/supplier-invoices/{id}/lines/{lin 403    2      EXPECTED the warehouse role may not call POST /procurement/supplier-invoices/:id/lines/:l
+POST    /procurement/supplier-invoices/{id}/dispute    403    2      EXPECTED the warehouse role may not call POST /procurement/supplier-invoices/:id/dispute
+POST    /procurement/supplier-invoices/{id}/cancel     -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /procurement/grns                              403    2      EXPECTED the warehouse role may not call POST /procurement/grns
+GET     /procurement/grns                              200    4      OK       
+POST    /procurement/grns/{id}/count                   200    12     OK       
+POST    /procurement/grns/{id}/post                    403    1      EXPECTED the warehouse role may not call POST /procurement/grns/:id/post
+GET     /procurement/grns/{id}                         200    4      OK       
+GET     /procurement/discrepancies                     200    4      OK       
+POST    /procurement/discrepancies/{id}/resolve        403    2      EXPECTED the warehouse role may not call POST /procurement/discrepancies/:id/resolve
+POST    /procurement/purchase-orders                   403    2      EXPECTED the warehouse role may not call POST /procurement/purchase-orders
+GET     /procurement/purchase-orders                   403    2      EXPECTED the warehouse role may not call GET /procurement/purchase-orders
+POST    /orders                                        403    1      EXPECTED the warehouse role may not call POST /orders
+GET     /orders                                        200    6      OK       
+POST    /orders/{id}/lines                             403    2      EXPECTED the warehouse role may not call POST /orders/:id/lines
+POST    /orders/repeat-last                            403    2      EXPECTED the warehouse role may not call POST /orders/repeat-last
+POST    /orders/{id}/submit                            403    2      EXPECTED the warehouse role may not call POST /orders/:id/submit
+POST    /orders/{id}/confirm                           403    2      EXPECTED the warehouse role may not call POST /orders/:id/confirm
+POST    /orders/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /orders/last-placed                            200    16     OK       
+GET     /orders/{id}                                   200    10     OK       
+GET     /approvals                                     403    3      EXPECTED the warehouse role may not call GET /approvals
+POST    /approvals/{id}/decide                         403    2      EXPECTED the warehouse role may not call POST /approvals/:id/decide
+GET     /billing/queue                                 200    13     OK       
+POST    /warehouse/packs/{packId}/invoice              400    9      EXPECTED pack 223c021d-74a7-724b-8e82-673db4840647 moved no stock; there is nothing to bi
+POST    /invoices/van-sale                             403    2      EXPECTED the warehouse role may not call POST /invoices/van-sale
+POST    /invoices/brand-dms                            403    3      EXPECTED the warehouse role may not call POST /invoices/brand-dms
+POST    /invoices/{id}/cancel                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /invoices/{id}                                 200    19     OK       
+GET     /invoices                                      200    8      OK       
+GET     /invoices/{id}/upi-qr                          403    2      EXPECTED the warehouse role may not call GET /invoices/:id/upi-qr
+GET     /invoices/{id}/pdf                             200    6      OK       
+POST    /invoices/{id}/eway-bill                       200    18     OK       
+POST    /invoices/{id}/irn                             403    3      EXPECTED the warehouse role may not call POST /invoices/:id/irn
+POST    /credit-notes                                  403    2      EXPECTED the warehouse role may not call POST /credit-notes
+GET     /credit-notes                                  200    6      OK       
+POST    /credit-notes/{id}/issue                       403    2      EXPECTED the warehouse role may not call POST /credit-notes/:id/issue
+POST    /credit-notes/{id}/cancel                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /credit-notes/{id}                             200    12     OK       
+GET     /billing/gst-summary                           403    3      EXPECTED the warehouse role may not call GET /billing/gst-summary
+GET     /billing/sales-register                        403    2      EXPECTED the warehouse role may not call GET /billing/sales-register
+GET     /warehouse/queue                               200    16     OK       
+POST    /warehouse/picklists                           200    48     OK       
+GET     /warehouse/picklists                           200    9      OK       
+GET     /warehouse/picklists/{id}                      200    20     OK       
+POST    /warehouse/picklists/{id}/start                200    26     OK       
+POST    /warehouse/picklists/{id}/pick                 200    20     OK       
+POST    /warehouse/picklists/{id}/cancel               -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /warehouse/orders/{orderId}/pack               200    61     OK       
+GET     /warehouse/packs                               200    13     OK       
+GET     /warehouse/packs/{id}                          200    12     OK       
+POST    /warehouse/load-sheets                         200    35     OK       
+GET     /warehouse/load-sheets                         200    7      OK       
+GET     /warehouse/load-sheets/{id}                    200    30     OK       
+POST    /warehouse/load-sheets/{id}/approve            403    3      EXPECTED the warehouse role may not call POST /warehouse/load-sheets/:id/approve
+POST    /warehouse/load-sheets/{id}/confirm            409    7      EXPECTED load sheet fe92c85c-9bbb-7527-b165-a9735a4b9b66 has no manager approval yet; the
+POST    /warehouse/load-sheets/{id}/cancel             -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /warehouse/challans                            200    5      OK       
+GET     /warehouse/challans/{id}                       200    12     OK       
+GET     /warehouse/challans/{id}/pdf                   200    4      OK       
+POST    /warehouse/challans/{id}/ewb                   403    3      EXPECTED the warehouse role may not call POST /warehouse/challans/:id/ewb
+GET     /warehouse/reservations                        200    11     OK       
+POST    /warehouse/reservations/release                403    3      EXPECTED the warehouse role may not call POST /warehouse/reservations/release
+POST    /sync/upload                                   200    5      OK       
+GET     /sync/errors                                   200    6      OK       
+GET     /sync/manifest                                 200    3      OK       
+GET     /sync/pull                                     200    17     OK       
+POST    /files/upload-url                              200    8      OK       
+GET     /files/read-url                                200    3      OK       
+GET     /delivery/vehicles                             200    5      OK       
+GET     /delivery/vehicle-positions                    403    2      EXPECTED the warehouse role may not call GET /delivery/vehicle-positions
+POST    /delivery/consents                             403    2      EXPECTED the warehouse role may not call POST /delivery/consents
+GET     /delivery/consents                             403    2      EXPECTED the warehouse role may not call GET /delivery/consents
+GET     /delivery/trips                                200    9      OK       
+GET     /delivery/trip-planning                        200    16     OK       
+POST    /delivery/trips/{id}/cancel                    -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /delivery/stops                                200    8      OK       
+GET     /delivery/collections                          403    3      EXPECTED the warehouse role may not call GET /delivery/collections
+GET     /delivery/expenses                             403    2      EXPECTED the warehouse role may not call GET /delivery/expenses
+GET     /docint/documents                              200    13     OK       
+GET     /docint/documents/{id}                         200    9      OK       
+GET     /docint/documents/{id}/status                  200    5      OK       
+GET     /docint/documents/{id}/page-url                200    5      OK       
+GET     /docint/documents/{id}/extractions             403    2      EXPECTED the warehouse role may not call GET /docint/documents/:id/extractions
+GET     /docint/extractions/{id}                       403    2      EXPECTED the warehouse role may not call GET /docint/extractions/:id
+GET     /docint/extractions/{extractionId}/candidates  403    2      EXPECTED the warehouse role may not call GET /docint/extractions/:extractionId/candidates
+GET     /docint/queue                                  403    1      EXPECTED the warehouse role may not call GET /docint/queue
+GET     /docint/stats                                  403    2      EXPECTED the warehouse role may not call GET /docint/stats
+GET     /notifications/messages                        200    12     OK       
+GET     /notifications/messages/{id}                   200    5      OK       
+POST    /notifications/messages/send                   403    2      EXPECTED the warehouse role may not call POST /notifications/messages/send
+POST    /notifications/messages/{id}/resend            403    2      EXPECTED the warehouse role may not call POST /notifications/messages/:id/resend
+POST    /notifications/messages/{id}/read              404    6      BROKEN   message fe0e3c28-1398-7e34-9633-c17e07ddad1d not found
+GET     /notifications/templates                       403    1      EXPECTED the warehouse role may not call GET /notifications/templates
+POST    /notifications/templates                       403    3      EXPECTED the warehouse role may not call POST /notifications/templates
+POST    /notifications/broadcasts                      403    2      EXPECTED the warehouse role may not call POST /notifications/broadcasts
+GET     /notifications/broadcasts                      403    2      EXPECTED the warehouse role may not call GET /notifications/broadcasts
+GET     /notifications/broadcasts/{id}                 403    2      EXPECTED the warehouse role may not call GET /notifications/broadcasts/:id
+POST    /notifications/push-tokens                     200    8      OK       
+POST    /notifications/push-tokens/{id}/unregister     200    6      OK       
+GET     /notifications/inbound                         403    2      EXPECTED the warehouse role may not call GET /notifications/inbound
+POST    /notifications/inbound/{id}/handled            403    3      EXPECTED the warehouse role may not call POST /notifications/inbound/:id/handled
+GET     /reporting/dashboard/owner                     403    2      EXPECTED the warehouse role may not call GET /reporting/dashboard/owner
+GET     /reporting/dashboard/rep                       403    2      EXPECTED the warehouse role may not call GET /reporting/dashboard/rep
+GET     /reporting/series                              403    3      EXPECTED the warehouse role may not call GET /reporting/series
+GET     /reporting/series/sales                        403    3      EXPECTED the warehouse role may not call GET /reporting/series/sales
+GET     /reporting/series/collections                  403    2      EXPECTED the warehouse role may not call GET /reporting/series/collections
+GET     /reporting/series/outstanding                  403    2      EXPECTED the warehouse role may not call GET /reporting/series/outstanding
+GET     /reporting/series/ageing                       403    2      EXPECTED the warehouse role may not call GET /reporting/series/ageing
+GET     /reporting/series/growth                       403    2      EXPECTED the warehouse role may not call GET /reporting/series/growth
+GET     /reporting/series/brand-mix                    403    2      EXPECTED the warehouse role may not call GET /reporting/series/brand-mix
+GET     /reporting/series/category-mix                 403    2      EXPECTED the warehouse role may not call GET /reporting/series/category-mix
+GET     /reporting/series/top-shops                    403    1      EXPECTED the warehouse role may not call GET /reporting/series/top-shops
+GET     /reporting/series/top-beats                    403    2      EXPECTED the warehouse role may not call GET /reporting/series/top-beats
+GET     /reporting/series/productivity                 403    2      EXPECTED the warehouse role may not call GET /reporting/series/productivity
+GET     /reporting/series/fill-rate                    200    8      OK       
+GET     /reporting/series/delivery-performance         403    3      EXPECTED the warehouse role may not call GET /reporting/series/delivery-performance
+GET     /reporting/series/stock                        403    2      EXPECTED the warehouse role may not call GET /reporting/series/stock
+GET     /reporting/series/gross-margin                 403    2      EXPECTED the warehouse role may not call GET /reporting/series/gross-margin
+GET     /reporting/series/scheme-spend                 403    2      EXPECTED the warehouse role may not call GET /reporting/series/scheme-spend
+GET     /reporting/registers/daily-sales               403    2      EXPECTED the warehouse role may not call GET /reporting/registers/daily-sales
+GET     /reporting/registers/rep-daily                 403    1      EXPECTED the warehouse role may not call GET /reporting/registers/rep-daily
+GET     /reporting/retailers/{id}/behaviour            403    1      EXPECTED the warehouse role may not call GET /reporting/retailers/:id/behaviour
+GET     /reporting/retailers/{id}/series               403    2      EXPECTED the warehouse role may not call GET /reporting/retailers/:id/series
+GET     /reporting/retailers/lapsed                    403    3      EXPECTED the warehouse role may not call GET /reporting/retailers/lapsed
+GET     /reporting/registers/rep-productivity          403    2      EXPECTED the warehouse role may not call GET /reporting/registers/rep-productivity
+GET     /reporting/registers/scheme-spend              403    2      EXPECTED the warehouse role may not call GET /reporting/registers/scheme-spend
+GET     /reporting/registers/stock-value               403    2      EXPECTED the warehouse role may not call GET /reporting/registers/stock-value
+GET     /reporting/registers/fill-rate                 200    12     OK       
+GET     /reporting/registers/delivery-performance      403    2      EXPECTED the warehouse role may not call GET /reporting/registers/delivery-performance
+GET     /reporting/registers/collections               403    3      EXPECTED the warehouse role may not call GET /reporting/registers/collections
+GET     /reporting/registers/gst-sales                 403    2      EXPECTED the warehouse role may not call GET /reporting/registers/gst-sales
+GET     /reporting/registers/gst-purchase              403    1      EXPECTED the warehouse role may not call GET /reporting/registers/gst-purchase
+POST    /reporting/exports                             403    3      EXPECTED the warehouse role may not call POST /reporting/exports
+GET     /reporting/exports/{id}                        403    2      EXPECTED the warehouse role may not call GET /reporting/exports/:id
+POST    /ai/intake/text                                403    3      EXPECTED the warehouse role may not call POST /ai/intake/text
+POST    /ai/intake/voice                               403    2      EXPECTED the warehouse role may not call POST /ai/intake/voice
+GET     /ai/drafts                                     403    3      EXPECTED the warehouse role may not call GET /ai/drafts
+GET     /ai/drafts/{id}                                403    2      EXPECTED the warehouse role may not call GET /ai/drafts/:id
+POST    /ai/drafts/{id}/confirm                        403    3      EXPECTED the warehouse role may not call POST /ai/drafts/:id/confirm
+POST    /ai/drafts/{id}/reject                         403    3      EXPECTED the warehouse role may not call POST /ai/drafts/:id/reject
+POST    /ai/forecast/run                               403    3      EXPECTED the warehouse role may not call POST /ai/forecast/run
+GET     /ai/forecast                                   200    13     OK       
+POST    /ai/routing/trips/{tripId}/plan                403    2      EXPECTED the warehouse role may not call POST /ai/routing/trips/:tripId/plan
+GET     /ai/routing/trips/{tripId}/plan                200    12     OK       
+POST    /ai/routing/trips/{tripId}/plan/apply          403    3      EXPECTED the warehouse role may not call POST /ai/routing/trips/:tripId/plan/apply
+POST    /docint/documents/{id}/reject                  403    2      EXPECTED the warehouse role may not call POST /docint/documents/:id/reject
+   warehouse: 95 OK · 141 expected · 1 BROKEN · 12 skipped  (of 249)
+
+── delivery-service ────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+POST    /delivery/vehicles                             403    2      EXPECTED the delivery role may not call POST /delivery/vehicles
+POST    /delivery/trips                                200    29     OK       
+POST    /delivery/trips/{id}/stops/reorder             200    15     OK       
+POST    /delivery/trips/{id}/start-loading             200    10     OK       
+POST    /delivery/trips/{id}/depart                    200    13     OK       
+POST    /delivery/trips/{id}/stops                     200    12     OK       
+POST    /delivery/stops/{id}/start                     -      0      SKIPPED  no open stop with a bill on the throwaway trip
+POST    /delivery/stops/{id}/arrive                    -      0      SKIPPED  no open stop with a bill on the throwaway trip
+POST    /delivery/deliveries                           -      0      SKIPPED  no planned bill on the throwaway trip (no packed bill was free to ride on it)
+POST    /delivery/deliveries/{id}/pod                  200    12     OK       
+POST    /delivery/collections                          200    29     OK       
+POST    /delivery/van-sales                            200    120    OK       
+POST    /delivery/expenses                             200    7      OK       
+POST    /gps/points                                    200    4      OK       
+POST    /delivery/stops/{id}/fail                      200    15     OK       
+POST    /delivery/trips/{id}/return                    200    39     OK       
+GET     /delivery/trips/{id}/settlement                200    9      OK       
+POST    /delivery/trips/{tripId}/settle                403    2      EXPECTED the delivery role may not call POST /delivery/trips/:tripId/settle
+GET     /delivery/trips/{id}/trace                     403    3      EXPECTED the delivery role may not call GET /delivery/trips/:id/trace
+GET     /delivery/trips/{id}                           200    11     OK       
+GET     /delivery/trips/{id}/next-stop                 200    5      OK       
+GET     /delivery/deliveries                           200    15     OK       
+GET     /delivery/deliveries/{id}                      200    16     OK       
+GET     /health/ping                                   200    3      OK       
+GET     /tenancy/me                                    200    5      OK       
+GET     /tenancy/staff                                 403    2      EXPECTED the delivery role may not call GET /tenancy/staff
+POST    /tenancy/staff                                 403    3      EXPECTED the delivery role may not call POST /tenancy/staff
+POST    /tenancy/staff/update                          403    2      EXPECTED the delivery role may not call POST /tenancy/staff/update
+POST    /tenancy/staff/set-password                    -      0      SKIPPED  destructive, needs --destructive (would change a demo user password)
+POST    /tenancy/staff/set-status                      -      0      SKIPPED  destructive, needs --destructive (would disable a demo user)
+GET     /tenancy/branding                              200    10     OK       
+GET     /tenancy/settings                              200    6      OK       
+POST    /tenancy/settings                              403    3      EXPECTED the delivery role may not call POST /tenancy/settings
+GET     /tenancy/numbering-series                      403    2      EXPECTED the delivery role may not call GET /tenancy/numbering-series
+POST    /tenancy/numbering-series                      403    2      EXPECTED the delivery role may not call POST /tenancy/numbering-series
+GET     /tenancy/feature-flags                         200    5      OK       
+POST    /tenancy/feature-flags                         403    2      EXPECTED the delivery role may not call POST /tenancy/feature-flags
+POST    /tenancy/tenant                                403    3      EXPECTED the delivery role may not call POST /tenancy/tenant
+GET     /tenancy/audit                                 403    2      EXPECTED the delivery role may not call GET /tenancy/audit
+GET     /tenancy/support-grants                        403    2      EXPECTED the delivery role may not call GET /tenancy/support-grants
+POST    /tenancy/support-grants/{id}/approve           -      0      SKIPPED  no support request is waiting for the owner to answer
+POST    /tenancy/support-grants/{id}/revoke            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /catalog/variants                              200    11     OK       
+GET     /catalog/manufacturers                         200    9      OK       
+POST    /catalog/proposals                             200    6      OK       
+GET     /tenant-catalog/products                       200    6      OK       
+POST    /tenant-catalog/products                       403    2      EXPECTED the delivery role may not call POST /tenant-catalog/products
+GET     /tenant-catalog/suppliers                      200    4      OK       
+POST    /tenant-catalog/suppliers                      403    2      EXPECTED the delivery role may not call POST /tenant-catalog/suppliers
+GET     /tenant-catalog/costs                          403    2      EXPECTED the delivery role may not call GET /tenant-catalog/costs
+POST    /tenant-catalog/costs                          403    2      EXPECTED the delivery role may not call POST /tenant-catalog/costs
+GET     /tenant-catalog/rep-authorisations             200    6      OK       
+POST    /tenant-catalog/rep-authorisations             403    2      EXPECTED the delivery role may not call POST /tenant-catalog/rep-authorisations
+GET     /tenant-catalog/brands                         200    5      OK       
+POST    /tenant-catalog/brands                         403    3      EXPECTED the delivery role may not call POST /tenant-catalog/brands
+GET     /tenant-catalog/pack-configs                   403    2      EXPECTED the delivery role may not call GET /tenant-catalog/pack-configs
+POST    /tenant-catalog/pack-configs                   403    2      EXPECTED the delivery role may not call POST /tenant-catalog/pack-configs
+GET     /retailers                                     200    6      OK       
+POST    /retailers                                     200    11     OK       
+GET     /retailers/{id}                                200    5      OK       
+POST    /retailers/{id}/credit                         403    2      EXPECTED the delivery role may not call POST /retailers/:id/credit
+POST    /retailers/{id}/link                           -      0      SKIPPED  destructive, needs --destructive (would invite a made-up phone into a demo shop 
+POST    /retailers/me                                  403    2      EXPECTED the delivery role may not call POST /retailers/me
+GET     /beats                                         200    5      OK       
+POST    /beats                                         403    2      EXPECTED the delivery role may not call POST /beats
+POST    /beats/{id}/assign                             403    2      EXPECTED the delivery role may not call POST /beats/:id/assign
+GET     /beats/assignments                             200    7      OK       
+POST    /visits                                        200    9      OK       
+GET     /visits                                        200    6      OK       
+GET     /pricing/price-lists                           200    21     OK       
+POST    /pricing/price-lists                           403    2      EXPECTED the delivery role may not call POST /pricing/price-lists
+POST    /pricing/price-lists/{priceListId}/items       403    3      EXPECTED the delivery role may not call POST /pricing/price-lists/:priceListId/items
+GET     /pricing/overrides                             200    6      OK       
+POST    /pricing/overrides                             403    2      EXPECTED the delivery role may not call POST /pricing/overrides
+GET     /pricing/schemes                               200    6      OK       
+POST    /pricing/schemes                               403    2      EXPECTED the delivery role may not call POST /pricing/schemes
+POST    /pricing/quote                                 200    15     OK       
+POST    /pricing/bargains                              200    20     OK       
+GET     /pricing/bargains                              200    5      OK       
+POST    /pricing/bargains/{id}/decide                  403    2      EXPECTED the delivery role may not call POST /pricing/bargains/:id/decide
+POST    /pricing/bounds                                403    2      EXPECTED the delivery role may not call POST /pricing/bounds
+GET     /pricing/bounds                                200    4      OK       
+GET     /inventory/locations                           200    4      OK       
+POST    /inventory/locations                           403    2      EXPECTED the delivery role may not call POST /inventory/locations
+GET     /inventory/sellable                            200    12     OK       
+GET     /inventory/availability                        200    9      OK       
+GET     /inventory/balances                            200    8      OK       
+POST    /inventory/adjustments                         403    3      EXPECTED the delivery role may not call POST /inventory/adjustments
+POST    /inventory/transfers                           403    3      EXPECTED the delivery role may not call POST /inventory/transfers
+GET     /inventory/ledger                              200    6      OK       
+POST    /inventory/lots                                403    2      EXPECTED the delivery role may not call POST /inventory/lots
+POST    /inventory/cycle-counts                        403    2      EXPECTED the delivery role may not call POST /inventory/cycle-counts
+GET     /inventory/cycle-counts                        200    6      OK       
+POST    /inventory/cycle-counts/{id}/count             403    3      EXPECTED the delivery role may not call POST /inventory/cycle-counts/:id/count
+POST    /inventory/cycle-counts/{id}/post              403    2      EXPECTED the delivery role may not call POST /inventory/cycle-counts/:id/post
+GET     /inventory/cycle-counts/{id}                   200    6      OK       
+POST    /orders                                        403    2      EXPECTED the delivery role may not call POST /orders
+GET     /orders                                        200    5      OK       
+POST    /orders/{id}/lines                             403    3      EXPECTED the delivery role may not call POST /orders/:id/lines
+POST    /orders/repeat-last                            403    2      EXPECTED the delivery role may not call POST /orders/repeat-last
+POST    /orders/{id}/submit                            403    3      EXPECTED the delivery role may not call POST /orders/:id/submit
+POST    /orders/{id}/confirm                           403    2      EXPECTED the delivery role may not call POST /orders/:id/confirm
+POST    /orders/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /orders/last-placed                            200    10     OK       
+GET     /orders/{id}                                   200    9      OK       
+GET     /approvals                                     403    2      EXPECTED the delivery role may not call GET /approvals
+POST    /approvals/{id}/decide                         403    3      EXPECTED the delivery role may not call POST /approvals/:id/decide
+POST    /receipts                                      200    12     OK       
+GET     /receipts                                      200    40     OK       
+GET     /receipts/{id}                                 200    9      OK       
+GET     /receipts/{id}/document                        200    5      OK       
+POST    /receipts/{id}/bounce                          -      0      SKIPPED  destructive, needs --destructive (would return a seeded cheque and book a real b
+POST    /receivables/payments/initiate                 403    2      EXPECTED the delivery role may not call POST /receivables/payments/initiate
+POST    /allocations                                   403    2      EXPECTED the delivery role may not call POST /allocations
+POST    /allocations/{id}/remove                       -      0      SKIPPED  destructive, needs --destructive (would delete a seeded allocation and reopen th
+GET     /receivables/outstanding/{retailerId}          200    7      OK       
+GET     /receivables/outstanding                       403    2      EXPECTED the delivery role may not call GET /receivables/outstanding
+GET     /receivables/credit-check                      200    5      OK       
+GET     /receivables/ledger/{retailerId}               200    16     OK       
+POST    /receivables/statements                        403    3      EXPECTED the delivery role may not call POST /receivables/statements
+POST    /receivables/write-offs                        -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /receivables/cash-discounts                    403    2      EXPECTED the delivery role may not call GET /receivables/cash-discounts
+GET     /receivables/accounts                          403    2      EXPECTED the delivery role may not call GET /receivables/accounts
+GET     /receivables/journal                           403    2      EXPECTED the delivery role may not call GET /receivables/journal
+POST    /receivables/ageing/rebuild                    403    2      EXPECTED the delivery role may not call POST /receivables/ageing/rebuild
+GET     /receivables/ageing/history                    403    2      EXPECTED the delivery role may not call GET /receivables/ageing/history
+GET     /billing/queue                                 403    2      EXPECTED the delivery role may not call GET /billing/queue
+POST    /warehouse/packs/{packId}/invoice              403    2      EXPECTED the delivery role may not call POST /warehouse/packs/:packId/invoice
+POST    /invoices/van-sale                             -      0      SKIPPED  no unbilled van-sale order, or no vehicle location
+POST    /invoices/brand-dms                            403    2      EXPECTED the delivery role may not call POST /invoices/brand-dms
+POST    /invoices/{id}/cancel                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /invoices/{id}                                 200    8      OK       
+GET     /invoices                                      200    5      OK       
+GET     /invoices/{id}/upi-qr                          200    6      OK       
+GET     /invoices/{id}/pdf                             200    5      OK       
+POST    /invoices/{id}/eway-bill                       403    2      EXPECTED the delivery role may not call POST /invoices/:id/eway-bill
+POST    /invoices/{id}/irn                             403    2      EXPECTED the delivery role may not call POST /invoices/:id/irn
+POST    /credit-notes                                  400    9      EXPECTED line 01a06d4a-aaee-73cb-8b2a-08ff3ce05549 does not belong to bill INV/9009
+GET     /credit-notes                                  200    5      OK       
+POST    /credit-notes/{id}/issue                       200    9      OK       
+POST    /credit-notes/{id}/cancel                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /credit-notes/{id}                             200    7      OK       
+GET     /billing/gst-summary                           403    2      EXPECTED the delivery role may not call GET /billing/gst-summary
+GET     /billing/sales-register                        403    2      EXPECTED the delivery role may not call GET /billing/sales-register
+GET     /warehouse/queue                               403    2      EXPECTED the delivery role may not call GET /warehouse/queue
+POST    /warehouse/picklists                           403    2      EXPECTED the delivery role may not call POST /warehouse/picklists
+GET     /warehouse/picklists                           403    2      EXPECTED the delivery role may not call GET /warehouse/picklists
+GET     /warehouse/picklists/{id}                      403    2      EXPECTED the delivery role may not call GET /warehouse/picklists/:id
+POST    /warehouse/picklists/{id}/start                403    2      EXPECTED the delivery role may not call POST /warehouse/picklists/:id/start
+POST    /warehouse/picklists/{id}/pick                 403    2      EXPECTED the delivery role may not call POST /warehouse/picklists/:id/pick
+POST    /warehouse/picklists/{id}/cancel               -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /warehouse/orders/{orderId}/pack               403    2      EXPECTED the delivery role may not call POST /warehouse/orders/:orderId/pack
+GET     /warehouse/packs                               200    13     OK       
+GET     /warehouse/packs/{id}                          200    16     OK       
+POST    /warehouse/load-sheets                         403    3      EXPECTED the delivery role may not call POST /warehouse/load-sheets
+GET     /warehouse/load-sheets                         200    6      OK       
+GET     /warehouse/load-sheets/{id}                    200    27     OK       
+POST    /warehouse/load-sheets/{id}/approve            403    2      EXPECTED the delivery role may not call POST /warehouse/load-sheets/:id/approve
+POST    /warehouse/load-sheets/{id}/confirm            403    3      EXPECTED the delivery role may not call POST /warehouse/load-sheets/:id/confirm
+POST    /warehouse/load-sheets/{id}/cancel             -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /warehouse/challans                            200    6      OK       
+GET     /warehouse/challans/{id}                       200    11     OK       
+GET     /warehouse/challans/{id}/pdf                   200    5      OK       
+POST    /warehouse/challans/{id}/ewb                   403    3      EXPECTED the delivery role may not call POST /warehouse/challans/:id/ewb
+GET     /warehouse/reservations                        403    2      EXPECTED the delivery role may not call GET /warehouse/reservations
+POST    /warehouse/reservations/release                403    3      EXPECTED the delivery role may not call POST /warehouse/reservations/release
+POST    /sync/upload                                   200    5      OK       
+GET     /sync/errors                                   200    6      OK       
+GET     /sync/manifest                                 200    4      OK       
+GET     /sync/pull                                     200    35     OK       
+POST    /files/upload-url                              200    10     OK       
+GET     /files/read-url                                200    4      OK       
+GET     /delivery/vehicles                             200    4      OK       
+GET     /delivery/vehicle-positions                    403    2      EXPECTED the delivery role may not call GET /delivery/vehicle-positions
+POST    /delivery/consents                             200    8      OK       
+GET     /delivery/consents                             200    4      OK       
+GET     /delivery/trips                                200    8      OK       
+GET     /delivery/trip-planning                        403    2      EXPECTED the delivery role may not call GET /delivery/trip-planning
+POST    /delivery/trips/{id}/cancel                    -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /delivery/stops                                200    11     OK       
+GET     /delivery/collections                          200    10     OK       
+GET     /delivery/expenses                             200    10     OK       
+GET     /notifications/messages                        200    10     OK       
+GET     /notifications/messages/{id}                   200    6      OK       
+POST    /notifications/messages/send                   200    12     OK       
+POST    /notifications/messages/{id}/resend            403    3      EXPECTED the delivery role may not call POST /notifications/messages/:id/resend
+POST    /notifications/messages/{id}/read              200    9      OK       
+GET     /notifications/templates                       403    2      EXPECTED the delivery role may not call GET /notifications/templates
+POST    /notifications/templates                       403    3      EXPECTED the delivery role may not call POST /notifications/templates
+POST    /notifications/broadcasts                      403    3      EXPECTED the delivery role may not call POST /notifications/broadcasts
+GET     /notifications/broadcasts                      403    2      EXPECTED the delivery role may not call GET /notifications/broadcasts
+GET     /notifications/broadcasts/{id}                 403    2      EXPECTED the delivery role may not call GET /notifications/broadcasts/:id
+POST    /notifications/push-tokens                     200    9      OK       
+POST    /notifications/push-tokens/{id}/unregister     200    6      OK       
+GET     /notifications/inbound                         403    3      EXPECTED the delivery role may not call GET /notifications/inbound
+POST    /notifications/inbound/{id}/handled            403    3      EXPECTED the delivery role may not call POST /notifications/inbound/:id/handled
+GET     /reporting/dashboard/owner                     403    2      EXPECTED the delivery role may not call GET /reporting/dashboard/owner
+GET     /reporting/dashboard/rep                       403    2      EXPECTED the delivery role may not call GET /reporting/dashboard/rep
+GET     /reporting/series                              403    2      EXPECTED the delivery role may not call GET /reporting/series
+GET     /reporting/series/sales                        403    2      EXPECTED the delivery role may not call GET /reporting/series/sales
+GET     /reporting/series/collections                  403    2      EXPECTED the delivery role may not call GET /reporting/series/collections
+GET     /reporting/series/outstanding                  403    2      EXPECTED the delivery role may not call GET /reporting/series/outstanding
+GET     /reporting/series/ageing                       403    2      EXPECTED the delivery role may not call GET /reporting/series/ageing
+GET     /reporting/series/growth                       403    2      EXPECTED the delivery role may not call GET /reporting/series/growth
+GET     /reporting/series/brand-mix                    403    1      EXPECTED the delivery role may not call GET /reporting/series/brand-mix
+GET     /reporting/series/category-mix                 403    2      EXPECTED the delivery role may not call GET /reporting/series/category-mix
+GET     /reporting/series/top-shops                    403    2      EXPECTED the delivery role may not call GET /reporting/series/top-shops
+GET     /reporting/series/top-beats                    403    2      EXPECTED the delivery role may not call GET /reporting/series/top-beats
+GET     /reporting/series/productivity                 403    2      EXPECTED the delivery role may not call GET /reporting/series/productivity
+GET     /reporting/series/fill-rate                    403    2      EXPECTED the delivery role may not call GET /reporting/series/fill-rate
+GET     /reporting/series/delivery-performance         200    18     OK       
+GET     /reporting/series/stock                        403    1      EXPECTED the delivery role may not call GET /reporting/series/stock
+GET     /reporting/series/gross-margin                 403    3      EXPECTED the delivery role may not call GET /reporting/series/gross-margin
+GET     /reporting/series/scheme-spend                 403    2      EXPECTED the delivery role may not call GET /reporting/series/scheme-spend
+GET     /reporting/registers/daily-sales               403    3      EXPECTED the delivery role may not call GET /reporting/registers/daily-sales
+GET     /reporting/registers/rep-daily                 403    2      EXPECTED the delivery role may not call GET /reporting/registers/rep-daily
+GET     /reporting/retailers/{id}/behaviour            403    2      EXPECTED the delivery role may not call GET /reporting/retailers/:id/behaviour
+GET     /reporting/retailers/{id}/series               403    2      EXPECTED the delivery role may not call GET /reporting/retailers/:id/series
+GET     /reporting/retailers/lapsed                    403    1      EXPECTED the delivery role may not call GET /reporting/retailers/lapsed
+GET     /reporting/registers/rep-productivity          403    1      EXPECTED the delivery role may not call GET /reporting/registers/rep-productivity
+GET     /reporting/registers/scheme-spend              403    1      EXPECTED the delivery role may not call GET /reporting/registers/scheme-spend
+GET     /reporting/registers/stock-value               403    2      EXPECTED the delivery role may not call GET /reporting/registers/stock-value
+GET     /reporting/registers/fill-rate                 403    3      EXPECTED the delivery role may not call GET /reporting/registers/fill-rate
+GET     /reporting/registers/delivery-performance      200    17     OK       
+GET     /reporting/registers/collections               403    3      EXPECTED the delivery role may not call GET /reporting/registers/collections
+GET     /reporting/registers/gst-sales                 403    2      EXPECTED the delivery role may not call GET /reporting/registers/gst-sales
+GET     /reporting/registers/gst-purchase              403    2      EXPECTED the delivery role may not call GET /reporting/registers/gst-purchase
+POST    /reporting/exports                             403    2      EXPECTED the delivery role may not call POST /reporting/exports
+GET     /reporting/exports/{id}                        403    2      EXPECTED the delivery role may not call GET /reporting/exports/:id
+POST    /incentives/targets                            403    3      EXPECTED the delivery role may not call POST /incentives/targets
+GET     /incentives/targets                            200    8      OK       
+POST    /incentives/targets/bulk                       403    3      EXPECTED the delivery role may not call POST /incentives/targets/bulk
+POST    /incentives/targets/what-if                    403    3      EXPECTED the delivery role may not call POST /incentives/targets/what-if
+GET     /incentives/targets/{id}                       200    6      OK       
+POST    /incentives/targets/{id}/remove                403    3      EXPECTED the delivery role may not call POST /incentives/targets/:id/remove
+POST    /incentives/targets/{id}/refresh               403    3      EXPECTED the delivery role may not call POST /incentives/targets/:id/refresh
+GET     /incentives/progress                           200    6      OK       
+GET     /incentives/progress/team                      403    3      EXPECTED the delivery role may not call GET /incentives/progress/team
+POST    /incentives/statements/compute                 403    3      EXPECTED the delivery role may not call POST /incentives/statements/compute
+POST    /incentives/statements/{id}/approve            403    2      EXPECTED the delivery role may not call POST /incentives/statements/:id/approve
+POST    /incentives/statements/{id}/reopen             403    2      EXPECTED the delivery role may not call POST /incentives/statements/:id/reopen
+GET     /incentives/statements/{id}                    200    6      OK       
+GET     /incentives/statements                         200    5      OK       
+POST    /ai/intake/text                                403    3      EXPECTED the delivery role may not call POST /ai/intake/text
+POST    /ai/intake/voice                               403    2      EXPECTED the delivery role may not call POST /ai/intake/voice
+GET     /ai/drafts                                     403    3      EXPECTED the delivery role may not call GET /ai/drafts
+GET     /ai/drafts/{id}                                403    2      EXPECTED the delivery role may not call GET /ai/drafts/:id
+POST    /ai/drafts/{id}/confirm                        403    3      EXPECTED the delivery role may not call POST /ai/drafts/:id/confirm
+POST    /ai/drafts/{id}/reject                         403    2      EXPECTED the delivery role may not call POST /ai/drafts/:id/reject
+POST    /ai/forecast/run                               403    3      EXPECTED the delivery role may not call POST /ai/forecast/run
+GET     /ai/forecast                                   403    2      EXPECTED the delivery role may not call GET /ai/forecast
+POST    /ai/routing/trips/{tripId}/plan                200    17     OK       
+GET     /ai/routing/trips/{tripId}/plan                200    11     OK       
+POST    /ai/routing/trips/{tripId}/plan/apply          409    11     EXPECTED a route plan has already been applied to this trip
+POST    /receipts/deposit                              403    3      EXPECTED the delivery role may not call POST /receipts/deposit
+POST    /receipts/{id}/reverse                         403    3      EXPECTED the delivery role may not call POST /receipts/:id/reverse
+   delivery: 102 OK · 136 expected · 0 BROKEN · 18 skipped  (of 256)
+
+── retailer-service ────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+POST    /delivery/vehicles                             403    2      EXPECTED the retailer role may not call POST /delivery/vehicles
+POST    /delivery/trips                                403    2      EXPECTED the retailer role may not call POST /delivery/trips
+POST    /delivery/trips/{id}/stops/reorder             403    2      EXPECTED the retailer role may not call POST /delivery/trips/:id/stops/reorder
+POST    /delivery/trips/{id}/start-loading             403    2      EXPECTED the retailer role may not call POST /delivery/trips/:id/start-loading
+POST    /delivery/trips/{id}/depart                    403    2      EXPECTED the retailer role may not call POST /delivery/trips/:id/depart
+POST    /delivery/trips/{id}/stops                     403    2      EXPECTED the retailer role may not call POST /delivery/trips/:id/stops
+POST    /delivery/stops/{id}/start                     403    2      EXPECTED the retailer role may not call POST /delivery/stops/:id/start
+POST    /delivery/stops/{id}/arrive                    403    2      EXPECTED the retailer role may not call POST /delivery/stops/:id/arrive
+POST    /delivery/deliveries                           403    2      EXPECTED the retailer role may not call POST /delivery/deliveries
+POST    /delivery/deliveries/{id}/pod                  403    2      EXPECTED the retailer role may not call POST /delivery/deliveries/:id/pod
+POST    /delivery/collections                          403    2      EXPECTED the retailer role may not call POST /delivery/collections
+POST    /delivery/van-sales                            403    2      EXPECTED the retailer role may not call POST /delivery/van-sales
+POST    /delivery/expenses                             403    2      EXPECTED the retailer role may not call POST /delivery/expenses
+POST    /gps/points                                    403    2      EXPECTED the retailer role may not call POST /gps/points
+POST    /delivery/stops/{id}/fail                      403    1      EXPECTED the retailer role may not call POST /delivery/stops/:id/fail
+POST    /delivery/trips/{id}/return                    403    2      EXPECTED the retailer role may not call POST /delivery/trips/:id/return
+GET     /delivery/trips/{id}/settlement                403    2      EXPECTED the retailer role may not call GET /delivery/trips/:id/settlement
+POST    /delivery/trips/{tripId}/settle                403    2      EXPECTED the retailer role may not call POST /delivery/trips/:tripId/settle
+GET     /delivery/trips/{id}/trace                     403    2      EXPECTED the retailer role may not call GET /delivery/trips/:id/trace
+GET     /delivery/trips/{id}                           403    1      EXPECTED the retailer role may not call GET /delivery/trips/:id
+GET     /delivery/trips/{id}/next-stop                 403    2      EXPECTED the retailer role may not call GET /delivery/trips/:id/next-stop
+GET     /delivery/deliveries                           200    8      OK       
+GET     /delivery/deliveries/{id}                      200    6      OK       
+GET     /health/ping                                   200    2      OK       
+GET     /tenancy/me                                    200    4      OK       
+GET     /tenancy/staff                                 403    4      EXPECTED the retailer role may not call GET /tenancy/staff
+POST    /tenancy/staff                                 403    2      EXPECTED the retailer role may not call POST /tenancy/staff
+POST    /tenancy/staff/update                          403    2      EXPECTED the retailer role may not call POST /tenancy/staff/update
+POST    /tenancy/staff/set-password                    -      0      SKIPPED  destructive, needs --destructive (would change a demo user password)
+POST    /tenancy/staff/set-status                      -      0      SKIPPED  destructive, needs --destructive (would disable a demo user)
+GET     /tenancy/branding                              200    4      OK       
+GET     /tenancy/settings                              403    2      EXPECTED the retailer role may not call GET /tenancy/settings
+POST    /tenancy/settings                              403    2      EXPECTED the retailer role may not call POST /tenancy/settings
+GET     /tenancy/numbering-series                      403    1      EXPECTED the retailer role may not call GET /tenancy/numbering-series
+POST    /tenancy/numbering-series                      403    2      EXPECTED the retailer role may not call POST /tenancy/numbering-series
+GET     /tenancy/feature-flags                         200    3      OK       
+POST    /tenancy/feature-flags                         403    2      EXPECTED the retailer role may not call POST /tenancy/feature-flags
+POST    /tenancy/tenant                                403    2      EXPECTED the retailer role may not call POST /tenancy/tenant
+GET     /tenancy/audit                                 403    2      EXPECTED the retailer role may not call GET /tenancy/audit
+GET     /tenancy/support-grants                        403    2      EXPECTED the retailer role may not call GET /tenancy/support-grants
+POST    /tenancy/support-grants/{id}/approve           -      0      SKIPPED  no support request is waiting for the owner to answer
+POST    /tenancy/support-grants/{id}/revoke            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /catalog/variants                              200    7      OK       
+GET     /catalog/manufacturers                         200    3      OK       
+POST    /catalog/proposals                             403    2      EXPECTED the retailer role may not call POST /catalog/proposals
+GET     /tenant-catalog/products                       200    9      OK       
+POST    /tenant-catalog/products                       403    2      EXPECTED the retailer role may not call POST /tenant-catalog/products
+GET     /tenant-catalog/suppliers                      403    2      EXPECTED the retailer role may not call GET /tenant-catalog/suppliers
+POST    /tenant-catalog/suppliers                      403    2      EXPECTED the retailer role may not call POST /tenant-catalog/suppliers
+GET     /tenant-catalog/costs                          403    2      EXPECTED the retailer role may not call GET /tenant-catalog/costs
+POST    /tenant-catalog/costs                          403    2      EXPECTED the retailer role may not call POST /tenant-catalog/costs
+GET     /tenant-catalog/rep-authorisations             403    1      EXPECTED the retailer role may not call GET /tenant-catalog/rep-authorisations
+POST    /tenant-catalog/rep-authorisations             403    2      EXPECTED the retailer role may not call POST /tenant-catalog/rep-authorisations
+GET     /tenant-catalog/brands                         403    2      EXPECTED the retailer role may not call GET /tenant-catalog/brands
+POST    /tenant-catalog/brands                         403    2      EXPECTED the retailer role may not call POST /tenant-catalog/brands
+GET     /tenant-catalog/pack-configs                   403    1      EXPECTED the retailer role may not call GET /tenant-catalog/pack-configs
+POST    /tenant-catalog/pack-configs                   403    2      EXPECTED the retailer role may not call POST /tenant-catalog/pack-configs
+GET     /retailers                                     200    6      OK       
+POST    /retailers                                     403    2      EXPECTED the retailer role may not call POST /retailers
+GET     /retailers/{id}                                200    4      OK       
+POST    /retailers/{id}/credit                         403    2      EXPECTED the retailer role may not call POST /retailers/:id/credit
+POST    /retailers/{id}/link                           -      0      SKIPPED  destructive, needs --destructive (would invite a made-up phone into a demo shop 
+POST    /retailers/me                                  200    17     OK       
+GET     /beats                                         403    2      EXPECTED the retailer role may not call GET /beats
+POST    /beats                                         403    1      EXPECTED the retailer role may not call POST /beats
+POST    /beats/{id}/assign                             403    2      EXPECTED the retailer role may not call POST /beats/:id/assign
+GET     /beats/assignments                             403    1      EXPECTED the retailer role may not call GET /beats/assignments
+POST    /visits                                        403    2      EXPECTED the retailer role may not call POST /visits
+GET     /visits                                        403    2      EXPECTED the retailer role may not call GET /visits
+GET     /pricing/price-lists                           403    4      EXPECTED the retailer role may not call GET /pricing/price-lists
+POST    /pricing/price-lists                           403    2      EXPECTED the retailer role may not call POST /pricing/price-lists
+POST    /pricing/price-lists/{priceListId}/items       403    2      EXPECTED the retailer role may not call POST /pricing/price-lists/:priceListId/items
+GET     /pricing/overrides                             403    2      EXPECTED the retailer role may not call GET /pricing/overrides
+POST    /pricing/overrides                             403    2      EXPECTED the retailer role may not call POST /pricing/overrides
+GET     /pricing/schemes                               200    7      OK       
+POST    /pricing/schemes                               403    2      EXPECTED the retailer role may not call POST /pricing/schemes
+POST    /pricing/quote                                 200    16     OK       
+POST    /pricing/bargains                              200    15     OK       
+GET     /pricing/bargains                              200    5      OK       
+POST    /pricing/bargains/{id}/decide                  403    2      EXPECTED the retailer role may not call POST /pricing/bargains/:id/decide
+POST    /pricing/bounds                                403    3      EXPECTED the retailer role may not call POST /pricing/bounds
+GET     /pricing/bounds                                403    2      EXPECTED the retailer role may not call GET /pricing/bounds
+GET     /inventory/locations                           403    2      EXPECTED the retailer role may not call GET /inventory/locations
+POST    /inventory/locations                           403    2      EXPECTED the retailer role may not call POST /inventory/locations
+GET     /inventory/sellable                            200    12     OK       
+GET     /inventory/availability                        200    7      OK       
+GET     /inventory/balances                            403    3      EXPECTED the retailer role may not call GET /inventory/balances
+POST    /inventory/adjustments                         403    2      EXPECTED the retailer role may not call POST /inventory/adjustments
+POST    /inventory/transfers                           403    3      EXPECTED the retailer role may not call POST /inventory/transfers
+GET     /inventory/ledger                              403    2      EXPECTED the retailer role may not call GET /inventory/ledger
+POST    /inventory/lots                                403    3      EXPECTED the retailer role may not call POST /inventory/lots
+POST    /inventory/cycle-counts                        403    3      EXPECTED the retailer role may not call POST /inventory/cycle-counts
+GET     /inventory/cycle-counts                        403    2      EXPECTED the retailer role may not call GET /inventory/cycle-counts
+POST    /inventory/cycle-counts/{id}/count             403    2      EXPECTED the retailer role may not call POST /inventory/cycle-counts/:id/count
+POST    /inventory/cycle-counts/{id}/post              403    1      EXPECTED the retailer role may not call POST /inventory/cycle-counts/:id/post
+GET     /inventory/cycle-counts/{id}                   403    1      EXPECTED the retailer role may not call GET /inventory/cycle-counts/:id
+POST    /orders                                        200    38     OK       
+GET     /orders                                        200    4      OK       
+POST    /orders/{id}/lines                             200    27     OK       
+POST    /orders/repeat-last                            200    27     OK       
+POST    /orders/{id}/submit                            200    22     OK       
+POST    /orders/{id}/confirm                           403    1      EXPECTED the retailer role may not call POST /orders/:id/confirm
+POST    /orders/{id}/cancel                            -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /orders/last-placed                            200    7      OK       
+GET     /orders/{id}                                   200    6      OK       
+GET     /approvals                                     403    2      EXPECTED the retailer role may not call GET /approvals
+POST    /approvals/{id}/decide                         403    2      EXPECTED the retailer role may not call POST /approvals/:id/decide
+POST    /receipts                                      403    2      EXPECTED the retailer role may not call POST /receipts
+GET     /receipts                                      200    14     OK       
+GET     /receipts/{id}                                 200    10     OK       
+GET     /receipts/{id}/document                        200    7      OK       
+POST    /receipts/{id}/bounce                          -      0      SKIPPED  destructive, needs --destructive (would return a seeded cheque and book a real b
+POST    /receivables/payments/initiate                 200    16     OK       
+POST    /allocations                                   403    3      EXPECTED the retailer role may not call POST /allocations
+POST    /allocations/{id}/remove                       -      0      SKIPPED  destructive, needs --destructive (would delete a seeded allocation and reopen th
+GET     /receivables/outstanding/{retailerId}          200    12     OK       
+GET     /receivables/outstanding                       403    2      EXPECTED the retailer role may not call GET /receivables/outstanding
+GET     /receivables/credit-check                      403    2      EXPECTED the retailer role may not call GET /receivables/credit-check
+GET     /receivables/ledger/{retailerId}               200    18     OK       
+POST    /receivables/statements                        403    3      EXPECTED the retailer role may not call POST /receivables/statements
+POST    /receivables/write-offs                        -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /receivables/cash-discounts                    403    1      EXPECTED the retailer role may not call GET /receivables/cash-discounts
+GET     /receivables/accounts                          403    2      EXPECTED the retailer role may not call GET /receivables/accounts
+GET     /receivables/journal                           403    2      EXPECTED the retailer role may not call GET /receivables/journal
+POST    /receivables/ageing/rebuild                    403    2      EXPECTED the retailer role may not call POST /receivables/ageing/rebuild
+GET     /receivables/ageing/history                    403    3      EXPECTED the retailer role may not call GET /receivables/ageing/history
+GET     /billing/queue                                 403    2      EXPECTED the retailer role may not call GET /billing/queue
+POST    /warehouse/packs/{packId}/invoice              403    2      EXPECTED the retailer role may not call POST /warehouse/packs/:packId/invoice
+POST    /invoices/van-sale                             403    2      EXPECTED the retailer role may not call POST /invoices/van-sale
+POST    /invoices/brand-dms                            403    2      EXPECTED the retailer role may not call POST /invoices/brand-dms
+POST    /invoices/{id}/cancel                          -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /invoices/{id}                                 200    11     OK       
+GET     /invoices                                      200    7      OK       
+GET     /invoices/{id}/upi-qr                          200    7      OK       
+GET     /invoices/{id}/pdf                             200    6      OK       
+POST    /invoices/{id}/eway-bill                       403    2      EXPECTED the retailer role may not call POST /invoices/:id/eway-bill
+POST    /invoices/{id}/irn                             403    3      EXPECTED the retailer role may not call POST /invoices/:id/irn
+POST    /credit-notes                                  403    2      EXPECTED the retailer role may not call POST /credit-notes
+GET     /credit-notes                                  200    5      OK       
+POST    /credit-notes/{id}/issue                       403    2      EXPECTED the retailer role may not call POST /credit-notes/:id/issue
+POST    /credit-notes/{id}/cancel                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /credit-notes/{id}                             200    9      OK       
+GET     /billing/gst-summary                           403    2      EXPECTED the retailer role may not call GET /billing/gst-summary
+GET     /billing/sales-register                        403    2      EXPECTED the retailer role may not call GET /billing/sales-register
+POST    /sync/upload                                   403    2      EXPECTED the retailer role may not call POST /sync/upload
+GET     /sync/errors                                   403    2      EXPECTED the retailer role may not call GET /sync/errors
+GET     /sync/manifest                                 200    4      OK       
+GET     /sync/pull                                     200    28     OK       
+POST    /files/upload-url                              403    2      EXPECTED the retailer role may not call POST /files/upload-url
+GET     /files/read-url                                200    3      OK       
+GET     /delivery/vehicles                             403    3      EXPECTED the retailer role may not call GET /delivery/vehicles
+GET     /delivery/vehicle-positions                    403    3      EXPECTED the retailer role may not call GET /delivery/vehicle-positions
+POST    /delivery/consents                             403    2      EXPECTED the retailer role may not call POST /delivery/consents
+GET     /delivery/consents                             403    3      EXPECTED the retailer role may not call GET /delivery/consents
+GET     /delivery/trips                                403    2      EXPECTED the retailer role may not call GET /delivery/trips
+GET     /delivery/trip-planning                        403    2      EXPECTED the retailer role may not call GET /delivery/trip-planning
+POST    /delivery/trips/{id}/cancel                    -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /delivery/stops                                200    13     OK       
+GET     /delivery/collections                          403    2      EXPECTED the retailer role may not call GET /delivery/collections
+GET     /delivery/expenses                             403    3      EXPECTED the retailer role may not call GET /delivery/expenses
+GET     /notifications/messages                        200    11     OK       
+GET     /notifications/messages/{id}                   200    8      OK       
+POST    /notifications/messages/send                   403    2      EXPECTED the retailer role may not call POST /notifications/messages/send
+POST    /notifications/messages/{id}/resend            403    2      EXPECTED the retailer role may not call POST /notifications/messages/:id/resend
+POST    /notifications/messages/{id}/read              400    7      EXPECTED channel_not_markable: a whatsapp message's read state comes from the provider
+GET     /notifications/templates                       403    2      EXPECTED the retailer role may not call GET /notifications/templates
+POST    /notifications/templates                       403    2      EXPECTED the retailer role may not call POST /notifications/templates
+POST    /notifications/broadcasts                      403    2      EXPECTED the retailer role may not call POST /notifications/broadcasts
+GET     /notifications/broadcasts                      403    2      EXPECTED the retailer role may not call GET /notifications/broadcasts
+GET     /notifications/broadcasts/{id}                 403    1      EXPECTED the retailer role may not call GET /notifications/broadcasts/:id
+POST    /notifications/push-tokens                     403    2      EXPECTED the retailer role may not call POST /notifications/push-tokens
+POST    /notifications/push-tokens/{id}/unregister     403    3      EXPECTED the retailer role may not call POST /notifications/push-tokens/:id/unregister
+GET     /notifications/inbound                         403    2      EXPECTED the retailer role may not call GET /notifications/inbound
+POST    /notifications/inbound/{id}/handled            403    2      EXPECTED the retailer role may not call POST /notifications/inbound/:id/handled
+POST    /ai/intake/text                                200    40     OK       
+POST    /ai/intake/voice                               200    59     OK       
+GET     /ai/drafts                                     200    7      OK       
+GET     /ai/drafts/{id}                                200    7      OK       
+POST    /ai/drafts/{id}/confirm                        200    57     OK       
+POST    /ai/drafts/{id}/reject                         200    13     OK       
+POST    /ai/forecast/run                               403    3      EXPECTED the retailer role may not call POST /ai/forecast/run
+GET     /ai/forecast                                   403    3      EXPECTED the retailer role may not call GET /ai/forecast
+POST    /ai/routing/trips/{tripId}/plan                403    3      EXPECTED the retailer role may not call POST /ai/routing/trips/:tripId/plan
+GET     /ai/routing/trips/{tripId}/plan                403    2      EXPECTED the retailer role may not call GET /ai/routing/trips/:tripId/plan
+POST    /ai/routing/trips/{tripId}/plan/apply          403    3      EXPECTED the retailer role may not call POST /ai/routing/trips/:tripId/plan/apply
+POST    /receipts/deposit                              403    3      EXPECTED the retailer role may not call POST /receipts/deposit
+POST    /receipts/{id}/reverse                         403    2      EXPECTED the retailer role may not call POST /receipts/:id/reverse
+   retailer: 49 OK · 126 expected · 0 BROKEN · 12 skipped  (of 187)
+
+── admin-service ───────────────────────────────────────────────────────────────────────────────────────────
+METHOD  PATH                                           STATUS MS     CLASS    MESSAGE
+GET     /health/ping                                   200    3      OK       
+POST    /admin/tenants                                 200    60     OK       
+GET     /admin/tenants                                 200    20     OK       
+GET     /admin/tenants/{id}                            200    9      OK       
+POST    /admin/tenants/{id}/suspend                    -      0      SKIPPED  destructive, needs --destructive (would refuse every sign-in for the demo distri
+POST    /admin/tenants/{id}/reactivate                 200    18     OK       
+POST    /admin/subscriptions                           200    6      OK       
+GET     /admin/subscriptions                           200    4      OK       
+GET     /admin/subscriptions/{id}                      200    4      OK       
+POST    /admin/support-grants                          200    9      OK       
+GET     /admin/support-grants                          200    7      OK       
+POST    /admin/support-grants/{id}/revoke              -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+GET     /admin/users                                   200    9      OK       
+POST    /admin/users/{id}/disable                      -      0      SKIPPED  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable
+POST    /admin/users/{id}/enable                       200    7      OK       
+GET     /admin/metrics                                 200    26     OK       
+GET     /admin/audit                                   200    6      OK       
+   admin: 14 OK · 0 expected · 0 BROKEN · 3 skipped  (of 17)
+
+   sweep: 3 of 3 throwaway trip(s) on the smoke vehicle closed by the owner
+
+── skipped (99) — nothing is skipped silently ────────────────────────────────────────
+   auth/auth.revokeSession                        destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   auth/auth.changePassword                       destructive, needs --destructive (would change the demo password every other tool signs in with)
+   owner/delivery.stops.start                     no open stop with a bill on the throwaway trip
+   owner/delivery.stops.arrive                    no open stop with a bill on the throwaway trip
+   owner/delivery.deliveries.record               no planned bill on the throwaway trip (no packed bill was free to ride on it)
+   owner/tenancy.staff.setPassword                destructive, needs --destructive (would change a demo user password)
+   owner/tenancy.staff.setStatus                  destructive, needs --destructive (would disable a demo user)
+   owner/tenancy.support.revoke                   destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/retailers.linkIdentity                   destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)
+   owner/procurement.supplierInvoices.cancel      destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/orders.cancel                            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/receivables.receipts.bounce              destructive, needs --destructive (would return a seeded cheque and book a real bank charge against the demo books)
+   owner/receivables.allocations.remove           destructive, needs --destructive (would delete a seeded allocation and reopen the bill it settled)
+   owner/receivables.writeOffs.create             destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/billing.invoices.cancel                  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/billing.creditNotes.cancel               destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/warehouse.picklists.cancel               destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/warehouse.loadSheets.cancel              destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/delivery.trips.cancel                    destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/integrations.imports.cancel              destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/claims.writeOff                          destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   owner/claims.cancel                            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/delivery.trips.depart                  could not load the throwaway trip out before it departs: warehouse.loadSheets.create → HTTP 409 these orders have no pack confirmation: 76a44b8a-2ecd-73cc-9e14-0662ebffbc5e
+   manager/tenancy.staff.setPassword              destructive, needs --destructive (would change a demo user password)
+   manager/tenancy.staff.setStatus                destructive, needs --destructive (would disable a demo user)
+   manager/tenancy.support.approve                no support request is waiting for the owner to answer
+   manager/tenancy.support.revoke                 destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/retailers.linkIdentity                 destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)
+   manager/procurement.supplierInvoices.cancel    destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/orders.cancel                          destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/receivables.receipts.bounce            destructive, needs --destructive (would return a seeded cheque and book a real bank charge against the demo books)
+   manager/receivables.allocations.remove         destructive, needs --destructive (would delete a seeded allocation and reopen the bill it settled)
+   manager/receivables.writeOffs.create           destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/billing.invoices.issueVanSale          no unbilled van-sale order, or no vehicle location
+   manager/billing.invoices.cancel                destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/billing.creditNotes.cancel             destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/warehouse.picklists.cancel             destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/warehouse.loadSheets.cancel            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/delivery.trips.cancel                  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/integrations.imports.cancel            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/claims.writeOff                        destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   manager/claims.cancel                          destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   sales/tenancy.staff.setPassword                destructive, needs --destructive (would change a demo user password)
+   sales/tenancy.staff.setStatus                  destructive, needs --destructive (would disable a demo user)
+   sales/tenancy.support.approve                  no support request is waiting for the owner to answer
+   sales/tenancy.support.revoke                   destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   sales/retailers.linkIdentity                   destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)
+   sales/pricing.bargains.decide                  no bargain is awaiting a decision
+   sales/orders.cancel                            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   sales/receivables.receipts.bounce              destructive, needs --destructive (would return a seeded cheque and book a real bank charge against the demo books)
+   sales/receivables.allocations.remove           destructive, needs --destructive (would delete a seeded allocation and reopen the bill it settled)
+   sales/receivables.writeOffs.create             destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   sales/billing.invoices.cancel                  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   sales/billing.creditNotes.cancel               destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/tenancy.staff.setPassword            destructive, needs --destructive (would change a demo user password)
+   warehouse/tenancy.staff.setStatus              destructive, needs --destructive (would disable a demo user)
+   warehouse/tenancy.support.approve              no support request is waiting for the owner to answer
+   warehouse/tenancy.support.revoke               destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/retailers.linkIdentity               destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)
+   warehouse/procurement.supplierInvoices.cancel  destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/orders.cancel                        destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/billing.invoices.cancel              destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/billing.creditNotes.cancel           destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/warehouse.picklists.cancel           destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/warehouse.loadSheets.cancel          destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   warehouse/delivery.trips.cancel                destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/delivery.stops.start                  no open stop with a bill on the throwaway trip
+   delivery/delivery.stops.arrive                 no open stop with a bill on the throwaway trip
+   delivery/delivery.deliveries.record            no planned bill on the throwaway trip (no packed bill was free to ride on it)
+   delivery/tenancy.staff.setPassword             destructive, needs --destructive (would change a demo user password)
+   delivery/tenancy.staff.setStatus               destructive, needs --destructive (would disable a demo user)
+   delivery/tenancy.support.approve               no support request is waiting for the owner to answer
+   delivery/tenancy.support.revoke                destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/retailers.linkIdentity                destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)
+   delivery/orders.cancel                         destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/receivables.receipts.bounce           destructive, needs --destructive (would return a seeded cheque and book a real bank charge against the demo books)
+   delivery/receivables.allocations.remove        destructive, needs --destructive (would delete a seeded allocation and reopen the bill it settled)
+   delivery/receivables.writeOffs.create          destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/billing.invoices.issueVanSale         no unbilled van-sale order, or no vehicle location
+   delivery/billing.invoices.cancel               destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/billing.creditNotes.cancel            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/warehouse.picklists.cancel            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/warehouse.loadSheets.cancel           destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   delivery/delivery.trips.cancel                 destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   retailer/tenancy.staff.setPassword             destructive, needs --destructive (would change a demo user password)
+   retailer/tenancy.staff.setStatus               destructive, needs --destructive (would disable a demo user)
+   retailer/tenancy.support.approve               no support request is waiting for the owner to answer
+   retailer/tenancy.support.revoke                destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   retailer/retailers.linkIdentity                destructive, needs --destructive (would invite a made-up phone into a demo shop and add a retailer_links row every run)
+   retailer/orders.cancel                         destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   retailer/receivables.receipts.bounce           destructive, needs --destructive (would return a seeded cheque and book a real bank charge against the demo books)
+   retailer/receivables.allocations.remove        destructive, needs --destructive (would delete a seeded allocation and reopen the bill it settled)
+   retailer/receivables.writeOffs.create          destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   retailer/billing.invoices.cancel               destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   retailer/billing.creditNotes.cancel            destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   retailer/delivery.trips.cancel                 destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   admin/admin.tenants.suspend                    destructive, needs --destructive (would refuse every sign-in for the demo distributorship until it is reactivated)
+   admin/admin.support.revoke                     destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+   admin/admin.users.disable                      destructive, needs --destructive (matches /cancel|delete|revoke|writeOff|disable/)
+
+── BROKEN (4) ────────────────────────────────────────────────────────────────────────────────
+   owner/billing.invoices.issueForPack            404 404 on an id read from the demo database [body: the contract example]
+        pack 01a06dfc-c72b-7578-8d88-28f8e0d9054b not found
+   manager/procurement.discrepancies.resolve      404 404 on an id read from the demo database [body: the contract example]
+        discrepancy 01a0baa5-046a-76d6-9216-0784344790b5 not found
+   manager/notifications.messages.markRead        404 404 on an id read from the demo database [body: the contract example]
+        message fe0e3c28-1398-7e34-9633-c17e07ddad1d not found
+   warehouse/notifications.messages.markRead      404 404 on an id read from the demo database [body: the contract example]
+        message fe0e3c28-1398-7e34-9633-c17e07ddad1d not found
+
+TOTAL 1606 calls · 930 OK · 573 expected · 4 BROKEN · 99 skipped
+JSON written to /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-money-delivery/backend/.smoke
+[ELIFECYCLE] Command failed with exit code 1.
