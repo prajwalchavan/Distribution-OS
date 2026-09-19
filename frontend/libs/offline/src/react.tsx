@@ -462,32 +462,59 @@ export function useTable<T = Record<string, unknown>>(
   return { rows, loading }
 }
 
+/** What this device has read about ONE row, and WHICH row it read — the two are never separated. */
+interface RowRead<T> {
+  /** The id the answer below belongs to. */
+  readonly id: string | null
+  readonly row: T | null
+  readonly loading: boolean
+}
+
+/**
+ * The answer for `id`, given what the hook is holding (DOS-180).
+ *
+ * A CHANGED id is a different question, so nothing held answers it: not the previous row, and not the
+ * previous "I have read it". `loading` used to belong to the hook rather than to the id — the mount
+ * with no id resolved it to false and nothing put it back — so for one render after a tap handed the
+ * hook a real id it answered "read, and there is nothing there" about a row it had never opened. S3
+ * reads exactly that render (`rowKnown: !loading`) and printed "Reached the office as a draft" over an
+ * order still in this phone's outbox, which is never-list #12.
+ *
+ * A null id is not a question at all: nothing is loading, and there is nothing to know.
+ */
+function answerFor<T>(held: RowRead<T>, id: string | null): RowRead<T> {
+  if (held.id === id) return held
+  return { id, row: null, loading: id !== null }
+}
+
 export function useRow<T = Record<string, unknown>>(
   table: string,
   id: string | null,
 ): { row: T | null; loading: boolean } {
   const engine = useSyncEngine()
-  const [row, setRow] = useState<T | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [held, setHeld] = useState<RowRead<T>>({ id: null, row: null, loading: false })
+  /*
+   * Derived in the RENDER, not in an effect. An effect runs after the render that changed the id, so
+   * it can only correct the answer one frame late — and one frame is the whole of this finding.
+   */
+  const answer = answerFor(held, id)
+
   useEffect(() => {
-    if (engine === null || id === null) {
-      setRow(null)
-      setLoading(false)
-      return
-    }
+    /*
+     * With no engine there is no device store to ask, so this device knows nothing about that row and
+     * `answer` goes on saying so. Claiming "read, and absent" here would be the same lie by a shorter
+     * route.
+     */
+    if (engine === null || id === null) return
     let live = true
     const run = (): void => {
       void engine
         .getRow<T>(table, id)
         .then((result) => {
-          if (!live) return
-          setRow(result)
-          setLoading(false)
+          if (live) setHeld({ id, row: result, loading: false })
         })
         .catch(() => {
-          if (!live) return
-          setRow(null)
-          setLoading(false)
+          if (live) setHeld({ id, row: null, loading: false })
         })
     }
     run()
@@ -499,7 +526,7 @@ export function useRow<T = Record<string, unknown>>(
       off()
     }
   }, [engine, table, id])
-  return { row, loading }
+  return { row: answer.row, loading: answer.loading }
 }
 
 export interface OutboxApi {
