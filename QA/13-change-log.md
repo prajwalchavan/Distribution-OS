@@ -663,3 +663,13 @@ The founder approved the request for the six confirmed findings and the one-line
 **Proof, executed under the CI condition (`rm -rf libs/database/dist`).** Before: `eslint .` exit 1, that one error. After: exit 0. Then the backend CI gates from the repo root: `pnpm format:check` 0, `pnpm lint` 0 (19 tasks), `pnpm typecheck` 0 (19), `pnpm build` 0 (14).
 
 **Swept for recurrences:** no other backend package (`@dos/domain`, `@dos/contracts`, `@dos/db`, `@dos/core`) imports its own package name anywhere in `src/`.
+
+### CI red on main — backend tests, the doc-example specs (2026-09-19)
+
+**Reported by the founder** as the next GitHub Actions failure after the lint fix: `@dos/core` `src/docs/examples.spec.ts`, three assertions — `ctx.variantId` undefined, one broken `retailers.linkIdentity` example, and no parsed party-master import row.
+
+**Cause.** The CI backend job runs `pnpm db:migrate` and then `pnpm test`, and never seeds. `describeDb('doc examples against the demo database')` runs whenever `DATABASE_URL` resolves, and on CI it resolves to a migrated but EMPTY database: there is no tenant with shops, products and orders to build an example from. It read as three failures rather than four only because other specs in the same turbo run had created a tenant and a retailer as their own fixtures — that part was a race. Nobody saw it locally: every developer database here is seeded.
+
+**Fix.** One line in `.github/workflows/ci.yml`, `pnpm db:seed` between migrate and test, with a comment saying why. `db:seed` is idempotent. No source or test change; the spec is right to demand demo rows.
+
+**Proof, executed on a fresh database (`dos_test_ci_repro`, created and dropped for this).** Migrate only: `vitest run src/docs/examples.spec.ts` → 4 failed / 28 passed. Then `pnpm db:seed` → 32 passed / 32. Then the whole backend suite against that seeded copy: `pnpm test` exit 0, 19 of 19 turbo tasks.
