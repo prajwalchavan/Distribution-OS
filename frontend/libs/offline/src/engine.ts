@@ -30,6 +30,7 @@ import {
   type TableShape,
 } from './schema.js'
 import { readState, writeState, type SyncStateKey } from './state.js'
+import { createMemoryStore } from './store/memory.js'
 import type {
   EnqueueInput,
   LocalSyncError,
@@ -424,6 +425,11 @@ export class SyncEngine {
   private syncing: Promise<void> = Promise.resolve()
   /** This engine's hold on its file (`holdFile`), from `start()` until the file is closed. */
   private fileHold: FileHold | null = null
+  /**
+   * A PERSISTENT store that opened and then could not be used (DOS-167 ruling 3 (cc)): what it was and why it failed,
+   * set by `bringUp` once it has closed the file and left it alone, read by `start()` for its ONE fallback in memory.
+   */
+  private brokenStore: { kind: StoreKind; reason: string } | null = null
 
   constructor(private readonly options: SyncEngineOptions) {
     this.now = options.now ?? (() => Date.now())
@@ -450,33 +456,75 @@ export class SyncEngine {
     this.opening = new Promise<void>((resolve) => {
       opened = resolve
     })
-    let unclaimed: SyncStore | null = null
     try {
-      const name = this.options.databaseName ?? 'dos-offline.db'
-      /*
-       * THE FILE IS TAKEN FIRST, and opened only once whoever held it before has let go (merge review of ruling 2,
-       * `holdFile`): the engine of this same person still ending after a sign-out, or the sweep counting this file.
-       */
-      const hold = holdFile(this.options.storeFactory, name)
-      this.fileHold = hold
-      if (hold.previous !== null) await hold.previous
-      if (this.stoppedWhileOpening()) {
-        this.releaseFile()
-        return
+      try {
+        await this.bringUp(null)
+      } catch (error) {
+        /*
+         * A STORE THAT WILL NOT OPEN IS NEVER A HANG (DOS-167 ruling 3 (cc)). This used to rethrow, and the engine
+         * then stood `started` with `ready: false` for the life of the tab: the re-proof measured 240 s with no
+         * `/sync` call, "Still loading the beat onto this phone" and Shops 0, while the only catch called an `onLog`
+         * no app passed. The broken file has already been CLOSED and left alone — never destroyed, because nothing we
+         * failed to read is thrown away (founder answer A) — so the same start sequence runs once more in memory: the
+         * app signs in, syncs online, and says what it cannot keep. Exactly one fallback; a second failure throws.
+         */
+        const broken = this.brokenStore
+        this.brokenStore = null
+        if (broken === null) throw error
+        this.options.onLog?.(
+          'offline: the device store could not be used; running in memory',
+          error,
+        )
+        // Said on the screen too, not only in a log: `storeNote` carries the reason for the life of the engine, and
+        // the strip's note carries a sentence until the next call succeeds.
+        this.lastError = `The offline copy on this device could not be opened (${broken.reason}); changes are held only until this app closes.`
+        await this.bringUp(createMemoryStore({ wanted: broken.kind, reason: broken.reason }))
       }
-      const store = await this.options.storeFactory(name)
-      unclaimed = store
-      /*
-       * STOPPED WHILE IT OPENED (DOS-167, merge review). The provider stops an engine the moment the session
-       * changes, and that can land before the open — or the claim below — has finished: `stop()` then had no
-       * store to close, and carrying on attached this file to a stopped engine and ran the handshake and the
-       * tray mirror through the one api client the app keeps, as whoever is signed in by then, into this
-       * file. The file is this call's alone to close. `end()` is not a stop: it waits for the open and counts.
-       */
-      if (this.stoppedWhileOpening()) {
-        await store.close().catch(() => {})
-        this.releaseFile()
-        return
+    } finally {
+      opened()
+    }
+    await this.sync('start')
+    if (this.started) this.schedulePoll()
+  }
+
+  /**
+   * The start sequence over ONE store: the file when `memory` is null, else the announced memory store of (cc)'s
+   * single fallback. Everything from `createSystemTables` down is identical either way — which is the point: an app
+   * that could not keep anything still holds the same tables, runs the same handshake and answers the same reads.
+   */
+  private async bringUp(memory: SyncStore | null): Promise<void> {
+    let unclaimed: SyncStore | null = null
+    const name = this.options.databaseName ?? 'dos-offline.db'
+    try {
+      let store: SyncStore
+      if (memory !== null) {
+        store = memory
+      } else {
+        /*
+         * THE FILE IS TAKEN FIRST, and opened only once whoever held it before has let go (merge review of ruling 2,
+         * `holdFile`): the engine of this same person still ending after a sign-out, or the sweep counting this file.
+         */
+        const hold = holdFile(this.options.storeFactory, name)
+        this.fileHold = hold
+        if (hold.previous !== null) await hold.previous
+        if (this.stoppedWhileOpening()) {
+          this.releaseFile()
+          return
+        }
+        store = await this.options.storeFactory(name)
+        unclaimed = store
+        /*
+         * STOPPED WHILE IT OPENED (DOS-167, merge review). The provider stops an engine the moment the session
+         * changes, and that can land before the open — or the claim below — has finished: `stop()` then had no
+         * store to close, and carrying on attached this file to a stopped engine and ran the handshake and the
+         * tray mirror through the one api client the app keeps, as whoever is signed in by then, into this
+         * file. The file is this call's alone to close. `end()` is not a stop: it waits for the open and counts.
+         */
+        if (this.stoppedWhileOpening()) {
+          await store.close().catch(() => {})
+          this.releaseFile()
+          return
+        }
       }
       /*
        * NEVER SILENT (DOS-167 ruling 2 (t)). A person's store that keeps nothing past this tab or this process says so,
@@ -535,16 +583,26 @@ export class SyncEngine {
        */
       this.bus.emit([...this.shapes.keys(), OUTBOX_CHANNEL])
     } catch (error) {
-      // A file opened and never claimed is this call's alone to close: no `stop()` or `end()` can reach it.
-      if (unclaimed !== null) await unclaimed.close().catch(() => {})
-      // And its hold this call's alone to let go; an attached file is let go by the close in `stop()` or `end()`.
-      if (this.store === null) this.releaseFile()
+      /*
+       * WHAT COULD NOT BE USED IS CLOSED AND LEFT ALONE (DOS-167 ruling 3 (cc), founder answer A). A file we failed to
+       * read is never destroyed — ruling (p)'s rule for a file that cannot be counted holds for one that cannot be
+       * opened — and its hold is let go, so the next holder may try. When it was a PERSISTENT store, `start()` takes
+       * the one fallback in memory; a memory store that fails has nowhere left to go and the error stands.
+       */
+      const failed = unclaimed ?? this.store
+      if (memory === null && failed !== null && failed.persistent)
+        this.brokenStore = {
+          kind: failed.kind,
+          reason: error instanceof Error ? error.message : String(error),
+        }
+      if (failed !== null) {
+        this.store = null
+        this.ready = false
+        await failed.close().catch(() => {})
+      }
+      this.releaseFile()
       throw error
-    } finally {
-      opened()
     }
-    await this.sync('start')
-    if (this.started) this.schedulePoll()
   }
 
   async stop(): Promise<void> {
@@ -916,7 +974,8 @@ export class SyncEngine {
     return {
       online: this.radio() && this.reachable,
       store: this.store?.kind ?? 'memory',
-      persistent: this.store?.persistent ?? false,
+      // Null until something has resolved: never “will not keep” over a store that is still opening (ruling 3 (ee)).
+      persistent: this.store === null ? null : this.store.persistent,
       storeNote:
         this.store === null || this.store.persistent ? null : (this.store.fallback?.reason ?? null),
       lastPulledAt: this.lastPulledAt,

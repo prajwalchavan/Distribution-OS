@@ -22,21 +22,65 @@ async function loadSqlite(): Promise<ExpoSqliteLike | null> {
   }
 }
 
-export async function openStore(name: string): Promise<SyncStore> {
-  const sqlite = await loadSqlite()
-  if (sqlite === null)
-    return createMemoryStore({
-      wanted: 'sqlite-native',
-      reason: 'expo-sqlite is not in this binary',
-    })
+/**
+ * HOW LONG AN OPEN MAY TAKE BEFORE THE APP CARRIES ON WITHOUT IT (DOS-167 ruling 3 (cc)). A store that never answers
+ * must never be a hang: past the deadline the caller gets an announced memory store, and the real handle, when it
+ * finally lands, is CLOSED — never destroyed, because nothing we failed to read is thrown away (founder answer A).
+ * No chain here, unlike the web opener: each `openDatabaseAsync` on a phone is its own native handle (ruling 3 (aa)).
+ */
+export const OPEN_DEADLINE_MS = 15_000
+
+/** The same optional seam the web opener carries, so an open can be driven in a test. `StoreFactory` is unchanged. */
+export interface OpenStoreDeps {
+  loadSqlite?: () => Promise<ExpoSqliteLike | null>
+  timeoutMs?: number
+}
+
+function inMemory(reason: string): SyncStore {
+  return createMemoryStore({ wanted: 'sqlite-native', reason })
+}
+
+async function openStoreInner(name: string, deps: OpenStoreDeps): Promise<SyncStore> {
+  const sqlite = await (deps.loadSqlite ?? loadSqlite)()
+  if (sqlite === null) return inMemory('expo-sqlite is not in this binary')
   try {
     return await openExpoSqlite(sqlite, name, 'sqlite-native')
   } catch (error) {
-    return createMemoryStore({
-      wanted: 'sqlite-native',
-      reason: `open failed: ${error instanceof Error ? error.message : String(error)}`,
-    })
+    return inMemory(`open failed: ${error instanceof Error ? error.message : String(error)}`)
   }
+}
+
+export function openStore(name: string, deps: OpenStoreDeps = {}): Promise<SyncStore> {
+  const deadline = deps.timeoutMs ?? OPEN_DEADLINE_MS
+  let answer: (store: SyncStore) => void = () => {}
+  const answered = new Promise<SyncStore>((resolve) => {
+    answer = resolve
+  })
+  let late = false
+  const timer = setTimeout(() => {
+    late = true
+    answer(
+      inMemory(
+        `open timed out after ${deadline >= 1000 ? `${Math.round(deadline / 1000)}s` : `${deadline}ms`}`,
+      ),
+    )
+  }, deadline)
+  void openStoreInner(name, deps).then(
+    async (store) => {
+      clearTimeout(timer)
+      if (!late) {
+        answer(store)
+        return
+      }
+      await store.close().catch(() => {})
+    },
+    (error: unknown) => {
+      clearTimeout(timer)
+      if (!late)
+        answer(inMemory(`open failed: ${error instanceof Error ? error.message : String(error)}`))
+    },
+  )
+  return answered
 }
 
 /** What this platform WOULD give, without opening anything — for a settings screen to be honest with. */

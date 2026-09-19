@@ -230,7 +230,8 @@ export default function Beat(): React.JSX.Element {
             {t('s0.offlineNote')}
           </Txt>
         )}
-        {local.persistent ? null : (
+        {/* Only on a store that has RESOLVED and cannot keep: never while it is still opening (ruling 3 (ee)). */}
+        {local.persistent !== false ? null : (
           <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
             {t('s0.notPersisted')}
           </Txt>

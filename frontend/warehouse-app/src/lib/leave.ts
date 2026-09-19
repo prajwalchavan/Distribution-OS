@@ -31,9 +31,11 @@ export interface LeaveSentenceInput {
   tenantName: string
   /**
    * False when the device store is in memory (DOS-167 ruling 2 (t)): nothing waiting survives leaving, so the body
-   * never says it stays. Absent means a store that keeps.
+   * never says it stays. NULL while the store has not resolved yet (ruling 3 (ee)) and treated exactly as false:
+   * otherwise null took the worst half of each branch — this body promising "they stay on this phone" over a sheet
+   * whose keep button was withheld. Absent means a store that keeps.
    */
-  persistent?: boolean
+  persistent?: boolean | null
 }
 
 export interface LeaveSentence {
@@ -79,7 +81,7 @@ export function leaveSentence(input: LeaveSentenceInput): LeaveSentence {
     title: queued ? counted(input.pending, 'leave.title', 'leave.title.one') : attention,
     attention: queued && refused ? attention : null,
     body:
-      input.persistent === false
+      input.persistent === false || input.persistent === null
         ? say('leave.bodyMemory', {})
         : say(bodyKey(input.mode, queued, refused), {
             name: input.name,
@@ -96,15 +98,18 @@ export type LeaveButton = 'sendNow' | 'keep' | 'cancel'
  * "Switch anyway" — only on a store that keeps: a store in memory goes with the tab, so a keep there would be a
  * promise nothing keeps, and the leaving WAITS — sent now, or the person stays signed in until there is a signal;
  * refused ones are fixed or discarded in Needs attention. Throwing a change away is never offered here.
+ *
+ * A store that has not resolved (`null`, ruling 3 (ee)) is one that cannot keep: a keep is never offered on a promise
+ * we cannot yet make.
  */
 export function leaveButtons(input: {
   mode: LeaveMode
   online: boolean
-  persistent: boolean
+  persistent: boolean | null
 }): LeaveButton[] {
   const buttons: LeaveButton[] = []
   if (input.online) buttons.push('sendNow')
-  if (input.persistent) buttons.push('keep')
+  if (input.persistent === true) buttons.push('keep')
   buttons.push('cancel')
   return buttons
 }
