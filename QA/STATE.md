@@ -1,17 +1,18 @@
 Stage: 1
 Current phase: 4 — Implement approved changes (batch 2). Phase 2 (cross-role chain) follows.
-Last updated: 2026-09-19 21:0x IST
+Last updated: 2026-09-20, early
 
 **This file is CURRENT STATE ONLY.** Every history — what was found, what was ruled, what was merged and why — lives in `QA/13-change-log.md`. Findings live in `QA/findings/12-batch2-new-findings.md`. Founder decisions live in `docs/22-source-of-truth.md` §8; **read docs/22, never a note in here, for what the founder has decided.** Twice on 2026-09-19 a stale note in this file sent work down a wrong path (eleven "open" questions docs/22 had already answered on 09-13, and a Q3 money repair on a database that holds no real money). If this file and docs/22 disagree, docs/22 wins and this file is wrong.
 
 ## Running right now
 
-| Run | Task | What it is | Where it stops |
-|---|---|---|---|
-| `wf_dae59dd1-114` | `wwjggbx0h` | DOS-167: the six owed walks (web memory fallback, web second tab, web timeout, Android sanity, Android delivery keep, Android warehouse keep) then **Fable judges whether DOS-167 closes** | script `QA/tools/batch2/workflows/dos167-amendments.js` |
-| `wf_318fd158-c04` | `w02bf6b2m` | DOS-175..DOS-180: Fable design → two build lanes → Fable review → backend merges, frontend merges onto it | script `QA/tools/batch2/workflows/dos175-180.js` |
+| Run | Task | What it is |
+|---|---|---|
+| `wf_1f0628d4-535` | `w2a1liguh` | **DOS-183** (on web, unsent work does not go first — it uploads on the 60 s poll tick), **DOS-181** (Android: the delivery app's Record/Save button never fires, so a driver cannot close a stop), **DOS-182** (the pick sheet locks the picker out for 5 m 48 s with no signal). Fable designs the engine fix → two lanes → Fable reviews → merge → the web goes-first walk and the Android delivery walk → **Fable re-judges DOS-167**. Script `QA/tools/batch2/workflows/dos181-183.js` |
 
-The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid recorded in the 2026-09-19 change-log section). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
+The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
+
+**DOS-167 was judged NOT CLOSED** on 2026-09-19 (`QA/evidence/batch2/verdicts/DOS-167-judge.md`). Two of the founder's three clauses hold on every target and the web store is honest; **"goes first" fails on web only** — that is DOS-183, being fixed now. Android and iOS meet it to the millisecond.
 
 ## The smoke gate, reshaped (Fable, 2026-09-19 — binding)
 
@@ -37,11 +38,11 @@ The founder hands over a **real data extract** ("okk share real data extract wit
 - a **Distribution OS book** (a dump carrying rows the apps wrote) → the money repair re-runs against the copy, read-only first, founder signs off trip by trip;
 - an **old-system export** (TradeEzee, Tally, Excel) → nothing in Distribution OS is wrong; it is an import through the generic importer (docs/17 §D7) with its own reconciliation.
 
-## Merged into main on 2026-09-19
+## Merged into main, 2026-09-19 → 20
 
-`c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
+`c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · `ed3e1b7` DOS-178+179+180 honesty · `f144e29` DOS-175+176+177 money-delivery · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
 
-**Coverage: 69 of 155 batch-2 findings merged.** P0: DOS-167 still OPEN (its close decision is running); DOS-168, DOS-169 merged, proof owed. Filed today and not yet built: DOS-175, DOS-176, DOS-177, DOS-178 (building), DOS-179, DOS-180 (building).
+**Coverage: 75 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
 
 ## Databases
 
