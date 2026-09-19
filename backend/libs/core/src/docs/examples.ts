@@ -4687,8 +4687,13 @@ const OVERRIDES: Record<
     from: DROP,
     to: DROP,
   }),
+  // An OFFICE receipt: no trip (QA DOS-175). The sampler would otherwise fill `tripId` from the
+  // "ends in Id → uuid" rule with an id no trip holds, and the money desk could never bank it —
+  // `receipts.deposit` refuses a receipt whose trip has not settled, and a trip that does not exist
+  // never will. Doorstep money names a trip through `delivery.collections.record`, which has one.
   'receivables.receipts.create': (ctx) => ({
     retailerId: ctx.retailerId,
+    tripId: DROP,
     allocations: DROP,
     strategy: 'fifo',
   }),

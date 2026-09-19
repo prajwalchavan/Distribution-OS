@@ -11,6 +11,7 @@ import {
   invoices,
   journalEntries,
   journalLines,
+  locations,
   memberships,
   retailerIdentities,
   retailerLinks,
@@ -18,7 +19,9 @@ import {
   tenants,
   tenantSettings,
   TENANT_SETTING_KEYS,
+  trips,
   users,
+  vehicles,
   withTenant,
   type ActorRole,
   type Db,
@@ -27,6 +30,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
+import { TRIP_PREDICATES } from '../delivery/index.js'
 import { SyncModule } from '../sync/index.js'
 import { loadStatementSummary, ReceivablesModule, ReceivablesService } from './index.js'
 
@@ -114,6 +118,9 @@ describeDb('receivables (DATABASE_URL)', () => {
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
   const otherOwnerId = uuidv7()
+  /** The van and the trip the doorstep cases take money on: a real trip of this tenant, out on the road (QA DOS-175). */
+  const vanId = uuidv7()
+  const onTheRoadTripId = uuidv7()
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const accountant: Actor = { tenantId, actorId: accountantId, role: 'accountant' }
@@ -327,6 +334,34 @@ describeDb('receivables (DATABASE_URL)', () => {
 
     app = await bootTestApp([ReceivablesModule, SyncModule])
     receivables = app.get(ReceivablesService)
+    // Delivery owns `trips` and registers these at start-up (DOS-132, QA DOS-175). This spec boots receivables
+    // ALONE, so it stands in for `DeliveryModule.onModuleInit` with delivery's own SQL — and money may then name
+    // only a trip that really exists and is out on the road, which is why the two doorstep cases below were
+    // re-pointed from a made-up uuid at this fixture (founder-approved, Charter A.5).
+    receivables.registerTripPredicates(TRIP_PREDICATES)
+    const godown = (
+      await db
+        .select()
+        .from(locations)
+        .where(sql`${locations.tenantId} = ${tenantId}`)
+    ).find((l) => l.kind === 'warehouse')
+    await db.insert(vehicles).values({
+      id: vanId,
+      tenantId,
+      regNo: `MH-05-RC-${run.slice(-4)}`,
+      name: 'Doorstep tempo',
+      locationId: godown?.id ?? '',
+    })
+    await db.insert(trips).values({
+      id: onTheRoadTripId,
+      tenantId,
+      tripNo: `TRIP-RC-${run}`,
+      tripDate: businessDate().date,
+      vehicleId: vanId,
+      driverId: crewId,
+      state: 'active',
+      startedAt: new Date(),
+    })
 
     await seedInvoice({ id: inv.a1, retailerId: shop.a, totalPaise: 10_000, dueOffsetDays: -25 })
     await seedInvoice({ id: inv.a2, retailerId: shop.a, totalPaise: 20_000, dueOffsetDays: -10 })
@@ -549,7 +584,9 @@ describeDb('receivables (DATABASE_URL)', () => {
   // the field: a delivery actor may post but never read the book
 
   it('lets a delivery actor take money at the door into CASH_VAN and never read the journal', async () => {
-    const tripId = uuidv7()
+    // QA DOS-175: a receipt may name only a trip this distributor holds and has out on the road, so the case
+    // names the fixture trip rather than a fresh uuid (which is now the 404 `money-locks.spec.ts` proves).
+    const tripId = onTheRoadTripId
     const res = await call<ReceiptReply>(app, crew, 'POST', '/receipts', {
       idempotencyKey: `rcpt-crew-${run}`,
       id: uuidv7(),
@@ -1676,7 +1713,11 @@ describeDb('receivables (DATABASE_URL)', () => {
       tier: 'C',
       creditDays: 15,
     })
-    const tripId = uuidv7()
+    // QA DOS-175: money may name only a trip this distributor holds and has out on the road, so the case takes
+    // the real fixture trip; what it is about — nothing able to say that trip's cash reached the office — is set
+    // below by blanking the `settled` predicate alone, exactly as a process without delivery leaves it.
+    const tripId = onTheRoadTripId
+    receivables.registerTripPredicates({ ...TRIP_PREDICATES, settled: () => sql`false` })
     type Taken = { id: string; receiptNo: string }
     const take = async (
       actor: Actor,
@@ -1778,6 +1819,8 @@ describeDb('receivables (DATABASE_URL)', () => {
       select count(*)::int as n from journal_entries
        where tenant_id = ${tenantId} and ref_type = 'deposit' and ref_id = ${batch}`)
     expect((posted.rows[0] as { n: number }).n).toBe(0)
+    // put delivery's own `settled` answer back: nothing below this case is about a process without delivery
+    receivables.registerTripPredicates(TRIP_PREDICATES)
   })
 
   // -------------------------------------------------------------------------------------------------------------

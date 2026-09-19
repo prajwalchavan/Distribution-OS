@@ -155,7 +155,7 @@ export class LoadSheetsService {
 
   /**
    * Delivery supplies "which bills still ride a van that has not checked in" at start-up
-   * (`DeliveryModule.onModuleInit`, QA DOS-172), the DOS-132 `registerTripSettled` pattern. Every service
+   * (`DeliveryModule.onModuleInit`, QA DOS-172), the DOS-132 `registerTripPredicates` pattern. Every service
    * that serves load sheets mounts delivery (pinned by `service/definitions.test.ts`), because the empty
    * default would offer a held bill silently.
    */

@@ -21,6 +21,17 @@ import type { ReceivablesService } from './receivables.service.js'
 
 const MODES: readonly ReceiptMode[] = ['cash', 'upi', 'bank_transfer', 'cheque', 'adjustment']
 
+/**
+ * The refusals `recordReceipt` raises ABOUT THE TRIP (DOS-169, QA DOS-175). Each keeps its own code on the way
+ * through the upload door so the tray can say what the crew must do with real money: hand it to the cashier
+ * (`trip_settled`), or record it at the office on no trip (`trip_not_found`, `trip_not_on_road`).
+ */
+const TRIP_REFUSALS: ReadonlySet<string> = new Set([
+  'trip_settled',
+  'trip_not_found',
+  'trip_not_on_road',
+])
+
 const str = (v: unknown): string | null =>
   typeof v === 'string' && v.trim().length > 0 ? v.trim() : null
 
@@ -79,14 +90,13 @@ export async function applyReceiptSync(
       strategy: 'fifo',
     })
   } catch (error) {
-    // DOS-169: cash or a cheque for a trip that has already handed its cash over is a refusal the crew acts on (hand
-    // it to the cashier), so the tray gets its own code and the sentence the desk sees, never the generic `conflict`
-    // SyncService makes of any other 409.
-    if (
-      error instanceof ORPCError &&
-      (error.data as { code?: unknown } | null | undefined)?.code === 'trip_settled'
-    )
-      throw new SyncRejection('trip_settled', error.message)
+    // DOS-169 + QA DOS-175: money the office refuses BECAUSE OF THE TRIP is a refusal the crew acts on (hand it to
+    // the cashier, or record it at the office with no trip), so the tray gets the money code and the sentence the
+    // desk sees, never the generic `not_found` / `conflict` SyncService makes of any other 404 or 409. The door
+    // stays 2xx either way (ADR 0007).
+    const code = (error as { data?: { code?: unknown } | null } | null)?.data?.code
+    if (error instanceof ORPCError && typeof code === 'string' && TRIP_REFUSALS.has(code))
+      throw new SyncRejection(code, error.message)
     throw error
   }
 }

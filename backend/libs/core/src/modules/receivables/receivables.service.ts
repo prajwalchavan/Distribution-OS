@@ -271,10 +271,28 @@ export type RecordReceiptResult = CreateReceiptOut
 
 /**
  * "This trip's money has reached the office", as SQL over a trip id and the tenant (DOS-132). Delivery owns
- * `trips`, so it supplies the predicate at start-up through `ReceivablesService.registerTripSettled` and no SQL in
- * receivables names the table. The predicate is tenant-qualified: RLS is the second lock, never the only one.
+ * `trips`, so it supplies the predicate at start-up through `ReceivablesService.registerTripPredicates` and no SQL
+ * in receivables names the table. The predicate is tenant-qualified: RLS is the second lock, never the only one.
  */
 export type TripSettledPredicate = (tripId: SQL, tenantId: string) => SQL
+
+/**
+ * Everything receivables has to know about a trip before money may name it (DOS-132, QA DOS-175), all of it
+ * delivery's SQL: does this distributor hold the trip at all, is it out on the road, and has its cash already
+ * reached the office.
+ */
+export interface TripPredicates {
+  settled: TripSettledPredicate
+  exists: TripSettledPredicate
+  onTheRoad: TripSettledPredicate
+}
+
+/** What one `select` answers about the trip a receipt names, read under that trip's money lock. */
+interface TripDoor {
+  exists: boolean
+  onTheRoad: boolean
+  settled: boolean
+}
 
 /** Where the money lands. Cash taken on a trip sits in CASH_VAN until the trip settlement hands it over. */
 function receiptAccountCode(mode: ReceiptMode, tripId: string | null): string {
@@ -304,6 +322,18 @@ const REFUSED_AFTER_SETTLEMENT: ReadonlySet<ReceiptMode> = new Set<ReceiptMode>(
 /** The one sentence for that refusal at every door (amendment (l)): POST /receipts, the `receipts` and `collections` ops. */
 const TRIP_SETTLED_MESSAGE =
   'this trip has already settled; hand this money to the cashier and record it at the office, not on the trip'
+
+/**
+ * The trip a receipt names is not this distributor's (QA DOS-175). There is no foreign key from `receipts` to
+ * `trips` — it is an upstream reference — so without this the money posts to CASH_VAN on a trip that can never
+ * settle, and `receipts.deposit` then refuses to bank it for ever.
+ */
+const tripNotFoundMessage = (tripId: string): string =>
+  `no trip ${tripId} at this distributor; record this money at the office, with no trip`
+
+/** The trip is this distributor's, but the money cannot be on it: it has not left, or it was cancelled (QA DOS-175). */
+const TRIP_NOT_ON_ROAD_MESSAGE =
+  'this trip has not left, or was cancelled; money is taken while the trip is out, or at the office with no trip'
 
 /** A trip's own receipts per mode, however they arrived, net of reversals (DOS-169): what its settlement counts. */
 export interface TripMoney {
@@ -336,17 +366,26 @@ export interface ReceiptForExport {
 export class ReceivablesService {
   /** Fail closed: until delivery says how to tell, no trip is settled, so no trip receipt is money in hand. */
   private tripSettled: TripSettledPredicate = () => sql`false`
+  /**
+   * Fail closed the other way too (QA DOS-175): until delivery says how to tell, receivables cannot vouch for any
+   * trip, so it refuses every receipt that names one. Office money — no trip — is untouched by both defaults.
+   */
+  private tripExists: TripSettledPredicate = () => sql`false`
+  private tripOnTheRoad: TripSettledPredicate = () => sql`false`
 
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
 
   /**
-   * Delivery owns trips and supplies the "trip settled" predicate at start-up (DeliveryModule.onModuleInit,
-   * DOS-132). With nothing registered — a process that mounts receivables without delivery — no receipt taken on
-   * a trip is ever treated as in hand: `receipts.list` leaves it out of `withCrew=false`, `receipts.get` reads
-   * `withCrew: true` to the money desk and `receipts.deposit` refuses it.
+   * Delivery owns trips and supplies these predicates at start-up (DeliveryModule.onModuleInit, DOS-132,
+   * QA DOS-175). With nothing registered — a process that mounts receivables without delivery — no receipt taken
+   * on a trip is ever treated as in hand: `receipts.list` leaves it out of `withCrew=false`, `receipts.get` reads
+   * `withCrew: true` to the money desk and `receipts.deposit` refuses it; and no receipt may name a trip at all,
+   * because nothing in this process can say whether that trip is real.
    */
-  registerTripSettled(predicate: TripSettledPredicate): void {
-    this.tripSettled = predicate
+  registerTripPredicates(predicates: TripPredicates): void {
+    this.tripSettled = predicates.settled
+    this.tripExists = predicates.exists
+    this.tripOnTheRoad = predicates.onTheRoad
   }
 
   // =============================================================================================================
@@ -677,10 +716,12 @@ export class ReceivablesService {
    * written on paper in the field and uploaded later (docs/07 §7.3).
    *
    * A receipt carrying a trip first takes the trip's money lock (amendment (b)), so it waits for a settlement
-   * counting that trip (`tripMoney({ lock: true })`) and is either counted by it or sees the trip settled. Cash or a
-   * cheque for a trip that has already handed its cash over is then refused 409 `trip_settled` (DOS-169, founder
-   * answer A): the crew hands it to the cashier. The check runs after the replay, so a re-sent receipt that landed
-   * before the settlement is still a replay; with no "trip settled" predicate registered nothing is refused (DOS-132).
+   * counting that trip (`tripMoney({ lock: true })`) and is either counted by it or sees the trip settled. Then ONE
+   * `select` asks delivery's three predicates about that trip (QA DOS-175), and the money may name it only when the
+   * office could still settle it: no such trip → 404 `trip_not_found`; planned, loading or cancelled → 409
+   * `trip_not_on_road`; settled, with cash or a cheque → 409 `trip_settled` (DOS-169, founder answer A) and the crew
+   * hands it to the cashier. The checks run after the replay, so a re-sent receipt that landed before the settlement
+   * is still a replay; with no predicates registered every trip is refused (fail closed, DOS-132).
    */
   async recordReceipt(tx: Db, input: RecordReceiptInput): Promise<RecordReceiptResult> {
     const { tenantId, actorId } = currentTenant()
@@ -696,10 +737,20 @@ export class ReceivablesService {
     const tripId = input.tripId ?? null
     if (tripId !== null) {
       await this.lockTripMoney(tx, tenantId, tripId)
-      if (
-        REFUSED_AFTER_SETTLEMENT.has(input.mode) &&
-        (await this.isTripSettled(tx, tripId, tenantId))
-      ) {
+      const door = await this.readTripDoor(tx, tripId, tenantId)
+      if (!door.exists) {
+        throw new ORPCError('NOT_FOUND', {
+          message: tripNotFoundMessage(tripId),
+          data: { code: 'trip_not_found', tripId },
+        })
+      }
+      if (!door.onTheRoad && !door.settled) {
+        throw new ORPCError('CONFLICT', {
+          message: TRIP_NOT_ON_ROAD_MESSAGE,
+          data: { code: 'trip_not_on_road', tripId },
+        })
+      }
+      if (REFUSED_AFTER_SETTLEMENT.has(input.mode) && door.settled) {
         throw new ORPCError('CONFLICT', {
           message: TRIP_SETTLED_MESSAGE,
           data: { code: 'trip_settled', tripId },
@@ -1713,6 +1764,25 @@ export class ReceivablesService {
       sql`select (${this.tripSettled(sql`${tripId}`, tenantId)}) as settled`,
     )
     return (settled.rows[0] as { settled: boolean } | undefined)?.settled === true
+  }
+
+  /**
+   * The three answers `recordReceipt` needs about the trip a receipt names (QA DOS-175), in ONE statement under the
+   * trip's money lock, from delivery's own SQL. All three are `false` until delivery registers them, which is what
+   * makes an unvouched trip a refusal rather than a CASH_VAN row nobody can ever bank.
+   */
+  private async readTripDoor(tx: Db, tripId: string, tenantId: string): Promise<TripDoor> {
+    const read = await tx.execute(sql`select
+      (${this.tripExists(sql`${tripId}`, tenantId)}) as "exists",
+      (${this.tripOnTheRoad(sql`${tripId}`, tenantId)}) as on_the_road,
+      (${this.tripSettled(sql`${tripId}`, tenantId)}) as settled`)
+    const row = read.rows[0] as
+      { exists: boolean; on_the_road: boolean; settled: boolean } | undefined
+    return {
+      exists: row?.exists === true,
+      onTheRoad: row?.on_the_road === true,
+      settled: row?.settled === true,
+    }
   }
 
   /**

@@ -716,6 +716,26 @@ describeDb('delivery — day-end counts every trip payment (DATABASE_URL)', () =
     expect(closed.settlement?.chequeCollectedPaise).toBe(chequePaise)
   }, 120_000)
 
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-175: the upload door refuses a trip this distributor does not hold, and stays 2xx doing it
+
+  it('DOS-175 an uploaded receipts op naming an unknown trip is a 2xx rejection trip_not_found and writes nothing', async () => {
+    const ghostTripId = uuidv7()
+    const op = receiptOp(ghostTripId, 'cash', 6_000, 'T175')
+    const res = await upload([op])
+    // ADR 0007: the upload door never answers 4xx — a refusal is a recorded rejection with its own money code
+    expect(res.status).toBe(200)
+    expect(res.body.accepted, JSON.stringify(res.body)).toBe(0)
+    expect(res.body.rejected.map((r) => [r.opId, r.code])).toEqual([[op.opId, 'trip_not_found']])
+    expect(await receiptExists(op.id)).toBe(false)
+    const errors = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and op_id = ${op.opId}`,
+      )
+    ).rows as { code: string }[]
+    expect(errors.map((e) => e.code)).toEqual(['trip_not_found'])
+  }, 60_000)
+
   it('DOS-169 fully offline doorstep (stop PATCHes, delivery with inline proof, receipt) in one batch settles with a CASH_VAN line', async () => {
     const floatPaise = 30_000
     const bill = await billedOrder('t5b')
