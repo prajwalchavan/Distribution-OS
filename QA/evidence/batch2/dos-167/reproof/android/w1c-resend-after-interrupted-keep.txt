@@ -1,0 +1,32 @@
+## walk W1c: office reachable, rahul signs in again: the kept ops from the interrupted keep go once 07:39:30 (epoch 1789351770)
+$ adb reverse tcp:3003 tcp:3003
+3003
+host-16 tcp:3003 tcp:3003
+SIGNED_IN w1c-rahul: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West
+strip: Updated just now 
+rahul/kiran/amit other-person markers in early dumps: 0
+shot w1c-rahul-after-send.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:40:49)
+total 12248
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:40 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:38 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:32 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:40 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:40 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4346632 2026-09-14 07:40 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (4063232)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (4063232)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4346632)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dab-c69c-7741-8f44-85beb6eaf475|sales_orders|01a09dab-8b6d-71cc-b75c-82fbbc4215ac|PUT|{"retailer_id":"a029f31b-2c6c-707b-b580-889125d3ee07","state":"draft","source":"salesperson","pricing_date_
+2|01a09dab-c69c-7742-8ae1-27e915880919|sales_order_lines|01a09dab-aa8a-7421-be74-6294b3181261|PUT|{"order_id":"01a09dab-8b6d-71cc-b75c-82fbbc4215ac","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a"
+-- _sync_errors
+-- sales-service requests since W1c
+07:40:22.949 req-q9 GET /sync/manifest -> 200
+07:40:23.031 req-qa POST /sync/upload -> 200
+07:40:23.327 req-qb GET /sync/pull?deviceId=01a09da2-039b-713c-aefc-f79c7aa86e30&limit=500 -> 200
+07:40:23.814 req-qc GET /sync/pull?deviceId=01a09da2-039b-713c-aefc-f79c7aa86e30&limit=500&since=<cursor> -> 200
+07:40:24.450 req-qd GET /sync/pull?deviceId=01a09da2-039b-713c-aefc-f79c7aa86e30&limit=500&since=<cursor> -> 200
+uploads: 1
+-- logcat crash buffer (07:40:49)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

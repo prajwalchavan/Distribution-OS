@@ -1,0 +1,47 @@
+## walk W1a (SecureStore ordering, Android sales, fixed JS): rahul online sign-in, then office cut + cold relaunch (the start refreshes the token), queue one order 07:35:41 (epoch 1789351541)
+(the 199952b long file with its unsendable op is still on the phone from step 6; the walk uses rahul's s-file)
+SIGNED_IN w1a-rahul: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | �
+strip: Updated just now 
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:37:00)
+total 11000
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:36 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:32 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:32 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:36 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:36 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:36 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (4063232)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2617344)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4515552)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+$ adb reverse --remove tcp:3003
+3003 reverse present: 0
+strip after cold relaunch: Offline since 7:36 am 
+-- auth refresh on that cold start:
+07:37:03.937 req-5n POST /auth/refresh -> 200
+(1 requests)
+tap 'Shops' at 675 2246
+tap 'Chavan Kirana Stores' at 345 1235
+Take order at 540 2012
+Add a case at 855 1444
+items: Items 1 · ₹684.00 before GST 
+strip after save: Offline since 7:36 am · 2 waiting to send 
+shot w1a-rahul-order-saved.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:38:02)
+total 11000
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:37 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:37 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:32 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:36 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:37 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:37 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (4063232)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2617344)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4515552)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dab-c69c-7741-8f44-85beb6eaf475|sales_orders|01a09dab-8b6d-71cc-b75c-82fbbc4215ac|PUT|{"retailer_id":"a029f31b-2c6c-707b-b580-889125d3ee07","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01
+2|01a09dab-c69c-7742-8ae1-27e915880919|sales_order_lines|01a09dab-aa8a-7421-be74-6294b3181261|PUT|{"order_id":"01a09dab-8b6d-71cc-b75c-82fbbc4215ac","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09dab-c69c-7742-
+-- _sync_errors
+-- SecureStore keys before the keep
+name="key_v1-dos.device"
+name="key_v1-dos.auth.refresh"
+name="key_v1-dos.auth.session"
+-- logcat crash buffer (07:38:02)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

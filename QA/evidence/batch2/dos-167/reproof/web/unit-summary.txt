@@ -1,0 +1,15 @@
+@dos/offline src/identity.test.ts exit=0
+ Test Files  1 passed (1)
+      Tests  27 passed (27)
+@dos/sales-app src/lib/leave.test.ts exit=0
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+@dos/delivery-app src/lib/leave.test.ts exit=0
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+@dos/warehouse-app src/lib/leave.test.ts exit=0
+ Test Files  1 passed (1)
+      Tests  7 passed (7)
+@dos/api-client src/identity.test.ts exit=0
+ Test Files  1 passed (1)
+      Tests  8 passed (8)

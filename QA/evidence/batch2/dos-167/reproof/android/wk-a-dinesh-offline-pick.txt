@@ -1,0 +1,90 @@
+## WK-a warehouse keep path: dinesh.patil (Tarsun) signs in online and syncs 08:40:59
+SIGNED_IN wk-dinesh: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0078, 5926 of 7834 pc picked, picking | PICK-0078 | 5926 of 7834 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+strip has 'Updated just now' after ~3s
+logbox now: 0 (0 = clear)
+-- summary: stores=1 [dinesh @ Tarsun] legacy=0 interim=0 strays=0 other=0
+## office unreachable: remove adb reverse tcp:3000 + tcp:3004, force-stop + relaunch after the completed pull 08:42:12
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3005 tcp:3005
+host-16 tcp:5176 tcp:5176
+
+force-stop + start in.distributionos.warehouse at 08:42:13
+LogBox toast at 540 2208: open it, then Dismiss
+tap 'Dismiss' at 180 2274
+logbox now: 0 (0 = clear)
+home offline (+20s): Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:41 am | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | — | WAVES OPEN | — | PACKED, NO BILL | — | SHEETS WAITING | — | GATE COUNTS WAITING | No connection. This is not the current picture. | network | Try again | Try again | WAVES ON THE FLOOR | — being picked · — waiting to start | No connection. This is not the curren
+shot wk-a-dinesh-offline-home.png
+'Still filling this phone from the server' on the warehouse home? 0
+PICK-0078 row at: 
+logbox now: 0 (0 = clear)
+pick sheet: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:41 am | Tarsun Enterprise | Inbound | Try again | LOAD SHEETS | No connection. This is not the current picture. | network | Try again | Try again | COUNTS OPEN | No connection. This is not the current picture. | network | Try again | Try again | Fill rate, last 14 days | 1 Sep — 14 Sep | No connection. This is not the current picture. | network | Try again | Try again | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot wk-a-dinesh-pick-sheet.png
+first 'Picked' button at: 
+GUARD: no Picked button found; nothing queued
+## WK-a NOTE: offline, the warehouse home's WAVES ON THE FLOOR is an online read ('No connection. This is not the current picture.'), so PICK-0078 was not on the home; nothing was queued and no sign-out was started (guard). Try the Pick tab (local picklists) instead 08:44:09
+logbox now: 0 (0 = clear)
+tap 'Pick' at 405 2237
+logbox now: 0 (0 = clear)
+pick tab (offline): Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:41 am | Tarsun Enterprise | Pick | ORDERS WAITING | No connection. This is not the current picture. | network | Try again | Try again | WAVES | No connection. This is not the current picture. | network | Try again | Try again | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot wk-a-dinesh-pick-tab-offline.png
+PICK-0078 not on the offline Pick tab either. FALLBACK: office back, open the PICK-0078 sheet online, then cut the office (remove adb reverse, no relaunch) BEFORE the pick is tapped, so the pick is queued while the office is unreachable
+3000
+3004
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3005 tcp:3005
+host-16 tcp:5176 tcp:5176
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3004 tcp:3004
+
+logbox now: 0 (0 = clear)
+PICK-0078 row (online) at: 439 1548
+logbox now: 0 (0 = clear)
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3005 tcp:3005
+host-16 tcp:5176 tcp:5176
+
+office cut at 08:45:22 with the sheet open
+queue mode: cut-before-tap
+pick sheet: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | 27 of 40 picked | PICK-0078 | picking | To pick | To pick | Every line | Every line | Godavari Table Butter 500 g | Batch GD20260611 | Expires in 85 days | ₹280.00 | 11 cs = 220 pc | Picked | Picked | Short | Short | Campa Cola 750 ml | Batch B20260515 | Exp 9 Feb 2027 | ₹40.00 | 3 cs + 3 pc = 75 pc | Picked | Picked | Short | Short | 27 of 40 picked | Scan | Scan | Take it to packing | Take it to packing | 13 lines not yet picked | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot wk-a-dinesh-pick-sheet-2.png
+first 'Picked' button at: 291 1571
+tapped 'Picked' at 08:45:27
+after pick: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | 28 of 40 picked | PICK-0078 | picking | To pick | To pick | Every line | Every line | Campa Cola 750 ml | Batch B20260515 | Exp 9 Feb 2027 | ₹40.00 | 3 cs + 3 pc = 75 pc | Picked | Picked | Short | Short | Campa Orange 750 ml | Batch RCP20260529 | Exp 23 Feb 2027 | ₹40.00 | 5 cs + 5 pc = 125 pc | Picked | Picked | Short | Short | 28 of 40 picked | Scan | Scan | Take it to packing | Take it to packing | 12 lines not yet picked | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot wk-a-dinesh-picked-queued.png
+strip: Updated just now   ; saved chip: 
+08:45:34 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:45:43 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:45:51 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:00 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:08 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:16 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:25 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:33 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:41 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:50 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:46:58 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:47:07 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:47:15 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+08:47:24 outbox: 1 01a09de9-98c9-7105-bd68-76baf649663a pick_lines 399c804c-6e58-7168-b5be-a9d7774e5e54 acked attempts=1
+## WK-a VERDICT for the fallback attempt above: NOT A KEEP RUN (driver/environment). 'adb reverse --remove tcp:3004' blocks new connections only; the app still held its kept-alive connection to warehouse-service through the old tunnel, so the pick was uploaded at once (outbox attempts=1, status acked, strip 'Updated just now'). Nothing waited, so no sign-out was started (guard). dos_qa check 08:48:04:
+pick line 399c804c (Godavari Table Butter 500 g, 220 pc): 220 requested, 220 picked, updated 2026-09-14 08:45:27.475447+05:30
+sync_ops rows for op 01a09de9-98c9-7105-bd68-76baf649663a: 1 / {"ok": true} / 2026-09-14 08:45:27.413682+05:30
+(QA data note: this real pick of one PICK-0078 line stays in dos_qa, sent once through the normal online path.)

@@ -1,0 +1,12 @@
+-- dos_qa (read-only) after amit's re-sign-in 07:22:43
+-- sales_orders row(s) for the kept order id
+01a09d95-7923-73b8-91ff-05386c614511|draft|salesperson|amit.pawar|amit.pawar|ffa4c055-0e89-7dea-97f2-a24e6ac0fef5|2026-09-14 07:21:27.936538+05:30
+count: 1
+-- sales_order_lines for that order
+01a09d96-5f85-70b6-bf7b-71d73e55e38a|01a09d95-7923-73b8-91ff-05386c614511|f086f3e3-3697-7439-98d9-f20c231c110a|2026-09-14 07:21:27.994814+05:30
+count: 1
+-- sync_ops for the two op ids
+01a09d96-ac8e-74c8-9491-116a1fef041b|01a09d8b-2c1a-7298-a348-87d4bb93bca6|{"ok": true}|2026-09-14 07:21:27.936538+05:30
+01a09d96-ac90-7417-a93e-269859639ef2|01a09d8b-2c1a-7298-a348-87d4bb93bca6|{"ok": true}|2026-09-14 07:21:27.994814+05:30
+-- amit orders total: 388
+-- amit orders at Anand Bhavan created after 07:12 IST: 1

@@ -1,0 +1,24 @@
+## S-127 comparison: stop the MAIN delivery Metro :5177, start the delivery Metro from the pre-DOS-167 worktree 08:16:19
+-- worktree HEAD: 144bcfe 2026-09-13 19:59:38 +0530 fix(DOS-026): merge-review blocker — Print the challan no longer relies on a stale user gesture
+worktree contains 199952b: no (pre-DOS-167)
+-- worktree git status (expect empty):
+-- worktree delivery layout store name: 299:      databaseName="dos-delivery.db"
+-- worktree delivery .env: 
+-- worktree fonts present (sync-fonts NOT run, so nothing is written into the worktree): 0 files
+-- main listener 74658: node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5177 --clear
+parents: 74656 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5177 --clear / 74641 node /Users/prajwalchavan/.local/state/fnm_multishells/74584_1789352450199/bin/pnpm web --clear
+5177 listeners after stop: 0
+status: packager-status:running
+listener 80159 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/delivery-app
+  PID COMMAND
+80159 node /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/node_modules/.bin/expo start --port 5177 --clear
+-- Metro log head
+Starting project at /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/delivery-app
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:5177
+
+note: a probe curl of /index.bundle?platform=android answered 404 (UnableToResolveError ./index from frontend/.) — a wrong entry path in the probe, not the app; the APK below asks Metro for its own bundle. The worktree app needs no fonts (sync-fonts only fills public/fonts for web) and no .env (src/config.ts defaults to http://127.0.0.1:<servicePort> and :3000).

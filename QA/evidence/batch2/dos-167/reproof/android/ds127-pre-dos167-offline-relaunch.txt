@@ -1,0 +1,47 @@
+## S-127 on the PRE-DOS-167 JavaScript (worktree b2-lean-manager-billing 144bcfe, Metro :5177): fresh install -r + pm clear, sachin.dalvi signs in and syncs, then an offline relaunch 08:17:48
+proxy8081: 74883 node /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/proxy8081.mjs 5177
+## ds127-old-sachin fresh: install -r + pm clear + grant location at 08:17:51
+NO_SIGN_IN_FORM ds127-old-sachin: 
+strip never showed 'Updated just now' in 240s
+## synced (old JS) 08:25:06: Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot ds127-old-sachin-synced.png
+'Still filling' while online after sync? 0
+-- files (the old JS names its store dos-delivery.db)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:25:06)
+ls: files/SQLite: No such file or directory
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+## offline: remove adb reverse tcp:3000 + tcp:3005, force-stop + relaunch after the completed pull 08:25:26
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+
+force-stop + start in.distributionos.delivery at 08:25:27
+## S-127 (PRE-DOS-167 JS) home after the offline relaunch (+20s): Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+S-127 'Still filling this phone from the office' present (old JS, +20s)? 0
+shot ds127-old-sachin-offline-home.png
+S-127 (old JS, +35s) present? 0 ; strip: 
+shot ds127-old-sachin-offline-home-35s.png
+3000
+3005
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3005 tcp:3005
+
+-- crash check for in.distributionos.delivery (08:26:08)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+## VERDICT for the attempt above: INVALID for S-127. The first cold start of the pre-DOS-167 bundle never showed the sign-in form inside the driver's wait (NO_SIGN_IN_FORM with an empty screen dump; the bundle was still being built from an empty Metro cache), so the driver exited before typing and sachin never signed in on the old JS. Every later line of this file ran against the sign-in form (no files/SQLite, no strip) and says nothing about 'Still filling'. No crash. Redone in ds127-redo-pre-dos167-offline-relaunch.txt.

@@ -1,0 +1,6 @@
+## y1g restart sales-service on dos_qa as QA/tools/start-services.sh starts it 2026-09-14 09:18:58
+sales-service.log lines before restart: 16475
+sales-service :3003 /health 200 after 3s (09:19:02)
+node    96807 prajwalchavan   17u  IPv4 0x15a9deb7146c0b74      0t0  TCP *:3003 (LISTEN)
+-- dos_qa (read-only) after the restart, before anyone signs in: sales_orders rows for 01a09e05-c8c7-7741-b201-de8bb92ee5d1: 0; sync_ops for the two op ids: 0
+the phone is on the sign-in form (nobody signed in): YES

@@ -1,0 +1,32 @@
+## y1i kiran signs out (nothing of hers queued) while amit's kept file is on the phone 2026-09-14 09:20:23
+tapped "More" Button at 352,105 (1 of 1)
+shot y1i-kiran-menu.png
+menu: Expo Go|More, Settings, My account, Change your password, Sign out, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|More, Settings, My account, Change your password, Sign out, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+tapped 150 723
+sign-in form visible after ~1s
+shot y1i-kiran-signed-out.png
+no leave sheet (one tap)
+$ find "$C" -path '*SQLite*'   (09:20:31)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+sales-service.log line mark for y1j: 16844

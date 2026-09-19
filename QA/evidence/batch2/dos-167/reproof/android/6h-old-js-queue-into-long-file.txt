@@ -1,0 +1,105 @@
+## step6h 199952b JS: office unreachable, queue one order as rahul into the LONG file 07:29:04 (epoch 1789351144)
+$ adb reverse --remove tcp:3003
+0
+strip after relaunch: Offline since 7:28 am 
+tap 'Shops' at 675 2246
+search: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:28 am | Shops | Shops: 30 | Shops | Losing | Catalog | OmSai | Add as new item | Nothing matches that | Beat | Orders | Shops | Me
+NOT FOUND: Om Sai Provision Store
+shop card: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:28 am | Shops | Shops: 30 | Shops | Losing | Catalog | OmSai | Add as new item | Nothing matches that | Beat | Orders | Shops | Me
+Take order at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+order entry: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:28 am | Shops | Shops: 30 | Shops | Losing | Catalog | OmSai | Add as new item | Nothing matches that | Beat | Orders | Shops | Me
+Add a case at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+items: 
+shot 6h-old-rahul-order-line.png
+Save on this phone at 
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+after save: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:28 am | Shops | Shops: 30 | Shops | Shops | Losing | Losing | Catalog | Catalog | OmSai | Add as new item | Add as new item | Nothing matches that | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+strip: Offline since 7:28 am 
+shot 6h-old-rahul-order-saved.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:30:10)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:29 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:29 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:28 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:29 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:29 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2617344)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4515552)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- the LONG file dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (copied read-only)
+total 14000
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 14 07:30 .
+drwxr-xr-x@ 27 prajwalchavan  wheel      864 Sep 14 07:30 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2617344 Sep 14 07:30 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 14 07:30 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4515552 Sep 14 07:30 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+key|value
+schemaVersion|36957a3c3b8da665
+role|salesperson
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMTo1ODoxNS45NjdaIn0
+lastPulledAt|2026-09-14T01:58:20.967Z
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+deviceId|01a09da2-039b-713c-aefc-f79c7aa86e30
+-- _outbox
+-- _sync_errors
+-- logcat crash buffer (07:30:10)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

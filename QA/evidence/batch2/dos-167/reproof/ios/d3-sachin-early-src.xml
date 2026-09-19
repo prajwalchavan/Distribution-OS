@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AppiumAUT>
+  <XCUIElementTypeApplication type="XCUIElementTypeApplication" name="Expo Go" label="Expo Go" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="" processId="3134" bundleId="host.exp.Exponent">
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="148" index="0" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="2" traits=""/>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="More" label="More" enabled="true" visible="false" accessible="true" x="317" y="70" width="69" height="69" index="3" traits="Button"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="88" width="32" height="33" index="4" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Sai Distributors, Dombivli" name="Sai Distributors, Dombivli" label="Sai Distributors, Dombivli" enabled="true" visible="false" accessible="false" x="56" y="82" width="231" height="27" index="5" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Sai Distributors, Dombivli" name="Sai Distributors, Dombivli" label="Sai Distributors, Dombivli" enabled="true" visible="false" accessible="true" x="56" y="82" width="231" height="27" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="SD" name="SD" label="SD" enabled="true" visible="false" accessible="false" x="22" y="93" width="20" height="23" index="6" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="SD" name="SD" label="SD" enabled="true" visible="false" accessible="true" x="22" y="93" width="20" height="23" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="delivery" name="delivery" label="delivery" enabled="true" visible="false" accessible="false" x="56" y="108" width="231" height="19" index="7" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="delivery" name="delivery" label="delivery" enabled="true" visible="false" accessible="true" x="56" y="108" width="231" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" name="connection" enabled="true" visible="false" accessible="false" x="16" y="147" width="370" height="29" index="8" traits="StaticText"/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="32" y="157" width="8" height="9" index="9" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Updated just now" name="Updated just now" label="Updated just now" enabled="true" visible="false" accessible="false" x="48" y="152" width="117" height="19" index="10" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Updated just now" name="Updated just now" label="Updated just now" enabled="true" visible="false" accessible="true" x="48" y="152" width="117" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="175" width="402" height="137" index="11" traits=""/>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-screen" enabled="true" visible="false" accessible="false" x="0" y="175" width="402" height="700" index="12" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="TRIP-ACTIVE · 12 Sep 2026" name="TRIP-ACTIVE · 12 Sep 2026" label="TRIP-ACTIVE · 12 Sep 2026" enabled="true" visible="false" accessible="false" x="16" y="187" width="370" height="19" index="13" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="TRIP-ACTIVE · 12 Sep 2026" name="TRIP-ACTIVE · 12 Sep 2026" label="TRIP-ACTIVE · 12 Sep 2026" enabled="true" visible="false" accessible="true" x="16" y="187" width="370" height="19" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Today's trip" name="Today's trip" label="Today's trip" enabled="true" visible="false" accessible="false" x="16" y="205" width="370" height="27" index="14" traits="Header, StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Today's trip" name="Today's trip" label="Today's trip" enabled="true" visible="false" accessible="true" x="16" y="205" width="370" height="27" index="0" traits="Header, StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-trip-state" enabled="true" visible="false" accessible="false" x="16" y="239" width="105" height="25" index="15" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="On the road" name="On the road" label="On the road" enabled="true" visible="false" accessible="false" x="24" y="240" width="89" height="23" index="16" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="On the road" name="On the road" label="On the road" enabled="true" visible="false" accessible="true" x="24" y="240" width="89" height="23" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-stops" enabled="true" visible="false" accessible="false" x="129" y="239" width="188" height="29" index="17" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="3 of 10 stops done" name="3 of 10 stops done" label="3 of 10 stops done" enabled="true" visible="false" accessible="false" x="137" y="240" width="172" height="27" index="18" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="3 of 10 stops done" name="3 of 10 stops done" label="3 of 10 stops done" enabled="true" visible="false" accessible="true" x="137" y="240" width="172" height="27" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-vehicle" enabled="true" visible="false" accessible="false" x="16" y="275" width="145" height="25" index="19" traits=""/>
+                        <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="MH-05-BQ-4471" name="MH-05-BQ-4471" label="MH-05-BQ-4471" enabled="true" visible="false" accessible="false" x="24" y="276" width="129" height="23" index="20" traits="StaticText">
+                          <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="MH-05-BQ-4471" name="MH-05-BQ-4471" label="MH-05-BQ-4471" enabled="true" visible="false" accessible="true" x="24" y="276" width="129" height="23" index="0" traits="StaticText"/>
+                        </XCUIElementTypeStaticText>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="311" width="402" height="348" index="21" traits="">
+                          <XCUIElementTypeScrollView type="XCUIElementTypeScrollView" enabled="true" visible="false" accessible="false" x="0" y="311" width="402" height="348" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="311" width="402" height="2019" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="311" width="402" height="2019" index="0" traits="">
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-kpis" enabled="true" visible="false" accessible="false" x="16" y="327" width="370" height="140" index="0" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="328" width="185" height="69" index="1" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="201" y="328" width="185" height="69" index="2" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="STILL TO COLLECT" name="STILL TO COLLECT" label="STILL TO COLLECT" enabled="true" visible="false" accessible="false" x="28" y="340" width="161" height="19" index="3" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="STILL TO COLLECT" name="STILL TO COLLECT" label="STILL TO COLLECT" enabled="true" visible="false" accessible="true" x="28" y="340" width="161" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="COLLECTED TODAY" name="COLLECTED TODAY" label="COLLECTED TODAY" enabled="true" visible="false" accessible="false" x="214" y="340" width="160" height="19" index="4" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="COLLECTED TODAY" name="COLLECTED TODAY" label="COLLECTED TODAY" enabled="true" visible="false" accessible="true" x="214" y="340" width="160" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="85307 rupees" name="85307 rupees" label="85307 rupees" enabled="true" visible="false" accessible="false" x="28" y="358" width="112" height="27" index="5" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="85307 rupees" name="85307 rupees" label="85307 rupees" enabled="true" visible="false" accessible="true" x="28" y="358" width="112" height="27" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="0 rupees" name="0 rupees" label="0 rupees" enabled="true" visible="false" accessible="false" x="214" y="358" width="56" height="27" index="6" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="0 rupees" name="0 rupees" label="0 rupees" enabled="true" visible="false" accessible="true" x="214" y="358" width="56" height="27" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="396" width="185" height="70" index="7" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="201" y="396" width="185" height="70" index="8" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="FLOAT AT START" name="FLOAT AT START" label="FLOAT AT START" enabled="true" visible="false" accessible="false" x="28" y="409" width="161" height="19" index="9" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="FLOAT AT START" name="FLOAT AT START" label="FLOAT AT START" enabled="true" visible="false" accessible="true" x="28" y="409" width="161" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="STOPS" name="STOPS" label="STOPS" enabled="true" visible="false" accessible="false" x="214" y="409" width="160" height="19" index="10" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="STOPS" name="STOPS" label="STOPS" enabled="true" visible="false" accessible="true" x="214" y="409" width="160" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="5000 rupees" name="5000 rupees" label="5000 rupees" enabled="true" visible="false" accessible="false" x="28" y="427" width="100" height="27" index="11" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="5000 rupees" name="5000 rupees" label="5000 rupees" enabled="true" visible="false" accessible="true" x="28" y="427" width="100" height="27" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="3 / 10" name="3 / 10" label="3 / 10" enabled="true" visible="false" accessible="false" x="214" y="427" width="53" height="27" index="12" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="3 / 10" name="3 / 10" label="3 / 10" enabled="true" visible="false" accessible="true" x="214" y="427" width="53" height="27" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="490" width="370" height="43" index="13" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-next" enabled="true" visible="false" accessible="false" x="16" y="490" width="370" height="164" index="14" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Next stop" name="Next stop" label="Next stop" enabled="true" visible="false" accessible="false" x="16" y="498" width="88" height="27" index="15" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Next stop" name="Next stop" label="Next stop" enabled="true" visible="false" accessible="true" x="16" y="498" width="88" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="544" width="370" height="94" index="16" traits="">
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-next-034fa4d2-c09d-7a9d-8e84-90ed0109cd97" label="Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="545" width="368" height="92" index="0" traits="Button">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Jain Kirana Mart" name="Jain Kirana Mart" label="Jain Kirana Mart" enabled="true" visible="false" accessible="false" x="36" y="571" width="204" height="23" index="0" traits="StaticText">
+                                      <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Jain Kirana Mart" name="Jain Kirana Mart" label="Jain Kirana Mart" enabled="true" visible="false" accessible="false" x="36" y="571" width="204" height="23" index="0" traits="StaticText"/>
+                                    </XCUIElementTypeStaticText>
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Shop 19, Nandivali, Dombivli East, Dombivli, 421201" name="Shop 19, Nandivali, Dombivli East, Dombivli, 421201" label="Shop 19, Nandivali, Dombivli East, Dombivli, 421201" enabled="true" visible="false" accessible="false" x="36" y="593" width="204" height="19" index="1" traits="StaticText">
+                                      <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Shop 19, Nandivali, Dombivli East, Dombivli, 421201" name="Shop 19, Nandivali, Dombivli East, Dombivli, 421201" label="Shop 19, Nandivali, Dombivli East, Dombivli, 421201" enabled="true" visible="false" accessible="false" x="36" y="593" width="204" height="19" index="0" traits="StaticText"/>
+                                    </XCUIElementTypeStaticText>
+                                  </XCUIElementTypeButton>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="678" width="370" height="65" index="17" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-stop-list" enabled="true" visible="false" accessible="false" x="16" y="678" width="370" height="893" index="18" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Stops in order" name="Stops in order" label="Stops in order" enabled="true" visible="false" accessible="false" x="16" y="686" width="128" height="26" index="19" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Stops in order" name="Stops in order" label="Stops in order" enabled="true" visible="false" accessible="true" x="16" y="686" width="128" height="26" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="3 of 10 stops done" name="3 of 10 stops done" label="3 of 10 stops done" enabled="true" visible="false" accessible="false" x="16" y="716" width="370" height="18" index="20" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="3 of 10 stops done" name="3 of 10 stops done" label="3 of 10 stops done" enabled="true" visible="false" accessible="true" x="16" y="716" width="370" height="18" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="754" width="370" height="801" index="21" traits="">
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-8a5687c8-5316-7b52-8610-4bb453d63e24" label="1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered" enabled="true" visible="false" accessible="true" x="17" y="755" width="368" height="80" index="0" traits="Button">
+                                    <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="1. Milan Provision Mart" name="1. Milan Provision Mart" label="1. Milan Provision Mart" enabled="true" visible="false" accessible="false" x="36" y="775" width="222" height="23" index="0" traits="StaticText">
+                                      <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="1. Milan Provision Mart" name="1. Milan Provision Mart" label="1. Milan Provision Mart" enabled="true" visible="false" accessible="false" x="36" y="775" width="222" height="23" index="0" traits="StaticText"/>
+                                    </XCUIElementTypeStaticText>
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="269" y="798" width="90" height="25" index="1" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-6c38fc46-bf70-7405-bf2f-6a3d0771940c" label="2. Balaji Wholesale Stores, Shop 28, Tilak Nagar, Dombivli East, Dombivli, 421201, 107906 rupees, Delivered" enabled="true" visible="false" accessible="true" x="17" y="834" width="368" height="88" index="1" traits="Button"/>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-b1ce2bd9-5d52-7c97-ac9d-743f05e05bc1" label="3. Nandivali Super Bazar, Shop 16, Nandivali, Dombivli East, Dombivli, 421201, 44645 rupees, Delivered" enabled="true" visible="false" accessible="true" x="17" y="921" width="368" height="80" index="2" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="257" y="964" width="89" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-034fa4d2-c09d-7a9d-8e84-90ed0109cd97" label="4. Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="1000" width="368" height="80" index="3" traits="Button"/>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-b3cd5226-2b8f-7019-9b5f-6b5b3523d645" label="5. Dombivli Fresh Mart, Shop 27, Kopar Road, Dombivli East, Dombivli, 421201, 32368 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="1079" width="368" height="80" index="4" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="257" y="1122" width="103" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-3577e966-2975-7511-a1ba-0fad7bae0012" label="6. Sanjivani General Store, Shop 9, Nandivali, Dombivli East, Dombivli, 421201, 3794 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="1158" width="368" height="80" index="5" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="266" y="1201" width="103" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-8d62c707-1fc1-749e-b460-9cd5a7c01584" label="7. Vaishnavi Provision, Shop 11, Tilak Nagar, Dombivli East, Dombivli, 421201, 4866 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="1237" width="368" height="80" index="6" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="266" y="1280" width="103" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-01aa7774-c6e8-734c-b5db-52031c1d25f1" label="8. Nandivali Corner Store, Shop 30, Nandivali, Dombivli East, Dombivli, 421201, 5044 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="1316" width="368" height="80" index="7" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="266" y="1359" width="103" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-8fbd547e-b4fb-74ee-80dd-f1ed109447a7" label="9. Vighnaharta Kirana, Shop 33, Nandivali, Dombivli East, Dombivli, 421201, 22962 rupees, At the shop" enabled="true" visible="false" accessible="true" x="17" y="1395" width="368" height="80" index="8" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="257" y="1438" width="103" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-stop-93867b58-bc68-7db5-9926-2773fb2c196c" label="10. Anand General Store, Shop 18, Tilak Nagar, Dombivli East, Dombivli, 421201, 4727 rupees, Not started" enabled="true" visible="false" accessible="true" x="17" y="1474" width="368" height="80" index="9" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="267" y="1517" width="102" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="1594" width="370" height="65" index="22" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-load" enabled="true" visible="false" accessible="false" x="16" y="1594" width="370" height="167" index="23" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Load on board" name="Load on board" label="Load on board" enabled="true" visible="false" accessible="false" x="16" y="1602" width="130" height="27" index="24" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Load on board" name="Load on board" label="Load on board" enabled="true" visible="false" accessible="true" x="16" y="1602" width="130" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Godown confirmed the load 11 Sep, 12:15 pm" name="Godown confirmed the load 11 Sep, 12:15 pm" label="Godown confirmed the load 11 Sep, 12:15 pm" enabled="true" visible="false" accessible="false" x="16" y="1632" width="370" height="19" index="25" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Godown confirmed the load 11 Sep, 12:15 pm" name="Godown confirmed the load 11 Sep, 12:15 pm" label="Godown confirmed the load 11 Sep, 12:15 pm" enabled="true" visible="false" accessible="true" x="16" y="1632" width="370" height="19" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="1670" width="370" height="75" index="26" traits="">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="DC-0051, 76 cartons on board, Confirmed" name="d1-sheet-5a1459be-d57a-7e96-a358-02828e159ef9" label="DC-0051, 76 cartons on board, Confirmed" enabled="false" visible="false" accessible="true" x="17" y="1671" width="368" height="73" index="0" traits="NotEnabled, StaticText">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="273" y="1696" width="96" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeStaticText>
+                                </XCUIElementTypeOther>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="1784" width="370" height="44" index="27" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-tracking" enabled="true" visible="false" accessible="false" x="16" y="1784" width="370" height="168" index="28" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Location" name="Location" label="Location" enabled="true" visible="false" accessible="false" x="16" y="1792" width="79" height="27" index="29" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Location" name="Location" label="Location" enabled="true" visible="false" accessible="true" x="16" y="1792" width="79" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-tracking-state" enabled="true" visible="false" accessible="false" x="16" y="1838" width="124" height="25" index="30" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Location is off" name="Location is off" label="Location is off" enabled="true" visible="false" accessible="false" x="24" y="1839" width="108" height="23" index="31" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Location is off" name="Location is off" label="Location is off" enabled="true" visible="false" accessible="true" x="24" y="1839" width="108" height="23" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="This phone is not sharing location. The trip still works; the office cannot see it." name="d1-tracking-off" label="This phone is not sharing location. The trip still works; the office cannot see it." enabled="true" visible="false" accessible="false" x="16" y="1870" width="370" height="37" index="32" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="This phone is not sharing location. The trip still works; the office cannot see it." name="This phone is not sharing location. The trip still works; the office cannot see it." label="This phone is not sharing location. The trip still works; the office cannot see it." enabled="true" visible="false" accessible="true" x="16" y="1870" width="370" height="37" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="The office sees the vehicle while this app is open. It stops when you switch away." name="d1-tracking-web" label="The office sees the vehicle while this app is open. It stops when you switch away." enabled="true" visible="false" accessible="false" x="16" y="1914" width="370" height="37" index="33" traits="StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="The office sees the vehicle while this app is open. It stops when you switch away." name="The office sees the vehicle while this app is open. It stops when you switch away." label="The office sees the vehicle while this app is open. It stops when you switch away." enabled="true" visible="false" accessible="true" x="16" y="1914" width="370" height="37" index="0" traits="StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-van-sale" label="Sell from the van" enabled="true" visible="false" accessible="true" x="16" y="1975" width="370" height="70" index="34" traits="Button"/>
+                                <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-expense" label="Add an expense" enabled="true" visible="false" accessible="true" x="16" y="2076" width="370" height="70" index="35" traits="Button"/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="2169" width="370" height="43" index="36" traits=""/>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" name="d1-other-trips" enabled="true" visible="false" accessible="false" x="16" y="2169" width="370" height="145" index="37" traits=""/>
+                                <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Your other trips" name="Your other trips" label="Your other trips" enabled="true" visible="false" accessible="false" x="16" y="2177" width="141" height="27" index="38" traits="Header, StaticText">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Your other trips" name="Your other trips" label="Your other trips" enabled="true" visible="false" accessible="true" x="16" y="2177" width="141" height="27" index="0" traits="Header, StaticText"/>
+                                </XCUIElementTypeStaticText>
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="16" y="2223" width="370" height="75" index="39" traits="">
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-other-c13b053c-0f89-71e4-a7f1-8d4649926c00" label="TRIP-NEXT, Planned for 14 Sep 2026, Planned" enabled="true" visible="false" accessible="true" x="17" y="2224" width="368" height="73" index="0" traits="Button">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="291" y="2249" width="78" height="25" index="0" traits=""/>
+                                  </XCUIElementTypeButton>
+                                </XCUIElementTypeOther>
+                              </XCUIElementTypeOther>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 6 pages" label="Vertical scroll bar, 6 pages" enabled="true" visible="false" accessible="false" x="369" y="311" width="30" height="348" index="1" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="396" y="314" width="3" height="174" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="false" accessible="false" x="0" y="625" width="402" height="31" index="2" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="3" y="652" width="393" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 6 pages" label="Vertical scroll bar, 6 pages" enabled="true" visible="false" accessible="false" x="369" y="311" width="30" height="348" index="3" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="396" y="314" width="3" height="174" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="false" accessible="false" x="0" y="625" width="402" height="31" index="4" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="3" y="652" width="393" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeScrollView>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="658" width="402" height="216" index="22" traits=""/>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-next-stop" label="Next stop" enabled="true" visible="false" accessible="true" x="16" y="671" width="370" height="77" index="23" traits="Button"/>
+                        <XCUIElementTypeButton type="XCUIElementTypeButton" name="d1-end-day" label="Check in the vehicle" enabled="true" visible="false" accessible="true" x="16" y="759" width="370" height="70" index="24" traits="Button"/>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                  </XCUIElementTypeOther>
+                </XCUIElementTypeOther>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="874" width="402" height="233" index="1" traits=""/>
+      </XCUIElementTypeOther>
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="1" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="1" traits=""/>
+                  <XCUIElementTypeSheet type="XCUIElementTypeSheet" name="Save Password?" label="Save Password?" enabled="true" visible="true" accessible="false" x="8" y="622" width="386" height="218" index="2" traits="">
+                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="622" width="386" height="218" index="0" traits="">
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="622" width="386" height="153" index="0" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="622" width="386" height="153" index="0" traits="">
+                          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="622" width="386" height="153" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="622" width="386" height="153" index="0" traits=""/>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="622" width="386" height="153" index="1" traits=""/>
+                          </XCUIElementTypeOther>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="622" width="386" height="153" index="1" traits="">
+                          <XCUIElementTypeScrollView type="XCUIElementTypeScrollView" enabled="true" visible="true" accessible="false" x="8" y="622" width="386" height="96" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="622" width="386" height="96" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="24" y="637" width="354" height="56" index="0" traits="">
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="24" y="637" width="354" height="56" index="0" traits="">
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Save Password?" name="Save Password?" label="Save Password?" enabled="true" visible="true" accessible="true" x="24" y="637" width="354" height="16" index="0" traits="StaticText"/>
+                                  <XCUIElementTypeStaticText type="XCUIElementTypeStaticText" value="Securely store your password in the Passwords app so it’s filled automatically the next time you need it." name="Securely store your password in the Passwords app so it’s filled automatically the next time you need it." label="Securely store your password in the Passwords app so it’s filled automatically the next time you need it." enabled="true" visible="true" accessible="true" x="24" y="659" width="354" height="34" index="1" traits="StaticText"/>
+                                </XCUIElementTypeOther>
+                              </XCUIElementTypeOther>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 1 page" label="Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="361" y="622" width="30" height="96" index="1" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="388" y="583" width="3" height="37" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="8" y="684" width="386" height="31" index="2" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="-31" y="711" width="36" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 1 page" label="Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="361" y="622" width="30" height="96" index="3" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="388" y="583" width="3" height="37" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="8" y="684" width="386" height="31" index="4" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="-31" y="711" width="36" height="4" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeScrollView>
+                          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="717" width="386" height="1" index="1" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="717" width="386" height="1" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="717" width="386" height="1" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeOther>
+                          <XCUIElementTypeScrollView type="XCUIElementTypeScrollView" enabled="true" visible="true" accessible="false" x="8" y="718" width="386" height="57" index="2" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="718" width="386" height="57" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="718" width="386" height="57" index="0" traits="">
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="718" width="386" height="57" index="0" traits="">
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Save Password" label="Save Password" enabled="true" visible="true" accessible="true" x="8" y="718" width="386" height="57" index="0" traits="Button"/>
+                                </XCUIElementTypeOther>
+                              </XCUIElementTypeOther>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 1 page" label="Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="361" y="718" width="30" height="57" index="1" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="388" y="808" width="3" height="7" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="8" y="743" width="386" height="29" index="2" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="98" y="769" width="7" height="3" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 1 page" label="Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="361" y="718" width="30" height="57" index="3" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="388" y="808" width="3" height="7" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="8" y="743" width="386" height="29" index="4" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="98" y="769" width="7" height="3" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeScrollView>
+                        </XCUIElementTypeOther>
+                      </XCUIElementTypeOther>
+                      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="783" width="386" height="57" index="1" traits="">
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="783" width="386" height="57" index="0" traits=""/>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="783" width="386" height="57" index="1" traits=""/>
+                          </XCUIElementTypeOther>
+                        </XCUIElementTypeOther>
+                        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="783" width="386" height="57" index="1" traits="">
+                          <XCUIElementTypeScrollView type="XCUIElementTypeScrollView" enabled="true" visible="true" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                                <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                                  <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="783" width="386" height="57" index="0" traits="">
+                                    <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="8" y="783" width="386" height="57" index="0" traits=""/>
+                                  </XCUIElementTypeOther>
+                                  <XCUIElementTypeButton type="XCUIElementTypeButton" name="Not Now" label="Not Now" enabled="true" visible="true" accessible="true" x="8" y="783" width="386" height="57" index="1" traits="Button"/>
+                                </XCUIElementTypeOther>
+                              </XCUIElementTypeOther>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 1 page" label="Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="361" y="783" width="30" height="57" index="1" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="388" y="873" width="3" height="7" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="8" y="808" width="386" height="29" index="2" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="98" y="834" width="7" height="3" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Vertical scroll bar, 1 page" label="Vertical scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="361" y="783" width="30" height="57" index="3" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="388" y="873" width="3" height="7" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                            <XCUIElementTypeOther type="XCUIElementTypeOther" value="0%" name="Horizontal scroll bar, 1 page" label="Horizontal scroll bar, 1 page" enabled="true" visible="true" accessible="false" x="8" y="808" width="386" height="29" index="4" traits="Adjustable">
+                              <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="98" y="834" width="7" height="3" index="0" traits=""/>
+                            </XCUIElementTypeOther>
+                          </XCUIElementTypeScrollView>
+                        </XCUIElementTypeOther>
+                      </XCUIElementTypeOther>
+                    </XCUIElementTypeOther>
+                  </XCUIElementTypeSheet>
+                </XCUIElementTypeOther>
+              </XCUIElementTypeOther>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="2" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="0" height="0" index="1" traits=""/>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="3" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+            <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+              <XCUIElementTypeImage type="XCUIElementTypeImage" name="gearshape.fill" label="gearshape.fill" enabled="true" visible="true" accessible="true" x="344" y="697" width="26" height="26" index="0" traits="Image"/>
+            </XCUIElementTypeOther>
+          </XCUIElementTypeOther>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+    <XCUIElementTypeWindow type="XCUIElementTypeWindow" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="4" traits="">
+      <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+        <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="true" accessible="false" x="0" y="0" width="402" height="874" index="0" traits="">
+          <XCUIElementTypeOther type="XCUIElementTypeOther" enabled="true" visible="false" accessible="false" x="0" y="0" width="402" height="874" index="0" traits=""/>
+        </XCUIElementTypeOther>
+      </XCUIElementTypeOther>
+    </XCUIElementTypeWindow>
+  </XCUIElementTypeApplication>
+</AppiumAUT>

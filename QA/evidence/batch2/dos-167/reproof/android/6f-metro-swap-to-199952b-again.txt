@@ -1,0 +1,4 @@
+## step6f stop the MAIN Metro, start the 199952b worktree Metro :5175 --clear again (variant 2: one op queued in the long file) 07:26:59
+5175 listeners after stop: 0
+status: packager-status:running
+listener pid 70855 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/sales-app

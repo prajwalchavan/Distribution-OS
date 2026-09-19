@@ -1,0 +1,51 @@
+## prepare 2026-09-14 07:01:50 IST
+-- main checkout
+bafb7b5 Merge QA batch 2 P0 DOS-167 ruling 2: a short store name the web database accepts, and a browser that cannot keep never offers to keep
+ M QA/tools/e2e/s-098-shared-device.mjs
+?? QA/evidence/batch2/dos-167/reproof/
+-- old worktree (199952b JS, the DOS-167 branch before ruling 2)
+4acd5f8 fix(DOS-167): merge-review minor — the outbox and tray hooks never leave a rejected query unhandled
+199952b parents: c679499 4acd5f8
+(worktree status above; empty = clean)
+-- sales Metro :5175
+  PID STARTED                      COMMAND
+64651 Mon Sep 14 06:31:46 2026     sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+64653 Mon Sep 14 06:31:46 2026     node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+n/Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+packager-status:running
+-- proxy 8081
+31366 node QA/tools/proxy8081.mjs 5175
+-- services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+-- worker
+16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+-- services DATABASE_URL (sales-service env)
+DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa
+-- emulator
+List of devices attached
+emulator-5554	device
+
+sdk_gphone64_arm64
+16
+arm64-v8a
+MemTotal:        3046940 kB
+-- APK
+-rw-r--r--@ 1 prajwalchavan  staff  96533382 Sep  7 02:00 frontend/sales-app/android/app/build/outputs/apk/debug/app-debug.apk
+-- main libs offline engine storeNameFor present
+1
+-- sales layout OfflineProvider onLog prop
+no onLog prop in frontend/sales-app/app/_layout.tsx
+-- logcat buffers
+main: ring buffer is 16 MiB (1 MiB consumed, 0 B readable), max entry is 5120 B, max payload is 4068 B
+system: ring buffer is 16 MiB (684 KiB consumed, 0 B readable), max entry is 5120 B, max payload is 4068 B
+crash: ring buffer is 16 MiB (0 B consumed, 0 B readable), max entry is 5120 B, max payload is 4068 B
+kernel: ring buffer is 16 MiB (119 KiB consumed, 0 B readable), max entry is 5120 B, max payload is 4068 B
+-- memory
+System-wide memory free percentage: 32%

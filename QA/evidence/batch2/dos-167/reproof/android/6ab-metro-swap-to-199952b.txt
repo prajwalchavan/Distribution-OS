@@ -1,0 +1,34 @@
+## step6a stop the MAIN sales Metro :5175 07:23:19
+  PID STARTED                      COMMAND
+64651 Mon Sep 14 06:31:46 2026     sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+64653 Mon Sep 14 06:31:46 2026     node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+5175 listeners after stop: 0
+## step6b start the 199952b worktree sales Metro :5175 --clear (CI=1; sync-fonts NOT run so nothing is written into the worktree) 07:23:20
+worktree HEAD: 4acd5f8 fix(DOS-167): merge-review minor — the outbox and tray hooks never leave a rejected query unhandled
+is 199952b's second parent: yes
+worktree engine storeNameFor: 
+status: packager-status:running
+listener pid 70112 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/sales-app
+70112 node /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/node_modules/.bin/expo start --port 5175 --clear
+proxy8081 -> 31366 node QA/tools/proxy8081.mjs 5175
+-- Metro log head
+Starting project at /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/sales-app
+Expo Autolinking module resolution enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:5175
+
+Logs for your project will appear below.
+-- worktree engine.ts storeNameFor body (199952b)
+62:export function storeNameFor(prefix: string, identity: SyncIdentity): string {
+63-  assertStorePrefix(prefix)
+64-  if (!STORE_ID.test(identity.userId) || !STORE_ID.test(identity.tenantId))
+65-    throw new Error(
+66-      'offline: a store name takes a user id and a distributor id of letters, digits and hyphens only',
+67-    )
+68-  return `${prefix}__u-${identity.userId}__t-${identity.tenantId}.db`
+-- parseStoreName / sweepInterimStore in the worktree (expect none)
+/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/libs/offline/src/engine.ts:0
+/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/libs/offline/src/react.tsx:0

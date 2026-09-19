@@ -1,0 +1,63 @@
+## s3 kiran.mhatre signs in on the same Expo Go container through the product form (no keychain reset, no reinstall) 2026-09-14 09:12:26
+set XCUIElementTypeTextField 0 = kiran.mhatre
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+shot s3-kiran-filled.png
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 2026-09-14 09:12:31 (1789357350.175211)
+early page source dumped at +4.07s
+--- rahul (A) markers in the early page source (expect 0 each)
+Chavan Kirana: 0
+Iyer Provision: 0
+Khadakpada: 0
+Kalyan West Market: 0
+Station Road: 0
+SO-0875: 0
+Tarsun: 0
+--- early visible labels
+Expo Go|Save Password?|Save Password?|Securely store your password in the Passwords app so it’s filled automatically the next time you need it.|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|Save Password|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|Not Now|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|gearshape.fill|
+ALERT: Save Password?
+Securely store your password in the Passwords app so it’s filled automatically the next time you need it.
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+strip 'Updated just now' at 2026-09-14 09:12:39
+shot s3-kiran-home.png
+home: Expo Go|More|Sai Distributors, Dombivli|SD|salesperson|Updated just now|Manpada Road|Today's beat|Shops: 8|Visited: 0|Ordered: 0|✓ Manpada Road = 1|Tilak Nagar|Ayre Road|Vertical scroll bar, 2 pages = 0%| = Search this beat|Shree Ganesh Kirana, Dombivli East · your last order 9 Sep, 26470 rupees, To visit|Om Sai Provision Store, Dombivli East · your last order 3 Sep, 94393 rupees, To visit|Mahalaxmi General Stores, Dombivli East · your last order 10 Sep, 38730 rupees, To visit|Sai Krupa Sup
+tapped "Shops" Other at 252,806 (1 of 1)
+shot s3-kiran-shops.png
+shops chip: Shops: 24|
+$ ios-drive.mjs has "Chavan Kirana"  (must exit 1)
+NO
+exit 1
+$ ios-drive.mjs has "Iyer Provision"  (must exit 1)
+NO
+exit 1
+$ ios-drive.mjs has "Khadakpada"  (must exit 1)
+NO
+exit 1
+kiran's own shops (first rows): Aditya Provision, SD-0023 · Ayre Road · Dombivli East, 26033 rupees, C|Ambika Provision Store, SD-0009 · Tilak Nagar · Dombivli East, 109238 rupees, |Anand General Store, SD-0014 · Tilak Nagar · Dombivli East, 4727 rupees, D|
+expected kiran name: s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+$ find "$C" -path '*SQLite*'   (09:12:49)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk-wal
+(end of find)
+{
+ "stores": [
+  {
+   "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1",
+   "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+   "who": "kiran.mhatre @ Sai",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [kiran.mhatre @ Sai] legacy=0 interim=0 strays=0 other=0

@@ -1,0 +1,5 @@
+NOTE 2026-09-14 09:33:43: sn3 queued nothing either. Online, 'Place order' does not write to the outbox: it calls the office directly (proxy log: POST /orders -> 200, POST /orders/01a09e14-f29c-75b7-a818-c052bb7eb626/submit -> 200 at 09:33:01), and the screen shows 'Order placed'. Only an order saved while offline ('Save on this phone') goes through the outbox. So 'online with changes waiting' needs the op queued offline first, then the office reachable again while the upload is still held back. The proxy gets a 'down' mode (drops every connection = a network failure) for that.
+-- the order sn3 placed online (dos_qa, read-only; the empty-id check above was not valid)
+01a09e14-f29c-75b7-a818-c052bb7eb626|SO-0879|confirmed|salesperson|amit.pawar|Prerna Super Market|2026-09-14 09:33:01.345817+05:30
+rows: 1; lines: 1
+amit orders total: 392 (391 before sn3)

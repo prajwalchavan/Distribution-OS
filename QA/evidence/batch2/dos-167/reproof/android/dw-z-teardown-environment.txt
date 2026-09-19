@@ -1,0 +1,22 @@
+## teardown on the host 08:54:24
+5176 listener 83055: node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5176 --clear
+listeners after stop: 5176=0 5177=0
+proxy8081 back to the sales Metro: 89126 node QA/tools/proxy8081.mjs 5175
+-- restart the sales Metro on :5175 from main (CI=1, pnpm web --clear, Node v24.20.0)
+sales Metro :5175 status: packager-status:running
+listener 89146 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+-- services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+-- worker: 16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+-- memory: System-wide memory free percentage: 47%
+-- main checkout git status --short
+ M QA/tools/e2e/s-098-shared-device.mjs
+?? QA/evidence/batch2/dos-167/reproof/
+-- pre-DOS-167 worktree git status (expect empty): []

@@ -1,0 +1,12 @@
+-- dos_qa (read-only) after walk W1c 07:41:17
+-- sales_orders for 01a09dab-8b6d-71cc-b75c-82fbbc4215ac
+01a09dab-8b6d-71cc-b75c-82fbbc4215ac|draft|salesperson|rahul.deshmukh|rahul.deshmukh|a029f31b-2c6c-707b-b580-889125d3ee07|2026-09-14 07:40:23.054378+05:30
+count: 1
+-- sales_order_lines for that order
+01a09dab-aa8a-7421-be74-6294b3181261|01a09dab-8b6d-71cc-b75c-82fbbc4215ac|f086f3e3-3697-7439-98d9-f20c231c110a|2026-09-14 07:40:23.102023+05:30
+count: 1
+-- sync_ops for the two op ids
+01a09dab-c69c-7741-8f44-85beb6eaf475|01a09da2-039b-713c-aefc-f79c7aa86e30|{"ok": true}|2026-09-14 07:40:23.054378+05:30
+01a09dab-c69c-7742-8ae1-27e915880919|01a09da2-039b-713c-aefc-f79c7aa86e30|{"ok": true}|2026-09-14 07:40:23.102023+05:30
+-- the long-file order from step 6 (must still be absent): 0
+-- rahul orders created after 07:26 IST: 1

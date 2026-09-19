@@ -1,0 +1,45 @@
+## teardown environment 2026-09-14 07:43:04 IST
+-- emulator
+List of devices attached
+emulator-5554	device
+
+66611 /Users/prajwalchavan/Library/Android/sdk/emulator/qemu/darwin-aarch64/qemu-system-aarch64-headless -avd Pixel_7_AP
+-- services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+-- worker
+16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+-- sales Metro :5175
+status: packager-status:running
+listener pid 71647 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+71647 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+71645 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+CI env: CI=1
+no worktree Metro left: 0 process(es)
+-- proxy 8081
+31366 node QA/tools/proxy8081.mjs 5175
+-- other stacks untouched (web prover's pw-server)
+20690 node pw-server.mjs
+31432 node pw-server.mjs
+34535 node pw-server.mjs
+35653 node pw-server.mjs
+36561 node pw-server.mjs
+36925 node pw-server.mjs
+37263 node pw-server.mjs
+42270 node pw-server.mjs
+47434 node pw-server.mjs
+-- main checkout git status (must show only QA/)
+bafb7b5 Merge QA batch 2 P0 DOS-167 ruling 2: a short store name the web database accepts, and a browser that cannot keep never offers to keep
+ M QA/tools/e2e/s-098-shared-device.mjs
+?? QA/evidence/batch2/dos-167/reproof/
+-- b2-dos167 worktree git status incl. ignored (compare prepare: only pre-existing ignored build output)
+(tracked/untracked changes above; empty = none)
+4acd5f8 fix(DOS-167): merge-review minor — the outbox and tray hooks never leave a rejected query unhandled
+-- memory
+System-wide memory free percentage: 43%

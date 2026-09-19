@@ -1,0 +1,52 @@
+{
+  "at": "2026-09-14T01:34:52.040Z",
+  "target": {
+    "title": "in.distributionos.sales (Google sdk_gphone64_arm64)",
+    "description": "React Native Bridgeless [C++ connection]",
+    "deviceName": "sdk_gphone64_arm64 - 16 - API 36"
+  },
+  "hermes": {
+    "typeofBigInt": "function",
+    "typeofHermesInternal": "object",
+    "hermesProps": {
+      "Bytecode Version": 98,
+      "Static Hermes": true,
+      "Builtins Frozen": false,
+      "VM Experiments": 0,
+      "Build": "Release",
+      "GC": "hades (concurrent)",
+      "OSS Release Version": "250829098.0.17",
+      "Debugger Enabled": true,
+      "CommonJS Modules": "None"
+    },
+    "rahulByBigIntArithmetic": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+    "bigintLiteralCheck": "1296",
+    "engineModule": "../libs/offline/src/engine.ts",
+    "engineInitialized": true,
+    "productStoreNameFor": {
+      "rahul": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+      "kiran": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+      "amit": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft"
+    },
+    "productParseStoreName": {
+      "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft": {
+        "prefix": "dos-sales",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm": null,
+      "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal": null
+    }
+  },
+  "v8": {
+    "engine": "V8 v24.20.0",
+    "typeofBigInt": "function",
+    "rahulByBigIntArithmetic": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  },
+  "checks": {
+    "hermesBigIntExists": true,
+    "hermesProductRahulEqualsRuling": true,
+    "hermesArithmeticEqualsV8": true,
+    "v8EqualsRuling": true
+  }
+}

@@ -1,0 +1,49 @@
+## z teardown 2026-09-14 09:44:19
+-- final device files
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- Expo Go crash reports at the end (only the two from 02:18/02:23 existed before this run)
+-rw-------@   1 prajwalchavan  _analyticsusers  63289 Sep 14 02:18 Expo Go-2026-09-14-021827.ips
+-rw-------@   1 prajwalchavan  _analyticsusers  64921 Sep 14 02:23 Expo Go-2026-09-14-022331.ips
+(end of .ips list)
+ended
+  PID  PPID COMMAND
+ 4171  4155 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5176
+ 4173  4171 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5176
+-- xcrun simctl shutdown all
+exit 0; booted: 0
+-- Metro listeners
+5173: 0
+5174: 0
+5175: 0
+5176: 0
+5177: 0
+5178: 0
+5179: 0
+-- QA proxy / :3013: 0 / 0
+-- services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+sales-service :3003 env: DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa 
+-- worker: 16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+-- appium: "ready":true
+-- left as found (not started by this run): 89126 node QA/tools/proxy8081.mjs 5175
+-- dos_qa rows this run created (amit.pawar, Prerna Super Market, 14 Sep after 09:00 IST)
+01a09e05-c8c7-7741-b201-de8bb92ee5d1|-|draft|2026-09-14 09:21:02.721608+05:30
+01a09e0b-4e18-7549-9d95-80e2180b1a63|-|draft|2026-09-14 09:24:43.578615+05:30
+01a09e0e-b392-729b-8984-740a81924477|-|draft|2026-09-14 09:28:21.833556+05:30
+01a09e14-f29c-75b7-a818-c052bb7eb626|SO-0879|confirmed|2026-09-14 09:33:01.345817+05:30
+01a09e17-3785-7178-afac-241d61ec39e6|-|draft|2026-09-14 09:37:09.268123+05:30
+System-wide memory free percentage: 43%
+-- evidence files: 235 in reproof/ios (+ driver/: h.sh.txt ios-login-reproof.mjs.txt names-ios.mjs.txt qa-proxy-3003.mjs.txt )
+-- main checkout git status --short
+ M QA/tools/e2e/s-098-shared-device.mjs
+?? QA/evidence/batch2/dos-167/reproof/
+?? QA/evidence/batch2/merge-reviews/dos171-1.md
+?? QA/evidence/batch2/merge-reviews/s108-1.md
+9cab1e7 QA batch 2: STATE — approved lanes building (wf_6abc2042-1ff); batch now 149 findings

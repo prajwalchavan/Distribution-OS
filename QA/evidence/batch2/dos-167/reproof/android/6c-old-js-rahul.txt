@@ -1,0 +1,31 @@
+## step6c 199952b JS: install -r + pm clear + rahul sign-in 07:23:42 (epoch 1789350822)
+SIGNED_IN 6c-old-rahul: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West Market | Khadakpada | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | ₹35,843.00 | 35843 rupees | To visit | Om Sai Provision Store, Station Road, Kalyan West · your last order 31 Aug, 69862 rupees 50 paise, To visit | Om Sai Provision Store | Station Road, Kalyan West · your last order 31 Aug | ₹69,862.50 | 69862 rupees 50 paise | To visit | Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, 36259 rupees, To visit | Mahalaxmi General Stores | Station Road, Kalyan West · your last order 10 Sep | ₹36,259.00 | 36259 rupees | To visit | Sai Krupa Super Bazar, Station Road, Kalyan West · your last order 3 Sep, 206709 rupees, To visit | Sai Krupa Super Bazar | Station Road, Kalyan West · your last order 3 Sep | ₹2,06,709.00 | 206709 rupees | To visit | Jai Bhavani Stores, Station Road, Kalyan West · your last order 10 Sep, 11511 rupees, To visit | Jai Bhavani Stores | Station Road, Kalyan West · your last order 10 Sep | ₹11,511.00 | 11511 rupees | To visit | Shivshakti Traders, Station Road, Kalyan West · your last order 3 Sep, 22834 rupees, To visit | Shivshakti Traders | Station Road, Kalyan West · your last order 3 Sep | ₹22,834.00 | 22834 rupees | To visit | Ganesh General Store, Station Road, Kalyan West · your last order 9 Sep, 94373 rupees, To visit | Ganesh General Store | ₹94,373.00 | 94373 rupees | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+strip: Updated just now 
+shot 6c-old-rahul-synced.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:25:17)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:24 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:23 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:25 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:24 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:25 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2617344)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4515552)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- which JS is running (Hermes, product module)
+{
+ "engineModule": "../libs/offline/src/engine.ts",
+ "storeNameFor": {
+  "rahul": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db",
+  "kiran": "dos-sales__u-2239ec93-0bcd-7737-a70c-c60aa4d9e9f1__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db",
+  "amit": "dos-sales__u-efde1e76-9785-7827-aff2-6f56ecd33588__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+ },
+ "parseStoreName": {},
+ "moduleError": "TypeError: undefined is not a function"
+}
+-- sync requests
+07:25:01.909 req-oe GET /sync/pull?deviceId=01a09d9e-fe6a-76eb-826a-1c68e524e9ba&limit=500&since=<cursor> -> 200
+07:25:02.295 req-of GET /sync/pull?deviceId=01a09d9e-fe6a-76eb-826a-1c68e524e9ba&limit=500&since=<cursor> -> 200
+07:25:02.400 req-og GET /sync/errors?deviceId=01a09d9e-fe6a-76eb-826a-1c68e524e9ba&unresolvedOnly=true&limit=50 -> 200
+(15 requests)
+-- logcat crash buffer (07:25:17)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

@@ -1,0 +1,14 @@
+## m1 sales steps done: stop the sales Metro :5175 (instructed), start the delivery Metro :5177 from main with CI=1 as QA/tools/start-all.sh does 2026-09-14 09:38:02
+ended
+  PID  PPID COMMAND
+89144 89129 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5175 --clear
+89146 89144 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+:5175 listeners: 0
+delivery Metro :5177 packager-status:running after 2s
+listener 2767 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/delivery-app
+git HEAD: 9cab1e7 QA batch 2: STATE — approved lanes building (wf_6abc2042-1ff); batch now 149 findings
+System-wide memory free percentage: 26%
+## d1 ganesh.more (delivery, Tarsun) first delivery sign-in 2026-09-14 09:38:07 via ios-login-reproof.mjs (it terminates Expo Go and resets the keychain: the first sign-in of this app only)
+SIGNED_IN delivery ganesh.more | Expo Go | More | Tarsun Enterprise logo | Tarsun Enterprise | delivery | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-AB-1234 | STILL TO COLLECT | COLLECTED TODAY | 80180 rupees | 0 rupees | FLOAT AT START | STOPS | 5000 rupees | 3 / 10 | Next stop | Stops in order | Load on board
+done 2026-09-14 09:38:46
+Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|delivery|Updated just now|TRIP-ACTIVE · 12 Sep 2026|Today's trip|On the road|3 of 10 stops done|MH-05-AB-1234|STILL TO COLLECT|

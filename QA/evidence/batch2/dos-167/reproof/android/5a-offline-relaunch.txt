@@ -1,0 +1,26 @@
+## step5a office unreachable: adb reverse --remove tcp:3003 + force-stop/relaunch 07:12:31 (epoch 1789350151)
+$ adb reverse --remove tcp:3003
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3005 tcp:3005
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5175 tcp:5175
+
+$ adb shell am force-stop in.distributionos.sales; am start
+after relaunch: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:12 am | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 1 | ✓ Godrej Hill | ✓ Godrej Hill | Kolsewadi | Kolsewadi | Birla College Road | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 rupees, Ordered | Prerna Super Market | Godrej Hill, Kalyan West · your last order 14 Sep | ₹3,94,334.00 | 394334 rupees | Ordered | Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, 8042 rupees, To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | ₹8,042.00 | 8042 rupees | To
+strip: Offline since 7:12 am 
+shot 5a-amit-relaunched-offline.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:12:46)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:12 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:12 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 07:09 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:12 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 07:12 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2605056)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4470232)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- logcat crash buffer (07:12:46)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

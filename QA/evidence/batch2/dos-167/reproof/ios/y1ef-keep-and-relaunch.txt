@@ -1,0 +1,158 @@
+## y1e 'Sign out, keep here' with the office unreachable and the outbox retrying 2026-09-14 09:17:55
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+--
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|queued|7|2026-09-14T03:46:28.339Z||
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|queued|7|2026-09-14T03:46:28.339Z||
+-- _sync_errors
+Expo Go pid before keep: 92811
+.ips before: Expo Go-2026-09-14-021827.ips Expo Go-2026-09-14-022331.ips 
+$ ios-drive.mjs tapxy 201 637   ('Sign out, keep here' in y1d-amit-leave-sheet.png) at 2026-09-14 09:17:56
+tapped 201 637
++1.6s pid=92811 shot=y1e-keep-1.png
++2.8s pid=92811 shot=y1e-keep-2.png
++4.0s pid=92811 shot=y1e-keep-3.png
++5.2s pid=92811 shot=y1e-keep-4.png
++6.5s pid=92811 shot=y1e-keep-5.png
++7.7s pid=92811 shot=y1e-keep-6.png
++8.9s pid=92811 shot=y1e-keep-7.png
++10.1s pid=92811 shot=y1e-keep-8.png
++11.3s pid=92811 shot=y1e-keep-9.png
++12.6s pid=92811 shot=y1e-keep-10.png
++13.8s pid=92811 shot=y1e-keep-11.png
++15.0s pid=92811 shot=y1e-keep-12.png
++16.2s pid=92811 shot=y1e-keep-13.png
++17.4s pid=92811 shot=y1e-keep-14.png
++18.6s pid=92811 shot=y1e-keep-15.png
++19.9s pid=92811 shot=y1e-keep-16.png
+screen at +20s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|
+sign-in form after keep: YES
+shot y1e-amit-kept-signed-out.png
+Expo Go pid after keep: 92811
+-- new Expo Go .ips since the tap:
+(end new .ips)
+-- simulator log since 2026-09-14 09:17:56 (Expo Go exits / SIGSEGV)
+getpwuid_r did not find a match for uid 501
+2026-09-14 09:18:19.586 Df log[96432:0] [com.apple.log:] log run noninteractively, parent: 90494 (launchd_sim), args: 'log' 'show' '--start' '2026-09-14 09:17:56' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "host.exp.Exponent" AND (eventMessage CONTAINS[c] "exited" OR eventMessage CONTAINS[c] "S
+(end of simulator log)
+$ find "$C" -path '*SQLite*'   (09:18:20)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- copied read-only to scratchpad (09:18:20)
+drwxr-xr-x@  3 prajwalchavan  wheel       96 Sep 14 09:18 .
+drwxr-xr-x@ 10 prajwalchavan  wheel      320 Sep 14 09:18 ..
+-rw-r--r--@  1 prajwalchavan  wheel  4067328 Sep 14 09:18 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|queued|7|2026-09-14T03:46:28.339Z||
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|queued|7|2026-09-14T03:46:28.339Z||
+-- _sync_errors
+0
+## y1f relaunch after the keep, office still unreachable 2026-09-14 09:18:20
+$ xcrun simctl terminate booted host.exp.Exponent -> exit 0
+$ xcrun simctl openurl booted exp://127.0.0.1:5175 at 2026-09-14 09:18:23
+after relaunch: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|g|h|j|k|l|shift|z|x|c|v|b|n|m|delete|numbers|space|return|Emoji|Dictate|
+shot y1f-relaunch.png
+relaunch shows the sign-in form: YES
+amit's session/data visible: NO
+-- new Expo Go .ips since the tap:
+(end new .ips)
+-- simulator log since 2026-09-14 09:17:56
+2026-09-14 09:18:20.757 Df runningboardd[90501:2a86a2] [com.apple.runningboard:process] Notifying connection [osservice<com.apple.SpringBoard>:90498] that process [app<host.exp.Exponent((null))>:92811] exited with context <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>
+2026-09-14 09:18:20.785 Df locationd[90522:2a503a] [com.apple.locationd.Core:Core] {"msg":"#dic AppMonitor received Termination", "pid":92811, "bundleId":host.exp.Exponent, "exitReason":5}
+2026-09-14 09:18:20.789 Df SpringBoard[90498:2a87be] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:92811] Process exited: <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>.
+2026-09-14 09:18:20.826 Df SpringBoard[90498:2a0796] [com.apple.SpringBoard:Workspace] Process exited: <FBApplicationProcess: 0x1016e2360; app<host.exp.Exponent>:92811(vCDFF6)> -> <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>
+2026-09-14 09:18:23.018 Df runningboardd[90501:2a86c0] [com.apple.runningboard:ttl] Assertion 90501-90498-705 (target:[app<host.exp.Exponent((null))>:96501]) will be created as inactive as originator process has not exited
+2026-09-14 09:18:23.024 Df SpringBoard[90498:2a0796] [com.apple.SpringBoard:AppSwitcher] [Main (EmbeddedDisplay)] dispatch event:
+<SBTransitionSwitcherModifierEvent: 0x119e17a00; type: MainTransition; transitionID: 1C5FA630-A57B-419E-8596-D11150717249; phase: Prepare; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x600002d0c180; primary: host.exp.Exponent:default; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration: full; pendingTermination: {(
+)}; morphingPIPLayoutRole: undefined>
+2026-09-14 09:18:23.039 Df SpringBoard[90498:2a0796] [com.apple.SpringBoard:AppSwitcher] [Main (EmbeddedDisplay)] dispatch event:
+<SBTransitionSwitcherModifierEvent: 0x115d27f70; type: MainTransition; transitionID: 1C5FA630-A57B-419E-8596-D11150717249; phase: Animate; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x600002d0c180; primary: host.exp.Exponent:default; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration: full; pendingTermination: {(
+)}; morphingPIPLayoutRole: undefined>
+2026-09-14 09:18:23.708 Df SpringBoard[90498:2a0796] [com.apple.SpringBoard:AppSwitcher] [Main (EmbeddedDisplay)] dispatch event:
+<SBTransitionSwitcherModifierEvent: 0x119e17a00; type: MainTransition; transitionID: 1C5FA630-A57B-419E-8596-D11150717249; phase: Complete; animated: YES; fromAppLayout: 0x0; toAppLayout: <SBAppLayout: 0x600002d0c180; primary: host.exp.Exponent:default; environment: main>; fromEnvironmentMode: home-screen; toEnvironmentMode: application; fromSpaceConfiguration: undefined; toSpaceConfiguration: full; pendingTermination: {(
+)}; morphingPIPLayoutRole: undefined>
+2026-09-14 09:18:37.421 Df log[96638:0] [com.apple.log:] log run noninteractively, parent: 90494 (launchd_sim), args: 'log' 'show' '--start' '2026-09-14 09:17:56' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "host.exp.Exponent" AND (eventMessage CONTAINS[c] "exited" OR eventMessage CONTAINS[c] "S
+(end of simulator log)
+$ find "$C" -path '*SQLite*'   (09:18:38)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- copied read-only to scratchpad (09:18:38)
+drwxr-xr-x@  3 prajwalchavan  wheel       96 Sep 14 09:18 .
+drwxr-xr-x@ 11 prajwalchavan  wheel      352 Sep 14 09:18 ..
+-rw-r--r--@  1 prajwalchavan  wheel  4067328 Sep 14 09:18 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|queued|7|2026-09-14T03:46:28.339Z||
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|queued|7|2026-09-14T03:46:28.339Z||
+-- _sync_errors
+0

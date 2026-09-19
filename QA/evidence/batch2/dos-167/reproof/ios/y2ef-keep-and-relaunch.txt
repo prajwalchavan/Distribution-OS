@@ -1,0 +1,119 @@
+## y2e 'Sign out, keep here' with the office unreachable and the outbox retrying (keep run 2 of 3) 2026-09-14 09:23:27
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+3|01a09e0b-7f66-7126-8573-200ab9874d2b|sales_orders|01a09e0b-4e18-7549-9d95-80e2180b1a63|PUT|queued|7|2026-09-14T03:52:28.774Z||
+4|01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|sales_order_lines|01a09e0b-6c6f-7214-a8e3-13178748b076|PUT|queued|7|2026-09-14T03:52:28.774Z||
+-- _sync_errors
+Expo Go pid before keep: 96501
+.ips before: Expo Go-2026-09-14-021827.ips Expo Go-2026-09-14-022331.ips 
+$ ios-drive.mjs tapxy 201 637   ('Sign out, keep here' in y2d-amit-leave-sheet.png) at 2026-09-14 09:23:28
+tapped 201 637
++1.8s pid=96501 shot=y2e-keep-1.png
++3.0s pid=96501 shot=y2e-keep-2.png
++4.3s pid=96501 shot=y2e-keep-3.png
++5.5s pid=96501 shot=y2e-keep-4.png
++6.7s pid=96501 shot=y2e-keep-5.png
++8.0s pid=96501 shot=y2e-keep-6.png
++9.2s pid=96501 shot=y2e-keep-7.png
++10.5s pid=96501 shot=y2e-keep-8.png
++11.8s pid=96501 shot=y2e-keep-9.png
++13.0s pid=96501 shot=y2e-keep-10.png
++14.2s pid=96501 shot=y2e-keep-11.png
++15.4s pid=96501 shot=y2e-keep-12.png
++16.6s pid=96501 shot=y2e-keep-13.png
++17.8s pid=96501 shot=y2e-keep-14.png
++19.1s pid=96501 shot=y2e-keep-15.png
++20.4s pid=96501 shot=y2e-keep-16.png
+screen at +20s: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|
+sign-in form after keep: YES
+shot y2e-amit-kept-signed-out.png
+Expo Go pid after keep: 96501
+-- new Expo Go .ips since the tap:
+(end new .ips)
+-- simulator log since 2026-09-14 09:23:28 (Expo Go exits / SIGSEGV)
+getpwuid_r did not find a match for uid 501
+2026-09-14 09:23:52.106 Df log[98438:0] [com.apple.log:] log run noninteractively, parent: 90494 (launchd_sim), args: 'log' 'show' '--start' '2026-09-14 09:23:28' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "host.exp.Exponent" AND (eventMessage CONTAINS[c] "exited" OR eventMessage CONTAINS[c] "S
+(end of simulator log)
+$ find "$C" -path '*SQLite*'   (09:23:52)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+lastUploadAt|2026-09-14T03:51:02.970Z
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+3|01a09e0b-7f66-7126-8573-200ab9874d2b|sales_orders|01a09e0b-4e18-7549-9d95-80e2180b1a63|PUT|queued|7|2026-09-14T03:52:28.774Z||
+4|01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|sales_order_lines|01a09e0b-6c6f-7214-a8e3-13178748b076|PUT|queued|7|2026-09-14T03:52:28.774Z||
+-- _sync_errors
+0
+## y2f relaunch after the keep, office still unreachable 2026-09-14 09:23:52
+$ xcrun simctl terminate booted host.exp.Exponent -> exit 0
+$ xcrun simctl openurl booted exp://127.0.0.1:5175 at 2026-09-14 09:23:55
+after relaunch: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|
+shot y2f-relaunch.png
+relaunch shows the sign-in form: YES
+amit's session/data visible: NO
+-- new Expo Go .ips since the tap:
+(end new .ips)
+-- simulator log since 2026-09-14 09:23:28
+2026-09-14 09:23:53.187 Df runningboardd[90501:2ab129] [com.apple.runningboard:process] Notifying connection [osservice<com.apple.SpringBoard>:90498] that process [app<host.exp.Exponent((null))>:96501] exited with context <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>
+2026-09-14 09:23:53.218 Df SpringBoard[90498:2ab113] [com.apple.FrontBoard:Process] [app<host.exp.Exponent>:96501] Process exited: <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>.
+2026-09-14 09:23:53.263 Df SpringBoard[90498:2a0796] [com.apple.SpringBoard:Workspace] Process exited: <FBApplicationProcess: 0x1015d5740; app<host.exp.Exponent>:96501(vCF880)> -> <RBSProcessExitContext| specific, status:<RBSProcessExitStatus| domain:frontboard(10) code:force-quit(0xfbfbfbfb)>>
+2026-09-14 09:23:55.480 Df runningboardd[90501:2ab128] [com.apple.runningboard:ttl] Assertion 90501-90498-941 (target:[app<host.exp.Exponent((null))>:98483]) will be created as inactive as originator process has not exited
+2026-09-14 09:24:07.349 Df log[98560:0] [com.apple.log:] log run noninteractively, parent: 90494 (launchd_sim), args: 'log' 'show' '--start' '2026-09-14 09:23:28' '--style' 'compact' '--predicate' 'eventMessage CONTAINS[c] "host.exp.Exponent" AND (eventMessage CONTAINS[c] "exited" OR eventMessage CONTAINS[c] "S
+(end of simulator log)
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+lastUploadAt|2026-09-14T03:51:02.970Z
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+3|01a09e0b-7f66-7126-8573-200ab9874d2b|sales_orders|01a09e0b-4e18-7549-9d95-80e2180b1a63|PUT|queued|7|2026-09-14T03:52:28.774Z||
+4|01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|sales_order_lines|01a09e0b-6c6f-7214-a8e3-13178748b076|PUT|queued|7|2026-09-14T03:52:28.774Z||
+-- _sync_errors
+0
