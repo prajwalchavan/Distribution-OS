@@ -271,7 +271,10 @@ function Board({ offline, onToggleOffline, log }: BoardProps): React.JSX.Element
     >
       <Stack gap={4}>
         <ConnectionStrip state={connectionStateFrom(status)} />
-        {status.persistent ? null : (
+        {/* `persistent` is a TRI-STATE (DOS-167 ruling 3 (ee)): null while the store is still opening. Only a
+            RESOLVED false means this browser keeps nothing — reading it as a plain boolean printed the line for the
+            whole of the open, which is the S-140 flash the field screens were fixed for. */}
+        {status.persistent !== false ? null : (
           <Txt field="label" desk="meta" as="div">
             Offline data is not saved on this browser (memory store).
           </Txt>
