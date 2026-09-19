@@ -1,0 +1,1529 @@
+{
+  "startedAt": "2026-09-14T00:44:46.301Z",
+  "app": "http://localhost:5175",
+  "out": "QA/evidence/batch2/dos-167/reproof/web/",
+  "sqlExpect": {
+    "A": {
+      "shops": 30,
+      "orders90d": 363
+    },
+    "B": {
+      "shops": 24,
+      "orders90d": 218
+    },
+    "A2": {
+      "shops": 29,
+      "orders90d": 380
+    }
+  },
+  "variants": {
+    "V5A": {
+      "name": "V5A",
+      "startedAt": "2026-09-14T00:44:46.398Z",
+      "shots": [
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-01-a-rahul-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "note": "A on the beat screen; on the OPFS store the not-persisted line must not appear"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-02-a-search-chavan-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "note": "A (rahul) shops search \"Chavan Kirana\" — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-03-a-orders-all-desk.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Not updated yet",
+          "note": "A (rahul) orders, All — positive control"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-04-signed-out-desk.png",
+          "url": "http://localhost:5175/sign-in",
+          "strip": "(no connection strip rendered)",
+          "note": "after the app’s own Sign out"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-06-second-beat-right-after-sign-in-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "note": "amit.pawar beat, right after sign-in"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-07-second-shops-early-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "note": "amit.pawar shops list, early"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-08-second-beat-synced-desk.png",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "note": "amit.pawar beat, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-09-second-shops-synced-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "note": "amit.pawar shops list, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-10-second-search-chavan-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "note": "amit.pawar shops search \"Chavan Kirana\", after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-11-second-search-own-desk.png",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "note": "amit.pawar shops search own \"Anand Bhavan Provision\" — completeness"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-12-second-orders-all-desk.png",
+          "url": "http://localhost:5175/orders",
+          "strip": "Not updated yet",
+          "note": "amit.pawar orders, All, after sync"
+        },
+        {
+          "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-13-second-A-order-detail-desk.png",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "note": "amit.pawar opens rahul’s order SO-0875 route"
+        }
+      ],
+      "checks": [
+        {
+          "where": "A (rahul) shops search \"Chavan Kirana\" — positive control",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "expected": "A markers visible (positive control)",
+          "leakCheck": false
+        },
+        {
+          "where": "A (rahul) orders, All — positive control",
+          "url": "http://localhost:5175/orders",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "expected": "A markers visible (positive control)",
+          "leakCheck": false
+        },
+        {
+          "where": "amit.pawar beat, right after sign-in",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "expected": "no A marker",
+          "leakCheck": true
+        },
+        {
+          "where": "amit.pawar shops list, early",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "chip": 0,
+            "rowsDrawn": 0,
+            "capped": null
+          },
+          "expected": "no A marker",
+          "leakCheck": true
+        },
+        {
+          "where": "amit.pawar beat, after sync",
+          "url": "http://localhost:5175/",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "expected": "no A marker",
+          "leakCheck": true
+        },
+        {
+          "where": "amit.pawar shops list, after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "chip": 0,
+            "rowsDrawn": 0,
+            "capped": null
+          },
+          "expected": "no A marker",
+          "leakCheck": true
+        },
+        {
+          "where": "amit.pawar shops search \"Chavan Kirana\", after sync",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "expected": "no A marker (Nothing matches)",
+          "leakCheck": true
+        },
+        {
+          "where": "amit.pawar shops search own \"Anand Bhavan Provision\" — completeness",
+          "url": "http://localhost:5175/shops",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [
+            {
+              "marker": "A2 own shop Anand Bhavan Provision (tarsun R-0043, Kolsewadi)",
+              "visibleText": [
+                "Anand Bhavan Provision"
+              ],
+              "hiddenText": [],
+              "testIdHits": []
+            }
+          ],
+          "expected": "own marker visible",
+          "leakCheck": false
+        },
+        {
+          "where": "amit.pawar orders, All, after sync",
+          "url": "http://localhost:5175/orders",
+          "strip": "Not updated yet",
+          "syncFinishedAtThisMoment": false,
+          "pullResponsesSoFar": 0,
+          "inflightPull": 0,
+          "hits": [],
+          "counts": {
+            "rowsDrawn": 0,
+            "cappedShown": null,
+            "cappedTotal": null
+          },
+          "expected": "no A marker",
+          "leakCheck": true
+        },
+        {
+          "where": "amit.pawar opens rahul’s order SO-0875 route",
+          "url": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+          "strip": "Updated just now",
+          "syncFinishedAtThisMoment": true,
+          "pullResponsesSoFar": 13,
+          "inflightPull": 0,
+          "hits": [],
+          "expected": "no A marker; 'That order is not on this phone'",
+          "notOnPhone": true,
+          "leakCheck": true
+        }
+      ],
+      "fileChecks": [
+        {
+          "where": "boot (sign-in form, nobody signed in)",
+          "expected": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "observed": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "pass": true,
+          "identity": null,
+          "sqlitePaths": [],
+          "decoded": [],
+          "poolFiles": 0,
+          "unreadable": 0,
+          "crossOriginIsolated": true,
+          "beatScreenSaysNotPersisted": false
+        },
+        {
+          "where": "after rahul signed in and synced: exactly one header, his",
+          "expected": {
+            "rahul": 1,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 1,
+            "interim": 0
+          },
+          "observed": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "pass": false,
+          "identity": {
+            "who": "rahul",
+            "expectedName": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+            "token": {
+              "sub": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+              "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+              "role": "salesperson"
+            },
+            "dosQa": {
+              "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+              "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+            },
+            "headers": [],
+            "pass": false
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9"
+          ],
+          "decoded": [],
+          "poolFiles": 6,
+          "unreadable": 0,
+          "crossOriginIsolated": true,
+          "beatScreenSaysNotPersisted": true
+        },
+        {
+          "where": "after rahul’s Sign out (one tap, nothing queued): no header, no dos-sales.db",
+          "expected": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0,
+            "anyDosSales": 0
+          },
+          "observed": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0,
+            "anyDosSales": 0
+          },
+          "pass": true,
+          "identity": null,
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9"
+          ],
+          "decoded": [],
+          "poolFiles": 6,
+          "unreadable": 0,
+          "crossOriginIsolated": true,
+          "beatScreenSaysNotPersisted": false
+        },
+        {
+          "where": "right after amit.pawar signed in (home): exactly one header, theirs",
+          "expected": {
+            "rahul": 0,
+            "amit": 1,
+            "legacy": 0,
+            "storeHeaders": 1,
+            "interim": 0
+          },
+          "observed": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "pass": false,
+          "identity": {
+            "who": "amit",
+            "expectedName": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+            "token": {
+              "sub": "efde1e76-9785-7827-aff2-6f56ecd33588",
+              "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+              "role": "salesperson"
+            },
+            "dosQa": {
+              "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+              "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+            },
+            "headers": [],
+            "pass": false
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9",
+            "0.l3max05gdn",
+            "0.n36fohlq78",
+            "0.q5wpind79o7",
+            "0.tx69wtytboo"
+          ],
+          "decoded": [],
+          "poolFiles": 6,
+          "unreadable": 0,
+          "crossOriginIsolated": true,
+          "beatScreenSaysNotPersisted": true
+        },
+        {
+          "where": "amit.pawar synced: exactly one header, theirs",
+          "expected": {
+            "rahul": 0,
+            "amit": 1,
+            "legacy": 0,
+            "storeHeaders": 1,
+            "interim": 0
+          },
+          "observed": {
+            "rahul": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "interim": 0
+          },
+          "pass": false,
+          "identity": {
+            "who": "amit",
+            "expectedName": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+            "token": {
+              "sub": "efde1e76-9785-7827-aff2-6f56ecd33588",
+              "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+              "role": "salesperson"
+            },
+            "dosQa": {
+              "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+              "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+            },
+            "headers": [],
+            "pass": false
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9",
+            "0.l3max05gdn",
+            "0.n36fohlq78",
+            "0.q5wpind79o7",
+            "0.tx69wtytboo"
+          ],
+          "decoded": [],
+          "poolFiles": 6,
+          "unreadable": 0,
+          "crossOriginIsolated": true,
+          "beatScreenSaysNotPersisted": true
+        }
+      ],
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "storeAtBoot": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789346687528",
+        "localStorageAuthKeys": [],
+        "opfsTopLevel": [],
+        "opfsWalk": [],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 0,
+            "unreadable": 0
+          },
+          "sqlitePaths": [],
+          "decoded": []
+        }
+      },
+      "aSync": {
+        "syncedAfterMs": null,
+        "timeout": true,
+        "strip": "Not updated yet",
+        "pullRequests": 0,
+        "pullResponses": 0,
+        "finished": false,
+        "firstPullHadSince": null,
+        "firstPullInput": null,
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": null,
+        "retailersRowsPulled": 0,
+        "salesOrdersRowsPulled": 0
+      },
+      "storeAfterA": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "beatScreenSaysNotPersisted": true,
+        "sameDocumentMarker": "document-1789346687528",
+        "localStorageAuthKeys": [
+          {
+            "key": "dos.auth.refresh",
+            "length": 43
+          },
+          {
+            "key": "dos.auth.session",
+            "length": 868
+          }
+        ],
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "opfsWalk": [
+          {
+            "path": "expo-sqlite/",
+            "kind": "directory"
+          },
+          {
+            "path": "expo-sqlite/a1mcysz8te5",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/ld11b5cqzj",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.h005dqwa5p9"
+          },
+          {
+            "path": "expo-sqlite/p5e6cww9omj",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/rq3ss9szy7",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/x9ewqqrw9sh",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/xxxguilqc5b",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.5y5wlkigcgr"
+          }
+        ],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 6,
+            "unreadable": 0
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9"
+          ],
+          "decoded": []
+        }
+      },
+      "aShops": {
+        "chip": 0,
+        "rowsDrawn": 0,
+        "capped": null
+      },
+      "aOrders": {
+        "rowsDrawn": 0,
+        "cappedShown": null,
+        "cappedTotal": null
+      },
+      "storeSignedOut": {
+        "href": "http://localhost:5175/sign-in",
+        "crossOriginIsolated": true,
+        "beatScreenSaysNotPersisted": false,
+        "sameDocumentMarker": "document-1789346687528",
+        "localStorageAuthKeys": [],
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "opfsWalk": [
+          {
+            "path": "expo-sqlite/",
+            "kind": "directory"
+          },
+          {
+            "path": "expo-sqlite/a1mcysz8te5",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/ld11b5cqzj",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.h005dqwa5p9"
+          },
+          {
+            "path": "expo-sqlite/p5e6cww9omj",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/rq3ss9szy7",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/x9ewqqrw9sh",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": ""
+          },
+          {
+            "path": "expo-sqlite/xxxguilqc5b",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.5y5wlkigcgr"
+          }
+        ],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 6,
+            "unreadable": 0
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9"
+          ],
+          "decoded": []
+        }
+      },
+      "notPersistedWatch": [
+        {
+          "hits": [
+            {
+              "text": "will not keep the offline copy",
+              "atMs": 255,
+              "path": "/"
+            }
+          ],
+          "watchedMs": 498080
+        }
+      ],
+      "watchArmedAtNode": 1789346935103,
+      "leakPoll": {
+        "first": null,
+        "samples": 2333,
+        "errors": 0,
+        "startedAtNode": 1789346935104
+      },
+      "plus400ms": {
+        "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-06a-second-plus-400ms-desk.png",
+        "offsetMs": 402,
+        "path": "/",
+        "hits": []
+      },
+      "secondSignInClickAtNode": 1789346935114,
+      "storeSecondAtHome": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "beatScreenSaysNotPersisted": true,
+        "sameDocumentMarker": "document-1789346687528",
+        "localStorageAuthKeys": [
+          {
+            "key": "dos.auth.refresh",
+            "length": 43
+          },
+          {
+            "key": "dos.auth.session",
+            "length": 860
+          }
+        ],
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "opfsWalk": [
+          {
+            "path": "expo-sqlite/",
+            "kind": "directory"
+          },
+          {
+            "path": "expo-sqlite/a1mcysz8te5",
+            "kind": "file",
+            "size": 8192,
+            "sqlitePath": "0.l3max05gdn"
+          },
+          {
+            "path": "expo-sqlite/ld11b5cqzj",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.h005dqwa5p9"
+          },
+          {
+            "path": "expo-sqlite/p5e6cww9omj",
+            "kind": "file",
+            "size": 8192,
+            "sqlitePath": "0.tx69wtytboo"
+          },
+          {
+            "path": "expo-sqlite/rq3ss9szy7",
+            "kind": "file",
+            "size": 16384,
+            "sqlitePath": "0.q5wpind79o7"
+          },
+          {
+            "path": "expo-sqlite/x9ewqqrw9sh",
+            "kind": "file",
+            "size": 16384,
+            "sqlitePath": "0.n36fohlq78"
+          },
+          {
+            "path": "expo-sqlite/xxxguilqc5b",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.5y5wlkigcgr"
+          }
+        ],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 6,
+            "unreadable": 0
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9",
+            "0.l3max05gdn",
+            "0.n36fohlq78",
+            "0.q5wpind79o7",
+            "0.tx69wtytboo"
+          ],
+          "decoded": []
+        }
+      },
+      "secondSync": {
+        "syncedAfterMs": null,
+        "timeout": true,
+        "strip": "Not updated yet",
+        "pullRequests": 0,
+        "pullResponses": 0,
+        "finished": false,
+        "firstPullHadSince": null,
+        "firstPullInput": null,
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": null,
+        "retailersRowsPulled": 0,
+        "salesOrdersRowsPulled": 0
+      },
+      "storeSecondSynced": {
+        "href": "http://localhost:5175/",
+        "crossOriginIsolated": true,
+        "beatScreenSaysNotPersisted": true,
+        "sameDocumentMarker": "document-1789346687528",
+        "localStorageAuthKeys": [
+          {
+            "key": "dos.auth.refresh",
+            "length": 43
+          },
+          {
+            "key": "dos.auth.session",
+            "length": 860
+          }
+        ],
+        "opfsTopLevel": [
+          "expo-sqlite/"
+        ],
+        "opfsWalk": [
+          {
+            "path": "expo-sqlite/",
+            "kind": "directory"
+          },
+          {
+            "path": "expo-sqlite/a1mcysz8te5",
+            "kind": "file",
+            "size": 8192,
+            "sqlitePath": "0.l3max05gdn"
+          },
+          {
+            "path": "expo-sqlite/ld11b5cqzj",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.h005dqwa5p9"
+          },
+          {
+            "path": "expo-sqlite/p5e6cww9omj",
+            "kind": "file",
+            "size": 8192,
+            "sqlitePath": "0.tx69wtytboo"
+          },
+          {
+            "path": "expo-sqlite/rq3ss9szy7",
+            "kind": "file",
+            "size": 16384,
+            "sqlitePath": "0.q5wpind79o7"
+          },
+          {
+            "path": "expo-sqlite/x9ewqqrw9sh",
+            "kind": "file",
+            "size": 16384,
+            "sqlitePath": "0.n36fohlq78"
+          },
+          {
+            "path": "expo-sqlite/xxxguilqc5b",
+            "kind": "file",
+            "size": 4096,
+            "sqlitePath": "0.5y5wlkigcgr"
+          }
+        ],
+        "files": {
+          "count": {
+            "rahul": 0,
+            "kiran": 0,
+            "amit": 0,
+            "legacy": 0,
+            "storeHeaders": 0,
+            "decodedRahul": 0,
+            "decodedKiran": 0,
+            "decodedAmit": 0,
+            "decodedNobodyKnown": 0,
+            "interim": 0,
+            "anyDosSales": 0,
+            "poolFiles": 6,
+            "unreadable": 0
+          },
+          "sqlitePaths": [
+            "0.5y5wlkigcgr",
+            "0.h005dqwa5p9",
+            "0.l3max05gdn",
+            "0.n36fohlq78",
+            "0.q5wpind79o7",
+            "0.tx69wtytboo"
+          ],
+          "decoded": []
+        }
+      },
+      "secondShops": {
+        "chip": 0,
+        "rowsDrawn": 0,
+        "capped": null
+      },
+      "secondOrders": {
+        "rowsDrawn": 0,
+        "cappedShown": null,
+        "cappedTotal": null
+      },
+      "watcher": {
+        "hits": [],
+        "watchedMs": 250508
+      },
+      "secondFirstPull": {
+        "pullRequests": 13,
+        "pullResponses": 13,
+        "finished": true,
+        "firstPullHadSince": false,
+        "firstPullInput": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500 ",
+        "firstManifestKnownSchemaVersion": null,
+        "firstManifestInput": "",
+        "retailersRowsPulled": 30,
+        "salesOrdersRowsPulled": 384
+      },
+      "secondFirstSyncCalls": [
+        {
+          "at": 1789347183726,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789347183732,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 401,
+          "schemaVersion": null,
+          "role": null,
+          "changed": null
+        },
+        {
+          "at": 1789347183760,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789347183786,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": true
+        },
+        {
+          "at": 1789347183786,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500 "
+        },
+        {
+          "at": 1789347183896,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDUwNDVaIn0 "
+        },
+        {
+          "at": 1789347183899,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 30,
+            "sales_orders": 0,
+            "beats": 6
+          }
+        },
+        {
+          "at": 1789347183981,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        }
+      ],
+      "sqlExpectSecond": {
+        "constants2026_09_13": {
+          "shops": 29,
+          "orders90d": 380
+        },
+        "live": {
+          "shops": 29,
+          "orders90d": 384
+        }
+      },
+      "summary": {
+        "leakHitsAtCheckpoints": {
+          "expected": 0,
+          "observed": [],
+          "checkpoints": 7
+        },
+        "plus400msShot": {
+          "expected": "no A marker",
+          "observed": {
+            "file": "QA/evidence/batch2/dos-167/reproof/web/v5a-06a-second-plus-400ms-desk.png",
+            "offsetMs": 402,
+            "path": "/",
+            "hits": []
+          },
+          "pass": true
+        },
+        "watcherHits": {
+          "expected": [],
+          "observed": [],
+          "watchedMs": 250508,
+          "pass": true
+        },
+        "leakPollFirstHit": {
+          "expected": null,
+          "observed": null,
+          "samples": 2333,
+          "pass": true
+        },
+        "secondFirstManifestKnownSchemaVersion": {
+          "expected": null,
+          "observed": null,
+          "input": "",
+          "pass": true
+        },
+        "secondFirstPullHadSince": {
+          "expected": false,
+          "observed": false,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500 ",
+          "pass": true
+        },
+        "secondShops": {
+          "expected": {
+            "constants2026_09_13": {
+              "shops": 29,
+              "orders90d": 380
+            },
+            "live": {
+              "shops": 29,
+              "orders90d": 384
+            }
+          },
+          "observed": {
+            "chip": 0,
+            "rowsDrawn": 0,
+            "capped": null
+          },
+          "pass": false
+        },
+        "secondOrdersTotal": {
+          "expected": {
+            "constants2026_09_13": {
+              "shops": 29,
+              "orders90d": 380
+            },
+            "live": {
+              "shops": 29,
+              "orders90d": 384
+            }
+          },
+          "observed": {
+            "rowsDrawn": 0,
+            "cappedShown": null,
+            "cappedTotal": null
+          },
+          "pass": false
+        },
+        "rahulOrderRouteNotOnPhone": {
+          "expected": true,
+          "observed": true,
+          "pass": true
+        },
+        "rahulHeaderByteEqualToRuling": {
+          "expected": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "observed": null,
+          "pass": false
+        },
+        "notPersistedLineNeverShown": {
+          "expected": "no hit of s0.notPersisted (50 ms DOM watch over the whole variant) and none at any file checkpoint",
+          "observed": {
+            "watchHits": [
+              {
+                "text": "will not keep the offline copy",
+                "atMs": 255,
+                "path": "/"
+              }
+            ],
+            "checkpointsShowingIt": 3
+          },
+          "pass": false
+        },
+        "consoleNoPersistentStoreLine": {
+          "expected": [],
+          "observed": [],
+          "pass": true
+        },
+        "crossOriginIsolated": {
+          "expected": true,
+          "observed": true,
+          "pass": true
+        },
+        "fileChecks": {
+          "expected": "all pass",
+          "observed": [
+            "PASS boot (sign-in form, nobody signed in)",
+            "FAIL after rahul signed in and synced: exactly one header, his",
+            "PASS after rahul’s Sign out (one tap, nothing queued): no header, no dos-sales.db",
+            "FAIL right after amit.pawar signed in (home): exactly one header, theirs",
+            "FAIL amit.pawar synced: exactly one header, theirs"
+          ],
+          "pass": false
+        }
+      },
+      "envEnd": {
+        "href": "http://localhost:5175/orders/a86e7342-f6e0-7ece-997b-43b810e33630",
+        "crossOriginIsolated": true,
+        "opfs": true,
+        "sameDocumentMarker": "document-1789346687528",
+        "localStorageKeys": [
+          "dos.auth.refresh",
+          "dos.auth.session",
+          "dos.device"
+        ]
+      },
+      "syncLog": [
+        {
+          "at": 1789347183726,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789347183732,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 401,
+          "schemaVersion": null,
+          "role": null,
+          "changed": null
+        },
+        {
+          "at": 1789347183760,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/manifest",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": ""
+        },
+        {
+          "at": 1789347183786,
+          "kind": "response",
+          "path": "/sync/manifest",
+          "status": 200,
+          "schemaVersion": "36957a3c3b8da665",
+          "role": "salesperson",
+          "changed": true
+        },
+        {
+          "at": 1789347183786,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500 "
+        },
+        {
+          "at": 1789347183896,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDUwNDVaIn0 "
+        },
+        {
+          "at": 1789347183899,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 30,
+            "sales_orders": 0,
+            "beats": 6
+          }
+        },
+        {
+          "at": 1789347183981,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347183981,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjQyOTRaIn0 "
+        },
+        {
+          "at": 1789347184054,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42Nzk1NDNaIn0 "
+        },
+        {
+          "at": 1789347184069,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 239,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184151,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44Mjc2NDVaIn0 "
+        },
+        {
+          "at": 1789347184157,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 141,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184221,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODEyMjFaIn0 "
+        },
+        {
+          "at": 1789347184226,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184295,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4wOTI3MjhaIn0 "
+        },
+        {
+          "at": 1789347184301,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184395,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MTcyMTVaIn0 "
+        },
+        {
+          "at": 1789347184406,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184479,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NjM5NjdaIn0 "
+        },
+        {
+          "at": 1789347184495,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184558,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTIyODBaIn0 "
+        },
+        {
+          "at": 1789347184566,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184628,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MTgxOTZaIn0 "
+        },
+        {
+          "at": 1789347184639,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184694,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTE1MDJaIn0 "
+        },
+        {
+          "at": 1789347184712,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184742,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/pull",
+          "hasSince": true,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MzQ1NTNaIn0 "
+        },
+        {
+          "at": 1789347184749,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": true,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 0,
+            "beats": 0
+          }
+        },
+        {
+          "at": 1789347184782,
+          "kind": "request",
+          "method": "GET",
+          "path": "/sync/errors",
+          "hasSince": false,
+          "knownSchemaVersion": null,
+          "input": "deviceId=01a09d5f-a99d-751f-b84d-eae787c97a71&unresolvedOnly=true&limit=50 "
+        },
+        {
+          "at": 1789347184784,
+          "kind": "response",
+          "path": "/sync/pull",
+          "status": 200,
+          "hasMore": false,
+          "rows": {
+            "retailers": 0,
+            "sales_orders": 4,
+            "beats": 0
+          }
+        }
+      ],
+      "auth": [
+        {
+          "at": 1789346687807,
+          "path": "/auth/login",
+          "status": 200,
+          "claims": {
+            "sub": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+            "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+            "role": "salesperson"
+          }
+        },
+        {
+          "at": 1789346934257,
+          "path": "/auth/logout",
+          "status": 200,
+          "claims": null
+        },
+        {
+          "at": 1789346935189,
+          "path": "/auth/login",
+          "status": 200,
+          "claims": {
+            "sub": "efde1e76-9785-7827-aff2-6f56ecd33588",
+            "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+            "role": "salesperson"
+          }
+        },
+        {
+          "at": 1789347183747,
+          "path": "/auth/refresh",
+          "status": 200,
+          "claims": {
+            "sub": "efde1e76-9785-7827-aff2-6f56ecd33588",
+            "tid": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+            "role": "salesperson"
+          }
+        }
+      ],
+      "offlineLines": [],
+      "console": [
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "cannot create file",
+        "cannot create file",
+        "cannot create file",
+        "cannot create file",
+        "cannot create file",
+        "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+        "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "failed": [
+        "401 GET http://127.0.0.1:3003/sync/manifest",
+        "404 GET http://127.0.0.1:3003/orders/a86e7342-f6e0-7ece-997b-43b810e33630"
+      ]
+    }
+  },
+  "nameSelfCheck": {
+    "rahul": {
+      "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "roundTrip": true
+    },
+    "kiran": {
+      "name": "s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "2239ec93-0bcd-7737-a70c-c60aa4d9e9f1",
+        "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8"
+      },
+      "roundTrip": true
+    },
+    "amit": {
+      "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+      "length": 51,
+      "parsed": {
+        "prefix": "dos-sales",
+        "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+        "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+      },
+      "roundTrip": true
+    },
+    "rahulEqualsRuling": true
+  },
+  "sqlIdsLive": "username|id|tenant_id|slug|role\namit.pawar|efde1e76-9785-7827-aff2-6f56ecd33588|01a09a5b-3c58-71c1-a34d-b93c569b0099|tarsun|salesperson\nkiran.mhatre|2239ec93-0bcd-7737-a70c-c60aa4d9e9f1|82f5c562-b7eb-7521-8e19-4aa6befc64f8|sai-distributors|salesperson\nrahul.deshmukh|8760e17e-4830-7395-a946-1e02fffa1ad7|01a09a5b-3c58-71c1-a34d-b93c569b0099|tarsun|salesperson\n(3 rows)",
+  "sqlExpectLive": {
+    "raw": "uname|shops_today|orders_90d\namit.pawar|29|384\nkiran.mhatre|24|218\nrahul.deshmukh|30|363\n(3 rows)",
+    "parsed": {
+      "amit.pawar": {
+        "shops": 29,
+        "orders90d": 384
+      },
+      "kiran.mhatre": {
+        "shops": 24,
+        "orders90d": 218
+      },
+      "rahul.deshmukh": {
+        "shops": 30,
+        "orders90d": 363
+      }
+    }
+  },
+  "finishedAt": "2026-09-14T00:53:05.619Z"
+}

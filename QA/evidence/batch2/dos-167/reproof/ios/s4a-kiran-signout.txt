@@ -1,0 +1,19 @@
+## s4a kiran signs out through the product 2026-09-14 09:13:24 (nothing queued)
+tapped "More" Button at 352,105 (1 of 1)
+shot s4-kiran-menu.png
+menu: Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|gearshape.fill|
+tapped 150 723
+sign-in form visible after ~1s
+shot s4-kiran-signed-out.png
+no leave sheet (one tap)
+$ find "$C" -path '*SQLite*'   (09:13:34)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0

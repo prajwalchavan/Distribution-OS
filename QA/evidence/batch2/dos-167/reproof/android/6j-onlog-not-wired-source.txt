@@ -1,0 +1,41 @@
+## why logcat can never show 'offline: kept the store from before ruling 2' on main bafb7b5 (read-only source check, 07:34:49)
+-- the provider logs only through the optional onLog prop:
+67:  onLog?: (line: string, detail?: unknown) => void
+81:  onLog?: (line: string, detail?: unknown) => void,
+90:  for (const file of swept.kept) onLog?.('offline: kept the store from before ruling 2', file)
+218:    void sweepInterimStore(storeFactory, storePrefix, identity, onLog).catch((error: unknown) => {
+-- console.* anywhere in libs/offline/src (non-test):
+(eval):1: no matches found: --include=*.ts
+none
+-- onLog passed by each field app's <OfflineProvider>:
+sales: no onLog prop in frontend/sales-app/app/_layout.tsx
+
+delivery: no onLog prop in frontend/delivery-app/app/_layout.tsx
+
+warehouse: no onLog prop in frontend/warehouse-app/app/_layout.tsx
+
+-- the sales <OfflineProvider> element as merged:
+186:   * ONE `<OfflineProvider>`, ABOVE the gate — not inside it.
+187-   *
+188-   * It used to sit in the signed-in branch only, and that cost a rep their queue. `hydrating` flips
+189-   * true whenever the client refreshes the access token; the branch above returned a bare skeleton
+190-   * for that frame, which UNMOUNTED the provider, stopped the engine and threw away its store — and
+191-   * on the web fallback that store is in memory (docs/27 §2), so five queued lines and a whole pull
+192-   * went with it. Measured: queue an order in a dead spot, let the token refresh fail (which is what
+193-   * a dead spot does), and the needs-attention tray reads "0 waiting" over an order the rep was told
+194-   * was saved.
+195-   *
+--
+306:    <OfflineProvider
+307-      api={api.api}
+308-      deviceId={device}
+309-      identity={identity}
+310-      storePrefix={STORE_PREFIX}
+311-      enabled={enabled}
+312-      storeFactory={openStore}
+313-    >
+314-      {children}
+315-    </OfflineProvider>
+
+-- CORRECTION: the console.* grep above failed on a zsh glob ('no matches found: --include=*.ts'), so its 'none' is void. Rerun with quoted patterns 07:35:21:
+exit/lines: 0 non-test console.* calls in frontend/libs/offline/src

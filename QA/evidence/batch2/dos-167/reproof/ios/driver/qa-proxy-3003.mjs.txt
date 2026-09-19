@@ -1,0 +1,56 @@
+// QA test infrastructure for the DOS-167 iOS re-proof, "Send now while online" (addendum (y) rule 2).
+// Listens on 127.0.0.1:3003 (where the sales app's EXPO_PUBLIC_API_URL points) and forwards every request to the real
+// sales-service moved to 127.0.0.1:3013. The mode file decides one thing only: in "fail-upload" a POST /sync/upload is
+// answered 503 (a server hiccup, not a network failure, so the phone stays "online" and its outbox keeps the ops);
+// in "pass" everything goes through. Every request is logged with its answer. No product code is touched.
+import http from 'node:http'
+import { appendFileSync, readFileSync } from 'node:fs'
+
+const DIR = '/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/i167r'
+const MODE_FILE = `${DIR}/proxy-mode`
+const LOG = `${DIR}/proxy.log`
+const UPSTREAM = { host: '127.0.0.1', port: 3013 }
+
+const mode = () => {
+  try {
+    return readFileSync(MODE_FILE, 'utf8').trim()
+  } catch {
+    return 'pass'
+  }
+}
+const stamp = () => {
+  const d = new Date(Date.now() + 5.5 * 3600 * 1000)
+  return d.toISOString().slice(11, 23)
+}
+const log = (line) => appendFileSync(LOG, `${stamp()} ${line}\n`)
+
+const server = http.createServer((req, res) => {
+  const path = (req.url ?? '').split('&since=')[0]
+  const m = mode()
+  if (m === 'down') {
+    // the office unreachable: the connection is dropped without an answer, which the phone reads as a network failure
+    log(`[${m}] ${req.method} ${path} -> connection dropped`)
+    req.socket.destroy()
+    return
+  }
+  if (m === 'fail-upload' && req.method === 'POST' && (req.url ?? '').startsWith('/sync/upload')) {
+    req.resume()
+    req.on('end', () => {
+      res.writeHead(503, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ statusCode: 503, error: 'Service Unavailable', message: 'QA proxy held this upload back' }))
+      log(`[${m}] ${req.method} ${path} -> 503 (held back by the QA proxy)`)
+    })
+    return
+  }
+  const up = http.request({ ...UPSTREAM, method: req.method, path: req.url, headers: req.headers }, (upRes) => {
+    res.writeHead(upRes.statusCode ?? 502, upRes.headers)
+    upRes.pipe(res)
+    upRes.on('end', () => log(`[${m}] ${req.method} ${path} -> ${upRes.statusCode}`))
+  })
+  up.on('error', (err) => {
+    log(`[${m}] ${req.method} ${path} -> upstream error ${err.code}`)
+    res.destroy()
+  })
+  req.pipe(up)
+})
+server.listen(3003, '127.0.0.1', () => log(`proxy listening on 127.0.0.1:3003 -> 127.0.0.1:3013, mode ${mode()}`))

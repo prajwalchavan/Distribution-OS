@@ -1,0 +1,40 @@
+## y1c device outbox while the office is unreachable (the crash condition: the outbox retrying) 2026-09-14 09:16:47
+-- copied read-only to scratchpad (09:16:47)
+drwxr-xr-x@ 5 prajwalchavan  wheel      160 Sep 14 09:16 .
+drwxr-xr-x@ 6 prajwalchavan  wheel      192 Sep 14 09:16 ..
+-rw-r--r--@ 1 prajwalchavan  wheel  2605056 Sep 14 09:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--@ 1 prajwalchavan  wheel    32768 Sep 14 09:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw-r--r--@ 1 prajwalchavan  wheel  4470232 Sep 14 09:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMzo0NDo1OC4wMzRaIn0
+lastPulledAt|2026-09-14T03:45:03.034Z
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|queued|5|2026-09-14T03:46:28.339Z||
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|queued|5|2026-09-14T03:46:28.339Z||
+-- _sync_errors
+0
+queued order id: 01a09e05-c8c7-7741-b201-de8bb92ee5d1
+-- dos_qa (read-only) while queued: sales_orders rows for it: 0; amit orders total: 388

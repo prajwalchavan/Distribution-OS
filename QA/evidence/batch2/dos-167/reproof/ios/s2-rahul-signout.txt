@@ -1,0 +1,35 @@
+## s2 rahul signs out through the product 2026-09-14 09:09:58 (nothing queued; no keychain reset)
+tapped "More" Button at 352,105 (1 of 1)
+shot s2-rahul-menu.png
+menu labels: Expo Go|Distribution OS - Sales|SDK version: 57.0.0|Close|Reload|Refresh|Reload|Go home|Home|Go home|TOOLS|Source code explorer|Show Map|Source code explorer|Forward|Toggle performance monitor|Speed|Toggle performance monitor|Toggle element inspector|Scan|Toggle element inspector|Open DevTools|chevron.left.chevron.right|Open DevTools|Running|Fast refresh| = 1| = 1|Vertical scroll bar, 3 pages = 0%|
+NOTE 2026-09-14 09:10:32: the first tap on More showed Expo Go's own developer menu (s2-rahul-menu.png), not the app's account menu — Expo Go opens it by itself on a project's first launches after a fresh install. Close it and tap More again.
+tapped "Close" Button at 368,415 (1 of 1)
+after Close: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Shops|Shops: 30|Shops|Losing|Catalog| = Search by name, code or phone|Ambika Provision Store, R-0009 · Station Road · Station Road, Kalyan West, 23995 rupees, C|Balaji Wholesale Stores, R-0010 · Station Road · Sta
+tapped "More" Button at 352,105 (1 of 1)
+shot s2-rahul-menu-2.png
+menu labels: Expo Go|Distribution OS - Sales|SDK version: 57.0.0|Close|Reload|Refresh|Reload|Go home|Home|Go home|TOOLS|Source code explorer|Show Map|Source code explorer|Forward|Toggle performance monitor|Speed|Toggle performance monitor|Toggle element inspector|Scan|Toggle element inspector|Open DevTools|chevron.left.chevron.right|Open DevTools|Running|Fast refresh| = 1| = 1|Vertical scroll bar, 3 pages = 0%|
+NOTE 2026-09-14 09:11:29: the fresh Expo Go put its floating Dev-tools gear (gearshape.fill at [344,71 26x26]) on top of the app's More button [317,70 69x69] (s1-rahul-home.png), so a tap at More's centre opened the dev menu. Drag the gear (an Expo Go overlay, not the app) down to the bottom-right corner, where the previous run had it.
+dragged 357 84 -> 357 690
+Image	[344,697 26x26]	gearshape.fill
+Button	[317,70 69x69]	More
+shot s2-gear-moved.png
+tapped "More" Button at 352,105 (1 of 1)
+shot s2-rahul-menu-3.png
+menu labels: Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs tapxy 150 723   (the Sign out row in s2-rahul-menu-3.png; the menu is one aggregated accessibility element, S-129) 2026-09-14 09:11:57
+tapped 150 723
+sign-in form visible after ~1s
+shot s2-rahul-signed-out.png
+after sign-out labels: Expo Go|Distribution OS - Sales|Sign in|Username|Password|Sign in|Use the username your distributor gave you.|Vertical scroll bar, 1 page = 0%|Typing Predictions|Passwords|q|w|e|r|t|y|u|i|o|p|a|s|d|f|
+no leave sheet (nothing queued: one tap)
+$ find "$C" -path '*SQLite*'   (09:12:02)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0

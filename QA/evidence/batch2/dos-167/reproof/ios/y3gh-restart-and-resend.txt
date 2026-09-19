@@ -1,0 +1,50 @@
+## y3g restart sales-service 2026-09-14 09:28:13
+log line mark: 17261
+sales-service :3003 /health 200 after 3s (09:28:16)
+node    186 prajwalchavan   17u  IPv4 0xd714c5d4310a3888      0t0  TCP *:3003 (LISTEN)
+-- dos_qa before amit's sign-in: rows for 01a09e0e-b392-729b-8984-740a81924477: 0; sync_ops for its ops: 0
+## y3h amit.pawar signs in again: kept ops go first, exactly once 2026-09-14 09:28:17
+set XCUIElementTypeTextField 0 = amit.pawar
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 2026-09-14 09:28:21
+1 +1.98s
+2 +2.44s
+3 +2.79s
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+09:28:27 strip: Updated just now|
+shot y3h-amit-after-send.png
+-- dos_qa (read-only) 2026-09-14 09:28:30
+01a09e0e-b392-729b-8984-740a81924477|draft|salesperson|amit.pawar|Prerna Super Market|2026-09-14 09:28:21.833556+05:30
+order rows: 1; line rows: 1
+01a09e0e-e070-7641-95eb-4468f50a58cf|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:28:21.833556+05:30
+01a09e0e-e070-7642-987e-10107eda640a|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:28:22.173554+05:30
+sync_ops rows: 2
+amit orders total: 391 (390 before)
+-- sales-service requests since the restart
+09:28:16.895 GET /health
+09:28:21.696 GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg
+09:28:21.759 GET /sync/manifest
+09:28:21.826 POST /sync/upload
+09:28:22.550 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:28:22.729 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+POST /sync/upload count: 1
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+3|01a09e0b-7f66-7126-8573-200ab9874d2b|sales_orders|01a09e0b-4e18-7549-9d95-80e2180b1a63|PUT|acked|8|2026-09-14T03:52:28.774Z|2026-09-14T03:54:43.559Z|2026-09-14T03:54:44.853Z
+4|01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|sales_order_lines|01a09e0b-6c6f-7214-a8e3-13178748b076|PUT|acked|8|2026-09-14T03:52:28.774Z|2026-09-14T03:54:43.559Z|2026-09-14T03:54:44.853Z
+5|01a09e0e-e070-7641-95eb-4468f50a58cf|sales_orders|01a09e0e-b392-729b-8984-740a81924477|PUT|acked|6|2026-09-14T03:56:10.224Z|2026-09-14T03:58:21.793Z|2026-09-14T03:58:22.506Z
+6|01a09e0e-e070-7642-987e-10107eda640a|sales_order_lines|01a09e0e-d24b-74f2-9041-59e131ec4fb7|PUT|acked|6|2026-09-14T03:56:10.224Z|2026-09-14T03:58:21.793Z|2026-09-14T03:58:22.506Z
+-- _sync_errors
+0
+## (y) all three kept orders, exactly once each (dos_qa, read-only) 2026-09-14 09:28:31
+01a09e05-c8c7-7741-b201-de8bb92ee5d1|1|1|draft|2026-09-14 09:21:02.721608+05:30
+01a09e0b-4e18-7549-9d95-80e2180b1a63|1|1|draft|2026-09-14 09:24:43.578615+05:30
+01a09e0e-b392-729b-8984-740a81924477|1|1|draft|2026-09-14 09:28:21.833556+05:30
+sync_ops rows for the six op ids: 6 (expect 6), ok outcomes: 6
+-- Expo Go .ips after all three keep runs:
+-rw-------@   1 prajwalchavan  _analyticsusers  63289 Sep 14 02:18 Expo Go-2026-09-14-021827.ips
+-rw-------@   1 prajwalchavan  _analyticsusers  64921 Sep 14 02:23 Expo Go-2026-09-14-022331.ips
+(end of .ips list)

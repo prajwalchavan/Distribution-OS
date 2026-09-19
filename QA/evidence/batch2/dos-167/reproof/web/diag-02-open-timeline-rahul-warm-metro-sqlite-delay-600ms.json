@@ -1,0 +1,132 @@
+{
+  "events": [
+    {
+      "t": 755,
+      "kind": "console",
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "t": 781,
+      "kind": "console",
+      "type": "log",
+      "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+    },
+    {
+      "t": 35,
+      "kind": "request",
+      "method": "POST",
+      "url": "/auth/login"
+    },
+    {
+      "t": 80,
+      "kind": "response",
+      "status": 200,
+      "url": "/auth/login"
+    },
+    {
+      "t": 96,
+      "kind": "request",
+      "method": "GET",
+      "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789434458&signature=fddbbfee464024bb8adfcb21c6ebfb5b3685bf93"
+    },
+    {
+      "t": 98,
+      "kind": "requestfailed",
+      "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789434458&signature=fddbbfee464024bb8adfcb21c6ebfb5b3685bf93",
+      "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+    },
+    {
+      "t": 98,
+      "kind": "console",
+      "type": "error",
+      "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+    },
+    {
+      "t": 543,
+      "kind": "strip",
+      "strip": "Not updated yet"
+    },
+    {
+      "t": 543,
+      "kind": "beat",
+      "notPersisted": true,
+      "stillLoading": true,
+      "shops": "0",
+      "path": "/"
+    },
+    {
+      "t": 543,
+      "kind": "locks",
+      "locks": {
+        "held": [],
+        "pending": []
+      }
+    },
+    {
+      "t": 671,
+      "kind": "worker-created",
+      "url": "blob:http://localhost:5175/a890ac64-faaa-47b4-b6d1-ef77cc5b8216"
+    },
+    {
+      "t": 1394,
+      "kind": "pageerror",
+      "text": "SQLiteError: not a database"
+    },
+    {
+      "t": 1394,
+      "kind": "pageerror",
+      "text": "SQLiteError: not a database"
+    },
+    {
+      "t": 60766,
+      "kind": "opfs-final",
+      "walk": [
+        [
+          "expo-sqlite/s5dpkfq5jck",
+          28672,
+          "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+        ],
+        [
+          "expo-sqlite/mzdr4yffzwq",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/m8tya94dr1h",
+          4096,
+          "/my1imsvb8cmft"
+        ],
+        [
+          "expo-sqlite/ld6xmhjqe7f",
+          4096,
+          "0.dc4ea9j7tqo"
+        ],
+        [
+          "expo-sqlite/eh5wthfkblg",
+          4096,
+          ""
+        ],
+        [
+          "expo-sqlite/37a8qgn16de",
+          4096,
+          ""
+        ]
+      ]
+    }
+  ],
+  "delaySqliteMs": 600,
+  "delayed": [
+    {
+      "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle",
+      "heldMs": 602
+    },
+    {
+      "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle",
+      "heldMs": 603
+    }
+  ],
+  "crossOriginIsolated": true,
+  "signInClickAt": "2026-09-14T01:07:38.436Z",
+  "finishedAt": "2026-09-14T01:08:39.202Z"
+}

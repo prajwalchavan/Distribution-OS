@@ -1,0 +1,1434 @@
+{
+ "label": "vA-d600-2",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 601,
+   "at": 1761
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 602,
+   "at": 2494
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "/my1imsvb8cmft",
+  "0.3s9ip0r2dm9",
+  "0.e45wqim446",
+  "0.xoktnk4t8a8",
+  "0.hhv8ueddabj",
+  "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/0kpq0moj7v",
+   "kind": "file",
+   "size": 20480,
+   "sqlitePath": "/my1imsvb8cmft"
+  },
+  {
+   "path": "expo-sqlite/9ws4izu148h",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.3s9ip0r2dm9"
+  },
+  {
+   "path": "expo-sqlite/ctfotqtv8q",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.e45wqim446"
+  },
+  {
+   "path": "expo-sqlite/jt55229zayd",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.xoktnk4t8a8"
+  },
+  {
+   "path": "expo-sqlite/ubnsuoxcfai",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.hhv8ueddabj"
+  },
+  {
+   "path": "expo-sqlite/vln1auunhu",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  }
+ ],
+ "syncRequests": [],
+ "manifestCalls": 0,
+ "pullCalls": 0,
+ "notADatabase": 1,
+ "cannotCreate": 2,
+ "beatFinal": {
+  "notPersisted": true,
+  "stillLoading": true
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 957,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 1015,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 1053,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 1109,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 1128,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789887395&signature=d5367945cc6691098861f916f91f464946e7e1defe15038710b110d9ec10"
+  },
+  {
+   "t": 1130,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 1131,
+   "kind": "beat",
+   "notPersisted": true,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 1884,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" t=1835"
+  },
+  {
+   "t": 1884,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-worker-create t=1836"
+  },
+  {
+   "t": 1884,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" t=1837"
+  },
+  {
+   "t": 1885,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/bf31e13c-b19c-4e69-93ac-ad363cdfee21"
+  },
+  {
+   "t": 2526,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open path=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" id=0 t=640"
+  },
+  {
+   "t": 2526,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open path=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" id=0 t=640"
+  },
+  {
+   "t": 2526,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=1 sqlite3=false vfs=false t=641"
+  },
+  {
+   "t": 2526,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=1 sqlite3=false vfs=false t=641"
+  },
+  {
+   "t": 2527,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=1 t=642"
+  },
+  {
+   "t": 2527,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=1 t=642"
+  },
+  {
+   "t": 2531,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open path=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" id=1 t=647"
+  },
+  {
+   "t": 2531,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open path=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" id=1 t=647"
+  },
+  {
+   "t": 2532,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=2 sqlite3=false vfs=false t=647"
+  },
+  {
+   "t": 2532,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=2 sqlite3=false vfs=false t=647"
+  },
+  {
+   "t": 2533,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=2 t=647"
+  },
+  {
+   "t": 2533,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=2 t=647"
+  },
+  {
+   "t": 2579,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-construct id=1 dir=expo-sqlite t=687"
+  },
+  {
+   "t": 2579,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-construct id=1 dir=expo-sqlite t=687"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-ready-begin id=1 t=688"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-ready-begin id=1 t=688"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-acquired id=1 capacity=0 size=0 paths=[] t=689"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-acquired id=1 capacity=0 size=0 paths=[] t=689"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=vln1auunhu path=\"\" flags=0x0 t=689"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=vln1auunhu path=\"\" flags=0x0 t=689"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=0kpq0moj7v path=\"\" flags=0x0 t=690"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=0kpq0moj7v path=\"\" flags=0x0 t=690"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ubnsuoxcfai path=\"\" flags=0x0 t=691"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ubnsuoxcfai path=\"\" flags=0x0 t=691"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ctfotqtv8q path=\"\" flags=0x0 t=691"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ctfotqtv8q path=\"\" flags=0x0 t=691"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=jt55229zayd path=\"\" flags=0x0 t=692"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=jt55229zayd path=\"\" flags=0x0 t=692"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=9ws4izu148h path=\"\" flags=0x0 t=693"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=9ws4izu148h path=\"\" flags=0x0 t=693"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-addcapacity id=1 capacity=6 t=693"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-addcapacity id=1 capacity=6 t=693"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=1 vfsId=1 t=694"
+  },
+  {
+   "t": 2580,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=1 vfsId=1 t=694"
+  },
+  {
+   "t": 2582,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 size=0/6 t=695"
+  },
+  {
+   "t": 2582,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 size=0/6 t=695"
+  },
+  {
+   "t": 2582,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=vln1auunhu path=\"/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 t=695"
+  },
+  {
+   "t": 2582,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=vln1auunhu path=\"/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 t=695"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=2 vfsId=1 t=701"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=2 vfsId=1 t=701"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"my1imsvb8cmft\" flags=0x106 size=1/6 t=701"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"my1imsvb8cmft\" flags=0x106 size=1/6 t=701"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=0kpq0moj7v path=\"/my1imsvb8cmft\" flags=0x106 t=702"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=0kpq0moj7v path=\"/my1imsvb8cmft\" flags=0x106 t=702"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=2 t=702"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=2 t=702"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=3 sqlite3=true vfs=true t=702"
+  },
+  {
+   "t": 2586,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=3 sqlite3=true vfs=true t=702"
+  },
+  {
+   "t": 2587,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=3 vfsId=1 t=702"
+  },
+  {
+   "t": 2587,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=3 vfsId=1 t=702"
+  },
+  {
+   "t": 2589,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=704"
+  },
+  {
+   "t": 2589,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=704"
+  },
+  {
+   "t": 2589,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=705"
+  },
+  {
+   "t": 2589,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=705"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=3 t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=3 t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=4 sqlite3=true vfs=true t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=4 sqlite3=true vfs=true t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=4 vfsId=1 t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=4 vfsId=1 t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=4 t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=4 t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=5 sqlite3=true vfs=true t=709"
+  },
+  {
+   "t": 2593,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=5 sqlite3=true vfs=true t=709"
+  },
+  {
+   "t": 2594,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=5 vfsId=1 t=709"
+  },
+  {
+   "t": 2594,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=5 vfsId=1 t=709"
+  },
+  {
+   "t": 2595,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=711"
+  },
+  {
+   "t": 2595,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=711"
+  },
+  {
+   "t": 2596,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=2/6 t=711"
+  },
+  {
+   "t": 2596,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=2/6 t=711"
+  },
+  {
+   "t": 2596,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ubnsuoxcfai path=\"0.hhv8ueddabj\" flags=0x806 t=711"
+  },
+  {
+   "t": 2596,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ubnsuoxcfai path=\"0.hhv8ueddabj\" flags=0x806 t=711"
+  },
+  {
+   "t": 2599,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=714"
+  },
+  {
+   "t": 2599,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=714"
+  },
+  {
+   "t": 2599,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=5 t=714"
+  },
+  {
+   "t": 2599,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=5 t=714"
+  },
+  {
+   "t": 2599,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=6 sqlite3=true vfs=true t=714"
+  },
+  {
+   "t": 2599,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=6 sqlite3=true vfs=true t=714"
+  },
+  {
+   "t": 2600,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=6 vfsId=1 t=714"
+  },
+  {
+   "t": 2600,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=6 vfsId=1 t=714"
+  },
+  {
+   "t": 2600,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=715"
+  },
+  {
+   "t": 2600,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=715"
+  },
+  {
+   "t": 2601,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=715"
+  },
+  {
+   "t": 2601,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=715"
+  },
+  {
+   "t": 2601,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=715"
+  },
+  {
+   "t": 2601,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=715"
+  },
+  {
+   "t": 2602,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=716"
+  },
+  {
+   "t": 2602,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=716"
+  },
+  {
+   "t": 2602,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=716"
+  },
+  {
+   "t": 2602,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=716"
+  },
+  {
+   "t": 2603,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=716"
+  },
+  {
+   "t": 2603,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=716"
+  },
+  {
+   "t": 2604,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=3/6 t=716"
+  },
+  {
+   "t": 2604,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=3/6 t=716"
+  },
+  {
+   "t": 2604,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ctfotqtv8q path=\"0.e45wqim446\" flags=0x806 t=717"
+  },
+  {
+   "t": 2604,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=ctfotqtv8q path=\"0.e45wqim446\" flags=0x806 t=717"
+  },
+  {
+   "t": 2604,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=718"
+  },
+  {
+   "t": 2604,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=718"
+  },
+  {
+   "t": 2605,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=6 t=718"
+  },
+  {
+   "t": 2605,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=6 t=718"
+  },
+  {
+   "t": 2605,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=7 sqlite3=true vfs=true t=718"
+  },
+  {
+   "t": 2605,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=7 sqlite3=true vfs=true t=718"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=7 vfsId=1 t=718"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=7 vfsId=1 t=718"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=718"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=718"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=719"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=719"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=4/6 t=719"
+  },
+  {
+   "t": 2606,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=4/6 t=719"
+  },
+  {
+   "t": 2607,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=jt55229zayd path=\"0.xoktnk4t8a8\" flags=0x806 t=719"
+  },
+  {
+   "t": 2607,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=jt55229zayd path=\"0.xoktnk4t8a8\" flags=0x806 t=719"
+  },
+  {
+   "t": 2607,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=720"
+  },
+  {
+   "t": 2607,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=720"
+  },
+  {
+   "t": 2607,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=720"
+  },
+  {
+   "t": 2607,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=720"
+  },
+  {
+   "t": 2608,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=720"
+  },
+  {
+   "t": 2608,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=720"
+  },
+  {
+   "t": 2608,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=721"
+  },
+  {
+   "t": 2608,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=721"
+  },
+  {
+   "t": 2608,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=721"
+  },
+  {
+   "t": 2608,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=721"
+  },
+  {
+   "t": 2609,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=5/6 t=721"
+  },
+  {
+   "t": 2609,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=5/6 t=721"
+  },
+  {
+   "t": 2609,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=9ws4izu148h path=\"0.3s9ip0r2dm9\" flags=0x806 t=721"
+  },
+  {
+   "t": 2609,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=9ws4izu148h path=\"0.3s9ip0r2dm9\" flags=0x806 t=721"
+  },
+  {
+   "t": 2609,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=723"
+  },
+  {
+   "t": 2609,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=723"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=7 t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=7 t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=8 sqlite3=true vfs=true t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=8 sqlite3=true vfs=true t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=8 vfsId=1 t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=8 vfsId=1 t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2610,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2611,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2611,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2611,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2611,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=724"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=6/6 t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=null flags=0x806 size=6/6 t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "DOSDIAG jOpen-FAILED id=1 zName=null flags=0x806 size=6/6: cannot create file"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "DOSDIAG jOpen-FAILED id=1 zName=null flags=0x806 size=6/6: cannot create file"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=725"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=8 t=726"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec path=null id=8 t=726"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=9 sqlite3=true vfs=true t=726"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=9 sqlite3=true vfs=true t=726"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=9 vfsId=1 t=726"
+  },
+  {
+   "t": 2612,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=9 vfsId=1 t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"\" path=\"/\" known=false t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close path=null id=9 t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close path=null id=9 t=726"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=10 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=10 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=10 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=10 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=11 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=11 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=11 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=11 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close path=null id=10 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close path=null id=10 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=12 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=12 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=12 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=12 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=13 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=13 sqlite3=true vfs=true t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=13 vfsId=1 t=727"
+  },
+  {
+   "t": 2613,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=13 vfsId=1 t=727"
+  },
+  {
+   "t": 2614,
+   "kind": "pageerror",
+   "text": "SQLiteError: not a database"
+  },
+  {
+   "t": 16341,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": false
+}

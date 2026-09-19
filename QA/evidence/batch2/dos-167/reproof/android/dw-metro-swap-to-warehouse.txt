@@ -1,0 +1,55 @@
+## stop the pre-DOS-167 delivery Metro :5177, pm clear the delivery app (the legacy dos-delivery.db must not stay on the QA phone), start the MAIN warehouse Metro :5176 08:29:31
+5177 listener 80159: node /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/node_modules/.bin/expo start --port 5177 --clear
+5177 listeners after stop: 0
+-- worktree git status after its Metro ran (expect empty): []
+-- delivery files before pm clear
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:29:32)
+total 7576
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 08:27 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 08:28 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 08:27 dos-delivery.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 08:29 dos-delivery.db-shm
+-rw------- 1 u0_a214 u0_a214 4828672 2026-09-14 08:29 dos-delivery.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-delivery.db (2867200)", "dos-delivery.db-shm (32768)", "dos-delivery.db-wal (4828672)" ], "stores": [], "strays": [], "legacy": [ "dos-delivery.db" ], "interim": [], "other": [] }
+pm clear: Success
+-- delivery files after pm clear: ls: files/SQLite: No such file or directory
+-- start the MAIN warehouse Metro :5176 (CI=1, pnpm web --clear)
+status: 
+lsof: illegal process ID: -d
+lsof 4.91
+ latest revision: ftp://lsof.itap.purdue.edu/pub/tools/unix/lsof/
+ latest FAQ: ftp://lsof.itap.purdue.edu/pub/tools/unix/lsof/FAQ
+ latest man page: ftp://lsof.itap.purdue.edu/pub/tools/unix/lsof/lsof_man
+ usage: [-?abhlnNoOPRtUvVX] [+|-c c] [+|-d s] [+D D] [+|-f[cgG]]
+ [-F [f]] [-g [s]] [-i [i]] [+|-L [l]] [+|-M] [-o [o]] [-p s]
+ [+|-r [t]] [-s [p:s]] [-S [t]] [-T [t]] [-u s] [+|-w] [-x [fl]] [--] [names]
+Use the ``-h'' option to get more help information.
+listener  cwd: 
+ps: option requires an argument -- p
+usage: ps [-AaCcEefhjlMmrSTvwXx] [-O fmt | -o fmt] [-G gid[,gid...]]
+          [-g grp[,grp...]] [-u [uid,uid...]]
+          [-p pid[,pid...]] [-t tty[,tty...]] [-U user[,user...]]
+       ps [-L]
+-- memory: System-wide memory free percentage: 33%
+## warehouse Metro re-check 08:31:11 (the 25 s check above answered nothing yet)
+status: 
+no listener on 5176
+-- Metro log
+ERROR: This version of pnpm requires at least Node.js v22.13
+The current version of Node.js is v22.9.0
+Visit https://r.pnpm.io/comp to see the list of past pnpm versions with respective Node.js version support.
+## warehouse Metro start FAILED above (driver/environment fault, not product): that shell sourced h-dw.sh, whose PATH put /opt/homebrew/bin (Node 22.9) ahead of fnm's Node 24, and pnpm 11 refuses Node < 22.13. Restart in a shell with fnm Node 24 first 08:31:28
+node: v24.20.0 pnpm: 11.25.0
+status: packager-status:running
+listener 83055 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/warehouse-app
+  PID COMMAND
+83055 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5176 --clear
+-- Metro log head
+Scope: all 13 workspace projects
+✓ Lockfile passes supply-chain policies (verified 14h ago)
+..                                       | Progress: resolved 0, reused 1, downloaded 0, added 0
+..                                       |  -29 ---
+..                                       | Progress: resolved 0, reused 29, downloaded 0, added 0, done
+
+Done in 1.1s using pnpm v11.25.0
+$ node ./scripts/sync-fonts.mjs && expo start --web --port 5176 --clear

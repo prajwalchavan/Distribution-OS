@@ -1,0 +1,91 @@
+## y1j amit.pawar signs in again (office reachable): his kept ops must go first, exactly once 2026-09-14 09:20:58
+set XCUIElementTypeTextField 0 = amit.pawar
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+shot y1j-amit-filled.png
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 2026-09-14 09:21:02
+1 +1.42s
+2 +1.78s
+3 +2.14s
+4 +2.47s
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+09:21:08 strip: Updated just now|
+shot y1j-amit-after-send.png
+home: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Godrej Hill|Today's beat|Shops: 10|Visited: 0|Ordered: 1|✓ Godrej Hill = 1|Kolsewadi|Birla College Road|Vertical scroll bar, 2 pages = 0%| = Search this beat|Prerna Super Market, Godrej Hill, Kalyan West · your las
+-- dos_qa (read-only) 2026-09-14 09:21:12
+sales_orders rows for 01a09e05-c8c7-7741-b201-de8bb92ee5d1:
+01a09e05-c8c7-7741-b201-de8bb92ee5d1|draft|salesperson|amit.pawar|Prerna Super Market|2026-09-14 09:21:02.721608+05:30
+count: 1
+sales_order_lines for it:
+01a09e05-ed02-7472-b69c-55ddcb4ecadc|01a09e05-c8c7-7741-b201-de8bb92ee5d1|f086f3e3-3697-7439-98d9-f20c231c110a|1|case
+count: 1
+sync_ops for the two op ids:
+01a09e05-ff73-72f8-8e76-52b1b3474275|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:21:02.721608+05:30
+01a09e05-ff73-72f9-9c83-71f87a64e79f|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:21:02.895871+05:30
+amit orders total: 389 (388 before)
+-- sales-service requests since kiran's sign-out (line 16844)
+09:21:02.657 GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789444262&
+09:21:02.680 GET /sync/manifest
+09:21:02.709 POST /sync/upload
+09:21:03.010 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:03.185 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:03.354 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:03.544 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:03.762 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:03.945 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:04.126 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:04.408 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:21:04.664 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+POST /sync/upload count: 1
+$ find "$C" -path '*SQLite*'   (09:21:12)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09dff-08e4-72c4-a641-75e565be8616
+lastUploadAt|2026-09-14T03:51:02.970Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMzo1MTowMC42MzJaIn0
+lastPulledAt|2026-09-14T03:51:05.632Z
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+-- _sync_errors
+0

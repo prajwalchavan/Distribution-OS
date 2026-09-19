@@ -1,0 +1,30 @@
+## teardown on the device 07:41:55
+NOT FOUND: ⋯
+NOT FOUND: Sign out
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:42:53)
+total 7960
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:41 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:38 ..
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:32 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217 4063232 2026-09-14 07:41 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (4063232)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (4063232)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- pm clear (merge review, defects outside the fix item 4: the 199952b file with an unsendable op must not stay on the QA phone)
+Success
+ls: files/SQLite: No such file or directory
+app after pm clear: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot z-teardown-signin-form.png
+-- adb reverse
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3005 tcp:3005
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5175 tcp:5175
+host-16 tcp:3003 tcp:3003
+
+-- whole-run crash check (logcat crash buffer and events since the last clear at step 6j, plus the earlier per-step checks in each file)
+-- logcat crash buffer (07:43:01)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

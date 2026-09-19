@@ -1,0 +1,30 @@
+## D3 sachin.dalvi (Sai) signs in on the same phone, no install, no clear 07:56:29
+SIGNED_IN d3-sachin: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+tap 'No thanks' at 484 1809
+strip has 'Updated just now' after ~3s
+## D3 after sync 07:57:54
+texts: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | 2. Balaji Wholesale Stores, Shop 28, Tilak Nagar, Dombivli East, Dombivli, 421201, 107906 rupees, Delivered | 2. Balaji Wholesale Stores | ₹1,07,906.00 | 107906 rupees | Shop 28, Tilak Nagar, Dombivli East, Dombivli, 421201 | Delivered | 3. Nandivali Super Bazar, Shop 16, Nandivali, Dombivli East, Dombivli, 421201, 44645 rupees, Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+shot d3-sachin-home.png
+--- shot times
+## d3-sachin sign-in tapped at 07:57:21 (1789352841.671156)
+1 +0.334s
+2 +0.687s
+3 +1.031s
+4 +1.382s
+5 +1.738s
+6 +2.245s
+--- A-marker (ganesh / Tarsun) grep over the 3 early full dumps + the synced screen (expect nothing)
+count: 0
+--- what the early dumps showed (first 300 chars each)
+dump1 +2.423s: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Today's trip | Still filling this phone from the office. | Your trips | Your trips
+dump2 +4.656s: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensor
+dump3 +8.258s: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensor
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (07:57:55)
+total 7592
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 07:57 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 07:54 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 07:57 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 07:57 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a214 u0_a214 4845152 2026-09-14 07:57 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (2867200)", "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm (32768)", "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal (4845152)" ], "stores": [ { "name": "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "5530f7b6-eb3a-7610-94df-7ab6000c3474", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "sachin @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0

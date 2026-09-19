@@ -1,0 +1,14 @@
+## y1d amit taps Sign out with 1 order (2 ops) queued and the office unreachable 2026-09-14 09:16:51
+tapped "More" Button at 352,105 (1 of 1)
+shot y1d-amit-menu.png
+menu: Expo Go|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|More, Settings, My account, Change your password, Sign out, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|Settings|My account|Change your password|Sign out|Close|Vertical scroll bar, 1 page = 0%|Horizontal scroll bar, 1 page = 0%|gearshape.fill|
+tapped 150 723
+shot y1d-amit-leave-sheet.png
+sheet: Expo Go|2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+$ has "not reached the office": YES
+$ has "for Amit Pawar only": YES
+$ has "No connection": YES
+$ has "Sign out, keep here": YES
+$ has "Cancel": YES
+$ has "Send now"  (expect NO: no Send now while the office cannot be reached): NO
+$ has "This browser cannot keep"  (memory-store body; expect NO): NO

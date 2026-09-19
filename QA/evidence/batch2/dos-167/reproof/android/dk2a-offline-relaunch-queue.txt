@@ -1,0 +1,25 @@
+## K2a (keep run 2 of 3) sachin (Sai) — office unreachable: remove adb reverse tcp:3000 + tcp:3005, force-stop + relaunch after a completed pull 08:03:54
+strip before: Updated just now 
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+
+force-stop + start in.distributionos.delivery at 08:03:58
+## S-127 (main JS, 2nd observation) home after the offline relaunch (+20s): 'Still filling this phone from the office' present? 1 ; strip: Offline since 8:02 am 
+shot dk2a-sachin-offline-home.png
+## open stop 8 Nandivali Corner Store
+row at: 401 1592
+stop screen: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:02 am | Stop 8 of 10 · TRIP-ACTIVE | Nandivali Corner Store | Not started | Owes ₹16,405.00 | Credit | Shop 30, Nandivali, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Still due | 12 Sep, 12:30 pm | ₹16,405.00 | 16405 rupees | 4 bills still open at this shop | Bills on this stop | ₹5,044.00 | Still filling this phone from the office. | SAI/0433, 11 Sep 2026, 5044 rupees, N
+shot dk2a-sachin-stop8.png
+tap 'I am at the shop' at 540 2207
+tap 'No thanks' at 484 1809
+after arrive: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:02 am · 1 waiting to send | Offline since 8:02 am · 1 waiting to send | Stop 8 of 10 · TRIP-ACTIVE | Nandivali Corner Store | At the shop | Owes ₹16,405.00 | Credit | Shop 30, Nandivali, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Arrived | Still due | 12 Sep, 12:30 pm | 14 Sep, 8:04 am | ₹16,405.00 | 16405 rupees | 4 bills still open at this shop | Bills on this stop | ₹5,044.00 | Still filling this phone from the office. | SAI/0433, 11 Sep 2026, 5044 rupees, Not sta
+shot dk2a-sachin-stop8-queued.png
+strip: Offline since 8:02 am · 1 waiting to send 
+08:04:54 outbox: acked attempts=7
+queued attempts=3

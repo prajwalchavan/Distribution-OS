@@ -1,0 +1,44 @@
+// Reads an `ls -la files/SQLite` listing on stdin and decodes every file name with the parseStoreName rule of
+// frontend/libs/offline/src/engine.ts (ruling 2 (s)), mirrored in QA/tools/e2e/s-098-shared-device.mjs. It flags a
+// -wal/-shm/-journal whose base file is absent, the legacy `dos-sales.db`, and the 199952b `dos-sales__u-…__t-….db`.
+import { readFileSync } from 'node:fs'
+const IDS = {
+  rahul: { userId: '8760e17e-4830-7395-a946-1e02fffa1ad7', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', distributor: 'Tarsun' },
+  kiran: { userId: '2239ec93-0bcd-7737-a70c-c60aa4d9e9f1', tenantId: '82f5c562-b7eb-7521-8e19-4aa6befc64f8', distributor: 'Sai' },
+  amit: { userId: 'efde1e76-9785-7827-aff2-6f56ecd33588', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', distributor: 'Tarsun' },
+}
+const PREFIXES = new Map([['s', 'dos-sales'], ['d', 'dos-delivery'], ['w', 'dos-warehouse'], ['h', 'dos-harness']])
+const STORE_NAME = /^([sdwh])([0-9a-z]{25})([0-9a-z]{25})$/
+function uuid(digits) {
+  let value = 0n
+  for (const digit of digits) value = value * 36n + BigInt(Number.parseInt(digit, 36))
+  const hex = value.toString(16).padStart(32, '0')
+  if (hex.length > 32) return null
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+function parseStoreName(name) {
+  const m = STORE_NAME.exec(name)
+  if (m === null) return null
+  const prefix = PREFIXES.get(m[1]); const userId = uuid(m[2]); const tenantId = uuid(m[3])
+  if (prefix === undefined || userId === null || tenantId === null) return null
+  return { prefix, userId, tenantId }
+}
+const text = readFileSync(0, 'utf8')
+const files = text.split('\n').map((l) => l.trim().split(/\s+/)).filter((p) => p.length >= 8 && p[0].startsWith('-')).map((p) => ({ name: p[p.length - 1], size: Number(p[4]) }))
+const names = new Set(files.map((f) => f.name))
+const out = { files: files.map((f) => `${f.name} (${f.size})`), stores: [], strays: [], legacy: [], interim: [], other: [] }
+for (const f of files) {
+  const base = f.name.replace(/-(wal|shm|journal)$/, '')
+  if (base !== f.name) { if (!names.has(base)) out.strays.push(f.name); continue }
+  if (/^dos-[a-z]+\.db$/.test(f.name)) { out.legacy.push(f.name); continue }
+  if (/^dos-[a-z]+__u-/.test(f.name)) {
+    const m = /^dos-([a-z]+)__u-([0-9a-f-]{36})__t-([0-9a-f-]{36})\.db$/.exec(f.name)
+    const who = m ? Object.keys(IDS).find((w) => IDS[w].userId === m[2] && IDS[w].tenantId === m[3]) ?? null : null
+    out.interim.push({ name: f.name, length: f.name.length, who }); continue
+  }
+  const parsed = parseStoreName(f.name)
+  if (parsed === null) { out.other.push(f.name); continue }
+  const who = Object.keys(IDS).find((w) => IDS[w].userId === parsed.userId && IDS[w].tenantId === parsed.tenantId) ?? null
+  out.stores.push({ name: f.name, length: f.name.length, pattern: /^s[0-9a-z]{50}$/.test(f.name), ...parsed, who: who ? `${who} @ ${IDS[who].distributor}` : 'UNKNOWN IDENTITY' })
+}
+console.log('-- decoded (parseStoreName rule): ' + JSON.stringify(out, null, 1).replace(/\n\s*/g, ' '))

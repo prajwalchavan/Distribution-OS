@@ -1,0 +1,422 @@
+TE
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+AP
+Amit Pawar
+salesperson
+My orders
+Waiting: 0
+Drafts: 5
+Orders
+Needs you
+Travelling
+All
+Drafts
+Not numbered yet
+14 Sep
+₹755.00
+Draft
+Not numbered yet
+14 Sep
+₹755.00
+Draft
+Not numbered yet
+14 Sep
+₹755.00
+Draft
+Not numbered yet
+14 Sep
+₹766.00
+Draft
+Not numbered yet
+12 Sep
+₹5,376.00
+Draft
+SO-0872
+12 Sep
+₹90,319.00
+Being picked
+SO-0869
+12 Sep
+₹7,076.00
+Packed
+SO-0876
+12 Sep
+₹18,027.00
+Packed
+SO-0870
+12 Sep
+₹7,361.00
+Confirmed
+SO-0866
+11 Sep
+₹26,581.00
+On the van
+SO-0854
+11 Sep
+₹73,245.00
+Delivered
+SO-0860
+11 Sep
+₹4,756.00
+On the van
+SO-0859
+11 Sep
+₹28,290.00
+Cancelled
+SO-0858
+11 Sep
+₹4,547.00
+Delivered
+SO-0855
+11 Sep
+₹7,856.00
+On the van
+SO-0864
+11 Sep
+₹907.00
+On the van
+SO-0863
+11 Sep
+₹2,843.00
+Delivered
+SO-0862
+11 Sep
+₹7,038.00
+Packed
+SO-0857
+11 Sep
+₹2,610.00
+On the van
+SO-0846
+10 Sep
+₹82,297.00
+Delivered
+SO-0853
+10 Sep
+₹16,994.00
+Delivered
+SO-0848
+10 Sep
+₹7,804.00
+Partially delivered
+SO-0845
+10 Sep
+₹4,264.00
+Packed
+SO-0840
+9 Sep
+₹6,257.00
+Delivered
+SO-0841
+9 Sep
+₹4,746.00
+Delivered
+SO-0835
+9 Sep
+₹29,346.00
+Delivered
+SO-0837
+9 Sep
+₹10,914.00
+Delivered
+SO-0828
+8 Sep
+₹29,952.00
+Delivered
+SO-0832
+8 Sep
+₹5,045.00
+Delivered
+SO-0823
+8 Sep
+₹11,185.00
+Delivered
+SO-0817
+7 Sep
+₹76,783.00
+Delivered
+SO-0818
+7 Sep
+₹12,780.00
+Delivered
+SO-0820
+7 Sep
+₹11,025.00
+Delivered
+SO-0822
+7 Sep
+₹517.00
+Delivered
+SO-0819
+7 Sep
+₹8,891.00
+Delivered
+SO-0811
+5 Sep
+₹19,286.00
+Delivered
+SO-0809
+5 Sep
+₹22,828.00
+Delivered
+SO-0812
+5 Sep
+₹3,051.00
+Delivered
+SO-0790
+4 Sep
+₹22,015.00
+Cancelled
+SO-0798
+4 Sep
+₹22,419.00
+Delivered
+SO-0797
+4 Sep
+₹16,319.00
+Partially delivered
+SO-0793
+4 Sep
+₹4,011.00
+Delivered
+SO-0791
+4 Sep
+₹3,564.00
+Delivered
+SO-0792
+4 Sep
+₹10,826.00
+Delivered
+SO-0789
+4 Sep
+₹883.00
+Delivered
+SO-0787
+4 Sep
+₹7,224.00
+Delivered
+SO-0786
+4 Sep
+₹935.00
+Delivered
+SO-0783
+3 Sep
+₹29,803.00
+Partially delivered
+SO-0780
+3 Sep
+₹5,754.00
+Delivered
+SO-0776
+2 Sep
+₹12,463.00
+Delivered
+SO-0768
+2 Sep
+₹43,581.00
+Delivered
+SO-0775
+2 Sep
+₹19,244.00
+Delivered
+SO-0772
+2 Sep
+₹5,313.00
+Delivered
+SO-0771
+2 Sep
+₹4,249.00
+Delivered
+SO-0764
+1 Sep
+₹9,934.00
+Delivered
+SO-0763
+1 Sep
+₹9,342.00
+Delivered
+SO-0762
+1 Sep
+₹13,786.00
+Delivered
+SO-0756
+1 Sep
+₹10,054.00
+Delivered
+SO-0755
+1 Sep
+₹867.00
+Delivered
+SO-0750
+31 Aug
+₹57,062.00
+Delivered
+SO-0753
+31 Aug
+₹5,068.00
+Delivered
+SO-0745
+31 Aug
+₹16,454.00
+Delivered
+SO-0744
+31 Aug
+₹7,283.00
+Delivered
+SO-0739
+31 Aug
+₹15,844.00
+Delivered
+SO-0748
+31 Aug
+₹1,732.00
+Delivered
+SO-0735
+29 Aug
+₹56,679.00
+Delivered
+SO-0732
+29 Aug
+₹23,068.00
+Delivered
+SO-0736
+29 Aug
+₹5,969.00
+Delivered
+SO-0738
+29 Aug
+₹12,854.00
+Delivered
+SO-0723
+28 Aug
+₹65,422.00
+Delivered
+SO-0730
+28 Aug
+₹18,280.00
+Cancelled
+SO-0722
+28 Aug
+₹26,848.00
+Partially delivered
+SO-0726
+28 Aug
+₹1,213.00
+Delivered
+SO-0719
+28 Aug
+₹7,894.00
+Delivered
+SO-0717
+28 Aug
+₹12,602.00
+Delivered
+SO-0725
+28 Aug
+₹8,139.00
+Delivered
+SO-0721
+28 Aug
+₹5,783.00
+Delivered
+SO-0716
+28 Aug
+₹2,119.00
+Delivered
+SO-0708
+27 Aug
+₹39,634.00
+Delivered
+SO-0710
+27 Aug
+₹28,960.00
+Delivered
+SO-0705
+27 Aug
+₹11,248.00
+Delivered
+SO-0713
+27 Aug
+₹15,071.00
+Delivered
+SO-0712
+27 Aug
+₹6,702.00
+Delivered
+SO-0702
+27 Aug
+₹4,025.00
+Cancelled
+SO-0711
+27 Aug
+₹1,490.00
+Delivered
+SO-0697
+26 Aug
+₹29,224.00
+Delivered
+SO-0701
+26 Aug
+₹5,585.00
+Delivered
+SO-0699
+26 Aug
+₹6,638.00
+Delivered
+SO-0698
+26 Aug
+₹13,515.00
+Delivered
+SO-0693
+26 Aug
+₹27,293.00
+Delivered
+SO-0692
+26 Aug
+₹9,231.00
+Delivered
+SO-0685
+25 Aug
+₹4,866.00
+Delivered
+SO-0682
+25 Aug
+₹23,525.00
+Delivered
+SO-0686
+25 Aug
+₹18,499.00
+Partially delivered
+SO-0687
+25 Aug
+₹5,633.00
+Partially delivered
+SO-0679
+25 Aug
+₹7,758.00
+Delivered
+SO-0673
+24 Aug
+₹76,115.00
+Partially delivered
+SO-0677
+24 Aug
+₹25,391.00
+Delivered
+SO-0674
+24 Aug
+₹18,820.00
+Delivered
+SO-0665
+22 Aug
+₹48,462.00
+Delivered
+Showing the newest 100 of 384. Search a shop for older ones.

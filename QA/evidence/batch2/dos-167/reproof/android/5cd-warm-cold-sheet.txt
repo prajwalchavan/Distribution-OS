@@ -1,0 +1,41 @@
+## step5c WARM sign-out with 2 queued ops, office unreachable 07:15:29
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot 5c-amit-warm-sheet.png
+title '2 changes have not reached the office' present: 1
+body names Amit Pawar: 1
+Send now present: 0
+keep button present: 1
+no-signal line present: 1
+tap 'Cancel' at 540 2002
+after Cancel: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:12 am · 2 waiting to send | Anand Bhavan Provision | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands. | Open the orde
+shot 5c-amit-after-cancel.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:15:47)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:12 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:12 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 07:09 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:15 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 07:15 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2605056)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4470232)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+
+## step5d COLD-START sign-out: force-stop, relaunch, tap Sign out at once 07:15:47
+⋯ found at +7.92s (947 247)
+Sign out tapped at +11.73s
+state at +16.92s: 2 changes have not reached the office | 2 changes have not reached the office | They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close | !, Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead. | ! | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.
+shot 5d-amit-cold-sheet.png
+title present: 1
+Send now present: 0
+keep button present: 1
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:16:04)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:15 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:15 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 07:09 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:15 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 07:15 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2605056)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4470232)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- logcat crash buffer (07:16:04)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

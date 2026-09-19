@@ -1,0 +1,33 @@
+## step2 rahul one-tap sign-out (nothing queued) 07:05:20 (epoch 1789349720)
+-- SecureStore prefs before (key names only)
+total 40
+drwxrwx--x 2 u0_a217 u0_a217 4096 2026-09-14 07:03 .
+drwx------ 8 u0_a217 u0_a217 4096 2026-09-14 07:02 ..
+-rw-rw---- 1 u0_a217 u0_a217 2319 2026-09-14 07:03 SecureStore.xml
+-rw-rw---- 1 u0_a217 u0_a217  127 2026-09-14 07:02 WebViewChromiumPrefs.xml
+-rw-rw---- 1 u0_a217 u0_a217   65 2026-09-14 07:02 expo.modules.kotlin.PersistentDataManager.xml
+name="key_v1-dos.device"
+name="key_v1-dos.auth.refresh"
+name="key_v1-dos.auth.session"
+tap '⋯' at 947 247
+menu: More | More | Settings | Settings | My account | My account | Change your password | Change your password | Sign out | Sign out | Close | Close
+shot 2-rahul-menu.png
+tap 'Sign out' at 540 2002
+sign-in form at +3.1s: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot 2-rahul-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:05:32)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-14 07:05 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-14 07:02 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- again +5s
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:05:37)
+total 16
+drwx------ 2 u0_a217 u0_a217 4096 2026-09-14 07:05 .
+drwxrwx--x 3 u0_a217 u0_a217 4096 2026-09-14 07:02 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore prefs after (key names only)
+name="key_v1-dos.device"
+-- logcat crash buffer (07:05:37)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

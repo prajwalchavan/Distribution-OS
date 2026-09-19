@@ -1,0 +1,23 @@
+NOTE 2026-09-14 09:31:58: sn1 attempt 1 did not queue anything. Online, the order screen has no 'Save on this phone' button (NOT FOUND), so the line stayed an unsaved draft, the outbox had nothing queued, and the Sign out tap took the one-tap path straight to the sign-in form (sn1-leave-sheet-online.png). Recorded as what happened; the Send-now check is repeated below.
+$ find "$C" -path '*SQLite*'   (09:31:58)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- dos_qa: amit orders total 391 (391 before; nothing new expected)
+-- proxy uploads so far: 0
+## sn2 amit.pawar signs in again (proxy still fail-upload: GETs pass, uploads 503) 2026-09-14 09:31:58
+set XCUIElementTypeTextField 0 = amit.pawar
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+tapped "Sign in" Button at 201,439 (2 of 2)
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+09:32:09 strip: Updated just now|
+shot sn2-amit-signed-in.png
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0
