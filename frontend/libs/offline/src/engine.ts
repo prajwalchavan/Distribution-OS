@@ -483,8 +483,29 @@ export class SyncEngine {
     } finally {
       opened()
     }
-    await this.sync('start')
+    await this.drain('start')
     if (this.started) this.schedulePoll()
+  }
+
+  /**
+   * THE QUEUE GOES FIRST (founder answer A, 2026-09-14; DOS-183). Every path the ENGINE schedules for itself —
+   * this start, a reconnect, a poll tick — sends what is waiting before it asks the server for anything, so a person
+   * who signs in over their own unsent work sees it leave before the snapshot comes down.
+   *
+   * `bringUp` has already put a `sending` op that the last process left back to `queued`, so the flush below sees it.
+   * The upload precedes even the manifest handshake: `sync.upload` needs no manifest (the protocol is a constant and
+   * the server validates the tables and the role itself, answering 2xx with `sync_errors`), and putting it first is
+   * what keeps a stale manifest from dropping a table out from under a row that has not been sent yet — the drop
+   * then finds `pending === 0`.
+   *
+   * A flush that fails changes nothing about the pull: it is caught and named here, and `sync` runs at once. The
+   * outbox row survives, and the retry timer owns it from there (1 → 2 → 4 … 60 s).
+   */
+  private async drain(reason: string): Promise<void> {
+    await this.flush({ pullAfter: false }).catch((error: unknown) => {
+      this.note(error, `flush(${reason})`)
+    })
+    await this.sync(reason)
   }
 
   /**
@@ -1010,16 +1031,26 @@ export class SyncEngine {
    * reconnect". Reads AND writes: a rep who walks out of a dead spot wants both.
    */
   setNetworkHint(online: boolean): void {
-    const was = this.radio()
+    /*
+     * WHAT THE ENGINE ITSELF KNEW, NEVER `navigator.onLine` (DOS-183). This used to ask `radio()`, which falls back
+     * to the browser's flag when no hint was ever given — and inside the browser's own `online` handler that flag is
+     * already true. A page that BOOTED in a dead spot (`radioOn` still null) therefore answered "I knew that" to the
+     * one event that says the radio is back, and sat on its queue until the 60 s poll: measured at 49.5 s with an
+     * order waiting. The only reason to do nothing is that this engine already believed it was connected AND its
+     * last call reached a service.
+     */
+    const believed = this.radioOn === true && this.reachable
     this.radioOn = online
     if (online) {
       this.reachable = true
       this.backoffMs = BACKOFF_START_MS
     }
     this.emitStatus()
-    if (!online || was || !this.started) return
-    void this.sync('reconnect')
-    void this.flush()
+    if (!online || believed || !this.started) return
+    // The reconnect IS the retry: leaving the timer armed would only send the same ops a second time.
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer)
+    this.retryTimer = null
+    void this.drain('reconnect')
   }
 
   /** What the platform says about the radio: its last answer, else the browser's own flag. */
@@ -1393,17 +1424,33 @@ export class SyncEngine {
     )
   }
 
-  /** One batch in flight at a time; calls queue behind each other rather than racing. */
-  flush(): Promise<void> {
-    this.flushChain = this.flushChain.then(async () => {
+  /**
+   * One batch in flight at a time; calls queue behind each other rather than racing.
+   *
+   * `pullAfter` is true for everyone who calls this on their own account (a write, a retry, the retry timer): what
+   * the server made of a write is only on the device once it is pulled back. `drain` passes false because it runs
+   * the pull itself, immediately afterwards, whether the upload worked or not (DOS-183).
+   */
+  flush(options: { pullAfter?: boolean } = {}): Promise<void> {
+    const pullAfter = options.pullAfter ?? true
+    const run = async (): Promise<void> => {
       const store = this.store
       if (store === null) return
-      await this.flushInternal(store)
-    })
-    return this.flushChain
+      await this.flushInternal(store, pullAfter)
+    }
+    /*
+     * A FLUSH THAT FAILS BLOCKS NOTHING (DOS-183). The chain was built with `.then` alone, so one throw out of
+     * `claim`/`settle` — a device store that blinked, not a network failure, which `flushInternal` already handles —
+     * left `flushChain` rejected and every later flush of this engine dead: the queue never moved again for the life
+     * of the tab. Nothing awaited it before, so it was latent; the start now does. The caller still SEES the
+     * rejection (`link`); what the next flush waits on never carries it forward.
+     */
+    const link = this.flushChain.then(run, run)
+    this.flushChain = link.catch(() => undefined)
+    return link
   }
 
-  private async flushInternal(store: SyncStore): Promise<void> {
+  private async flushInternal(store: SyncStore, pullAfter = true): Promise<void> {
     if (this.upgradeRequired) return
     let sent = false
     for (;;) {
@@ -1414,7 +1461,8 @@ export class SyncEngine {
       if (batch.length === 0) {
         // docs/27 §5, the pull schedule: "after every successful upload batch". What the server made
         // of the write — a number, a state, a price — is only on the device once it is pulled back.
-        if (sent && !this.pulling) await this.sync('after-upload')
+        // Skipped only for `drain`, which pulls itself the moment this returns (DOS-183).
+        if (sent && pullAfter && !this.pulling) await this.sync('after-upload')
         return
       }
       this.uploading = true
@@ -1879,10 +1927,9 @@ export class SyncEngine {
     this.pollTimer = setTimeout(() => {
       this.pollTimer = null
       void (async () => {
-        if (this.started && this.radio()) {
-          await this.sync('poll')
-          await this.flush()
-        }
+        // The queue before the pull on this tick too (DOS-183): a row a crash left behind, or one whose upload
+        // failed between ticks, goes out before the engine asks for anything.
+        if (this.started && this.radio()) await this.drain('poll')
         if (this.started) this.schedulePoll()
       })()
     }, this.pullIntervalMs)
