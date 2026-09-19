@@ -25,6 +25,8 @@ export interface LoadOutInput {
 
 export interface LoadOutResult {
   sheetId: string
+  /** The sheet's status after the count: `confirmed`, the only status that lets its bills leave. */
+  status: string
   challanNo: string | null
   /** The orders the confirm moved `packed → dispatched`. */
   dispatched: string[]
@@ -88,25 +90,23 @@ export async function loadOut(
     ).toBe(200)
   }
 
-  const confirmed = await call<{ item: { challanNo: string | null }; dispatched: string[] }>(
-    app,
-    godown,
-    'POST',
-    `/warehouse/load-sheets/${sheetId}/confirm`,
-    {
-      idempotencyKey: `load-out-confirm-${tag}`,
-      countedPackages: created.body.item.expectedPackages,
-      countedVanStock: vanStock.map((v) => ({ lotId: v.lotId, qtyPcs: v.qtyPcs })),
-      challanId: uuidv7(),
-      ...(ewbNo === undefined ? {} : { ewbNo }),
-    },
-  )
+  const confirmed = await call<{
+    item: { challanNo: string | null; status: string }
+    dispatched: string[]
+  }>(app, godown, 'POST', `/warehouse/load-sheets/${sheetId}/confirm`, {
+    idempotencyKey: `load-out-confirm-${tag}`,
+    countedPackages: created.body.item.expectedPackages,
+    countedVanStock: vanStock.map((v) => ({ lotId: v.lotId, qtyPcs: v.qtyPcs })),
+    challanId: uuidv7(),
+    ...(ewbNo === undefined ? {} : { ewbNo }),
+  })
   expect(
     confirmed.status,
     `load-out ${tag}: confirm the count ${JSON.stringify(confirmed.body)}`,
   ).toBe(200)
   return {
     sheetId,
+    status: confirmed.body.item.status,
     challanNo: confirmed.body.item.challanNo,
     dispatched: confirmed.body.dispatched,
   }

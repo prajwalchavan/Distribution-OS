@@ -27,6 +27,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
+import { loadOut } from '../../testing/load-out.js'
 import { BillingModule } from '../billing/index.js'
 import { FilesModule } from '../files/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
@@ -391,7 +392,8 @@ describeDb('delivery — day-end counts every trip payment (DATABASE_URL)', () =
   /**
    * A trip carrying one bill, loaded out the way DOS-172 Rule C wants before it departs (design Step 5): the godown
    * starts loading, the manager builds the load sheet for the trip with the bill's order and confirms it (a manager's
-   * confirm is its own approval), then the crew departs.
+   * confirm is its own approval), then the crew departs. The sheet itself goes through the shared `loadOut` helper,
+   * the one load-out every spec uses (Fable's merge ruling of 2026-09-19: one helper, not two).
    */
   const loadedOutTrip = async (
     label: string,
@@ -414,25 +416,13 @@ describeDb('delivery — day-end counts every trip payment (DATABASE_URL)', () =
     })
     expect(planned.status, JSON.stringify(planned.body)).toBe(200)
     await move(label, packer, tripId, 'start-loading')
-    const sheetId = uuidv7()
-    const sheet = await call(app, manager, 'POST', '/warehouse/load-sheets', {
-      idempotencyKey: `${label}-sheet-${run}`,
-      id: sheetId,
-      toLocationId: van.locationId,
-      tripId,
-      orderIds: [bill.orderId],
-    })
-    expect(sheet.status, JSON.stringify(sheet.body)).toBe(200)
-    const confirmed = await call<{ item: { status: string }; dispatched: string[] }>(
+    const counted = await loadOut(
       app,
-      manager,
-      'POST',
-      `/warehouse/load-sheets/${sheetId}/confirm`,
-      { idempotencyKey: `${label}-sheet-confirm-${run}`, countedPackages: 1, challanId: uuidv7() },
+      { godown: manager },
+      { tripId, orderIds: [bill.orderId], tag: `${label}-${run}` },
     )
-    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
-    expect(confirmed.body.item.status).toBe('confirmed')
-    expect(confirmed.body.dispatched).toEqual([bill.orderId])
+    expect(counted.status).toBe('confirmed')
+    expect(counted.dispatched).toEqual([bill.orderId])
     await move(label, driver, tripId, 'depart')
     return tripId
   }
