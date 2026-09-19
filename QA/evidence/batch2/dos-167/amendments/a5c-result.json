@@ -1,0 +1,106 @@
+{
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+ "delayMs": 20000,
+ "deadlineMs": 15000,
+ "lineAppearedMs": 16015,
+ "lineText": "This browser will not keep the offline copy after you close it",
+ "opfsAfterLateClose": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/0quf41siveni",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "",
+   "magic": ""
+  },
+  {
+   "path": "expo-sqlite/7sq5vi0ujuj",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "",
+   "magic": ""
+  },
+  {
+   "path": "expo-sqlite/bxn9tn324jh",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "",
+   "magic": ""
+  },
+  {
+   "path": "expo-sqlite/d0t8c16e61u",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "",
+   "magic": ""
+  },
+  {
+   "path": "expo-sqlite/i9eo6qapzyj",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "",
+   "magic": ""
+  },
+  {
+   "path": "expo-sqlite/t255sytqk2",
+   "kind": "file",
+   "size": 4091904,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+   "magic": "SQLite format 3"
+  }
+ ],
+ "wantedPresent": true,
+ "headers": [
+  "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+ ],
+ "events": [
+  {
+   "t": 16857,
+   "kind": "console",
+   "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+  },
+  {
+   "t": 16867,
+   "kind": "detail",
+   "args": [
+    "offline: no persistent store; running in memory",
+    {
+     "name": "s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+     "fallback": {
+      "wanted": "sqlite-web",
+      "reason": "open timed out after 15s"
+     }
+    }
+   ]
+  },
+  {
+   "t": 17299,
+   "kind": "line",
+   "appearedAfterMs": 16015
+  },
+  {
+   "t": 21901,
+   "kind": "held",
+   "url": "/node_modules/expo-sqlite/build/index.bundle?platform=web&de",
+   "heldMs": 20002
+  },
+  {
+   "t": 41987,
+   "kind": "held",
+   "url": "/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev",
+   "heldMs": 20002
+  },
+  {
+   "t": 63054,
+   "kind": "opfs",
+   "wantedPresent": true,
+   "headers": [
+    "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+   ],
+   "files": 6
+  }
+ ]
+}

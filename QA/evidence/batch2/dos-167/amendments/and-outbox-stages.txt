@@ -1,0 +1,61 @@
+DOS-167 — Android (Pixel_7_API_36) DELIVERY keep proof, 2026-09-19, main 254958a
+Driver: sachin.dalvi (Sai Distributors). Other person: arif.qureshi. App: in.distributionos.delivery (debug APK + Metro).
+Services for this walk: isolated auth :3010 and delivery :3015 on database dos_test_b2_dos167and (copy of dos_test_batch2b_template).
+Device reached them through adb reverse (device 3000 -> host 3010, device 3005 -> host 3015). dos and dos_qa were never touched.
+
+== and-pre.db : _outbox ==
+-- who this store belongs to:
+role=delivery
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+
+== and-queued-before-signout.db : _outbox ==
+seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at
+1|01a0ba6b-881d-7478-ac3b-3067c315128c|receipts|01a0ba6b-881b-7016-baa6-2567323e9bfc|PUT|queued|5|2026-09-19T16:06:44.509Z||
+-- who this store belongs to:
+role=delivery
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+
+== and-kept-after-signout.db : _outbox ==
+seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at
+1|01a0ba6b-881d-7478-ac3b-3067c315128c|receipts|01a0ba6b-881b-7016-baa6-2567323e9bfc|PUT|queued|9|2026-09-19T16:06:44.509Z||
+-- who this store belongs to:
+
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+
+== and-kept-network-back.db : _outbox ==
+seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at
+1|01a0ba6b-881d-7478-ac3b-3067c315128c|receipts|01a0ba6b-881b-7016-baa6-2567323e9bfc|PUT|queued|15|2026-09-19T16:06:44.509Z||
+-- who this store belongs to:
+
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+
+== and-sachin-while-other-signed-in.db : _outbox ==
+seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at
+1|01a0ba6b-881d-7478-ac3b-3067c315128c|receipts|01a0ba6b-881b-7016-baa6-2567323e9bfc|PUT|queued|15|2026-09-19T16:06:44.509Z||
+-- who this store belongs to:
+
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+
+== and-final-after-send.db : _outbox ==
+seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at
+1|01a0ba6b-881d-7478-ac3b-3067c315128c|receipts|01a0ba6b-881b-7016-baa6-2567323e9bfc|PUT|acked|16|2026-09-19T16:06:44.509Z|2026-09-19T16:16:02.149Z|2026-09-19T16:16:02.372Z
+-- who this store belongs to:
+role=delivery
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=5530f7b6-eb3a-7610-94df-7ab6000c3474
+
+== and-other-person.db (arif) : _outbox (must be empty) ==
+-- who this store belongs to:
+role=delivery
+tenantId=82f5c562-b7eb-7521-8e19-4aa6befc64f8
+userId=4b9e1c62-85ae-721f-bf63-b690134cb954
+-- any trace of sachin's queued receipt row in arif's store (must be 0):
+0
+
+== queued op payload (money taken at the door) ==
+{"retailer_id":"da1165a3-5c3b-7efc-9340-850fda7ca0bc","trip_id":"f352817e-1069-71a5-8321-c2f6c18d529e","mode":"cash","amount_paise":500000,"received_at":"2026-09-19T16:06:44.507Z","received_by":"5530f7b6-eb3a-7610-94df-7ab6000c3474","device_id":"01a0ba54-715e-7449-936e-cb5b8c70ffd4","status":"collected"}

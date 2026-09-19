@@ -1,0 +1,12 @@
+import { pull, sql } from './wh-pull.mjs'
+const local = pull('watd705p1yclnbvz4gk3obvpzh7r431bgsoifpg41eqordf44xk', 'wh-other-person')
+console.log('== Sunita Gaikwad: _outbox (must be empty) ==')
+console.log('rows:', sql(local, 'select count(*) from _outbox'))
+console.log(sql(local, 'select seq,op_id,tbl,row_id,status from _outbox order by seq'))
+console.log('== who this store belongs to ==')
+console.log(sql(local, "select key,value from _sync_state where key in ('userId','role','tenantId','deviceId')"))
+console.log("== trace of Bharat's queued op in her store (must be 0) ==")
+console.log('op_id hits:', sql(local, "select count(*) from _outbox where op_id='01a0ba8e-8c86-736b-96ba-6c836861bacf'"))
+console.log('that pick_lines row:', sql(local, "select count(*) from pick_lines where id='f8d9a25c-11a1-78a6-a99b-86a79d6f7a64'"))
+console.log('pick_lines rows in her store:', sql(local, 'select count(*) from pick_lines'))
+console.log('_sync_errors:', sql(local, 'select count(*) from _sync_errors'))

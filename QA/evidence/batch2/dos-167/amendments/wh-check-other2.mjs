@@ -1,0 +1,16 @@
+import { pull, sql } from './wh-pull.mjs'
+const her = pull('watd705p1yclnbvz4gk3obvpzh7r431bgsoifpg41eqordf44xk', 'wh-other-person-online')
+console.log('== Sunita, fully synced ==')
+console.log('outbox rows:', sql(her, 'select count(*) from _outbox'))
+console.log('pick_lines she holds:', sql(her, 'select count(*) from pick_lines'))
+console.log("Bharat's op id in her outbox:", sql(her, "select count(*) from _outbox where op_id='01a0ba9f-1bc0-76d7-92a8-b1e75af8c5af'"))
+console.log('the line he picked offline, as SHE sees it:')
+console.log(sql(her, "select id,line_no,requested_qty_pcs,picked_qty_pcs,picked_by from pick_lines where id='d3d9ff92-c59f-7d41-981d-2fcae1fda975'"))
+console.log('the three he sent while online, as she sees them:')
+console.log(sql(her, "select id,picked_qty_pcs from pick_lines where id in ('363ada0f-d002-700b-9dc0-ec5141c411e8','a7ed45fd-6311-7133-9889-1d90e6829236','f8d9a25c-11a1-78a6-a99b-86a79d6f7a64')"))
+console.log('whose store:', sql(her, "select key,value from _sync_state where key in ('userId','role','tenantId')"))
+
+const his = pull('wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk', 'wh-his-store-while-she-is-in')
+console.log('== Bharat\'s store while SHE is signed in ==')
+console.log(sql(his, 'select seq,op_id,row_id,status,attempts from _outbox order by seq'))
+console.log('whose store:', sql(his, "select key,value from _sync_state where key in ('userId','role')"))

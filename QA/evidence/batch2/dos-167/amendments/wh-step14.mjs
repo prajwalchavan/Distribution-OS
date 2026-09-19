@@ -1,0 +1,43 @@
+// Round 2, last leg — she signs out; HE signs in with a signal; his kept pick goes first.
+import * as A from './wh-lib.mjs'
+import { pull, sql } from './wh-pull.mjs'
+const DBF = 'wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk'
+
+await A.newSession()
+await A.sleep(2500)
+await A.dismissSystemDialogs()
+await A.clickText('Close', { timeout: 6000 }).catch(() => {})
+await A.sleep(1200)
+await A.clickText('More', { timeout: 15000 }).catch(() => {})
+await A.sleep(2000)
+await A.clickText('Settings', { timeout: 15000 }).catch(() => {})
+await A.sleep(3000)
+await A.scrollIntoView('Sign out').catch(() => {})
+await A.tapId('x4-sign-out', { timeout: 20000, label: 'Sign out (Sunita, nothing unsent)' })
+await A.sleep(8000)
+await A.shot('wh-42-other-person-signed-out')
+A.log('screen:', await A.texts(700))
+
+await A.signIn('bharat.jadhav', 'wh-43-him-back')
+await A.sleep(10000)
+await A.shot('wh-44-him-back-home')
+A.log('his home:', await A.texts(2000))
+await A.clickText('More', { timeout: 20000 })
+await A.sleep(2200)
+await A.clickText('Settings', { timeout: 15000 })
+await A.sleep(4000)
+A.log('his settings:', await A.texts(2200))
+await A.shot('wh-45-him-back-settings')
+await A.scrollIntoView('Waiting and refused').catch(() => {})
+await A.tapId('x4-tray', { timeout: 15000 }).catch(async () => { await A.clickText('Waiting and refused', { timeout: 8000 }) })
+await A.sleep(4000)
+await A.shot('wh-46-him-back-tray')
+A.log('his tray:', await A.texts(2000))
+await A.quit()
+
+const local = pull(DBF, 'wh-round2-final-after-send')
+console.log('== his _outbox at the end ==')
+console.log(sql(local, 'select seq,op_id,tbl,row_id,status,attempts,created_at,sent_at,acked_at from _outbox order by seq'))
+console.log('== upload vs pull order on this sign-in ==')
+console.log(sql(local, "select key,value from _sync_state where key in ('lastUploadAt','lastPulledAt')"))
+console.log('== sync errors ==', sql(local, 'select count(*) from _sync_errors'))

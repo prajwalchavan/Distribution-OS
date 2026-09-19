@@ -1,0 +1,106 @@
+DOS-167 — Android (Pixel_7_API_36, -memory 3072 -no-snapshot-save) SALES SANITY WALK, 2026-09-19.
+Repo: main. The run was asked for at ff28995; the working tree was at HEAD bc6dd04 and ff28995 is an
+ancestor of it — the two commits after ff28995 (254958a, bc6dd04) touch QA/ and docs/22 only, no
+product code (git diff --stat ff28995..HEAD).
+
+Person: rahul.deshmukh (Rahul Deshmukh, M/s. Tarsun Enterprise, user 8760e17e-4830-7395-a946-1e02fffa1ad7).
+Other person: amit.pawar (Amit Pawar, SAME distributor, SAME role, efde1e76-9785-7827-aff2-6f56ecd33588).
+Password Dos@1234. App: in.distributionos.sales (debug APK already installed, DEBUGGABLE, + Metro 8081).
+Driven with Appium 3.7.0 / UiAutomator2 8.7.0 on :4725 (both installed for this run), ALWAYS by
+resource-id (testID) or visible text — no raw coordinate taps anywhere.
+
+Services for this walk: isolated auth :3020 and sales :3023 on database dos_test_b2_dos167sa
+(CREATE DATABASE ... TEMPLATE dos_test_batch2b_template). Device reached them through adb reverse
+(device 3000 -> host 3020, device 3003 -> host 3023). `dos` and `dos_qa` were NEVER touched; the
+services already running on :3000..:3007 were left alone and were not used.
+
+HOW "NO SIGNAL" WAS MADE HONEST. Two things are NOT enough on their own:
+  - airplane mode alone: `adb reverse` is a loopback tunnel over the adb channel, so with the radio
+    off the app still reached the services (proved here: /sync/pull landed on the service at 17:18:31,
+    17:19:31 … 17:23:33 with airplane mode ON);
+  - `adb reverse --remove tcp:3003` alone: okhttp keeps the ESTABLISHED connection (same source port
+    50045 across every one of those calls), so an already-open socket keeps working.
+The cut that counts is `adb reverse --remove tcp:3003` PLUS stopping the sales service itself, which
+drops the socket. Only then did the strip say "Offline since 10:56 pm". Auth (:3020) was left
+reachable throughout, so signing out and in with no office was possible.
+
+== ROUND 1 — kept across sign-out, sent first at the same person's next sign-in ==
+Queued with no office: Shree Ganesh Kirana, "Repeat last order" (4) -> "Save on this phone".
+Screen after the tap: "Saved on this phone / It goes to the office as a draft as soon as there is a
+signal." and the strip "Offline since 10:56 pm · 5 waiting to send".
+
+sa-queued-before-signout.db : _outbox  (1 header + 4 lines, one order)
+1|01a0bab6-11c6-72c8-9ce6-cf7cbec6b703|sales_orders     |01a0bab5-eee9-75da-940f-5c7b76b4334b|PUT|queued|5|17:28:09.415Z
+2..5|…|sales_order_lines|…|PUT|queued|5|17:28:09.415Z
+-- whose store: userId=8760e17e-… (rahul), tenantId=01a0999a-…, role=salesperson,
+   deviceId=01a0b96a-8831-77b8-9cdf-86c2cd1bb228
+-- file name on the phone: s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5
+   (storeNameFor('dos-sales', rahul+Tarsun) computed independently = the same 51 characters)
+
+LEAVE SHEET at sign-out (screenshot sa-05-02-leave-sheet.png), word for word:
+   "5 changes have not reached the office
+    They stay on this phone for Rahul Deshmukh only and go the next time Rahul Deshmukh signs in here.
+    Nobody else can see them.
+    No connection — they cannot go now.      [Sign out, keep here] [Cancel]"
+
+sa-kept-after-signout.db : _outbox  — the same five rows, same op_ids, same created_at, attempts 6.
+   role emptied by sign-out; userId/tenantId/deviceId kept.
+   NOTE: the sign-out also DROPS the read set — 26 tables before, 5 after (_outbox, _sync_state,
+   _sync_errors, _gps_buffer, sqlite_sequence); cursor/manifest/lastPulledAt cleared. That is the
+   documented design (engine.ts dropReadSet, "docs/27 §12, DOS-167"), not a surprise of this run.
+
+sa-same-person-after-signin.db : the SAME person signs back in, still no office
+   the same five rows, same op_ids, same created_at; role=salesperson again.
+   On screen: "Offline since 10:59 pm · 5 waiting to send" (sa-07-same-person-01-home.png).
+   Because the read set was dropped at sign-out and there is no signal to rebuild it, the beat reads
+   "No beat today / Shops: 0 / Still loading the beat onto this phone" until a pull succeeds.
+
+THE OFFICE COMES BACK — the call order on the service (sales.log), to the millisecond:
+   17:32:37.479 GET  /sync/manifest
+   17:32:37.539 POST /sync/upload      <- the kept change goes FIRST
+   17:32:37.686 GET  /sync/pull
+sa-final-after-send.db : all five acked, sent_at 17:32:37.194Z, acked_at 17:32:37.542Z;
+   _sync_state lastUploadAt 17:32:37.542Z  <  lastPulledAt 17:32:42.611Z;  _sync_errors = 0.
+Server (dos_test_b2_dos167sa): sales_orders 01a0bab5-eee9-… state=draft, source=salesperson,
+   salesperson_id=8760e17e-… (rahul), total 1272200 paise, 4 lines.
+On screen: My orders -> Drafts shows "Not numbered yet · 19 Sep · ₹12,722.00 · Draft".
+
+== ROUND 2 — the isolation proof, with the other person FULLY SYNCED ==
+Office cut again. Queued: Om Sai Provision Store, repeat order, 3 lines, ₹7,071.12 before GST
+   -> "Saved on this phone", strip "Offline since 11:03 pm · 4 waiting to send".
+sa-round2-queued.db : _outbox seq 6..9, op_ids 01a0babc-f0cf-72d8/72d9/72da/72db, created 17:35:39.727Z.
+Leave sheet again named him: "4 changes have not reached the office … for Rahul Deshmukh only …
+   Nobody else can see them." -> "Sign out, keep here".
+The office was then RESTORED before the other person signed in, so she/he pulled everything the
+server knew — the strongest form of the test.
+
+amit.pawar signs in on the SAME phone:
+ - a DIFFERENT file appears beside Rahul's: se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+   (= storeNameFor('dos-sales', amit+Tarsun)); Rahul's file is untouched on disk (3928064 bytes, 23:06).
+ - sa-other-person-online.db: _outbox rows = 0; userId=efde1e76-… (amit); lastPulledAt 17:37:12.599Z.
+ - hits for each of Rahul's four queued op_ids in Amit's outbox: 0, 0, 0, 0.
+ - Rahul's round-2 order row (01a0babc-cf6d-…) in Amit's sales_orders: 0.
+ - Rahul's round-1 order, which by now IS a draft on the server (01a0bab5-eee9-…): 0.
+ - Amit's own sales_orders: 358, of which rows with salesperson_id = Rahul: 0.
+ - On screen Amit got his OWN beat (Godrej Hill, ten different shops) and "Waiting: 0 · Drafts: 1"
+   (his own draft) — sa-13-other-person-01-home.png / -02-orders.png.
+ - sa-his-store-while-she-is-in.db: Rahul's file while Amit is signed in — seq 6..9 still queued.
+Amit signs out with nothing queued: no leave sheet, and HIS file is removed from files/SQLite
+   altogether; Rahul's remains (sa-14-02-signed-out.png + the ls in sa-run.log).
+
+RAHUL COMES BACK (with a signal), after somebody else has used the phone:
+   17:38:45.936 GET  /sync/manifest
+   17:38:45.987 POST /sync/upload      <- his kept change still goes FIRST
+   17:38:46.366 GET  /sync/pull
+sa-round2-final-after-send.db : seq 6..9 acked, sent_at 17:38:45.642Z, acked_at 17:38:45.959Z;
+   lastUploadAt 17:38:45.959Z < lastPulledAt 17:38:51.543Z; _sync_errors = 0.
+Server: sales_orders 01a0babc-cf6d-… state=draft, salesperson_id=rahul, total 861600 paise.
+On screen: Drafts now lists BOTH — "₹8,616.00 · Draft" and "₹12,722.00 · Draft".
+
+VERDICT: PASS. Nothing was lost, the kept change went first both times (including across another
+person's session on the same phone), and the other person saw none of it — not in the queue, not in
+the rows, not on the screen.
+
+Screenshots: sa-01 … sa-16 in this folder. Scripts: sa-appium.mjs, sa1-signin.mjs, sa2-offline-queue.mjs,
+sa3-take-order.mjs, sa4-queue-order.mjs, sa5-signout.mjs, sa6-tray.mjs, sa9-drafts.mjs,
+sa10-round2-queue.mjs, sa14-signout-plain.mjs, sa-pull.sh. Full log: sa-run.log.
