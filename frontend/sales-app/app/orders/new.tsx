@@ -51,6 +51,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { deviceId } from '../../src/api'
 import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
 import { today } from '../../src/lib/dates'
+import { keepKey } from '../../src/lib/keep'
 import {
   useBargains,
   useCatalogIndex,
@@ -309,10 +310,10 @@ export default function OrderEntry(): React.JSX.Element {
         placed !== null
           ? local.online
             ? t('s3.placed')
-            : t('s3.queued')
+            : t(keepKey('queued', local.persistent))
           : local.online
             ? t('s3.place')
-            : t('s3.queue')
+            : t(keepKey('queue', local.persistent))
       }
       disabled={draft.lines.length === 0 || placed !== null}
       disabledReason={draft.lines.length === 0 ? t('s3.noLines') : undefined}
@@ -384,8 +385,8 @@ export default function OrderEntry(): React.JSX.Element {
         {phone ? orderChips : null}
         {placed !== null ? (
           <Panel
-            title={local.online ? t('s3.placedTitle') : t('s3.queuedTitle')}
-            meta={local.online ? t('s3.placedBody') : t('s3.queuedBody')}
+            title={local.online ? t('s3.placedTitle') : t(keepKey('queuedTitle', local.persistent))}
+            meta={local.online ? t('s3.placedBody') : t(keepKey('queuedBody', local.persistent))}
           >
             <Stack gap={3}>
               {/*

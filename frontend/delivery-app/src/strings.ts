@@ -95,6 +95,12 @@ export const strings = {
   'd.pieces': '{pieces} pc',
   'd.noConnectionRead': 'No connection. This is not the current picture.',
   'd.savedOnPhone': 'Saved on this phone. It goes as soon as there is a signal.',
+  /*
+   * DOS-179 — the same claims for a store that keeps nothing (the web build in a browser with no
+   * OPFS). `keepKey` in src/lib/keep.ts chooses; a screen never reaches for either key itself.
+   */
+  'd.savedOnPhoneTab':
+    'Held in this tab only — not saved. It goes as soon as there is a signal; close this tab and it is gone.',
   'd.offlineWrite': 'No signal — this stays on the phone until there is one.',
   'd.trip': 'Trip',
   'd.vehicle': 'Vehicle',
@@ -232,6 +238,7 @@ export const strings = {
   'd4.podGeo': 'Where you were is attached as proof',
   'd4.record': 'Record the delivery',
   'd4.recordOffline': 'Save on this phone',
+  'd4.recordOfflineTab': 'Hold until there is a signal',
   'd4.recorded': 'Delivery recorded',
   'd4.creditNote': 'Credit note {no} raised for what did not go in',
   'd4.creditNoteQueued': 'The office raises the credit note when this reaches them',
@@ -260,8 +267,10 @@ export const strings = {
   'd5.qr': 'Show the UPI QR',
   'd5.record': 'Record the payment',
   'd5.recordOffline': 'Save on this phone',
+  'd5.recordOfflineTab': 'Hold until there is a signal',
   'd5.recorded': 'Receipt {no}',
   'd5.recordedQueued': 'Receipt {no} written on this phone',
+  'd5.recordedQueuedTab': 'Receipt {no} held in this tab only',
   'd5.settled': 'Settled {count} bills',
   'd5.settled.one': 'Settled 1 bill',
   'd5.cashDiscount': 'Cash discount {amount}',

@@ -29,6 +29,7 @@ import {
 import { useRouter } from 'expo-router'
 
 import { instantWithClock } from '../../src/lib/dates'
+import { keepKey } from '../../src/lib/keep'
 import { useLocalState, useOrder, useShop } from '../../src/lib/local'
 import { PageTabs, Panel } from '../../src/lib/ui'
 
@@ -65,7 +66,7 @@ export default function NeedsAttention(): React.JSX.Element {
         <PageTabs group="/orders" active="/orders/attention" />
 
         <Txt field="label" desk="meta" color={colors.text.secondary}>
-          {local.online ? t('s5.trayOnline') : t('s5.trayOffline')}
+          {local.online ? t('s5.trayOnline') : t(keepKey('trayOffline', local.persistent))}
         </Txt>
 
         <Panel title={t('s5.needsYou')} meta={t('s5.needsYouMeta')}>

@@ -54,7 +54,7 @@ export {
   type TableShape,
 } from './schema.js'
 export { readAllState, readState, writeState, type SyncStateKey } from './state.js'
-export { connectionStateFrom, type ConnectionStateLike } from './connection.js'
+export { connectionStateFrom, keepClaim, type ConnectionStateLike } from './connection.js'
 
 export type * from './types.js'
 export type * from './wire.js'

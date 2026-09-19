@@ -125,6 +125,8 @@ export const strings = {
   'w.noMatch': 'Nothing on this sheet matches {code}',
   'w.saved': 'Saved',
   'w.savedOnDevice': 'Saved on this phone',
+  /* DOS-179 — the same claim on a store that keeps nothing; `keepKey` in src/lib/keep.ts chooses. */
+  'w.savedOnDeviceTab': 'Held in this tab only',
   'w.retry': 'Try again',
   'w.refresh': 'Refresh',
   'w.close': 'Close',

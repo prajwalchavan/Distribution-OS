@@ -195,6 +195,12 @@ export const strings = {
   's3.placed': 'Order placed',
   's3.queue': 'Save on this phone',
   's3.queued': 'Saved on this phone',
+  /*
+   * DOS-179 — the same two verbs for a store that keeps nothing (a browser with no OPFS falls back to
+   * memory). `keepKey` in src/lib/keep.ts chooses; a screen never reaches for either key itself.
+   */
+  's3.queueTab': 'Hold until there is a signal',
+  's3.queuedTab': 'Held in this tab only',
   's3.placedTitle': 'Order placed',
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
@@ -202,6 +208,9 @@ export const strings = {
   's3.queuedTitle': 'Saved on this phone',
   's3.queuedBody':
     'It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.',
+  's3.queuedTitleTab': 'Held in this tab only — not saved',
+  's3.queuedBodyTab':
+    'It goes to the office as a draft when the signal returns. Close this tab and it is gone.',
   's3.openOrder': 'Open the order',
   's3.backToBeat': 'Back to the beat',
   's3.noLines': 'Add at least one item',
@@ -271,6 +280,8 @@ export const strings = {
   's5.trayTitle': 'Needs you',
   's5.trayOnline': 'Signal is good. Anything waiting goes on its own.',
   's5.trayOffline': 'No signal. Everything below stays on this phone until there is one.',
+  's5.trayOfflineTab':
+    'No signal. Everything below is held in this tab only — close it and it is gone.',
   's5.needsYou': 'The office refused these',
   's5.needsYouMeta': 'Fix what it says, then try again — or throw the write away.',
   's5.nothingRejected': 'Nothing has been refused',

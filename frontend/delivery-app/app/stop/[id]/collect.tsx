@@ -47,6 +47,7 @@ import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
 import { longDate, today } from '../../../src/lib/dates'
+import { keepKey } from '../../../src/lib/keep'
 import {
   useHydrated,
   useLocalDeliveries,
@@ -172,7 +173,9 @@ export default function Collect(): React.JSX.Element {
         })
         haptics.success()
         setToast(
-          t('d5.recordedQueued', { no: bookNo.trim() === '' ? id.slice(0, 8) : bookNo.trim() }),
+          t(keepKey('recordedMoney', status.persistent), {
+            no: bookNo.trim() === '' ? id.slice(0, 8) : bookNo.trim(),
+          }),
         )
         router.replace(`/stop/${String(stopId ?? '')}`)
       } catch (thrown) {
@@ -229,7 +232,7 @@ export default function Collect(): React.JSX.Element {
           </Row>
           <Button
             testID="d5-record"
-            label={status.online ? t('d5.record') : t('d5.recordOffline')}
+            label={status.online ? t('d5.record') : t(keepKey('recordMoney', status.persistent))}
             variant="primary"
             size="floor"
             fullWidth
