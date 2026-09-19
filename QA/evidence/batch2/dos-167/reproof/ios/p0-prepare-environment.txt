@@ -1,0 +1,64 @@
+## prepare 2026-09-14 09:05:39 IST
+-- main checkout
+9cab1e7 QA batch 2: STATE — approved lanes building (wf_6abc2042-1ff); batch now 149 findings
+f9eb9d3 docs(22) + QA: founder approved DOS-168..173 (answers A: late trip payments refused and handed to the cashier, UPI accepted; no van leaves with an uncounted bill; wrong money corrected by appended entries) and the S-108 fix; DOS-167 as built after ruling 2
+d4a5339 QA batch 2: document-URL guard investigated (safe value, clean fix 9532a67); S-108 re-confirmed; DOS-167 ruling 2 merged bafb7b5, re-proof running
+9532a67 fix(DOS-026): absolutise the challan URL once, into readyUrl, and open only that — no raw fallback
+ M QA/tools/e2e/s-098-shared-device.mjs
+?? QA/evidence/batch2/dos-167/reproof/
+?? QA/evidence/batch2/merge-reviews/dos171-1.md
+-- product code since the ruling-2 merge bafb7b5 (frontend/backend)
+ frontend/manager-app/app/fulfilment/load-out.tsx | 24 ++++++++++++++----------
+ 1 file changed, 14 insertions(+), 10 deletions(-)
+-- DOS-167 addendum (x)/(y)/(z) commits present on HEAD
+bafb7b5 Merge QA batch 2 P0 DOS-167 ruling 2: a short store name the web database accepts, and a browser that cannot keep never offers to keep
+9eed92b docs(DOS-167): ruling 2 review minors — docs/27 useOutbox signature and the sign-out sentence
+4be7fe2 fix(DOS-167): ruling 2 (z3) — a file that may survive keeps its drafts
+c457b5b fix(DOS-167): ruling 2 (z2) — a sign-in waits at most 25 s for a leaving
+c236f18 fix(DOS-167): ruling 2 (z1) — every sign-out button takes the leave flow
+a9dac3c Merge main into qa/b2-dos167r2 before merging it back
+8ac2d19 QA batch 2: main red since wave 1 found and fixed (S-134); DOS-167 ruling-2 first pass, addendum (z), S-131..S-133
+1f8e0c3 fix(DOS-026): the challan URL goes through absoluteUrl() where it is opened, as the document-URL guard requires
+31de0f8 Merge main into qa/b2-dos167r2 before merging it back
+c1ce0a7 fix(DOS-167): ruling 2 — address review, docs/27 for the review fixes and the BigInt note
+9dc1c0d fix(DOS-167): ruling 2 — address review, an answer for an ended session signs nobody back in
+2956624 fix(DOS-167): ruling 2 — address review, the leaving runs inside the sign-out and waits for the secure store
+-- services
+3000 200
+3001 200
+3002 200
+3003 200
+3004 200
+3005 200
+3006 200
+3007 200
+-- services DATABASE_URL (sales-service env)
+DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_qa
+-- worker
+16490 node /Users/prajwalchavan/.local/state/fnm_multishells/16454_1789296089878/bin/pnpm --filter @dos/worker dev
+-- sales Metro :5175
+packager-status:running
+  PID STARTED                      COMMAND
+89146 Mon Sep 14 08:54:27 2026     node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+n/Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+CI=1
+-- other Metros
+5173: 
+5174: 
+5176: 
+5177: 
+5178: 
+5179: 
+8081: 89126
+89126 node QA/tools/proxy8081.mjs 5175
+-- Appium
+{"value":{"ready":true,"message":"The server is ready to accept new connections","build":{"version":"3.7.0","git-sha":"4
+-- simulator
+    iPhone 16 Pro (DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74) (Booted) 
+-- Expo Go crash reports before this run
+-rw-------@   1 prajwalchavan  _analyticsusers  63289 Sep 14 02:18 Expo Go-2026-09-14-021827.ips
+-rw-------@   1 prajwalchavan  _analyticsusers  64921 Sep 14 02:23 Expo Go-2026-09-14-022331.ips
+-- Android emulator
+none
+-- memory
+System-wide memory free percentage: 46%

@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+"""Request lines of a QA service log (pino JSON) since an epoch-seconds start: `synclog.py <service> <since_epoch_s> [filter]`.
+Prints IST time, reqId, method, url (the `since=` cursor masked), and the status when the request completed.
+Skips /health. Default filter: every request whose url matches the optional substring."""
+import json, sys, datetime, re
+svc, since = sys.argv[1], float(sys.argv[2]); flt = sys.argv[3] if len(sys.argv) > 3 else ''
+path = f"/Users/prajwalchavan/.dos-qa-logs/logs/{svc}.log"
+IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+reqs, done = {}, {}
+order = []
+with open(path, errors='replace') as fh:
+    for line in fh:
+        if not line.startswith('{'): continue
+        try: d = json.loads(line)
+        except Exception: continue
+        t = d.get('time', 0) / 1000
+        if t < since: continue
+        rid = d.get('reqId')
+        if d.get('msg') == 'incoming request' and rid:
+            url = d['req']['url']
+            if url.startswith('/health') or (flt and flt not in url): continue
+            url = re.sub(r'since=[^&]+', 'since=<cursor>', url)
+            url = re.sub(r'signature=[^&]+', 'signature=', url)
+            reqs[rid] = (t, d['req']['method'], url); order.append(rid)
+        elif d.get('msg') == 'request completed' and rid:
+            done[rid] = d.get('res', {}).get('statusCode')
+for rid in order:
+    t, m, u = reqs[rid]
+    ts = datetime.datetime.fromtimestamp(t, IST).strftime('%H:%M:%S.%f')[:-3]
+    print(f"{ts} {rid} {m} {u} -> {done.get(rid, '?')}")
+print(f"({len(order)} requests)")

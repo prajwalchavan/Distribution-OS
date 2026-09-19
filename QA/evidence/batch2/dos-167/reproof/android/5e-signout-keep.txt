@@ -1,0 +1,53 @@
+## step5e 'Sign out, keep here' from the cold sheet 07:16:23 (epoch 1789350383)
+keep at 540 1779
+sign-in form at +2.8s: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you. | ! | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead.
+shot 5e-amit-kept-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:16:29)
+total 3992
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:16 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:15 ..
+-rw------- 1 u0_a217 u0_a217 4067328 2026-09-14 07:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (4067328)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- SecureStore keys right after keep
+name="key_v1-dos.device"
+-- +15s
+screen: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you. | ! | Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to upd
+pidof app: 6599
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:16:46)
+total 3992
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:16 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:15 ..
+-rw------- 1 u0_a217 u0_a217 4067328 2026-09-14 07:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (4067328)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- logcat crash buffer (07:16:46)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)
+-- the kept file se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (copied read-only)
+total 7944
+drwxr-xr-x@  3 prajwalchavan  wheel       96 Sep 14 07:16 .
+drwxr-xr-x@ 16 prajwalchavan  wheel      512 Sep 14 07:16 ..
+-rw-r--r--@  1 prajwalchavan  wheel  4067328 Sep 14 07:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state
+key|value
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+deviceId|01a09d8b-2c1a-7298-a348-87d4bb93bca6
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09d96-ac8e-74c8-9491-116a1fef041b|sales_orders|01a09d95-7923-73b8-91ff-05386c614511|PUT|{"retailer_id":"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a09d96-ac8e-74c8-9491-116a1fef041b|queued|7|2026-09-14T01:44:52.624Z||||
+2|01a09d96-ac90-7417-a93e-269859639ef2|sales_order_lines|01a09d96-5f85-70b6-bf7b-71d73e55e38a|PUT|{"order_id":"01a09d95-7923-73b8-91ff-05386c614511","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09d96-ac90-7417-a93e-269859639ef2|queued|7|2026-09-14T01:44:52.624Z||||
+-- _sync_errors
+-- auth/sales requests since keep
+07:16:26.370 req-5c POST /auth/logout -> 200
+(1 requests)
+(0 requests)

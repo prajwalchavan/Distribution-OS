@@ -1,0 +1,22 @@
+## Z1 delivery, nothing queued: sachin > ⋯ > Me > Sign out (expect one tap, no sheet, file removed) 08:15:01
+strip: Updated just now 
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0
+tap '⋯' at 947 247
+tap 'Me' at 540 1640
+'Sign out' nodes: 42 2177 1038 2358 clickable
+462 2238 618 2296 -
+shot dz1-delivery-settings-bottom.png
+tap Settings 'Sign out' at 540 2267 (08:15:25)
+after tap (+4s): Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot dz1-delivery-after-signout.png
+sheet shown? 0 ; sign-in form? 1
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:15:37)
+total 16
+drwx------ 2 u0_a214 u0_a214 4096 2026-09-14 08:15 .
+drwxrwx--x 3 u0_a214 u0_a214 4096 2026-09-14 08:12 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.delivery (08:15:37)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

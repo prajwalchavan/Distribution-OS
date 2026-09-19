@@ -1,0 +1,25 @@
+## Z1 warehouse, nothing queued: bharat > ⋯ > Settings > Sign out (expect one tap, no sheet, file removed) 08:39:30
+logbox now: 0 (0 = clear)
+strip: Updated just now 
+-- summary: stores=1 [bharat @ Sai] legacy=0 interim=0 strays=0 other=0
+tap '⋯' at 938 256
+tap 'Settings' at 540 1376
+settings screen: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Me | SIGNED IN AS | Bharat Jadhav | ROLE | warehouse | DISTRIBUTOR | Sai Distributors, Dombivli | TABLES ON THIS DEVICE | 13 | This device | Held on this device | 0 waiting to send | Refused 0 | Waiting and refused | Waiting and refused | Signed-in devices | android, 14 Sep, 8:38 am, This device | android | 14 Sep, 8:38 am | This device | android, 14 Sep, 1:53 am, Another device | android |
+logbox now: 0 (0 = clear)
+'Sign out' nodes: 42 1896 1038 2096 clickable
+462 1966 618 2024 -
+shot wz1-warehouse-settings-bottom.png
+tap Settings 'Sign out' at 540 1996 (08:40:05)
+after tap (+4s): Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+shot wz1-warehouse-after-signout.png
+sheet shown? 0 ; sign-in form? 1
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (08:40:14)
+total 16
+drwx------ 2 u0_a213 u0_a213 4096 2026-09-14 08:40 .
+drwxrwx--x 3 u0_a213 u0_a213 4096 2026-09-14 08:33 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.warehouse (08:40:14)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

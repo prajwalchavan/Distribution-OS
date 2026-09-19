@@ -1,0 +1,14 @@
+## step1 after rahul sync 07:03:46
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:03:46)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:03 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:02 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:03 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:03 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:03 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2617344)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4515552)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- byte compare of the device name with ruling 2 (s)
+ s 8 0 j 3 a z q c g 6 o u r 2 5
+ a 3 5 r h w b g 7 r 0 3 g u z v
+ 9 z g h w m m y 1 i m s v b 8 c
+device name bytes: 51 ruling bytes: 51 byte-equal: True

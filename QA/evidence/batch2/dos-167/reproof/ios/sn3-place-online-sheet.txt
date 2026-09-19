@@ -1,0 +1,30 @@
+## sn3 online, uploads held back by the proxy (mode fail-upload): place one order through 'Place order' 2026-09-14 09:32:41
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)
+dragged 100 600 -> 100 300
+tapped "Add a case" Button at 314,464 (1 of 3)
+footer: Place order|Items 1 · ₹673.68 before GST|
+shot sn3-line-added.png
+tapped "Place order" Button at 310,716 (1 of 1)
+Place order tapped at 09:32:59
+shot sn3-after-place.png
+after place: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Prerna Super Market|Order|Back to the beat|This order|Clear|Campa Cola 1 L|Add items|On this phone: 171 items| = Search by item or brand|Vertical scroll bar, 5 pages = 18%|Horizontal scroll bar, 1 page = 0%|(disabled) Order placed|Items 1 · ₹673.68 before GST|Beat|Orders|Shops|Me|gearshape.fill|
+## sn3b device outbox 2026-09-14 09:33:16
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+-- _sync_errors
+0
+queued order id: ; queued ops: 
+-- dos_qa (read-only): rows for it: 0
+-- proxy log since 09:32:59
+09:33:01.461 [fail-upload] POST /orders -> 200
+09:33:01.588 [fail-upload] POST /orders/01a09e14-f29c-75b7-a818-c052bb7eb626/submit -> 200
+09:33:01.609 [fail-upload] GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+09:33:01.728 [fail-upload] GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500 -> 200
+09:33:01.743 [fail-upload] GET /sync/errors?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&unresolvedOnly=true&limit=50 -> 200
+09:33:05.474 [fail-upload] GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+09:33:05.545 [fail-upload] GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500 -> 200
+09:33:05.554 [fail-upload] GET /sync/errors?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&unresolvedOnly=true&limit=50 -> 200
+strip (expect waiting, no Offline): Updated just now|
+shot sn3-queued-online.png
+NOTHING QUEUED - not opening the sheet

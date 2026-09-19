@@ -1,0 +1,54 @@
+## S-127 REDO on the PRE-DOS-167 JavaScript (worktree 144bcfe, Metro :5177; the app was installed + pm cleared at 08:17:51 and the form is up now): sachin.dalvi signs in and syncs, then an offline relaunch 08:26:40
+5177 listener cwd: n/Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-lean-manager-billing/frontend/delivery-app ; proxy8081: 74883 node /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/proxy8081.mjs 5177
+SIGNED_IN ds127-redo-old-sachin: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+tap 'No thanks' at 484 1809
+strip has 'Updated just now' after ~3s
+## synced (old JS) 08:27:57: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Updated just now | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan 
+shot ds127-redo-old-sachin-synced.png
+-- files: the old JS must name its store dos-delivery.db (proves the pre-DOS-167 bundle is the one running)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:27:58)
+total 7576
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 08:27 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 08:27 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 08:27 dos-delivery.db
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 08:27 dos-delivery.db-shm
+-rw------- 1 u0_a214 u0_a214 4828672 2026-09-14 08:27 dos-delivery.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-delivery.db (2867200)", "dos-delivery.db-shm (32768)", "dos-delivery.db-wal (4828672)" ], "stores": [], "strays": [], "legacy": [ "dos-delivery.db" ], "interim": [], "other": [] }
+-- summary: stores=0 [] legacy=1 interim=0 strays=0 other=0
+## offline: remove adb reverse tcp:3000 + tcp:3005, force-stop + relaunch after the completed pull 08:28:18
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+
+force-stop + start in.distributionos.delivery at 08:28:19
+## S-127 (PRE-DOS-167 JS) home after the offline relaunch (+20s): SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:27 am | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | Still filling this phone from the office. | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+S-127 'Still filling this phone from the office' present (old JS, +20s)? 1
+shot ds127-redo-old-sachin-offline-home.png
+S-127 (old JS, +35s) present? 1 ; strip: Offline since 8:27 am 
+shot ds127-redo-old-sachin-offline-home-35s.png
+3000
+3005
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3005 tcp:3005
+
+-- crash check for in.distributionos.delivery (08:28:59)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+## S-127 COMPARISON RESULT
+- MAIN JS (bafb7b5, store d51kexlh…): after an offline relaunch with a completed pull, the home showed 'Still filling this phone from the office — this may not be the whole trip yet.' at +20 s and +35 s, three times out of three (dk1a-offline-relaunch-queue.txt, dk2a-offline-relaunch-queue.txt, dk3-keep.txt; shots dk1a-sachin-offline-home*.png, dk2a-sachin-offline-home.png, dk3a-sachin-offline-home.png).
+- PRE-DOS-167 JS (worktree b2-lean-manager-billing 144bcfe, store dos-delivery.db — the listing above proves that bundle ran): the same sentence at +20 s and +35 s after the same offline relaunch with a completed pull (ds127-redo-old-sachin-offline-home*.png).
+- Reading: S-127 reproduces on JavaScript from before DOS-167, so DOS-167 did not cause it. Per addendum (x) it stays a P3 row and is not fixed in the ruling-2 lane.

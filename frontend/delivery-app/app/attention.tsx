@@ -75,9 +75,12 @@ export default function NeedsAttention(): React.JSX.Element {
       testID="tray-screen"
     >
       <Stack gap={6}>
-        <Txt field="label" desk="meta" color={colors.text.secondary} testID="tray-store">
-          {status.persistent ? t('tray.storeDisk') : t('tray.storeMemory')}
-        </Txt>
+        {/* Nothing is claimed about keeping while the store is still opening (DOS-167 ruling 3 (ee)). */}
+        {status.persistent === null ? null : (
+          <Txt field="label" desk="meta" color={colors.text.secondary} testID="tray-store">
+            {status.persistent ? t('tray.storeDisk') : t('tray.storeMemory')}
+          </Txt>
+        )}
 
         <Stack gap={3}>
           <Txt field="title" desk="section" as="h2">

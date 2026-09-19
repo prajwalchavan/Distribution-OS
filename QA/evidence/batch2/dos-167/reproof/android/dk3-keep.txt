@@ -1,0 +1,94 @@
+## K3a (keep run 3 of 3) sachin (Sai) — office unreachable: remove adb reverse tcp:3000 + tcp:3005, force-stop + relaunch after a completed pull 08:11:06
+strip before: Updated just now 
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+
+force-stop + start in.distributionos.delivery at 08:11:11
+## S-127 (main JS, 3rd observation) 'Still filling this phone from the office' present? 1 ; strip: Offline since 8:11 am 
+shot dk3a-sachin-offline-home.png
+stop 9 row at: 395 1821
+stop screen: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:11 am | Stop 9 of 10 · TRIP-ACTIVE | Vighnaharta Kirana | Not started | Owes ₹1,39,668.00 | Credit | Shop 33, Nandivali, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Still due | 1
+shot dk3a-sachin-stop9.png
+tap 'I am at the shop' at 540 2207
+tap 'No thanks' at 484 1809
+after arrive: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:11 am · 1 waiting to send | Offline since 8:11 am · 1 waiting to send | Stop 9 of 10 · TRIP-ACTIVE | Vighnaharta Kirana | At the shop | Owes ₹1,39,668.00 | Credit | Shop 33, Nandivali, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Arrived | Still due | 12 Sep, 1:00 pm | 14 Sep,
+shot dk3a-sachin-stop9-queued.png
+queued on strip? 1
+08:12:07 outbox seq 3: 01a09dca-f8dd-729d-8ea5-929e819d6054 queued attempts=3
+K3 op: 01a09dca-f8dd-729d-8ea5-929e819d6054
+## K3b ⋯ menu > Sign out with 1 queued 08:12:07
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 1 change has not reached the office | 1 change has not reached the office | They stay on this phone for Sachin Dalvi only and go the next time Sachin Dalvi signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot dk3b-sachin-leave-sheet.png
+sheet shown? 1 ; Send now present? 0 ; names the person? for Sachin Dalvi only
+tap 'Sign out, keep here' at 540 1779
+keep tapped at 08:12:22 (1789353742.269278)
++1.4s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-1.png
++2.8s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-2.png
++4.1s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-3.png
++5.4s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-4.png
++7.0s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-5.png
++8.5s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-6.png
++9.8s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-7.png
++11.3s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-8.png
++13.2s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-9.png
++14.6s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-10.png
++16.0s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-11.png
++17.5s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-12.png
++18.9s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-13.png
++20.2s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-14.png
++21.5s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-15.png
++22.9s pid=7756 top=in.distributionos.delivery shot=dk3b-keep-16.png
+screen at end: Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot dk3b-sachin-kept-signed-out.png
+sign-in form after keep? 1
+-- crash check for in.distributionos.delivery (08:12:47)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:12:47)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 08:12 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 08:11 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 08:12 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-- decoded (parseStoreName rule): { "files": [ "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (2945024)" ], "stores": [ { "name": "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "5530f7b6-eb3a-7610-94df-7ab6000c3474", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "sachin @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0
+-- kept file (read-only copy)
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state (value cut at 120)
+lastUploadAt|2026-09-14T02:40:02.939Z
+userId|5530f7b6-eb3a-7610-94df-7ab6000c3474
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+deviceId|01a09dba-99ff-7700-b9f6-f6c2cc57f85a
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|trip_stops|8d62c707-1fc1-749e-b460-9cd5a7c01584|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:30:09.840Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:30:09.840Z"}|2026-09-13T10:41:22.953Z|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|acked|7|2026-09-14T02:30:09.865Z|2026-09-14T02:32:54.393Z|2026-09-14T02:32:54.493Z||
+2|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|trip_stops|01aa7774-c6e8-734c-b5db-52031c1d25f1|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:34:47.051Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:34:47.051Z"}|2026-09-13T10:41:22.953Z|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|acked|14|2026-09-14T02:34:47.073Z|2026-09-14T02:40:02.829Z|2026-09-14T02:40:02.939Z||
+3|01a09dca-f8dd-729d-8ea5-929e819d6054|trip_stops|8fbd547e-b4fb-74ee-80dd-f1ed109447a7|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:42:00.024Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:42:00.024Z"}|2026-09-13T10:41:22.953Z|01a09dca-f8dd-729d-8ea5-929e819d6054|queued|6|2026-09-14T02:42:00.036Z||||
+-- _sync_errors
+## K3b relaunch while still offline (y): force-stop + start 08:12:48
+force-stop + start in.distributionos.delivery at 08:12:49
+after relaunch (+12s): Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot dk3b-relaunch-offline.png
+relaunch shows the sign-in form? 1
+relaunch shows sachin's session? 0
+-- crash check for in.distributionos.delivery (08:13:04)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

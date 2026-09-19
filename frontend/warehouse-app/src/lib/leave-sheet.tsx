@@ -24,7 +24,7 @@ export interface LeaveSheetProps {
   rejected: number
   online: boolean
   /** False while the device store is in memory (ruling 2 (t)): no keep is offered, and the body says why. */
-  persistent: boolean
+  persistent: boolean | null
   /** The person signing out. */
   name: string
   /** The distributor being left, whose file keeps the changes. */

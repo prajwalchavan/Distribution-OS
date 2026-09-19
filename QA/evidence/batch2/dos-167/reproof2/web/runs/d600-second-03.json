@@ -1,0 +1,662 @@
+{
+ "label": "d600-second-03",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 602,
+   "at": 1667
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 602,
+   "at": 2385
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 603,
+   "at": 24216
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 601,
+   "at": 24931
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/567saamwfp",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/7tj7hqquj69",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/dd0qbtw48x",
+   "kind": "file",
+   "size": 3940352,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  },
+  {
+   "path": "expo-sqlite/lh8eo5e1zg",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/mkjd85u4hr8",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/okmazsle7eq",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  }
+ ],
+ "walkEarly": [],
+ "syncRequests": [
+  {
+   "t": 2507,
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2711,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500"
+  },
+  {
+   "t": 2851,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 2962,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 3090,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 3216,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 3346,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 3481,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 3645,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 3795,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 3952,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 4135,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 4264,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 4412,
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 25038,
+   "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 25096,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyNzo1My43NTRaIn0"
+  },
+  {
+   "t": 25134,
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 85145,
+   "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 85190,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyODoxNC41ODZaIn0"
+  },
+  {
+   "t": 85241,
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  }
+ ],
+ "manifestCalls": 3,
+ "pullCalls": 14,
+ "offlineLines": [],
+ "notADatabase": 0,
+ "cannotCreate": 0,
+ "beatFinal": {
+  "notPersisted": false,
+  "stillLoading": false
+ },
+ "afterReload": null,
+ "second": {
+  "who": "amit",
+  "notPersisted": false,
+  "stillLoading": false,
+  "walk": [
+   {
+    "path": "expo-sqlite/",
+    "kind": "directory"
+   },
+   {
+    "path": "expo-sqlite/567saamwfp",
+    "kind": "file",
+    "size": 4096,
+    "sqlitePath": ""
+   },
+   {
+    "path": "expo-sqlite/7tj7hqquj69",
+    "kind": "file",
+    "size": 4096,
+    "sqlitePath": ""
+   },
+   {
+    "path": "expo-sqlite/dd0qbtw48x",
+    "kind": "file",
+    "size": 3940352,
+    "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+   },
+   {
+    "path": "expo-sqlite/lh8eo5e1zg",
+    "kind": "file",
+    "size": 4096,
+    "sqlitePath": ""
+   },
+   {
+    "path": "expo-sqlite/mkjd85u4hr8",
+    "kind": "file",
+    "size": 4096,
+    "sqlitePath": ""
+   },
+   {
+    "path": "expo-sqlite/okmazsle7eq",
+    "kind": "file",
+    "size": 4096,
+    "sqlitePath": ""
+   }
+  ],
+  "newEvents": [
+   {
+    "t": 22875,
+    "kind": "worker-closed"
+   },
+   {
+    "t": 23554,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/refresh"
+   },
+   {
+    "t": 23562,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/refresh"
+   },
+   {
+    "t": 23571,
+    "kind": "request",
+    "method": "GET",
+    "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789896498&signature=48ca50798187f22a0ea471769970918f898aa0053e845067b4c903c3ef13"
+   },
+   {
+    "t": 24324,
+    "kind": "worker-created",
+    "url": "blob:http://localhost:5175/3854619a-c471-4a39-9b84-5a9ffd0198e9"
+   },
+   {
+    "t": 25038,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 25042,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 25096,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyNzo1My43NTRaIn0"
+   },
+   {
+    "t": 25130,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyNzo1My43NTRaIn0"
+   },
+   {
+    "t": 25134,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+   },
+   {
+    "t": 25137,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+   },
+   {
+    "t": 83517,
+    "kind": "second-signin-failed",
+    "text": "TimeoutError: page.waitForSelector: Timeout 60000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=sign-in-username]') to be visible\n"
+   },
+   {
+    "t": 85145,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 85157,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 85190,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyODoxNC41ODZaIn0"
+   },
+   {
+    "t": 85236,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyODoxNC41ODZaIn0"
+   },
+   {
+    "t": 85241,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+   },
+   {
+    "t": 85247,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+   }
+  ],
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  ]
+ },
+ "events": [
+  {
+   "t": 884,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 943,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 974,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 1021,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 1037,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789896475&signature=c848794f45d09a823ee17a71ddab0c334ede57f7a9440cb134ba3f89bf9e"
+  },
+  {
+   "t": 1038,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 1040,
+   "kind": "opfs-early",
+   "files": 0
+  },
+  {
+   "t": 1042,
+   "kind": "beat",
+   "notPersisted": false,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 1777,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/2e3f3bf6-a188-4710-b808-169281c59e97"
+  },
+  {
+   "t": 2507,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2511,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2711,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500"
+  },
+  {
+   "t": 2765,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500"
+  },
+  {
+   "t": 2851,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 2906,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 2962,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 3007,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 3058,
+   "kind": "beat",
+   "notPersisted": false,
+   "stillLoading": false,
+   "updated": true,
+   "notUpdated": false
+  },
+  {
+   "t": 3090,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 3141,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 3216,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 3275,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 3346,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 3407,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 3481,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 3550,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 3645,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 3722,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 3795,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 3863,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 3952,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 4012,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 4135,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 4186,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 4264,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 4338,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 4412,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 4418,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 21351,
+   "kind": "opfs-final",
+   "files": 6
+  },
+  {
+   "t": 22875,
+   "kind": "worker-closed"
+  },
+  {
+   "t": 23554,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/refresh"
+  },
+  {
+   "t": 23562,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/refresh"
+  },
+  {
+   "t": 23571,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789896498&signature=48ca50798187f22a0ea471769970918f898aa0053e845067b4c903c3ef13"
+  },
+  {
+   "t": 24324,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/3854619a-c471-4a39-9b84-5a9ffd0198e9"
+  },
+  {
+   "t": 25038,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 25042,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 25096,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyNzo1My43NTRaIn0"
+  },
+  {
+   "t": 25130,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyNzo1My43NTRaIn0"
+  },
+  {
+   "t": 25134,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 25137,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 83517,
+   "kind": "second-signin-failed",
+   "text": "TimeoutError: page.waitForSelector: Timeout 60000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=sign-in-username]') to be visible\n"
+  },
+  {
+   "t": 85145,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 85157,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 85190,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyODoxNC41ODZaIn0"
+  },
+  {
+   "t": 85236,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQwOToyODoxNC41ODZaIn0"
+  },
+  {
+   "t": 85241,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 85247,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/errors?deviceId=01a0b8fe-66b8-710f-9c70-f06cfa82d342&unresolvedOnly=true&limit=50"
+  }
+ ],
+ "pass": true
+}

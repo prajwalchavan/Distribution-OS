@@ -1,0 +1,134 @@
+TE
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+AP
+Amit Pawar
+salesperson
+Shops
+Shops: 29
+Shops
+Losing
+Catalog
+Anand Bhavan Provision
+R-0043 · Kolsewadi · Kolsewadi, Kalyan East
+₹35,548.00
+C
+Ansari Kirana Stores
+R-0032 · Godrej Hill · Godrej Hill, Kalyan West
+₹8,042.00
+C
+Ashirwad Provision
+R-0055 · Birla College Road · Birla College Road, Kalyan West
+—
+C
+Birla Road Kirana Mart
+R-0058 · Birla College Road · Birla College Road, Kalyan West
+₹18,873.00
+C
+City Light Provision
+R-0034 · Godrej Hill · Godrej Hill, Kalyan West
+₹29,824.00
+C
+Dnyandeep Stores
+R-0048 · Kolsewadi · Kolsewadi, Kalyan East
+₹98,162.00
+B
+Friends Corner Stores
+R-0036 · Godrej Hill · Godrej Hill, Kalyan West
+₹25,537.00
+C
+Gavhane Kirana
+R-0039 · Godrej Hill · Godrej Hill, Kalyan West
+₹38,056.00
+C
+Gurukrupa Provision
+R-0059 · Birla College Road · Birla College Road, Kalyan West
+₹1,27,901.00
+B
+Hariom Kirana Bhandar
+R-0057 · Birla College Road · Birla College Road, Kalyan West
+₹72,917.00
+B
+Karve Provision
+R-0052 · Birla College Road · Birla College Road, Kalyan West
+₹26,616.00
+C
+Khan General Store
+R-0046 · Kolsewadi · Kolsewadi, Kalyan East
+₹907.00
+D
+Kolsewadi Corner Store
+R-0045 · Kolsewadi · Kolsewadi, Kalyan East
+₹21,608.00
+C
+Mangal Traders
+R-0047 · Kolsewadi · Kolsewadi, Kalyan East
+₹867.00
+C
+Meghana General Store
+R-0056 · Birla College Road · Birla College Road, Kalyan West
+₹28,496.00
+C
+Metro Kirana Bazar
+R-0035 · Godrej Hill · Godrej Hill, Kalyan West
+₹39,300.00
+C
+Nakshatra Kirana
+R-0050 · Kolsewadi · Kolsewadi, Kalyan East
+₹25,825.00
+C
+New Bombay Stores
+R-0033 · Godrej Hill · Godrej Hill, Kalyan West
+₹1,31,361.00
+B
+Nutan Kirana Stores
+R-0054 · Birla College Road · Birla College Road, Kalyan West
+₹34,995.00
+C
+Prerna Super Market
+R-0031 · Godrej Hill · Godrej Hill, Kalyan West
+₹3,94,334.00
+A
+Rameshwar General Store
+R-0051 · Birla College Road · Birla College Road, Kalyan West
+₹57,297.00
+B
+Rukmini Provision
+R-0038 · Godrej Hill · Godrej Hill, Kalyan West
+₹1,21,841.00
+B
+Sahyadri Super Bazar
+R-0053 · Birla College Road · Birla College Road, Kalyan West
+₹4,81,610.00
+A
+Sharma Kirana Stores
+R-0037 · Godrej Hill · Godrej Hill, Kalyan West
+₹32,464.00
+C
+Shubhalabh Stores
+R-0040 · Godrej Hill · Godrej Hill, Kalyan West
+₹33,348.00
+C
+Sujata Stores
+R-0044 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+Trimurti General Store
+R-0041 · Kolsewadi · Kolsewadi, Kalyan East
+₹9,174.00
+C
+Vaibhav Kirana Mart
+R-0042 · Kolsewadi · Kolsewadi, Kalyan East
+₹75,228.00
+B
+Vasudha Stores
+R-0060 · Birla College Road · Birla College Road, Kalyan West
+₹15,265.00
+C

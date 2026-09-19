@@ -1,0 +1,18 @@
+## s4c redo the Orders check 2026-09-14 09:14:49: in s4b the search keyboard stayed up and covered the tab bar (labels show only Beat|Me), so the 'Orders' tap hit the keyboard and the SO-0875 check ran on the Shops screen — not valid. Dismiss the keyboard and repeat.
+tapped "return" Button at 352,775 (1 of 1)
+tapped 200 200
+tab bar: Shops|Shops|Beat|Orders|Shops|Me|
+tapped "Orders" Other at 151,806 (1 of 1)
+shot s4c-amit-orders.png
+orders: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated 1 min ago|My orders|Waiting: 0|Drafts: 6|Orders|Needs you|Travelling = radio button|All = radio button|Drafts = radio button|SO-0872, 12 Sep, 90319 rupees, Being picked|SO-0869, 12 Sep, 7076 rupees, Packed|SO-0876, 12 Sep, 18027 rupees, Packed|SO-0870, 12 Sep, 7361 rupees, Confirmed|SO-0866, 11 Sep, 26581 rupees, On the van|
+tapped "All" Other at 164,400 (1 of 1)
+shot s4c-amit-orders-all.png
+orders all: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|My orders|Waiting: 0|Drafts: 6|Orders|Needs you|Travelling = radio button|All = radio button|Drafts = radio button|Not numbered yet, 14 Sep, 766 rupees, Draft|Not numbered yet, 14 Sep, 755 rupees, Draft|Not numbered yet, 14 Sep, 755 rupees, Draft|Not numbered yet, 14 Sep, 755 rupees, Draft|Not numbered yet, 14 Sep, 766 rupees, Draft|Vertical scroll bar, 15 pages = 0%|Horizontal scroll bar, 1 page = 0%|Beat|Orders|Shops|Me|gearshape.fill|
+$ ios-drive.mjs has "SO-0875"  (rahul's order; must exit 1)
+NO
+exit 1
+$ ios-drive.mjs has "SO-0872"  (positive control: amit's own order seen in the earlier run)
+YES
+exit 0
+tapped "Beat" Other at 51,806 (1 of 1)
+back on beat: Updated just now|

@@ -1,0 +1,60 @@
+## step6e reopen the app WITHOUT pm clear on the fixed JS 07:25:54 (epoch 1789350954)
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:25:54)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:24 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:23 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:25 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:24 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:25 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2617344)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4515552)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+am start at 07:25:55
++1s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++7s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++14s: dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal 
++21s: s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal 
+long file GONE at +21s
+screen: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West Market | Khadakpada | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit | Shree Gan
+strip: Updated just now 
+sign-in form shown instead? 0
+shot 6e-fixed-reopen.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:26:24)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:26 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:26 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:26 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:26 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:26 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (2617344)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm (32768)", "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal (4515552)" ], "stores": [ { "name": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "rahul @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- which JS is running now
+{
+ "typeofBigInt": "function",
+ "storeNameFor.rahul": "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "parseStoreName": {
+  "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft": {
+   "prefix": "dos-sales",
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099"
+  },
+  "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-shm": null,
+  "s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft-wal": null
+ },
+ "moduleError": null,
+ "checks": {
+  "hermesBigIntExists": true,
+  "hermesProductRahulEqualsRuling": true,
+  "hermesArithmeticEqualsV8": true,
+  "v8EqualsRuling": true
+ }
+}
+-- logcat lines from the offline provider (the sales layout wires no onLog)
+(end)
+-- sync requests since reopen
+07:26:10.580 req-oi GET /sync/manifest -> 200
+07:26:10.675 req-oj GET /sync/pull?deviceId=01a09d9e-fe6a-76eb-826a-1c68e524e9ba&limit=500 -> 200
+07:26:11.182 req-ok GET /sync/pull?deviceId=01a09d9e-fe6a-76eb-826a-1c68e524e9ba&limit=500&since=<cursor> -> 200
+07:26:11.921 req-ol GET /sync/pull?deviceId=01a09d9e-fe6a-76eb-826a-1c68e524e9ba&limit=500&since=<cursor> -> 200
+07:26:09.555 req-5h POST /auth/refresh -> 200
+(1 requests)
+-- logcat crash buffer (07:26:25)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

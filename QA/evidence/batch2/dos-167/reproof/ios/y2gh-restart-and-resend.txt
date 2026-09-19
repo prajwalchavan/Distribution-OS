@@ -1,0 +1,39 @@
+## y2g restart sales-service 2026-09-14 09:24:33
+log line mark: 16878
+sales-service :3003 /health 200 after 3s (09:24:36)
+node    98738 prajwalchavan   17u  IPv4 0xf52d5995a4ec78b6      0t0  TCP *:3003 (LISTEN)
+-- dos_qa before amit's sign-in: rows for 01a09e0b-4e18-7549-9d95-80e2180b1a63: 0; sync_ops for its ops: 0
+## y2h amit.pawar signs in again: kept ops go first, exactly once 2026-09-14 09:24:36
+set XCUIElementTypeTextField 0 = amit.pawar
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 2026-09-14 09:24:42
+1 +3.74s
+2 +4.43s
+3 +4.84s
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+09:24:50 strip: Updated just now|
+shot y2h-amit-after-send.png
+-- dos_qa (read-only) 2026-09-14 09:24:53
+01a09e0b-4e18-7549-9d95-80e2180b1a63|draft|salesperson|amit.pawar|Prerna Super Market|2026-09-14 09:24:43.578615+05:30
+order rows: 1; line rows: 1
+01a09e0b-7f66-7126-8573-200ab9874d2b|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:24:43.578615+05:30
+01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|01a09dff-08e4-72c4-a641-75e565be8616|{"ok": true}|2026-09-14 09:24:44.487387+05:30
+sync_ops rows: 2
+amit orders total: 390 (389 before)
+-- sales-service requests since the restart
+09:24:36.706 GET /health
+09:24:43.282 GET /storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg
+09:24:43.450 GET /sync/manifest
+09:24:43.566 POST /sync/upload
+09:24:44.901 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+09:24:45.189 GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500
+POST /sync/upload count: 1
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+3|01a09e0b-7f66-7126-8573-200ab9874d2b|sales_orders|01a09e0b-4e18-7549-9d95-80e2180b1a63|PUT|acked|8|2026-09-14T03:52:28.774Z|2026-09-14T03:54:43.559Z|2026-09-14T03:54:44.853Z
+4|01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|sales_order_lines|01a09e0b-6c6f-7214-a8e3-13178748b076|PUT|acked|8|2026-09-14T03:52:28.774Z|2026-09-14T03:54:43.559Z|2026-09-14T03:54:44.853Z
+-- _sync_errors
+0

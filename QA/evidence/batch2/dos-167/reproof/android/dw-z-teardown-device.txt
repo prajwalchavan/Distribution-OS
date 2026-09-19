@@ -1,0 +1,11 @@
+## teardown on the device 08:54:12
+-- final crash scan (crash buffer + events/main/system) for delivery and warehouse
+(end scan)
+-- final app files: delivery [ls: files/SQLite: No such file or directory ] warehouse []
+$ adb emu kill
+OK: killing emulator, bye bye
+OK
+emulator process after kill: 
+none
+List of devices attached
+

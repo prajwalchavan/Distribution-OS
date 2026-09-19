@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/server'
 import { and, eq } from 'drizzle-orm'
 import type { ReceiptMode, SyncOp } from '@dos/contracts'
 import { allocations, invoices, receipts, type Db } from '@dos/db'
@@ -57,25 +58,37 @@ export async function applyReceiptSync(
   if (!mode || !(MODES as readonly string[]).includes(mode)) {
     throw new SyncRejection('mode_invalid', `${mode ?? 'no mode'} is not a way of taking money`)
   }
-  await receivables.recordReceipt(tx, {
-    id: op.id,
-    idempotencyKey: `sync:receipt:${op.opId}`,
-    retailerId,
-    mode: mode as ReceiptMode,
-    amountPaise,
-    receivedAt: str(data.received_at) ?? op.clientTime ?? undefined,
-    receivedBy: str(data.received_by) ?? undefined,
-    reference: str(data.reference),
-    upiVpa: str(data.upi_vpa),
-    chequeDate: str(data.cheque_date),
-    bankName: str(data.bank_name),
-    tripId: str(data.trip_id),
-    deviceId: str(data.device_id),
-    clientReceiptNo: str(data.client_receipt_no),
-    note: str(data.note),
-    proofObjectKey: str(data.proof_object_key),
-    strategy: 'fifo',
-  })
+  try {
+    await receivables.recordReceipt(tx, {
+      id: op.id,
+      idempotencyKey: `sync:receipt:${op.opId}`,
+      retailerId,
+      mode: mode as ReceiptMode,
+      amountPaise,
+      receivedAt: str(data.received_at) ?? op.clientTime ?? undefined,
+      receivedBy: str(data.received_by) ?? undefined,
+      reference: str(data.reference),
+      upiVpa: str(data.upi_vpa),
+      chequeDate: str(data.cheque_date),
+      bankName: str(data.bank_name),
+      tripId: str(data.trip_id),
+      deviceId: str(data.device_id),
+      clientReceiptNo: str(data.client_receipt_no),
+      note: str(data.note),
+      proofObjectKey: str(data.proof_object_key),
+      strategy: 'fifo',
+    })
+  } catch (error) {
+    // DOS-169: cash or a cheque for a trip that has already handed its cash over is a refusal the crew acts on (hand
+    // it to the cashier), so the tray gets its own code and the sentence the desk sees, never the generic `conflict`
+    // SyncService makes of any other 409.
+    if (
+      error instanceof ORPCError &&
+      (error.data as { code?: unknown } | null | undefined)?.code === 'trip_settled'
+    )
+      throw new SyncRejection('trip_settled', error.message)
+    throw error
+  }
 }
 
 /**

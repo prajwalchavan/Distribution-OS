@@ -112,7 +112,10 @@ export default function Me(): React.JSX.Element {
 
         <Panel
           title={t('d12.thisDevice')}
-          meta={status.persistent ? t('tray.storeDisk') : t('tray.storeMemory')}
+          /* Nothing is claimed about keeping while the store is still opening (DOS-167 ruling 3 (ee)). */
+          {...(status.persistent === null
+            ? {}
+            : { meta: status.persistent ? t('tray.storeDisk') : t('tray.storeMemory') })}
           testID="d12-device"
         >
           <Row gap={3} wrap align="center">

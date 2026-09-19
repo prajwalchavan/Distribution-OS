@@ -597,4 +597,44 @@ describe('DOS-167 the sales leave sheet', () => {
       layoutBesideTheWrongRoleScreen: calls(layout) - calls(wrongRole),
     }).toEqual({ read: true, bypass: [], withoutTheFlow: [], layoutBesideTheWrongRoleScreen: 0 })
   })
+
+  /*
+   * Ruling 3 (ee), S-140. `persistent` is a TRI-STATE now: null while the device store has not resolved. Null takes
+   * the same branch as false everywhere here — otherwise it took the worst half of each: the body promising "they
+   * stay on this phone" with no keep button under it, the one combination that promises what the sheet then refuses.
+   */
+  it('DOS-167 an unresolved store is treated as one that cannot keep', () => {
+    const unresolved = leaveSentence({
+      mode: 'signOut',
+      pending: 1,
+      rejected: 0,
+      name: RAHUL,
+      tenantName: TARSUN,
+      persistent: null,
+    })
+    const switching = leaveSentence({
+      mode: 'switch',
+      pending: 1,
+      rejected: 0,
+      name: RAHUL,
+      tenantName: TARSUN,
+      persistent: null,
+    })
+
+    expect({
+      bodies: [unresolved.body, switching.body],
+      promisesToKeep: [unresolved.body, switching.body].filter((body) =>
+        body.includes('stay on this phone'),
+      ),
+      online: leaveButtons({ mode: 'signOut', online: true, persistent: null }),
+      offline: leaveButtons({ mode: 'signOut', online: false, persistent: null }),
+      switchOnline: leaveButtons({ mode: 'switch', online: true, persistent: null }),
+    }).toEqual({
+      bodies: [catalogue['leave.bodyMemory'], catalogue['leave.bodyMemory']],
+      promisesToKeep: [],
+      online: ['sendNow', 'cancel'],
+      offline: ['cancel'],
+      switchOnline: ['sendNow', 'cancel'],
+    })
+  })
 })

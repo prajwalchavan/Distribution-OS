@@ -1,0 +1,83 @@
+## WK-b warehouse: dinesh signs out through Settings > Sign out with 1 pick queued (op 01a09ded-3b1e-7615-8af4-7c5b3c6b71d8, office unreachable, outbox retrying) — z1: expect the leave sheet 08:50:11
+-- outbox before
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09de9-98c9-7105-bd68-76baf649663a|pick_lines|399c804c-6e58-7168-b5be-a9d7774e5e54|PUT|{"picklist_id":"26a39571-e117-71c1-b399-bca6f1167b13","order_id":"84f1fe62-9b23-7e28-bc44-728ba08774e6","order_line_id":"f0460569-7fd6-7aa3-a1bf-21250a131bb0","variant_id":"0ac2aa2c-aa67-74b9-bf6c-c9af1245a95c","line_no":1,"lot_id":"5d6653c5-59d6-7a51-a0bb-6517b5b505bc","requested_qty_pcs":220,"picked_qty_pc
+2|01a09ded-3b1e-7615-8af4-7c5b3c6b71d8|pick_lines|c04ec82a-6ed1-70c2-be7e-98e4e95d6c91|PUT|{"picklist_id":"26a39571-e117-71c1-b399-bca6f1167b13","order_id":"a613d885-4bc3-7782-b52d-65c1576bb2d6","order_line_id":"5f1d6ce5-ef46-7f18-99a8-aa0ac8294575","variant_id":"f71bf137-50de-7182-a0d9-c83f1a613a57","line_no":1,"lot_id":"34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29","requested_qty_pcs":75,"picked_qty_pcs
+-- _sync_errors
+logcat cleared at 08:50:12
+logbox now: 0 (0 = clear)
+tap '⋯' at 938 256
+tap 'Settings' at 540 1376
+settings: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Offline since 8:48 am · 1 waiting to send | Offline since 8:48 am · 1 waiting to send | Tarsun Enterprise | Me | SIGNED IN AS | Dinesh Patil | ROLE | warehouse | DISTRIBUTOR | Tarsun Enterprise | TABLES ON THIS DEVICE | 13 | This device | Held on this device | 1 waiting to send | Refused 0 | Waiting and refused | Waiting and refused | Signed-in devices | No connection. This i
+logbox now: 0 (0 = clear)
+'Sign out' nodes: 42 1896 1038 2096 clickable
+462 1966 618 2024 -
+shot wk-b-dinesh-settings-bottom.png
+tap Settings 'Sign out' at 540 1996 (08:50:44)
+after tap: 1 change has not reached the office | 1 change has not reached the office | They stay on this phone for Dinesh Patil only and go the next time Dinesh Patil signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot wk-b-dinesh-leave-sheet.png
+sheet shown (z1)? 1 ; instant sign-out instead? 0 ; names the person? for Dinesh Patil only ; Send now present? 0
+tap 'Sign out, keep here' at 540 1733
+keep tapped at 08:50:51 (1789356051.562068)
++1.3s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-1.png
++2.6s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-2.png
++4.0s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-3.png
++5.4s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-4.png
++6.6s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-5.png
++7.8s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-6.png
++9.0s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-7.png
++10.3s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-8.png
++11.5s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-9.png
++12.7s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-10.png
++14.0s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-11.png
++15.2s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-12.png
++16.5s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-13.png
++17.7s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-14.png
++18.9s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-15.png
++20.1s pid=14520 top=in.distributionos.warehouse shot=wk-b-keep-16.png
+screen at end: Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+shot wk-b-dinesh-kept-signed-out.png
+sign-in form after keep? 1
+-- crash check for in.distributionos.warehouse (08:51:13)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (08:51:13)
+total 2368
+drwx------ 2 u0_a213 u0_a213    4096 2026-09-14 08:50 .
+drwxrwx--x 3 u0_a213 u0_a213    4096 2026-09-14 08:48 ..
+-rw------- 1 u0_a213 u0_a213 2404352 2026-09-14 08:50 w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft (2404352)" ], "stores": [ { "name": "w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-warehouse", "userId": "5b6fbe87-cb70-7195-8de1-a4f5046c3675", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "dinesh @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [dinesh @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- kept file (read-only copy)
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state (value cut at 120)
+lastUploadAt|2026-09-14T03:15:27.339Z
+userId|5b6fbe87-cb70-7195-8de1-a4f5046c3675
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+deviceId|01a09dde-6c4e-7717-87b0-4a67c2f2ee1e
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09de9-98c9-7105-bd68-76baf649663a|pick_lines|399c804c-6e58-7168-b5be-a9d7774e5e54|PUT|{"picklist_id":"26a39571-e117-71c1-b399-bca6f1167b13","order_id":"84f1fe62-9b23-7e28-bc44-728ba08774e6","order_line_id":"f0460569-7fd6-7aa3-a1bf-21250a131bb0","variant_id":"0ac2aa2c-aa67-74b9-bf6c-c9af1245a95c","line_no":1,"lot_id":"5d6653c5-59d6-7a51-a0bb-6517b5b505bc","requested_qty_pcs":220,"picked_qty_pcs":220,"free_qty_pcs":0,"case_size":20,"short_reason":null}|2026-09-13T10:41:13.136Z|01a09de9-98c9-7105-bd68-76baf649663a|acked|1|2026-09-14T03:15:27.049Z|2026-09-14T03:15:27.163Z|2026-09-14T03:15:27.
+2|01a09ded-3b1e-7615-8af4-7c5b3c6b71d8|pick_lines|c04ec82a-6ed1-70c2-be7e-98e4e95d6c91|PUT|{"picklist_id":"26a39571-e117-71c1-b399-bca6f1167b13","order_id":"a613d885-4bc3-7782-b52d-65c1576bb2d6","order_line_id":"5f1d6ce5-ef46-7f18-99a8-aa0ac8294575","variant_id":"f71bf137-50de-7182-a0d9-c83f1a613a57","line_no":1,"lot_id":"34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29","requested_qty_pcs":75,"picked_qty_pcs":75,"free_qty_pcs":3,"case_size":24,"short_reason":null}|2026-09-13T10:41:13.137Z|01a09ded-3b1e-7615-8af4-7c5b3c6b71d8|queued|8|2026-09-14T03:19:25.215Z||||
+-- _sync_errors
+## WK-b relaunch while still offline (y): force-stop + start 08:51:14
+force-stop + start in.distributionos.warehouse at 08:51:15
+after relaunch (+14s): Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+shot wk-b-relaunch-offline.png
+relaunch shows the sign-in form? 1 ; relaunch shows dinesh's session? 0
+-- crash check for in.distributionos.warehouse (08:51:31)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+-- summary: stores=1 [dinesh @ Tarsun] legacy=0 interim=0 strays=0 other=0

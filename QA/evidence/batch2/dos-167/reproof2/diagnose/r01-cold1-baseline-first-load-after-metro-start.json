@@ -1,0 +1,331 @@
+{
+  "mode": "signin",
+  "opt": {
+    "delay": "0",
+    "seconds": "25"
+  },
+  "startedAt": "2026-09-14T04:40:55.363Z",
+  "phases": [
+    {
+      "name": "signin-delay-0",
+      "events": [
+        {
+          "t": 6353,
+          "kind": "console",
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "t": 6391,
+          "kind": "console",
+          "type": "log",
+          "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+        },
+        {
+          "t": 74,
+          "kind": "request",
+          "method": "POST",
+          "url": "/auth/login"
+        },
+        {
+          "t": 410,
+          "kind": "response",
+          "status": 200,
+          "url": "/auth/login"
+        },
+        {
+          "t": 411,
+          "kind": "request",
+          "method": "GET",
+          "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/brandin"
+        },
+        {
+          "t": 447,
+          "kind": "worker-created",
+          "url": "blob:http://localhost:5175/5c70b2c1-2d77-4b34-a6ef-0ae5e275622e"
+        },
+        {
+          "t": 509,
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+        },
+        {
+          "t": 585,
+          "kind": "beat",
+          "strip": "Not updated yet",
+          "notPersisted": true,
+          "stillLoading": true,
+          "shops": "0",
+          "path": "/"
+        },
+        {
+          "t": 25323,
+          "kind": "worker-closed"
+        }
+      ],
+      "lastSnap": {
+        "strip": "Not updated yet",
+        "notPersisted": true,
+        "stillLoading": true,
+        "shops": "0",
+        "path": "/"
+      },
+      "trace": [
+        {
+          "t": 7308,
+          "dir": "post",
+          "type": "open",
+          "id": 0,
+          "path": "./dos-sales.db",
+          "db": 0
+        },
+        {
+          "t": 7308,
+          "dir": "post",
+          "type": "open",
+          "id": 1,
+          "path": "./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "db": 1
+        },
+        {
+          "t": 7308,
+          "dir": "post",
+          "type": "open",
+          "id": 2,
+          "path": "./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db",
+          "db": 2
+        },
+        {
+          "t": 7772,
+          "dir": "reply",
+          "id": 2,
+          "error": "NoModificationAllowedError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle': Access Handles cannot be created if there is another open Acce"
+        },
+        {
+          "t": 7775,
+          "dir": "reply",
+          "id": 1,
+          "error": null
+        },
+        {
+          "t": 7778,
+          "dir": "post",
+          "type": "exec",
+          "id": 3,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 7778,
+          "dir": "reply",
+          "id": 0,
+          "error": null
+        },
+        {
+          "t": 7778,
+          "dir": "post",
+          "type": "exec",
+          "id": 4,
+          "path": null,
+          "db": 0
+        },
+        {
+          "t": 7780,
+          "dir": "reply",
+          "id": 3,
+          "error": "TypeError: Cannot read properties of undefined (reading 'xFileControl')"
+        },
+        {
+          "t": 7780,
+          "dir": "post",
+          "type": "exec",
+          "id": 5,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 7785,
+          "dir": "reply",
+          "id": 4,
+          "error": null
+        },
+        {
+          "t": 7785,
+          "dir": "post",
+          "type": "close",
+          "id": 6,
+          "path": null,
+          "db": 0
+        },
+        {
+          "t": 7785,
+          "dir": "reply",
+          "id": 5,
+          "error": "TypeError: Cannot read properties of undefined (reading 'xLock')"
+        },
+        {
+          "t": 7785,
+          "dir": "post",
+          "type": "close",
+          "id": 7,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 7785,
+          "dir": "reply",
+          "id": 6,
+          "error": null
+        },
+        {
+          "t": 7785,
+          "dir": "post",
+          "type": "deleteDatabase",
+          "id": 8,
+          "path": "./dos-sales.db",
+          "db": null
+        },
+        {
+          "t": 7785,
+          "dir": "reply",
+          "id": 7,
+          "error": "TypeError: Cannot read properties of undefined (reading 'xDeviceCharacteristics')"
+        },
+        {
+          "t": 7785,
+          "dir": "reply",
+          "id": 8,
+          "error": null
+        }
+      ],
+      "walk": [
+        [
+          "expo-sqlite/xaes8yqlpqe",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/uivaqattcb8",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/tnagqymuncg",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/p0pg1ns17v",
+          4096,
+          "0.u38wdbbhtel",
+          "106"
+        ],
+        [
+          "expo-sqlite/m4au8qdl63s",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/cfp0z2ee9it",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/at038d1nd35",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/anrxyrozyhv",
+          4096,
+          "0.9371z7dzt3v",
+          "106"
+        ],
+        [
+          "expo-sqlite/9ripn22x8ki",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/8cvwa7bfge5",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/716cmbgcc1f",
+          4096,
+          "",
+          "0"
+        ],
+        [
+          "expo-sqlite/4nws9eq6lex",
+          4096,
+          "",
+          "0"
+        ]
+      ],
+      "summary": {
+        "manifestCalls": 0,
+        "pull200": 0,
+        "pageErrors": [],
+        "workerConsole": [],
+        "end": {
+          "strip": "Not updated yet",
+          "notPersisted": true,
+          "stillLoading": true,
+          "shops": "0",
+          "path": "/"
+        },
+        "poolFiles": 12,
+        "associations": [
+          {
+            "header": "0.u38wdbbhtel",
+            "size": 4096,
+            "flags": "106"
+          },
+          {
+            "header": "0.9371z7dzt3v",
+            "size": 4096,
+            "flags": "106"
+          }
+        ],
+        "rahulHeader": null,
+        "garbageAssociations": 2,
+        "workerOpensBeforeFirstReply": [
+          "./dos-sales.db",
+          "./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+        ],
+        "workerPostsBeforeFirstReply": [
+          "open:./dos-sales.db",
+          "open:./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "open:./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+        ],
+        "workerErrors": [
+          "NoModificationAllowedError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle': Access Handles cannot be created if there is another open Acce",
+          "TypeError: Cannot read properties of undefined (reading 'xFileControl')",
+          "TypeError: Cannot read properties of undefined (reading 'xLock')",
+          "TypeError: Cannot read properties of undefined (reading 'xDeviceCharacteristics')"
+        ],
+        "pass": false
+      }
+    }
+  ],
+  "crossOriginIsolated": true,
+  "finishedAt": "2026-09-14T04:41:27.845Z",
+  "verdicts": [
+    {
+      "phase": "signin-delay-0",
+      "pass": false
+    }
+  ]
+}

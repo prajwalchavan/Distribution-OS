@@ -20,13 +20,21 @@ import {
   SyncEngine,
   type SyncEngineOptions,
 } from './engine.js'
-import { leaveDecision, sweepInterimStore } from './react.js'
+import { leaveDecision, runStartupCleanups, sweepInterimStore } from './react.js'
 import { createSystemTables, OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
 import { readAllState, readState, writeState } from './state.js'
 import { openExpoSqlite, type ExpoDatabaseLike, type ExpoSqliteLike } from './store/expo-sqlite.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
-import type { EnqueueInput, StoreFactory, SyncIdentity, SyncStore, SyncTransport } from './types.js'
+import type {
+  EnqueueInput,
+  SqlValue,
+  StoreFactory,
+  StoreKind,
+  SyncIdentity,
+  SyncStore,
+  SyncTransport,
+} from './types.js'
 import type { PullOutput } from './wire.js'
 
 const RETAILERS = tableManifest('retailers', [
@@ -365,6 +373,270 @@ describe('DOS-167 one file per app, person and distributor', () => {
         log: ['offline: kept the store from before ruling 2'],
         interim: [{ row_id: 'o-before-ruling-2', status: 'queued' }],
         current: RAHUL_ID,
+      },
+    })
+  })
+
+  /*
+   * Ruling 3 (bb). The legacy destroy and the 199952b sweep were two floating effects that fired 2-3 ms apart under
+   * load, beside the engine's own open — three web databases opening in one microtask batch, which is S-138. They are
+   * ONE effect now, and one pure function: the rep's own file is opened FIRST, then the clean-ups, each awaited
+   * before the next.
+   */
+  it("DOS-167 the startup clean-ups run after the engine's store and never two at once", async () => {
+    const calls: string[] = []
+    let live = 0
+    let overlapped = 0
+    const factory: StoreFactory = async (name) => {
+      calls.push(`open ${name}`)
+      live += 1
+      if (live > 1) overlapped += 1
+      await new Promise((resolve) => setTimeout(resolve, 5))
+      live -= 1
+      calls.push(`done ${name}`)
+      return createMemoryStore()
+    }
+
+    const engineFile = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const interim = interimStoreName('dos-sales', RAHUL_AT_TARSUN)
+    /*
+     * The engine's own open, as `start()` runs it. `storeKind` is what that open turned out to be, so awaiting it IS
+     * the wait for the rep's own data — what the provider passes is `engine.waiting().then(() => status().store)`.
+     */
+    let opened = (): void => {}
+    const engineOpen = new Promise<StoreKind>((resolve) => {
+      opened = () => {
+        resolve('sqlite-native')
+      }
+    })
+    void factory(engineFile).then(opened)
+
+    await runStartupCleanups({
+      storeFactory: factory,
+      storePrefix: 'dos-sales',
+      identity: RAHUL_AT_TARSUN,
+      storeKind: engineOpen,
+    })
+
+    expect({ overlapped, calls }).toEqual({
+      overlapped: 0,
+      calls: [
+        `open ${engineFile}`,
+        `done ${engineFile}`,
+        'open dos-sales.db',
+        'done dos-sales.db',
+        `open ${interim}`,
+        `done ${interim}`,
+      ],
+    })
+  })
+
+  /*
+   * Ruling 3 (bb). On a browser the 199952b name can only ever fail to open, and its failure is what poisoned the two
+   * healthy connections beside it (`runs/vE-trace.json`). It keeps running on a phone, where those files really exist.
+   */
+  it('DOS-167 the 199952b sweep is skipped on a web store and still runs on a native one', async () => {
+    const interim = interimStoreName('dos-sales', RAHUL_AT_TARSUN)
+    /*
+     * 94 characters. expo-sqlite web opens `'./' + name` through wa-sqlite, whose VFS allows 64 characters of path
+     * less the 8 SQLite keeps for the journal suffix (ruling 2 (s)): `sqlite3_open_v2` failed on this name in EVERY
+     * executed browser trace, and no browser ever created such a file.
+     */
+    expect(`./${interim}`.length).toBeGreaterThan(56)
+
+    async function asks(storeKind: StoreKind): Promise<string[]> {
+      const names: string[] = []
+      const factory: StoreFactory = async (name) => {
+        names.push(name)
+        return createMemoryStore()
+      }
+      await runStartupCleanups({
+        storeFactory: factory,
+        storePrefix: 'dos-sales',
+        identity: RAHUL_AT_TARSUN,
+        storeKind,
+      })
+      return names
+    }
+
+    expect({
+      web: await asks('sqlite-web'),
+      native: await asks('sqlite-native'),
+      // A store in memory has no file to delete and none to sweep.
+      memory: await asks('memory'),
+    }).toEqual({
+      web: ['dos-sales.db'],
+      native: ['dos-sales.db', interim],
+      memory: [],
+    })
+  })
+
+  /*
+   * Ruling 3 (cc). The re-proof's real harm was not the corruption but the SILENCE: `start()` rethrew, the engine
+   * stayed `started` with `ready: false` for ever, and run3-v5a sat for 240 s with no `/sync` call, "Still loading
+   * the beat onto this phone" and Shops 0. A store that cannot be used is closed, said out loud and left alone —
+   * never destroyed, because nothing we failed to read is thrown away (founder answer A) — and the same start
+   * sequence runs once more in memory, so the app still signs in, still syncs online, and still says what it cannot
+   * keep.
+   */
+  it('DOS-167 a store that cannot be used becomes an announced memory store and the engine still starts', async () => {
+    class BrokenStore implements SyncStore {
+      readonly persistent = true
+      readonly kind = 'sqlite-web' as const
+      closes = 0
+      destroys = 0
+      private broke = false
+      constructor(private readonly inner: SyncStore) {}
+      async exec(sql: string, params?: readonly SqlValue[]): Promise<void> {
+        // The first statement of `createSystemTables`, as a browser whose OPFS file is not a database answers.
+        if (!this.broke) {
+          this.broke = true
+          throw new Error('disk I/O error')
+        }
+        return this.inner.exec(sql, params)
+      }
+      async query<T>(sql: string, params?: readonly SqlValue[]): Promise<T[]> {
+        return this.inner.query<T>(sql, params)
+      }
+      async transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
+        return this.inner.transaction(fn)
+      }
+      async close(): Promise<void> {
+        this.closes += 1
+      }
+      async destroy(): Promise<void> {
+        this.destroys += 1
+      }
+    }
+
+    const broken = new BrokenStore(createMemoryStore())
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const log: string[] = []
+    const engine = new SyncEngine({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: async () => broken,
+      databaseName: storeNameFor('dos-sales', RAHUL_AT_TARSUN),
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+      onLog: (line) => {
+        log.push(line)
+      },
+    })
+
+    await expect(engine.start()).resolves.toBeUndefined()
+    const status = engine.status()
+
+    expect({
+      ready: status.ready,
+      store: status.store,
+      persistent: status.persistent,
+      storeNote: status.storeNote,
+      said: log.filter((line) => line.startsWith('offline: the device store')),
+      closes: broken.closes,
+      destroys: broken.destroys,
+      // The handshake still ran, so the app syncs online while it cannot keep anything.
+      manifests: server.manifestCalls.length,
+      rows: (await engine.queryTable('retailers')).length,
+    }).toEqual({
+      ready: true,
+      store: 'memory',
+      persistent: false,
+      storeNote: 'disk I/O error',
+      said: ['offline: the device store could not be used; running in memory'],
+      closes: 1,
+      destroys: 0,
+      manifests: 1,
+      rows: 1,
+    })
+    await engine.stop()
+  })
+
+  /*
+   * Ruling 3 (ee), S-140. `persistent` read `this.store?.persistent ?? false` — false for the whole of the open — so
+   * the beat screen said "This browser will not keep the offline copy after you close it" for 39-82 ms after every
+   * sign-in, measured in four runs, over a perfectly persistent store. The honest shape is a tri-state, not a delay:
+   * null while nothing has resolved, true or false once something has.
+   */
+  it('DOS-167 persistent is unknown until the open resolves and false only on a resolved memory store', async () => {
+    async function through(store: SyncStore): Promise<unknown> {
+      let openTheStore = (): void => {}
+      const gate = new Promise<void>((resolve) => {
+        openTheStore = resolve
+      })
+      const server = new FakeServer(TABLES)
+      const engine = new SyncEngine({
+        transport: server.transport(),
+        deviceId: 'device-1',
+        storeFactory: async () => {
+          await gate
+          return store
+        },
+        databaseName: storeNameFor('dos-sales', RAHUL_AT_TARSUN),
+        identity: RAHUL_AT_TARSUN,
+        pullIntervalMs: 0,
+        now,
+      })
+      const starting = engine.start()
+      const opening = {
+        persistent: engine.status().persistent,
+        ready: engine.status().ready,
+        storeNote: engine.status().storeNote,
+      }
+      openTheStore()
+      await starting
+      const open = {
+        persistent: engine.status().persistent,
+        ready: engine.status().ready,
+        storeNote: engine.status().storeNote,
+      }
+      await engine.end({ keepQueue: false })
+      return { opening, open, afterEnd: engine.status().persistent }
+    }
+
+    /** A store that KEEPS: the same SQL, answering `persistent: true` as a browser's OPFS file does. */
+    function keepingStore(): SyncStore {
+      const inner = createMemoryStore()
+      return {
+        persistent: true,
+        kind: 'sqlite-web',
+        exec: async (sql: string, params?: readonly SqlValue[]) => inner.exec(sql, params),
+        query: async <T>(sql: string, params?: readonly SqlValue[]) => inner.query<T>(sql, params),
+        transaction: async <T>(fn: (tx: SyncStore) => Promise<T>) => inner.transaction(fn),
+        close: async () => inner.close(),
+        destroy: async () => inner.destroy?.(),
+      }
+    }
+
+    expect({
+      keeps: await through(keepingStore()),
+      cannotKeep: await through(
+        createMemoryStore({
+          wanted: 'sqlite-web',
+          reason: 'not cross-origin isolated (no COOP/COEP)',
+        }),
+      ),
+    }).toEqual({
+      keeps: {
+        // Nothing has resolved: the screens say nothing about keeping rather than saying it will not.
+        opening: { persistent: null, ready: false, storeNote: null },
+        open: { persistent: true, ready: true, storeNote: null },
+        afterEnd: null,
+      },
+      cannotKeep: {
+        opening: { persistent: null, ready: false, storeNote: null },
+        // A resolved store in memory still reports false and still says it (ruling 2 (t) is unchanged).
+        open: {
+          persistent: false,
+          ready: true,
+          storeNote: 'not cross-origin isolated (no COOP/COEP)',
+        },
+        afterEnd: null,
       },
     })
   })

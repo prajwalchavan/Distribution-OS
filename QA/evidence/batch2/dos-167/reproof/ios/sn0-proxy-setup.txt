@@ -1,0 +1,20 @@
+## sn0 set up 'Send now while online' 2026-09-14 09:29:35: the real sales-service moves to :3013 and the QA proxy (driver/qa-proxy-3003.mjs.txt) takes :3003 in pass mode, so one POST /sync/upload can later be answered 503 (a server hiccup: the phone stays online and keeps its ops) without touching product code
+  PID  PPID COMMAND
+  168     1 node /Users/prajwalchavan/.local/state/fnm_multishells/140_1789358293798/bin/pnpm --filter @dos/sales-service dev
+  185   168 node --watch --import @swc-node/register/esm-register src/main.ts
+  186   185 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/main.ts
+$ kill 168 185 186
+:3003 listeners: 0
+:3003 /health: 000
+:3000 /health: 200
+sales-service :3013 /health 200 after 3s
+proxy pid: 704
+:3003 /health through the proxy: 200
+mode: pass
+-- proxy log so far
+09:29:40.626 proxy listening on 127.0.0.1:3003 -> 127.0.0.1:3013, mode pass
+09:29:42.132 [pass] GET /health -> 200
+09:30:25.724 [pass] GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+09:30:25.887 [pass] GET /sync/pull?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&limit=500 -> 200
+09:30:25.914 [pass] GET /sync/errors?deviceId=01a09dff-08e4-72c4-a641-75e565be8616&unresolvedOnly=true&limit=50 -> 200
+strip: Updated just now|

@@ -605,3 +605,122 @@ The founder approved the request for the six confirmed findings and the one-line
   - Merge order: money → dos171 → dos172; s108 whenever it is ready.
   - Platform proofs run in a later run, once the devices are free.
 - **Q3 data repair:** runs after the money fix merges. The founder is told before `pnpm db:migrate` runs on dos.
+
+
+### Batch 2 — DOS-167 ruling-2 re-proof: the phones pass, the web store fails (2026-09-14 09:59 IST)
+
+**Run `wf_a77ba6a6-adc`** — 13 agents, about 4 h 34 min. The merge `bafb7b5` includes the (z) commits `c236f18`, `c457b5b` and `4be7fe2`, plus docs `9eed92b`. The judge (Opus standing in for Fable) says **OPEN**. Lane result: `lane-results/DOS-167-ruling-2.json`; evidence: `QA/evidence/batch2/dos-167/reproof/`.
+
+**Proven**
+- **Android delivery and warehouse:** store names decode to the right person and distributor, and the next person sees none of the previous person's data. Sign out through Settings shows the sheet. "Keep" never crashed, each relaunch came back to the sign-in form, and each kept op was sent once.
+- **iOS sales, delivery and warehouse:** one store file per person, no leak, and no crash across three keep runs with the office unreachable. Each relaunch showed the sign-in form, and "Send now" works.
+
+**Failed**
+- **P1 (S-138), web sales on a persistent store:** the store never opens when the expo-sqlite chunk and worker arrive late. This happened on the first load after a Metro start, and with 600 ms of added latency (4 of 4 runs; the control passed).
+  - 'SQLiteError: not a database' is thrown.
+  - The OPFS pool fills with orphan temp files and '/dos-sales.db-wal'.
+  - The engine makes no sync call for 240 s.
+
+  The judge suspects a clean-up step that DOS-167 added.
+- **P3 (S-139):** no app passes onLog, so the 'offline:' lines never print. This fails the web memory-variant check and the Android upgrade check. The file behaviour itself was right.
+- **P3 (S-140):** on a persistent web store, "will not keep" flashes for 39–82 ms after every sign-in.
+
+**Not DOS-167**
+- S-135 (P2): warehouse waves cannot be reached offline.
+- S-136 (P3): LogBox state-update warning on Android debug builds.
+- S-137 (P3): a 401 after sign-in, then a refresh; this predates DOS-167.
+- S-127 predates DOS-167; a warehouse variant was also seen.
+
+**Next:** DOS-167 ruling 3. First diagnose S-138 by executing it, then build, verify, review, and integrate with the full frontend gate. After that, a focused web re-proof plus the device gaps, and the judge.
+
+
+### Batch 2 — the weekly limit cut both runs; restarted on 2026-09-19 12:08 IST
+
+**What happened.** On 2026-09-14 the weekly usage limit (reset Sep 19, 11:30 IST) killed four agents in the lane build run `wf_6abc2042-1ff` and the first agent of DOS-167 ruling 3 `wf_0f651b54-f1b`. Nothing was merged, and no committed work was lost.
+
+**What survived, on the lane branches, each adversarially verified:**
+- money: receivables `9c44458` + `d19d39d`, settlement `1b4e022` (its re-verification never ran).
+- DOS-171: `cafb0ef` + `483685a`, with a review (MERGE AFTER FIXES, two blockers).
+- S-108: `0f49863`, with a review (MERGE).
+- DOS-172: backend `60b55f2` + `f61f265`; the app slice never finished and left two uncommitted test files.
+
+**Why resume was impossible.** Both scripts lived in the session scratchpad under /private/tmp, which was wiped. A resume needs the identical script.
+
+**Fix for next time.** Workflow scripts now live in the repository at `QA/tools/batch2/workflows/`.
+
+**Restarted:**
+- `wf_ee45b8a1-b2c` (`finish-lanes.js`): verify the money settlement slice as committed, build the money phone slice and the DOS-172 app slice, write the two missing reviews, then integrate and merge in the order S-108, money, DOS-171, DOS-172.
+- `wf_586d5dd5-dcf` (`dos167-ruling3.js`): diagnose S-138 by execution, then ruling 3, build, review, integrate with the full frontend gate, merge, re-proof and judge.
+
+### CI red on main — backend lint, `@dos/db` test-setup (2026-09-19)
+
+**Reported by the founder** as a GitHub Actions failure: `backend/libs/database/src/test-setup.ts:3:1 Unsafe call of a type that could not be resolved (@typescript-eslint/no-unsafe-call)`.
+
+**Cause.** That file was the one place in the backend where a package imported ITSELF by package name (`import { loadDotenv } from '@dos/db'`), which resolves to `dist/`. Turbo runs `lint` after its DEPENDENCIES' `^build`, not after the package's own build, so on a clean CI checkout `libs/database/dist` does not exist when `@dos/db:lint` runs, the import resolves to nothing, and the type-aware rule sees `any`. On this Mac `dist/` is always present from an earlier build, which is why it never went red locally.
+
+**Fix.** `import { loadDotenv } from './env.js'` — the same relative import `migrate.ts` and `seed.ts` already use. No behaviour change; `env.js` is what `@dos/db` re-exports.
+
+**Proof, executed under the CI condition (`rm -rf libs/database/dist`).** Before: `eslint .` exit 1, that one error. After: exit 0. Then the backend CI gates from the repo root: `pnpm format:check` 0, `pnpm lint` 0 (19 tasks), `pnpm typecheck` 0 (19), `pnpm build` 0 (14).
+
+**Swept for recurrences:** no other backend package (`@dos/domain`, `@dos/contracts`, `@dos/db`, `@dos/core`) imports its own package name anywhere in `src/`.
+
+### CI red on main — backend tests, the doc-example specs (2026-09-19)
+
+**Reported by the founder** as the next GitHub Actions failure after the lint fix: `@dos/core` `src/docs/examples.spec.ts`, three assertions — `ctx.variantId` undefined, one broken `retailers.linkIdentity` example, and no parsed party-master import row.
+
+**Cause.** The CI backend job runs `pnpm db:migrate` and then `pnpm test`, and never seeds. `describeDb('doc examples against the demo database')` runs whenever `DATABASE_URL` resolves, and on CI it resolves to a migrated but EMPTY database: there is no tenant with shops, products and orders to build an example from. It read as three failures rather than four only because other specs in the same turbo run had created a tenant and a retailer as their own fixtures — that part was a race. Nobody saw it locally: every developer database here is seeded.
+
+**Fix.** One line in `.github/workflows/ci.yml`, `pnpm db:seed` between migrate and test, with a comment saying why. `db:seed` is idempotent. No source or test change; the spec is right to demand demo rows.
+
+**Proof, executed on a fresh database (`dos_test_ci_repro`, created and dropped for this).** Migrate only: `vitest run src/docs/examples.spec.ts` → 4 failed / 28 passed. Then `pnpm db:seed` → 32 passed / 32. Then the whole backend suite against that seeded copy: `pnpm test` exit 0, 19 of 19 turbo tasks.
+
+### DOS-167 — Fable back in the architect seat, and five amendments to ruling 3 (2026-09-19)
+
+**Why it matters.** Both runs relaunched this morning were written on 2026-09-14, while Fable's weekly limit was exhausted, so every architect seat in them still said "Opus standing in for Fable". The limit reset at 11:30 IST and the scripts were not switched back — the Opus stand-in wrote ruling 3 at 13:35. The founder caught it. From the DOS-167 close decision onward every architect role is Fable again.
+
+**First act as architect: an adversarial review of ruling 3** (read-only, against the executed diagnosis, the ruling-2 addenda, docs/27 and the offline sources). Verdict **SOUND WITH AMENDMENTS**, five of them, written to `QA/evidence/batch2/verdicts/DOS-167-ruling-3-architect-review.md` and binding on the build:
+
+- **A1** — the `persistent: boolean | null` widening must be threaded through EVERY hop (`LeaveSession.persistent`, the three `_layout` device props, the `LeaveSheet` prop, `leaveButtons`/`leaveSentence`, and the owner, manager and retailer consumers), not only the endpoints the ruling named; proven red by a failing `pnpm typecheck`.
+- **A2** — the never-a-hang memory fallback must RELEASE the failed persistent file's `holdFile` hold; proven by a post-open corruption that drops to memory, after which a second engine on the same store name still opens instead of blocking.
+- **A3** — the promoted S-138 gate must assert at most ONE VFS construction and ONE WASM init per load: the concurrency mode fired at delay 0 (`warm-instr`), and the pool-header check alone can pass over a latent second VFS.
+- **A4** — a SECOND TAB of the same person must be proven to fall to an honest memory store without corrupting or evicting the first tab's persistent file. Ruling 3 omits this case.
+- **A5** — the 15 s timeout path must CLOSE a late-arriving persistent handle, never destroy it, and keep the on-disk file, with a deadline generous enough not to abandon a slow-but-succeeding OPFS open.
+
+**How they land.** The ruling-3 build was already three commits deep and mid-slice when the review came back, so it was not interrupted. The amendments run as their own lane after ruling 3 merges: `QA/tools/batch2/workflows/dos167-amendments.js` — implementer, adversarial verifier, one repair round, Fable's own merge review, integration with the full frontend gate including the kit cross-app guards, merge, then a re-proof of ONLY the four cases the amendments add (web memory fallback, web second tab, web timeout, an Android sanity walk), and finally Fable as judge on whether DOS-167 closes.
+
+### Batch 2 — finish-lanes run wf_ee45b8a1-b2c finished (2026-09-19)
+
+20 agents, about 2 h 45 min, 0 agent errors. **Merged and pushed: S-108 `c3b4ec1`** (the challan poll is cancelled when the load-sheet panel closes, so a reopened panel never opens a stale challan) **and DOS-171 `d65034b`** (the van sale shows the bill total with GST, keeps the bill on screen, and names no cash discount the bill never takes off). The DOS-167 ruling-3 repair merged in the same window as `ce3dc8c` from its own run.
+
+**DOS-168..DOS-170 (money) did NOT merge.** Built, adversarially verified, reviewed twice (both MERGE AFTER FIXES, blockers resolved) and integrated to a green automated gate — but the integration verifier raised two majors:
+- **The runtime proof both reviews demand was never run:** `QA/evidence/batch2/dos-168-170/{web,android,ios}` items 1–4 (two desks banking one receipt; the offline-receipt trip settling; the reversal on the trial balance; D8 with one receipt held offline at 1280×800 and 390×844, on the Pixel 7 and on iOS), plus `pnpm smoke` 0 BROKEN on a database copy. The integrator and the verifier were both forbidden by their briefs to start dev servers, emulators or simulators, so neither could close it. **This is a process gap of mine**: the reviews demanded runtime proof from agents that were not allowed to produce it.
+- **Two out-of-lane defects the reviews ordered filed were not filed.** Now filed: **S-141** (`collections.list` totals still sum `collections` rows, so an offline doorstep payment can under-state the accountant's collections screen — `receivables/collections.service.ts:193-199`) and **S-142** (the delivery device pulls 90 days of WHOLE-TENANT receipts rather than the crew's own — `receivables.module.ts:48-54`). Both are code-reading only, NOT TESTED, and go to the next approval gate as DOS blocks.
+
+**DOS-172 did not merge either** — it waits on money by design (it changes departure for every spec, so it merges last). Its branch holds the backend slice, the app slice and a review-fix commit, tree clean.
+
+**Referred to Fable** (architect, 2026-09-19): does money merge now with the walks owed afterwards — the convention every lane merge message states, "Platform proof follows" — or must the walks run first? Only the architect may resolve that, and her ruling names the exact proof set, what happens if a walk fails after a merge, and the ordering against DOS-172. Output: `QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`.
+
+### DOS-168..DOS-170 — Fable's merge-gate ruling: MERGE NOW (2026-09-19)
+
+The architect resolved the deadlock between the programme's own convention ("Platform proof follows", in every lane merge message) and the two money reviews, which demanded the device walks before the merge. **Decision: MERGE NOW**, proof owed afterwards, DOS-168/169/170 staying OPEN until the walks pass. Full ruling: `QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`.
+
+**The proof set she named, in order** (item 0 and 1 before DOS-172 rebases; 2–7 after):
+0. Merge main into `qa/b2-money` and re-run the FULL gate on that tree — the lane last saw main at `6f2614b`, before DOS-171 and the ruling-3 repair — then merge and push.
+1. `pnpm smoke --run-tag money-1`, then `--destructive`, on a fresh database copy: 0 BROKEN, with collections, settle, receipts and deposit all OK.
+2. Web at 1280×800: two desks press Bank on ONE collected receipt in the same second — exactly one 2xx, the loser told "is deposited, not collected" (409 `receipt_moved`), one deposit ref, one `ChequeDeposited` row, one Dr BANK line.
+3. Web + API probe: a returned trip whose only cash is a driver-uploaded receipt op with no `collections` row still shows that cash in the cockpit and settles green at float + X with Cr CASH_VAN = X; a second trip handed the float alone answers 409 `settlement_needs_owner`.
+4. Web: the accountant undoes that receipt after settlement — the reversal credits CASH, never CASH_VAN; the trial balance shows CASH −X with CASH_VAN unchanged; the bill reopens; the settlement row is untouched.
+5. Web delivery at both widths: one receipt held offline shows `d8-uncounted` and a disabled check-in, clears on re-open after reconnect with the hand-over rupee unchanged; in the settle-while-open leg the refused `trip_settled` op reaches the tray while D8 shows the settled figure.
+6. **Android on the Pixel 7 — the one item that genuinely needs a real device** (SQLite outbox, airplane mode, background push, the tray).
+7. iOS through `xcrun simctl`, renderer sanity only; a failure Android does not reproduce is P3 and never blocks.
+
+**If a walk fails later:** it is a new finding repaired forward on `b2-money-r1`, re-proving only the failed leg. The merge is reverted **only** if the merged tree writes money wrong where main did not — an unbalanced journal, a double bank or double count, CASH_VAN not at 0, or a settle against founder answer A — and the forward fix is not on main within one working day. A screen fault never reverts.
+
+**Ordering:** nothing in money waits for DOS-172, and DOS-172 must not merge before money; DOS-172 comes onto merged main once, resolving three `trips.service.ts` lines and the contract JSDoc hunks, folding a duplicate load-out helper at that merge.
+
+**Three risks nobody else raised, now filed:**
+- **S-143 (P1, money, data loss):** the delivery phone's tray offers **Discard** on a receipt op the server refused with `trip_settled` — discarding erases the phone's only record of cash a shop has already paid, which is exactly what founder answer A forbids.
+- **S-144 (P2):** D8's settlement preview is fetched once per mount and never refetched, so a stale "money still on the phone" note can stand beside an enabled check-in button.
+- **S-145 (P2):** the D8 held-money figure is totals-minus-totals, so it mis-states a two-phone crew or an unpulled desk receipt; bounded today by the outbox gate.
+
+**Executing it:** run `wf_a26d0575-7f9`, script `QA/tools/batch2/workflows/money-then-dos172.js` — items 0 and 1, then DOS-172's merge. The walks (2–7) run in their own pass once the DOS-167 proofs free the browser and the emulator.

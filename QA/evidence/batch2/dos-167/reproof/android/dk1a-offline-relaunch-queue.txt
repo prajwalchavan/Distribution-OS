@@ -1,0 +1,78 @@
+## K1a (keep run 1 of 3) sachin (Sai) — office unreachable: remove adb reverse tcp:3000 + tcp:3005, force-stop + relaunch after a completed pull 07:58:36
+strip before: Updated just now 
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+
+force-stop + start in.distributionos.delivery at 07:58:40
+## S-127 (main JS) home after the offline relaunch (+20s): SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 7:58 am | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | Still filling this phone from the office. | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Shop 23, Nandivali, Dombivli East, Dombivli, 421201 | Delivered | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+S-127 'Still filling this phone from the office' present? 1
+shot dk1a-sachin-offline-home.png
+## S-127 again (+35s): still filling present? 1 ; strip: Offline since 7:58 am 
+shot dk1a-sachin-offline-home-35s.png
+## open stop 7 Vaishnavi Provision
+row at: 401 1381
+stop screen: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 7:58 am | Stop 7 of 10 · TRIP-ACTIVE | Vaishnavi Provision | Not started | Owes ₹42,900.00 | Credit | Shop 11, Tilak Nagar, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Still due | 12 Sep, 12:00 pm | ₹42,900.00 | 42900 rupees | 5 bills still open at this shop | Bills on this stop | ₹4,866.00 | Still filling this phone from the office. | SAI/0432, 11 Sep 2026, 4866 rupees, Not started | SAI/0432 | ₹4,866.00 | 4866 rupees | 11 Sep 2026 | Not started | Sell from the van | Sell from the van | I am at the shop | I am at the shop
+shot dk1a-sachin-stop7.png
+tap 'I am at the shop' at 540 2207
+after arrive: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+shot dk1a-sachin-stop7-queued.png
+strip: 
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (07:59:44)
+total 7592
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 07:58 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 07:58 ..
+-rw------- 1 u0_a214 u0_a214 2867200 2026-09-14 07:57 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 07:58 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a214 u0_a214 4845152 2026-09-14 07:58 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (2867200)", "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm (32768)", "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal (4845152)" ], "stores": [ { "name": "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "5530f7b6-eb3a-7610-94df-7ab6000c3474", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "sachin @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0
+## K1a-2 the arrive tap raised the Google Location Accuracy dialog; tap 'No thanks' 08:00:04
+tap 'No thanks' at 484 1809
+after dismiss: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 7:58 am · 1 waiting to send | Offline since 7:58 am · 1 waiting to send | Stop 7 of 10 · TRIP-ACTIVE | Vaishnavi Provision | At the shop | Owes ₹42,900.00 | Credit | Shop 11, Tilak Nagar, Dombivli East, Dombivli, 421201 | Call | Call | Open in maps | Open in maps | Expected | Arrived | Still due | 12 Sep, 12:00 pm | 14 Sep, 8:00 am | ₹42,900.00 | 42900 rupees | 5 bills still open at this shop | Bills on this stop | ₹4,866.00 | Still filling this phone from the office. | SAI/0432, 11 Sep 2026, 4866 rupees, Not started | SAI/0432 | ₹4,866.00 | 4866 rupees | 11 Sep 2026 | Not started | Deliver this bill | Deliver this bill | Take money | Take money
+shot dk1a-sachin-stop7-after-dialog.png
+strip/toast: Offline since 7:58 am · 1 waiting to send 
+Offline since 7:58 am · 1 waiting to send 
+At the shop
+Not started
+Not started
+-- device outbox (read-only copy) 08:00:16
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 14 08:00 .
+drwxr-xr-x@ 10 prajwalchavan  wheel      320 Sep 14 08:00 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2867200 Sep 14 08:00 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 14 08:00 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4845152 Sep 14 08:00 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   load_sheets                 
+_outbox                       manufacturers               
+_sync_errors                  product_variants            
+_sync_state                   products                    
+brands                        receipts                    
+credit_note_lines             retailer_outstanding_summary
+credit_notes                  retailers                   
+deliveries                    tenant_products             
+delivery_challans             trip_stops                  
+delivery_lines                trips                       
+invoice_lines                 vehicles                    
+invoices                    
+-- _sync_state (value cut at 120)
+schemaVersion|0e8ebf40b7d68023
+role|delivery
+protocol|1
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenan
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMjoyODoyMS4yMTlaIn0
+lastPulledAt|2026-09-14T02:28:26.219Z
+userId|5530f7b6-eb3a-7610-94df-7ab6000c3474
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+deviceId|01a09dba-99ff-7700-b9f6-f6c2cc57f85a
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|trip_stops|8d62c707-1fc1-749e-b460-9cd5a7c01584|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:30:09.840Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:30:09.840Z"}|2026-09-13T10:41:22.953Z|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|queued|4|2026-09-14T02:30:09.865Z||||
+-- _sync_errors

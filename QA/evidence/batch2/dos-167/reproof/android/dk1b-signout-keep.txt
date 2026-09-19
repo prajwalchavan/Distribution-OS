@@ -1,0 +1,93 @@
+## K1b sachin signs out through the ⋯ menu with 1 queued (attempts 4, office unreachable) 08:00:39
+logcat cleared at 08:00:39
+app pid before: 4887
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sheet: 1 change has not reached the office | 1 change has not reached the office | They stay on this phone for Sachin Dalvi only and go the next time Sachin Dalvi signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Sign out, keep here | Cancel | Cancel | Close | Close
+shot dk1b-sachin-leave-sheet.png
+title singular present? 1
+names the person? for Sachin Dalvi only
+Send now present? 0
+keep button present? 1
+tap 'Sign out, keep here' at 540 1779
+keep tapped at 08:00:53 (1789353053.361901)
++1.3s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-1.png
++2.5s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-2.png
++3.8s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-3.png
++5.0s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-4.png
++6.3s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-5.png
++7.5s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-6.png
++8.8s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-7.png
++10.0s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-8.png
++11.3s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-9.png
++12.5s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-10.png
++13.7s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-11.png
++15.0s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-12.png
++16.2s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-13.png
++17.5s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-14.png
++18.7s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-15.png
++20.0s pid=4887 top=in.distributionos.delivery shot=dk1b-keep-16.png
+screen at end: Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot dk1b-sachin-kept-signed-out.png
+sign-in form after keep? 1
+-- crash check for in.distributionos.delivery (08:01:15)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+-- events since the clear (am_proc_died / am_kill / am_crash for delivery)
+09-14 08:00:46.015   671   695 I input_focus: [Focus request 9f37481 in.distributionos.delivery/in.distributionos.delivery.MainActivity,reason=UpdateInputWindows]
+09-14 08:00:46.065   671   775 I input_focus: [Focus leaving e891206 in.distributionos.delivery/in.distributionos.delivery.MainActivity,reason=Waiting for window because NO_WINDOW]
+09-14 08:00:46.065   671   775 I input_focus: [Focus entering 9f37481 in.distributionos.delivery/in.distributionos.delivery.MainActivity,reason=Window became focusable. Previous reason: NO_WINDOW]
+09-14 08:00:53.210   671   775 I input_interaction: Interaction with: 9f37481 in.distributionos.delivery/in.distributionos.delivery.MainActivity, [Gesture Monitor] swipe-up, [Gesture Monitor] edge-swipe, PointerEventDispatcher0, 
+09-14 08:00:53.280   671   695 I input_focus: [Focus request e891206 in.distributionos.delivery/in.distributionos.delivery.MainActivity,reason=UpdateInputWindows]
+09-14 08:00:53.326   671   775 I input_focus: [Focus entering e891206 in.distributionos.delivery/in.distributionos.delivery.MainActivity,reason=setFocusedWindow]
+09-14 08:00:53.422   671   736 I sysui_multi_action: [757,906,758,4,806,in.distributionos.delivery,871,,908,com.google.android.gms,1452,0,1456,515749800]
+09-14 08:00:53.685  4887  5353 I jank_cuj_events_begin_request: [80,1789353053685275000,711226971630,711226972255,0@0@in.distributionos.delivery]
+09-14 08:00:53.724   671   671 I sysui_multi_action: [757,907,758,10,806,in.distributionos.delivery,871,,908,com.google.android.gms,909,-1,1454,1,1456,515749800]
+09-14 08:00:53.724   671   671 I sysui_multi_action: [757,919,758,4,806,in.distributionos.delivery,871,,908,com.google.android.gms,1455,1,1456,515749800]
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:01:15)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 08:00 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 07:58 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 08:00 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-- decoded (parseStoreName rule): { "files": [ "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (2945024)" ], "stores": [ { "name": "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "5530f7b6-eb3a-7610-94df-7ab6000c3474", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "sachin @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0
+-- kept file (read-only copy)
+drwxr-xr-x@  3 prajwalchavan  wheel       96 Sep 14 08:01 .
+drwxr-xr-x@ 11 prajwalchavan  wheel      352 Sep 14 08:01 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2945024 Sep 14 08:01 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-- integrity
+ok
+-- tables
+_gps_buffer   _outbox       _sync_errors  _sync_state 
+-- _sync_state (value cut at 120)
+userId|5530f7b6-eb3a-7610-94df-7ab6000c3474
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+deviceId|01a09dba-99ff-7700-b9f6-f6c2cc57f85a
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|trip_stops|8d62c707-1fc1-749e-b460-9cd5a7c01584|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:30:09.840Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:30:09.840Z"}|2026-09-13T10:41:22.953Z|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|queued|6|2026-09-14T02:30:09.865Z||||
+-- _sync_errors
+## K1b relaunch while still offline (y): force-stop + start 08:01:15
+force-stop + start in.distributionos.delivery at 08:01:17
+after relaunch (+12s): Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot dk1b-relaunch-offline.png
+relaunch shows the sign-in form? 1
+relaunch shows sachin's session (Sai / TRIP-ACTIVE)? 0
+-- crash check for in.distributionos.delivery (08:01:31)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:01:31)
+total 2896
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 08:01 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 08:01 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 08:00 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-- decoded (parseStoreName rule): { "files": [ "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (2945024)" ], "stores": [ { "name": "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "5530f7b6-eb3a-7610-94df-7ab6000c3474", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "sachin @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0

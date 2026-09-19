@@ -1,0 +1,53 @@
+## m2 delivery steps done: stop the delivery Metro :5177 (started by this run), start the warehouse Metro :5176 from main with CI=1 2026-09-14 09:41:09
+ended
+  PID  PPID COMMAND
+ 2765  2750 sh -c node ./scripts/sync-fonts.mjs && expo start --web --port 5177
+ 2767  2765 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5177
+:5177 listeners: 0
+warehouse Metro :5176 packager-status:running after 2s
+listener 4173 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/warehouse-app
+System-wide memory free percentage: 41%
+## w1 dinesh.patil (warehouse, Tarsun) first warehouse sign-in 2026-09-14 09:41:13 via ios-login-reproof.mjs (terminates Expo Go, resets the keychain: first sign-in of this app only)
+SIGNED_IN warehouse dinesh.patil | Expo Go | More | Tarsun Enterprise logo | Tarsun Enterprise | warehouse | Updated just now | Inbound | ✓ Queues | Capture | Stock | Counts | Held | Vertical scroll bar, 2 pages | BILLS TO COUNT | WAVES OPEN | PACKED, NO BILL | SHEETS WAITING | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start
+done 2026-09-14 09:41:55
+strip 'Updated just now' at 2026-09-14 09:42:00
+shot w1-dinesh-home.png
+home: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|warehouse|Updated just now|Tarsun Enterprise|Inbound|✓ Queues = 1|Capture|Stock|Counts|Vertical scroll bar, 2 pages = 0%|BILLS TO COUNT|WAVES OPEN|0|1|PACKED, NO BILL|SHEETS WAITING|0|1|GATE COUNTS WAITING|0 lines|Nothing at the gate|WAVES ON T
+expected (V8): w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft
+$ find "$C" -path '*SQLite*'   (09:42:01)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-warehouse",
+   "userId": "5b6fbe87-cb70-7195-8de1-a4f5046c3675",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "dinesh.patil @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [dinesh.patil @ Tarsun] legacy=0 interim=0 strays=0 other=0
+$ find "$C" -path '*SQLite*' -name 'dos-warehouse*'
+(end of find)
+tapped "Pick" Other at 151,803 (1 of 1)
+shot w1-dinesh-pick.png
+pick: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|warehouse|Updated just now|Tarsun Enterprise|Pick|✓ Every beat = 1|Khadakpada|Station Road|Vertical scroll bar, 3 pages = 0%|ORDERS WAITING|Select all|Clear|0 selected · 0 pc|Bhosale Traders, SO-0877 · Khadakpada · 750 pc, confirmed|Shree Ganesh Kirana, SO-0873 · Station Road · 163 pc, confirmed|Vitthal Traders, SO-9003 · Kalyan West Ma
+$ has "Tarsun" (positive control on dinesh's own screens): YES
+$ has "Khadakpada" (positive control on dinesh's own screens): YES
+$ has "SO-0877" (positive control on dinesh's own screens): YES
+$ has "Bhosale Traders" (positive control on dinesh's own screens): YES
+gear and More: [344,697 26x26]	gearshape.fill  / [310,70 76x76]	More 

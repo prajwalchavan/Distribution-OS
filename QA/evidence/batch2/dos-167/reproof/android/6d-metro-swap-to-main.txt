@@ -1,0 +1,9 @@
+## step6d stop the 199952b worktree Metro, restart the MAIN sales Metro :5175 (CI=1, pnpm web --clear, as it was) 07:25:51
+  PID  PPID COMMAND
+70112     1 node /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167/frontend/node_modules/.bin/expo start --port 5175 --clear
+5175 listeners after stop: 0
+status: packager-status:running
+listener pid 70557 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+70557 node /Users/prajwalchavan/Desktop/Distribution OS/frontend/node_modules/.bin/expo start --web --port 5175 --clear
+main HEAD: bafb7b5 Merge QA batch 2 P0 DOS-167 ruling 2: a short store 
+git status:  M QA/tools/e2e/s-098-shared-device.mjs;?? QA/evidence/batch2/dos-167/reproof/;

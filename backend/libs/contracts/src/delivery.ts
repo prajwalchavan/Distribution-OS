@@ -493,7 +493,11 @@ export const TripDetailSchema = TripSchema.extend({
   loadSheetIds: z.array(IdSchema),
   /** `vanSalesEnabled` AND `feature_flags.van_sales`: whether the van-sale button exists at all. */
   vanSalesAllowed: z.boolean(),
-  /** opening cash + Σ cash collections − Σ expenses, as of now. */
+  /**
+   * opening cash + Σ the trip's cash receipts, however they arrived, net of reversals − Σ expenses, as of now; a
+   * settled trip's is the expected cash it settled with (QA DOS-169). Money taken counts only for the back office
+   * and the trip's crew: the godown reads the float.
+   */
   expectedCashPaise: PaiseSchema,
   policy: TripPolicySchema,
 })
@@ -832,9 +836,11 @@ export const CancelTripOutput = TripItemOutput
 export const SettlementPreviewInput = z.object({ id: IdSchema })
 
 /**
- * The check-in cockpit, read-only and recomputed on every call. `expectedCashPaise = openingCashPaise +
- * Σ cash collections − Σ expenses`; UPI and cheques are reported beside it. `expectedVanStock` is the
- * vehicle location's `stock_balances.on_hand` per lot. `tolerancePaise` is the tenant's setting.
+ * The check-in cockpit, read-only. Cash, UPI and cheques are Σ the trip's receipts per mode, however they
+ * arrived, net of reversals; `collectionsCount` counts those receipts (QA DOS-169). `expectedCashPaise =
+ * openingCashPaise + cash − Σ expenses`; UPI and cheques are reported beside it. A settled trip reports the
+ * cash, UPI, expenses and expected cash it settled with; its cheques and count stay live. `expectedVanStock`
+ * is the vehicle location's `stock_balances.on_hand` per lot. `tolerancePaise` is the tenant's setting.
  */
 export const SettlementPreviewOutput = z.object({
   tripId: IdSchema,

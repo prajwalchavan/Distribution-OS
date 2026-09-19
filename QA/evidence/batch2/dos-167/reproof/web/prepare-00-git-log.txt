@@ -1,0 +1,3 @@
+bafb7b5 Merge QA batch 2 P0 DOS-167 ruling 2: a short store name the web database accepts, and a browser that cannot keep never offers to keep
+9eed92b docs(DOS-167): ruling 2 review minors — docs/27 useOutbox signature and the sign-out sentence
+4be7fe2 fix(DOS-167): ruling 2 (z3) — a file that may survive keeps its drafts

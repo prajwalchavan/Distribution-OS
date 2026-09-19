@@ -1,0 +1,24 @@
+## W2-redo: dismiss the debug LogBox, then dinesh signs out through the ⋯ menu, nothing queued (expect one tap, no sheet, file removed) 08:36:52
+full LogBox open: tap Dismiss
+tap 'Dismiss' at 180 2274
+logbox now: 0 (0 = clear)
+screen: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0
+shot w2-redo-dinesh-home.png
+strip: Updated just now 
+tap '⋯' at 938 256
+menu: More | More | Settings | Settings | Me | Me | Change your password | Change your password | Sign out | Sign out | Close | Close
+shot w2-redo-dinesh-menu.png
+tap 'Sign out' at 540 1976
+after Sign out (+3s): Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+shot w2-redo-dinesh-signed-out.png
+sheet shown? 0 ; sign-in form? 1
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (08:37:23)
+total 16
+drwx------ 2 u0_a213 u0_a213 4096 2026-09-14 08:37 .
+drwxrwx--x 3 u0_a213 u0_a213 4096 2026-09-14 08:33 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.warehouse (08:37:23)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

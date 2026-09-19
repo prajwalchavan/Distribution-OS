@@ -1,0 +1,17 @@
+## step6g 199952b JS: install -r + pm clear + rahul sign-in, online sync 07:27:02 (epoch 1789351022)
+SIGNED_IN 6g-old-rahul: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | ✓ Station Road | Kalyan West Market | Kalyan West Market | Khadakpada | Khadakpada | Search this
+strip: Updated just now 
+shot 6g-old-rahul-synced.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:28:36)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:28 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:27 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:28 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:28 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:28 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2617344)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4515552)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- which JS is running (Hermes)
+{"storeNameFor.rahul": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "moduleError": "TypeError: undefined is not a function"}
+-- logcat crash buffer (07:28:36)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

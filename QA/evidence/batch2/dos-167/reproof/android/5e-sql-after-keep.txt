@@ -1,0 +1,4 @@
+-- dos_qa (read-only) after keep, before amit's re-sign-in 07:18:53
+sales_orders rows for 01a09d95-7923-73b8-91ff-05386c614511: 0
+sales_order_lines rows for 01a09d96-5f85-70b6-bf7b-71d73e55e38a: 0
+sync_ops for the two op ids: 0

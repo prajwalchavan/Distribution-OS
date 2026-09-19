@@ -1,0 +1,36 @@
+## d1 checks after ganesh's sign-in 2026-09-14 09:39:12
+strip 'Updated just now' at 2026-09-14 09:39:13
+shot d1-ganesh-home.png
+expected (V8): d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft
+$ find "$C" -path '*SQLite*'   (09:39:14)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft-shm
+(end of find)
+{
+ "stores": [
+  {
+   "name": "d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-delivery",
+   "userId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "ganesh.more @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [ganesh.more @ Tarsun] legacy=0 interim=0 strays=0 other=0
+$ find "$C" -path '*SQLite*' -name 'dos-delivery*'  (legacy and 199952b names)
+(end of find)
+$ has "MH-05-AB-1234" (positive control on ganesh's own screen): YES
+$ has "Vaibhav Kirana Mart" (positive control on ganesh's own screen): YES
+$ has "Tarsun" (positive control on ganesh's own screen): YES
+gear and More: [344,697 26x26]	gearshape.fill  / [317,70 69x69]	More 
