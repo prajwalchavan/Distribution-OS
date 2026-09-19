@@ -49,7 +49,7 @@ export type StoreKind = 'sqlite-native' | 'sqlite-web' | 'memory'
 /**
  * Why a store is in memory (DOS-167 ruling 2 (t)): the one the platform was asked for, and the opener's reason —
  * `not cross-origin isolated (no COOP/COEP)`, `no OPFS`, `expo-sqlite did not load`, `expo-sqlite is not in this
- * binary` or `open failed: <message>`.
+ * binary`, `open failed: <message>` or `open timed out after 15s` (ruling 3 (cc)).
  */
 export interface StoreFallback {
   readonly wanted: StoreKind

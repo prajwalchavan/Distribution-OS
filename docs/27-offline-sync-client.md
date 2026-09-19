@@ -38,7 +38,8 @@ interface SyncStore {
   `persistent=false`, and the strip says "Offline data is not saved on this browser".
   A fallback to it is never silent (ruling 2 (t), 2026-09-14): the opener hands back the memory store with
   `fallback = { wanted, reason }` — `not cross-origin isolated (no COOP/COEP)`, `no OPFS`, `expo-sqlite did not load` (web),
-  `expo-sqlite is not in this binary` (native) or `open failed: <message>` — `start()` logs
+  `expo-sqlite is not in this binary` (native), `open failed: <message>` or `open timed out after 15s` (both platforms,
+  ruling 3 (cc), §14) — `start()` logs
   `offline: no persistent store; running in memory` once with that reason, and `SyncStatus.storeNote` names it (null on a
   persistent store).
 
