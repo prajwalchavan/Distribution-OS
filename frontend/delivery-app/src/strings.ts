@@ -386,6 +386,13 @@ export const strings = {
   'tray.discard': 'Throw it away',
   'tray.notOnPhone':
     'This phone no longer holds this write. Record it again, then throw this away.',
+  /*
+   * The same fact about a PAYMENT. The sentence above sends a person back to the doorstep to record the
+   * work again, which is right for an arrival or a delivery and wrong for money: the shop has already
+   * paid, nothing may be thrown away (never-list #13), and the only thing left is the counter.
+   */
+  'tray.moneyNotOnPhone':
+    'This phone no longer holds the figures for this payment. Hand the money and your book slip to the cashier, who records it at the office.',
   'tray.storeDisk': 'Held on this phone',
   'tray.storeMemory': 'Held in memory only — a reload empties this device',
   /*

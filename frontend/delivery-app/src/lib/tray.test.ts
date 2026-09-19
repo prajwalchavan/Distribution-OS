@@ -13,6 +13,32 @@ import { describe, expect, it } from 'vitest'
 
 import { trayActions } from './tray'
 
+interface NodeFs {
+  readFileSync: (path: string, encoding: 'utf8') => string
+}
+
+interface NodeUrl {
+  fileURLToPath: (url: URL) => string
+}
+
+/** `@types/node` is deliberately absent from an app, so the two Node functions come in unliterally. */
+const NODE_FS: string = 'node:fs'
+const NODE_URL: string = 'node:url'
+
+/** Source with its comments taken out: a comment may quote the very string it explains. */
+async function readSource(relative: string): Promise<string> {
+  const { readFileSync } = (await import(NODE_FS)) as NodeFs
+  const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+  return readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+}
+
+/** The tray screen itself — importing it in Node would pull in `react-native`, which Metro resolves. */
+const readTray = (): Promise<string> => readSource('../../app/attention.tsx')
+/** This app's string table, to prove the key the rule returns is really declared. */
+const readStrings = (): Promise<string> => readSource('../strings.ts')
+
 /** One tray entry, shaped exactly as `engine.needsAttention()` hands it over. */
 function item(input: {
   table: string
@@ -112,6 +138,22 @@ describe('DOS-178 a refused payment is kept and handed to the cashier', () => {
     expect(card.money).toBeNull()
   })
 
+  it('DOS-178 review: money the phone no longer holds is never told to record it again and throw it away', () => {
+    // The card above has no figures, so it used to fall into the tray's "not on this phone" arm and
+    // print "Record it again, then throw this away." beside its own Handed-to-the-cashier button —
+    // never-list #13 arriving as a SENTENCE after the buttons were fixed (merge review, 2026-09-19).
+    // Which line a card may print is decided here, next to which buttons it may show.
+    expect(
+      trayActions(item({ table: 'receipts', code: 'trip_settled', withOp: false })).notHeld,
+    ).toBe('tray.moneyNotOnPhone')
+    expect(trayActions(item({ table: 'trip_stops', code: 'stale', withOp: false })).notHeld).toBe(
+      'tray.notOnPhone',
+    )
+    // A phone that still holds the write says nothing: "Send it again" or the hand-over button is there.
+    expect(trayActions(item({ table: 'receipts', code: 'trip_settled' })).notHeld).toBeNull()
+    expect(trayActions(item({ table: 'deliveries', code: 'stale' })).notHeld).toBeNull()
+  })
+
   it('DOS-178 a refusal that is not money keeps today’s Send it again and Throw it away', () => {
     const card = trayActions(item({ table: 'deliveries', code: 'stale' }))
     expect(card.actions).toEqual(['retry', 'discard'])
@@ -121,5 +163,14 @@ describe('DOS-178 a refused payment is kept and handed to the cashier', () => {
   it('DOS-178 a non-money refusal the phone no longer holds keeps Throw it away alone', () => {
     const card = trayActions(item({ table: 'trip_stops', code: 'stale', withOp: false }))
     expect(card.actions).toEqual(['discard'])
+  })
+
+  it('DOS-178 review: D10 takes that line from the rule and never reaches for the throw-away one', async () => {
+    const source = await readTray()
+    expect({
+      viaCard: /t\(card\.notHeld\)/.test(source),
+      direct: source.includes("t('tray.notOnPhone')"),
+      declared: (await readStrings()).includes("'tray.moneyNotOnPhone':"),
+    }).toEqual({ viaCard: true, direct: false, declared: true })
   })
 })

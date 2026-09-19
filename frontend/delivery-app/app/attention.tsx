@@ -225,11 +225,13 @@ export default function NeedsAttention(): React.JSX.Element {
                         }}
                         testID={`tray-retry-${entry.error.opId}`}
                       />
-                    ) : card.money === null ? (
+                    ) : card.notHeld === null ? null : (
                       /*
                        * The phone no longer holds this write — a reload emptied the web's memory store
                        * and the tray was refilled from the office — so "Send it again" would send
-                       * nothing. Say so; "Throw it away" stays (DOS-056).
+                       * nothing. Say so; "Throw it away" stays (DOS-056). WHICH sentence is the rule's,
+                       * not this screen's: on money it is the one that points at the cashier, never the
+                       * one that says throw this away (merge review, 2026-09-19).
                        */
                       <Txt
                         field="label"
@@ -237,9 +239,9 @@ export default function NeedsAttention(): React.JSX.Element {
                         color={colors.text.secondary}
                         testID={`tray-not-held-${entry.error.opId}`}
                       >
-                        {t('tray.notOnPhone')}
+                        {t(card.notHeld)}
                       </Txt>
-                    ) : null}
+                    )}
                     {card.actions.includes('handOver') ? (
                       <Button
                         label={t('tray.handedOver')}

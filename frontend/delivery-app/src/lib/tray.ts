@@ -38,6 +38,16 @@ export interface TrayCard {
   readonly actions: readonly TrayAction[]
   /** Null on anything that is not money, and on money this phone no longer holds the op for. */
   readonly money: TrayMoney | null
+  /**
+   * The sentence for a write this phone no longer holds, or null while it still holds it.
+   *
+   * The two are NOT the same sentence, and the merge review of 2026-09-19 found the tray printing the
+   * wrong one: a kept payment pulled back from the office after a reload has no op either, so it fell
+   * into the ordinary arm and read "Record it again, then throw this away." beside its own
+   * Handed-to-the-cashier button — never-list #13 as a sentence, one commit after the buttons were
+   * fixed. Money says where the money goes instead; nothing here ever offers deletion.
+   */
+  readonly notHeld: 'tray.notOnPhone' | 'tray.moneyNotOnPhone' | null
   /** When the crew handed it to the cashier, so the card can sit in its own section with the time. */
   readonly handedOverAt: string | null
 }
@@ -75,11 +85,18 @@ export function trayActions(item: NeedsAttentionItem): TrayCard {
     return {
       actions: item.error.handedOverAt === null ? ['handOver'] : [],
       money: moneyOf(item),
+      /*
+       * `pullErrors` brings a refusal back from the office after a reload or a reinstall, so a kept card
+       * can exist with no op and no figures. It still owes the shop a receipt: the line says where the
+       * money goes, never "Record it again, then throw this away".
+       */
+      notHeld: item.op === null ? 'tray.moneyNotOnPhone' : null,
       handedOverAt: item.error.handedOverAt,
     }
   return {
     actions: item.op === null ? ['discard'] : ['retry', 'discard'],
     money: null,
+    notHeld: item.op === null ? 'tray.notOnPhone' : null,
     handedOverAt: null,
   }
 }
