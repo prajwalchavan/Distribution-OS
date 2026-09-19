@@ -239,7 +239,16 @@ export const strings = {
   'd4.podNotRequired': 'A photo is not required here, but it settles arguments later',
   'd4.podNoCamera': 'No camera on this device — attach a file instead',
   'd4.podFailed': 'That photo could not be read. Take it again.',
-  'd4.podGeo': 'Where you were is attached as proof',
+  /*
+   * DOS-070 — WHAT THE GEO PROOF ACTUALLY IS. This used to read "Where you were is attached as proof",
+   * printed on a web build whose own home screen said "Location is off — this phone is not sharing
+   * location". D4 has never asked the phone for a fix: what travels is `trip_stops.arrived_lat/lng`,
+   * the ONE reading taken when the crew tapped "I am at the shop". So the line names that reading and
+   * when it was taken — and where there is no arrival fix there is no line, because there is no `geo`
+   * row either.
+   */
+  'd4.podGeoArrival': 'Where you were when you arrived goes with this as proof',
+  'd4.podGeoArrivalAt': 'Where you were when you arrived, {when}, goes with this as proof',
   'd4.record': 'Record the delivery',
   'd4.recordOffline': 'Save on this phone',
   'd4.recordOfflineTab': 'Hold until there is a signal',
@@ -545,5 +554,6 @@ export const strings = {
   'word.photo': 'Photo',
   'word.signature': 'Signature',
   'word.otp': 'OTP',
-  'word.geo': 'Where you were',
+  /* DOS-070: the same claim named the same way wherever a proof row is listed. */
+  'word.geo': 'Arrival point',
 } as const

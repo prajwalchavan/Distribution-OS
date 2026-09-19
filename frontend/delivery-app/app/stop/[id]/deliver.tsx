@@ -51,6 +51,7 @@ import {
   doorstepOrderBlock,
   doorstepOrderRefusal,
   droppedPieces,
+  geoProofLine,
 } from '../../../src/lib/at-the-door'
 import { longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
@@ -399,6 +400,8 @@ export default function AtTheDoor(): React.JSX.Element {
   const podRequired =
     podPolicy === 'always' || (podPolicy === 'credit_only' && onCredit && outcome !== 'failed')
   const proofTooBig = proof !== null && proof.contentBase64.length > MAX_INLINE_BASE64
+  /** DOS-070: what may honestly be said about the geo proof, or null when none is travelling. */
+  const geoProof = geoProofLine(t, stop)
   /** DOS-148: null unless the office has answered AND would refuse this very outcome on this bill. */
   const notOnTheVanBlock = doorstepOrderBlock(orderQuery.data?.item.state, outcome)
   const notOnTheVan = notOnTheVanBlock === null ? null : doorstepOrderRefusal(t, notOnTheVanBlock)
@@ -872,9 +875,13 @@ export default function AtTheDoor(): React.JSX.Element {
                 />
               )}
             </Row>
-            {stop?.arrived_lat === null || stop?.arrived_lat === undefined ? null : (
+            {/*
+              DOS-070: one rule decides both whether there is a geo line and what it may claim —
+              the arrival fix, and when it was taken. No fix, no line, and no `geo` row below either.
+            */}
+            {geoProof === null ? null : (
               <Txt field="label" desk="meta" color={colors.text.secondary} testID="d4-geo">
-                {t('d4.podGeo')}
+                {geoProof}
               </Txt>
             )}
             <TextInput

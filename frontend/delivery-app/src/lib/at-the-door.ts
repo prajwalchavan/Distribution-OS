@@ -1,7 +1,7 @@
 /**
  * D4's own rules, in one testable place: what it hands to the stop screen once the write is made
- * (DOS-149), what it refuses before it asks for a photograph (DOS-148), and what a typed piece count
- * means on a bill line (DOS-064).
+ * (DOS-149), what it refuses before it asks for a photograph (DOS-148), what a typed piece count means
+ * on a bill line (DOS-064), and what it may honestly claim about its own proof (DOS-070).
  *
  * WHY A HANDOVER AT ALL. Both doorstep screens end the same way: the write lands, and the driver is put
  * back on the stop. A toast raised on D4 or D5 is drawn by a screen that `router.replace` is already
@@ -18,6 +18,7 @@
 import { orderMachine, type OrderState } from '@dos/domain'
 import { parsePieces, type Translator } from '@dos/ui'
 
+import { instantWithClock } from './dates'
 import { keepKey } from './keep'
 
 // ---------------------------------------------------------------------------
@@ -152,4 +153,28 @@ export function droppedPieces(typed: string, billedPcs: number): number | null {
   const parsed = parsePieces(typed)
   if (!parsed.ok) return null
   return Math.max(0, Math.min(parsed.pieces, billedPcs))
+}
+
+// ---------------------------------------------------------------------------
+// DOS-070 — what the geo proof on a delivery actually is
+// ---------------------------------------------------------------------------
+
+/**
+ * The line under the proof panel, or null when nothing about where the crew was is being sent.
+ *
+ * What travels with a delivery is `trip_stops.arrived_lat/lng` — the ONE fix taken when the crew tapped
+ * "I am at the shop". D4 has never asked the phone for a reading of its own, so on a browser that
+ * refused location, or a phone that never got one, there is no fix, no `geo` row, and nothing to say.
+ * The old line, "Where you were is attached as proof", was printed beside a home screen reading
+ * "Location is off — this phone is not sharing location": a claim the device had never made.
+ */
+export function geoProofLine(
+  t: Translator,
+  stop: { arrived_lat?: number | null; arrived_at?: string | null } | null | undefined,
+): string | null {
+  if (stop?.arrived_lat === null || stop?.arrived_lat === undefined) return null
+  const at = stop.arrived_at
+  return at === null || at === undefined || at === ''
+    ? t('d4.podGeoArrival')
+    : t('d4.podGeoArrivalAt', { when: instantWithClock(at) })
 }
