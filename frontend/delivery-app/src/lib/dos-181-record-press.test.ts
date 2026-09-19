@@ -76,6 +76,7 @@ const creditShopNoPhoto: DoorstepGate = {
 function press(
   gate: DoorstepGate,
   online = true,
+  persistent: boolean | null = true,
 ): {
   disabled: boolean
   reason: string | undefined
@@ -89,6 +90,7 @@ function press(
     t,
     gate,
     online,
+    persistent,
     recordedOutcome: null,
     record: () => {
       recorded += 1
@@ -111,6 +113,7 @@ describe('D4 at the door: the footer never takes a press it will not act on', ()
       t,
       gate: creditShopNoPhoto,
       online: true,
+      persistent: true,
       recordedOutcome: null,
       record: () => {
         throw new Error('the doorstep write must not be attempted while the shop is owed a photo')
@@ -142,9 +145,44 @@ describe('D4 at the door: the footer never takes a press it will not act on', ()
     expect(outcome.recorded).toBe(1)
   })
 
+  /*
+   * DOS-179 / never-list #12, restored after the merge (merge review, 2026-09-20). The lane branched
+   * before main routed this label through `keepKey`, and moving the label into `doorstepFooter` took
+   * the keep claim back out with it: on a browser whose store is the memory fallback the offline
+   * button would again read "Save on this phone" over a write that dies with the tab. The footer owns
+   * the word now, so the footer asks the rule — and a store still opening (`null`) is a memory one,
+   * because an OFFER may not promise a keep the device might not be able to make.
+   */
+  it('DOS-181 · DOS-179: with no signal the button promises a keep only on a store that keeps', () => {
+    const ready = { ...creditShopNoPhoto, hasPhoto: true }
+    expect(press(ready, false, true).label).toBe(t('d4.recordOffline'))
+    expect(
+      press(ready, false, false).label,
+      'a browser with no persistent store was promised "Save on this phone"',
+    ).toBe(t('d4.recordOfflineTab'))
+    expect(
+      press(ready, false, null).label,
+      'a store still opening may not be offered as one that keeps',
+    ).toBe(t('d4.recordOfflineTab'))
+    // The words change; the write does not.
+    expect(press(ready, false, false).recorded).toBe(1)
+    // And online the button never names the phone at all.
+    expect(press(ready, true, false).label).toBe(t('d4.record'))
+  })
+
+  it('DOS-181 · DOS-179: the screen hands the footer what the store turned out to be', async () => {
+    const code = withoutComments(await readScreen())
+    expect(code).toMatch(
+      /const footer = doorstepFooter\(\{[\s\S]{0,400}?persistent: status\.persistent/,
+    )
+    // And no screen reads the phone's half of the pair by name (the @dos/offline guard's rule 5).
+    expect(code).not.toContain("t('d4.recordOffline'")
+  })
+
   it('DOS-181: a press that slips past the disabled state is refused OUT LOUD — nothing is written and the reason is said', () => {
-    // The policy can still turn on under the thumb: `trips.get` resolving to `always` between the
-    // render and the release is enough. The belt refuses, and it is never silent about it.
+    // The belt, on the value rather than through the screen: the kit's disabled button never calls
+    // `onPress`, so nothing in the UI routes here today. It is asserted anyway because `onPress` is a
+    // plain function anyone can hold, and a refusal it swallowed would be the original defect again.
     const outcome = press(creditShopNoPhoto)
     expect(outcome.recorded, 'a delivery was written while the shop was owed a photo').toBe(0)
     expect(outcome.said).toEqual([t('d4.podRequired')])
@@ -155,6 +193,7 @@ describe('D4 at the door: the footer never takes a press it will not act on', ()
       t,
       gate: { ...creditShopNoPhoto, alreadyRecorded: true, balanced: false },
       online: true,
+      persistent: true,
       recordedOutcome: 'delivered',
       record: () => undefined,
       refuse: () => undefined,

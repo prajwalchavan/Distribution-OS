@@ -102,16 +102,9 @@ export default function PickingSheet(): React.JSX.Element {
       ? start.data.item.status
       : undefined
   const liveStatus = startedHere ?? sheet?.status
-  const gate = pickGate({
-    startedHere,
-    deviceStatus: sheet?.status ?? null,
-    reading: sheetLoading || loading,
-    linesOnDevice: rows.length,
-  })
+  const gate = pickGate({ startedHere, deviceStatus: sheet?.status ?? null })
   const notStarted = gate === 'not-started'
   const locked = gate !== 'pickable'
-  /** Pickable on this phone's word alone: the office has not confirmed the wave started. */
-  const unconfirmed = gate === 'pickable' && liveStatus === undefined
 
   const [shortFor, setShortFor] = useState<PickRow | null>(null)
   const [shortPieces, setShortPieces] = useState<number | null>(null)
@@ -215,6 +208,28 @@ export default function PickingSheet(): React.JSX.Element {
             {t('w5.progress', { picked, total: rows.length })}
           </Txt>
           {/*
+           * NOTHING STANDS BETWEEN THE PICKER AND THE FIRST ROW (DOS-182, merge review 2026-09-20).
+           *
+           * Both of these used to be lines of the BODY, above the list. Measured on a Pixel 7 at a
+           * cold start with the office away, the offline promise and "Still filling this phone from
+           * the server" together pushed the first card's Picked / Short under the sticky bar — the
+           * one thing UX-00 section 9.4 puts above the fold, below it, which is what a prover reading
+           * only the first viewport then filed as a lock. They belong here, where the thumb already
+           * is and where they cost the list nothing; the filling sentence now prints UNDER the rows
+           * (`LocalAsyncBody`). Said WHEN IT IS TRUE, not always: online, the connection strip
+           * already carries "Updated just now".
+           */}
+          {status.online ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-offline">
+              {t(keepKey('offlineNote', status.persistent))}
+            </Txt>
+          )}
+          {scanNote === null ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-scan-note">
+              {scanNote}
+            </Txt>
+          )}
+          {/*
            * Not started: ONE action. Scan is hidden rather than disabled, because the kit prints a
            * disabled button's reason beneath it — the not-started sentence would be said twice on a
            * phone, over the scanner's own "unavailable" reason.
@@ -271,12 +286,6 @@ export default function PickingSheet(): React.JSX.Element {
             {t('w5.notStarted')}
           </Txt>
         ) : null}
-        {/* The wave is being picked on this phone's word: say so rather than let it pass for confirmed. */}
-        {unconfirmed ? (
-          <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-unconfirmed">
-            {t('w5.unconfirmed')}
-          </Txt>
-        ) : null}
         {start.error === undefined ? null : (
           <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-start-error">
             {`${t('w5.startFailed')}: ${start.error.message}`}
@@ -294,23 +303,6 @@ export default function PickingSheet(): React.JSX.Element {
               setView(id === 'all' ? 'all' : 'todo')
             }}
           />
-        )}
-
-        {/*
-         * The offline promise is said WHEN IT IS TRUE, not always. A standing sentence cost a whole
-         * row of the sheet: measured at 375 x 812, the first line's Picked / Short buttons fell
-         * below the fold, and the one thing UX-00 section 9.4 puts above it is a pickable row.
-         * Online, the connection strip already carries "Updated just now".
-         */}
-        {status.online ? null : (
-          <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-offline">
-            {t(keepKey('offlineNote', status.persistent))}
-          </Txt>
-        )}
-        {scanNote === null ? null : (
-          <Txt field="label" desk="meta" color={colors.text.secondary}>
-            {scanNote}
-          </Txt>
         )}
 
         <LocalAsync

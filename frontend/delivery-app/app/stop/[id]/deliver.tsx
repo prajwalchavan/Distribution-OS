@@ -450,6 +450,7 @@ export default function AtTheDoor(): React.JSX.Element {
     t,
     gate,
     online: status.online,
+    persistent: status.persistent,
     recordedOutcome: row.outcome,
     record: commit,
     refuse: announce,

@@ -293,8 +293,6 @@ export const strings = {
   /* Picking has no Save step (UX-00 section 9.4): this button goes to packing, so it says so. */
   'w5.confirm': 'Take it to packing',
   'w5.notStarted': 'This sheet has not been started',
-  'w5.unconfirmed':
-    'Picking from the copy on this phone — the office has not confirmed this wave yet',
   'w5.cancelIsManager': 'A wave is cancelled by the manager.',
   'w5.viewTodo': 'To pick',
   'w5.viewAll': 'Every line',
