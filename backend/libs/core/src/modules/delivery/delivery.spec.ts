@@ -2147,8 +2147,9 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(deskClash.status, JSON.stringify(deskClash.body)).toBe(409)
     expect(deskClash.body.data?.code).toBe('pod_id_taken')
     expect(deskClash.body.message).toContain(podId)
-    const [still] = (await db.execute(sql`select delivery_id from pod_evidence where id = ${podId}`))
-      .rows as { delivery_id: string }[]
+    const [still] = (
+      await db.execute(sql`select delivery_id from pod_evidence where id = ${podId}`)
+    ).rows as { delivery_id: string }[]
     expect(still?.delivery_id).toBe(deliveryA1)
     // the desk adding proof to its own delivery under a fresh id is untouched by the narrowing
     const deskOwn = await call<{ item: { id: string } }>(
