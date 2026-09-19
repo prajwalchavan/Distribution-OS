@@ -974,7 +974,8 @@ export class SyncEngine {
     return {
       online: this.radio() && this.reachable,
       store: this.store?.kind ?? 'memory',
-      persistent: this.store?.persistent ?? false,
+      // Null until something has resolved: never “will not keep” over a store that is still opening (ruling 3 (ee)).
+      persistent: this.store === null ? null : this.store.persistent,
       storeNote:
         this.store === null || this.store.persistent ? null : (this.store.fallback?.reason ?? null),
       lastPulledAt: this.lastPulledAt,

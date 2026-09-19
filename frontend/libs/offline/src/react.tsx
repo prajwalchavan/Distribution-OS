@@ -307,7 +307,8 @@ export function useSyncEngine(): SyncEngine | null {
 const IDLE: SyncStatus = {
   online: true,
   store: 'memory',
-  persistent: false,
+  // No engine: nothing has resolved, so nothing is claimed about keeping (ruling 3 (ee)).
+  persistent: null,
   storeNote: null,
   lastPulledAt: null,
   pulling: false,
@@ -352,9 +353,11 @@ export interface LeaveSession {
   online: boolean
   /**
    * False while the device store is in memory (DOS-167 ruling 2 (t)): nothing waiting survives leaving, so the sheet
-   * never offers to keep it — "Send now" with a signal, else the person stays signed in.
+   * never offers to keep it — "Send now" with a signal, else the person stays signed in. Null while the store has not
+   * resolved, which the sheet treats exactly as false (ruling 3 (ee)): it never offers a keep it may not be able to
+   * make, and never promises one it is not offering.
    */
-  persistent: boolean
+  persistent: boolean | null
   /**
    * What waits in this person's file, counted once the engine has opened it. The tap decides on this:
    * before the open the snapshot reads 0, and a sign-out decided on it deleted a queue it had not seen.

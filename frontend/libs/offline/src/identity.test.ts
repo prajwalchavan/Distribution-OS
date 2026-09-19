@@ -557,6 +557,90 @@ describe('DOS-167 one file per app, person and distributor', () => {
     await engine.stop()
   })
 
+  /*
+   * Ruling 3 (ee), S-140. `persistent` read `this.store?.persistent ?? false` — false for the whole of the open — so
+   * the beat screen said "This browser will not keep the offline copy after you close it" for 39-82 ms after every
+   * sign-in, measured in four runs, over a perfectly persistent store. The honest shape is a tri-state, not a delay:
+   * null while nothing has resolved, true or false once something has.
+   */
+  it('DOS-167 persistent is unknown until the open resolves and false only on a resolved memory store', async () => {
+    async function through(store: SyncStore): Promise<unknown> {
+      let openTheStore = (): void => {}
+      const gate = new Promise<void>((resolve) => {
+        openTheStore = resolve
+      })
+      const server = new FakeServer(TABLES)
+      const engine = new SyncEngine({
+        transport: server.transport(),
+        deviceId: 'device-1',
+        storeFactory: async () => {
+          await gate
+          return store
+        },
+        databaseName: storeNameFor('dos-sales', RAHUL_AT_TARSUN),
+        identity: RAHUL_AT_TARSUN,
+        pullIntervalMs: 0,
+        now,
+      })
+      const starting = engine.start()
+      const opening = {
+        persistent: engine.status().persistent,
+        ready: engine.status().ready,
+        storeNote: engine.status().storeNote,
+      }
+      openTheStore()
+      await starting
+      const open = {
+        persistent: engine.status().persistent,
+        ready: engine.status().ready,
+        storeNote: engine.status().storeNote,
+      }
+      await engine.end({ keepQueue: false })
+      return { opening, open, afterEnd: engine.status().persistent }
+    }
+
+    /** A store that KEEPS: the same SQL, answering `persistent: true` as a browser's OPFS file does. */
+    function keepingStore(): SyncStore {
+      const inner = createMemoryStore()
+      return {
+        persistent: true,
+        kind: 'sqlite-web',
+        exec: async (sql: string, params?: readonly SqlValue[]) => inner.exec(sql, params),
+        query: async <T>(sql: string, params?: readonly SqlValue[]) => inner.query<T>(sql, params),
+        transaction: async <T>(fn: (tx: SyncStore) => Promise<T>) => inner.transaction(fn),
+        close: async () => inner.close(),
+        destroy: async () => inner.destroy?.(),
+      }
+    }
+
+    expect({
+      keeps: await through(keepingStore()),
+      cannotKeep: await through(
+        createMemoryStore({
+          wanted: 'sqlite-web',
+          reason: 'not cross-origin isolated (no COOP/COEP)',
+        }),
+      ),
+    }).toEqual({
+      keeps: {
+        // Nothing has resolved: the screens say nothing about keeping rather than saying it will not.
+        opening: { persistent: null, ready: false, storeNote: null },
+        open: { persistent: true, ready: true, storeNote: null },
+        afterEnd: null,
+      },
+      cannotKeep: {
+        opening: { persistent: null, ready: false, storeNote: null },
+        // A resolved store in memory still reports false and still says it (ruling 2 (t) is unchanged).
+        open: {
+          persistent: false,
+          ready: true,
+          storeNote: 'not cross-origin isolated (no COOP/COEP)',
+        },
+        afterEnd: null,
+      },
+    })
+  })
+
   it("DOS-167 a second user on the same store never renders the first user's rows and starts with no cursor", async () => {
     const store = createMemoryStore()
     const server = new FakeServer(TABLES)

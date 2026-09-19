@@ -225,6 +225,17 @@ interface SyncStatus {
 saved on this phone"; rejected > 0 → "2 need attention" (tap opens the tray); `store='memory'` → "Offline data is not saved on this
 browser". The strip never shows a spinner without a word.
 
+**`persistent` is a TRI-STATE (ruling 3 (ee), 2026-09-19): `boolean | null`, null while the store has not resolved or there is no
+engine.** It used to read `this.store?.persistent ?? false`, so for the whole of the open — measured at 39-82 ms after every
+sign-in, in four runs, over a perfectly persistent store — the sales beat said "This browser will not keep the offline copy after
+you close it" (S-140). The honest shape is not a delay but a third state: a screen says NOTHING about keeping while it is null
+(`s0.notPersisted` only on `=== false`; the delivery and warehouse settings and tray meta lines omitted), and anything that would
+OFFER to keep treats null exactly as false — in each app's `leave.ts` the `leave.bodyMemory` body and the keep button both test
+`persistent !== true`, so a sheet never promises "they stay on this phone" under a button it is withholding. A RESOLVED memory
+store still reports false and still says it, on screen and in the sheet: ruling (t) is unchanged. No kit change: `persistent`
+flows only into app screens and the app-level leave sheet, and the kit's `ConnectionState` has no persistence field (the strip
+still cannot say "not kept in this browser" — an S-row, P3).
+
 ## 11. React API
 
 - `<OfflineProvider api={apiClient} storeFactory tables?>` — starts the manifest/pull/upload loops; one per app.

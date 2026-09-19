@@ -172,8 +172,15 @@ export interface SyncStatus {
   /** A successful call (or health probe) inside the last 30 s, and the platform not saying otherwise. */
   online: boolean
   store: StoreKind
-  /** False for the memory adapter: the strip says "Offline data is not saved on this browser". */
-  persistent: boolean
+  /**
+   * Whether this device keeps what it holds: false for the memory adapter, and NULL while nothing has resolved yet —
+   * the store is still opening, or there is no engine (DOS-167 ruling 3 (ee)). It used to read false for the whole of
+   * the open, so a beat screen said "This browser will not keep the offline copy after you close it" for 39-82 ms
+   * after every sign-in over a perfectly persistent store (S-140). A screen says nothing about keeping while it is
+   * null; anything that would OFFER to keep treats null exactly as false, so a sheet never promises a keep it may
+   * not be able to make.
+   */
+  persistent: boolean | null
   /** Why the store is not persistent: the opener's `fallback.reason` (DOS-167 ruling 2 (t)); null on a persistent store. */
   storeNote: string | null
   lastPulledAt: string | null
