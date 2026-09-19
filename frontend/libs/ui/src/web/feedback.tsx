@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { clockTime, relativeTime } from '../relative-time.js'
+import { keepSegment } from '../strings.js'
 import { useTheme } from '../theme.js'
 import { cssShadow, monogramSize, radius, size as sizeTokens, space, typeDesk } from '../tokens.js'
 import type {
@@ -83,6 +84,20 @@ export function ConnectionStrip({
     message = theme.t('connection.synced', {
       when: relativeTime(state.lastSyncedAt, now, theme.t),
     })
+  }
+
+  /*
+   * DOS-179 — AND WHETHER ANY OF THIS IS BEING KEPT, on every branch.
+   *
+   * The strip is mounted once per app and the shell puts it on every screen, so this is the one place
+   * the fact reaches a rep who spends the day on Shops and Orders. "Updated just now" over a store
+   * that dies with the tab is the same lie the `notYet` branch above exists to prevent. Ochre, unless
+   * something stronger is already being said — a refusal outranks it.
+   */
+  const notKept = keepSegment(theme.t, state.persistent, 'browser')
+  if (notKept !== null) {
+    message = `${message} \u00b7 ${notKept}`
+    if (tone !== theme.colors.status.brick.fg) tone = theme.colors.status.ochre.fg
   }
 
   // 28 dp and inert while it has nothing to open; a full touch-floor row once something is waiting.

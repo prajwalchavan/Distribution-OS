@@ -25,6 +25,7 @@ import { useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 
 import { instantWithClock } from '../src/lib/dates'
+import { keepKey } from '../src/lib/keep'
 import { useLeave } from '../src/lib/leave-context'
 import { Async, Panel } from '../src/lib/ui'
 
@@ -68,7 +69,7 @@ export default function Me(): React.JSX.Element {
             { label: t('app.distributor'), value: session?.tenant.displayName ?? '—' },
             /* The label names the thing, the value counts it. It read "13 tables on this device / 0"
                where the 0 was the unsent-ops count — two different facts in one tile. */
-            { label: t('x4.tablesLabel'), value: String(tables) },
+            { label: t(keepKey('tables', status.persistent)), value: String(tables) },
           ]}
         />
 

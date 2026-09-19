@@ -40,6 +40,7 @@ import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../src/api'
 import { instantWithClock, longDate, today } from '../../src/lib/dates'
+import { keepKey } from '../../src/lib/keep'
 import type { LocalOrder, LocalOrderLine } from '../../src/lib/local'
 import {
   useBargains,
@@ -209,7 +210,7 @@ export default function OrderDetail(): React.JSX.Element {
         <Row gap={3} justify="between" align="center" padX={4} padY={2} wrap>
           <Stack gap={1}>
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {isDraft ? t('s5.deviceTotal') : t('s5.orderTotal')}
+              {isDraft ? t(keepKey('deviceTotal', local.persistent)) : t('s5.orderTotal')}
             </Txt>
             <Money value={totalPaise} size="moneyL" />
           </Stack>
@@ -246,7 +247,7 @@ export default function OrderDetail(): React.JSX.Element {
       <Stack gap={5}>
         {queued ? (
           <Txt field="body" desk="body" color={colors.status.ochre.fg}>
-            {t('s5.queuedExplain')}
+            {t(keepKey('queuedExplain', local.persistent))}
           </Txt>
         ) : null}
         {isDraft && !queued ? (

@@ -13,6 +13,7 @@
  *
  * No hooks, no kit, no device of its own — which is what lets `leave.test.ts` run all of it in Node.
  */
+import { keepClaim } from '@dos/offline'
 import { leaveDecision } from '@dos/offline/react'
 
 import { strings } from '../strings'
@@ -33,9 +34,12 @@ export interface LeaveSentenceInput {
    * False when the device store is in memory (DOS-167 ruling 2 (t)): nothing waiting survives leaving, so the body
    * never says it stays. NULL while the store has not resolved yet (ruling 3 (ee)) and treated exactly as false:
    * otherwise null took the worst half of each branch — this body promising "they stay on this phone" over a sheet
-   * whose keep button was withheld. Absent means a store that keeps.
+   * whose keep button was withheld.
+   *
+   * REQUIRED since DOS-179. It used to be optional, and an absent one meant "a store that keeps" — the implicit
+   * optimism never-list #12 is about. Every caller says which store it is, and `keepClaim` decides what that means.
    */
-  persistent?: boolean | null
+  persistent: boolean | null
 }
 
 export interface LeaveSentence {
@@ -80,13 +84,19 @@ export function leaveSentence(input: LeaveSentenceInput): LeaveSentence {
   return {
     title: queued ? counted(input.pending, 'leave.title', 'leave.title.one') : attention,
     attention: queued && refused ? attention : null,
+    /*
+     * DOS-179 — the six "they stay on this phone" bodies are keep claims like any other, so they ask the
+     * library's rule rather than carrying a second copy of it. `keepClaim` reads a store that has not
+     * resolved as one that cannot keep (DOS-167 ruling 3 (ee)), which is what this branch already did by
+     * hand; going through it means the sheet can never drift away from the buttons or from the strip.
+     */
     body:
-      input.persistent === false || input.persistent === null
-        ? say('leave.bodyMemory', {})
-        : say(bodyKey(input.mode, queued, refused), {
+      keepClaim(input.persistent) === 'device'
+        ? say(bodyKey(input.mode, queued, refused), {
             name: input.name,
             tenantName: input.tenantName,
-          }),
+          })
+        : say('leave.bodyMemory', {}),
   }
 }
 

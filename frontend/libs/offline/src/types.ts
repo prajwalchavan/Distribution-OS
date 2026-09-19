@@ -108,7 +108,13 @@ export interface GpsPostOutput {
 // ---------------------------------------------------------------------------------------------------------------
 // The outbox (docs/27 §6)
 
-export type OutboxStatus = 'queued' | 'sending' | 'acked' | 'rejected'
+/**
+ * `kept` is DOS-178: a refused op on a money table that the crew has handed to the cashier. It is not
+ * queued (it is never sent again — a retry would replay the stored refusal), not acked (the office never
+ * took it) and no longer rejected (it is not work for this person any more). It stays on the phone as the
+ * record that the shop paid, and it keeps the device file alive through a sign-out.
+ */
+export type OutboxStatus = 'queued' | 'sending' | 'acked' | 'rejected' | 'kept'
 
 /** What a screen hands `enqueue()`. `opId` and `idempotencyKey` are the same UUIDv7 (docs/27 §4). */
 export interface EnqueueInput {
@@ -155,6 +161,11 @@ export interface LocalSyncError {
   createdAt: string
   /** Set when the user threw the op away rather than fixing it (docs/27 §11). */
   discardedAt: string | null
+  /**
+   * Set when the money this op carries was handed to the cashier instead (DOS-178). Never both: a money op
+   * is never discardable, and a discarded op is not money.
+   */
+  handedOverAt: string | null
 }
 
 /** One entry of the tray: what the device tried, and what the server holds instead. */
@@ -163,6 +174,11 @@ export interface NeedsAttentionItem {
   op: OutboxRow | null
   /** The server's version of the row after the re-pull a `stale` rejection triggers; null otherwise. */
   serverRow: Record<string, unknown> | null
+  /**
+   * DOS-178: this op wrote to a money table, so it is KEPT — the tray offers neither "Throw it away" nor
+   * "Send it again", only "Handed to the cashier". Decided by the table, never by the rejection code.
+   */
+  kept: boolean
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -217,6 +233,6 @@ export interface TableQuery {
 /** What `useTable` gives a row on top of its own columns. */
 export interface LocalRowMeta {
   /** `null` when the row is the server's; otherwise what the outbox is doing with it. */
-  _pending?: 'queued' | 'sending' | 'rejected' | null
+  _pending?: 'queued' | 'sending' | 'rejected' | 'kept' | null
   _local_rev?: number | null
 }

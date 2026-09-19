@@ -41,6 +41,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
+import { keepKey } from '../../src/lib/keep'
 import {
   useBeats,
   useLastOrderOf,
@@ -378,7 +379,7 @@ export default function ShopCard(): React.JSX.Element {
             ) : (
               <Stack gap={3}>
                 <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
-                  {t('s12.offline')}
+                  {t(keepKey('billTotals', local.persistent))}
                 </Txt>
                 {invoices.length === 0 ? (
                   <EmptyState message={t('s12.noBills')} />

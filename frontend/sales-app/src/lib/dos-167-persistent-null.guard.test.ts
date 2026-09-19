@@ -51,6 +51,21 @@ const GATES: readonly RegExp[] = [
 /** How far back from a plain `persistent` read its gate may sit: the same JSX expression, not somewhere in the file. */
 const GATE_REACH = 300
 
+/**
+ * THE OTHER HALF OF RULING 3 (ee), and the one exception to the gate above.
+ *
+ * A STATEMENT about the store says nothing while the store is still opening — that is everything above.
+ * An OFFER is the opposite: a label or a button that claims the device is holding something must never
+ * claim a keep the device may turn out not to be able to make, so `keepClaim` in `@dos/offline` reads
+ * null exactly as false and hands back the tab words. Both halves are the same founder decision
+ * (DOS-179, 2026-09-19), and the screens that carry the store line now carry keep claims as well. So a
+ * read handed straight to `keepKey('<word>', …)` is not a flash and is not counted as one; it is listed
+ * by name instead, so an ungated truthiness read can never hide in here by calling itself an offer.
+ */
+const OFFER = /keepKey\(\s*'([A-Za-z]+)',\s*$/
+/** How far back from the read the `keepKey('<word>',` may sit: the same call, nothing else. */
+const OFFER_REACH = 80
+
 export interface Screen {
   /** The screen, relative to the test file. */
   readonly path: string
@@ -58,10 +73,18 @@ export interface Screen {
   readonly memoryKey: string
   /** The string shown instead once the store HAS resolved and keeps; null when the screen says nothing in that case. */
   readonly diskKey: string | null
+  /** The keep verbs this screen OFFERS through `keepKey`, in the order the source says them. */
+  readonly offers: readonly string[]
 }
 
 const SCREENS: readonly Screen[] = [
-  { path: '../../app/index.tsx', memoryKey: 's0.notPersisted', diskKey: null },
+  {
+    path: '../../app/index.tsx',
+    memoryKey: 's0.notPersisted',
+    diskKey: null,
+    /* The note under the beat, which says whose copy the screen is showing (DOS-179 sweep). */
+    offers: ['offlineRead'],
+  },
 ]
 
 /** What the source says about one screen's persistence line. */
@@ -70,6 +93,9 @@ export async function inspectScreen(screen: Screen): Promise<Record<string, unkn
   const at = source.indexOf(`'${screen.memoryKey}'`)
   const gatedBefore = (index: number): boolean =>
     GATES.some((gate) => gate.test(source.slice(Math.max(0, index - GATE_REACH), index)))
+  const offerBefore = (index: number): string | null =>
+    OFFER.exec(source.slice(Math.max(0, index - OFFER_REACH), index))?.[1] ?? null
+  const reads = [...source.matchAll(/(?:status|local)\.persistent(?!\s*(?:===|!==))/g)]
   return {
     path: screen.path,
     // The line exists at all: a renamed string must not let this test pass by finding nothing to guard.
@@ -77,14 +103,18 @@ export async function inspectScreen(screen: Screen): Promise<Record<string, unkn
     // Something between the top of the file and the string routes a null away from it.
     gated: at !== -1 && gatedBefore(at),
     // And no plain truthiness read of `persistent` stands outside such a gate — that read IS the flash.
-    ungated: [...source.matchAll(/(?:status|local)\.persistent(?!\s*(?:===|!==))/g)]
-      .filter((match) => !gatedBefore(match.index ?? 0))
+    ungated: reads
+      .filter((match) => !gatedBefore(match.index ?? 0) && offerBefore(match.index ?? 0) === null)
       .map((match) =>
         source
           .slice(match.index ?? 0, (match.index ?? 0) + 60)
           .split('\n')[0]
           ?.trim(),
       ),
+    // The reads that are OFFERS, named: null is the tab word there, and that is the ruling, not a flash.
+    offers: reads
+      .map((match) => offerBefore(match.index ?? 0))
+      .filter((word): word is string => word !== null),
     // On a RESOLVED memory store the line is printed: withholding it there is the other half of the lie.
     onFalse:
       screen.diskKey === null
@@ -107,6 +137,7 @@ describe('DOS-167 the sales app never says "will not keep" before the store has 
         present: true,
         gated: true,
         ungated: [],
+        offers: [...screen.offers],
         onFalse: true,
       })),
     )

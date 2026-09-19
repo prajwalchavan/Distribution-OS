@@ -84,6 +84,13 @@ export const en = {
   'connection.justNow': 'just now',
   /* Online, but nothing has come back yet: the strip must not claim a read it has never had. */
   'connection.notYet': 'Not updated yet',
+  /*
+   * DOS-179 — the store's own honesty, said on every screen because the strip is on every screen. A
+   * browser with no OPFS, or a binary without expo-sqlite, falls back to a store in memory: what the
+   * person does still works, and none of it survives the tab.
+   */
+  'connection.notKeptBrowser': 'Not kept in this browser',
+  'connection.notKeptPhone': 'Not kept on this phone',
   'connection.minutesAgo': '{count} min ago',
   'connection.hoursAgo': '{count} h ago',
 
@@ -223,6 +230,23 @@ export function humaniseValue(value: string): string {
     .toLowerCase()
   if (spaced === '') return ''
   return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
+/**
+ * The second segment `<ConnectionStrip>` appends when the device keeps nothing (DOS-179).
+ *
+ * BOTH renderers call this, which is what keeps them saying the same thing: the only difference is the
+ * surface word — a browser tab against a phone. `null` and `undefined` are the store still opening and
+ * say nothing at all, so a sign-in over a perfectly good file never flashes the sentence (S-140);
+ * `true` says nothing because there is nothing to warn about.
+ */
+export function keepSegment(
+  translate: Translator,
+  persistent: boolean | null | undefined,
+  surface: 'browser' | 'phone',
+): string | null {
+  if (persistent !== false) return null
+  return translate(surface === 'browser' ? 'connection.notKeptBrowser' : 'connection.notKeptPhone')
 }
 
 /**

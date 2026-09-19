@@ -42,6 +42,7 @@
     "@vitejs/plugin-react": "catalog:",
     "eslint": "catalog:",
     "expo-sqlite": "catalog:",
+    "jsdom": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "typescript": "catalog:",
