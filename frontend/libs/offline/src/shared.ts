@@ -9,6 +9,7 @@
  *   import { openStore, transportFromApi } from '@dos/offline'
  */
 export {
+  KeptMoneyError,
   SyncEngine,
   SyncEngineEndedError,
   CLIENT_SYNC_PROTOCOL,
@@ -20,6 +21,7 @@ export {
   type SyncEngineOptions,
 } from './engine.js'
 export { consoleSink } from './log.js'
+export { isMoneyTable, MONEY_TABLES } from './money.js'
 export { transportFromApi, type SyncApiLike } from './transport.js'
 export { createMemoryStore, memoryStoreFactory } from './store/memory.js'
 export {
@@ -52,7 +54,7 @@ export {
   type TableShape,
 } from './schema.js'
 export { readAllState, readState, writeState, type SyncStateKey } from './state.js'
-export { connectionStateFrom, type ConnectionStateLike } from './connection.js'
+export { connectionStateFrom, keepClaim, type ConnectionStateLike } from './connection.js'
 
 export type * from './types.js'
 export type * from './wire.js'

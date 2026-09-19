@@ -14,6 +14,12 @@
  *                   table and nothing outside this module ever writes it (coordination §4).
  */
 export { DeliveryModule } from './delivery.module.js'
+/**
+ *   receivables (8)  `TRIP_PREDICATES` — the three `exists (select 1 from trips …)` fragments receivables
+ *                    embeds to decide whether money may name a trip (DOS-132, QA DOS-175). `DeliveryModule`
+ *                    registers them itself; the export is for a spec that boots receivables without delivery.
+ */
+export { TRIP_PREDICATES } from './delivery.internals.js'
 export { TripsService, type RoutingStop } from './trips.service.js'
 export { DeliveriesService } from './deliveries.service.js'
 export { CollectionsService } from './collections.service.js'

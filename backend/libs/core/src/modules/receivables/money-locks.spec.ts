@@ -699,6 +699,51 @@ describeDb('receivables — a receipt moves once (DATABASE_URL)', () => {
   }, 120_000)
 
   // ---------------------------------------------------------------------------------------------------------------
+  // DOS-175: a receipt may name only a trip the office can settle
+
+  it('DOS-175 a receipt naming a trip that does not exist is refused 404 trip_not_found, one on a planned trip 409 trip_not_on_road, and neither writes a receipt or a journal line', async () => {
+    const takeOnTrip = (label: string, id: string, tripId: string) =>
+      call<Refusal & { item?: { tripId: string | null } }>(app, accountant, 'POST', '/receipts', {
+        idempotencyKey: `ml-t175-${label}-${run}`,
+        id,
+        retailerId: shopId,
+        mode: 'cash',
+        amountPaise: 9_000,
+        tripId,
+      })
+    const wroteNothing = async (id: string): Promise<void> => {
+      expect(await receiptRow(id)).toBeUndefined()
+      expect(await entryCount('receipt', [id])).toBe(0)
+    }
+
+    // a trip id this distributor has never held: there is no foreign key, so the service is the only guard
+    const ghostTripId = uuidv7()
+    const ghostReceiptId = uuidv7()
+    const ghost = await takeOnTrip('ghost', ghostReceiptId, ghostTripId)
+    expect(ghost.status, JSON.stringify(ghost.body)).toBe(404)
+    expect(ghost.body.data?.code).toBe('trip_not_found')
+    expect(ghost.body.data?.tripId).toBe(ghostTripId)
+    await wroteNothing(ghostReceiptId)
+
+    // a real trip of this distributor that the crew has not taken out yet
+    const plannedId = await plannedTrip('ml-t175p', 14, 'TD', 50_000)
+    const earlyReceiptId = uuidv7()
+    const early = await takeOnTrip('planned', earlyReceiptId, plannedId)
+    expect(early.status, JSON.stringify(early.body)).toBe(409)
+    expect(early.body.data?.code).toBe('trip_not_on_road')
+    expect(early.body.data?.tripId).toBe(plannedId)
+    await wroteNothing(earlyReceiptId)
+
+    // the control: the same money on a trip that IS out is taken, and lands in the van
+    const roadId = await tripOnTheRoad('ml-t175r', 15, 'TE', 50_000)
+    const goodReceiptId = uuidv7()
+    const good = await takeOnTrip('road', goodReceiptId, roadId)
+    expect(good.status, JSON.stringify(good.body)).toBe(200)
+    expect(good.body.item?.tripId).toBe(roadId)
+    expect(await accountNet([['receipt', goodReceiptId]])).toEqual({ CASH_VAN: 9_000, AR: -9_000 })
+  }, 120_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
   // DOS-170: an undo racing the settlement of the trip that carries the money
 
   it('DOS-170 a reversal racing the settlement on the same trip: the loser sees the winner', async () => {

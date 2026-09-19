@@ -95,7 +95,15 @@ export const strings = {
   'd.pieces': '{pieces} pc',
   'd.noConnectionRead': 'No connection. This is not the current picture.',
   'd.savedOnPhone': 'Saved on this phone. It goes as soon as there is a signal.',
+  /*
+   * DOS-179 — the same claims for a store that keeps nothing (the web build in a browser with no
+   * OPFS). `keepKey` in src/lib/keep.ts chooses; a screen never reaches for either key itself.
+   */
+  'd.savedOnPhoneTab':
+    'Held in this tab only — not saved. It goes as soon as there is a signal; close this tab and it is gone.',
   'd.offlineWrite': 'No signal — this stays on the phone until there is one.',
+  'd.offlineWriteTab':
+    'No signal — this is held in this tab only, not saved. Close this tab and it is gone.',
   'd.trip': 'Trip',
   'd.vehicle': 'Vehicle',
   'd.stopsN': '{done} of {total} stops done',
@@ -143,7 +151,9 @@ export const strings = {
   'd1.addExpense': 'Add an expense',
   'd1.tracking': 'Location is on for this trip',
   'd1.trackingOff': 'Location is off',
+  /* DOS-179 — the points this trip has recorded and not sent yet; `keepKey('trackingHeld', …)` chooses. */
   'd1.trackingHeld': '{count} points held on this phone',
+  'd1.trackingHeldTab': '{count} points held in this tab only',
   'd1.trackingWeb': 'A browser tab stops sending when it is hidden — keep this tab open.',
   'd1.trackingForeground':
     'The office sees the vehicle while this app is open. It stops when you switch away.',
@@ -232,6 +242,7 @@ export const strings = {
   'd4.podGeo': 'Where you were is attached as proof',
   'd4.record': 'Record the delivery',
   'd4.recordOffline': 'Save on this phone',
+  'd4.recordOfflineTab': 'Hold until there is a signal',
   'd4.recorded': 'Delivery recorded',
   'd4.creditNote': 'Credit note {no} raised for what did not go in',
   'd4.creditNoteQueued': 'The office raises the credit note when this reaches them',
@@ -260,8 +271,10 @@ export const strings = {
   'd5.qr': 'Show the UPI QR',
   'd5.record': 'Record the payment',
   'd5.recordOffline': 'Save on this phone',
+  'd5.recordOfflineTab': 'Hold until there is a signal',
   'd5.recorded': 'Receipt {no}',
   'd5.recordedQueued': 'Receipt {no} written on this phone',
+  'd5.recordedQueuedTab': 'Receipt {no} held in this tab only',
   'd5.settled': 'Settled {count} bills',
   'd5.settled.one': 'Settled 1 bill',
   'd5.cashDiscount': 'Cash discount {amount}',
@@ -344,6 +357,22 @@ export const strings = {
     'The cashier counts the money and the godown counts the van. The trip closes at the office, not here.',
   'd8.pending':
     '{count} writes are still on this phone. They go before the office can close the trip.',
+  /*
+   * DOS-179 — the same four sentences over a store that keeps nothing (a browser with no OPFS), chosen
+   * by `keepKey` in src/lib/keep.ts like every other keep verb in this app. The strip above these very
+   * screens already reads "· Not kept in this browser", so the phone's words here contradicted it in one
+   * render, over the outbox that decides whether the trip may be closed and over money nobody counted.
+   * Each tab twin keeps the INSTRUCTION word for word — what goes first, what the office still owes,
+   * where the cash goes — and changes only who is holding it.
+   */
+  'd8.uncountedTab':
+    'This tab holds {amount} in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.',
+  'd8.uncountedSettledTab':
+    'This tab holds {amount} in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.',
+  'd8.pendingBlocksTab':
+    '{count} records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.',
+  'd8.pendingTab':
+    '{count} writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.',
   'd8.failedReturn': 'Could not check the vehicle in',
   'd8.notActive': 'This trip is not out on the road',
 
@@ -375,8 +404,50 @@ export const strings = {
   'tray.discard': 'Throw it away',
   'tray.notOnPhone':
     'This phone no longer holds this write. Record it again, then throw this away.',
+  /*
+   * The same fact about a PAYMENT. The sentence above sends a person back to the doorstep to record the
+   * work again, which is right for an arrival or a delivery and wrong for money: the shop has already
+   * paid, nothing may be thrown away (never-list #13), and the only thing left is the counter.
+   */
+  'tray.moneyNotOnPhone':
+    'This phone no longer holds the figures for this payment. Hand the money and your book slip to the cashier, who records it at the office.',
   'tray.storeDisk': 'Held on this phone',
   'tray.storeMemory': 'Held in memory only — a reload empties this device',
+  /*
+   * DOS-178 — a payment the office refused. Never "Throw it away": on a settled trip this card is the
+   * only record anywhere that the shop paid. The money goes over the counter to the cashier, who records
+   * it at the office against the same paper-book number, and the card stays on the phone as the link.
+   */
+  'tray.handedOver': 'Handed to the cashier',
+  'tray.handCash':
+    'The office could not take this on the trip. Hand the money and the slip to the cashier, who records it at the office.',
+  'tray.handUpi': 'The money is already in the account. Tell the cashier; the office records it.',
+  'tray.money': '{amount} {mode} from {shop} · book no {no} · {when}',
+  'tray.moneyNoBook': '{amount} {mode} from {shop} · {when}',
+  'tray.handOverBody': '{amount} · {shop} · book no {no} — stays on this phone as handed over',
+  'tray.handOverBodyNoBook': '{amount} · {shop} — stays on this phone as handed over',
+  /*
+   * DOS-179 — the same dialog over a store that keeps nothing, chosen by `keepKey` like every other
+   * keep verb in this app. The screen prints `tray.storeMemory` above the list, so the two sentences
+   * used to contradict each other in one render. What lasts on a browser with no OPFS is the CASHIER'S
+   * entry, not this card, and the dialog says which is which before the crew taps it.
+   */
+  'tray.handOverBodyTab':
+    '{amount} · {shop} · book no {no} — marked handed over in this tab only, not saved. What lasts is the entry the cashier makes at the office.',
+  'tray.handOverBodyNoBookTab':
+    '{amount} · {shop} — marked handed over in this tab only, not saved. What lasts is the entry the cashier makes at the office.',
+  /*
+   * DOS-179 — the chip on every waiting row of D10, and the reason it is NOT under `word.`: `wordFor`
+   * builds its key from the VALUE (`word.${status}`), so the old `word.queued` — "On this phone" — was
+   * reachable with no screen ever naming it, which is how it survived two passes of this sweep twenty
+   * lines under `tray.storeMemory`, over rows that include doorstep receipts. Out of that namespace it
+   * can only be reached by name, and `keepKey('waitingChip', …)` is the only thing that reaches it.
+   * "In this tab only" reads as a place, like its twin, so the chip keeps its shape and its width.
+   */
+  'tray.waitingOnPhone': 'On this phone',
+  'tray.waitingInTab': 'In this tab only',
+  'tray.handedOverAt': 'Handed to the cashier at {when}',
+  'tray.handedOverCount': 'Handed over: {count}',
 
   // --- D11 trip history ----------------------------------------------------------------------------
   'd11.title': 'Your trips',
@@ -390,7 +461,9 @@ export const strings = {
   // --- D12 me --------------------------------------------------------------------------------------
   'd12.title': 'Me',
   'd12.thisDevice': 'This phone',
+  /* DOS-179 — what the store is holding, said next to what the store IS; `keepKey('tables', …)` chooses. */
   'd12.tablesLabel': 'Tables on this phone',
+  'd12.tablesLabelTab': 'Tables in this tab',
   'd12.pending': 'Waiting to send: {count}',
   'd12.devices': 'Your devices',
   'd12.device': 'A device',
@@ -445,7 +518,6 @@ export const strings = {
   'word.PRE': 'Paid in advance',
   'word.ON': 'Pays on delivery',
   'word.POST_FULFILLMENT': 'Credit',
-  'word.queued': 'On this phone',
   'word.sending': 'Sending',
   'word.photo': 'Photo',
   'word.signature': 'Signature',

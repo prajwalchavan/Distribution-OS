@@ -45,6 +45,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
 import { longDate } from '../../../src/lib/dates'
+import { keepKey } from '../../../src/lib/keep'
 import {
   useHydrated,
   useLocalDeliveries,
@@ -432,7 +433,7 @@ export default function AtTheDoor(): React.JSX.Element {
         })
         if (result.via === 'phone') {
           haptics.success()
-          setToast(t('d.savedOnPhone'))
+          setToast(t(keepKey('savedOnPhone', status.persistent)))
           router.replace(`/stop/${String(stopId ?? '')}`)
         }
       } catch (thrown) {
@@ -706,7 +707,7 @@ export default function AtTheDoor(): React.JSX.Element {
 
         {status.online ? null : (
           <Txt field="body" desk="body" color={colors.text.secondary} testID="d4-offline">
-            {`${t('d.offlineWrite')} ${t('d4.creditNoteQueued')}`}
+            {`${t(keepKey('offlineWrite', status.persistent))} ${t('d4.creditNoteQueued')}`}
           </Txt>
         )}
       </Stack>

@@ -22,7 +22,7 @@
  * manifest and `tenantCatalog.costs` refuses a salesperson, so there is nothing here to leak.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
-import { useSyncEngine } from '@dos/offline/react'
+import { useNeedsAttention, useRow, useSyncEngine } from '@dos/offline/react'
 import { formatINR, formatQty, paise, pieces, uuidv7 } from '@dos/domain'
 import {
   Box,
@@ -51,6 +51,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { deviceId } from '../../src/api'
 import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
 import { today } from '../../src/lib/dates'
+import { keepKey } from '../../src/lib/keep'
+import { orderOutcome } from '../../src/lib/outcome'
 import {
   useBargains,
   useCatalogIndex,
@@ -247,6 +249,29 @@ export default function OrderEntry(): React.JSX.Element {
     },
   )
 
+  /*
+   * DOS-180 — WHAT HAPPENED TO THIS ORDER, from this order.
+   *
+   * The banner and the spent button used to read `local.online` at render time, so an order queued in
+   * a dead spot re-labelled itself "Order placed" the instant the signal came back, over a draft the
+   * office had not even seen. The reply says whether the tap placed it; the row says where a queued
+   * one has got to; the tray carries the office's own sentence when it refused. None of it is the radio.
+   */
+  const placedRow = useRow<{ _pending?: string | null; order_no?: string | null }>(
+    'sales_orders',
+    placed,
+  )
+  const rejection = useNeedsAttention().items.find(
+    (item) => item.error.table === 'sales_orders' && item.error.rowId === placed,
+  )
+  const outcome = orderOutcome({
+    queued: place.data?.queued ?? false,
+    pending: (placedRow.row?._pending ?? null) as 'queued' | 'sending' | 'rejected' | null,
+    orderNo: placedRow.row?.order_no ?? null,
+    persistent: local.persistent,
+    rowKnown: !placedRow.loading,
+  })
+
   if (shop === null) {
     return (
       <Screen title={t('s3.title')}>
@@ -307,12 +332,11 @@ export default function OrderEntry(): React.JSX.Element {
        */
       label={
         placed !== null
-          ? local.online
-            ? t('s3.placed')
-            : t('s3.queued')
+          ? // DOS-180: what became of THIS order, never what the radio is doing now.
+            t(outcome.buttonKey)
           : local.online
             ? t('s3.place')
-            : t('s3.queue')
+            : t(keepKey('queue', local.persistent))
       }
       disabled={draft.lines.length === 0 || placed !== null}
       disabledReason={draft.lines.length === 0 ? t('s3.noLines') : undefined}
@@ -384,8 +408,13 @@ export default function OrderEntry(): React.JSX.Element {
         {phone ? orderChips : null}
         {placed !== null ? (
           <Panel
-            title={local.online ? t('s3.placedTitle') : t('s3.queuedTitle')}
-            meta={local.online ? t('s3.placedBody') : t('s3.queuedBody')}
+            title={t(outcome.titleKey)}
+            meta={
+              // The office's own words when it refused; otherwise the sentence for this state.
+              outcome.kind === 'refused' && rejection !== undefined
+                ? rejection.error.message
+                : t(outcome.bodyKey)
+            }
           >
             <Stack gap={3}>
               {/*
@@ -407,9 +436,11 @@ export default function OrderEntry(): React.JSX.Element {
               )}
               <Row gap={3} wrap>
                 <Button
-                  label={t('s3.openOrder')}
+                  label={outcome.action === 'openTray' ? t('s3.openTray') : t('s3.openOrder')}
                   onPress={() => {
-                    router.replace(`/orders/${placed}`)
+                    router.replace(
+                      outcome.action === 'openTray' ? '/orders/attention' : `/orders/${placed}`,
+                    )
                   }}
                 />
                 <Button
@@ -555,7 +586,10 @@ export default function OrderEntry(): React.JSX.Element {
           )}
         </Panel>
 
-        <Panel title={t('s3.addItems')} meta={t('s3.addItemsMeta', { count: catalog.length })}>
+        <Panel
+          title={t('s3.addItems')}
+          meta={t(keepKey('catalogCount', local.persistent), { count: catalog.length })}
+        >
           <Stack gap={3}>
             <Search
               testID="item-search"

@@ -38,6 +38,39 @@ export interface DayEndFigures {
   readonly chequeCollectedPaise: number
 }
 
+/**
+ * A doorstep receipt as D8 counts it — its mode, its money, and what the outbox is doing with it.
+ *
+ * Structurally `LocalReceipt`; declared here so the rules stay free of React and of the device schema.
+ */
+export interface DeviceReceipt {
+  readonly mode: string
+  readonly amount_paise: number
+  readonly _pending?: 'queued' | 'sending' | 'rejected' | 'kept' | null
+}
+
+/**
+ * What THIS PHONE is still carrying (DOS-178).
+ *
+ * A receipt the office refused and the crew handed to the cashier stays on the phone for ever — nothing a
+ * person entered is ever thrown away (never-list #13) — but it is the cashier's money from that moment
+ * on. Counting it here would put it back into "Hand ₹X to the cashier" and ask the driver for the same
+ * notes a second time, at the counter, having already put them down. `kept` is the only status that
+ * leaves: queued, sending and rejected money is all still the driver's.
+ */
+export function deviceMoney(rows: readonly DeviceReceipt[]): {
+  readonly cashPaise: number
+  readonly allPaise: number
+} {
+  const held = rows.filter((row) => row._pending !== 'kept')
+  return {
+    cashPaise: held
+      .filter((row) => row.mode === 'cash')
+      .reduce((sum, row) => sum + row.amount_paise, 0),
+    allPaise: held.reduce((sum, row) => sum + row.amount_paise, 0),
+  }
+}
+
 /** Why "Check the vehicle in" is refused, or `null` when it is not. */
 export type CheckInBlock = 'notActive' | 'offline' | 'pending' | 'odometer'
 
@@ -47,8 +80,15 @@ export interface DayEndCash {
   readonly handOverPaise: number | null
   /** Doorstep money of any mode that this phone still holds, cash and UPI and cheques together. */
   readonly uncountedAllPaise: number
-  /** The sentence under the figure, or `null` when the office has everything. */
-  readonly note: 'd8.uncounted' | 'd8.uncountedSettled' | null
+  /**
+   * The sentence under the figure, or `null` when the office has everything.
+   *
+   * A keep WORD, not a string key (DOS-179): both sentences say "This phone holds {amount} in receipts",
+   * which is false on a browser with no OPFS. The screen turns the word into a key through `keepKey`, so
+   * the money sentence agrees with the strip above it instead of contradicting it. This file stays free
+   * of the device — which store opened is not arithmetic — and of the strings catalogue.
+   */
+  readonly note: 'uncounted' | 'uncountedSettled' | null
 }
 
 /**
@@ -104,7 +144,7 @@ export function dayEndCash(input: {
     return {
       handOverPaise: figures.expectedCashPaise,
       uncountedAllPaise,
-      note: uncountedAllPaise === 0 ? null : 'd8.uncountedSettled',
+      note: uncountedAllPaise === 0 ? null : 'uncountedSettled',
     }
   }
 
@@ -112,6 +152,6 @@ export function dayEndCash(input: {
   return {
     handOverPaise: figures.expectedCashPaise + uncountedCashPaise,
     uncountedAllPaise,
-    note: uncountedAllPaise === 0 ? null : 'd8.uncounted',
+    note: uncountedAllPaise === 0 ? null : 'uncounted',
   }
 }

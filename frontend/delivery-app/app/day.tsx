@@ -42,8 +42,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../src/api'
-import { checkInBlock, dayEndCash } from '../src/lib/check-in'
+import { checkInBlock, dayEndCash, deviceMoney } from '../src/lib/check-in'
 import { longDate } from '../src/lib/dates'
+import { keepKey } from '../src/lib/keep'
 import {
   addressLine,
   isStopTerminal,
@@ -188,10 +189,11 @@ export default function DaySummary(): React.JSX.Element {
           onDevice: false,
         }))
 
-  const deviceCashPaise = receipts.rows
-    .filter((row) => row.mode === 'cash')
-    .reduce((sum, row) => sum + row.amount_paise, 0)
-  const deviceAllPaise = receipts.rows.reduce((sum, row) => sum + row.amount_paise, 0)
+  /*
+   * DOS-178: a refused payment the crew handed to the cashier is no longer this phone's to hand over —
+   * it stays on the device for ever as the record that the shop paid, and `deviceMoney` leaves it out.
+   */
+  const { cashPaise: deviceCashPaise, allPaise: deviceAllPaise } = deviceMoney(receipts.rows)
   const { handOverPaise, uncountedAllPaise, note } = dayEndCash({
     figures,
     deviceCashPaise,
@@ -269,7 +271,7 @@ export default function DaySummary(): React.JSX.Element {
                 : blocked === 'offline'
                   ? t('d6.online')
                   : blocked === 'pending'
-                    ? t('d8.pendingBlocks', { count: status.pending })
+                    ? t(keepKey('pendingBlocks', status.persistent), { count: status.pending })
                     : t('d2.odometer')
             }
             onPress={() => {
@@ -341,9 +343,16 @@ export default function DaySummary(): React.JSX.Element {
                   amount: formatINR(paise(handOverPaise ?? 0)),
                 })}
               </Txt>
+              {/*
+                DOS-179 — both sentences begin "This phone holds ₹X in receipts", which is false on a
+                browser with no OPFS, where the strip at the top of this screen already reads "· Not kept
+                in this browser". `dayEndCash` picks WHICH sentence; the store picks whose it is.
+              */}
               {note === null ? null : (
                 <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
-                  {t(note, { amount: formatINR(paise(uncountedAllPaise)) })}
+                  {t(keepKey(note, status.persistent), {
+                    amount: formatINR(paise(uncountedAllPaise)),
+                  })}
                 </Txt>
               )}
               <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
@@ -445,7 +454,7 @@ export default function DaySummary(): React.JSX.Element {
 
         {status.pending === 0 ? null : (
           <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-pending">
-            {t('d8.pending', { count: status.pending })}
+            {t(keepKey('pending', status.persistent), { count: status.pending })}
           </Txt>
         )}
 

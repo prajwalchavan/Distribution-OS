@@ -142,7 +142,7 @@ export const TRIP_CASH_HANDED_OVER: ReadonlySet<TripState> = new Set([
 
 /**
  * "This trip's money is in the office", as SQL receivables embeds (DOS-132). Delivery owns `trips`, so it hands
- * this predicate to `ReceivablesService.registerTripSettled` at start-up and receivables never names the table.
+ * this predicate to `ReceivablesService.registerTripPredicates` at start-up and receivables never names the table.
  * Tenant-qualified on top of `trips_read` RLS, and a lookup on the trips primary key. The state list comes from
  * `TRIP_CASH_HANDED_OVER`, so the two cannot drift.
  */
@@ -153,6 +153,40 @@ export function tripSettledSql(tripId: SQL, tenantId: string): SQL {
   )
   return sql`exists (select 1 from trips t
     where t.id = ${tripId} and t.tenant_id = ${tenantId} and t.state in (${handedOver}))`
+}
+
+/**
+ * "This distributor holds a trip with this id" (QA DOS-175). `receipts.trip_id` is an upstream reference with no
+ * foreign key behind it, so nothing but this predicate stands between a typo — or a device whose trip was
+ * cancelled at the office — and money booked to CASH_VAN on a trip that can never settle, and so can never be banked.
+ */
+export function tripExistsSql(tripId: SQL, tenantId: string): SQL {
+  return sql`exists (select 1 from trips t
+    where t.id = ${tripId} and t.tenant_id = ${tenantId})`
+}
+
+/**
+ * "This trip is out on the road" (QA DOS-175): the states money may be taken on, the same `TRIP_ON_THE_ROAD` set
+ * `collections.record` already enforces, so a receipt and a collection cannot disagree about one trip.
+ */
+export function tripOnTheRoadSql(tripId: SQL, tenantId: string): SQL {
+  const onTheRoad = sql.join(
+    [...TRIP_ON_THE_ROAD].map((state) => sql`${state}`),
+    sql`, `,
+  )
+  return sql`exists (select 1 from trips t
+    where t.id = ${tripId} and t.tenant_id = ${tenantId} and t.state in (${onTheRoad}))`
+}
+
+/**
+ * The three things receivables has to ask about a trip before it takes money on it, in one place, so a process
+ * that mounts delivery registers all three at once (`DeliveryModule.onModuleInit`) and one that does not keeps
+ * receivables' fail-closed defaults.
+ */
+export const TRIP_PREDICATES = {
+  settled: tripSettledSql,
+  exists: tripExistsSql,
+  onTheRoad: tripOnTheRoadSql,
 }
 
 /**

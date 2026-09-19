@@ -81,6 +81,12 @@ catalog:
   '@types/react-dom': 19.2.4
   vite: 8.2.2
   '@vitejs/plugin-react': 6.1.0
+  # A DOM for the ONE test that has to run React's effects rather than only its render (DOS-180:
+  # `useRow` answering "known, and absent" for a row it has not read yet). `renderToStaticMarkup`,
+  # which every other React test here uses, never runs an effect, so the frame the bug lives in does
+  # not exist under it. Asked for per file (`@vitest-environment jsdom`), never package-wide: the
+  # offline store adapters choose themselves by what the global scope carries.
+  jsdom: 30.1.0
 
   # --- web-only libraries (no Expo counterpart; not governed by the SDK) ------
   # MapLibre GL JS draws <MapView> on the web over OpenStreetMap raster tiles (free, attributed).

@@ -195,12 +195,26 @@ export const SYSTEM_TABLE_STATEMENTS: readonly string[] = [
      code TEXT,
      message TEXT,
      created_at TEXT,
-     discarded_at TEXT
+     discarded_at TEXT,
+     handed_over_at TEXT
    )`,
+]
+
+/**
+ * Columns a system table grew AFTER its first release (DOS-178's `handed_over_at`).
+ *
+ * `CREATE TABLE IF NOT EXISTS` does nothing to a file that already exists, so a phone that has been running
+ * since before this column would never get it — and a refused payment on such a phone would have nowhere to
+ * record that the crew handed it to the cashier. `ADD COLUMN` is the one alteration SQLite does in place;
+ * it is idempotent BY FAILURE (a duplicate column is refused), which is why each runs best effort.
+ */
+const SYSTEM_TABLE_ADDITIONS: readonly string[] = [
+  `ALTER TABLE ${SYNC_ERRORS_TABLE} ADD COLUMN handed_over_at TEXT`,
 ]
 
 export async function createSystemTables(store: SyncStore): Promise<void> {
   for (const statement of SYSTEM_TABLE_STATEMENTS) await store.exec(statement)
+  for (const statement of SYSTEM_TABLE_ADDITIONS) await store.exec(statement).catch(() => undefined)
 }
 
 export async function createDataTables(

@@ -43,9 +43,11 @@ import {
   inboundMessages,
   invoices,
   loadSheets,
+  locationConsents,
   locations,
   memberships,
   messages,
+  podEvidence,
   priceListItems,
   priceLists,
   products,
@@ -2492,6 +2494,45 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           .where(and(eq(trips.tenantId, tenantId), inArray(trips.id, [...candidates])))
       ).map((row) => row.id),
     )
+  // QA DOS-176 / DOS-177. Both are CREATING procedures whose row id is the client's, and both used to publish
+  // ONE fixed id: the first service's document took it and every other service, and every later run, pressed an
+  // id somebody else already held — a row RLS hides from them, so the insert died on the primary key (500).
+  //
+  // A proof id THIS example's own delivery holds is NOT spent, though — pressing it again is a REPLAY
+  // (`addPodInTx` matches the id AND the delivery), so it stays free and the document keeps publishing it.
+  // It has to: a delivery carries at most ten pieces of proof (`MAX_POD_PER_DELIVERY`), three services
+  // publish this example (owner, manager, delivery — `DOORSTEP`) onto the SAME delivery, and adding proof
+  // never changes which delivery that is. A walk that only ever handed out UNHELD ids would therefore add
+  // three rows per smoke run — 1 -> 4 -> 7 -> 10 — and put the example, and `pnpm smoke` with it, on a
+  // permanent 400 on the fourth run. Re-publishing what is already there also RECOVERS a database that has
+  // already spent the budget. Only `ctx.deliveryId` counts as "mine": the shopkeeper lane's delivery
+  // (`linkedDeliveryId`) is a different row, and a lane that pressed an id held on IT would get the 409.
+  const podIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: podEvidence.id, deliveryId: podEvidence.deliveryId })
+          .from(podEvidence)
+          .where(and(eq(podEvidence.tenantId, tenantId), inArray(podEvidence.id, [...candidates])))
+      )
+        .filter((row) => row.deliveryId !== ctx.deliveryId)
+        .map((row) => row.id),
+    )
+  // A consent is per PERSON, so the whole tenant's rows are the taken set, not just one user's.
+  const consentIds: TakenIds = async (candidates) =>
+    new Set(
+      (
+        await tx
+          .select({ id: locationConsents.id })
+          .from(locationConsents)
+          .where(
+            and(
+              eq(locationConsents.tenantId, tenantId),
+              inArray(locationConsents.id, [...candidates]),
+            ),
+          )
+      ).map((row) => row.id),
+    )
   const cycleCountIds: TakenIds = async (candidates) =>
     new Set(
       (
@@ -2611,6 +2652,12 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
       writeOffIds,
     ),
     'delivery.trips.create': await freeSlots('delivery.trips.create', 'id', tripIds),
+    'delivery.deliveries.addPod': await freeSlots(
+      'delivery.deliveries.addPod',
+      'evidence.id',
+      podIds,
+    ),
+    'delivery.consents.grant': await freeSlots('delivery.consents.grant', 'id', consentIds),
     'integrations.imports.create': await freeSlots(
       'integrations.imports.create',
       'id',
@@ -3836,13 +3883,20 @@ const OVERRIDES: Record<
     active: true,
   }),
   'delivery.vehicles.positions': () => ({ vehicleId: DROP, staleAfterMinutes: 30 }),
-  'delivery.consents.grant': () => ({
-    id: createdId('delivery.consents.grant', 'id'),
-    granted: true,
-    noticeVersion: 'gps-notice-2026-09',
-    locale: 'en-IN',
-    deviceId: DROP,
-  }),
+  // The consent row id is the client's and a consent belongs to ONE person, so it walks the free-slot
+  // sequence like every other creating procedure (QA DOS-177): a fixed id meant the second service's
+  // document — and the driver pressing it — landed on the owner's row, which RLS hides from a crew member.
+  'delivery.consents.grant': (ctx) => {
+    const slot = slotOf(ctx, 'delivery.consents.grant')
+    return {
+      id: createdId('delivery.consents.grant', 'id', slot),
+      idempotencyKey: docsIdempotencyKey('delivery.consents.grant', slot),
+      granted: true,
+      noticeVersion: 'gps-notice-2026-09',
+      locale: 'en-IN',
+      deviceId: DROP,
+    }
+  },
   'delivery.consents.get': () => ({ userId: DROP }),
   'delivery.trips.create': (ctx) => ({
     id: createdId('delivery.trips.create', 'id', slotOf(ctx, 'delivery.trips.create')),
@@ -3977,17 +4031,26 @@ const OVERRIDES: Record<
       },
     ],
   }),
-  'delivery.deliveries.addPod': (ctx, options) => ({
-    id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
-    'evidence.id': createdId('delivery.deliveries.addPod', 'evidence.id'),
-    'evidence.kind': 'geo',
-    'evidence.objectKey': DROP,
-    'evidence.inline': DROP,
-    'evidence.payload': { distanceM: 40 },
-    'evidence.lat': 19.2437,
-    'evidence.lng': 73.1355,
-    'evidence.capturedAt': DROP,
-  }),
+  // The proof id is the client's and it walks the free-slot sequence (QA DOS-176): a fixed id meant every
+  // service after the first pressed proof another crew's delivery already holds, and `pod_evidence_read`
+  // hides that row from a crew member, so the insert died on the primary key. The walk re-publishes a slot
+  // THIS delivery already holds rather than spending the next one (`podIds`): proof is capped at ten a
+  // delivery, and three services press this example on every smoke run.
+  'delivery.deliveries.addPod': (ctx, options) => {
+    const slot = slotOf(ctx, 'delivery.deliveries.addPod')
+    return {
+      id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
+      idempotencyKey: docsIdempotencyKey('delivery.deliveries.addPod', slot),
+      'evidence.id': createdId('delivery.deliveries.addPod', 'evidence.id', slot),
+      'evidence.kind': 'geo',
+      'evidence.objectKey': DROP,
+      'evidence.inline': DROP,
+      'evidence.payload': { distanceM: 40 },
+      'evidence.lat': 19.2437,
+      'evidence.lng': 73.1355,
+      'evidence.capturedAt': DROP,
+    }
+  },
   'delivery.deliveries.list': () => ({
     tripId: DROP,
     stopId: DROP,
@@ -4687,8 +4750,13 @@ const OVERRIDES: Record<
     from: DROP,
     to: DROP,
   }),
+  // An OFFICE receipt: no trip (QA DOS-175). The sampler would otherwise fill `tripId` from the
+  // "ends in Id → uuid" rule with an id no trip holds, and the money desk could never bank it —
+  // `receipts.deposit` refuses a receipt whose trip has not settled, and a trip that does not exist
+  // never will. Doorstep money names a trip through `delivery.collections.record`, which has one.
   'receivables.receipts.create': (ctx) => ({
     retailerId: ctx.retailerId,
+    tripId: DROP,
     allocations: DROP,
     strategy: 'fifo',
   }),

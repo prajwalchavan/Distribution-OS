@@ -525,6 +525,73 @@ describe('<ConnectionStrip> never claims a read it has not had', () => {
     expect(html).toContain('1 need attention')
     expect(html).not.toContain('waiting to send')
   })
+
+  /*
+   * DOS-179 — the store's honesty belongs HERE, because the strip is the one thing on every screen.
+   *
+   * A browser without OPFS (no COOP/COEP) falls back to a store in memory that dies with the tab. That
+   * fact used to be said on the beat screen and nowhere else: a rep who spent the day on Shops and
+   * Orders read "Updated just now" over a phone keeping nothing. The strip is mounted once per app in
+   * `_layout.tsx` and the shell puts it on every screen, so one segment here reaches all of them —
+   * and on EVERY branch, because "Offline since 12:01 pm" over a store that keeps nothing is the same
+   * lie as "Updated just now" over one.
+   *
+   * `null` is the store still opening (DOS-167 ruling 3 (ee)) and says nothing at all: the S-140 flash
+   * was 39-82 ms of "will not keep" over a perfectly good file, on every sign-in.
+   */
+  it('DOS-179 says the copy is not kept when persistent is false, on every branch, and nothing while null', () => {
+    const NOT_KEPT = 'Not kept in this browser'
+    const branches: readonly ConnectionState[] = [
+      // synced
+      { online: true, lastSyncedAt: 1_757_000_000_000 },
+      // not yet
+      { online: true, lastSyncedAt: null },
+      // waiting
+      { online: true, lastSyncedAt: 1_757_000_000_000, pendingWrites: 2 },
+      // attention
+      { online: true, lastSyncedAt: 1_757_000_000_000, needsAttention: 1 },
+      // stale
+      { online: true, lastSyncedAt: 1_757_000_000_000 - 5 * 60 * 60 * 1000 },
+      // offline
+      { online: false, lastSyncedAt: 1_757_000_000_000 },
+      // offline + waiting
+      { online: false, lastSyncedAt: 1_757_000_000_000, pendingWrites: 2 },
+      // offline + attention
+      { online: false, lastSyncedAt: 1_757_000_000_000, needsAttention: 1 },
+    ]
+
+    for (const branch of branches) {
+      expect(strip({ ...branch, persistent: false })).toContain(NOT_KEPT)
+      // Still opening, and a resolved store that keeps: neither says anything about keeping.
+      expect(strip({ ...branch, persistent: null })).not.toContain(NOT_KEPT)
+      expect(strip({ ...branch, persistent: true })).not.toContain(NOT_KEPT)
+      // The branch's own sentence is not replaced by it.
+      expect(strip({ ...branch, persistent: false })).toContain(
+        branch.online === false ? 'Offline since' : '',
+      )
+    }
+  })
+
+  it('DOS-179 keeps the stronger tone: a refusal stays brick, everything else turns ochre', () => {
+    // The light palette's `text.secondary` (paper 700), `ochre.fg` and `brick.fg`, by value.
+    const SECONDARY = '#4B4F49'
+    const OCHRE = '#6E4200'
+    const attention = strip({
+      online: true,
+      lastSyncedAt: 1_757_000_000_000,
+      needsAttention: 1,
+      persistent: false,
+    })
+    const synced = strip({ online: true, lastSyncedAt: 1_757_000_000_000, persistent: false })
+
+    // A refusal is the stronger fact and keeps the strip brick; the not-kept segment still shows.
+    expect(attention).toContain('1 need attention')
+    expect(attention).toContain('Not kept in this browser')
+    expect(attention).not.toContain(OCHRE)
+    // The quiet "Updated just now" branch is no longer quiet: the copy is not being kept.
+    expect(synced).toContain(OCHRE)
+    expect(synced).not.toContain(SECONDARY)
+  })
 })
 
 /**

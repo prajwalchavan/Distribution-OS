@@ -360,6 +360,18 @@ export interface ConnectionState {
   needsAttention?: number | undefined
   /** Data older than four hours says so, in `ochre`. */
   staleSince?: (number | null) | undefined
+  /**
+   * DOS-179 — whether this device keeps what it holds, as a TRI-STATE: `true` a real SQLite file,
+   * `false` the in-memory fallback (a browser with no OPFS, a binary without expo-sqlite), `null` or
+   * absent while nothing has resolved yet.
+   *
+   * On a resolved `false` the strip appends a second segment — "Not kept in this browser" on the web,
+   * "Not kept on this phone" on a device — on EVERY branch, because "Updated just now" and "Offline
+   * since 12:01 pm" are the same lie over a store that dies with the tab. It says nothing at all while
+   * this is `null`: that window is the store still opening, and claiming it there is the S-140 flash
+   * (DOS-167 ruling 3 (ee)). A component prop, never a wire shape.
+   */
+  persistent?: (boolean | null) | undefined
 }
 
 export interface ConnectionStripProps extends Testable {

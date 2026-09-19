@@ -16,6 +16,7 @@
  *   CREATE TABLE [IF NOT EXISTS] t (col TYPE [NOT NULL] [PRIMARY KEY [AUTOINCREMENT]] [UNIQUE], …,
  *                                   PRIMARY KEY (a, b))
  *   DROP TABLE [IF EXISTS] t          CREATE INDEX … (accepted and ignored: an in-memory scan needs none)
+ *   ALTER TABLE t ADD [COLUMN] c TYPE (the one in-place alteration SQLite itself allows)
  *   INSERT [OR REPLACE] INTO t (cols) VALUES (?, …)
  *   UPDATE t SET c = ?, … [WHERE expr]
  *   DELETE FROM t [WHERE expr]
@@ -478,6 +479,9 @@ export class MemoryDatabase {
       case 'DROP':
         this.drop(parser)
         return []
+      case 'ALTER':
+        this.alter(parser, sql)
+        return []
       case 'INSERT':
         this.insert(parser, sql)
         return []
@@ -561,6 +565,25 @@ export class MemoryDatabase {
     parser.expectPunct(')')
     this.tables.set(name, { name, columns, primaryKey, autoIncrement, nextAuto: 1, rows: [] })
     void sql
+  }
+
+  /**
+   * `ALTER TABLE t ADD [COLUMN] c TYPE` — the migration shape a system table needs once it has shipped
+   * (DOS-178's `_sync_errors.handed_over_at`). SQLite refuses a duplicate column and so does this, because
+   * that refusal is exactly what makes the migration idempotent on a device that already ran it.
+   */
+  private alter(parser: Parser, sql: string): void {
+    parser.expectWord('ALTER')
+    parser.expectWord('TABLE')
+    const table = this.table(parser.name(), sql)
+    parser.expectWord('ADD')
+    parser.eatWord('COLUMN')
+    const name = parser.name()
+    if (table.columns.some((column) => column.name === name))
+      throw new SqlError(`duplicate column name: ${name}`, sql)
+    table.columns.push({ name, unique: false })
+    // An existing row has no value for a column that did not exist when it was written.
+    for (const row of table.rows) row[name] = null
   }
 
   private drop(parser: Parser): void {

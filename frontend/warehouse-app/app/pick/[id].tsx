@@ -48,6 +48,7 @@ import { useMemo, useState } from 'react'
 
 import type { PickRow } from '../../src/lib/local'
 import { useHydrated, useLocalPickLines, useLocalPicklist } from '../../src/lib/local'
+import { keepKey } from '../../src/lib/keep'
 import { pickGate } from '../../src/lib/pick-gate'
 import { useRecordPick } from '../../src/lib/queue'
 import { DeskOnly, ExpiryChip, LocalAsync, Panel, pl, workFamily } from '../../src/lib/ui'
@@ -303,7 +304,7 @@ export default function PickingSheet(): React.JSX.Element {
          */}
         {status.online ? null : (
           <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-offline">
-            {t('w5.offlineNote')}
+            {t(keepKey('offlineNote', status.persistent))}
           </Txt>
         )}
         {scanNote === null ? null : (
@@ -419,6 +420,8 @@ function PickLineCard({
 }): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
+  /* DOS-179: the chip below claims a keep, so it has to know what this device's store turned out to be. */
+  const status = useSyncStatus()
   const done = row.state !== 'todo'
   return (
     <Stack
@@ -466,7 +469,7 @@ function PickLineCard({
             {row.line.short_reason === null ? '' : ` · ${row.line.short_reason}`}
           </Txt>
           {row.line._pending === 'queued' || row.line._pending === 'sending' ? (
-            <StatusChip label={t('w.savedOnDevice')} family="clay" />
+            <StatusChip label={t(keepKey('savedOnDevice', status.persistent))} family="clay" />
           ) : null}
         </Row>
       ) : locked ? null : (

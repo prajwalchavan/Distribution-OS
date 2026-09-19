@@ -1,11 +1,13 @@
-import { afterAll, describe, expect, it } from 'vitest'
-import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
+import { afterAll, describe, expect, it, onTestFinished } from 'vitest'
+import { and, eq, inArray, isNotNull, ne, or } from 'drizzle-orm'
 import type { z } from 'zod'
 import {
   bargainRequests,
   createDb,
   createPool,
+  deliveries,
   importJobs,
+  podEvidence,
   retailerLinks,
   salesOrders,
   supplierInvoices,
@@ -206,6 +208,8 @@ const LINKED: ExampleContext = {
   },
   // Free slots as the probe reads them: one lane per role, so no two services publish the same id.
   slotLanes: {
+    'delivery.consents.grant': [4, 5, 6, 7, 8, 9, 10, 11],
+    'delivery.deliveries.addPod': [1, 2, 3, 4, 5, 6, 7, 8],
     'orders.create': [2, 3, 4, 5, 6, 7, 8, 9],
     'orders.repeatLast': [0, 1, 2, 3, 4, 5, 6, 7],
     'orders.setLines': [7, 8, 9, 10, 11, 12, 13, 14],
@@ -559,6 +563,41 @@ describe('every POST, on every service that serves it', () => {
     expect(new Set(numbers).size, 'supplier invoice numbers').toBe(business.length)
   })
 
+  /**
+   * QA DOS-176 / DOS-177. Both procedures create a row under an id the CLIENT sends, and both used to publish
+   * one fixed id for every service. The first document pressed took it; every other document then pressed an id
+   * somebody else holds — on a row RLS hides from that caller (another crew's delivery, another person's
+   * consent) — and the insert died on the primary key: `proof insert returned nothing`, and a 500 with no
+   * message at all on the gate a trip cannot depart without. The server now refuses that honestly; this is the
+   * other half, so the published example is one a reader can actually press.
+   */
+  it('DOS-176 gives every service document its own proof id for delivery.deliveries.addPod', () => {
+    const business = [...byService].filter(([service]) => service !== 'auth')
+    const ids = business.map(([, examples]) => {
+      const evidence = examples.get('delivery.deliveries.addPod')?.body?.evidence as
+        { id?: unknown } | undefined
+      return evidence?.id
+    })
+    expect(ids.every((id) => typeof id === 'string')).toBe(true)
+    expect(new Set(ids).size, 'delivery.deliveries.addPod evidence.id').toBe(business.length)
+    // the same walk as every other creating procedure, so a second press replays instead of colliding
+    const keys = business.map(([, examples]) =>
+      String(examples.get('delivery.deliveries.addPod')?.body?.idempotencyKey),
+    )
+    expect(new Set(keys).size, 'delivery.deliveries.addPod idempotencyKey').toBe(business.length)
+  })
+
+  it('DOS-177 gives every service document its own consent id for delivery.consents.grant', () => {
+    const business = [...byService].filter(([service]) => service !== 'auth')
+    const ids = business.map(([, examples]) => examples.get('delivery.consents.grant')?.body?.id)
+    expect(ids.every((id) => typeof id === 'string')).toBe(true)
+    expect(new Set(ids).size, 'delivery.consents.grant id').toBe(business.length)
+    const keys = business.map(([, examples]) =>
+      String(examples.get('delivery.consents.grant')?.body?.idempotencyKey),
+    )
+    expect(new Set(keys).size, 'delivery.consents.grant idempotencyKey').toBe(business.length)
+  })
+
   it('is deterministic per service', () => {
     for (const [service, roles] of Object.entries(SERVICE_ROLES)) {
       const again = buildExamples(PROCEDURES, LINKED, { roles })
@@ -796,4 +835,87 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       expect(examples.get(path)?.body?.retailerId, path).toBe(retailerId)
     }
   }, 30_000)
+
+  /**
+   * QA DOS-176, the half the slot walk itself opened: the delivery's PROOF BUDGET.
+   *
+   * A delivery carries at most ten pieces of proof (`MAX_POD_PER_DELIVERY`, deliveries.service.ts), and
+   * THREE services publish this example onto the SAME delivery — owner, manager and delivery are the
+   * `DOORSTEP` roles, and `collectDelivery` picks the newest attempted delivery of the active trip, which
+   * adding proof never changes. So a walk that only ever hands out ids the database does NOT hold inserts
+   * three new rows per `pnpm smoke` run — a seeded delivery goes 1 → 4 → 7 → 10 — and the FOURTH run's
+   * first press is a permanent 400 (`already carries 10 pieces of proof`): smoke BROKEN, and it stays
+   * broken until somebody clears the rows. Two runs (the merge review's walk 1) land at 4 and 7 and see
+   * nothing.
+   *
+   * So an id THIS delivery already holds is not taken, it is a REPLAY — `addPodInTx` matches id AND
+   * delivery since f5bff2c — and the document must publish it again rather than spend the next slot. An id
+   * ANOTHER delivery holds is still taken: that is DOS-176 itself, and the first half of this case says so.
+   */
+  it('DOS-176 re-publishes a proof id the example delivery holds, and walks past one another delivery holds', async () => {
+    const path = 'delivery.deliveries.addPod'
+    const ctx = await context()
+    // The spare lane, like the cases above: the service specs run alongside this one and press the real ones.
+    const spare = (loaded: ExampleContext): { deliveryId: string; evidenceId: string } => {
+      const example = buildExamples(PROCEDURES, loaded, { roles: ['owner'], lane: SPARE_LANE }).get(
+        path,
+      )
+      const evidence = example?.body?.evidence as { id?: unknown } | undefined
+      // The delivery is the PATH param (`POST /delivery/deliveries/{id}/pod`); the proof id is in the body.
+      return { deliveryId: String(example?.pathParams.id), evidenceId: String(evidence?.id) }
+    }
+    // A FRESH read each time: the document a service builds on its next boot, not the cached one.
+    const reread = (): Promise<ExampleContext> => new DocExamplesService(db).load()
+
+    const baseline = spare(ctx)
+    expect(baseline.deliveryId, 'an attempted delivery in the demo').toBe(ctx.deliveryId)
+    expect(baseline.evidenceId, 'a published proof id').toBeTruthy()
+
+    const [other] = await withSystem(db, (tx: Db) =>
+      tx
+        .select({ id: deliveries.id })
+        .from(deliveries)
+        .where(
+          and(eq(deliveries.tenantId, ctx.tenantId ?? ''), ne(deliveries.id, baseline.deliveryId)),
+        )
+        .limit(1),
+    )
+    expect(other?.id, 'a second delivery in the demo').toBeTruthy()
+
+    const holdPodOn = (deliveryId: string): Promise<unknown> =>
+      withSystem(db, (tx: Db) =>
+        tx.insert(podEvidence).values({
+          id: baseline.evidenceId,
+          tenantId: ctx.tenantId ?? '',
+          deliveryId,
+          kind: 'geo',
+          payload: { distanceM: 40 },
+        }),
+      )
+    const releasePod = (): Promise<unknown> =>
+      withSystem(db, (tx: Db) =>
+        tx.delete(podEvidence).where(eq(podEvidence.id, baseline.evidenceId)),
+      )
+    onTestFinished(async () => {
+      await releasePod()
+    })
+
+    // Another crew's delivery holds the id: a press would be the 409 `pod_id_taken`, so the walk moves on.
+    await holdPodOn(other?.id ?? '')
+    expect(
+      spare(await reread()).evidenceId,
+      'an id another delivery holds is spent — walk past it',
+    ).not.toBe(baseline.evidenceId)
+    await releasePod()
+
+    // THIS delivery holds it: a press is a replay, so the document keeps publishing it and the delivery's
+    // proof budget stands still however many times the example is pressed.
+    await holdPodOn(baseline.deliveryId)
+    const again = spare(await reread())
+    expect(again.deliveryId, 'still the same delivery').toBe(baseline.deliveryId)
+    expect(
+      again.evidenceId,
+      "the example delivery's own proof id is a replay, not a spent slot",
+    ).toBe(baseline.evidenceId)
+  }, 90_000)
 })

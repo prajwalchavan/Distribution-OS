@@ -40,6 +40,7 @@ import { useEffect, useState } from 'react'
 import { deviceId } from '../src/api'
 import { GPS_NOTICE_VERSION } from '../src/config'
 import { instantWithClock } from '../src/lib/dates'
+import { keepKey } from '../src/lib/keep'
 import { useLeave } from '../src/lib/leave-context'
 import { Async, Panel } from '../src/lib/ui'
 
@@ -106,7 +107,7 @@ export default function Me(): React.JSX.Element {
             { label: t('app.person'), value: me.data?.user.name ?? session?.user.name ?? '—' },
             { label: t('app.role'), value: session?.role ?? '—' },
             { label: t('app.distributor'), value: session?.tenant.displayName ?? '—' },
-            { label: t('d12.tablesLabel'), value: String(tables) },
+            { label: t(keepKey('tables', status.persistent)), value: String(tables) },
           ]}
         />
 

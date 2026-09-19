@@ -31,12 +31,14 @@ import {
   useStrings,
 } from '@dos/ui'
 import { paise } from '@dos/domain'
+import { useSyncStatus } from '@dos/offline/react'
 import { haptics, links, location as platformLocation } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
 import { instantWithClock, longDate } from '../../../src/lib/dates'
+import { keepKey } from '../../../src/lib/keep'
 import {
   addressLine,
   isStopTerminal,
@@ -69,6 +71,8 @@ export default function StopScreen(): React.JSX.Element {
   const params = useLocalSearchParams<{ id: string }>()
   const stopId = typeof params.id === 'string' ? params.id : null
   const hydrated = useHydrated()
+  /* DOS-179: the toast below claims a keep, so it has to know what this device's store turned out to be. */
+  const sync = useSyncStatus()
 
   const { stop, loading } = useLocalStop(stopId)
   const { trip } = useLocalTrip(stop?.trip_id ?? null)
@@ -124,7 +128,7 @@ export default function StopScreen(): React.JSX.Element {
           ...(extra ?? {}),
         })
         haptics.success()
-        setToast(state === 'failed' ? t('d3.failed') : t('d.savedOnPhone'))
+        setToast(state === 'failed' ? t('d3.failed') : t(keepKey('savedOnPhone', sync.persistent)))
       } catch (error) {
         haptics.error()
         setToast(error instanceof Error ? error.message : t('d.unknown'))

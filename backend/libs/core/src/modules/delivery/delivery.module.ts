@@ -11,7 +11,7 @@ import { LoadSheetsService, WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
 import { DeliveryController } from './delivery.controller.js'
-import { returnedOnTheRoad, tripSettledSql } from './delivery.internals.js'
+import { returnedOnTheRoad, TRIP_PREDICATES } from './delivery.internals.js'
 import {
   applyCollectionSync,
   applyDeliverySync,
@@ -33,7 +33,7 @@ import { VehiclesService } from './vehicles.service.js'
  * `OrdersService` for the order aggregate, `InventoryService` for every piece, `BillingService` /
  * `CreditNotesService` for the van-sale bill and the doorstep credit note, `ReceivablesService` for
  * every rupee, `LoadSheetsService` for "is the load out of the godown". Delivery also tells receivables
- * when a trip's cash is in the office (`registerTripSettled`, DOS-132), so the money desk banks only that,
+ * when a trip's cash is in the office (`registerTripPredicates`, DOS-132 + QA DOS-175), so the money desk banks only that,
  * and tells the godown which bills are still on the road (`registerRoadHold`, DOS-172): a bill that came
  * back undelivered on a van that has not checked in is neither offered nor loaded.
  *
@@ -80,7 +80,7 @@ export class DeliveryModule implements OnModuleInit {
     // First, before the sync early return: a spec or a service that boots delivery without SyncModule still
     // needs receivables to know which trips have handed their cash over (DOS-132), and the godown to know
     // which bills still ride a van that has not checked in (DOS-172).
-    this.receivables.registerTripSettled(tripSettledSql)
+    this.receivables.registerTripPredicates(TRIP_PREDICATES)
     this.loadSheets.registerRoadHold(returnedOnTheRoad)
     if (!this.registry) return
     // Each upload table names the online procedure(s) it stands for, and the uploader asks PERMISSIONS
