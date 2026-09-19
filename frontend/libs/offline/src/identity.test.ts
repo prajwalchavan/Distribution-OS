@@ -558,6 +558,135 @@ describe('DOS-167 one file per app, person and distributor', () => {
   })
 
   /*
+   * Ruling 3 (cc).2 + Fable amendment A2. The fallback to memory is only half the promise: the file it gave up on is
+   * held (`holdFile`) from `start()` until it closes, and NOTHING else may open that name until the hold is let go —
+   * not the sweep, not the same person signing straight back in, not the next launch. A fallback that keeps the hold
+   * turns one unreadable file into a permanently unopenable one: the engine after it waits for a promise that never
+   * resolves, which is S-138's 240 s of silence again, one step further along.
+   *
+   * So the second engine here is opened on the SAME factory and the SAME name while the first is still running in
+   * memory, and it must get the real file within its deadline. Answer A: the unreadable file was closed and left on
+   * disk — never destroyed — so a later launch that CAN read it finds it.
+   */
+  it('DOS-167 the memory fallback lets go of the file it could not read, so the next engine on that name opens', async () => {
+    /** A persistent file that opens and then throws on the first statement, as a corrupt OPFS file does. */
+    class CorruptFile implements SyncStore {
+      readonly persistent = true
+      readonly kind = 'sqlite-web' as const
+      closes = 0
+      destroys = 0
+      async exec(): Promise<void> {
+        throw new Error('file is not a database')
+      }
+      async query<T>(): Promise<T[]> {
+        throw new Error('file is not a database')
+      }
+      async transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
+        return fn(this)
+      }
+      async close(): Promise<void> {
+        this.closes += 1
+      }
+      async destroy(): Promise<void> {
+        this.destroys += 1
+      }
+    }
+
+    /** The same file on the next launch, readable this time: a plain store that reports itself as one on disk. */
+    class ReadableFile implements SyncStore {
+      readonly persistent = true
+      readonly kind = 'sqlite-web' as const
+      constructor(private readonly inner: SyncStore) {}
+      exec(sql: string, params?: readonly SqlValue[]): Promise<void> {
+        return this.inner.exec(sql, params)
+      }
+      query<T>(sql: string, params?: readonly SqlValue[]): Promise<T[]> {
+        return this.inner.query<T>(sql, params)
+      }
+      transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
+        return this.inner.transaction(fn)
+      }
+      close(): Promise<void> {
+        return this.inner.close()
+      }
+    }
+
+    const corrupt = new CorruptFile()
+    const readable = new ReadableFile(createMemoryStore())
+    const name = storeNameFor('dos-sales', RAHUL_AT_TARSUN)
+    const asked: string[] = []
+    /** ONE factory, so both engines take the same `holdFile` queue for this name (it is keyed by opener + name). */
+    let handedOut = 0
+    const storeFactory: StoreFactory = async (file: string) => {
+      asked.push(file)
+      handedOut += 1
+      return handedOut === 1 ? corrupt : readable
+    }
+
+    const server = new FakeServer(TABLES)
+    const log: string[] = []
+    const options = (): SyncEngineOptions => ({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory,
+      databaseName: name,
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+      onLog: (line) => {
+        log.push(line)
+      },
+    })
+
+    const first = new SyncEngine(options())
+    await first.start()
+
+    /*
+     * The second engine, on the same file, while the first is still up in memory. Red without the release: `bringUp`
+     * awaits the hold of the engine before it, which nothing ever resolves, and this race is won by the timer.
+     */
+    const second = new SyncEngine(options())
+    const started = second.start()
+    const outcome = await Promise.race([
+      started.then(
+        () => 'opened' as const,
+        () => 'threw' as const,
+      ),
+      new Promise<'blocked'>((resolve) => {
+        setTimeout(() => resolve('blocked'), 400)
+      }),
+    ])
+
+    expect({
+      outcome,
+      firstStore: first.status().store,
+      firstReady: first.status().ready,
+      firstPersistent: first.status().persistent,
+      said: log.filter((line) => line.startsWith('offline: the device store')),
+      // The file we could not read is closed and LEFT ON DISK (founder answer A) — the next engine is why that matters.
+      closes: corrupt.closes,
+      destroys: corrupt.destroys,
+      secondStore: outcome === 'opened' ? second.status().store : null,
+      secondPersistent: outcome === 'opened' ? second.status().persistent : null,
+      asked,
+    }).toEqual({
+      outcome: 'opened',
+      firstStore: 'memory',
+      firstReady: true,
+      firstPersistent: false,
+      said: ['offline: the device store could not be used; running in memory'],
+      closes: 1,
+      destroys: 0,
+      secondStore: 'sqlite-web',
+      secondPersistent: true,
+      asked: [name, name],
+    })
+
+    await second.stop()
+    await first.stop()
+  })
+
+  /*
    * Ruling 3 (ee), S-140. `persistent` read `this.store?.persistent ?? false` — false for the whole of the open — so
    * the beat screen said "This browser will not keep the offline copy after you close it" for 39-82 ms after every
    * sign-in, measured in four runs, over a perfectly persistent store. The honest shape is a tri-state, not a delay:
