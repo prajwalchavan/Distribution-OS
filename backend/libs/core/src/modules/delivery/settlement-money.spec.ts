@@ -936,6 +936,58 @@ describeDb('delivery — day-end counts every trip payment (DATABASE_URL)', () =
     expect((await tripDetail(tripId)).expectedCashPaise).toBe(floatPaise + cashPaise)
   }, 120_000)
 
+  /*
+   * THE STATE RIDES WITH THE FIGURES (DOS-169 (m)).
+   *
+   * D8 branches the hand-over on `figures.tripState` and on nothing else — the phone's own trip row is
+   * local-first and still reads `closing` for a pull after the desk settles, and branching on it added the
+   * phone's held cash on top of a hand-over the office had already closed. That fix is only as true as this
+   * field: `settlementPreview` has to answer with the trip's LIVE state, not the state it was asked about and
+   * not the state frozen into the settlement row. Nothing pinned it — every other assertion in this file reads
+   * the SETTLE reply's `tripState`, which is a different code path (`settle` returns `next.state`, the cockpit
+   * returns `trip.state`) — so the device could have branched on a field the server quietly stopped moving and
+   * every gate would still be green.
+   */
+  it('DOS-169 the settlement preview answers with the trip live state, the one D8 branches the hand-over on', async () => {
+    const floatPaise = 40_000
+    const cashPaise = 30_000
+    const tripId = await onTheRoad('sm-t8s', 12, 'MM', floatPaise)
+    expect((await preview(tripId)).tripState).toBe('active')
+
+    await offlineReceipt(tripId, 'cash', cashPaise, 'T8SC')
+    await move('sm-t8s', driver, tripId, 'return')
+    // the window the blocker lived in: the van is back, the office has not settled, D8 must still add held cash
+    expect((await preview(tripId)).tripState).toBe('closing')
+
+    const settled = await settle(accountant, tripId, uuidv7(), floatPaise + cashPaise)
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    expect(settled.body.tripState).toBe('settled')
+    // the preview flips in the same breath, so a phone still showing `closing` reads `settled` off the figures
+    const after = await preview(tripId)
+    expect(after.tripState).toBe('settled')
+    expect(after.expectedCashPaise).toBe(floatPaise + cashPaise)
+  }, 120_000)
+
+  it('DOS-169 the settlement preview says settled_with_variance too, so D8 adds nothing to a short close', async () => {
+    const floatPaise = 40_000
+    const keptPaise = 30_000
+    const tripId = await onTheRoad('sm-t8v', 13, 'MN', floatPaise)
+    await offlineReceipt(tripId, 'cash', keptPaise, 'T8VC')
+    await move('sm-t8v', driver, tripId, 'return')
+
+    const refused = await settle(accountant, tripId, uuidv7(), floatPaise)
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.data?.code).toBe('settlement_needs_owner')
+    const accepted = await settle(owner, tripId, uuidv7(), floatPaise, {
+      acceptVariance: true,
+      note: 'the crew kept the cash',
+    })
+    expect(accepted.status, JSON.stringify(accepted.body)).toBe(200)
+    expect(accepted.body.tripState).toBe('settled_with_variance')
+    // `dayEndCash` treats both closed states alike; the preview has to name this one as plainly as the other
+    expect((await preview(tripId)).tripState).toBe('settled_with_variance')
+  }, 120_000)
+
   // ---------------------------------------------------------------------------------------------------------------
   // DOS-170: an undo after the settlement
 
