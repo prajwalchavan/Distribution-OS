@@ -194,9 +194,11 @@ export default function VanSale(): React.JSX.Element {
       invalidates: [['trip'], ['van-stock'], ['settlement']],
       /*
        * THE CREW TAKES THE BILL'S FIGURE. The screen stays on the issued bill — its number and its own
-       * total — and the only way on is Back to the stop, so no second tap can issue a second bill. The
-       * pull carries the stop's new "owed on the bills here" to D3 and D5; a pull already running makes
-       * this call a no-op and the next poll catches up.
+       * total — and the only way on is Back to the stop, so once a reply arrives no further tap can issue
+       * a second bill. A tap whose reply was LOST is a separate, open hole (`at: Date.now()` below makes
+       * every tap a new intent), recorded as a P1 against this screen and not fixed here. The pull carries
+       * the stop's new "owed on the bills here" to D3 and D5; a pull already running makes this call a
+       * no-op and the next poll catches up.
        */
       onSuccess: (result) => {
         setBilled({
