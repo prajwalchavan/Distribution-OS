@@ -687,6 +687,35 @@ Expected: the banner keeps telling the truth about THIS order until the office a
 Actual: `frontend/sales-app/app/orders/new.tsx:387-388` picks `title` and `meta` from `local.online` at render time, so the same banner re-renders as "Order placed — The office has it, with its number and its price" over an order the office still holds as a DRAFT with no number.
 Founder decision 2026-09-19: the banner stays honest until the office confirms.
 
+### DOS-181 — On Android, the delivery app's "Record the delivery" button does nothing: a driver cannot close a stop at the door
+Category: bug | Priority: P1 | Role: delivery crew | Platform: Android (Pixel_7_API_36, Appium/UiAutomator2), found while proving DOS-167
+User: delivery crew
+Platform: delivery app, the deliver screen
+Environment: main at `254958a`, emulator Pixel_7_API_36 with -memory 3072, app `in.distributionos.delivery` debug build on Metro :8081, driven by Appium 3.7.0 with UiAutomator2.
+Steps: open a stop, reach the deliver screen, press the footer button `d4-record` — "Record the delivery" when the office is reachable, "Save on this phone" when it is not.
+Expected: the delivery is recorded, or queued on the phone.
+Actual: **`onPress` never fires** (`frontend/delivery-app/app/deliver.tsx:283` and `:482`). The pressed style renders, so the tap is received by the view — and nothing is saved: no row, no outbox entry, no console line. The driver is left at the door with no way to close the stop. Found while proving DOS-167's delivery keep case, which had to be routed around it.
+Note: this is the same screen two earlier provers could not drive, and it was read as a tooling failure both times. It is not: the button does not work.
+
+### DOS-182 — The warehouse pick sheet locks the picker out for nearly six minutes when it is opened with no signal
+Category: bug | Priority: P2 | Role: warehouse | Platform: Android (Pixel_7_API_36), found while proving DOS-167
+User: warehouse hand
+Platform: warehouse app, the pick sheet
+Environment: main at `254958a`, as DOS-181.
+Steps: with the wave already on the phone, open the pick sheet while the office is unreachable.
+Expected: the picker picks from the copy already on the device — that is what the offline copy is for.
+Actual: Picked and Short are hidden for **5 min 48 s**, measured, because `frontend/warehouse-app/app/pick/[id].tsx:102` computes `locked = liveStatus === undefined || notStarted` and `liveStatus` stays undefined until a read reaches the office. They unlock seconds after the office comes back. The work is on the phone the whole time.
+
+### DOS-183 — On the web, unsent work does NOT go first at the next sign-in: the app pulls first and uploads a minute later
+Category: bug | Priority: P1, ON THE DOS-167 P0 PATH | Role: salesperson (every field role on web) | Platform: web (Chromium), measured twice
+User: any field user on a browser
+Platform: `@dos/offline` engine
+Environment: main at `ff28995`, sales app on Metro :5175 against the services on `dos_qa`, real headed Chromium, one tab, no harness trick.
+Steps: sign in over a store file that holds an unsent order, in a browser whose previous session did not end through `end()` on that file (another tab signed out, a crash, or a closed window).
+Expected: the founder's answer A, 2026-09-14 — unsent changes "go FIRST the next time that person signs in here".
+Actual: the app **pulls first** and uploads only on the 60-second poll tick. Measured: run B uploaded at **+60 753 ms**; run C, on a page that booted offline, made no call for **49.5 s** after a genuine online event and then pulled before uploading. Cause, read after observing: `engine.ts:452-488` `start()` runs `sync('start')` and never `flush()`; the only pre-pull flush is `applyManifest`'s stale branch (`:1088-1097`), reached only when `dropReadSet` has nulled the manifest state. A second, separate gap on the same clause: `setNetworkHint(true)` (`engine.ts:1012-1023`) returns early because `radio()` falls back to `navigator.onLine`, which is already true inside the online handler, so a page that booted offline never gets its reconnect flush.
+Nothing is lost — the order is sent, and DOS-167's other two clauses hold on every platform — but "goes first" is a clause the founder chose deliberately, and on web it is not met.
+
 ## Suspected by the architect's plan sign-offs — NOT TESTED
 
 Raised by Fable while signing off batch-2 plans (sign-off run wf_b67cb996-95f, 2026-09-13), from code reading only. None of these is a
