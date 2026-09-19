@@ -896,7 +896,9 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       withSystem(db, (tx: Db) =>
         tx.delete(podEvidence).where(eq(podEvidence.id, baseline.evidenceId)),
       )
-    onTestFinished(releasePod)
+    onTestFinished(async () => {
+      await releasePod()
+    })
 
     // Another crew's delivery holds the id: a press would be the 409 `pod_id_taken`, so the walk moves on.
     await holdPodOn(other?.id ?? '')
