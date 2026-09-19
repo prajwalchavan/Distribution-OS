@@ -249,10 +249,14 @@ export class DeliveriesService {
     const delivery = await this.findDelivery(tx, deliveryId)
     const trip = await lockTrip(tx, delivery.tripId)
     assertCrewOrDesk(trip, DOORSTEP)
+    // A replay is the SAME proof on the SAME delivery. Narrowed by delivery id on purpose: `pod_evidence_read`
+    // shows the desk the whole tenant, so an id-only look-up handed an owner another delivery's row back as a
+    // 200 "proof recorded" (QA DOS-176). A foreign row falls through to the 409 in `writePod`, whether or not
+    // this caller is allowed to see it.
     const [existing] = await tx
       .select()
       .from(podEvidence)
-      .where(eq(podEvidence.id, evidence.id))
+      .where(and(eq(podEvidence.id, evidence.id), eq(podEvidence.deliveryId, delivery.id)))
       .limit(1)
     if (existing) return { item: toPod(existing) }
     const [{ n }] = (await tx
@@ -495,13 +499,14 @@ export class DeliveriesService {
     const [existing] = await tx
       .select()
       .from(podEvidence)
-      .where(eq(podEvidence.id, evidence.id))
+      .where(and(eq(podEvidence.id, evidence.id), eq(podEvidence.deliveryId, deliveryId)))
       .limit(1)
-    // A replay of proof this caller can see (its own delivery): the row it already wrote.
+    // A replay of proof already recorded on THIS delivery: the row it already wrote.
     if (existing) return existing
     // The insert hit the primary key, yet nothing comes back from the look-up: the row that holds this id is one
-    // `pod_evidence_read` hides — proof on ANOTHER crew's delivery (QA DOS-176). The id is the client's, so the
-    // answer belongs to the client; a 500 told the crew nothing and left a delivered stop it could not close.
+    // this caller cannot see, or one on another delivery (QA DOS-176). Either way it is not this delivery's proof,
+    // and saying "recorded" would put the proof on a delivery it is not on. The id is the client's, so the answer
+    // belongs to the client; a 500 told the crew nothing and left a delivered stop it could not close.
     throw new ORPCError('CONFLICT', {
       message: `proof ${evidence.id} is already recorded against another delivery; send this proof under an id of its own`,
       data: { code: 'pod_id_taken', evidenceId: evidence.id },

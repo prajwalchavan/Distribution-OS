@@ -241,10 +241,14 @@ export class VehiclesService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // A replay is the SAME person's answer under the same id. Narrowed by user on purpose:
+        // `location_consents_rw` shows the desk every row, so an id-only look-up replayed the DRIVER's answer
+        // to an owner as the owner's own (QA DOS-177) — against this method's rule, "Always the CALLER's own
+        // row". Somebody else's row falls through to the 409 below, seen or unseen.
         const [existing] = await tx
           .select()
           .from(locationConsents)
-          .where(eq(locationConsents.id, input.id))
+          .where(and(eq(locationConsents.id, input.id), eq(locationConsents.userId, ctx.actorId)))
           .limit(1)
         if (existing) return { item: toConsent(existing) }
         const now = new Date()
@@ -278,11 +282,12 @@ export class VehiclesService {
         const [raced] = await tx
           .select()
           .from(locationConsents)
-          .where(eq(locationConsents.id, input.id))
+          .where(and(eq(locationConsents.id, input.id), eq(locationConsents.userId, ctx.actorId)))
           .limit(1)
         if (raced) return { item: toConsent(raced) }
-        // Nothing comes back, so the row holding this id is one `location_consents_rw` hides: somebody else's
-        // answer (QA DOS-177). The id is the client's, and the driver used to get a 500 with no message at all
+        // Nothing comes back, so the row holding this id is somebody else's answer — one this caller cannot
+        // see, or one the desk can (QA DOS-177). Nobody consents on another person's behalf, so neither is
+        // this caller's row. The id is the client's, and the driver used to get a 500 with no message at all
         // on the one gate a trip cannot depart without — say what is wrong instead.
         throw new ORPCError('CONFLICT', {
           message: `consent ${input.id} is already recorded for another person; send this answer under an id of its own`,
