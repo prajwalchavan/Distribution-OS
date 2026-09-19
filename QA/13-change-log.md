@@ -632,3 +632,22 @@ The founder approved the request for the six confirmed findings and the one-line
 - S-127 predates DOS-167; a warehouse variant was also seen.
 
 **Next:** DOS-167 ruling 3. First diagnose S-138 by executing it, then build, verify, review, and integrate with the full frontend gate. After that, a focused web re-proof plus the device gaps, and the judge.
+
+
+### Batch 2 — the weekly limit cut both runs; restarted on 2026-09-19 12:08 IST
+
+**What happened.** On 2026-09-14 the weekly usage limit (reset Sep 19, 11:30 IST) killed four agents in the lane build run `wf_6abc2042-1ff` and the first agent of DOS-167 ruling 3 `wf_0f651b54-f1b`. Nothing was merged, and no committed work was lost.
+
+**What survived, on the lane branches, each adversarially verified:**
+- money: receivables `9c44458` + `d19d39d`, settlement `1b4e022` (its re-verification never ran).
+- DOS-171: `cafb0ef` + `483685a`, with a review (MERGE AFTER FIXES, two blockers).
+- S-108: `0f49863`, with a review (MERGE).
+- DOS-172: backend `60b55f2` + `f61f265`; the app slice never finished and left two uncommitted test files.
+
+**Why resume was impossible.** Both scripts lived in the session scratchpad under /private/tmp, which was wiped. A resume needs the identical script.
+
+**Fix for next time.** Workflow scripts now live in the repository at `QA/tools/batch2/workflows/`.
+
+**Restarted:**
+- `wf_ee45b8a1-b2c` (`finish-lanes.js`): verify the money settlement slice as committed, build the money phone slice and the DOS-172 app slice, write the two missing reviews, then integrate and merge in the order S-108, money, DOS-171, DOS-172.
+- `wf_586d5dd5-dcf` (`dos167-ruling3.js`): diagnose S-138 by execution, then ruling 3, build, review, integrate with the full frontend gate, merge, re-proof and judge.
