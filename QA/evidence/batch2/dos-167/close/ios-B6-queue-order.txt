@@ -1,0 +1,26 @@
+## B6 — save the order on the phone, office still cut
+tapped "Save on this phone" Button at 281,716 (1 of 1)  t=2026-09-19T22:35:08.397Z (1789857308397)
+shot ios-B6-queued.png 2026-09-19T22:35:14.454Z (1789857314454)
+--- screen after save:
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[23,93 18x23]	TE
+StaticText	[56,108 161x19]	salesperson
+Button	[16,147 370x70]	Offline since 4:02 am · 2 waiting to send
+StaticText	[16,228 370x19]	Prerna Super Market
+StaticText	[16,246 370x27]	Order
+Button	[16,293 370x70]	Clear
+Button	[29,396 344x70]	Campa Cola 1 L
+StaticText	[16,522 93x27]	Add items
+StaticText	[16,552 370x19]	On this phone: 171 items
+SearchField	[17,591 368x68]	 = Search by item or brand
+Other	[369,284 30x378]	Vertical scroll bar, 6 pages = 22%
+Other	[0,628 402x31]	Horizontal scroll bar, 1 page = 0%
+Button	[182,681 188x70]	(disabled) Saved on this phone
+StaticText	[32,707 139x19]	Items 1 · ₹673.68 before GST
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[32,438 26x27]	gearshape.fill

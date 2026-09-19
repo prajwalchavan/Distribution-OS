@@ -8,11 +8,9 @@ Last updated: 2026-09-20, early
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_1f0628d4-535` | `w2a1liguh` | **DOS-183** (on web, unsent work does not go first — it uploads on the 60 s poll tick), **DOS-181** (Android: the delivery app's Record/Save button never fires, so a driver cannot close a stop), **DOS-182** (the pick sheet locks the picker out for 5 m 48 s with no signal). Fable designs the engine fix → two lanes → Fable reviews → merge → the web goes-first walk and the Android delivery walk → **Fable re-judges DOS-167**. Script `QA/tools/batch2/workflows/dos181-183.js` |
+| `wf_3f1c…` | see below | **Lean wave 3** — the last 16 groups, 84 items, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat, three lanes at a time, merges in dependency order |
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
-
-**DOS-167 was judged NOT CLOSED** on 2026-09-19 (`QA/evidence/batch2/verdicts/DOS-167-judge.md`). Two of the founder's three clauses hold on every target and the web store is honest; **"goes first" fails on web only** — that is DOS-183, being fixed now. Android and iOS meet it to the millisecond.
 
 ## The smoke gate, reshaped (Fable, 2026-09-19 — binding)
 

@@ -1,0 +1,54 @@
+## C3 — the office AFTER Amit's sign-in, 04:08:50 +0530
+## zero (the Sign in tap) = 2026-09-19T22:37:41.803Z = 2026-09-20 04:07:41.803 IST
+                op_id                 |              device_id               |   outcome    |            created_at            | ms_after_the_signin_tap 
+--------------------------------------+--------------------------------------+--------------+----------------------------------+-------------------------
+ 01a0bbcf-1fc4-721c-9122-84a4ea62c2b1 | 01a0b997-0138-7166-ba2d-7e0db6416f9e | {"ok": true} | 2026-09-20 04:07:42.16527+05:30  |                     362
+ 01a0bbcf-1fc4-721d-9d4f-747e87dd135c | 01a0b997-0138-7166-ba2d-7e0db6416f9e | {"ok": true} | 2026-09-20 04:07:42.285254+05:30 |                     482
+(2 rows)
+
+                  id                  |             retailer_id              | state | total_paise |              created_by              |           created_at            
+--------------------------------------+--------------------------------------+-------+-------------+--------------------------------------+---------------------------------
+ 01a0bbcd-df70-71dd-80bd-bd4826d0be29 | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | draft |       75500 | efde1e76-9785-7827-aff2-6f56ecd33588 | 2026-09-20 04:07:42.16527+05:30
+(1 row)
+
+                  id                  |               order_id               |            created_at            
+--------------------------------------+--------------------------------------+----------------------------------
+ 01a0bbce-ec68-74b1-814f-ab5d386a36b6 | 01a0bbcd-df70-71dd-80bd-bd4826d0be29 | 2026-09-20 04:07:42.285254+05:30
+(1 row)
+
+ rows_for_that_order 
+---------------------
+                   1
+(1 row)
+
+ sync_ops_rows | distinct_op_ids 
+---------------+-----------------
+             2 |               2
+(1 row)
+
+## and the device's own outbox
+container: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21
+store dir: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+
+=== se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+    app=dos-sales user=efde1e76-9785-7827-aff2-6f56ecd33588 distributor=01a0999a-28c3-7341-93f5-e0e84b0189a1
+--- _outbox (seq | opId | table | rowId | op | status | attempts | created_at | sent_at | acked_at)
+1|01a0bbcf-1fc4-721c-9122-84a4ea62c2b1|sales_orders|01a0bbcd-df70-71dd-80bd-bd4826d0be29|PUT|acked|9|2026-09-19T22:35:08.612Z|2026-09-19T22:37:42.153Z|2026-09-19T22:37:42.371Z
+2|01a0bbcf-1fc4-721d-9d4f-747e87dd135c|sales_order_lines|01a0bbce-ec68-74b1-814f-ab5d386a36b6|PUT|acked|9|2026-09-19T22:35:08.612Z|2026-09-19T22:37:42.153Z|2026-09-19T22:37:42.371Z
+--- _outbox counts by status
+acked|2
+--- _sync_errors
+0
+--- _sync_state
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMjozODo0MC4wMDJaIn0
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastPulledAt|2026-09-19T22:38:45.002Z
+lastUploadAt|2026-09-19T22:37:42.371Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+protocol|1
+role|salesperson
+schemaVersion|36957a3c3b8da665
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+--- sales_orders the phone has NOT settled (_pending set)
+--- sales_order_lines the phone has NOT settled (_pending set)

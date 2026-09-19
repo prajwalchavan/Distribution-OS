@@ -1,0 +1,13 @@
+# DOS-167 close — Android 'unsent work goes FIRST' re-proof
+tip: 8092048  QA batch 2: DOS-183 proven in milliseconds and merged f23a9a7; DOS-181/182 merged 71fa9c3; DOS-167 one phone walk from closed; S-158..S-163 filed
+started: 2026-09-20 03:02:55 +0530
+
+## ports 3000-3007 held by another run -> all-in-one on :3100 (proxy) -> :3101 (service)
+node 46227 *:3003
+node 46231 *:3006
+node 46232 *:3004
+node 46233 *:3002
+node 46235 *:3001
+node 46237 *:3005
+node 46241 *:3000
+node 46242 *:3007

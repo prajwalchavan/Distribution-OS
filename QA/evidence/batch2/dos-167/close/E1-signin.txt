@@ -1,0 +1,11 @@
+# E1: sign in amit.pawar  session 94aa070b-4554-4ce1-a8b2-eb8558db457a  2026-09-19T22:16:50.364Z
+form texts: Distribution OS - Sales | Sign in | Username | Password | Use the username your distributor gave you.
+SIGN_IN_TAPPED_AT 1789856215143 2026-09-19T22:16:55.143Z
+shot 1 +464ms
+shot 2 +789ms
+shot 3 +1002ms
+shot 4 +1175ms
+shot 5 +1407ms
+shot 6 +1662ms
+home +2822ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · No order from you yet, —, To visit | Prerna Super Market | Godrej Hill, Kalyan West · No order from you yet | — | To visit | Ansari Kirana Stores, Godrej Hill, Kalyan West · No order from you yet, —, To visit | Ansari Kirana Stores | New Bombay Stores, Godrej Hill, Kalyan West · No order from you yet, —, To visit | New Bombay Stores | City Light Provision, Godrej Hill, Kalyan West · No order from you yet, —, To visit | City Light Provision | Me
+synced +7449ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 2 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · your last order 20 Sep, 394335 rupees, Ordered | Prerna Super Market | Godrej Hill, Kalyan West · your last order 20 Sep | ₹3,94,335.00 | 394335 rupees | Ordered | Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 20 Sep, 8042 rupees, Ordered | Ansari Kirana Stores | ₹8,042.00 | 8042 rupees | New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, 131361 rupees, To visit | New Bombay Stores | Godrej Hill, Kalyan West

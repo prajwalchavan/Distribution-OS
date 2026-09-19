@@ -1,0 +1,22 @@
+## Rahul Deshmukh's sign-in, same phone, while Amit's two ops sit queued in Amit's file
+## zero = the POST that signed Rahul in
+
++-35434 ms  GET  /sales/health
++     0 ms  POST /auth/auth/login
++   246 ms  GET  /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1
++   331 ms  GET  /sales/sync/manifest
++   409 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500
++   887 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  1578 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  2400 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  2927 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  3406 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  3938 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  4456 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  4942 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  6327 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  7683 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
++  8508 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since=e
+
+POST /sync/upload calls during Rahul’s session: 0
+VERDICT: nothing of Amit’s left this phone while Rahul was signed in.

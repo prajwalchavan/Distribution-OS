@@ -1,0 +1,35 @@
+## the office AFTER the second sign-in — the order arrived, exactly once
+2026-09-20 03:30:32 +0530
+
+-- sync_ops: ONE ROW PER OP (primary key tenant_id, device_id, op_id)
+                op_id                 |              device_id               |            created_at            | status 
+--------------------------------------+--------------------------------------+----------------------------------+--------
+ 01a0bbac-befb-720a-b747-8ff916d78c59 | 01a0bb9d-8890-72a6-b82c-6e7b3a923a5c | 2026-09-20 03:29:57.2406+05:30   | 
+ 01a0bbac-befd-7342-983f-641b6856a30c | 01a0bb9d-8890-72a6-b82c-6e7b3a923a5c | 2026-09-20 03:29:57.335806+05:30 | 
+(2 rows)
+
+-- how many rows per op id (expect 1 and 1)
+                op_id                 | count 
+--------------------------------------+-------
+ 01a0bbac-befb-720a-b747-8ff916d78c59 |     1
+ 01a0bbac-befd-7342-983f-641b6856a30c |     1
+(2 rows)
+
+-- the order row
+                  id                  |             retailer_id              | state |   source    |           created_at           
+--------------------------------------+--------------------------------------+-------+-------------+--------------------------------
+ 01a0bbaa-778a-7404-92a2-6f91026336d1 | 8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8 | draft | salesperson | 2026-09-20 03:29:57.2406+05:30
+(1 row)
+
+-- its line
+                  id                  |               order_id               |              variant_id              | entered_qty | entered_unit 
+--------------------------------------+--------------------------------------+--------------------------------------+-------------+--------------
+ 01a0bbab-c290-7556-bc71-f2b433caeb3d | 01a0bbaa-778a-7404-92a2-6f91026336d1 | f086f3e3-3697-7439-98d9-f20c231c110a |           1 | case
+(1 row)
+
+-- any DUPLICATE order for this retailer created in the last 20 minutes (expect only the one)
+                  id                  | state |           created_at           
+--------------------------------------+-------+--------------------------------
+ 01a0bbaa-778a-7404-92a2-6f91026336d1 | draft | 2026-09-20 03:29:57.2406+05:30
+(1 row)
+

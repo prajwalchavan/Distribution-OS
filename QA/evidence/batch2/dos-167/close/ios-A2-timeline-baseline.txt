@@ -1,0 +1,33 @@
+# STEP A baseline — Amit's FIRST sign-in on a cleared app, EMPTY outbox
+zero = 1789857015012  2026-09-19T22:30:15.012Z  (the "Sign in" tap)
+window = 40000 ms
+
+offset_ms  method  path
+      299  POST    /auth/auth/login
+      593  GET     /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789943415&signature=41ab6bff437dd4a08a7c977ceb3edef1ab1f118c97caf33531706fe3257d3ed5
+      667  GET     /sales/sync/manifest
+      719  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500
+     1921  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40MzU0NjVaIn0
+     2238  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40Njc4NTdaIn0
+     2418  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy4yOTE4ODFaIn0
+     2652  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy40NDUyNzdaIn0
+     2846  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy41OTg0NTRaIn0
+     3029  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy43MTA1NDlaIn0
+     3246  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC4zMzUzNDhaIn0
+     3483  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC40NzQzNjJaIn0
+     3726  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC42MTk2MzZaIn0
+     3946  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxOS44Mzk1MjNaIn0
+     4146  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyMC4xMzA0MTFaIn0
+     4255  GET     /sales/sync/errors?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&unresolvedOnly=true&limit=50
+
+# first occurrence of each call, in order
+      299 ms  POST /auth/auth/login
+      593 ms  GET /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg
+      667 ms  GET /sales/sync/manifest
+      719 ms  GET /sales/sync/pull
+     4255 ms  GET /sales/sync/errors
+
+# the clause
+  first POST /sync/upload  : NONE in this window
+  first GET  /sync/manifest: +667 ms
+  first GET  /sync/pull    : +719 ms

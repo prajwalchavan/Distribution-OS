@@ -718,6 +718,16 @@ Expected: the founder's answer A, 2026-09-14 — unsent changes "go FIRST the ne
 Actual: the app **pulls first** and uploads only on the 60-second poll tick. Measured: run B uploaded at **+60 753 ms**; run C, on a page that booted offline, made no call for **49.5 s** after a genuine online event and then pulled before uploading. Cause, read after observing: `engine.ts:452-488` `start()` runs `sync('start')` and never `flush()`; the only pre-pull flush is `applyManifest`'s stale branch (`:1088-1097`), reached only when `dropReadSet` has nulled the manifest state. A second, separate gap on the same clause: `setNetworkHint(true)` (`engine.ts:1012-1023`) returns early because `radio()` falls back to `navigator.onLine`, which is already true inside the online handler, so a page that booted offline never gets its reconnect flush.
 Nothing is lost — the order is sent, and DOS-167's other two clauses hold on every platform — but "goes first" is a clause the founder chose deliberately, and on web it is not met.
 
+### DOS-184 — On a phone, a reconnect while signed in never tells the engine: the queue waits for the poll
+Category: bug | Priority: P1 | Role: every field role on Android and iOS | Platform: Android, iOS (found by the architect while closing DOS-167)
+User: salesperson, delivery crew, warehouse hand
+Platform: the three field apps
+Environment: main `8092048`, found reading the code after the DOS-167 walks passed.
+Steps: sign in on a phone, lose the network, queue work, then get the network back **without signing out**.
+Expected: DOS-183's rule — the queue drains the moment the radio comes back, before anything is pulled.
+Actual: `frontend/libs/offline/src/react.tsx:275` says the app passes NetInfo through `engine.setNetworkHint`, and **no app does** — the only caller is `libs/offline/harness/App.tsx`. So on a phone a reconnect is never announced, and the queue waits for the 60-second poll. DOS-183 fixed the engine; nothing on a phone calls it. The web is unaffected (the browser's own `online` event reaches the engine).
+Note: DOS-167 is closed on the sign-in path, which is the clause the founder chose. This is the same promise on the reconnect path, and it is the ordinary case for a rep who drives out of signal and back.
+
 ## Suspected by the architect's plan sign-offs — NOT TESTED
 
 Raised by Fable while signing off batch-2 plans (sign-off run wf_b67cb996-95f, 2026-09-13), from code reading only. None of these is a

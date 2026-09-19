@@ -1,0 +1,7 @@
+2026-09-19T21:58:48.274Z session a38b524e-a60c-4643-845e-95a6e87297fe
+2026-09-19T21:58:48.347Z logbox: not shown
+2026-09-19T21:58:48.413Z before sign-out: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 3:12 am · 2 waiting to send | Prerna Super Market | Order
+2026-09-19T21:58:51.165Z menu: More | Settings | My account | Change your password | Sign out | Close
+2026-09-19T21:58:55.246Z THE SHEET SAYS: 2 changes have not reached the office | They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them. | No connection — they cannot go now. | Sign out, keep here | Cancel | Close
+2026-09-19T21:58:55.247Z keep button: Sign out, keep here
+2026-09-19T21:59:02.502Z after keep: Distribution OS - Sales | Sign in | Username | Password | Use the username your distributor gave you.

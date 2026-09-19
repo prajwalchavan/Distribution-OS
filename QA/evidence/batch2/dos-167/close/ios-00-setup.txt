@@ -1,0 +1,27 @@
+# DOS-167 close — iOS 'unsent work goes FIRST' walk (the sales app on the iPhone simulator)
+tip: 8092048  QA batch 2: DOS-183 proven in milliseconds and merged f23a9a7; DOS-181/182 merged 71fa9c3; DOS-167 one phone walk from closed; S-158..S-163 filed
+working tree: 0 tracked changes outside this evidence folder
+started: 2026-09-20 03:52:16 +0530
+
+## ports 3000-3007 are held by another run and were NOT touched
+node 46227 *:3003
+node 46231 *:3006
+node 46232 *:3004
+node 46233 *:3002
+node 46235 *:3001
+node 46237 *:3005
+node 46241 *:3000
+node 46242 *:3007
+
+## this walk's own ports
+  :3201 backend/all-in-one (DOS_MODE=all)   <- upstream
+  :3200 logging proxy (ios-tools/log-proxy.mjs) <- what the simulator dials; STOPPING IT is 'the office is cut'
+  :5186 Metro for the sales app
+  :4723 Appium/XCUITest (already running, shared)
+
+## simulator
+  iPhone 16 Pro, iOS 18.0, UDID DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 (the one carrying Expo Go 57.0.9 + WebDriverAgentRunner)
+  driven headlessly with xcrun simctl + Appium; Simulator.app is never opened in the Claude app (founder, 2026-09-06)
+
+## database
+  dos_test_b2_dos167ios — fresh copy of dos_test_batch2b_template, migrated. dos and dos_qa were not opened.

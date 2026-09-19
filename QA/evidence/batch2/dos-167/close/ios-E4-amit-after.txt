@@ -1,0 +1,53 @@
+## E4 — Amit's own screens after his kept work went up
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[23,93 18x23]	TE
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x19]	Godrej Hill
+StaticText	[16,205 370x27]	Today's beat
+StaticText	[24,240 94x27]	Shops: 10
+StaticText	[141,240 88x27]	Visited: 0
+StaticText	[252,240 100x27]	Ordered: 2
+Button	[16,295 123x70]	✓ Godrej Hill = 1
+Button	[158,295 104x70]	Kolsewadi
+Button	[280,295 165x70]	Birla College Road
+
+--- his Orders tab:
+tapped 150 806  t=2026-09-19T22:50:02.821Z (1789858202821)
+shot ios-E4-1-amit-orders.png 2026-09-19T22:50:09.980Z (1789858209980)
+StaticText	[16,187 370x27]	My orders
+StaticText	[24,222 94x27]	Waiting: 0
+StaticText	[141,222 81x27]	Drafts: 3
+Other	[16,277 185x70]	Orders
+Other	[201,277 185x70]	Needs you
+Other	[18,365 109x70]	Travelling = radio button
+Other	[129,365 69x70]	All = radio button
+Other	[200,365 82x70]	Drafts = radio button
+Button	[16,452 370x72]	SO-0872, 12 Sep, 90319 rupees, Being picked
+StaticText	[20,460 236x23]	SO-0872
+Button	[16,523 370x71]	SO-0869, 12 Sep, 7076 rupees, Packed
+Button	[16,593 370x71]	SO-0876, 12 Sep, 18027 rupees, Packed
+Button	[16,663 370x71]	SO-0870, 12 Sep, 7361 rupees, Confirmed
+StaticText	[20,697 251x19]	12 Sep
+Button	[16,734 370x71]	SO-0866, 11 Sep, 26581 rupees, On the van
+Other	[369,261 30x510]	Vertical scroll bar, 2 pages = 0%
+
+--- his Drafts: the two orders he queued offline, once each (755.00 and 759.00 incl. GST)
+tapped "Drafts" Other at 241,400 (1 of 1)  t=2026-09-19T22:50:19.760Z (1789858219760)
+shot ios-E4-2-amit-drafts.png 2026-09-19T22:50:25.863Z (1789858225863)
+StaticText	[16,187 370x27]	My orders
+StaticText	[24,222 94x27]	Waiting: 0
+StaticText	[141,222 81x27]	Drafts: 3
+Other	[16,277 185x70]	Orders
+Other	[201,277 185x70]	Needs you
+Other	[18,365 109x70]	Travelling = radio button
+Other	[129,365 69x70]	All = radio button
+Other	[200,365 82x70]	Drafts = radio button
+Button	[16,452 370x72]	Not numbered yet, 20 Sep, 759 rupees, Draft
+Button	[16,523 370x71]	Not numbered yet, 20 Sep, 755 rupees, Draft
+Button	[16,593 370x71]	Not numbered yet, 12 Sep, 5376 rupees, Draft
+Other	[369,261 30x510]	Vertical scroll bar, 1 page = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat

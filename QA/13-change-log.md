@@ -897,3 +897,23 @@ Run `wf_1f0628d4-535`, 18 agents. **Merged: `f23a9a7`** (DOS-183, the offline en
 **DOS-167, judged a second time: not closed, one item left.** The web clause is fixed and measured. What remains is the unexecuted half of Fable's own condition — that the upload still precedes the pull **on Android and on iOS at the tip**. The phone measurements date from `ce3dc8c`, and the engine's start path has changed since. She will not close a P0 on a measurement taken before the code changed, which is right. Run `wf_a86c41d0-adc` walks both phones and she judges again.
 
 **Filed from these walks:** **S-161** — S-88 CONFIRMED on a device: with a doorstep write already in the outbox the stop still offers "Deliver this bill", so one phone can record the same delivery twice. **S-162** — with no signal, `/auth/refresh`, `/inventory/availability` and the logo each fire **22 times in 8.2 s**; a phone with no network burns its battery in a retry loop. Also S-158 (a second tab's one-tap sign-out clears the session of the tab holding the queue, bypassing the DOS-167 sheet), S-159, S-160 and S-163.
+
+### DOS-167 IS CLOSED (2026-09-20)
+
+Architect judgement 3, on executed walks at the main tip `8092048`. The founder's rule — unsent changes stay on that device for that person, **go FIRST at their next sign-in**, and never reach anybody else — holds on all three targets, measured from the service's own front door with zero at the sign-in call:
+
+| | upload | manifest | pull |
+|---|---|---|---|
+| Android, over a kept queue | **+502 ms** | +764 | +878 |
+| Android, after another person used the phone | **+539 ms** | +702 | +813 |
+| iOS | **+356 ms** | +582 | +605 |
+| iOS, after the other person | **+336 ms** | +556 | +578 |
+| web | **+287 ms** | +405 | +417 |
+
+What makes those numbers mean something is the controls: a sign-in with an **empty** queue makes no upload call at all, and the **other person's whole session made zero uploads** — so the upload on the other runs was the kept queue and nothing else. Each order reached the office exactly once (one `sync_ops` row per op id, no duplicate order). The kept ops survived "Sign out, keep here" still queued, the file closed cleanly, and two people's store files sat side by side on one phone with neither touching the other; the second person's screens showed none of the first's work and a search for their shop answered "Nothing matches that".
+
+The Android prover also built the instrument the measurement needed — a transparent logging proxy in front of the service, writing one JSON line per request the instant the request line was parsed, before the body was read and before anything was forwarded — so the ordering is read from the wire rather than from the app's own account of itself. It is kept at `QA/evidence/batch2/dos-167/close/tools/log-proxy.mjs`.
+
+**A closed P0 is not a finished area.** The architect listed what is NOT DOS-167's, and one is a real defect, now filed as **DOS-184 (P1)**: `react.tsx:275` says the app passes NetInfo through `engine.setNetworkHint`, and **no app does** — the only caller is the offline harness. So on a phone a reconnect while signed in is never announced and the queue waits for the 60-second poll. DOS-183 fixed the engine; nothing on a phone calls it. That is the ordinary case for a rep who drives out of signal and back. Also owed: the kill-with-a-queue relaunch walk on Android, a native iOS build (the standing programme gap — everything on iOS so far is Expo Go on a simulator), and the carried items from judgement 2.
+
+Harness truths worth keeping, learned the hard way: on a dev build **airplane mode is unusable** because it cuts Metro too — the real cut is `adb reverse --remove` plus stopping the service; and Android's LogBox banner swallows the whole bottom bar.

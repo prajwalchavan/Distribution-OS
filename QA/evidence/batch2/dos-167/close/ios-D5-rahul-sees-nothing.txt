@@ -1,0 +1,99 @@
+## D5 — what Rahul can see on the phone Amit kept work on
+
+--- the connection strip on Rahul's home (no 'waiting to send' anywhere):
+StaticText	[48,152 117x19]	Updated just now
+
+--- search Rahul's beat for AMIT's shops:
+set XCUIElementTypeSearchField 0
+shot ios-D5-1-rahul-search-ansari.png 2026-09-19T22:46:23.868Z (1789857983868)
+SearchField	[17,381 368x68]	 = Ansari
+StaticText	[16,457 370x23]	Nothing matches "Ansari" = Nothing matches "Ansari"
+StaticText	[122,519 158x23]	Nothing matches that
+set XCUIElementTypeSearchField 0
+shot ios-D5-2-rahul-search-prerna.png 2026-09-19T22:46:30.057Z (1789857990057)
+SearchField	[17,381 368x68]	 = Prerna
+StaticText	[16,457 370x23]	Nothing matches "Prerna" = Nothing matches "Prerna"
+StaticText	[122,519 158x23]	Nothing matches that
+
+--- Rahul's own Orders tab:
+set XCUIElementTypeSearchField 0
+tapped 150 806  t=2026-09-19T22:46:53.086Z (1789858013086)
+shot ios-D5-3-rahul-orders.png 2026-09-19T22:46:59.253Z (1789858019253)
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[317,91 69x27]	⋯
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[23,93 18x23]	TE
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x19]	Station Road
+StaticText	[16,205 370x27]	Today's beat
+StaticText	[24,240 94x27]	Shops: 10
+StaticText	[141,240 88x27]	Visited: 0
+StaticText	[252,240 100x27]	Ordered: 0
+Button	[16,295 141x70]	✓ Station Road = 1
+Button	[176,295 178x70]	Kalyan West Market
+Button	[372,295 122x70]	Khadakpada
+Other	[353,295 30x70]	Vertical scroll bar, 2 pages = 0%
+SearchField	[17,381 368x68]	 =  
+Button	[16,473 370x72]	Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, 35843 rupees, To visit
+Button	[16,544 370x71]	Om Sai Provision Store, Station Road, Kalyan West · your last order 31 Aug, 69862 rupees 50 paise, To visit
+Other	[369,279 30x492]	Vertical scroll bar, 2 pages = 0%
+Other	[0,771 101x70]	Beat
+Other	[301,771 101x70]	Me
+Image	[32,438 26x27]	gearshape.fill
+Key	[0,590 41x46]	Q
+Key	[40,590 41x46]	W
+Key	[80,590 41x46]	E
+Key	[120,590 41x46]	R
+Key	[160,590 42x46]	T
+tapped 150 806  t=2026-09-19T22:47:14.197Z (1789858034197)
+shot ios-D5-3-rahul-orders.png 2026-09-19T22:47:21.242Z (1789858041242)
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[317,91 69x27]	⋯
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[23,93 18x23]	TE
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 124x19]	Updated 1 min ago
+StaticText	[16,187 370x27]	My orders
+StaticText	[24,222 94x27]	Waiting: 0
+StaticText	[141,222 81x27]	Drafts: 2
+Other	[16,277 185x70]	Orders
+Other	[201,277 185x70]	Needs you
+Other	[18,365 109x70]	Travelling = radio button
+Other	[129,365 69x70]	All = radio button
+Other	[200,365 82x70]	Drafts = radio button
+Button	[16,452 370x72]	SO-0875, 12 Sep, 101531 rupees, Packed
+Button	[16,523 370x71]	SO-0874, 12 Sep, 7690 rupees, Being picked
+Button	[16,593 370x71]	SO-0871, 12 Sep, 12707 rupees, Packed
+Button	[16,663 370x71]	SO-0868, 12 Sep, 17736 rupees, Submitted
+Button	[16,734 370x71]	SO-0873, 12 Sep, 12837 rupees, Confirmed
+Other	[369,261 30x510]	Vertical scroll bar, 2 pages = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+
+--- Rahul's Drafts (his own two, neither is Amit's Ansari/Prerna order):
+tapped "Drafts" Other at 241,400 (1 of 1)  t=2026-09-19T22:47:31.863Z (1789858051863)
+shot ios-D5-4-rahul-drafts.png 2026-09-19T22:47:37.905Z (1789858057905)
+StaticText	[48,152 117x19]	Updated just now
+StaticText	[16,187 370x27]	My orders
+StaticText	[24,222 94x27]	Waiting: 0
+StaticText	[141,222 81x27]	Drafts: 2
+Other	[16,277 185x70]	Orders
+Other	[201,277 185x70]	Needs you
+Other	[18,365 109x70]	Travelling = radio button
+Other	[129,365 69x70]	All = radio button
+Other	[200,365 82x70]	Drafts = radio button
+Button	[16,452 370x72]	Not numbered yet, 12 Sep, 1472 rupees, Draft
+Button	[16,523 370x71]	Not numbered yet, 12 Sep, 1598 rupees, Draft
+Other	[369,261 30x510]	Vertical scroll bar, 1 page = 0%
+Other	[0,737 402x31]	Horizontal scroll bar, 1 page = 0%
+Other	[0,771 101x70]	Beat
+Other	[100,771 101x70]	Orders
+Other	[201,771 101x70]	Shops
+Other	[301,771 101x70]	Me
+Image	[32,438 26x27]	gearshape.fill

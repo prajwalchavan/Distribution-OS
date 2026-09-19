@@ -1,0 +1,11 @@
+# A1: sign in amit.pawar  session 8d2510d1-4f68-4e96-be95-a52245680589  2026-09-19T21:40:43.534Z
+form texts: Distribution OS - Sales | Sign in | Username | Password | Use the username your distributor gave you.
+SIGN_IN_TAPPED_AT 1789854073055 2026-09-19T21:41:13.055Z
+shot 1 +468ms
+shot 2 +709ms
+shot 3 +907ms
+shot 4 +1307ms
+shot 5 +1597ms
+shot 6 +1841ms
+home +2127ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Not updated yet | No beat today | Today's beat | Shops: 0 | Visited: 0 | Ordered: 0 | Search this beat | Still loading the beat onto this phone | Beat | Orders | Shops | Me
+synced +8372ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit | Ansari Kirana Stores | New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, —, To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | City Light Provision, Godrej Hill, Kalyan West · your las

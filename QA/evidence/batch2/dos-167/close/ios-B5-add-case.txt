@@ -1,0 +1,5 @@
+tapped "Add a case" Button at 314,385 (1 of 4)  t=2026-09-19T22:34:55.253Z (1789857295253)
+shot ios-B5-line-added.png 2026-09-19T22:34:59.333Z (1789857299333)
+StaticText	[48,152 142x19]	Offline since 4:02 am
+Button	[192,681 178x70]	Save on this phone
+StaticText	[32,707 149x19]	Items 1 · ₹673.68 before GST

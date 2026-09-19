@@ -1,0 +1,112 @@
+## D7 — three separate store files on one phone, while RAHUL is signed in (04:18:15 +0530)
+##   (the 01a09a5b one is a LEFTOVER from a QA run on 2026-09-19 against another database;
+##    it is Rahul's, in a distributorship this database does not contain, and was left in place
+##    deliberately — it shows a fourth identity's file sitting untouched beside the walk's two.)
+container: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21
+store dir: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+
+=== s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5
+    app=dos-sales user=8760e17e-4830-7395-a946-1e02fffa1ad7 distributor=01a0999a-28c3-7341-93f5-e0e84b0189a1
+--- _outbox (seq | opId | table | rowId | op | status | attempts | created_at | sent_at | acked_at)
+--- _outbox counts by status
+--- _sync_errors
+0
+--- _sync_state
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMjo0NzoxNy4wNjRaIn0
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastPulledAt|2026-09-19T22:47:22.064Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+protocol|1
+role|salesperson
+schemaVersion|36957a3c3b8da665
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+--- sales_orders the phone has NOT settled (_pending set)
+--- sales_order_lines the phone has NOT settled (_pending set)
+--- row counts
+sales_orders|345
+sales_order_lines|1506
+retailers|30
+
+=== s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+    app=dos-sales user=8760e17e-4830-7395-a946-1e02fffa1ad7 distributor=01a09a5b-3c58-71c1-a34d-b93c569b0099
+--- _outbox (seq | opId | table | rowId | op | status | attempts | created_at | sent_at | acked_at)
+1|01a0b9a9-1cef-779b-9a94-f9f349335c76|sales_orders|01a0b9a8-5c25-7632-bb95-6f543d820731|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+2|01a0b9a9-1cef-779c-9456-fa9604d3a0f1|sales_order_lines|01a0b9a8-ec84-77fb-9836-421af46d869e|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+3|01a0b9a9-1cef-779d-be7b-2678177650d3|sales_order_lines|01a0b9a8-ec84-77fc-835e-abf951d1f470|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+4|01a0b9a9-1cef-779e-af04-38720e61e1ee|sales_order_lines|01a0b9a8-ec84-77fd-94e1-77acdbbef29a|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+5|01a0b9a9-1cef-779f-81a2-164e110bbd19|sales_order_lines|01a0b9a8-ec84-77fe-9f67-2643cbdeaf66|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+6|01a0b9a9-1cef-77a0-a9e3-640d41eb0db1|sales_order_lines|01a0b9a8-ec84-77ff-9115-a99330b6c85a|PUT|acked|6|2026-09-19T12:34:23.087Z|2026-09-19T12:35:14.292Z|2026-09-19T12:35:14.553Z
+--- _outbox counts by status
+acked|6
+--- _sync_errors
+0
+--- _sync_state
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjozNzoxMi4yNjBaIn0
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastPulledAt|2026-09-19T12:37:17.260Z
+lastUploadAt|2026-09-19T12:35:14.553Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+protocol|1
+role|salesperson
+schemaVersion|36957a3c3b8da665
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+--- sales_orders the phone has NOT settled (_pending set)
+--- sales_order_lines the phone has NOT settled (_pending set)
+--- row counts
+sales_orders|368
+sales_order_lines|1538
+retailers|31
+
+=== se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+    app=dos-sales user=efde1e76-9785-7827-aff2-6f56ecd33588 distributor=01a0999a-28c3-7341-93f5-e0e84b0189a1
+--- _outbox (seq | opId | table | rowId | op | status | attempts | created_at | sent_at | acked_at)
+1|01a0bbcf-1fc4-721c-9122-84a4ea62c2b1|sales_orders|01a0bbcd-df70-71dd-80bd-bd4826d0be29|PUT|acked|9|2026-09-19T22:35:08.612Z|2026-09-19T22:37:42.153Z|2026-09-19T22:37:42.371Z
+2|01a0bbcf-1fc4-721d-9d4f-747e87dd135c|sales_order_lines|01a0bbce-ec68-74b1-814f-ab5d386a36b6|PUT|acked|9|2026-09-19T22:35:08.612Z|2026-09-19T22:37:42.153Z|2026-09-19T22:37:42.371Z
+3|01a0bbd7-5360-7225-ae7c-5c8ccf78806b|sales_orders|01a0bbd3-b08a-709c-b43f-cadd9cdc4b44|PUT|queued|6|2026-09-19T22:44:06.113Z|-|-
+4|01a0bbd7-5361-711d-a918-0dce3fc5a162|sales_order_lines|01a0bbd4-e8f1-7128-be9a-9156f2eeaa41|PUT|queued|6|2026-09-19T22:44:06.113Z|-|-
+--- _outbox counts by status
+acked|2
+queued|2
+--- _sync_errors
+0
+--- _sync_state
+cursor|
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastPulledAt|
+lastUploadAt|2026-09-19T22:37:42.371Z
+manifest|
+protocol|
+role|
+schemaVersion|
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+--- sales_orders the phone has NOT settled (_pending set)
+Error: in prepare, no such table: sales_orders
+--- sales_order_lines the phone has NOT settled (_pending set)
+Error: in prepare, no such table: sales_order_lines
+--- row counts
+Error: in prepare, no such table: retailers
+
+--- every file in the store dir (a -wal/-shm beside a name means that file is OPEN)
+drwxr-xr-x  7 prajwalchavan  staff      224 Sep 20 04:15 .
+drwxr-xr-x  3 prajwalchavan  staff       96 Sep 19 17:44 ..
+-rw-r--r--  1 prajwalchavan  staff  2637824 Sep 20 04:15 s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5
+-rw-r--r--  1 prajwalchavan  staff    32768 Sep 20 04:15 s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5-shm
+-rw-r--r--  1 prajwalchavan  staff  4560872 Sep 20 04:17 s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5-wal
+-rw-r--r--  1 prajwalchavan  staff  3952640 Sep 20 03:55 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--  1 prajwalchavan  staff  3899392 Sep 20 04:14 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+
+## the office, DURING Rahul's session
+ rows_for_amits_second_order 
+-----------------------------
+                           0
+(1 row)
+
+                op_id                 |   outcome    |            created_at            
+--------------------------------------+--------------+----------------------------------
+ 01a0bbcf-1fc4-721c-9122-84a4ea62c2b1 | {"ok": true} | 2026-09-20 04:07:42.16527+05:30
+ 01a0bbcf-1fc4-721d-9d4f-747e87dd135c | {"ok": true} | 2026-09-20 04:07:42.285254+05:30
+(2 rows)
+

@@ -1,0 +1,10 @@
+2026-09-19T21:43:16.337Z session 10b94d81-b078-4fcd-b850-4245db4bd3b0
+2026-09-19T21:43:16.654Z before the cut: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill
+2026-09-19T21:43:16.913Z CUT_AT 1789854196913 2026-09-19T21:43:16.913Z
+2026-09-19T21:43:16.970Z airplane on: 
+2026-09-19T21:43:16.996Z reverse --remove tcp:3100: 
+2026-09-19T21:43:17.027Z reverse --list after: []
+2026-09-19T21:43:17.091Z proxy pids: 54993
+2026-09-19T21:43:17.113Z kill proxy: 
+2026-09-19T21:43:18.660Z host curl :3100 -> 000REFUSED
+2026-09-19T21:43:18.712Z device curl :3100 -> REFUSED

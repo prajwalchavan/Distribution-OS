@@ -1,0 +1,4 @@
+## C0 — the office is back, 2026-09-20 04:07:29.3N +0530
+restarted the :3200 logging proxy in front of the same untouched :3201 service
+  curl /sales/health -> {"ok":true,"db":"up"}
+node    62575 prajwalchavan   15u  IPv4 0x6161041cced134e      0t0  TCP 127.0.0.1:3200 (LISTEN)

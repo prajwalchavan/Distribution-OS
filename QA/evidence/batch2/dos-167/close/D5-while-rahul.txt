@@ -1,0 +1,43 @@
+## While Rahul is signed in: two separate store files, Amit's queue untouched, the office has not seen it
+2026-09-20 03:46:00 +0530
+
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite
+total 10904
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-20 03:44 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-20 03:21 ..
+-rw------- 1 u0_a217 u0_a217 2637824 2026-09-20 03:44 s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-20 03:45 s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5-shm
+-rw------- 1 u0_a217 u0_a217 4560872 2026-09-20 03:45 s80j3azqcg6our25a35rhwbg7r03guyq2wniciyvg4kmlprdnz5-wal
+-rw------- 1 u0_a217 u0_a217 3899392 2026-09-20 03:33 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+
+-- the office: Amit's SECOND order (queued on the phone) must NOT be there
+ sales_orders_rows 
+-------------------
+                 0
+(1 row)
+
+ sync_ops_rows 
+---------------
+             0
+(1 row)
+
+-- any order at all at Ansari Kirana Stores in the last 30 min
+ id | state | created_at 
+----+-------+------------
+(0 rows)
+
+
+-- Rahul's OWN store: its outbox is empty (his session sent nothing of anybody's)
+-- _sync_state
+key|value
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+deviceId|01a0bb9d-8890-72a6-b82c-6e7b3a923a5c
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+protocol|1
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenant_id","type":"string","nullable":false},{"name":"variant_id","type":"st
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMjoxNTozMC4xNzBaIn0
+lastPulledAt|2026-09-19T22:15:35.170Z
+-- _outbox
+-- _sync_errors

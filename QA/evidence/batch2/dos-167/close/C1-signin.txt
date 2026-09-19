@@ -1,0 +1,11 @@
+# C1: sign in amit.pawar  session 9ac0e36d-52da-4857-9e77-60a53848c588  2026-09-19T21:59:49.611Z
+form texts: Distribution OS - Sales | Sign in | Username | Password | Use the username your distributor gave you.
+SIGN_IN_TAPPED_AT 1789855196554 2026-09-19T21:59:56.554Z
+shot 1 +434ms
+shot 2 +735ms
+shot 3 +955ms
+shot 4 +1141ms
+shot 5 +1352ms
+shot 6 +1556ms
+home +1846ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · No order from you yet, —, To visit | Prerna Super Market | Godrej Hill, Kalyan West · No order from you yet | — | To visit | Ansari Kirana Stores, Godrej Hill, Kalyan West · No order from you yet, —, To visit | Ansari Kirana Stores | New Bombay Stores, Godrej Hill, Kalyan West · No order from you yet, —, To visit | New Bombay Stores | City Light Provision, Godrej Hill, Kalyan West · No order from you yet, —, To visit | City Light Provision | Me
+synced +8229ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Godrej Hill | Kolsewadi | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit | Prerna Super Market | Godrej Hill, Kalyan West · your last order 11 Sep | — | To visit | Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, —, To visit | Ansari Kirana Stores | New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, —, To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | City Light Provision, Godrej Hill, Kalyan West · your las

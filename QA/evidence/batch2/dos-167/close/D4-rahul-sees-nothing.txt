@@ -1,0 +1,10 @@
+tabs present: Beat,Orders,Shops,Me
+ORDERS: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | My orders | Waiting: 0 | Drafts: 2 | Orders | Needs you | Travelling | All | Drafts | SO-0875, 12 Sep, 101531 rupees, Packed | SO-0875 | 12 Sep | ₹1,01,531.00 | 101531 rupees | Packed | SO-0874, 12 Sep, 7690 rupees, Being picked | SO-0874 | ₹7,690.00 | 7690 rupees | Being picked | SO-0871, 12 Sep, 12707 rupees, Packed | SO-0871 | ₹12,707.00 | 12707 rupees | SO-0868, 12 Sep, 17736 rupees, Submitted
+any "Ansari": false
+any "Prerna": false
+"waiting to send": false
+attention rows: (none)
+
+RAHUL'S DRAFTS TAB: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | My orders | Waiting: 0 | Drafts: 2 | Orders | Needs you | Travelling | All | Drafts | Not numbered yet, 12 Sep, 1472 rupees, Draft | Not numbered yet | 12 Sep | ₹1,472.00 | 1472 rupees | Draft | Not numbered yet, 12 Sep, 1598 rupees, Draft | ₹1,598.00 | 1598 rupees | Beat | Shops | Me
+any "Ansari" (Amit's queued order): false
+any "Prerna" (Amit's first order): false

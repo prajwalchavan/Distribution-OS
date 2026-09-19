@@ -1,0 +1,6 @@
+## harness note, 03:20:45 — airplane mode is NOT usable on a DEV build
+The debug APK loads its JS from Metro on 10.0.2.2:8081, and expo-router fetches a route's chunk when you first
+navigate to it. With airplane mode ON the emulator cannot reach Metro either, so /orders/new never loaded and
+every tap after the first looked dead (logcat: 'Failed to open DevTools. Please check that the dev server is
+running and reload the app.'). That is the DEV BUNDLE, not the product. The office is therefore cut the way the
+brief prescribes and no other way: adb reverse removed + the service on :3100 stopped. Airplane mode back OFF.

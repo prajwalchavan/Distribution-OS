@@ -1,0 +1,12 @@
+## D3 — office back at 04:15:05.3N +0530; Amit's SECOND order is still only on the phone
+  curl /sales/health -> {"ok":true,"db":"up"}
+ rows_for_amits_second_order 
+-----------------------------
+                           0
+(1 row)
+
+ sync_ops 
+----------
+        2
+(1 row)
+

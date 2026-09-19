@@ -1,0 +1,9 @@
+## D1 — round 2: cut the office again, 04:09:16.3N +0530
+kill -TERM 62575
+  nc 127.0.0.1 3200 -> REFUSED
+  :3201 service still up -> {"ok":true,"db":"up"}
+--- wait for the app to notice
+04:09:19  
+04:09:30  
+04:09:41  
+04:09:52 StaticText	[48,152 142x19]	Offline since 4:08 am 

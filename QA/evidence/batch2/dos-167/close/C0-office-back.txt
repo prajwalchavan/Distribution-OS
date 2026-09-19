@@ -1,0 +1,7 @@
+## the office is BACK, 2026-09-20 03:29:28 +0530
+$ adb reverse --list
+host-16 tcp:3100 tcp:3100
+
+$ host curl :3100/sales/health
+{"ok":true,"db":"up"}
+$ from the emulator: nc 127.0.0.1 3100

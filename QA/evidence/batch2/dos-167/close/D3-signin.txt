@@ -1,0 +1,11 @@
+# D3: sign in rahul.deshmukh  session 7f00f818-409f-495e-a347-4822e68270ad  2026-09-19T22:14:19.009Z
+form texts: Distribution OS - Sales | Sign in | Username | Password | Use the username your distributor gave you.
+SIGN_IN_TAPPED_AT 1789856065870 2026-09-19T22:14:25.870Z
+shot 1 +1327ms
+shot 2 +1528ms
+shot 3 +1790ms
+shot 4 +1991ms
+shot 5 +2424ms
+shot 6 +2657ms
+home +4123ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | Kalyan West Market | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, —, To visit | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | — | To visit | Om Sai Provision Store, Station Road, Kalyan West · your last order 31 Aug, —, To visit | Om Sai Provision Store | Station Road, Kalyan West · your last order 31 Aug | Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, —, To visit | Mahalaxmi General Stores | Station Road, Kalyan West · y
+synced +8624ms: TE | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Station Road | Today's beat | Shops: 10 | Visited: 0 | Ordered: 0 | ✓ Station Road | Kalyan West Market | Khadakpada | Search this beat | Shree Ganesh Kirana, Station Road, Kalyan West · your last order 12 Sep, —, To visit | Shree Ganesh Kirana | Station Road, Kalyan West · your last order 12 Sep | — | To visit | Om Sai Provision Store, Station Road, Kalyan West · your last order 31 Aug, —, To visit | Om Sai Provision Store | Station Road, Kalyan West · your last order 31 Aug | Mahalaxmi General Stores, Station Road, Kalyan West · your last order 10 Sep, —, To visit | Mahalaxmi General Stores | Station Road, Kalyan West · y

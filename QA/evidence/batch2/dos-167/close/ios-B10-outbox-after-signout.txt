@@ -1,0 +1,46 @@
+## B10 — the kept work AFTER the sign-out, 04:07:13 +0530
+container: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21
+store dir: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+
+=== se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+    app=dos-sales user=efde1e76-9785-7827-aff2-6f56ecd33588 distributor=01a0999a-28c3-7341-93f5-e0e84b0189a1
+--- _outbox (seq | opId | table | rowId | op | status | attempts | created_at | sent_at | acked_at)
+1|01a0bbcf-1fc4-721c-9122-84a4ea62c2b1|sales_orders|01a0bbcd-df70-71dd-80bd-bd4826d0be29|PUT|queued|8|2026-09-19T22:35:08.612Z|-|-
+2|01a0bbcf-1fc4-721d-9d4f-747e87dd135c|sales_order_lines|01a0bbce-ec68-74b1-814f-ab5d386a36b6|PUT|queued|8|2026-09-19T22:35:08.612Z|-|-
+--- _outbox counts by status
+queued|2
+--- _sync_errors
+0
+--- _sync_state
+cursor|
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastPulledAt|
+manifest|
+protocol|
+role|
+schemaVersion|
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+--- sales_orders the phone has NOT settled (_pending set)
+Error: in prepare, no such table: sales_orders
+--- sales_order_lines the phone has NOT settled (_pending set)
+Error: in prepare, no such table: sales_order_lines
+--- row counts
+Error: in prepare, no such table: retailers
+
+--- every file in the store dir (a -wal/-shm beside a name means that file is OPEN)
+drwxr-xr-x  4 prajwalchavan  staff      128 Sep 20 04:06 .
+drwxr-xr-x  3 prajwalchavan  staff       96 Sep 19 17:44 ..
+-rw-r--r--  1 prajwalchavan  staff  3952640 Sep 20 03:55 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--  1 prajwalchavan  staff  3895296 Sep 20 04:06 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+===== office, still cut, at this moment =====
+ sync_ops 
+----------
+        0
+(1 row)
+
+ the_order 
+-----------
+         0
+(1 row)
+

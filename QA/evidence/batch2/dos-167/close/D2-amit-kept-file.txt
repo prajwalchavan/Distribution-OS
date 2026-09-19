@@ -1,0 +1,13 @@
+AMIT_FILE=se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+2026-09-20 03:44:00 +0530
+total 3828
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-20 03:33 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-20 03:21 ..
+-rw------- 1 u0_a217 u0_a217 3899392 2026-09-20 03:33 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a0bbac-befb-720a-b747-8ff916d78c59|sales_orders|01a0bbaa-778a-7404-92a2-6f91026336d1|PUT|{"retailer_id":"8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a0bbac-befb-720a-b747-8ff916d78c59|acked|8|2026-09-19T21:57:35.613Z|20
+2|01a0bbac-befd-7342-983f-641b6856a30c|sales_order_lines|01a0bbab-c290-7556-bc71-f2b433caeb3d|PUT|{"order_id":"01a0bbaa-778a-7404-92a2-6f91026336d1","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a0bbac-befd-7342-983f-641b6856a30c|acked|8|2026-09-19T21:57:35.613Z|2026-09-19T21:59:56
+3|01a0bbb2-17dc-72aa-92c3-4a1d2ade2ffa|sales_orders|01a0bbb0-92d8-7576-9884-343b136a52c5|PUT|{"retailer_id":"b995e0b8-9582-7148-b666-0769e4023c24","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a0bbb2-17dc-72aa-92c3-4a1d2ade2ffa|queued|4|2026-09-19T22:03:26.044Z||
+4|01a0bbb2-17dc-72ab-9702-e270a3e558db|sales_order_lines|01a0bbb2-0cf1-76dc-9e65-606195fb15e5|PUT|{"order_id":"01a0bbb0-92d8-7576-9884-343b136a52c5","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a0bbb2-17dc-72ab-9702-e270a3e558db|queued|4|2026-09-19T22:03:26.044Z||||
+-- _sync_errors

@@ -1,0 +1,36 @@
+# STEP E — MEASUREMENT 2: Amit signs back in AFTER a different person used the same phone
+zero = 1789858133154  2026-09-19T22:48:53.154Z  (the "Sign in" tap)
+window = 40000 ms
+
+offset_ms  method  path
+      169  POST    /auth/auth/login
+      290  GET     /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1789944533&signature=673f479c9684281a906e2973739b3746b7e4cacb118991a5cfd1e573ef34a4d9
+      336  POST    /sales/sync/upload
+      556  GET     /sales/sync/manifest
+      578  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500
+      763  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40MzU0NjVaIn0
+      912  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40Njc4NTdaIn0
+     1161  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy4yOTE4ODFaIn0
+     1364  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy40NDUyNzdaIn0
+     1559  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy41OTg0NTRaIn0
+     1766  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy43MTA1NDlaIn0
+     2042  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC4zMzUzNDhaIn0
+     2248  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC40NzQzNjJaIn0
+     2465  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC42MTk2MzZaIn0
+     2711  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxOS44Mzk1MjNaIn0
+     2912  GET     /sales/sync/pull?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyMC4xMzA0MTFaIn0
+     3083  GET     /sales/sync/errors?deviceId=01a0b997-0138-7166-ba2d-7e0db6416f9e&unresolvedOnly=true&limit=50
+
+# first occurrence of each call, in order
+      169 ms  POST /auth/auth/login
+      290 ms  GET /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg
+      336 ms  POST /sales/sync/upload
+      556 ms  GET /sales/sync/manifest
+      578 ms  GET /sales/sync/pull
+     3083 ms  GET /sales/sync/errors
+
+# the clause
+  first POST /sync/upload  : +336 ms
+  first GET  /sync/manifest: +556 ms
+  first GET  /sync/pull    : +578 ms
+  upload BEFORE manifest and pull: YES

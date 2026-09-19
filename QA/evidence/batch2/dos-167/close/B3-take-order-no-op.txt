@@ -1,0 +1,34 @@
+## RETRACTED — "Take order does nothing on Android" was NOT a product bug. It was LogBox.
+
+Written mid-walk, then disproved in the same walk. Keeping it here because the first half is what the
+screenshots show and someone reading them would otherwise draw the wrong conclusion.
+
+WHAT WAS SEEN (true)
+  tip 8092048, sales app, Pixel_7_API_36, Amit Pawar, shop R-0031 Prerna Super Market, office cut.
+  "Take order" (testID take-order) and later "Save on this phone" (testID place-order) did nothing:
+  11 taps by resource-id and one W3C touch (pointerDown / 120 ms / pointerUp, origin = the element)
+  left the screen where it was, with no JS error in Metro's log.
+  The screen was NOT frozen: tapping the in-screen "Orders 25" tab swapped the panel to the order list
+    BEFORE tail: ... How old the dues are | as of 12 Sep | Money owed, by age ...
+    AFTER  tail: ... SO-0854, 11 Sep · Delivered ... SO-0817, 7 Sep · Delivered ...
+  The route was fine too — the same screen opened at once through the app's own link:
+    adb shell am start -a android.intent.action.VIEW -d 'dos-sales://orders/new?retailerId=8ddf5b3f-...'
+  Screens: B4-stuck.png, probe3-beat.png, probe7-deeplink.png.
+
+WHAT IT ACTUALLY WAS
+  React Native's LogBox collapsed banner ("Open debugger to view warnings.") — a DEV-BUILD artifact of
+  running the debug APK off Metro. UiAutomator reports its bounds as [26,2146][1054,2271], but it
+  swallows presses on the app's whole bottom bar region, which is where BOTH of those buttons live.
+  The task brief warned about exactly this: "LogBox draws over the footer — dismiss it rather than
+  tapping through."
+  Dismiss the banner first and both buttons work on the first tap:
+    F1-take-order-retest.txt  — logbox dismissed -> "Take order" -> "Prerna Super Market | Order |
+    Items: 0 | Repeat last order (6) | This order | Nothing on this order yet | Add items ..."
+    F1-take-order-after-logbox-dismissed.png
+    /tmp save probe, 21:57:35Z — logbox dismissed -> "Save on this phone" -> "Offline since 3:12 am ·
+    2 waiting to send | Saved on this phone" (B6-queued.png)
+
+NOTHING TO FILE. A release build has no LogBox.
+The walk's own steps therefore dismiss the banner before touching any footer button, and the two order
+entries in this evidence were reached one by deep link (before the cause was known) and one by the
+"Take order" button (after).

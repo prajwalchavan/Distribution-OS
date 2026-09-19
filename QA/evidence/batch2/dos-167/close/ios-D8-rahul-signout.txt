@@ -1,0 +1,14 @@
+## D8 — Rahul signs out. He has nothing unsent, so there is NO 'changes have not reached the office' sheet.
+tapped "More" Button at 352,105 (1 of 1)  t=2026-09-19T22:48:27.319Z (1789858107319)
+shot ios-D8-1-rahul-menu.png 2026-09-19T22:48:32.646Z (1789858112646)
+tapped 150 723  t=2026-09-19T22:48:32.765Z (1789858112765)
+shot ios-D8-2-rahul-signed-out.png 2026-09-19T22:48:39.353Z (1789858119353)
+--- screen right after tapping Sign out:
+Application	[0,0 402x874]	Expo Go
+StaticText	[16,74 370x18]	Distribution OS - Sales
+StaticText	[16,92 370x26]	Sign in
+StaticText	[16,146 370x19]	Username
+StaticText	[16,275 370x19]	Password
+Button	[16,404 370x70]	Sign in
+StaticText	[16,489 370x19]	Use the username your distributor gave you.
+Other	[369,158 30x660]	Vertical scroll bar, 1 page = 0%

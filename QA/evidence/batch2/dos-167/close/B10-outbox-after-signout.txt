@@ -1,0 +1,22 @@
+## the kept file AFTER sign-out (phase B5)
+2026-09-20 03:29:15 +0530
+total 3824
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-20 03:28 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-20 03:21 ..
+-rw------- 1 u0_a217 u0_a217 3895296 2026-09-20 03:28 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+-- _sync_state
+key|value
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+deviceId|01a0bb9d-8890-72a6-b82c-6e7b3a923a5c
+cursor|
+schemaVersion|
+role|
+lastPulledAt|
+manifest|
+protocol|
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a0bbac-befb-720a-b747-8ff916d78c59|sales_orders|01a0bbaa-778a-7404-92a2-6f91026336d1|PUT|{"retailer_id":"8ddf5b3f-0540-7deb-a8c9-bc311b31b4a8","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a0bbac-befb-720a-b747-8ff916d78c59|queued|7|2026-09-19T21:57
+2|01a0bbac-befd-7342-983f-641b6856a30c|sales_order_lines|01a0bbab-c290-7556-bc71-f2b433caeb3d|PUT|{"order_id":"01a0bbaa-778a-7404-92a2-6f91026336d1","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a0bbac-befd-7342-983f-641b6856a30c|queued|7|2026-09-19T21:57:35.613Z||||
+-- _sync_errors

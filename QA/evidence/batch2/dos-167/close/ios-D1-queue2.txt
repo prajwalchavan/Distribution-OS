@@ -1,0 +1,66 @@
+## D1b — queue a SECOND order, at a different shop, while the office is cut
+tapped "Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, 8042 rupees, To v" Button at 201,580 (1 of 1)  t=2026-09-19T22:40:01.813Z (1789857601813)
+tapped "Take order" Button at 201,716 (1 of 1)  t=2026-09-19T22:40:07.579Z (1789857607579)
+shot ios-D1-1-order-entry.png 2026-09-19T22:40:13.971Z (1789857613971)
+set XCUIElementTypeSearchField 0
+dragged 201 600 201 250
+shot ios-D1-2-items.png 2026-09-19T22:40:23.920Z (1789857623920)
+
+StaticText	[48,152 142x19]	Offline since 4:08 am
+set XCUIElementTypeSearchField 0
+dragged 201 600 201 300
+shot ios-D1-2-items.png 2026-09-19T22:41:17.880Z (1789857677880)
+SearchField	[17,290 368x68]	 = Campa Orange
+StaticText	[29,387 215x23]	Campa Orange 1 L
+Button	[255,387 118x70]	Add a case
+StaticText	[29,413 215x19]	Campa · 24 pc case
+StaticText	[29,473 215x23]	Campa Orange 2 L
+Button	[255,473 118x70]	Add a case
+StaticText	[29,499 215x19]	Campa · 24 pc case
+StaticText	[29,558 215x23]	Campa Orange 200 ml
+Button	[255,558 118x70]	Add a case
+tapped "Add a case" Button at 314,422 (1 of 3)  t=2026-09-19T22:41:27.593Z (1789857687593)
+tapped "Save on this phone" Button at 281,716 (1 of 1)  t=2026-09-19T22:41:33.923Z (1789857693923)
+shot ios-D1-3-queued.png 2026-09-19T22:41:40.107Z (1789857700107)
+--- after save:
+
+## RETRACTION: the 22:41:33 'Save on this phone' tap did NOT save.
+   The search field had focus, the keyboard was up over the footer, and the tap at y=716 landed on
+   the keyboard's 'n' key (the field now reads 'N'). Nothing was queued. Retried below with the
+   keyboard dismissed first.
+set XCUIElementTypeSearchField 0
+tapped 201 200  t=2026-09-19T22:42:10.267Z (1789857730267)
+dragged 201 300 201 640
+shot ios-D1-2b-this-order.png 2026-09-19T22:42:19.276Z (1789857739276)
+Application	[0,0 402x874]	Expo Go
+Button	[317,70 69x69]	More
+StaticText	[317,91 69x27]	⋯
+StaticText	[56,82 161x27]	Tarsun Enterprise
+StaticText	[23,93 18x23]	TE
+StaticText	[56,108 161x19]	salesperson
+StaticText	[48,152 142x19]	Offline since 4:08 am
+StaticText	[16,187 370x19]	Ansari Kirana Stores
+StaticText	[16,205 370x27]	Order
+StaticText	[24,256 75x27]	Items: 1
+StaticText	[122,256 71x23]	No signal
+StaticText	[16,311 93x27]	This order
+Button	[16,349 370x70]	Clear
+Button	[29,452 344x70]	Campa Orange 1 L
+StaticText	[16,578 93x27]	Add items
+Other	[369,243 30x419]	Vertical scroll bar, 5 pages = 0%
+Other	[0,771 101x70]	Beat
+Other	[301,771 101x70]	Me
+Image	[32,438 26x27]	gearshape.fill
+Key	[0,590 41x46]	Q
+Key	[40,590 41x46]	W
+Key	[80,590 41x46]	E
+Key	[120,590 41x46]	R
+Key	[160,590 42x46]	T
+
+## retry, keyboard dismissed (return key), footer visible again
+tapped "Save on this phone" Button at 281,716 (1 of 1)  t=2026-09-19T22:44:05.917Z (1789857845917)
+shot ios-D1-3-queued.png 2026-09-19T22:44:12.162Z (1789857852162)
+--- after save:
+Button	[16,147 370x70]	Offline since 4:08 am · 2 waiting to send
+Button	[182,681 188x70]	(disabled) Saved on this phone
+StaticText	[32,707 139x19]	Items 1 · ₹678.00 before GST

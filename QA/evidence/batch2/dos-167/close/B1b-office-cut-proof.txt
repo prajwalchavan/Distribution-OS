@@ -1,0 +1,20 @@
+## the office is cut — proved from INSIDE the emulator, 2026-09-20 03:21:18 +0530
+
+$ adb reverse --list
+
+(empty: the tcp:3100 reverse the app dials is gone)
+
+$ adb shell 'printf "GET /sales/health HTTP/1.0
+
+" | nc 127.0.0.1 3100'   # the office
+nc: connect: Connection refused
+
+$ adb shell 'printf "GET /status HTTP/1.0
+
+" | nc 10.0.2.2 8081'   # Metro, still up on purpose (dev bundle)
+
+$ host: curl -m 3 http://127.0.0.1:3100/sales/health
+(refused — the logging proxy on :3100 is stopped)
+
+$ pgrep -f 'log-proxy.mjs 3100'
+(none)

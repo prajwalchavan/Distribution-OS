@@ -1,0 +1,19 @@
+## teardown 2026-09-20 03:49:24 +0530
+stopped the logging proxy :3100
+stopped all-in-one :3101
+stopped sales Metro :5185
+stopped proxy8081
+removed adb reverses
+
+ports 3000-3007 (another run's, untouched):
+node 46227 *:3003
+node 46231 *:3006
+node 46232 *:3004
+node 46233 *:3002
+node 46235 *:3001
+node 46237 *:3005
+node 46241 *:3000
+node 46242 *:3007
+node 76838 *:5175
+
+databases: dos and dos_qa untouched; this walk used dos_test_b2_dos167close only

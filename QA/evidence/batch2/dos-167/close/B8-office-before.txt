@@ -1,0 +1,20 @@
+## the office BEFORE the next sign-in — the queued order has not reached it
+2026-09-20 03:28:24 +0530
+
+-- sync_ops rows for the two queued op ids (expect 0)
+ rows 
+------
+    0
+(1 row)
+
+-- the order row itself (expect 0)
+ id | state | created_at 
+----+-------+------------
+(0 rows)
+
+-- sync_ops from this device so far
+ count 
+-------
+     0
+(1 row)
+

@@ -1,0 +1,25 @@
+## Amit Pawar signs in AGAIN — after a different person used the same phone in between.
+## Two ops have been waiting in his own file since 22:03:26Z.  zero = the POST that signed him in.
+
++     0 ms  POST /auth/auth/login
++   347 ms  GET  /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires
++   539 ms  POST /sales/sync/upload   <== FIRST /sync/upload
++   702 ms  GET  /sales/sync/manifest   <== FIRST /sync/manifest
++   813 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500   <== FIRST /sync/pull
++  1320 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  1976 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  2727 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  3256 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  3768 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  4239 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  5010 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  5548 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  6026 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  6512 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  7042 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  7468 ms  GET  /sales/sync/errors?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&unresolvedOnl
+
+FIRST /sync/upload   : 539 ms
+FIRST /sync/manifest : 702 ms
+FIRST /sync/pull     : 813 ms
+upload before manifest: True | upload before pull: True | within 60 s: True

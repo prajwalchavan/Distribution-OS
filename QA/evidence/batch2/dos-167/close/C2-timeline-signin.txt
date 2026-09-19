@@ -1,0 +1,29 @@
+## The request timeline of the second sign-in, as the service's own front door recorded it
+## zero = the POST that signed Amit Pawar in.  proxy log: 02-request-timeline.jsonl
+
++-27965 ms  GET  /sales/health
++     0 ms  POST /auth/auth/login
++   447 ms  GET  /storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires
++   502 ms  POST /sales/sync/upload   <== FIRST /sync/upload
++   764 ms  GET  /sales/sync/manifest   <== FIRST /sync/manifest
++   878 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500   <== FIRST /sync/pull
++  1551 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  2540 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  3034 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  3597 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  4114 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  4809 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  6126 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++  9184 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++ 11659 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++ 14407 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++ 16456 ms  GET  /sales/sync/pull?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&limit=500&since
++ 16792 ms  GET  /sales/sync/errors?deviceId=01a0bb9d-8890-72a6-b82c-6e7b3a923a5c&unresolvedOnl
+
+FIRST /sync/upload   :  502 ms
+FIRST /sync/manifest :  764 ms
+FIRST /sync/pull     :  878 ms
+
+upload before manifest: True
+upload before pull    : True
+upload within 60 s    : True

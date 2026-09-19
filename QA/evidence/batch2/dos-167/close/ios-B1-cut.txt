@@ -1,0 +1,20 @@
+## B1 — cut the office for the simulator ONLY, 2026-09-20 04:03:10.3N +0530
+The simulator shares the Mac's loopback, so the :3200 logging proxy IS its only road to the office.
+Stopping that proxy cuts the app and NOTHING else: the :3201 service keeps running (untouched), Metro
+on :5186 keeps serving the dev bundle, and the other run's :3000-:3007 are never approached.
+
+before:
+node    59699 prajwalchavan   16u  IPv4 0x98790930d208d750      0t0  TCP 127.0.0.1:3200 (LISTEN)
+  curl http://127.0.0.1:3200/sales/health -> {"ok":true,"db":"up"}
+
+kill -TERM 59699   at 04:03:10.3N
+
+after:
+  :3200 listeners -> 0
+  curl http://127.0.0.1:3200/sales/health -> [exit 000] rc=7
+  nc -z 127.0.0.1 3200 -> REFUSED
+
+still up on purpose:
+  :3201 all-in-one   -> {"ok":true,"db":"up"}
+  :5186 metro        -> 200
+  :3000-:3007 (other run's) untouched -> 8 listeners

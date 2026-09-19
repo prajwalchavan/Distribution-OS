@@ -1,0 +1,32 @@
+container: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21
+store dir: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/498E3DA2-9F40-4582-9114-B46AD4070A21/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+
+=== se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+    app=dos-sales user=efde1e76-9785-7827-aff2-6f56ecd33588 distributor=01a0999a-28c3-7341-93f5-e0e84b0189a1
+--- _outbox (seq | opId | table | rowId | op | status | attempts | created_at | sent_at | acked_at)
+--- _outbox counts by status
+--- _sync_errors
+0
+--- _sync_state
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQyMjozMjoxNC41NjRaIn0
+deviceId|01a0b997-0138-7166-ba2d-7e0db6416f9e
+lastPulledAt|2026-09-19T22:32:19.564Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{
+protocol|1
+role|salesperson
+schemaVersion|36957a3c3b8da665
+tenantId|01a0999a-28c3-7341-93f5-e0e84b0189a1
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+--- sales_orders the phone has NOT settled (_pending = 1)
+--- row counts
+sales_orders|358
+sales_order_lines|1515
+retailers|30
+
+--- every file in the store dir (a -wal/-shm beside a name means that file is OPEN)
+drwxr-xr-x  6 prajwalchavan  staff      192 Sep 20 04:00 .
+drwxr-xr-x  3 prajwalchavan  staff       96 Sep 19 17:44 ..
+-rw-r--r--  1 prajwalchavan  staff  3952640 Sep 20 03:55 s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--  1 prajwalchavan  staff  2625536 Sep 20 04:00 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5
+-rw-r--r--  1 prajwalchavan  staff    32768 Sep 20 04:00 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5-shm
+-rw-r--r--  1 prajwalchavan  staff  4544392 Sep 20 04:02 se785zfuyt7tcdzqszqe91ohvs03guyq2wniciyvg4kmlprdnz5-wal
