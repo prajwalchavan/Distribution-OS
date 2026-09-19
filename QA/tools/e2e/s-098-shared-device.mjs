@@ -1034,11 +1034,11 @@ function startLeakPoll(R, page, markers, prefix, w) {
   return poll
 }
 
-async function armTextWatch(page, texts, slot = '__s098texts') {
+async function armTextWatch(page, texts, slot = '__s098texts', periodMs = TEXT_WATCH_MS) {
   await page.evaluate(
-    ({ texts, slot }) => {
-      // First sighting of each text, and every interval it stayed on the screen (50 ms samples).
-      const w = { hits: [], intervals: [], open: {}, started: Date.now() }
+    ({ texts, slot, periodMs }) => {
+      // First sighting of each text, and every interval it stayed on the screen (20 ms samples).
+      const w = { hits: [], intervals: [], open: {}, started: Date.now(), periodMs }
       window[slot] = w
       w.timer = setInterval(() => {
         const body = document.body?.innerText ?? ''
@@ -1052,9 +1052,9 @@ async function armTextWatch(page, texts, slot = '__s098texts') {
             delete w.open[t]
           }
         }
-      }, 50)
+      }, periodMs)
     },
-    { texts, slot },
+    { texts, slot, periodMs },
   )
   return Date.now()
 }
@@ -1067,7 +1067,7 @@ async function readTextWatch(page, slot = '__s098texts') {
       clearInterval(w.timer)
       const now = Date.now() - w.started
       const stillOpen = Object.values(w.open).map((o) => ({ ...o, toMs: now, visibleMs: now - o.fromMs, stillVisible: true }))
-      return { startedAt: w.started, hits: w.hits, intervals: [...w.intervals, ...stillOpen], watchedMs: now }
+      return { startedAt: w.started, periodMs: w.periodMs ?? null, hits: w.hits, intervals: [...w.intervals, ...stillOpen], watchedMs: now }
     }, slot)
     .catch(() => null)
 }
@@ -1100,6 +1100,9 @@ function sqlLive() {
 }
 
 // Ruling 2 strings (sales-app/src/strings.ts on bafb7b5).
+// DOS-167 ruling 3 re-proof (2026-09-19): the S-140 flash watch samples the DOM every 20 ms, finer than the 25 ms
+// the re-proof asks for, so a flash the length of the 39-82 ms one measured on bafb7b5 cannot fall between samples.
+const TEXT_WATCH_MS = Number(process.env.S098_TEXT_WATCH_MS ?? 20)
 const NOT_PERSISTED = 'will not keep the offline copy'
 const BODY_MEMORY =
   'This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.'
@@ -1212,7 +1215,7 @@ async function v5(browser, { key, prefix, second, secondMarkers, leakMarkers, re
       secondOrdersTotal: { expected: R.sqlExpectSecond, observed: R.secondOrders, pass: ordersObserved === (live?.orders90d ?? -1) },
       rahulOrderRouteNotOnPhone: { expected: true, observed: notOnPhone, pass: notOnPhone === true },
       rahulHeaderByteEqualToRuling: { expected: `/${RULING_RAHUL_NAME}`, observed: rahulHeader, pass: rahulHeader === `/${RULING_RAHUL_NAME}` },
-      notPersistedLineNeverShown: { expected: 'no hit of s0.notPersisted (50 ms DOM watch over the whole variant) and none at any file checkpoint', observed: { watchHits: notPersistedHits, checkpointsShowingIt: storeNotPersisted }, pass: notPersistedHits.length === 0 && storeNotPersisted === 0 },
+      notPersistedLineNeverShown: { expected: `no hit of s0.notPersisted (${TEXT_WATCH_MS} ms DOM watch over the whole variant) and none at any file checkpoint`, observed: { watchHits: notPersistedHits, checkpointsShowingIt: storeNotPersisted }, pass: notPersistedHits.length === 0 && storeNotPersisted === 0 },
       consoleNoPersistentStoreLine: { expected: [], observed: noPersistentLines, pass: noPersistentLines.length === 0 },
       crossOriginIsolated: { expected: true, observed: R.storeAfterA.crossOriginIsolated, pass: R.storeAfterA.crossOriginIsolated === true },
       fileChecks: { expected: 'all pass', observed: R.fileChecks.map((f) => `${f.pass ? 'PASS' : 'FAIL'} ${f.where}`), pass: R.fileChecks.every((f) => f.pass) },

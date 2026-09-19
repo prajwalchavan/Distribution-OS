@@ -6,12 +6,12 @@ decide. No PowerSync, no vendor: SQLite on the device, four procedures of the `s
 
 ## 1. Scope and roles
 
-| App | Holds | Sends |
-| --- | --- | --- |
-| sales, delivery, warehouse | the role's read set (manifest) | the write queue (`sync.upload`) |
-| owner, manager | the read set, for reading on a bad connection | nothing offline in v1 — every desk write is an online oRPC call; the queue is present but unused |
-| retailer | the read set (own bills, orders, dues, catalog, prices) | nothing: `upload` is refused for the role by the permission matrix |
-| admin | nothing | nothing |
+| App                        | Holds                                                   | Sends                                                                                            |
+| -------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| sales, delivery, warehouse | the role's read set (manifest)                          | the write queue (`sync.upload`)                                                                  |
+| owner, manager             | the read set, for reading on a bad connection           | nothing offline in v1 — every desk write is an online oRPC call; the queue is present but unused |
+| retailer                   | the read set (own bills, orders, dues, catalog, prices) | nothing: `upload` is refused for the role by the permission matrix                               |
+| admin                      | nothing                                                 | nothing                                                                                          |
 
 Thirteen tables accept uploads today (`SyncRegistry.register` in the owning modules): `sales_orders`, `sales_order_lines`, `visits`,
 `receipts`, `allocations`, `collections`, `deliveries`, `pod_evidence`, `trip_stops`, `trip_expenses`, `pick_lines`, `documents`,
@@ -26,7 +26,7 @@ interface SyncStore {
   exec(sql: string, params?: unknown[]): Promise<void>
   query<T>(sql: string, params?: unknown[]): Promise<T[]>
   transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T>
-  persistent: boolean            // false only for the memory adapter
+  persistent: boolean // false only for the memory adapter
   kind: 'sqlite-native' | 'sqlite-web' | 'memory'
 }
 ```
@@ -38,7 +38,8 @@ interface SyncStore {
   `persistent=false`, and the strip says "Offline data is not saved on this browser".
   A fallback to it is never silent (ruling 2 (t), 2026-09-14): the opener hands back the memory store with
   `fallback = { wanted, reason }` — `not cross-origin isolated (no COOP/COEP)`, `no OPFS`, `expo-sqlite did not load` (web),
-  `expo-sqlite is not in this binary` (native) or `open failed: <message>` — `start()` logs
+  `expo-sqlite is not in this binary` (native), `open failed: <message>` or `open timed out after 15s` (both platforms,
+  ruling 3 (cc), §14) — `start()` logs
   `offline: no persistent store; running in memory` once with that reason, and `SyncStatus.storeNote` names it (null on a
   persistent store).
 
@@ -52,7 +53,14 @@ name longer than 54 does not open in a browser (the 92-character `<prefix>__u-<u
 people, or one person at two distributors, never open the same file on any file system, a case-folding one included; a person
 signing in on a phone somebody else used starts with no rows and no cursor (DOS-167; ruling 2, 2026-09-14). The fixed
 `<prefix>.db` of earlier builds is deleted once at mount; the 199952b name is swept once per person, deleted when it holds nothing
-unsent and kept (and logged) when it does. To read a name in a QA listing:
+unsent and kept (and logged) when it does — **both through one `runStartupCleanups()` in ONE provider effect, after the engine's
+own open has resolved and one at a time, and the 199952b sweep only when the store is `sqlite-native`** (ruling 3 (bb),
+2026-09-19): `'./' + interimStoreName(...)` is 94 characters against wa-sqlite's 64-character path budget, so on a browser that
+open can only ever fail, no browser ever created such a file, and in the single-VFS trace its failure is exactly what poisoned
+the two healthy connections beside it. The legacy destroy is skipped on a store in memory and keeps its `legacy ===
+databaseName` guard. The leave flow's order — local sign-out (y) → `end()` → sibling sweep → drafts → background revoke — is
+load-bearing on web for the same reason and stays sequential: the sweep never starts beside `end()`. To read a name in a QA
+listing:
 `node -e 'const n=process.argv[1],id=g=>{let v=0n;for(const c of g)v=v*36n+BigInt(parseInt(c,36));return v.toString(16).padStart(32,"0").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")};console.log({s:"dos-sales",d:"dos-delivery",w:"dos-warehouse",h:"dos-harness"}[n[0]],id(n.slice(1,26)),id(n.slice(26)))' <name>`.
 The name is computed with `BigInt`, which Hermes has from React Native 0.70 (the apps run 0.86). The Android proof checks
 `typeof BigInt` on its first run; should a platform ever lack it, the same digits come from four 32-bit limbs — the format is the
@@ -61,6 +69,23 @@ rule, not the arithmetic (ruling 2 (s)).
 A file has one holder at a time in a process (merge review of ruling 2): an engine takes its file from `start()` until its close has
 resolved and opens it only once the holder before has let go — the engine of the same person still ending after a sign-out, or a
 sweep counting that file — and a sweep skips a file somebody holds (`offline: sweep skipped a store in use`).
+
+**On a browser there is also one OPEN at a time, for every name (ruling 3 (aa), 2026-09-19).** `openStore` in
+`store/open.web.ts` runs every call through one module-level chain: a second open waits for the first to SETTLE, success or
+failure, before it touches `expo-sqlite`; a rejection does not break the chain. `probeStoreKind()` stays outside it, because it
+opens nothing, and `open.native.ts` keeps no chain — each `openDatabaseAsync` there is its own native handle. The per-file
+holder above is not enough: it serialises one NAME, and the measured bug (S-138, P1) was three DIFFERENT names — this person's
+file, the legacy destroy, the 199952b sweep — landing in one microtask batch. When the expo-sqlite chunk and its wa-sqlite
+worker arrive late (a cold start, the first load after a deploy, a weak connection) all three reach the worker before its first
+init resolves: `expo-sqlite/web/worker.ts` `maybeInitAsync()` assigns `_sqlite3` only after its own `await`, so each builds its
+own WASM module and its own `AccessHandlePoolVFS` over one OPFS directory, and `wa-sqlite/sqlite-api.js:34-35` keeps ONE
+module-global scratch cell that `open_v2` writes and reads back across an await, so the calls swap file names. Measured 41 times
+in the browser, Metro and a production `expo export` alike: `jOpen zName=""`, `0.<random>` orphans flagged MAIN_DB that the
+pool's six slots never reclaim, `SQLiteError: not a database`, no `/sync` for 240 s, and `cannot create file` for the NEXT
+person on that browser profile. Serialising the product fixes it (6/6 on Metro, 3/3 in production); patching the libraries alone
+does not (0/3), and raising `AccessHandlePoolVFS.DEFAULT_CAPACITY` is explicitly not the fix — the slots go to garbage-named
+files, not to real demand. `openStore(name, deps?)` takes an optional second argument (`loadSqlite`, `timeoutMs`) purely as the
+test seam, so the rule is provable in Node without mocking the bare specifier; it is still a `StoreFactory`.
 
 Everything below is plain SQL that all three run identically. No ORM on the device.
 
@@ -78,8 +103,8 @@ or the stored identity differs, checked at open before any read.
   - `_sync_state(key TEXT PRIMARY KEY, value TEXT)` — `cursor`, `schemaVersion`, `role`, `tenantId`, `userId`, `deviceId`,
     `lastPulledAt`, `lastUploadAt`, `protocol`. `userId` and `tenantId` are the stamp of who the file belongs to, written at open.
   - `_outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT, op_id TEXT UNIQUE, tbl TEXT, row_id TEXT, op TEXT, data TEXT, base_updated_at TEXT,
-    idempotency_key TEXT, status TEXT, attempts INTEGER, created_at TEXT, sent_at TEXT, acked_at TEXT, rejection_code TEXT,
-    rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
+idempotency_key TEXT, status TEXT, attempts INTEGER, created_at TEXT, sent_at TEXT, acked_at TEXT, rejection_code TEXT,
+rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
   - `_gps_buffer(ts TEXT, trip_id TEXT, lat REAL, lng REAL, accuracy_m REAL, speed_mps REAL, posted INTEGER)` — delivery only (§8).
   - `_sync_errors` — a mirror of the server's `sync_errors` rows for this device, so "Needs attention" works offline.
     Mirroring is BEST EFFORT: `sync.errors.list` is STAFF-only, the oRPC client exposes it to every app because the contract is
@@ -149,12 +174,12 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 
 ## 7. Conflict rules
 
-| Case | Rule |
-| --- | --- |
-| Insert-only tables (`visits`, `receipts`, `allocations`, `collections`, `deliveries`, `pod_evidence`, `trip_expenses`) | no `baseUpdatedAt`; cannot conflict |
-| Edit of a pulled row (`sales_orders` before submit, `trip_stops`, `pick_lines`) | `baseUpdatedAt` = the row's `updated_at` as pulled; server vetoes if stale |
-| Same row edited on two devices | the second write is `stale`; that device re-pulls and re-applies or drops, by the user's choice |
-| Local delete | `DELETE` op only on tables the server accepts it for; otherwise a status change, never a delete |
+| Case                                                                                                                   | Rule                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Insert-only tables (`visits`, `receipts`, `allocations`, `collections`, `deliveries`, `pod_evidence`, `trip_expenses`) | no `baseUpdatedAt`; cannot conflict                                                             |
+| Edit of a pulled row (`sales_orders` before submit, `trip_stops`, `pick_lines`)                                        | `baseUpdatedAt` = the row's `updated_at` as pulled; server vetoes if stale                      |
+| Same row edited on two devices                                                                                         | the second write is `stale`; that device re-pulls and re-applies or drops, by the user's choice |
+| Local delete                                                                                                           | `DELETE` op only on tables the server accepts it for; otherwise a status change, never a delete |
 
 The server is always right. The client never resolves a conflict by itself; it shows both versions and asks.
 
@@ -178,20 +203,20 @@ the shared PDF (rendered by the worker) carries the legal one. A slip is never r
 the last 30 s". Built that way it lied and then broke the client: the foreground pull runs every **60** s, so a phone
 with a perfect connection spent half of every minute saying "Offline — saved on this phone", and because the poll was
 itself gated on `online`, the first time it went stale the poll stopped scheduling work — **one pull per launch, for
-ever**, on every read-only app (owner, manager, retailer). `online` is now *the radio is on AND the last call reached a
-service* — a claim about the last thing we tried, not about the clock. Freshness is a different question and the strip
+ever**, on every read-only app (owner, manager, retailer). `online` is now _the radio is on AND the last call reached a
+service_ — a claim about the last thing we tried, not about the clock. Freshness is a different question and the strip
 already answers it from `lastPulledAt` ("Stock as of 9:40 am" past four hours, UX-00 §6.11). The poll is never gated on
 the state it produces: **the poll is the probe**.
 
 ```ts
 interface SyncStatus {
-  online: boolean                      // navigator.onLine / NetInfo AND the last call reached a service
+  online: boolean // navigator.onLine / NetInfo AND the last call reached a service
   store: 'sqlite-native' | 'sqlite-web' | 'memory'
   lastPulledAt: string | null
   pulling: boolean
-  pending: number                      // queued + sending
+  pending: number // queued + sending
   oldestPendingAt: string | null
-  rejected: number                     // needs attention
+  rejected: number // needs attention
   uploading: boolean
   schemaVersion: string | null
 }
@@ -200,6 +225,17 @@ interface SyncStatus {
 `ConnectionStrip` (UX-00 §6.11) renders exactly: synced → "Updated 2 min ago"; waiting → "3 orders waiting"; offline → "Offline —
 saved on this phone"; rejected > 0 → "2 need attention" (tap opens the tray); `store='memory'` → "Offline data is not saved on this
 browser". The strip never shows a spinner without a word.
+
+**`persistent` is a TRI-STATE (ruling 3 (ee), 2026-09-19): `boolean | null`, null while the store has not resolved or there is no
+engine.** It used to read `this.store?.persistent ?? false`, so for the whole of the open — measured at 39-82 ms after every
+sign-in, in four runs, over a perfectly persistent store — the sales beat said "This browser will not keep the offline copy after
+you close it" (S-140). The honest shape is not a delay but a third state: a screen says NOTHING about keeping while it is null
+(`s0.notPersisted` only on `=== false`; the delivery and warehouse settings and tray meta lines omitted), and anything that would
+OFFER to keep treats null exactly as false — in each app's `leave.ts` the `leave.bodyMemory` body and the keep button both test
+`persistent !== true`, so a sheet never promises "they stay on this phone" under a button it is withholding. A RESOLVED memory
+store still reports false and still says it, on screen and in the sheet: ruling (t) is unchanged. No kit change: `persistent`
+flows only into app screens and the app-level leave sheet, and the kit's `ConnectionState` has no persistence field (the strip
+still cannot say "not kept in this browser" — an S-row, P3).
 
 ## 11. React API
 
@@ -288,15 +324,34 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
 
 ## 14. Failure modes
 
-| Failure | Behaviour |
-| --- | --- |
-| Device clock wrong | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational |
-| App killed mid-upload | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome) |
-| Server rolled forward (new manifest) | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot) |
-| Token expired while offline | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue |
-| Another person signs in on this phone | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167) |
-| Sign out tapped while a write is in hand | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167) |
-| Storage full | writes fail loudly ("Phone storage is full"); nothing is silently dropped |
+| Failure                                   | Behaviour                                                                                                                                                                                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Device clock wrong                        | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational                                                                                                                                  |
+| App killed mid-upload                     | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome)                                                                                                          |
+| Server rolled forward (new manifest)      | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot)                                                                                                                                  |
+| Token expired while offline               | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue                                                                                                                                   |
+| Another person signs in on this phone     | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167)                                                                                                                                           |
+| Sign out tapped while a write is in hand  | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167)                                                                                                              |
+| Storage full                              | writes fail loudly ("Phone storage is full"); nothing is silently dropped                                                                                                                                                                  |
+| The device store will not open            | bounded at `OPEN_DEADLINE_MS` = 15 s, then an announced memory store; a handle that lands late is closed, never destroyed (ruling 3 (cc))                                                                                                  |
+| The device store opens and cannot be used | closed and left alone — never destroyed — said as `offline: the device store could not be used; running in memory`, and the SAME start sequence runs once more in memory, so the app still signs in and still syncs online (ruling 3 (cc)) |
+
+**A store that will not open is announced, bounded and never a hang (ruling 3 (cc), 2026-09-19).** The re-proof's real
+harm was not the corruption but the silence: `start()` rethrew, the engine stood `started` with `ready: false` for the
+life of the tab, and run3-v5a sat 240 s with no `/sync` call, "Still loading the beat onto this phone" and Shops 0,
+while the only catch called an `onLog` no app passed. So: both openers bound the whole open at `OPEN_DEADLINE_MS`
+(15 s) and answer `createMemoryStore({ wanted, reason: 'open timed out after 15s' })` — the web chain still waits for
+the real open to settle, and a handle that arrives late is CLOSED; `start()` takes exactly ONE fallback, closing the
+broken store, releasing its file hold and running the same sequence over a memory store (a second failure throws as
+before); a file we failed to read is never destroyed, which extends ruling (p)'s rule for an uncountable file to an
+unopenable one; `status().storeNote` carries the reason and `lastError` a sentence the strip can show; and the screen
+lines that already fire on a memory store (`s0.notPersisted`, `tray.storeMemory`, `x4.storeMemory`) say the rest —
+no new strings. With (aa) and (bb) the steady state issues exactly ONE web open at startup.
+
+**(v)'s refusal sentence is no longer a screen anyone reaches (ruling 3 (gg), 2026-09-19):** addendum (y) clears the
+session before `end()` runs, so the order screen is gone before a person can tap. It stays a last-resort fallback for a
+write already dispatched by a handler whose screen is unmounting, proven by the two unit tests (the offline refusal and
+`toApiError`'s mapping), not by a device walk.
 
 ## 15. What this does not do (yet)
 

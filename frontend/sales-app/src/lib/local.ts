@@ -286,8 +286,11 @@ export interface LocalState {
   hydrated: boolean
   /** The radio is on and the last call reached a service. */
   online: boolean
-  /** False for the memory adapter — the strip has to say so, and so does an empty screen. */
-  persistent: boolean
+  /**
+   * False for the memory adapter — the strip has to say so, and so does an empty screen — and null while the device
+   * store has not resolved: a screen says nothing about keeping until it knows (DOS-167 ruling 3 (ee)).
+   */
+  persistent: boolean | null
   pending: number
   rejected: number
 }
