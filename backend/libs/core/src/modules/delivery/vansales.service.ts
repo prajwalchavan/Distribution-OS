@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { eq } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { CreateVanSaleInput, CreateVanSaleOutput } from '@dos/contracts'
 import { deliveries, deliveryLines, trips, tripStops, withTenant, type Db } from '@dos/db'
@@ -110,6 +110,20 @@ export class VanSalesService {
           'van sale',
         )
         const invoice = await this.billing.invoiceForDelivery(tx, invoiceRow.id)
+        // QA DOS-171: a van sale is a bill at this door, so it joins what is owed here
+        // (`planned_collection_paise` = the bills at the stop plus agreed old dues), which the crew's money
+        // screen reads as "Owed on the bills here". An INCREMENT in SQL, never a read-then-write: the trip
+        // lock above serialises van sales on one trip, `idempotent()` makes a replay add nothing, and
+        // `walkStop` below never sets this column. It holds for the caller's stop, the shop's open stop and
+        // a stop `stopFor` has just created at 0. Moving `updated_at` (the 0040 touch trigger does too)
+        // is what puts the row into the phone's next delta pull.
+        await tx
+          .update(tripStops)
+          .set({
+            plannedCollectionPaise: sql`${tripStops.plannedCollectionPaise} + ${invoice.totalPaise}`,
+            updatedAt: new Date(),
+          })
+          .where(and(eq(tripStops.tenantId, ctx.tenantId), eq(tripStops.id, stop.id)))
         await this.orders.recordDelivered(
           tx,
           draft.id,
