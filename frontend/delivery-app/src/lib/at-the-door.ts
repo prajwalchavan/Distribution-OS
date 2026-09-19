@@ -1,5 +1,6 @@
 /**
- * What D4 and D5 hand to the stop screen once the write is made (DOS-149).
+ * What D4 and D5 hand to the stop screen once the write is made (DOS-149), and what D4 refuses before
+ * it asks for a photograph (DOS-148).
  *
  * WHY A HANDOVER AT ALL. Both doorstep screens end the same way: the write lands, and the driver is put
  * back on the stop. A toast raised on D4 or D5 is drawn by a screen that `router.replace` is already
@@ -13,6 +14,7 @@
  * kit — pure TypeScript, the string layer with no renderer — and nothing here may reach for a component
  * or a platform module.
  */
+import { orderMachine, type OrderState } from '@dos/domain'
 import type { Translator } from '@dos/ui'
 
 import { keepKey } from './keep'
@@ -79,4 +81,56 @@ export function doorDoneMessage(
     default:
       return null
   }
+}
+
+// ---------------------------------------------------------------------------
+// DOS-148 — the bill that is not on this van
+// ---------------------------------------------------------------------------
+
+/** The order move each doorstep outcome asks for; the server pairs them the same way. */
+const DOORSTEP_EVENT = {
+  delivered: 'deliver_all',
+  partial: 'deliver_partial',
+  failed: 'return_undelivered',
+} as const
+
+/** Where each of those takes a dispatched order — so "already applied" is read off the machine. */
+const DOORSTEP_TARGET = orderMachine.transitions.dispatched
+
+/** The states of an order still at the godown: nothing on that bill is at any shop door. */
+const IN_THE_GODOWN: ReadonlySet<string> = new Set<OrderState>([
+  'draft',
+  'submitted',
+  'confirmed',
+  'picking',
+  'packed',
+])
+
+/** What stands between this bill and the door, as far as the OFFICE's copy of the order says. */
+export type DoorstepOrderBlock = 'godown' | 'elsewhere'
+
+/**
+ * Whether the office would refuse this outcome on this bill, or null when it would not — and null
+ * again whenever the device does not know, which is most of a day on a road with no signal.
+ *
+ * `orderMachine` is the domain's, the same one `deliveries.record` asks, so this can only ever refuse
+ * what the office would refuse. A state this build has never heard of says nothing: a device that
+ * refuses a door on a word it cannot read is worse than one that lets the office answer.
+ */
+export function doorstepOrderBlock(
+  orderState: string | null | undefined,
+  outcome: 'delivered' | 'partial' | 'failed',
+): DoorstepOrderBlock | null {
+  if (orderState === null || orderState === undefined) return null
+  const state = orderState as OrderState
+  if (orderMachine.transitions[state] === undefined) return null
+  const event = DOORSTEP_EVENT[outcome]
+  // The move is legal, or the order has already been through it: the office takes this write.
+  if (orderMachine.can(state, event) || state === DOORSTEP_TARGET[event]) return null
+  return IN_THE_GODOWN.has(state) ? 'godown' : 'elsewhere'
+}
+
+/** The sentence for that refusal: what happened to the goods, and who the driver tells (UX-00 §12). */
+export function doorstepOrderRefusal(t: Translator, block: DoorstepOrderBlock): string {
+  return block === 'godown' ? t('d4.notLoaded') : t('d4.notOnThisVan')
 }

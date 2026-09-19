@@ -3291,4 +3291,205 @@ describeDb('delivery (DATABASE_URL)', () => {
       rows.map((r) => [r.id, r.trip_id, Number(r.handed_over_cash_paise), r.settled_by]),
     ).toEqual([[settlementId, trip, 50_000, managerId]])
   })
+
+  /**
+   * DOS-148 — A BILL THAT NEVER LEFT THE GODOWN IS REFUSED IN WORDS THE DRIVER CAN ACT ON.
+   *
+   * Measured on the Pixel 7: a stop offered "Deliver this bill" for INV/0831, whose order was still
+   * `packed` and on no confirmed load sheet. The crew pressed `−`, chose a reason, photographed the
+   * signed bill and pressed Record — and only THEN did the office answer 409
+   * `order: cannot apply "deliver_partial" in state "packed"`. That is the order machine's own
+   * `TransitionError` printed in red at a shop door: a driver holding a signed bill for goods that were
+   * never on his van, and developer text telling him nothing about whose mistake it was.
+   *
+   * A stop like that is reached by `trips.addStop` — the late bill the godown adds to a trip already on
+   * the road, which the depart gate (QA DOS-043 / DOS-172) never sees. So the refusal belongs in
+   * `deliveries.record`, before `assertPodPolicy` asks for a photograph and long before
+   * `applyFulfilmentEvent` is allowed to raise the machine's sentence.
+   */
+  it('DOS-148 a bill whose order never left the godown is refused before the photo, in a sentence a driver can act on, and nothing is written', async () => {
+    // Issued at pack and dispatched by nobody: exactly INV/0831.
+    const stranded = await billedOrder(retailerA, variantA, 'dos148')
+    expect(await orderState(stranded.orderId)).toBe('packed')
+
+    // A van-sales trip of its own so no other test's stops move. It departs EMPTY — which is why the
+    // load-out gate has nothing to refuse — and the godown adds the stranded bill once it is on the road.
+    const vehicle = uuidv7()
+    expect(
+      (
+        await call(app, owner, 'POST', '/delivery/vehicles', {
+          idempotencyKey: `dos148-vehicle-${run}`,
+          id: vehicle,
+          regNo: `MH-05-ND-${run.slice(-4)}`,
+          name: 'Tempo ND',
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (
+        await call(app, otherDriver, 'POST', '/delivery/consents', {
+          idempotencyKey: `dos148-consent-${run}`,
+          id: uuidv7(),
+          granted: true,
+          noticeVersion: 'gps-2026-09',
+        })
+      ).status,
+    ).toBe(200)
+    const trip = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos148-trip-${run}`,
+      id: trip,
+      tripDate: new Date(Date.parse(today) + 55 * 86_400_000).toISOString().slice(0, 10),
+      vehicleId: vehicle,
+      driverId: otherDriverId,
+      vanSalesEnabled: true,
+      openingCashPaise: 0,
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    for (const step of ['start-loading', 'depart']) {
+      const moved = await call(app, otherDriver, 'POST', `/delivery/trips/${trip}/${step}`, {
+        idempotencyKey: `dos148-${step}-${run}`,
+      })
+      expect(moved.status, `${step} → ${JSON.stringify(moved.body)}`).toBe(200)
+    }
+    expect(await tripStateOf(trip)).toBe('active')
+
+    const stopId = uuidv7()
+    const added = await call<{ item: TripBody }>(
+      app,
+      manager,
+      'POST',
+      `/delivery/trips/${trip}/stops`,
+      {
+        idempotencyKey: `dos148-stop-${run}`,
+        id: trip,
+        stop: { id: stopId, retailerId: retailerA, invoiceIds: [stranded.invoiceId] },
+      },
+    )
+    expect(added.status, JSON.stringify(added.body)).toBe(200)
+    const onTheRoad = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
+    const plannedId =
+      onTheRoad.body.item.stops.find((s) => s.id === stopId)?.deliveries[0]?.id ?? ''
+    expect(plannedId).not.toBe('')
+
+    const lines = [
+      { id: uuidv7(), invoiceLineId: stranded.lineId, deliveredQtyPcs: 8, returnedQtyPcs: 4 },
+    ]
+    const body = {
+      idempotencyKey: `dos148-deliver-${run}`,
+      id: plannedId,
+      tripId: trip,
+      stopId,
+      invoiceId: stranded.invoiceId,
+      receiverName: 'Owner A',
+      lines,
+      pod: [],
+    }
+
+    // BEFORE THE PHOTO. Van Shop A pays after delivery, so `credit_only` would otherwise refuse this
+    // body 400 pod_required and send the driver to the camera for a bill he can never record.
+    const refused = await call<{ message: string; data?: { code?: string; orderState?: string } }>(
+      app,
+      otherDriver,
+      'POST',
+      '/delivery/deliveries',
+      body,
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toContain('was not loaded on this van')
+    expect(refused.body.message).toContain('the office')
+    expect(refused.body.data?.code).toBe('order_not_dispatched')
+    expect(refused.body.data?.orderState).toBe('packed')
+    // Never the order machine's own words at a shop door.
+    expect(refused.body.message).not.toContain('deliver_partial')
+    expect(refused.body.message).not.toContain('cannot apply')
+
+    // The same call with the photograph the crew took anyway reads the same sentence, not pod_required.
+    const withPhoto = await call<{ message: string }>(
+      app,
+      otherDriver,
+      'POST',
+      '/delivery/deliveries',
+      {
+        ...body,
+        idempotencyKey: `dos148-deliver-photo-${run}`,
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'photo',
+            inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+          },
+        ],
+      },
+    )
+    expect(withPhoto.status).toBe(409)
+    expect(withPhoto.body.message).toContain('was not loaded on this van')
+
+    // Nothing of either attempt is left behind: the planned row, the order, the proof and the books.
+    expect(await orderState(stranded.orderId)).toBe('packed')
+    const [row] = (
+      await db.execute(sql`select outcome::text as outcome from deliveries where id = ${plannedId}`)
+    ).rows as { outcome: string | null }[]
+    expect(row?.outcome).toBeNull()
+    const [proof] = (
+      await db.execute(
+        sql`select count(*)::int as n from pod_evidence where delivery_id = ${plannedId}`,
+      )
+    ).rows as { n: number }[]
+    expect(proof?.n).toBe(0)
+    const [notes] = (
+      await db.execute(
+        sql`select count(*)::int as n from credit_notes where tenant_id = ${tenantId} and invoice_id = ${stranded.invoiceId}`,
+      )
+    ).rows as { n: number }[]
+    expect(notes?.n).toBe(0)
+    expect(await outboxTypes(plannedId)).toEqual([])
+
+    // And the bill the godown DID load is delivered at the same stop, so the gate refuses only the
+    // bill that is not on the van.
+    const loaded = await billedOrder(retailerA, variantA, 'dos148-ok')
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: trip, orderIds: [loaded.orderId], tag: `dos148-ok-${run}` },
+    )
+    expect(await orderState(loaded.orderId)).toBe('dispatched')
+    const okStop = uuidv7()
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${trip}/stops`, {
+          idempotencyKey: `dos148-ok-stop-${run}`,
+          id: trip,
+          stop: { id: okStop, retailerId: retailerA, invoiceIds: [loaded.invoiceId] },
+        })
+      ).status,
+    ).toBe(200)
+    const okTrip = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
+    const okDelivery = okTrip.body.item.stops.find((s) => s.id === okStop)?.deliveries[0]?.id ?? ''
+    const done = await call<{ item: DeliveryDetailBody }>(
+      app,
+      otherDriver,
+      'POST',
+      '/delivery/deliveries',
+      {
+        idempotencyKey: `dos148-ok-deliver-${run}`,
+        id: okDelivery,
+        tripId: trip,
+        stopId: okStop,
+        invoiceId: loaded.invoiceId,
+        lines: [
+          { id: uuidv7(), invoiceLineId: loaded.lineId, deliveredQtyPcs: 12, returnedQtyPcs: 0 },
+        ],
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'photo',
+            inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+          },
+        ],
+      },
+    )
+    expect(done.status, JSON.stringify(done.body)).toBe(200)
+    expect(done.body.item.outcome).toBe('delivered')
+  })
 })

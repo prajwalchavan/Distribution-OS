@@ -16,7 +16,7 @@ import type {
   RecordDeliveryOutput,
 } from '@dos/contracts'
 import { isSaleableReturn } from '@dos/contracts'
-import { uuidv7 } from '@dos/domain'
+import { orderMachine, uuidv7, type OrderState } from '@dos/domain'
 import { deliveries, deliveryLines, podEvidence, withTenant, type Db } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
 import { BillingService, CreditNotesService, type InvoiceForDelivery } from '../billing/index.js'
@@ -127,6 +127,12 @@ export class DeliveriesService {
 
         const lines = this.checkLines(invoice, input.lines)
         const outcome = outcomeOf(lines)
+        if (invoice.orderId)
+          assertOnTheVan(
+            invoice,
+            (await this.orders.lockOrder(tx, invoice.orderId)).state,
+            fulfilmentEventFor(outcome),
+          )
         await this.assertPodPolicy(tx, stop, outcome, input.pod)
         const at = whenOr(input.deliveredAt, new Date())
 
@@ -166,11 +172,7 @@ export class DeliveriesService {
           await this.orders.applyFulfilmentEvent(
             tx,
             invoice.orderId,
-            outcome === 'delivered'
-              ? 'deliver_all'
-              : outcome === 'partial'
-                ? 'deliver_partial'
-                : 'return_undelivered',
+            fulfilmentEventFor(outcome),
             input.deviceId ?? null,
             outcome === 'failed' ? 'refused at the door' : null,
           )
@@ -518,6 +520,50 @@ export class DeliveriesService {
     if (!row) throw new ORPCError('NOT_FOUND', { message: `delivery ${id} not found` })
     return row
   }
+}
+
+/** The order move a doorstep outcome asks for — the one place the three are paired. */
+function fulfilmentEventFor(
+  outcome: DeliveryOutcome,
+): 'deliver_all' | 'deliver_partial' | 'return_undelivered' {
+  if (outcome === 'delivered') return 'deliver_all'
+  return outcome === 'partial' ? 'deliver_partial' : 'return_undelivered'
+}
+
+/** Where each doorstep move takes a dispatched order — so "already applied" is read off the machine. */
+const DOORSTEP_TARGET = orderMachine.transitions.dispatched
+
+/** The states of an order that is still at the godown: nothing on it is at any shop door. */
+const IN_THE_GODOWN = new Set<OrderState>(['draft', 'submitted', 'confirmed', 'picking', 'packed'])
+
+/**
+ * DOS-148 — A BILL THAT WAS NEVER LOADED IS REFUSED IN THE DRIVER'S OWN WORDS, BEFORE THE PHOTOGRAPH.
+ *
+ * `packed → dispatched` happens at `warehouse.loadSheets.confirm` and nowhere else, and the depart gate
+ * (QA DOS-043 / DOS-172) holds a vehicle back whose planned bills have not been through it. A bill ADDED
+ * to a trip already on the road never meets that gate, so a stop can offer "Deliver this bill" for goods
+ * sitting in the godown. Recorded, that reached `applyFulfilmentEvent` and came back as the order
+ * machine's own `TransitionError` — `cannot apply "deliver_partial" in state "packed"` — in red, at a
+ * shop door, after the crew had photographed a signed bill.
+ *
+ * So it is asked here, before `assertPodPolicy` sends anybody to a camera. A move the machine already
+ * allows passes, and so does one the order has ALREADY been through: `applyFulfilmentEvent` is
+ * idempotent by state, and a failed attempt on a bill that came back to `packed` has always been a
+ * no-op rather than a refusal. Everything else is a sentence naming the bill and the next action.
+ */
+function assertOnTheVan(
+  invoice: InvoiceForDelivery,
+  state: OrderState,
+  event: 'deliver_all' | 'deliver_partial' | 'return_undelivered',
+): void {
+  if (orderMachine.can(state, event) || state === DOORSTEP_TARGET[event]) return
+  const bill = invoice.invoiceNo ?? invoice.id
+  throw new ORPCError('CONFLICT', {
+    message: IN_THE_GODOWN.has(state)
+      ? `bill ${bill} was not loaded on this van — it is still in the godown. Tell the office; nothing on it can be handed over here.`
+      : `bill ${bill} is not out for delivery on this van. Tell the office before you hand anything over.`,
+    data: { code: 'order_not_dispatched', orderState: state, invoiceId: invoice.id },
+  })
 }
 
 /** Derived, never sent (brief rule 8): every line full → delivered; every line zero → failed; else partial. */

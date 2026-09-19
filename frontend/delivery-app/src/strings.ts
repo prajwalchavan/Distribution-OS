@@ -247,6 +247,16 @@ export const strings = {
   'd4.creditNote': 'Credit note {no} raised for what did not go in',
   'd4.creditNoteQueued': 'The office raises the credit note when this reaches them',
   'd4.mismatch': 'Dropped plus taken back must equal what is on the bill',
+  /*
+   * DOS-148 — the bill the godown never counted out. The office refuses it whatever the phone does
+   * (`deliveries.record`), and used to refuse it in the order machine's own words, in red, after the
+   * crew had photographed a signed bill. Both sentences name the goods and the next action, never the
+   * machine: a driver cannot tell from "cannot apply deliver_partial" whether he or the godown is wrong.
+   */
+  'd4.notLoaded':
+    'This bill was not loaded on this van — it is still in the godown. Tell the office; do not hand anything over.',
+  'd4.notOnThisVan':
+    'This bill is not out for delivery on this van. Tell the office before you hand anything over.',
   'd4.willRecord': 'Will be recorded as {outcome}',
   'd4.alreadyDone': 'This bill is already recorded as {outcome}',
   'd4.failedRecord': 'Could not record the delivery',

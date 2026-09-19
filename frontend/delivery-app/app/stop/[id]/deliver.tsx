@@ -43,7 +43,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
-import { doorDoneHref } from '../../../src/lib/at-the-door'
+import {
+  doorDoneHref,
+  doorstepOrderBlock,
+  doorstepOrderRefusal,
+} from '../../../src/lib/at-the-door'
 import { longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -144,6 +148,22 @@ export default function AtTheDoor(): React.JSX.Element {
     { enabled: session !== null && trip !== null, staleTime: 300_000 },
   )
   const podPolicy = tripDetail.data?.item.policy.podRequired ?? 'credit_only'
+
+  /*
+   * DOS-148 — WHAT THE OFFICE HAS THIS BILL'S ORDER AS. A bill added to a trip already on the road never
+   * meets the depart gate, so a stop can offer "Deliver this bill" for goods still in the godown; the
+   * driver then photographed a signed bill and read the order machine's own refusal in red. With a
+   * signal this answers before the camera is ever offered. With none it answers nothing, and the office
+   * still refuses at the door — the device never refuses more than the server would.
+   */
+  const orderQuery = useQuery(
+    ['order', row?.order_id ?? null],
+    () => api.api.orders.get({ id: row?.order_id ?? '' }),
+    {
+      enabled: session !== null && row !== null && row.order_id !== null,
+      staleTime: 60_000,
+    },
+  )
 
   const [entries, setEntries] = useState<Record<string, LineEntry>>({})
   const [receiver, setReceiver] = useState('')
@@ -278,6 +298,9 @@ export default function AtTheDoor(): React.JSX.Element {
   const podRequired =
     podPolicy === 'always' || (podPolicy === 'credit_only' && onCredit && outcome !== 'failed')
   const proofTooBig = proof !== null && proof.contentBase64.length > MAX_INLINE_BASE64
+  /** DOS-148: null unless the office has answered AND would refuse this very outcome on this bill. */
+  const notOnTheVanBlock = doorstepOrderBlock(orderQuery.data?.item.state, outcome)
+  const notOnTheVan = notOnTheVanBlock === null ? null : doorstepOrderRefusal(t, notOnTheVanBlock)
 
   const setAll = (mode: 'full' | 'none'): void => {
     setEntries((held) => {
@@ -320,6 +343,11 @@ export default function AtTheDoor(): React.JSX.Element {
   }
 
   const commit = (): void => {
+    // DOS-148: the same belt as the shared gate below, on the one fact the office alone knows.
+    if (notOnTheVan !== null) {
+      announce(notOnTheVan)
+      return
+    }
     const blocked = doorstepBlock(gate)
     if (blocked !== null) {
       announce(doorstepRefusal(t, blocked, row.outcome))
@@ -523,6 +551,12 @@ export default function AtTheDoor(): React.JSX.Element {
               {error}
             </Txt>
           )}
+          {/*
+            DOS-148: the one refusal the shared gate cannot hold, because it is the OFFICE's fact about
+            the order and not this bill's own. It is layered over `footer` rather than folded into
+            `DoorstepGate` for exactly that reason — every other thing in that gate is knowable on a
+            phone with no signal, and this one is null until the office has answered.
+          */}
           <Button
             testID="d4-record"
             variant="primary"
@@ -530,6 +564,15 @@ export default function AtTheDoor(): React.JSX.Element {
             fullWidth
             loading={busy || record.status === 'pending'}
             {...footer}
+            {...(notOnTheVan === null
+              ? {}
+              : {
+                  disabled: true,
+                  disabledReason: notOnTheVan,
+                  onPress: () => {
+                    announce(notOnTheVan)
+                  },
+                })}
           />
         </Stack>
       }
@@ -668,6 +711,7 @@ export default function AtTheDoor(): React.JSX.Element {
                 testID="d4-photo"
                 label={proof === null ? t('d4.podPhoto') : t('d4.podRetake')}
                 variant={proof === null && podRequired ? 'primary' : 'secondary'}
+                {...(notOnTheVan === null ? {} : { disabled: true, disabledReason: notOnTheVan })}
                 onPress={() => {
                   void (async () => {
                     try {
