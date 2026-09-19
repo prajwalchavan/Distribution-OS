@@ -262,6 +262,55 @@ describe('DOS-167 ruling 3: the web opener', () => {
   })
 
   /*
+   * (cc) 1 + Fable amendment A5 (2026-09-19): the OTHER half of a deadline. A deadline that is too tight does not
+   * bound a hang, it MANUFACTURES one of S-138's symptoms — a browser with a perfectly good OPFS file told it cannot
+   * keep anything, because the open was a second slower than somebody's guess. The worst load the diagnosis drove is
+   * the expo-sqlite chunk and its wa-sqlite worker held back 1500 ms, and the serialised product still opened its
+   * file 3/3 (`reproof2/diagnose/runs/vD-d1500-1..3.json`); the shipped deadline leaves ten times that. So: the
+   * budget is asserted as a number, and a slow-but-succeeding open is driven against the REAL deadline — not an
+   * override — and must come back as the person's own file, with no memory store handed out on the way.
+   */
+  it('DOS-167 a slow but succeeding open is never abandoned: the deadline leaves ten times the worst load measured', async () => {
+    asCrossOriginIsolatedBrowser()
+
+    /** The slowest load the S-138 diagnosis drove and still opened the store (vD-d1500, 3/3). */
+    const WORST_MEASURED_LOAD_MS = 1_500
+    /** Long enough to be a slow open by any browser's standard, short enough to be a test. */
+    const SLOW_OPEN_MS = 250
+
+    let destroyed = 0
+    const loadSqlite = async (): Promise<ExpoSqliteLike> => ({
+      openDatabaseAsync: async () => {
+        await new Promise((resolve) => setTimeout(resolve, SLOW_OPEN_MS))
+        return fakeDb()
+      },
+      deleteDatabaseAsync: async () => {
+        destroyed += 1
+      },
+    })
+
+    // No `timeoutMs`: this is the deadline a rep's browser actually runs under.
+    const store = await openStore(ENGINE, { loadSqlite })
+
+    expect({
+      headroom: Math.floor(OPEN_DEADLINE_MS / WORST_MEASURED_LOAD_MS),
+      kind: store.kind,
+      persistent: store.persistent,
+      // Nothing was handed out instead of the file, so nothing said "will not keep" over a store that opened.
+      fellBack: store.fallback?.reason ?? null,
+      destroyed,
+    }).toEqual({
+      headroom: 10,
+      kind: 'sqlite-web',
+      persistent: true,
+      fellBack: null,
+      destroyed: 0,
+    })
+
+    await store.close()
+  })
+
+  /*
    * Fable amendment A4 (2026-09-19): the case ruling 3 left out. OPFS hands a synchronous access handle to ONE
    * holder, and wa-sqlite's pool takes the whole directory, so a SECOND TAB of the same signed-in person cannot have
    * the file the first tab is signed in on. What must never happen there is either of the two halves of S-138: a tab
