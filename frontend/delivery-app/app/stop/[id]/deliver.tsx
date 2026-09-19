@@ -56,7 +56,13 @@ import {
   useLocalTrip,
   type LocalInvoiceLine,
 } from '../../../src/lib/local'
-import { recordOrSave } from '../../../src/lib/doorstep'
+import {
+  doorstepBlock,
+  doorstepFooter,
+  doorstepRefusal,
+  recordOrSave,
+  type DoorstepGate,
+} from '../../../src/lib/doorstep'
 import {
   captureProof,
   storeProof,
@@ -281,16 +287,32 @@ export default function AtTheDoor(): React.JSX.Element {
     })
   }
 
+  /** Everything that can stand between this driver and the doorstep write, in one place (DOS-181). */
+  const gate: DoorstepGate = {
+    alreadyRecorded: row.outcome !== null,
+    proofTooBig,
+    photoRequired: podRequired,
+    hasPhoto: proof !== null,
+    balanced: totals.balanced,
+  }
+
+  /**
+   * A refusal is FELT and SEEN where the thumb already is. Before DOS-181 a refused press wrote one
+   * sentence into `d4-error` at the end of the scrolling body and buzzed nothing, which on a phone is
+   * indistinguishable from a dead button — the same thing the camera path says of itself below.
+   */
+  const announce = (sentence: string): void => {
+    haptics.error()
+    setError(sentence)
+  }
+
   const commit = (): void => {
+    const blocked = doorstepBlock(gate)
+    if (blocked !== null) {
+      announce(doorstepRefusal(t, blocked, row.outcome))
+      return
+    }
     setError(null)
-    if (!totals.balanced) {
-      setError(t('d4.mismatch'))
-      return
-    }
-    if (podRequired && proof === null) {
-      setError(t('d4.podRequired'))
-      return
-    }
     setBusy(true)
     void (async () => {
       try {
@@ -423,6 +445,17 @@ export default function AtTheDoor(): React.JSX.Element {
     })()
   }
 
+  /** One decision for the footer: the words, whether the press may be taken, and what it does. */
+  const footer = doorstepFooter({
+    t,
+    gate,
+    online: status.online,
+    persistent: status.persistent,
+    recordedOutcome: row.outcome,
+    record: commit,
+    refuse: announce,
+  })
+
   return (
     <Screen
       title={invoice.invoice_no ?? t('d.bill')}
@@ -465,22 +498,25 @@ export default function AtTheDoor(): React.JSX.Element {
             </Txt>
             <Money value={invoice.total_paise} size="moneyM" />
           </Row>
+          {/*
+            THE REFUSAL BELONGS WHERE THE THUMB IS (DOS-181). This used to be the last line of the
+            scrolling body, under the bill's lines and the whole proof panel — a screen and a half
+            below the button that had just been pressed, which is why a refused press read as a dead
+            app. The kit prints a `disabledReason` under the button itself; this carries the ones
+            that only exist after a press (a refusal from the office, a camera that gave nothing).
+          */}
+          {error === null ? null : (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d4-error">
+              {error}
+            </Txt>
+          )}
           <Button
             testID="d4-record"
-            label={status.online ? t('d4.record') : t(keepKey('recordDelivery', status.persistent))}
             variant="primary"
             size="floor"
             fullWidth
             loading={busy || record.status === 'pending'}
-            disabled={!totals.balanced || row.outcome !== null || proofTooBig}
-            disabledReason={
-              row.outcome !== null
-                ? t('d4.alreadyDone', { outcome: wordFor(t, row.outcome) })
-                : proofTooBig
-                  ? t('d4.podRetake')
-                  : t('d4.mismatch')
-            }
-            onPress={commit}
+            {...footer}
           />
         </Stack>
       }
@@ -673,12 +709,6 @@ export default function AtTheDoor(): React.JSX.Element {
         {status.online ? null : (
           <Txt field="body" desk="body" color={colors.text.secondary} testID="d4-offline">
             {`${t(keepKey('offlineWrite', status.persistent))} ${t('d4.creditNoteQueued')}`}
-          </Txt>
-        )}
-
-        {error === null ? null : (
-          <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d4-error">
-            {error}
           </Txt>
         )}
       </Stack>

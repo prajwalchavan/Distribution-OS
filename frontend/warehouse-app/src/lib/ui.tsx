@@ -318,17 +318,24 @@ function LocalAsyncBody({
    * whole read set is re-pulled on every reload — about 70 s and 154 pages on the pilot's data —
    * and for all of it the one screen a picker holds was blank over data it already had.
    *
-   * The sentence stays; it goes ABOVE the rows instead of over them. "Nothing here" and "not
+   * The sentence stays; it goes BESIDE the rows instead of over them. "Nothing here" and "not
    * everything is here yet" stay two different sentences, which is the whole point of the latch.
+   *
+   * AND IT GOES UNDER THEM, NOT OVER THEM (DOS-182, merge review 2026-09-20). Above the list it is a
+   * standing sentence, and on W5 at 375 x 812 a standing sentence costs a whole card: with the
+   * offline promise beside it, the first row's Picked / Short fell under the sticky bar at a cold
+   * start and the sheet read as locked. The rows are what the screen is for, so the rows come first
+   * and the caveat follows them — still in the same render, still impossible to miss on a short list,
+   * and no longer able to push the work off the screen.
    */
   if (empty) return <EmptyState message={hydrated ? emptyMessage : waitingMessage} />
   if (hydrated) return <>{children}</>
   return (
     <Stack gap={3}>
+      {children}
       <Txt field="label" desk="meta" color={colors.text.secondary} testID="local-filling">
         {waitingMessage}
       </Txt>
-      {children}
     </Stack>
   )
 }

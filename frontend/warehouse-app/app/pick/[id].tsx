@@ -49,6 +49,7 @@ import { useMemo, useState } from 'react'
 import type { PickRow } from '../../src/lib/local'
 import { useHydrated, useLocalPickLines, useLocalPicklist } from '../../src/lib/local'
 import { keepKey } from '../../src/lib/keep'
+import { pickGate } from '../../src/lib/pick-gate'
 import { useRecordPick } from '../../src/lib/queue'
 import { DeskOnly, ExpiryChip, LocalAsync, Panel, pl, workFamily } from '../../src/lib/ui'
 
@@ -92,15 +93,19 @@ export default function PickingSheet(): React.JSX.Element {
    * The Start reply wins until the next pull repaints the local row: `engine.sync` returns early while
    * a pull is already running, so the local `picklists` row can still read `open` after a start that
    * succeeded. The reply counts only for THIS sheet, in case the router reuses the screen for another id.
-   * An unknown status locks too: the `pick_lines` rows can land a pull page before their sheet row.
+   *
+   * An unknown status is NOT a fourth way of saying "open" (DOS-182), and it is not a way of saying
+   * "pickable" either: `pickGate` answers `waiting` for a sheet this device does not hold, so nothing
+   * is offered over a wave that may still be arriving. The precedence itself lives in `pickGate`.
    */
   const startedHere =
     start.data !== undefined && start.data.item.id === picklistId
       ? start.data.item.status
       : undefined
   const liveStatus = startedHere ?? sheet?.status
-  const notStarted = liveStatus === 'open'
-  const locked = liveStatus === undefined || notStarted
+  const gate = pickGate({ startedHere, deviceStatus: sheet?.status ?? null })
+  const notStarted = gate === 'not-started'
+  const locked = gate !== 'pickable'
 
   const [shortFor, setShortFor] = useState<PickRow | null>(null)
   const [shortPieces, setShortPieces] = useState<number | null>(null)
@@ -204,11 +209,37 @@ export default function PickingSheet(): React.JSX.Element {
             {t('w5.progress', { picked, total: rows.length })}
           </Txt>
           {/*
+           * NOTHING STANDS BETWEEN THE PICKER AND THE FIRST ROW (DOS-182, merge review 2026-09-20).
+           *
+           * Both of these used to be lines of the BODY, above the list. Measured on a Pixel 7 at a
+           * cold start with the office away, the offline promise and "Still filling this phone from
+           * the server" together pushed the first card's Picked / Short under the sticky bar — the
+           * one thing UX-00 section 9.4 puts above the fold, below it, which is what a prover reading
+           * only the first viewport then filed as a lock. They belong here, where the thumb already
+           * is and where they cost the list nothing; the filling sentence now prints UNDER the rows
+           * (`LocalAsyncBody`). Said WHEN IT IS TRUE, not always: online, the connection strip
+           * already carries "Updated just now".
+           */}
+          {status.online ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-offline">
+              {t(keepKey('offlineNote', status.persistent))}
+            </Txt>
+          )}
+          {scanNote === null ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-scan-note">
+              {scanNote}
+            </Txt>
+          )}
+          {/*
            * Not started: ONE action. Scan is hidden rather than disabled, because the kit prints a
            * disabled button's reason beneath it — the not-started sentence would be said twice on a
            * phone, over the scanner's own "unavailable" reason.
            */}
-          {notStarted ? (
+          {/*
+           * Nothing is offered while the device has not answered (DOS-182). Scan and "Take it to
+           * packing" over rows that refuse to be picked is the bar contradicting the sheet.
+           */}
+          {gate === 'waiting' ? null : notStarted ? (
             <Button
               label={t('w5.start')}
               variant="primary"
@@ -273,23 +304,6 @@ export default function PickingSheet(): React.JSX.Element {
               setView(id === 'all' ? 'all' : 'todo')
             }}
           />
-        )}
-
-        {/*
-         * The offline promise is said WHEN IT IS TRUE, not always. A standing sentence cost a whole
-         * row of the sheet: measured at 375 x 812, the first line's Picked / Short buttons fell
-         * below the fold, and the one thing UX-00 section 9.4 puts above it is a pickable row.
-         * Online, the connection strip already carries "Updated just now".
-         */}
-        {status.online ? null : (
-          <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-offline">
-            {t(keepKey('offlineNote', status.persistent))}
-          </Txt>
-        )}
-        {scanNote === null ? null : (
-          <Txt field="label" desk="meta" color={colors.text.secondary}>
-            {scanNote}
-          </Txt>
         )}
 
         <LocalAsync
