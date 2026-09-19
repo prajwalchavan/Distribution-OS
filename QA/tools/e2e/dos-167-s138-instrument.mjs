@@ -9,6 +9,12 @@
 // injected delay at all). Neither count is observable from outside the library, so the gate runs against a tree whose
 // `expo-sqlite/web` prints `DOSDIAG vfs-construct` and `DOSDIAG init-CREATES`.
 //
+// THE IDS ARE WORKER-UNIQUE (review, 2026-09-19). `__vfsSeq` and `__initCalls` are per-worker counters, so a VFS
+// built in a SECOND worker also called itself id=1 and a counter keyed on the id read two constructions as one —
+// the latent second VFS A3 exists to catch. Each worker now stamps a random `__dosdiagTag` into both ids, so
+// `tag:seq` is unique across workers. `dos-167-s138-verdict.mjs` reads both forms, so the runs recorded before this
+// change still judge.
+//
 // It writes ONLY into node_modules, keeps the untouched originals beside them, and is reversed with `--restore`.
 //
 // Usage: node QA/tools/e2e/dos-167-s138-instrument.mjs [--frontend <dir>]
@@ -62,7 +68,8 @@ v = must(
     super(name, module);
     this.#directoryPath = name;
     globalThis.__vfsSeq = (globalThis.__vfsSeq ?? 0) + 1;
-    this.__id = globalThis.__vfsSeq;
+    globalThis.__dosdiagTag = globalThis.__dosdiagTag ?? Math.random().toString(36).slice(2, 8);
+    this.__id = globalThis.__dosdiagTag + ':' + globalThis.__vfsSeq;
     console.warn('DOSDIAG vfs-construct id=' + this.__id + ' dir=' + name + ' t=' + Math.round(performance.now()));
   }`,
   v, 'vfs constructor')
@@ -122,7 +129,8 @@ async function maybeInitAsync(): Promise<{`,
 w = must(
   `  if (!_sqlite3) {
     const module = await WaSQLiteFactory({`,
-  `  const __call = ++__initCalls;
+  `  (globalThis as any).__dosdiagTag = (globalThis as any).__dosdiagTag ?? Math.random().toString(36).slice(2, 8);
+  const __call = (globalThis as any).__dosdiagTag + ':' + ++__initCalls;
   console.warn('DOSDIAG init-enter call=' + __call + ' sqlite3=' + !!_sqlite3 + ' vfs=' + !!_vfs + ' t=' + Math.round(performance.now()));
   if (!_sqlite3) {
     console.warn('DOSDIAG init-CREATES call=' + __call + ' t=' + Math.round(performance.now()));

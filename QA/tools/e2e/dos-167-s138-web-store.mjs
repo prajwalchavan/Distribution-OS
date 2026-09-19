@@ -14,6 +14,10 @@
 // optionally hold the expo-sqlite main-thread chunk and its worker bundle back by --delay ms, sign in, watch for N ms,
 // walk OPFS, then judge.
 //
+// The pass condition itself is `dos-167-s138-verdict.mjs`, a sibling with no dependencies, so it can be imported
+// and exercised without playwright and without a browser; `--selfcheck` runs it over both the ruling's recorded
+// evidence and the synthetic console shapes no recorded run covers.
+//
 // Usage: node QA/tools/e2e/dos-167-s138-instrument.mjs            # once, so the DOSDIAG counts exist
 //        node QA/tools/e2e/dos-167-s138-web-store.mjs --label cold-01 --delay 600 [--user rahul] [--watch 25000]
 //              [--app http://localhost:5175] [--out <dir>] [--reload] [--second amit]
@@ -21,70 +25,18 @@
 //        node QA/tools/e2e/dos-167-s138-web-store.mjs --selfcheck [--runs <dir>]
 // Needs (for a live run): the sales Metro on :5175 and a QA Chromium on CDP :$PW_PORT (default 9341).
 // Exit code: 0 pass, 1 fail — so a lane can gate on it.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/**
- * The two counts A3 demands, read off the instrumented library's own console lines. Playwright reports a worker's
- * console on BOTH the worker and the page, so the same line arrives twice: distinct LINES are counted, and within
- * them distinct VFS construction ids and distinct init calls that took the CREATE branch.
- */
-export function countInstrumentation(events = []) {
-  const lines = new Set()
-  for (const event of events) {
-    const text = typeof event?.text === 'string' ? event.text : ''
-    if (text.startsWith('DOSDIAG')) lines.add(text)
-  }
-  const vfsIds = new Set()
-  const initCalls = new Set()
-  for (const line of lines) {
-    const vfs = /^DOSDIAG vfs-construct id=(\d+)/.exec(line)
-    if (vfs) vfsIds.add(vfs[1])
-    const init = /^DOSDIAG init-CREATES call=(\d+)/.exec(line)
-    if (init) initCalls.add(init[1])
-  }
-  return { instrumented: lines.size > 0, vfsInstances: vfsIds.size, initCREATES: initCalls.size }
-}
-
-/** The whole pass condition in one place, so `--verdict` judges a recorded run by exactly the rule a live run is judged by. */
-export function verdict(result) {
-  const counts = result.instrumentation ?? countInstrumentation(result.events)
-  const headers = result.headers ?? []
-  const wanted = result.wantedHeader
-  const orphans = headers.filter((header) => /^0\./.test(header) || /-wal$/.test(header))
-  const reasons = []
-  if (result.crossOriginIsolated !== true) reasons.push(`not cross-origin isolated (${result.crossOriginIsolated})`)
-  if (!headers.includes(wanted)) reasons.push(`this person's pool header ${wanted} is missing: ${JSON.stringify(headers)}`)
-  if (headers.length !== 1) reasons.push(`the pool holds ${headers.length} named files, not one: ${JSON.stringify(headers)}`)
-  if (orphans.length > 0) reasons.push(`orphan pool files that no VFS ever reclaims: ${JSON.stringify(orphans)}`)
-  if (!(result.manifestCalls > 0)) reasons.push('no sync.manifest call')
-  if (!(result.pullCalls > 0)) reasons.push('no sync.pull call')
-  if (result.notADatabase !== 0) reasons.push(`${result.notADatabase} x "not a database"`)
-  if (result.cannotCreate !== 0) reasons.push(`${result.cannotCreate} x "cannot create file"`)
-  if (result.beatFinal?.notPersisted !== false) reasons.push('the "will not keep the offline copy" line is still on the screen')
-  // Amendment A3: the CAUSE, not only the damage.
-  if (!counts.instrumented)
-    reasons.push('not instrumented: vfsInstances/initCREATES cannot be asserted (run dos-167-s138-instrument.mjs first)')
-  if (counts.vfsInstances > 1) reasons.push(`vfsInstances ${counts.vfsInstances} > 1: concurrent opens each built their own VFS`)
-  if (counts.initCREATES > 1) reasons.push(`initCREATES ${counts.initCREATES} > 1: concurrent opens each built their own WASM module`)
-  return { pass: reasons.length === 0, reasons, ...counts }
-}
+// The pass condition lives in the sibling so it can be IMPORTED: this file's `await import('playwright')` runs on
+// import, so exporting the rule from here made it unreachable to anything but the CLI (review, 2026-09-19).
+import { countInstrumentation, judge, verdict } from './dos-167-s138-verdict.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const argOf = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`)
   return i === -1 ? fallback : process.argv[i + 1]
-}
-
-const judge = (file) => {
-  const result = JSON.parse(readFileSync(file, 'utf8'))
-  const v = verdict(result)
-  console.log(
-    `[${result.label}] pass=${v.pass} vfsInstances=${v.vfsInstances} initCREATES=${v.initCREATES} instrumented=${v.instrumented} pool=${result.poolFiles}`,
-  )
-  for (const reason of v.reasons) console.log(`   - ${reason}`)
-  return v
 }
 
 // --verdict: judge one recorded run, no browser.
@@ -114,6 +66,76 @@ if (process.argv.includes('--selfcheck')) {
     if (green.vfsInstances !== 1 || green.initCREATES !== 1)
       problems.push(`${label} reported vfsInstances=${green.vfsInstances} initCREATES=${green.initCREATES}, wanted 1 and 1`)
   }
+
+  /*
+   * THE COUNTER'S OWN BLIND SPOTS (review, 2026-09-19), judged from synthetic console lists rather than a browser.
+   * A recorded run cannot cover these: no run in the evidence happens to build two workers, and an unpatched tree
+   * that still prints one `DOSDIAG msg` line has to be constructed. These four cases are what a unit test over the
+   * pass condition would assert, which is why it is now importable (`dos-167-s138-verdict.mjs`).
+   */
+  console.log('COUNTER — the shapes a recorded run does not cover:')
+  const lines = (...texts) => texts.map((text) => ({ text }))
+  const counterCases = [
+    {
+      name: 'two workers, both calling themselves id=1',
+      // The exact shape the id-set counter read as ONE: `id` is worker-scoped, so the second worker's first VFS is
+      // also id=1. Counting distinct LINES (each carries its own t=) sees two.
+      events: lines(
+        'DOSDIAG main-worker-create t=10',
+        'DOSDIAG init-enter call=1 sqlite3=false vfs=false t=11',
+        'DOSDIAG init-CREATES call=1 t=11',
+        'DOSDIAG vfs-construct id=1 dir=expo-sqlite t=12',
+        'DOSDIAG main-worker-create t=900',
+        'DOSDIAG init-enter call=1 sqlite3=false vfs=false t=901',
+        'DOSDIAG init-CREATES call=1 t=901',
+        'DOSDIAG vfs-construct id=1 dir=expo-sqlite t=902',
+      ),
+      want: { instrumented: true, vfsInstances: 2, initCREATES: 2, workers: 2 },
+    },
+    {
+      name: 'one construction, echoed by Playwright on both the worker and the page',
+      events: lines(
+        'DOSDIAG init-enter call=1 sqlite3=false vfs=false t=11',
+        'DOSDIAG init-enter call=1 sqlite3=false vfs=false t=11',
+        'DOSDIAG init-CREATES call=1 t=11',
+        'DOSDIAG init-CREATES call=1 t=11',
+        'DOSDIAG vfs-construct id=1 dir=expo-sqlite t=12',
+        'DOSDIAG vfs-construct id=1 dir=expo-sqlite t=12',
+      ),
+      want: { instrumented: true, vfsInstances: 1, initCREATES: 1, workers: 0 },
+    },
+    {
+      name: 'an unpatched tree that still prints a worker message',
+      // `any DOSDIAG line` made this read as instrumented, so vfsInstances 0 looked satisfied instead of unassertable.
+      events: lines('DOSDIAG msg type=open path="/s0" id=1 t=5'),
+      want: { instrumented: false, vfsInstances: 0, initCREATES: 0, workers: 0 },
+    },
+    {
+      name: 'the worker patched but the VFS module not',
+      events: lines('DOSDIAG init-enter call=1 sqlite3=false vfs=false t=11', 'DOSDIAG init-CREATES call=1 t=11'),
+      want: { instrumented: true, vfsInstances: 0, initCREATES: 1, workers: 0 },
+    },
+  ]
+  for (const c of counterCases) {
+    const got = countInstrumentation(c.events)
+    const ok = Object.entries(c.want).every(([k, v]) => got[k] === v)
+    console.log(`[counter] ok=${ok} ${c.name} -> ${JSON.stringify(got)}`)
+    if (!ok) problems.push(`counter case "${c.name}" gave ${JSON.stringify(got)}, wanted ${JSON.stringify(c.want)}`)
+  }
+  // And each of those must be REFUSED by the pass condition, with the cause named.
+  const refusals = [
+    ['vfsInstances 2 >', 'two workers, both calling themselves id=1'],
+    ['workers 2 >', 'two workers, both calling themselves id=1'],
+    ['not instrumented:', 'an unpatched tree that still prints a worker message'],
+    ['the VFS module is not instrumented:', 'the worker patched but the VFS module not'],
+  ]
+  for (const [prefix, caseName] of refusals) {
+    const c = counterCases.find((x) => x.name === caseName)
+    const v = verdict({ events: c.events })
+    if (!v.reasons.some((r) => r.startsWith(prefix))) problems.push(`"${caseName}" was not refused for ${prefix}…`)
+    if (v.pass) problems.push(`"${caseName}" passed the pass condition`)
+  }
+
   for (const problem of problems) console.log(`SELFCHECK PROBLEM: ${problem}`)
   console.log(problems.length === 0 ? 'SELFCHECK OK' : `SELFCHECK FAILED (${problems.length})`)
   process.exit(problems.length === 0 ? 0 : 1)
