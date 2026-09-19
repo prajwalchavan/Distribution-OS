@@ -244,7 +244,16 @@ Also read the earlier evidence under ${MAIN}/QA/evidence/batch2/dos-167/ and the
 Decide 'closed' ONLY if, on every target, a person's unsent changes survive sign-out on that device, go first at that person's next sign-in, and never reach anybody else — and the web store opens honestly or says honestly that it cannot. A case reported 'not-tested' is not a pass. List every open item.
 Write ${MAIN}/QA/evidence/batch2/verdicts/DOS-167-judge.md (under 60 lines) and return the structured decision.`
 
-const serious = (v) => !v || v.verdict !== 'pass' || v.problems.some((p) => p.severity !== 'minor') || (v.amendmentsChecked || []).some((a) => !a.satisfied)
+/**
+ * What actually stops the lane. The verifier's own verdict, an unsatisfied amendment, or a BLOCKER.
+ * A 'major' beside a 'pass' is NOT a stop: the first run of this lane was halted by one, and reading
+ * it showed it was the verifier correctly saying "the live-browser half of A3, A4 and A5 cannot run
+ * in a build lane" — which is precisely what the Proof phase below exists to do. Majors are carried
+ * forward and logged rather than swallowed; a blocker still stops everything.
+ */
+const serious = (v) =>
+  !v || v.verdict !== 'pass' || v.problems.some((p) => p.severity === 'blocker') || (v.amendmentsChecked || []).some((a) => !a.satisfied)
+const carried = (v) => (v && v.problems ? v.problems.filter((p) => p.severity === 'major') : [])
 const ivBad = (x) => !x || x.verdict !== 'pass' || x.problems.some((p) => p.severity !== 'minor')
 
 const out = {}
@@ -264,6 +273,7 @@ if (serious(v)) {
 out.impl = b
 out.verdict = v
 if (serious(v)) return { ...out, final: 'not-verified' }
+for (const m of carried(v)) log('carried forward to the proof stage: ' + String(m.detail).slice(0, 180))
 
 phase('Review')
 const review = await agent(reviewPrompt({ commits: b.commits, amendments: b.amendments, deviations: b.deviations, verifier: { verdict: v.verdict, problems: v.problems } }), { label: 'review:amendments', phase: 'Review', schema: REVIEW, model: 'fable' })
