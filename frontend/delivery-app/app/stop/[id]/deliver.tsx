@@ -20,7 +20,7 @@
  * asks for it.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
-import { useSyncStatus } from '@dos/offline/react'
+import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
   Money,
@@ -116,6 +116,12 @@ export default function AtTheDoor(): React.JSX.Element {
   const deliveryId = typeof params.deliveryId === 'string' ? params.deliveryId : null
   const hydrated = useHydrated()
   const status = useSyncStatus()
+  /*
+   * DOS-063 — the screen this one replaces reads the stop off SQLite, and nothing told the device to
+   * go and fetch what the office has just written. The public pull is the whole fix; a screen never
+   * writes the office's answer into the device's tables itself.
+   */
+  const engine = useSyncEngine()
 
   const { stop } = useLocalStop(stopId)
   const { trip } = useLocalTrip(stop?.trip_id ?? null)
@@ -208,6 +214,7 @@ export default function AtTheDoor(): React.JSX.Element {
       invalidates: [['trip'], ['stops']],
       onSuccess: (result) => {
         haptics.success()
+        void engine?.sync('delivery recorded')
         setToast(
           result.creditNoteId === null
             ? t('d4.recorded')
