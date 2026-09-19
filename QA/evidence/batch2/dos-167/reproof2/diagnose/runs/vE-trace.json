@@ -1,0 +1,624 @@
+{
+ "label": "vE-trace",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 601,
+   "at": 5403
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 602,
+   "at": 6380
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/05tej73lwq7",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/10hoqxwfv34n",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/bh7etfjegp7",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/hpmca61v1lu",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/lp8k1sq325i",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  },
+  {
+   "path": "expo-sqlite/rma6vys11cb",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  }
+ ],
+ "syncRequests": [],
+ "manifestCalls": 0,
+ "pullCalls": 0,
+ "notADatabase": 3,
+ "cannotCreate": 0,
+ "beatFinal": {
+  "notPersisted": true,
+  "stillLoading": true
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 4666,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 4763,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 4798,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 4872,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 4888,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789887795&signature=49e5b406b358522a030259af671ee0732e0fb9e5814a9b87dc3795de2309"
+  },
+  {
+   "t": 4890,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 4892,
+   "kind": "beat",
+   "notPersisted": true,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 5523,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./dos-sales.db\" t=5479"
+  },
+  {
+   "t": 5523,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-worker-create t=5481"
+  },
+  {
+   "t": 5524,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" t=5481"
+  },
+  {
+   "t": 5524,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" t=5481"
+  },
+  {
+   "t": 5525,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/89471367-bef8-4871-8664-cff167018173"
+  },
+  {
+   "t": 6414,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open db=\"./dos-sales.db\" sql=\"\" id=0 t=889"
+  },
+  {
+   "t": 6414,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open db=\"./dos-sales.db\" sql=\"\" id=0 t=889"
+  },
+  {
+   "t": 6414,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=1 sqlite3=false vfs=false t=890"
+  },
+  {
+   "t": 6414,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=1 sqlite3=false vfs=false t=890"
+  },
+  {
+   "t": 6414,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=1 t=890"
+  },
+  {
+   "t": 6414,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=1 t=890"
+  },
+  {
+   "t": 6419,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"\" id=1 t=895"
+  },
+  {
+   "t": 6419,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"\" id=1 t=895"
+  },
+  {
+   "t": 6419,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open db=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" sql=\"\" id=2 t=896"
+  },
+  {
+   "t": 6419,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=open db=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" sql=\"\" id=2 t=896"
+  },
+  {
+   "t": 6460,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-construct id=1 dir=expo-sqlite t=936"
+  },
+  {
+   "t": 6460,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-construct id=1 dir=expo-sqlite t=936"
+  },
+  {
+   "t": 6462,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-ready-begin id=1 t=938"
+  },
+  {
+   "t": 6462,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-ready-begin id=1 t=938"
+  },
+  {
+   "t": 6462,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-acquired id=1 capacity=0 size=0 paths=[] t=939"
+  },
+  {
+   "t": 6462,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-acquired id=1 capacity=0 size=0 paths=[] t=939"
+  },
+  {
+   "t": 6462,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=rma6vys11cb path=\"\" flags=0x0 t=939"
+  },
+  {
+   "t": 6462,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=rma6vys11cb path=\"\" flags=0x0 t=939"
+  },
+  {
+   "t": 6464,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=lp8k1sq325i path=\"\" flags=0x0 t=940"
+  },
+  {
+   "t": 6464,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=lp8k1sq325i path=\"\" flags=0x0 t=940"
+  },
+  {
+   "t": 6464,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=10hoqxwfv34n path=\"\" flags=0x0 t=941"
+  },
+  {
+   "t": 6464,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=10hoqxwfv34n path=\"\" flags=0x0 t=941"
+  },
+  {
+   "t": 6465,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=bh7etfjegp7 path=\"\" flags=0x0 t=941"
+  },
+  {
+   "t": 6465,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=bh7etfjegp7 path=\"\" flags=0x0 t=941"
+  },
+  {
+   "t": 6465,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=hpmca61v1lu path=\"\" flags=0x0 t=942"
+  },
+  {
+   "t": 6465,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=hpmca61v1lu path=\"\" flags=0x0 t=942"
+  },
+  {
+   "t": 6466,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=05tej73lwq7 path=\"\" flags=0x0 t=943"
+  },
+  {
+   "t": 6466,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=05tej73lwq7 path=\"\" flags=0x0 t=943"
+  },
+  {
+   "t": 6466,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-addcapacity id=1 capacity=6 t=943"
+  },
+  {
+   "t": 6466,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-addcapacity id=1 capacity=6 t=943"
+  },
+  {
+   "t": 6467,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=1 vfsId=1 t=943"
+  },
+  {
+   "t": 6467,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-return call=1 vfsId=1 t=943"
+  },
+  {
+   "t": 6467,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"./dos-sales.db\" flags=0x106 size=0/6 t=944"
+  },
+  {
+   "t": 6467,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"./dos-sales.db\" flags=0x106 size=0/6 t=944"
+  },
+  {
+   "t": 6468,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=rma6vys11cb path=\"/dos-sales.db\" flags=0x106 t=944"
+  },
+  {
+   "t": 6468,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=rma6vys11cb path=\"/dos-sales.db\" flags=0x106 t=944"
+  },
+  {
+   "t": 6469,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 size=1/6 t=945"
+  },
+  {
+   "t": 6469,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jOpen id=1 zName=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 size=1/6 t=945"
+  },
+  {
+   "t": 6469,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=lp8k1sq325i path=\"/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 t=945"
+  },
+  {
+   "t": 6469,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=lp8k1sq325i path=\"/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" flags=0x106 t=945"
+  },
+  {
+   "t": 6469,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=open db=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" sql=\"\" id=2: sqlite3_open_v2"
+  },
+  {
+   "t": 6469,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=open db=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" sql=\"\" id=2: sqlite3_open_v2"
+  },
+  {
+   "t": 6472,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec db=\"./dos-sales.db\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=3 t=948"
+  },
+  {
+   "t": 6472,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec db=\"./dos-sales.db\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=3 t=948"
+  },
+  {
+   "t": 6472,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=exec db=\"./dos-sales.db\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=3: Error code 10: disk I/O error"
+  },
+  {
+   "t": 6472,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=exec db=\"./dos-sales.db\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=3: Error code 10: disk I/O error"
+  },
+  {
+   "t": 6473,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=4 t=949"
+  },
+  {
+   "t": 6473,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=4 t=949"
+  },
+  {
+   "t": 6473,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=4: Error code 10: disk I/O error"
+  },
+  {
+   "t": 6473,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;\" id=4: Error code 10: disk I/O error"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close db=\"./dos-sales.db\" sql=\"\" id=5 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close db=\"./dos-sales.db\" sql=\"\" id=5 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"CREATE TABLE IF NOT EXISTS _sync_state (key TEXT PRIMARY KEY, value TE\" id=6 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"CREATE TABLE IF NOT EXISTS _sync_state (key TEXT PRIMARY KEY, value TE\" id=6 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"CREATE TABLE IF NOT EXISTS _sync_state (key TEXT PRIMARY KEY, value TE\" id=6: Error code 21: bad parameter or other API misuse"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=exec db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"CREATE TABLE IF NOT EXISTS _sync_state (key TEXT PRIMARY KEY, value TE\" id=6: Error code 21: bad parameter or other API misuse"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=deleteDatabase db=\"./dos-sales.db\" sql=\"\" id=7 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=deleteDatabase db=\"./dos-sales.db\" sql=\"\" id=7 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"./dos-sales.db\" path=\"/dos-sales.db\" known=true t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG jDelete id=1 zName=\"./dos-sales.db\" path=\"/dos-sales.db\" known=true t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=rma6vys11cb path=\"\" flags=0x0 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG setPath id=1 name=rma6vys11cb path=\"\" flags=0x0 t=949"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"\" id=8 t=950"
+  },
+  {
+   "t": 6474,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG msg type=close db=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" sql=\"\" id=8 t=950"
+  },
+  {
+   "t": 6475,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=close db=null sql=\"\" id=8: not a database"
+  },
+  {
+   "t": 6475,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "DOSDIAG msg-ERROR type=close db=null sql=\"\" id=8: not a database"
+  },
+  {
+   "t": 6475,
+   "kind": "pageerror",
+   "text": "SQLiteError: not a database"
+  },
+  {
+   "t": 17086,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": false
+}

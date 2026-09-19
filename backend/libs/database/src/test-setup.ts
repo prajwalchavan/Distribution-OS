@@ -1,4 +1,4 @@
-import { loadDotenv } from '@dos/db'
+import { loadDotenv } from './env.js'
 
 loadDotenv()
 

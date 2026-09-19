@@ -1,0 +1,403 @@
+{
+  "mode": "signin",
+  "opt": {
+    "delay": "600",
+    "seconds": "20"
+  },
+  "startedAt": "2026-09-14T04:43:14.557Z",
+  "phases": [
+    {
+      "name": "signin-delay-600",
+      "events": [
+        {
+          "t": 752,
+          "kind": "console",
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "t": 779,
+          "kind": "console",
+          "type": "log",
+          "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+        },
+        {
+          "t": 38,
+          "kind": "request",
+          "method": "POST",
+          "url": "/auth/login"
+        },
+        {
+          "t": 87,
+          "kind": "response",
+          "status": 200,
+          "url": "/auth/login"
+        },
+        {
+          "t": 103,
+          "kind": "request",
+          "method": "GET",
+          "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/brandin"
+        },
+        {
+          "t": 107,
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+        },
+        {
+          "t": 541,
+          "kind": "beat",
+          "strip": "Not updated yet",
+          "notPersisted": true,
+          "stillLoading": true,
+          "shops": "0",
+          "path": "/"
+        },
+        {
+          "t": 558,
+          "kind": "held",
+          "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle",
+          "heldMs": 655
+        },
+        {
+          "t": 661,
+          "kind": "worker-created",
+          "url": "blob:http://localhost:5175/bad1b14b-8c70-4d56-90a5-0a4e1bdd79d6"
+        },
+        {
+          "t": 1280,
+          "kind": "held",
+          "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle",
+          "heldMs": 618
+        },
+        {
+          "t": 1371,
+          "kind": "pageerror",
+          "text": "SQLiteError: not a database"
+        },
+        {
+          "t": 20232,
+          "kind": "worker-closed"
+        }
+      ],
+      "lastSnap": {
+        "strip": "Not updated yet",
+        "notPersisted": true,
+        "stillLoading": true,
+        "shops": "0",
+        "path": "/"
+      },
+      "trace": [
+        {
+          "t": 1653,
+          "dir": "post",
+          "type": "open",
+          "id": 0,
+          "path": "./dos-sales.db",
+          "db": 0
+        },
+        {
+          "t": 1653,
+          "dir": "post",
+          "type": "open",
+          "id": 1,
+          "path": "./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "db": 1
+        },
+        {
+          "t": 1653,
+          "dir": "post",
+          "type": "open",
+          "id": 2,
+          "path": "./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db",
+          "db": 2
+        },
+        {
+          "t": 2354,
+          "dir": "reply",
+          "id": 0,
+          "error": null
+        },
+        {
+          "t": 2357,
+          "dir": "post",
+          "type": "exec",
+          "id": 3,
+          "path": null,
+          "db": 0
+        },
+        {
+          "t": 2357,
+          "dir": "reply",
+          "id": 1,
+          "error": null
+        },
+        {
+          "t": 2357,
+          "dir": "post",
+          "type": "exec",
+          "id": 4,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2364,
+          "dir": "reply",
+          "id": 3,
+          "error": null
+        },
+        {
+          "t": 2364,
+          "dir": "post",
+          "type": "close",
+          "id": 5,
+          "path": null,
+          "db": 0
+        },
+        {
+          "t": 2364,
+          "dir": "reply",
+          "id": 4,
+          "error": null
+        },
+        {
+          "t": 2364,
+          "dir": "post",
+          "type": "exec",
+          "id": 6,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2364,
+          "dir": "reply",
+          "id": 5,
+          "error": null
+        },
+        {
+          "t": 2364,
+          "dir": "post",
+          "type": "deleteDatabase",
+          "id": 7,
+          "path": "./dos-sales.db",
+          "db": null
+        },
+        {
+          "t": 2364,
+          "dir": "reply",
+          "id": 6,
+          "error": "Error: Error code 21: bad parameter or other API misuse"
+        },
+        {
+          "t": 2364,
+          "dir": "post",
+          "type": "close",
+          "id": 8,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2365,
+          "dir": "reply",
+          "id": 7,
+          "error": null
+        },
+        {
+          "t": 2365,
+          "dir": "reply",
+          "id": 8,
+          "error": "Error: not a database"
+        },
+        {
+          "t": 2372,
+          "dir": "reply",
+          "id": 2,
+          "error": null
+        },
+        {
+          "t": 2372,
+          "dir": "post",
+          "type": "exec",
+          "id": 9,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2373,
+          "dir": "reply",
+          "id": 9,
+          "error": null
+        },
+        {
+          "t": 2373,
+          "dir": "post",
+          "type": "exec",
+          "id": 10,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2378,
+          "dir": "reply",
+          "id": 10,
+          "error": null
+        },
+        {
+          "t": 2378,
+          "dir": "post",
+          "type": "exec",
+          "id": 11,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2381,
+          "dir": "reply",
+          "id": 11,
+          "error": null
+        },
+        {
+          "t": 2381,
+          "dir": "post",
+          "type": "exec",
+          "id": 12,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2383,
+          "dir": "reply",
+          "id": 12,
+          "error": "Error: Error code 1: no such table: main._outbox"
+        },
+        {
+          "t": 2383,
+          "dir": "post",
+          "type": "close",
+          "id": 13,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2384,
+          "dir": "reply",
+          "id": 13,
+          "error": null
+        }
+      ],
+      "walk": [
+        [
+          "expo-sqlite/u8prl6zqwdi",
+          4096,
+          "/dos-sales.db-wal",
+          "106"
+        ],
+        [
+          "expo-sqlite/eq5s630nqt",
+          8192,
+          "0.sb2aq32afbr",
+          "806"
+        ],
+        [
+          "expo-sqlite/9ikobyb8whi",
+          8192,
+          "0.bl98iolnva9",
+          "806"
+        ],
+        [
+          "expo-sqlite/7hsdze1tw7l",
+          8192,
+          "0.sq7dqupc7f9",
+          "806"
+        ],
+        [
+          "expo-sqlite/6bq8sb0az32",
+          20480,
+          "0.ik8jf68z4an",
+          "106"
+        ],
+        [
+          "expo-sqlite/2uduwwfjxrv",
+          8192,
+          "0.s8oar2m5es9",
+          "806"
+        ]
+      ],
+      "summary": {
+        "manifestCalls": 0,
+        "pull200": 0,
+        "pageErrors": [
+          "SQLiteError: not a database"
+        ],
+        "workerConsole": [],
+        "end": {
+          "strip": "Not updated yet",
+          "notPersisted": true,
+          "stillLoading": true,
+          "shops": "0",
+          "path": "/"
+        },
+        "poolFiles": 6,
+        "associations": [
+          {
+            "header": "/dos-sales.db-wal",
+            "size": 4096,
+            "flags": "106"
+          },
+          {
+            "header": "0.sb2aq32afbr",
+            "size": 8192,
+            "flags": "806"
+          },
+          {
+            "header": "0.bl98iolnva9",
+            "size": 8192,
+            "flags": "806"
+          },
+          {
+            "header": "0.sq7dqupc7f9",
+            "size": 8192,
+            "flags": "806"
+          },
+          {
+            "header": "0.ik8jf68z4an",
+            "size": 20480,
+            "flags": "106"
+          },
+          {
+            "header": "0.s8oar2m5es9",
+            "size": 8192,
+            "flags": "806"
+          }
+        ],
+        "rahulHeader": null,
+        "garbageAssociations": 6,
+        "workerOpensBeforeFirstReply": [
+          "./dos-sales.db",
+          "./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+        ],
+        "workerPostsBeforeFirstReply": [
+          "open:./dos-sales.db",
+          "open:./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "open:./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+        ],
+        "workerErrors": [
+          "Error: Error code 21: bad parameter or other API misuse",
+          "Error: not a database",
+          "Error: Error code 1: no such table: main._outbox"
+        ],
+        "pass": false
+      }
+    }
+  ],
+  "crossOriginIsolated": true,
+  "finishedAt": "2026-09-14T04:43:35.859Z",
+  "verdicts": [
+    {
+      "phase": "signin-delay-600",
+      "pass": false
+    }
+  ]
+}

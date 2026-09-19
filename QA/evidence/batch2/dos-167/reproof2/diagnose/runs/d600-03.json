@@ -1,0 +1,139 @@
+{
+ "label": "d600-03",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 601,
+   "at": 1696
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 600,
+   "at": 2406
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "0.4i66zbn0wol",
+  "0.neaxqdhxcc",
+  "0.d5j9kzj75i",
+  "/dos-sales.db-wal",
+  "0.3zeawcz4qsw",
+  "0.h3pizzswofg"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/9uiwvpxnnt",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.4i66zbn0wol"
+  },
+  {
+   "path": "expo-sqlite/emwrugq0zsn",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.neaxqdhxcc"
+  },
+  {
+   "path": "expo-sqlite/fv0hsw92xhh",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.d5j9kzj75i"
+  },
+  {
+   "path": "expo-sqlite/k4cfy3xg9ro",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "/dos-sales.db-wal"
+  },
+  {
+   "path": "expo-sqlite/p8v8zfshuul",
+   "kind": "file",
+   "size": 20480,
+   "sqlitePath": "0.3zeawcz4qsw"
+  },
+  {
+   "path": "expo-sqlite/wgmt8ak942c",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.h3pizzswofg"
+  }
+ ],
+ "syncRequests": [],
+ "manifestCalls": 0,
+ "pullCalls": 0,
+ "notADatabase": 1,
+ "cannotCreate": 0,
+ "beatFinal": {
+  "notPersisted": true,
+  "stillLoading": true
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 1089,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 1157,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 1193,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 1260,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 1277,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789886820&signature=6d913c24d54fdece1bfda546581ef8d8cb9e245b78a5b9e3a88ff4d841fe"
+  },
+  {
+   "t": 1278,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 1280,
+   "kind": "beat",
+   "notPersisted": true,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 1796,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/b74edb62-127b-4831-9f5a-9fc1092b76d1"
+  },
+  {
+   "t": 2494,
+   "kind": "pageerror",
+   "text": "SQLiteError: not a database"
+  },
+  {
+   "t": 16456,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": false
+}
