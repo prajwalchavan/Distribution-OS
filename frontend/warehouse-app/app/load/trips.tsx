@@ -5,7 +5,11 @@
  * trips, adding stops and starting loading). "Plan a trip" opens a form built from the trip planning
  * board (`delivery.trips.planning`): the date, a vehicle, a driver and a helper from the crew — a member
  * already on a trip that day is listed, disabled, saying which — the cash float, and the packed bills no
- * open trip carries yet, stops in the order the bills are tapped. "Add a bill" puts a late bill on a
+ * open trip carries yet, stops in the order the bills are tapped. A bill that came back undelivered is
+ * listed under those, greyed and not tappable: it rides its van until that trip checks in, and no trip
+ * may plan it until then (QA DOS-172). The board answers those apart, under `held`, with the trip that
+ * carries each one; the rule is the server's alone and this screen only draws what it sends.
+ * "Add a bill" puts a late bill on a
  * planned or loading trip. Both forms are inline panels and both confirm in a dialog on the page, never
  * over a sheet (DOS-164). The trip and stop ids are fixed when the dialog opens, so pressing again after
  * a lost reply sends the same request and gets the same trip back. A refusal keeps the form and prints
@@ -178,6 +182,8 @@ export default function Trips(): React.JSX.Element {
   const nameOf = (userId: string | null): string | null =>
     userId === null ? null : (crew.find((member) => member.userId === userId)?.name ?? null)
   const bills = mergeBills(earlier, board.data?.bills ?? [])
+  /** This page's bills still riding a van that has not checked in: shown, never plannable (QA DOS-172). */
+  const held = board.data?.held ?? []
   const nextCursor = board.data?.nextCursor ?? null
   const onBoard = chosen.filter((invoiceId) => bills.some((bill) => bill.invoiceId === invoiceId))
   const form: PlanForm = {
@@ -210,12 +216,15 @@ export default function Trips(): React.JSX.Element {
   const askingTrip = asking === null ? undefined : openTrips.find((trip) => trip.id === asking)
   const planVehicle = (vehicles.data?.items ?? []).find((vehicle) => vehicle.id === plan?.vehicleId)
 
-  /** The bills of the board, tapped for a new trip (`onTap` = tap order) or for one late stop. */
+  /**
+   * The bills of the board, tapped for a new trip (`onTap` = tap order) or for one late stop, and under
+   * them the bills held on the road: a page of nothing but those still draws them (QA DOS-172).
+   */
   const billList = (onTap: (invoiceId: string) => void): React.JSX.Element => (
     <Async
       state={board}
       rows={3}
-      empty={bills.length === 0 && nextCursor === null}
+      empty={bills.length === 0 && held.length === 0 && nextCursor === null}
       emptyMessage={t('w10.billsEmpty')}
     >
       <Stack gap={3}>
@@ -233,6 +242,18 @@ export default function Trips(): React.JSX.Element {
               onPress={() => {
                 onTap(bill.invoiceId)
               }}
+            />
+          ))}
+          {held.map((bill) => (
+            <ListRow
+              key={bill.invoiceId}
+              testID={`w10-held-${bill.invoiceId}`}
+              primary={bill.retailerName}
+              secondary={t('w10.heldOnTrip', {
+                trip: bill.onTripNo ?? bill.onTripId.slice(0, 8),
+              })}
+              trailingMoney={bill.invoiceTotalPaise}
+              state="disabled"
             />
           ))}
         </Group>

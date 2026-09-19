@@ -6,6 +6,10 @@
  * built from the trip planning board (`delivery.trips.planning`): today or tomorrow, a vehicle, a driver
  * and a helper from the crew — a member already on a trip that day is listed, disabled, saying which —
  * the cash float, and the packed bills no open trip carries yet, stops in the order the bills are tapped.
+ * A bill that came back undelivered is listed under those, greyed and not tappable: it rides its van
+ * until that trip checks in, and no trip may plan it until then (QA DOS-172). The board answers those
+ * apart, under `held`, with the trip that carries each one; the rule is the server's alone and this
+ * screen only draws what it sends.
  * Selecting a trip opens "Add a bill to …" for a late bill (`delivery.stops.add`). Both forms are inline
  * panels whose confirm is a dialog on the page — iOS refuses a dialog over a sheet (DOS-164) — and a
  * refusal is printed in the dialog, where the manager pressed (DOS-029). The trip and stop ids are fixed
@@ -133,6 +137,8 @@ export default function DeskTrips(): React.JSX.Element {
 
   const crew = board.data?.crew ?? []
   const bills = mergeBills(earlier, board.data?.bills ?? [])
+  /** This page's bills still riding a van that has not checked in: shown, never plannable (QA DOS-172). */
+  const held = board.data?.held ?? []
   const nextCursor = board.data?.nextCursor ?? null
   const onBoard = chosen.filter((invoiceId) => bills.some((bill) => bill.invoiceId === invoiceId))
   const form: PlanForm = {
@@ -208,12 +214,15 @@ export default function DeskTrips(): React.JSX.Element {
     </Txt>
   )
 
-  /** The bills of the board, tapped for a new trip (tap order) or for one late stop. */
+  /**
+   * The bills of the board, tapped for a new trip (tap order) or for one late stop, and under them the
+   * bills held on the road: a page of nothing but those still draws them (QA DOS-172).
+   */
   const billList = (onTap: (invoiceId: string) => void): React.JSX.Element => (
     <Async
       state={[board]}
       rows={3}
-      empty={bills.length === 0 && nextCursor === null}
+      empty={bills.length === 0 && held.length === 0 && nextCursor === null}
       emptyMessage={t('m7t.billsEmpty')}
     >
       <Stack gap={3}>
@@ -231,6 +240,18 @@ export default function DeskTrips(): React.JSX.Element {
               onPress={() => {
                 onTap(bill.invoiceId)
               }}
+            />
+          ))}
+          {held.map((bill) => (
+            <ListRow
+              key={bill.invoiceId}
+              testID={`trip-held-${bill.invoiceId}`}
+              primary={bill.retailerName}
+              secondary={t('m7t.heldOnTrip', {
+                trip: bill.onTripNo ?? bill.onTripId.slice(0, 8),
+              })}
+              trailingMoney={bill.invoiceTotalPaise}
+              state="disabled"
             />
           ))}
         </Group>

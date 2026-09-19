@@ -175,7 +175,7 @@ export const strings = {
   'd2.openTrip': 'This trip has already left — open its stops',
   'd2.failed': 'Could not start the trip',
   'd2.confirmBody':
-    '{trip} on {vehicle}, {stops} stops, float {cash}. Every bill on this trip the godown has not already sent out is dispatched now, and the office starts seeing where the vehicle is.',
+    '{trip} on {vehicle}, {stops} stops, float {cash}. You leave with the bills the godown counted out on this trip, and the office starts seeing where the vehicle is.',
 
   // --- D3 stop ----------------------------------------------------------------------------------
   'd3.title': 'Stop',

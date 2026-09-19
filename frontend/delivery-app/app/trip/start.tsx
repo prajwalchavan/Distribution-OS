@@ -2,9 +2,10 @@
  * D2 — Start the trip: the location notice, the odometer, the float, and away (docs/23 §5.1).
  *
  * THIS SCREEN NEEDS A SIGNAL, and says so rather than pretending. `trips` is not a writable table in
- * the delivery manifest — a trip is planned and dispatched at the office, and `depart` also dispatches
- * every order on it that the godown has not already sent out through a confirmed load sheet, which is
- * a stock movement no phone may invent. Everything that happens AFTER this screen works with no
+ * the delivery manifest — a trip is planned at the office and its bills are dispatched at the godown's
+ * counted load-out, which is a stock movement no phone may invent. `depart` dispatches nothing: it
+ * verifies, and refuses 409 `bill_not_loaded` naming every bill nobody counted out (QA DOS-172), a
+ * sentence this screen prints word for word. Everything that happens AFTER this screen works with no
  * coverage; getting on the road is the one moment a driver is still in the yard.
  *
  * The notice is the DPDP one (docs/plans/delivery.md §4 rule 11): `trips.depart` refuses with
@@ -347,8 +348,10 @@ export default function StartTrip(): React.JSX.Element {
         /*
          * UX-00 §6.12: the body is EXACTLY what will be written. It used to print the consent
          * timestamp — true, already on the screen above, and no answer at all to "what happens if I
-         * tap this", on a button that dispatches every undispatched bill on the trip and turns
-         * location tracking on.
+         * tap this", on a button that turns location tracking on and sends the vehicle off with the
+         * load the godown counted out. It no longer promises a dispatch: since QA DOS-172 the bills
+         * leave the godown on a confirmed load sheet, and a trip carrying one nobody counted is
+         * refused here rather than quietly dispatched.
          */
         body={t('d2.confirmBody', {
           trip: localTrip?.trip_no ?? t('d.trip'),
