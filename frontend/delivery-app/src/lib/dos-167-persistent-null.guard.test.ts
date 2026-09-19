@@ -51,6 +51,22 @@ const GATES: readonly RegExp[] = [
 /** How far back from a plain `persistent` read its gate may sit: the same JSX expression, not somewhere in the file. */
 const GATE_REACH = 300
 
+/**
+ * THE OTHER HALF OF RULING 3 (ee), and the one exception to the gate above.
+ *
+ * A STATEMENT about the store says nothing while the store is still opening — that is everything above.
+ * An OFFER is the opposite: a button or a dialog that promises to keep something must never make a
+ * promise the device may turn out not to be able to keep, so `keepClaim` in `@dos/offline` reads null
+ * exactly as false and hands back the tab words. Both halves are the same founder decision, and D10 is
+ * the one screen that carries both — the store line at the top, and the hand-over dialog at the bottom
+ * (DOS-179, 2026-09-19). So a read handed straight to `keepKey('<word>', …)` is not a flash and is not
+ * counted as one; it is listed by name instead, so an ungated truthiness read can never hide in here by
+ * calling itself an offer.
+ */
+const OFFER = /keepKey\(\s*'([A-Za-z]+)',\s*$/
+/** How far back from the read the `keepKey('<word>',` may sit: the same call, nothing else. */
+const OFFER_REACH = 80
+
 export interface Screen {
   /** The screen, relative to the test file. */
   readonly path: string
@@ -58,11 +74,24 @@ export interface Screen {
   readonly memoryKey: string
   /** The string shown instead once the store HAS resolved and keeps; null when the screen says nothing in that case. */
   readonly diskKey: string | null
+  /** The keep verbs this screen OFFERS through `keepKey`, in the order the source says them. */
+  readonly offers: readonly string[]
 }
 
 const SCREENS: readonly Screen[] = [
-  { path: '../../app/settings.tsx', memoryKey: 'tray.storeMemory', diskKey: 'tray.storeDisk' },
-  { path: '../../app/attention.tsx', memoryKey: 'tray.storeMemory', diskKey: 'tray.storeDisk' },
+  {
+    path: '../../app/settings.tsx',
+    memoryKey: 'tray.storeMemory',
+    diskKey: 'tray.storeDisk',
+    offers: [],
+  },
+  {
+    path: '../../app/attention.tsx',
+    memoryKey: 'tray.storeMemory',
+    diskKey: 'tray.storeDisk',
+    /* The hand-over dialog, with and without a paper-book number (DOS-179). */
+    offers: ['handOverBodyNoBook', 'handOverBody'],
+  },
 ]
 
 /** What the source says about one screen's persistence line. */
@@ -71,6 +100,9 @@ export async function inspectScreen(screen: Screen): Promise<Record<string, unkn
   const at = source.indexOf(`'${screen.memoryKey}'`)
   const gatedBefore = (index: number): boolean =>
     GATES.some((gate) => gate.test(source.slice(Math.max(0, index - GATE_REACH), index)))
+  const offerBefore = (index: number): string | null =>
+    OFFER.exec(source.slice(Math.max(0, index - OFFER_REACH), index))?.[1] ?? null
+  const reads = [...source.matchAll(/(?:status|local)\.persistent(?!\s*(?:===|!==))/g)]
   return {
     path: screen.path,
     // The line exists at all: a renamed string must not let this test pass by finding nothing to guard.
@@ -78,14 +110,18 @@ export async function inspectScreen(screen: Screen): Promise<Record<string, unkn
     // Something between the top of the file and the string routes a null away from it.
     gated: at !== -1 && gatedBefore(at),
     // And no plain truthiness read of `persistent` stands outside such a gate — that read IS the flash.
-    ungated: [...source.matchAll(/(?:status|local)\.persistent(?!\s*(?:===|!==))/g)]
-      .filter((match) => !gatedBefore(match.index ?? 0))
+    ungated: reads
+      .filter((match) => !gatedBefore(match.index ?? 0) && offerBefore(match.index ?? 0) === null)
       .map((match) =>
         source
           .slice(match.index ?? 0, (match.index ?? 0) + 60)
           .split('\n')[0]
           ?.trim(),
       ),
+    // The reads that are OFFERS, named: null is the tab word there, and that is the ruling, not a flash.
+    offers: reads
+      .map((match) => offerBefore(match.index ?? 0))
+      .filter((word): word is string => word !== null),
     // On a RESOLVED memory store the line is printed: withholding it there is the other half of the lie.
     onFalse:
       screen.diskKey === null
@@ -108,6 +144,7 @@ describe('DOS-167 the delivery app never says "held in memory only" before the s
         present: true,
         gated: true,
         ungated: [],
+        offers: [...screen.offers],
         onFalse: true,
       })),
     )

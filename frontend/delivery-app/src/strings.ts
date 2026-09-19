@@ -408,6 +408,16 @@ export const strings = {
   'tray.moneyNoBook': '{amount} {mode} from {shop} · {when}',
   'tray.handOverBody': '{amount} · {shop} · book no {no} — stays on this phone as handed over',
   'tray.handOverBodyNoBook': '{amount} · {shop} — stays on this phone as handed over',
+  /*
+   * DOS-179 — the same dialog over a store that keeps nothing, chosen by `keepKey` like every other
+   * keep verb in this app. The screen prints `tray.storeMemory` above the list, so the two sentences
+   * used to contradict each other in one render. What lasts on a browser with no OPFS is the CASHIER'S
+   * entry, not this card, and the dialog says which is which before the crew taps it.
+   */
+  'tray.handOverBodyTab':
+    '{amount} · {shop} · book no {no} — marked handed over in this tab only, not saved. What lasts is the entry the cashier makes at the office.',
+  'tray.handOverBodyNoBookTab':
+    '{amount} · {shop} — marked handed over in this tab only, not saved. What lasts is the entry the cashier makes at the office.',
   'tray.handedOverAt': 'Handed to the cashier at {when}',
   'tray.handedOverCount': 'Handed over: {count}',
 

@@ -20,6 +20,11 @@
  * against the same paper-book number. The card then moves to its own section and stays on the phone for
  * ever. Which refusals are money is `trayActions` reading `@dos/offline`'s money-table list — the TABLE,
  * never the rejection code, so it cannot drift as the server adds codes.
+ *
+ * "STAYS ON THIS PHONE" IS A CLAIM, AND THIS SCREEN OF ALL SCREENS HAS TO MEAN IT (DOS-179). The store
+ * line at the top says whether the device keeps anything at all, so the hand-over dialog's own sentence
+ * goes through `keepKey` like every button on D4 and D5 — otherwise the phone promised a keep eleven
+ * lines under its own admission that it keeps nothing, over money it is the last record of.
  */
 import { formatINR, paise } from '@dos/domain'
 import { useNeedsAttention, useOutbox, useSyncStatus } from '@dos/offline/react'
@@ -42,6 +47,7 @@ import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { instantWithClock } from '../src/lib/dates'
+import { keepKey } from '../src/lib/keep'
 import { useLocalRetailers } from '../src/lib/local'
 import { trayActions, type TrayMoney } from '../src/lib/tray'
 
@@ -330,11 +336,11 @@ export default function NeedsAttention(): React.JSX.Element {
           handingEntry?.card.money == null
             ? ''
             : handingEntry.card.money.bookNo === null
-              ? t('tray.handOverBodyNoBook', {
+              ? t(keepKey('handOverBodyNoBook', status.persistent), {
                   amount: formatINR(paise(handingEntry.card.money.amountPaise)),
                   shop: shopName(handingEntry.entry),
                 })
-              : t('tray.handOverBody', {
+              : t(keepKey('handOverBody', status.persistent), {
                   amount: formatINR(paise(handingEntry.card.money.amountPaise)),
                   shop: shopName(handingEntry.entry),
                   no: handingEntry.card.money.bookNo,

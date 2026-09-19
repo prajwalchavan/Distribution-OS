@@ -72,8 +72,21 @@ const APPS: readonly App[] = [
       { device: 'd4.recordOffline', tab: 'd4.recordOfflineTab' },
       { device: 'd5.recordOffline', tab: 'd5.recordOfflineTab' },
       { device: 'd5.recordedQueued', tab: 'd5.recordedQueuedTab' },
+      /*
+       * The hand-over dialog on D10, added by DOS-178 one commit before this rule was written and so
+       * never taken through it (merge review, 2026-09-19). It is the same claim as the rest — "stays on
+       * this phone" — on the one screen that already prints `tray.storeMemory` above it, so on a store
+       * that keeps nothing the crew read both sentences in one render.
+       */
+      { device: 'tray.handOverBody', tab: 'tray.handOverBodyTab' },
+      { device: 'tray.handOverBodyNoBook', tab: 'tray.handOverBodyNoBookTab' },
     ],
-    screens: ['app/stop/[id]/collect.tsx', 'app/stop/[id]/deliver.tsx', 'app/stop/[id]/index.tsx'],
+    screens: [
+      'app/stop/[id]/collect.tsx',
+      'app/stop/[id]/deliver.tsx',
+      'app/stop/[id]/index.tsx',
+      'app/attention.tsx',
+    ],
   },
   {
     root: '../../../warehouse-app',
@@ -126,6 +139,32 @@ const RESIDUE: readonly {
   },
 ]
 
+/**
+ * The hand-over dialog on D10, which THIS lane introduced (cfe2010) and then did not take through its
+ * own rule one commit later.
+ *
+ * It is the worst place for the claim to survive: the screen prints `tray.storeMemory` — "Held in memory
+ * only — a reload empties this device" — eleven lines above, so on a browser with no OPFS the crew read
+ * the phone promising and denying the same keep in ONE render, over money the office has already refused
+ * and the phone is now the only record of (never-list #12 and #13 in the same dialog).
+ */
+const HAND_OVER: readonly {
+  readonly screen: string
+  readonly device: string
+  readonly tab: string
+}[] = [
+  {
+    screen: 'app/attention.tsx',
+    device: 'tray.handOverBody',
+    tab: 'tray.handOverBodyTab',
+  },
+  {
+    screen: 'app/attention.tsx',
+    device: 'tray.handOverBodyNoBook',
+    tab: 'tray.handOverBodyNoBookTab',
+  },
+]
+
 /** One declared string's value, so the two words of a pair can be told apart by what they say. */
 function valueOf(strings: string, key: string): string | null {
   const match = new RegExp(`'${key.replace('.', '\\.')}':\\s*'([^']*)'`).exec(strings)
@@ -147,10 +186,14 @@ describe('DOS-179 a field app never claims a keep the store cannot make', () => 
         declared: app.pairs.filter(
           (pair) => !strings.includes(`'${pair.device}':`) || !strings.includes(`'${pair.tab}':`),
         ),
-        // No screen reaches for the device word itself — that read IS the lie.
+        /*
+         * No screen reaches for the device word itself — that read IS the lie. The opening `t('key'`
+         * and no more, so a claim that takes ARGUMENTS counts too: the hand-over dialog interpolates
+         * the amount and the book number, and matching `t('key')` whole let it straight through.
+         */
         direct: app.screens.flatMap((path, index) =>
           app.pairs
-            .filter((pair) => (screens[index] ?? '').includes(`t('${pair.device}')`))
+            .filter((pair) => (screens[index] ?? '').includes(`t('${pair.device}'`))
             .map((pair) => `${path}: ${pair.device}`),
         ),
         // And every one of those screens goes through the helper instead.
@@ -193,6 +236,38 @@ describe('DOS-179 a field app never claims a keep the store cannot make', () => 
         direct: false,
         viaHelper: true,
         deviceSaysTab: false,
+        tabSaysTab: true,
+      })),
+    )
+  })
+
+  it('DOS-179 review: the D10 hand-over dialog asks the store like every other keep verb', async () => {
+    const screen = await read('../../../delivery-app/app/attention.tsx')
+    const strings = await read('../../../delivery-app/src/strings.ts')
+    const seen = HAND_OVER.map((row) => {
+      const word = row.device.split('.').pop() ?? ''
+      const device = valueOf(strings, row.device)
+      const tab = valueOf(strings, row.tab)
+      return {
+        key: row.device,
+        // The dialog never reaches for the phone's words itself, arguments or no arguments.
+        direct: screen.includes(`t('${row.device}'`),
+        // It asks THE STORE, through the same helper the buttons on D4 and D5 go through.
+        viaHelper: screen.includes(`keepKey('${word}', status.persistent)`),
+        // And the two words really are two: only one of them may name the phone.
+        deviceSaysPhone: device === null ? 'missing' : device.includes('on this phone'),
+        tabSaysPhone: tab === null ? 'missing' : tab.includes('on this phone'),
+        tabSaysTab: tab === null ? 'missing' : tab.includes('this tab'),
+      }
+    })
+
+    expect(seen).toEqual(
+      HAND_OVER.map((row) => ({
+        key: row.device,
+        direct: false,
+        viaHelper: true,
+        deviceSaysPhone: true,
+        tabSaysPhone: false,
         tabSaysTab: true,
       })),
     )

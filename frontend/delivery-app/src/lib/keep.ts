@@ -24,6 +24,14 @@ const KEEP_WORDS = {
   recordDelivery: { device: 'd4.recordOffline', tab: 'd4.recordOfflineTab' },
   recordMoney: { device: 'd5.recordOffline', tab: 'd5.recordOfflineTab' },
   recordedMoney: { device: 'd5.recordedQueued', tab: 'd5.recordedQueuedTab' },
+  /*
+   * D10's hand-over dialog, which DOS-178 added one commit before this rule and so never took through
+   * it (merge review, 2026-09-19). The worst place to leave the claim: that screen already prints
+   * whether the store keeps anything, so on a memory store the phone promised and denied the same keep
+   * in one render — over money the office refused, which this card is now the only record of.
+   */
+  handOverBody: { device: 'tray.handOverBody', tab: 'tray.handOverBodyTab' },
+  handOverBodyNoBook: { device: 'tray.handOverBodyNoBook', tab: 'tray.handOverBodyNoBookTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS
