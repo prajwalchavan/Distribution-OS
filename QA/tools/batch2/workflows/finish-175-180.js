@@ -30,6 +30,8 @@ const WALK = { type: 'object', required: ['status', 'broken', 'calls', 'operatio
   status: { type: 'string', enum: ['pass', 'fail'] }, broken: { type: 'number' }, calls: { type: 'number' },
   operations: { type: 'array', items: { type: 'object', required: ['operation', 'outcome', 'detail'], properties: { operation: { type: 'string' }, outcome: { type: 'string', enum: ['OK', 'EXPECTED', 'BROKEN', 'SKIPPED'] }, detail: { type: 'string' } } } },
   gates: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' } } }
+const RULING = { type: 'object', required: ['closesBlocker2', 'why', 'conditions'], properties: {
+  closesBlocker2: { type: 'boolean' }, why: { type: 'string' }, conditions: { type: 'array', items: { type: 'string' } } } }
 const RESULT = { type: 'object', required: ['lane', 'status', 'itemsDone', 'commits', 'filesChanged', 'deviations', 'followUps'], properties: {
   lane: { type: 'string' }, status: { type: 'string', enum: ['fixed', 'partial', 'blocked'] },
   itemsDone: { type: 'array', items: { type: 'object', required: ['id', 'failBefore', 'passAfter', 'test'], properties: { id: { type: 'string' }, failBefore: { type: 'string' }, passAfter: { type: 'string' }, test: { type: 'string' } } } },
@@ -72,6 +74,21 @@ STEPS:
 7. Stop every service you started. Drop ${MDB}. Confirm nothing you started is still listening.
 Return the structured result with the REAL counts read from the output, and one row per named operation with the outcome you actually saw. If it fails, quote the failing call, its input and the answer.`
 
+const rulingPrompt = (walk) => `You are Fable, the ARCHITECT. You wrote blocker 2 of the money-delivery merge review. The walk you demanded has now been run — the first time any agent in this programme was allowed to start services for it — and it comes back FAIL on the letter and PASS on every operation you named. Only you may say which reading governs. READ-ONLY: edit nothing except the ONE output file below.
+
+YOUR BLOCKER 2, verbatim in effect: on the merged tree, run the code gates, then \`pnpm smoke\` on a FRESH seeded database — \`receivables.receipts.deposit\` must read OK (not merely EXPECTED), \`delivery.deliveries.addPod\` and \`delivery.consents.grant\` must answer 200 on the owner, manager and delivery lanes, and there must be 0 BROKEN.
+
+THE RESULT: ${JSON.stringify(walk, null, 1)}
+
+In short: every operation you named is green on BOTH runs — deposit OK 200 (not a 409 classified EXPECTED), addPod and consents.grant 200 on all three lanes, and a replay turned nothing BROKEN. The 0-BROKEN threshold was NOT reached: 4 on the first run, 2 on the replay. All four were traced and none is attributable to this lane —
+- two are \`notifications.messages.markRead\` 404s whose root cause is a DOCS EXAMPLE that publishes a WhatsApp row because the own-notice query reads only the newest 500 messages of a tenant that holds 1104; the prover signed in and called the right id, got 200, and called the published id, got 404, so the SERVER is correct (now filed as S-149);
+- two are first-run-only 404s where a freshly seeded database holds no parked pack and no open gate-count discrepancy for the example to name (now filed as S-156 and S-157).
+
+DECIDE, and be specific: does this evidence CLOSE blocker 2, or not? If it closes it, say under exactly what conditions — what must be written into the lane as the record, and what must be true of S-149, S-156 and S-157 before \`pnpm smoke\` is allowed to be a merge gate again for anybody. If it does NOT close it, say precisely what else must run, knowing that reaching 0 BROKEN on a fresh database today requires fixing three defects that belong to the demo-data slice and not to this lane.
+Consider also whether a threshold you cannot reach for reasons outside the lane is the right shape for a merge gate at all, and what it should be instead.
+
+Write ${VERD}/DOS-175-177-blocker2-ruling.md (under 50 lines), sign it "Fable, architect" and date it 2026-09-19. Return the structured decision.`
+
 const mIntegrate = (walk) => `You are the INTEGRATOR of the money-delivery lane (DOS-175, DOS-176, DOS-177). The acceptance walk has now been run — its result is below — so review blocker 2 is closed by evidence rather than left open. Merge main into the lane, prove the merged tree green, commit. You do NOT merge into main.
 
 ENVIRONMENT: worktree "${MWT}" on branch qa/b2-money-delivery. Start EVERY Bash command with: cd "${MWT}" && export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH && eval "$(fnm env)" && fnm use 24 >/dev/null && export DATABASE_POOL_MAX=3 && export DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/${MDB}
@@ -107,9 +124,9 @@ Integrator report: ${JSON.stringify(r, null, 1)}
 5. Re-run the lane's own spec files and docs:readme:check.
 verdict 'pass' only when both blockers are closed on HEAD and the gates are green.`
 
-const hRepair = () => `You are repairing the last two majors in the honesty lane (DOS-178, DOS-179, DOS-180) for Distribution OS. Both were found by an adversarial verifier and both are real.
+const hRepair = () => `You are repairing the honesty lane (DOS-178, DOS-179, DOS-180) for Distribution OS. An adversarial verifier closed MAJOR 2 and the two items, but MAJOR 1 is NOT closed: two more device-keep claims still bypass \`keepClaim\`, and both sit on screens that simultaneously tell the crew the phone keeps nothing.
 
-ENVIRONMENT: worktree "${HWT}" on branch qa/b2-honesty, head 7de959b. Start EVERY Bash command with: cd "${HWT}" && export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH && eval "$(fnm env)" && fnm use 24 >/dev/null
+ENVIRONMENT: worktree "${HWT}" on branch qa/b2-honesty. Start EVERY Bash command with: cd "${HWT}" && export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH && eval "$(fnm env)" && fnm use 24 >/dev/null
 - Never edit anything in "${MAIN}" or another worktree. Do NOT start dev servers, emulators or simulators.
 
 ${RULES}
@@ -118,13 +135,17 @@ ${LIMITS}
 
 ${FOUNDER}
 
-Design (binding): cat "${VERD}/DOS-175-180-design.md"
+Design (binding, §3 makes keepClaim mandatory for all three apps): cat "${VERD}/DOS-175-180-design.md"
 
-MAJOR 1 — this lane INTRODUCED a keep-claim that bypasses its own rule. Commit cfe2010 added \`tray.handOverBody\` ("{amount} · {shop} · book no {no} — stays on this phone as handed over") and \`tray.handOverBodyNoBook\` (frontend/delivery-app/src/strings.ts:409-410), and app/attention.tsx:330-342 prints one of them unconditionally as the hand-over Dialog's body. That is an "on this phone" claim that does not go through \`keepClaim\`, which the design §3 makes binding for all three apps, and it is never-list #12. \`status.persistent\` is already in scope on that screen — attention.tsx:145-147 prints \`tray.storeMemory\` — so on a memory store the screen contradicts itself in one render. Route it through \`keepClaim\` like every other keep verb.
+STILL OPEN — both are never-list #12, both found by reading the rendered screens:
+1. **\`d8.pending\`** (delivery strings.ts:356) — "{count} writes are still on this phone. They go before the office can close the trip." — printed on D1 (app/index.tsx:465) and D8 (app/day.tsx:449) under nothing but \`status.pending === 0 ? null :\`. No keep gate at all: \`grep -c keepKey\` is 0 in both files. On a browser with no OPFS the AppShell strip on those same screens already appends "· Not kept on this phone", so the crew reads the strip denying the keep and the body asserting it in ONE render — over the outbox that decides whether the trip can be closed.
+2. **\`word.queued\` = "On this phone"** (delivery strings.ts:491) — the StatusChip label for every waiting op on D10 (app/attention.tsx:173), with no keepClaim and no persistent gate. That is the SAME screen the last commit repaired: twenty lines above it the screen prints "Held in memory only — a reload empties this device", and the hand-over dialog below it now correctly uses the tab words.
 
-MAJOR 2 — DOS-180's own guard is INERT, so the banner can still claim an order reached the office before it did. new.tsx:271 passes \`rowKnown: !placedRow.loading\`, and outcome.ts documents that field as what stops a not-yet-read row being taken for an acked one. But \`useRow\` (frontend/libs/offline/src/react.tsx:465-501) never sets \`loading\` back to true when its \`id\` CHANGES: the effect's \`id === null\` branch sets loading false on mount and nothing restores it when \`id\` goes from null to a real id, so for one render after the tap the row reads "acked" and the banner says "Reached the office as a draft" about an order that has only just been queued. Fix \`useRow\` so a changed id means "not known yet" until its read lands — and check every other consumer of \`useRow\` for what that change does to them.
+The previous repair declined item 2 as "a vocabulary decision rather than a mechanical repair". It is not a decision: the founder's rule and never-list #12 already decided it. Route BOTH through \`keepClaim\`, with wording that reads naturally in each place for both the device and the tab case.
 
-For EACH major: write the red-first test FIRST (its name carries DOS-179 or DOS-180), run it, confirm it fails for the reason above, then fix, then green. Commit each alone: "fix(DOS-179|DOS-180): address review — <short>" + "Test: <file> › <name>" + ${CO}. Then run every whole test file you touched, plus pnpm typecheck and pnpm lint in frontend, and prettier --write on touched files. git status clean. Return the structured result.`
+THEN SWEEP, because this has now come back twice: find EVERY remaining claim in the three field apps that a device or browser keeps something — buttons, chip labels, dialog bodies, toasts, confirm sheets, empty states, list subtitles — and make each one reach the screen through \`keepClaim\`. Write a guard test that FAILS when a new such claim is added without it, and make it a repo-wide rule rather than a per-file allowlist if you can; if you cannot, say exactly why in deviations and what the residual gap is.
+
+Write the red-first test FIRST for each fix, run it, confirm it fails for the reason above, then fix, then green. Commit each alone: "fix(DOS-179): address review — <short>" + "Test: <file> › <name>" + ${CO}. Then every whole test file you touched, pnpm typecheck and pnpm lint in frontend, prettier --write on touched files. git status clean. Return the structured result.`
 
 const hVerify = (impl) => `You are the adversarial verifier of the honesty lane (DOS-178, DOS-179, DOS-180) after its second repair. Two majors were open; assume they are still open until you prove otherwise. You make no commits.
 
@@ -216,7 +237,12 @@ out.walk = walk
 log('acceptance walk: ' + (walk ? walk.status + ' broken=' + walk.broken : 'agent failed'))
 
 phase('Money')
-if (walk && walk.status === 'pass') {
+const ruling = walk
+  ? await agent(rulingPrompt(walk), { label: 'ruling:blocker2', phase: 'Money', schema: RULING, model: 'fable' })
+  : null
+out.blocker2Ruling = ruling
+log('blocker 2: ' + (ruling ? (ruling.closesBlocker2 ? 'CLOSED by the architect' : 'still open') : 'no ruling'))
+if (ruling && ruling.closesBlocker2) {
   let integ = await agent(mIntegrate(walk), { label: 'integrate:money-delivery', phase: 'Money', schema: INTEG, model: 'opus' })
   if (integ && integ.status === 'ready') {
     let iv = await agent(mVerify(integ), { label: 'integ-verify:money-delivery', phase: 'Money', schema: IVERDICT, model: 'opus' })
@@ -226,8 +252,8 @@ if (walk && walk.status === 'pass') {
     } else { out.moneyFinal = 'integration-verify-failed'; out.moneyVerdict = iv }
   } else { out.moneyFinal = 'integration-blocked'; out.moneyIntegration = integ }
 } else {
-  out.moneyFinal = 'walk-failed'
-  log('money-delivery does not merge: the acceptance walk did not pass, and blocker 2 is exactly that walk')
+  out.moneyFinal = 'blocker2-open'
+  log('money-delivery does not merge: the architect did not close blocker 2 on this evidence')
 }
 
 phase('Honesty')

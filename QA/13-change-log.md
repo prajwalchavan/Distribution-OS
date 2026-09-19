@@ -834,3 +834,23 @@ Run `wf_318fd158-c04`, 13 agents, ~3 h 10 m. Fable's design is at `QA/evidence/b
 Also in that runner: the merge step now says what to do when the auto-mode classifier refuses `git merge` (stop after two tries, return blocked, say so) instead of failing silently — that happened on the DOS-167 amendments and cost a round trip.
 
 Running as `wf_8e97ed40-f91`.
+
+### The acceptance walk ran, and what it found (2026-09-19, late)
+
+The walk Fable's blocker 2 demanded finally ran — the first time in this programme an agent was allowed to start services for a merge gate. **Every operation the review named is green, on both runs:** `receivables.receipts.deposit` **OK 200, not a 409 classified EXPECTED** (the proof DOS-175 exists for — a receipt with no bogus trip is bankable), and `delivery.deliveries.addPod` and `delivery.consents.grant` **200 on the owner, the manager and the delivery lanes**, both runs. The DOS-176 and DOS-177 500s are gone. A replay turned nothing BROKEN and cleared two.
+
+**The 0-BROKEN threshold was not reached** (4 on the first run, 2 on the replay) and **not one of the four belongs to this lane.** All four were traced to the end:
+- Two are `notifications.messages.markRead` 404s. Root cause: `examples.ts:1065-1098` builds its own-notice list from the newest **500** messages of a tenant that holds **1104**, so for the manager and the warehouse it falls back to a **WhatsApp** row — which that endpoint is documented never to accept. The prover then proved the SERVER right by signing in as `vikas.kadam` and calling his own in_app notice (**200**) and the published id (404). **S-149** updated with the root cause.
+- Two are first-run-only 404s: a freshly seeded database holds **no parked pack** and **no open gate-count discrepancy** for the example to name, and they clear on the second run only because smoke's own earlier calls created the missing rows mid-run. Filed **S-156** and **S-157**. Together with S-149 they mean `pnpm smoke` **cannot reach 0 BROKEN on a fresh database today**, which is the bar CLAUDE.md sets for it.
+
+Ports: :3000-:3007 were held by processes started hours earlier by someone else. The prover touched none of them and killed nothing — it ran `all-in-one` on :3100 and passed `--base`, exactly the rule the dos_qa accident produced. Only `dos_test_b2_d175` was connected to; `pg_stat_activity` showed **zero** connections on `dos` and `dos_qa`.
+
+**Referred to Fable** (`wf_8e97ed40-f91`, resumed): does this evidence close blocker 2, and — the better question — is a threshold the lane cannot reach for reasons outside it the right shape for a merge gate at all?
+
+### The honesty lane, third round: the same fault twice more
+
+The verifier closed MAJOR 2 (the inert `useRow` guard) and both items, and found **MAJOR 1 still open** — two more device-keep claims that bypass `keepClaim`, both on screens that say the opposite in the same render:
+- **`d8.pending`** — "{count} writes are still on this phone. They go before the office can close the trip." — on the delivery home AND the check-in screen, gated by nothing but a count. On a browser with no OPFS the shell strip on those very screens already reads "· Not kept on this phone". The crew reads the denial and the assertion at once, over the outbox that decides whether the trip can close.
+- **`word.queued` = "On this phone"** — the status chip on every waiting op on the tray screen — twenty lines below "Held in memory only — a reload empties this device", on the same screen the previous commit had just repaired.
+
+The previous round declined the second as "a vocabulary decision rather than a mechanical repair". It is not a decision: the founder's rule and never-list #12 already made it. The third round fixes both **and sweeps** every remaining keep claim in the three field apps — buttons, chips, dialog bodies, toasts, confirm sheets, empty states — with a guard that fails when a new one is added without `keepClaim`, repo-wide rather than a per-file allowlist if that is achievable.
