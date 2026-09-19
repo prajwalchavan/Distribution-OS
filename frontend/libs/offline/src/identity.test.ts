@@ -28,6 +28,7 @@ import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
 import type {
   EnqueueInput,
+  SqlValue,
   StoreFactory,
   StoreKind,
   SyncIdentity,
@@ -468,6 +469,92 @@ describe('DOS-167 one file per app, person and distributor', () => {
       native: ['dos-sales.db', interim],
       memory: [],
     })
+  })
+
+  /*
+   * Ruling 3 (cc). The re-proof's real harm was not the corruption but the SILENCE: `start()` rethrew, the engine
+   * stayed `started` with `ready: false` for ever, and run3-v5a sat for 240 s with no `/sync` call, "Still loading
+   * the beat onto this phone" and Shops 0. A store that cannot be used is closed, said out loud and left alone —
+   * never destroyed, because nothing we failed to read is thrown away (founder answer A) — and the same start
+   * sequence runs once more in memory, so the app still signs in, still syncs online, and still says what it cannot
+   * keep.
+   */
+  it('DOS-167 a store that cannot be used becomes an announced memory store and the engine still starts', async () => {
+    class BrokenStore implements SyncStore {
+      readonly persistent = true
+      readonly kind = 'sqlite-web' as const
+      closes = 0
+      destroys = 0
+      private broke = false
+      constructor(private readonly inner: SyncStore) {}
+      async exec(sql: string, params?: readonly SqlValue[]): Promise<void> {
+        // The first statement of `createSystemTables`, as a browser whose OPFS file is not a database answers.
+        if (!this.broke) {
+          this.broke = true
+          throw new Error('disk I/O error')
+        }
+        return this.inner.exec(sql, params)
+      }
+      async query<T>(sql: string, params?: readonly SqlValue[]): Promise<T[]> {
+        return this.inner.query<T>(sql, params)
+      }
+      async transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T> {
+        return this.inner.transaction(fn)
+      }
+      async close(): Promise<void> {
+        this.closes += 1
+      }
+      async destroy(): Promise<void> {
+        this.destroys += 1
+      }
+    }
+
+    const broken = new BrokenStore(createMemoryStore())
+    const server = new FakeServer(TABLES)
+    server.queuePull({
+      changes: [{ table: 'retailers', rows: [CHAVAN], deleted: [] }],
+      cursor: 'c1',
+    })
+    const log: string[] = []
+    const engine = new SyncEngine({
+      transport: server.transport(),
+      deviceId: 'device-1',
+      storeFactory: async () => broken,
+      databaseName: storeNameFor('dos-sales', RAHUL_AT_TARSUN),
+      identity: RAHUL_AT_TARSUN,
+      pullIntervalMs: 0,
+      now,
+      onLog: (line) => {
+        log.push(line)
+      },
+    })
+
+    await expect(engine.start()).resolves.toBeUndefined()
+    const status = engine.status()
+
+    expect({
+      ready: status.ready,
+      store: status.store,
+      persistent: status.persistent,
+      storeNote: status.storeNote,
+      said: log.filter((line) => line.startsWith('offline: the device store')),
+      closes: broken.closes,
+      destroys: broken.destroys,
+      // The handshake still ran, so the app syncs online while it cannot keep anything.
+      manifests: server.manifestCalls.length,
+      rows: (await engine.queryTable('retailers')).length,
+    }).toEqual({
+      ready: true,
+      store: 'memory',
+      persistent: false,
+      storeNote: 'disk I/O error',
+      said: ['offline: the device store could not be used; running in memory'],
+      closes: 1,
+      destroys: 0,
+      manifests: 1,
+      rows: 1,
+    })
+    await engine.stop()
   })
 
   it("DOS-167 a second user on the same store never renders the first user's rows and starts with no cursor", async () => {

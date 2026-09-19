@@ -22,7 +22,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { openStore } from './open.web.js'
+import { openStore, OPEN_DEADLINE_MS } from './open.web.js'
 import type { ExpoDatabaseLike, ExpoSqliteLike } from './expo-sqlite.js'
 
 /** Rahul at Tarsun, as `storeNameFor` writes it (ruling 2 (s)), and the two files the clean-ups ask for. */
@@ -198,6 +198,66 @@ describe('DOS-167 ruling 3: the web opener', () => {
       notADatabase: [],
       // Both people's own files, and nothing else: the 94-character interim name never creates one.
       pool: [ENGINE, ENGINE_2].sort(),
+    })
+  })
+
+  /*
+   * (cc) 1. The re-proof's real harm was the silence: no `/sync` for 240 s over a store that never answered.
+   * An open is bounded, the answer is an announced memory store, and a handle that arrives late is CLOSED —
+   * never destroyed, because nothing we failed to read is thrown away (founder answer A).
+   */
+  it('DOS-167 an open that never settles answers memory within the deadline and closes the late handle', async () => {
+    asCrossOriginIsolatedBrowser()
+    expect(OPEN_DEADLINE_MS).toBe(15_000)
+
+    let release = (): void => {}
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const attempted: string[] = []
+    let closed = 0
+    let destroyed = 0
+    const loadSqlite = async (): Promise<ExpoSqliteLike> => ({
+      openDatabaseAsync: async (name: string) => {
+        attempted.push(name)
+        await held
+        return fakeDb({
+          onClose: () => {
+            closed += 1
+          },
+        })
+      },
+      deleteDatabaseAsync: async () => {
+        destroyed += 1
+      },
+    })
+
+    const timedOut = await openStore(ENGINE, { loadSqlite, timeoutMs: 20 })
+    // The next open is already asked for, and must still wait for the first to settle.
+    const next = openStore(LEGACY, { loadSqlite, timeoutMs: 5_000 })
+    await new Promise((resolve) => setTimeout(resolve, 10))
+    const whileHeld = [...attempted]
+
+    release()
+    const second = await next
+
+    expect({
+      kind: timedOut.kind,
+      reason: timedOut.fallback?.reason,
+      whileHeld,
+      attempted,
+      secondKind: second.kind,
+      closed,
+      destroyed,
+    }).toEqual({
+      kind: 'memory',
+      reason: 'open timed out after 20ms',
+      whileHeld: [ENGINE],
+      attempted: [ENGINE, LEGACY],
+      secondKind: 'sqlite-web',
+      // The late handle is closed once, and its file is never deleted.
+      closed: 1,
+      destroyed: 0,
     })
   })
 })

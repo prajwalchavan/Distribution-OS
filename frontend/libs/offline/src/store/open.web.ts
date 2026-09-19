@@ -67,6 +67,19 @@ export interface OpenStoreDeps {
   timeoutMs?: number
 }
 
+/**
+ * HOW LONG AN OPEN MAY TAKE BEFORE THE APP CARRIES ON WITHOUT IT (DOS-167 ruling 3 (cc)). The re-proof's real harm
+ * was not the corruption but the silence: a store that never answered left the engine with `ready: false` for 240 s,
+ * no `/sync` call and "Still loading the beat onto this phone" on the screen. An open is bounded; the answer past the
+ * deadline is an announced memory store, and the real handle, when it finally lands, is CLOSED — never destroyed,
+ * because nothing we failed to read is thrown away (founder answer A).
+ */
+export const OPEN_DEADLINE_MS = 15_000
+
+function timedOut(ms: number): string {
+  return `open timed out after ${ms >= 1000 ? `${Math.round(ms / 1000)}s` : `${ms}ms`}`
+}
+
 /** ONE open at a time, for the life of the page (ruling 3 (aa)). It never rejects, so nothing can break the chain. */
 let webOpens: Promise<void> = Promise.resolve()
 
@@ -83,12 +96,37 @@ async function openStoreInner(name: string, deps: OpenStoreDeps): Promise<SyncSt
 }
 
 export function openStore(name: string, deps: OpenStoreDeps = {}): Promise<SyncStore> {
-  const mine = webOpens.then(async () => openStoreInner(name, deps))
-  webOpens = mine.then(
-    () => undefined,
-    () => undefined,
+  const deadline = deps.timeoutMs ?? OPEN_DEADLINE_MS
+  const attempt = webOpens.then(async () => openStoreInner(name, deps))
+  let answer: (store: SyncStore) => void = () => {}
+  const answered = new Promise<SyncStore>((resolve) => {
+    answer = resolve
+  })
+  let late = false
+  const timer = setTimeout(() => {
+    late = true
+    answer(inMemory(timedOut(deadline)))
+  }, deadline)
+  /*
+   * The CHAIN still waits for the real open to settle, deadline or not: an open still in flight inside expo-sqlite is
+   * exactly what the next one must not run beside. The deadline bounds only what the CALLER waits for.
+   */
+  webOpens = attempt.then(
+    async (store) => {
+      clearTimeout(timer)
+      if (!late) {
+        answer(store)
+        return
+      }
+      await store.close().catch(() => {})
+    },
+    (error: unknown) => {
+      clearTimeout(timer)
+      if (!late)
+        answer(inMemory(`open failed: ${error instanceof Error ? error.message : String(error)}`))
+    },
   )
-  return mine
+  return answered
 }
 
 export async function probeStoreKind(): Promise<StoreKind> {

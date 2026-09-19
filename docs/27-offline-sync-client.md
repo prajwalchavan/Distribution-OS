@@ -312,15 +312,34 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
 
 ## 14. Failure modes
 
-| Failure                                  | Behaviour                                                                                                                         |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Device clock wrong                       | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational                         |
-| App killed mid-upload                    | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome) |
-| Server rolled forward (new manifest)     | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot)                         |
-| Token expired while offline              | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue                          |
-| Another person signs in on this phone    | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167)                                  |
-| Sign out tapped while a write is in hand | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167)     |
-| Storage full                             | writes fail loudly ("Phone storage is full"); nothing is silently dropped                                                         |
+| Failure                                   | Behaviour                                                                                                                                                                                                                                  |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Device clock wrong                        | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational                                                                                                                                  |
+| App killed mid-upload                     | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome)                                                                                                          |
+| Server rolled forward (new manifest)      | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot)                                                                                                                                  |
+| Token expired while offline               | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue                                                                                                                                   |
+| Another person signs in on this phone     | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167)                                                                                                                                           |
+| Sign out tapped while a write is in hand  | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167)                                                                                                              |
+| Storage full                              | writes fail loudly ("Phone storage is full"); nothing is silently dropped                                                                                                                                                                  |
+| The device store will not open            | bounded at `OPEN_DEADLINE_MS` = 15 s, then an announced memory store; a handle that lands late is closed, never destroyed (ruling 3 (cc))                                                                                                  |
+| The device store opens and cannot be used | closed and left alone — never destroyed — said as `offline: the device store could not be used; running in memory`, and the SAME start sequence runs once more in memory, so the app still signs in and still syncs online (ruling 3 (cc)) |
+
+**A store that will not open is announced, bounded and never a hang (ruling 3 (cc), 2026-09-19).** The re-proof's real
+harm was not the corruption but the silence: `start()` rethrew, the engine stood `started` with `ready: false` for the
+life of the tab, and run3-v5a sat 240 s with no `/sync` call, "Still loading the beat onto this phone" and Shops 0,
+while the only catch called an `onLog` no app passed. So: both openers bound the whole open at `OPEN_DEADLINE_MS`
+(15 s) and answer `createMemoryStore({ wanted, reason: 'open timed out after 15s' })` — the web chain still waits for
+the real open to settle, and a handle that arrives late is CLOSED; `start()` takes exactly ONE fallback, closing the
+broken store, releasing its file hold and running the same sequence over a memory store (a second failure throws as
+before); a file we failed to read is never destroyed, which extends ruling (p)'s rule for an uncountable file to an
+unopenable one; `status().storeNote` carries the reason and `lastError` a sentence the strip can show; and the screen
+lines that already fire on a memory store (`s0.notPersisted`, `tray.storeMemory`, `x4.storeMemory`) say the rest —
+no new strings. With (aa) and (bb) the steady state issues exactly ONE web open at startup.
+
+**(v)'s refusal sentence is no longer a screen anyone reaches (ruling 3 (gg), 2026-09-19):** addendum (y) clears the
+session before `end()` runs, so the order screen is gone before a person can tap. It stays a last-resort fallback for a
+write already dispatched by a handler whose screen is unmounting, proven by the two unit tests (the offline refusal and
+`toApiError`'s mapping), not by a device walk.
 
 ## 15. What this does not do (yet)
 
