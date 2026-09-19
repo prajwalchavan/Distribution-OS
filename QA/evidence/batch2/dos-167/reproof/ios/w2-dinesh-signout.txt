@@ -1,0 +1,23 @@
+## w2 dinesh signs out through the product (nothing queued; no keychain reset) 2026-09-14 09:42:36
+tapped "More" Button at 348,108 (1 of 1)
+shot w2-dinesh-menu.png
+menu labels: Expo Go|More, Settings, Me, Change your password, Sign out, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs tapxy 150 712   (the Sign out row in w2-dinesh-menu.png) 2026-09-14 09:43:11
+tapped 150 712
+sign-in form visible after ~1s
+shot w2-dinesh-signed-out.png
+screen: Expo Go|Distribution OS - Warehouse|Sign in|Username|Password|Sign in|The godown sign-in. Ask your manager for a username.|Vertical scroll bar, 1 page = 0%|Typi
+no leave sheet (one tap)
+$ find "$C" -path '*SQLite*'   (09:43:16)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0

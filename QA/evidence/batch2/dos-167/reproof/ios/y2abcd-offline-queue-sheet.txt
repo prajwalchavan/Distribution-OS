@@ -1,0 +1,42 @@
+## y2 = (y) keep run 2 of 3, owner amit.pawar
+## y2a stop sales-service 2026-09-14 09:21:39
+  PID  PPID COMMAND
+96788     1 node /Users/prajwalchavan/.local/state/fnm_multishells/96757_1789357738730/bin/pnpm --filter @dos/sales-service dev
+96806 96788 node --watch --import @swc-node/register/esm-register src/main.ts
+96807 96806 /Users/prajwalchavan/.local/share/fnm/node-versions/v24.20.0/installation/bin/node --import @swc-node/register/esm-register src/main.ts
+$ kill 96788 96806 96807
+:3003 listeners: 0
+:3003 /health: 000
+:3000 /health: 200
+09:21:41 strip: Updated just now|
+09:21:55 strip: Updated just now|
+09:22:08 strip: Offline since 9:21 am|
+shot y2a-amit-offline.png
+## y2b queue one order for Prerna Super Market 2026-09-14 09:22:09
+tapped "Beat" Other at 51,806 (1 of 1)
+tapped "Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 r" Button at 201,509 (1 of 1)
+tapped "Take order" Button at 201,716 (1 of 1)
+dragged 100 600 -> 100 300
+tapped "Add a case" Button at 314,464 (1 of 3)
+shot y2b-line-added.png
+after add: Offline since 9:21 am|Save on this phone|Items 1 · ₹673.68 before GST|
+tapped "Save on this phone" Button at 281,716 (1 of 1)
+shot y2b-saved-on-phone.png
+after save: Offline since 9:21 am · 2 waiting to send|(disabled) Saved on this phone|Items 1 · ₹673.68 before GST|
+## y2c device outbox (retrying) 2026-09-14 09:22:40
+-- _outbox (seq|op_id|tbl|row_id|op|status|attempts|created_at|sent_at|acked_at)
+1|01a09e05-ff73-72f8-8e76-52b1b3474275|sales_orders|01a09e05-c8c7-7741-b201-de8bb92ee5d1|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+2|01a09e05-ff73-72f9-9c83-71f87a64e79f|sales_order_lines|01a09e05-ed02-7472-b69c-55ddcb4ecadc|PUT|acked|8|2026-09-14T03:46:28.339Z|2026-09-14T03:51:02.705Z|2026-09-14T03:51:02.970Z
+3|01a09e0b-7f66-7126-8573-200ab9874d2b|sales_orders|01a09e0b-4e18-7549-9d95-80e2180b1a63|PUT|queued|4|2026-09-14T03:52:28.774Z||
+4|01a09e0b-7f66-7127-8cc7-ac56c8ab0e90|sales_order_lines|01a09e0b-6c6f-7214-a8e3-13178748b076|PUT|queued|4|2026-09-14T03:52:28.774Z||
+-- _sync_errors
+0
+queued order id: 01a09e0b-4e18-7549-9d95-80e2180b1a63
+-- dos_qa while queued: rows for it: 0
+## y2d amit taps Sign out 2026-09-14 09:22:41
+tapped "More" Button at 352,105 (1 of 1)
+tapped 150 723
+shot y2d-amit-leave-sheet.png
+sheet: Expo Go|2 changes have not reached the office, They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them., No connection — they cannot go now., Sign out, keep here, Cancel, Close, Vertical scroll bar, 1 page, Horizontal scroll bar, 1 page|gearshape.fill|
+has Send now (expect NO): NO
+has Sign out, keep here (expect YES): YES

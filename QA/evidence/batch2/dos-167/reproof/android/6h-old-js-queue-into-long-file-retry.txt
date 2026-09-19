@@ -1,0 +1,42 @@
+## step6h retry: queue one order as rahul at Chavan Kirana Stores (199952b JS, office unreachable) 07:30:37
+search field at 540 1021
+search: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:28 am | Shops | Shops: 30 | Shops | Losing | Catalog | Chavan | Chavan Kirana Stores | R-0024 · Khadakpada · Khadakpada, Kalyan West | ₹21,892.00 | C | Beat | Orders | Shops | Me
+tap 'Chavan Kirana Stores' at 345 1235
+shop card: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:28 am | Khadakpada · R-0024 | Chavan Kirana Stores | Owes ₹21,892 | Limit ₹50,000 | Overdue ₹16,853 | Shop | Orders 19 | Bills 4 | How old the dues are | as of 14 Sep | Mo
+shot 6h-old-rahul-shop-card.png
+Take order at 540 2012
+order entry: TE | Tarsun Enterprise | salesperson | ⋯ | Offline since 7:28 am | Chavan Kirana Stores | Order | Items: 0 | No signal | Repeat last order (5) | This order | Nothing on this order yet | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 1 L | Campa · 24 pc case | Add a case | Campa Cola 2 L | Campa · 24 pc case | Add a case | Campa Cola 200 ml | Campa · 4
+Add a case at 855 1438
+items: Items 1 · ₹684.00 before GST 
+shot 6h-old-rahul-order-line.png
+Save on this phone at 773 2012
+save tapped at 07:31:21
+after save: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:28 am · 2 waiting to send | Offline since 7:28 am · 2 waiting to send | Chavan Kirana Stores | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands. | Open the order | Open the order | Back to the beat | Back to the beat | This order | Clear | Clear | Campa Cola 1 L | Campa Cola 1 L | 1 cs | ₹684.00 | 684 rupees | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Items 1 · ₹684.00 before GST | Saved on this phone, busy | Saved 
+strip: Offline since 7:28 am · 2 waiting to send 
+shot 6h-old-rahul-order-saved.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:31:27)
+total 7028
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:29 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:29 ..
+-rw------- 1 u0_a217 u0_a217 2617344 2026-09-14 07:28 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:31 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm
+-rw------- 1 u0_a217 u0_a217 4515552 2026-09-14 07:31 dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (2617344)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-shm (32768)", "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db-wal (4515552)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db", "length": 92, "who": "rahul" } ], "other": [] }
+-- the LONG file dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db (copied read-only)
+-- _sync_state
+key|value
+schemaVersion|36957a3c3b8da665
+role|salesperson
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMTo1ODoxNS45NjdaIn0
+lastPulledAt|2026-09-14T01:58:20.967Z
+userId|8760e17e-4830-7395-a946-1e02fffa1ad7
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09da5-c305-70b2-b2ad-24f5d7fdffdd|sales_orders|01a09da5-7f69-7603-8145-c7a45d958b07|PUT|{"retailer_id":"a029f31b-2c6c-707b-b580-889125d3ee07","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a09da5-c305-70b2-b2ad-24f5d7fdffdd|queued|4|2026-09-14T02:01:21.414Z||||
+2|01a09da5-c337-745b-9c29-05feaa971a13|sales_order_lines|01a09da5-a670-767a-8073-c066388c5f06|PUT|{"order_id":"01a09da5-7f69-7603-8145-c7a45d958b07","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09da5-c337-745b-9c29-05feaa971a13|queued|4|2026-09-14T02:01:21.463Z||||
+-- _sync_errors
+-- logcat crash buffer (07:31:28)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

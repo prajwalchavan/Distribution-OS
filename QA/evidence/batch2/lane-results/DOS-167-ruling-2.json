@@ -396,31 +396,1122 @@
    "Owed by the main session: docs/22 \u00a78 and \u00a711 rows (ruling 2, addendum (y), one holder per file, the sign-in wait, the generation guard), then render and republish; plus ruling 2's two P3 S-rows (the strip has no field to say a browser keeps nothing; 'Saved on this phone' shows on a memory store)."
   ]
  },
- "final": "integration-blocked",
  "integration": {
-  "status": "blocked",
-  "headCommit": "31de0f8",
+  "status": "ready",
+  "headCommit": "9eed92b",
   "conflicts": [],
   "fixes": [
-   "No code fix was needed, so there is no fix commit. The review blocker was about running the gate. I ran the full gate on the merged tree: prettier reported no drift, the lockfile did not change, and lint, typecheck, build and docs:readme:check are green. One test fails, and that failure was already on main (see notes).",
-   "31de0f8 merges main into qa/b2-dos167r2. The merge was clean and main brought in only QA/STATE.md.",
-   "BigInt check from the blocker, web: expo export bundled engine.ts into the sales, delivery and warehouse web bundles, and the native BigInt literals are still there (for example '36n*s+BigInt(Number.parseInt(i,36))').",
-   "BigInt check from the blocker, Hermes (beyond the listed commands): 'expo export --platform android' for sales-app, written to the scratchpad, exited 0. It produced Hermes bytecode (entry-098b8963\u2026.hbc, 5.1 MB, Hermes magic c61fbc03c103191f). The store-name error strings from idDigits and storeNameFor are inside it, so hermesc compiled the BigInt code. Nothing was run on a device."
+   "a9dac3c Merge main (8ac2d19) into qa/b2-dos167r2. It merged cleanly: main only touched QA/ files and frontend/manager-app/app/fulfilment/load-out.tsx (1f8e0c3, the document-URL guard fix).",
+   "Review blocker 1 (the ruling-2 frontend gate was never run) is resolved by running the whole gate on the merged tree. Every step is green: pnpm install (lockfile already up to date), lint, typecheck, test, format:check and turbo build --concurrency=1. No prettier drift was found, so no drift commit was needed. Web export bundled the BigInt store-name code in all three field apps: parseInt(...,36)/BigInt(0) appear in the sales, delivery and warehouse entry bundles. As extra evidence, `expo export --platform android` for the sales app, written to the scratchpad, compiled to Hermes bytecode (.hbc, 5.1MB, exit 0).",
+   "c236f18 fix(DOS-167): ruling 2 (z1). Settings > Sign out in frontend/delivery-app/app/settings.tsx and frontend/warehouse-app/app/settings.tsx now calls Chrome's leave({ mode: 'signOut' }) through a new app-level context (src/lib/leave-context.ts: LeaveContext + useLeave()), provided by Chrome in each app/_layout.tsx. The screens no longer call useSession().signOut(). Guard test 'DOS-167 every sign-out button in the app goes through the leave flow' is in all three apps' src/lib/leave.test.ts. It was red first in delivery and warehouse (bypass and withoutTheFlow both named settings.tsx). In sales it was green from the start, since sales has no second button.",
+   "c457b5b fix(DOS-167): ruling 2 (z2). frontend/libs/api-client/src/client.ts: signIn now waits for the previous leaving through waitForLeaving(), capped at LEAVING_WAIT_MS = 25_000. Past the cap it logs 'sign-in did not wait for a leaving that took over 25 s' with console.warn and goes on. It also resets the leaving chain, so later sign-ins do not wait 25 s again for the same hung leaving. Test 'DOS-167 a leaving that never settles holds a sign-in for at most 25 seconds' (api-client identity.test.ts, fake setTimeout) was red first: at the cap there was no login and no log, and the next sign-in never went.",
+   "4be7fe2 fix(DOS-167): ruling 2 (z3). (a) In frontend/sales-app/src/lib/leave.ts, kept = true when end() throws. Test 'DOS-167 a leaving whose end() throws keeps the drafts' was red first (forgetDrafts was called). (b) In frontend/libs/offline/src/engine.ts, stop() now records stoppedBeforeEnd, and endOnce answers { kept: true, pending, rejected } when a stop() had already closed the store. It still answers kept:false when no stop ran. Test 'DOS-167 an end() after a stop() closed the file answers kept, and the file is never deleted' (offline identity.test.ts) was red first: it got { kept: false, pending: 0 }.",
+   "9eed92b docs(DOS-167): the review's docs/27 minors. \u00a711 useOutbox() now names enqueueMany (:211). \u00a712 is reworded so the one-tap clause no longer hangs off the generation sentence (:236). The \u00a711 and \u00a712 sentences also state the 25 s sign-in cap (z2), and \u00a712 says every sign-out button takes the leave flow (z1). No other doc or README was changed."
   ],
   "testsRun": [
-   "backend: pnpm install (already up to date); pnpm exec turbo run build --filter='./libs/*': 4/4 green, all from turbo cache, dist present",
-   "frontend: pnpm install (already up to date, lockfile unchanged)",
-   "frontend: pnpm format:check: exit 0, all files match prettier",
-   "frontend: pnpm lint: exit 0, 11/11 tasks (only @dos/app-template came from cache)",
-   "frontend: pnpm typecheck: exit 0, 11/11 tasks (only @dos/app-template came from cache)",
-   "frontend: pnpm test: exit 1. turbo stopped at the first failure (@dos/ui#test), so I reran it as below",
-   "frontend: pnpm exec turbo run test --continue --concurrency=1: exit 1, 8/9 green. Freshly run: @dos/api-client 91/91, @dos/offline 65/65, @dos/sales-app 19/19, @dos/delivery-app 21/21. From turbo cache: admin 6/6, manager 14/14, owner 4/4, warehouse 8/8. FAILED: @dos/ui 264/265, src/document-urls.test.ts 'DOS-057 DOS-099: every signed URL an app hands to documents.open/print/share is absolutised with absoluteUrl()'. The two offending lines: manager-app/app/fulfilment/load-out.tsx:236 documents.open(step.url) and :464 documents.open(challanUrl)",
-   "frontend: pnpm exec turbo run build --concurrency=1: exit 0, 8/8 expo web exports, none from cache",
-   "frontend/sales-app: pnpm exec expo export --platform android --output-dir <scratchpad>: exit 0, Hermes .hbc produced, contains the store-name code",
-   "backend: pnpm docs:readme:check: exit 0",
-   "git status --short: clean. Build output (dist/, .expo/) is gitignored and nothing is untracked"
+   "red-first: pnpm --filter @dos/delivery-app exec vitest run src/lib/leave.test.ts -t 'every sign-out button' -> 1 failed (settings.tsx); same in warehouse-app -> 1 failed; sales-app -> passed",
+   "green: vitest run src/lib/leave.test.ts in delivery-app 7/7, warehouse-app 7/7, sales-app 7/7 (after z1)",
+   "red-first: pnpm --filter @dos/api-client exec vitest run src/identity.test.ts -t 'at most 25 seconds' -> failed (atTheCap logins 0, signedIn null, warned [])",
+   "green: api-client src/identity.test.ts 8/8 and src/client.test.ts 22/22 (after z2)",
+   "red-first: sales-app src/lib/leave.test.ts -> 2 failed (new z3 test plus the corrected endFails case, both because forgetDrafts was called); offline src/identity.test.ts -t 'after a stop' -> failed (kept false, pending 0)",
+   "green: sales-app src/lib/leave.test.ts 8/8; offline src/identity.test.ts 27/27; offline src/engine.test.ts 29/29 (after z3)",
+   "per-package: typecheck and lint for delivery-app, warehouse-app, sales-app, api-client and offline all exited 0 (the first sales lint found no-useless-assignment in leave.ts; it was fixed before the z3 commit and re-run green)",
+   "gate step 4 (frontend, merged tree at 9eed92b): pnpm lint -> 11/11 tasks successful",
+   "gate: pnpm typecheck -> 11/11 tasks successful",
+   "gate: pnpm test -> 9/9 tasks. Tests passed: ui 265, api-client 92, offline 66, delivery-app 22, sales-app 21, manager-app 14, warehouse-app 9, admin-app 6, owner-app 4. This includes @dos/ui document-urls.test.ts, now green after merging main.",
+   "gate: pnpm format:check -> All matched files use Prettier code style",
+   "gate: pnpm exec turbo run build --concurrency=1 -> 8/8 successful, 0 cached, 'Exported: dist' for admin, app-template, delivery, manager, owner, retailer, sales, warehouse",
+   "extra: sales-app expo export --platform android --output-dir <scratchpad> -> exit 0, Hermes .hbc bundle produced",
+   "step 2: backend pnpm install + pnpm exec turbo run build --filter='./libs/*' -> exit 0 (4/4 tasks, all cache hits); frontend pnpm install -> Already up to date, lockfile unchanged",
+   "step 5: backend pnpm docs:readme:check -> exit 0",
+   "step 6: git status --short -> clean"
   ],
-  "notes": "BLOCKED: the ruling's frontend unit gate is red, and \"anything red means no merge\". The failing test is @dos/ui src/document-urls.test.ts. This lane did not cause it and I did not fix it.\n\nWhere it comes from: both lines blamed (manager-app/app/fulfilment/load-out.tsx:236 and :464) come from 144bcfe, \"fix(DOS-026): merge-review blocker \u2014 Print the challan\u2026\", dated 2026-09-13. That commit is on main and in this branch's base 1d8a964. The lane does not touch manager-app or libs/ui: `git diff main -- frontend/manager-app frontend/libs/ui` is empty. Main has the same red today.\n\nProbably a false alarm from the guard, not a real bug. load-out.tsx:227-228 already passes absoluteUrl(result.url) into nextChallanPoll, so step.url and challanUrl are absolute. The guard only accepts an inline absoluteUrl(...) argument, or a name the same file assigns with '<name> = absoluteUrl('. It cannot see the URL going through nextChallanPoll or setChallanUrl.\n\nWhy I did not fix it: load-out.tsx is not one of ruling 2's files, and changing the test would weaken it. The charter forbids both. It needs its own small slice on main, either:\n(a) load-out.tsx assigns something like 'const readyUrl = absoluteUrl(result.url)' and passes that, or\n(b) the guard learns to follow a value through a helper, without loosening the rule.\nOnce main is green there, merge main into qa/b2-dos167r2 again and rerun pnpm test. Everything else in the gate is already green on 31de0f8.\n\ntestsCorrected: none. No test changed. Minors: none applied; none of the review's minors is a one-line change inside ruling 2's files that the blocker needed. No backend, contract, kit, docs/22, docs/18 or QA change. No push, and nothing was merged into main.\n\nOutputs: logs are in /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/ (format.log, lint.log, typecheck.log, test.log, test2.log, build.log, android-export.log, readme.log), with the Hermes export in sales-android/ there. The worktree is /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167r2 on branch qa/b2-dos167r2, HEAD 31de0f8, clean."
+  "notes": "testsCorrected: in frontend/sales-app/src/lib/leave.test.ts, the endFails case of 'DOS-167 leaving decides on what waits in the file once it is open, clears the session on the phone before it ends the engine and never deletes what it did not count' no longer expects 'forgetDrafts' after end() throws. Addendum (z3) orders exactly this change (\"When end rejects, forgetDrafts is not called\"). No other existing test was changed.\n\nJudgment calls within the addenda:\n- (z1) guard, in _layout.tsx: it allows only the wrong-role screen's signOut(), where no engine or store is ever started. This matches the addendum's red list, which names only the two settings.tsx files. The guard also fails on a \"Sign out\"-labelled button outside the layout that does not use useLeave(), and on a signOut destructured from useSession().\n- (z1) null context: useLeave() returns null outside Chrome, and the button then does nothing. It never throws, because a screen can render in <Slot/> for one frame after the session clears, before the redirect.\n- (z2) chain reset: when the cap fires, the leaving chain is reset. Without that, every later sign-in would wait the full 25 s again for the same hung leaving, because signOutOnDevice chains each new leaving onto the one before. The z2 test asserts this.\n- (z3) second case: it is fixed in the engine, so end() itself answers kept:true after a stop(). The react useLeaveSession wrapper still answers kept:false when it has no engine at all; that was left unchanged as adjacent.\n\nNOT TESTED (not executed here; they belong to the re-proof):\n- all device and browser walks from ruling 2 and addenda (x)/(y)/(z): web V5A-V5E and the memory variant, Android sales/delivery/warehouse, iOS sales, Settings > Sign out on a device, the refresh-in-flight / SecureStore-order / fast re-sign-in walks;\n- Hermes bundling of the delivery and warehouse apps (only the sales app was exported for android);\n- Rahul's store name byte-compared on Hermes against V8.\n\nNo dev servers, emulators or simulators were started. The Hermes export went to the scratchpad, outside the repo. dist/ output is gitignored, and git status is clean. Nothing was merged into main. No kit, contract, permission or backend change. QA/, docs/22, docs/18 and CLAUDE.md were not edited.\n\nEarlier merge commit 31de0f8 (main at 2f55c4d) came from a previous integration run and is kept; a9dac3c brings in main at 8ac2d19."
  },
+ "integrationVerdict": {
+  "verdict": "pass",
+  "problems": [
+   {
+    "severity": "minor",
+    "detail": "Adjacent to z3, not in its text: frontend/libs/offline/src/react.tsx:343 useLeaveSession().end still returns { kept: false } when the provider has no engine. In the sales app that path calls forgetDrafts. It is reachable only in the moment between Chrome mounting and the provider's effect calling setEngine, or when no store name could be built (then there is no file). The integrator already disclosed this. It does not block."
+   },
+   {
+    "severity": "minor",
+    "detail": "Edge case in z2 (frontend/libs/api-client/src/client.ts, waitForLeaving): the leaving chain is reset only if `leaving === waited`. If a second sign-out chains onto the hung leaving while a sign-in is already waiting, a later sign-in can wait the full 25 s again. The addendum only requires the cap plus a log, and both hold. It does not block."
+   },
+   {
+    "severity": "minor",
+    "detail": "NOT TESTED here, by design; these belong to the re-proof walks: every device and browser walk in ruling 2 and addenda (x), (y) and (z) (web V5A-V5E and the memory variant, Android sales/delivery/warehouse keep runs, iOS sales, Settings > Sign out on a device, refresh in flight at the tap, SecureStore ordering, fast re-sign-in); Hermes bundling for delivery and warehouse (only sales was exported for android); and Rahul's store name byte-compared on Hermes against V8."
+   }
+  ],
+  "evidence": "All checks ran in /Users/prajwalchavan/Desktop/Distribution OS/.claude/worktrees/b2-dos167r2 (branch qa/b2-dos167r2). No commits were made and no file is left changed.\n\n1. HEAD and tree: HEAD is 9eed92b and `git status` is clean. main (8ac2d19) is an ancestor of HEAD: 16 commits ahead, 0 behind.\n\n2. Merges (31de0f8 and a9dac3c):\n- `git show --cc` shows no combined hunks for either, and the two sides changed no file in common.\n- Every file main changed is byte-identical to main's parent in the merge result (QA/* and frontend/manager-app/app/fulfilment/load-out.tsx).\n- Against the reviewed tip c1ce0a7, HEAD's file set is exactly main's side plus the four z commits.\n- `git diff c1ce0a7 HEAD` over frontend and docs (manager excluded) is byte-identical to `git diff a9dac3c HEAD`. So nothing from the reviewed ruling-2 code was dropped.\n- (s)-(y) are still present: storeNameFor/parseStoreName/sweepStores (engine.ts:92,115,852), leaveButtons with persistent (sales leave.ts:100-107), enqueueMany (engine.ts:1243, queue.ts:77), StoreClosedError and the single close (expo-sqlite.ts:53-97), clearOnDevice before leave (client.ts:356).\n- Versus main, nothing changed under QA/, docs/22, docs/18, CLAUDE.md, backend/ or frontend/libs/ui.\n\n3. Review blocker (the frontend gate was never run): resolved.\n- main is merged; forced re-runs of the gate on HEAD, reported under 6, are all green.\n- The BigInt code at frontend/libs/offline/src/engine.ts:98-134 (`BigInt(\\`0x${id...}\\`).toString(36).padStart(ID_DIGITS,'0')`, `0n` in uuidOfDigits) is now bundled. Each of the freshly exported sales, delivery and warehouse web entry bundles (written 05:50) contains `throw new Error('offline: a store name takes a user id and a distributor id that are UUIDs');return BigInt(\\`0x${t.toLowerCase().replaceAll('-','')}\\`).toString(36).padSta\u2026`.\n- Extra: `expo export --platform android` for sales wrote a 5,069,144-byte .hbc to the scratchpad, containing 'that are UUIDs' and 'no store file for the app prefix'.\n- Red proof: I restored load-out.tsx to 1f8e0c3^, the main-side fix this merge brought in. @dos/ui src/document-urls.test.ts then failed ('DOS-057 DOS-099: every signed URL\u2026', expected [ \u2026(2) ] to equal [], exit 1). After restoring, 4 of 4 passed.\n\n4. Tests, one file per vitest run:\n- offline identity.test.ts 27/27, offline engine.test.ts 29/29, api-client identity.test.ts 8/8.\n- leave.test.ts: sales 8/8, delivery 7/7, warehouse 7/7. Sales draft.test.ts 1/1.\n- typecheck exited 0 with 0 TS errors for @dos/offline, @dos/api-client, @dos/sales-app, @dos/delivery-app and @dos/warehouse-app.\n\n5. Addendum (z), code on HEAD, each item red first:\n- z1 (c236f18):\n  - delivery-app/app/settings.tsx:288 and warehouse-app/app/settings.tsx:168 call `leave?.({ mode: 'signOut' })` via `useLeave()` from src/lib/leave-context.ts.\n  - Chrome wraps AppShell's `{children}` in `<LeaveContext.Provider value={leave}>` in both _layout.tsx files; this is the same `leave` the account menu calls.\n  - The only other signOut() in any field app is the WrongRole screen's (_layout.tsx:207), and the offline provider is disabled for a wrong role (`!wrongRole` in enabled/live).\n  - The guard test is in all three leave.test.ts files.\n  - Red: delivery settings.tsx restored to c236f18^ made the guard fail; after restore it passed.\n- z2 (c457b5b):\n  - client.ts: LEAVING_WAIT_MS = 25_000, and waitForLeaving() races the leaving against the timer.\n  - Past the cap it logs 'sign-in did not wait for a leaving that took over 25 s' and resets the chain; signIn awaits waitForLeaving().\n  - Red: client.ts restored to c457b5b^ made 'at most 25 seconds' fail; after restore it passed.\n- z3 (4be7fe2):\n  - sales leave.ts sets `kept = true` in end()'s catch.\n  - engine.ts: stop() sets stoppedBeforeEnd, and endOnce returns `{ kept: true, pending, rejected }` when a stop() had closed the store.\n  - Red: sales leave.ts restored to 4be7fe2^ made 'a leaving whose end() throws keeps the drafts' and the corrected endFails case fail. engine.ts restored to 4be7fe2^ made 'an end() after a stop() closed the file answers kept' fail (got kept:false). Both passed after restore.\n- docs/27 minors (9eed92b): :211 useOutbox names enqueueMany. The \u00a712 sentence at :236 is reworded, with the one-tap clause now its own sentence. Both sections state the 25 s cap and that every sign-out button takes the leave flow.\n- Every restore was checked with `git diff --quiet`.\n\n6. Frontend gate on HEAD, turbo --force, 0 cached everywhere:\n- pnpm lint: 11/11 successful, exit 0.\n- pnpm typecheck: 11/11, exit 0.\n- `pnpm exec turbo run test --continue --concurrency=1`: 9/9, exit 0. Tests passed: ui 265, api-client 92, offline 66, delivery 22, sales 21, manager 14, warehouse 9, admin 6, owner 4.\n- pnpm format:check: 'All matched files use Prettier code style!'\n- `turbo run build --concurrency=1`: 8/8, each 'Exported: dist'.\n- git status is clean afterwards.\n\nLogs are in /private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/gate/. No dev servers, emulators or simulators were started."
+ },
+ "merge": {
+  "status": "merged",
+  "mainHead": "bafb7b5",
+  "pushed": true,
+  "notes": "All preconditions held: HEAD=main, working tree clean, qa/b2-dos167r2=9eed92b, merge-tree clean, no touched paths in the excluded frontend libs/apps list (diff --stat qa/b2-dos167r2...main was empty). Merged with --no-ff and the exact message given, pushed to origin/main successfully on first try. New main HEAD: bafb7b5."
+ },
+ "proofs": [
+  {
+   "platform": "web",
+   "verdict": "fail",
+   "steps": [
+    {
+     "app": "repo / backend",
+     "step": "PREPARE: main HEAD, libs build, dos_qa migrate, service health, sales Metro :5175 --clear",
+     "expected": "git log shows the ruling 2 merge; turbo build of libs green; pnpm db:migrate on dos_qa applies; /health 200 on :3000-:3007; web bundle served",
+     "observed": "HEAD bafb7b5 'Merge QA batch 2 P0 DOS-167 ruling 2'. Libs build 4/4 (cache hit). dos_qa migrations applied. :3000-:3007 all 200. Sales Metro started CI=1 --clear; entry bundle 200 (7.6 MB, 3.5 s).",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/prepare-00-git-log.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/prepare-01-libs-build.log",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/prepare-02-db-migrate-dos_qa.log",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/sql-00-baseline.txt"
+     ]
+    },
+    {
+     "app": "frontend unit",
+     "step": "UNIT: the named DOS-167 test files on main, one file per command (offline identity.test.ts, sales/delivery/warehouse leave.test.ts, api-client identity.test.ts)",
+     "expected": "all green",
+     "observed": "offline identity 27/27, sales leave 8/8, delivery leave 7/7, warehouse leave 7/7, api-client identity 8/8, all exit 0",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/unit-summary.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/unit-offline-identity.log"
+     ]
+    },
+    {
+     "app": "QA script",
+     "step": "Store-name rule: QA mirror of storeNameFor/parseStoreName checked against the product's own functions (tsx, V8)",
+     "expected": "rahul = s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft; 51 chars; parse round-trips for rahul, kiran and amit",
+     "observed": "product V8: rahul s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (equal to the ruling), kiran s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk, amit se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft; all 51 chars, round trip true; the script mirror gives identical names (nameSelfCheck in every results file)",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/prepare-03-storename-product-v8.json"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS, COOP/COEP injected)",
+     "step": "V5A desk 1280x800, runs 1 and 3: first page load after a Metro start (cold lazy expo-sqlite bundles)",
+     "expected": "after rahul's sign-in exactly one pool header /s80j...cmft decoded to rahul + Tarsun; strip 'Updated just now'; beat never shows s0.notPersisted",
+     "observed": "Both runs: no store header for rahul. Instead the 6-file pool held orphan temp names ('0.ar2nc2hyok' and similar), plus '/dos-sales.db-wal' in run 3. Run 3 also logged an uncaught pageerror 'SQLiteError: not a database' at +423 ms. Rahul's engine made no /sync call for 240 s. The beat showed 'Still loading the beat onto this phone', Shops 0 and 'Not updated yet', and the not-persisted line stayed 240.4 s. For the next person (amit): 'cannot create file' x5 in the worker, then the app ran on memory with no header. No leak marker was hit.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run1-v5a/results-v5a.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run3-v5a/results-v5a.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run3-v5a/v5a-01-a-rahul-beat-synced-desk.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run3-v5a/run-v5a.log"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "Diagnostic: warm Metro, no OPFS walk until the end; control without delay (diag-01), then 600 ms added to the expo-sqlite build/index and web/worker bundles (diag-02, diag-03)",
+     "expected": "the store opens and syncs regardless of bundle latency",
+     "observed": "diag-01 (no delay): manifest at 143 ms, pulls, 'Updated just now', final header /s80j...cmft (4 MB). diag-02 and diag-03 (600 ms delay): 60 s with only /auth/login and the logo request (no manifest, no pull). Both showed 'Not updated yet', 'Still loading the beat', Shops 0 and the not-persisted line, and an uncaught 'SQLiteError: not a database' at +1.39 s. Pool in diag-02: rahul's header, a truncated header '/my1imsvb8cmft' and an orphan '0.dc4ea9j7tqo'. Pool in diag-03: five orphan '0.x' temps plus '/dos-sales.db-wal'. So the stuck store came back 2 of 2 without a cold Metro.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/diag-01-open-timeline-rahul.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/diag-02-open-timeline-rahul-warm-metro-sqlite-delay-600ms.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/diag-03-open-timeline-rahul-warm-metro-sqlite-delay-600ms-repeat.json"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5A desk 1280x800, runs 2 and 4 (warm Metro): rahul -> one-tap sign-out -> amit (same distributor)",
+     "expected": "exactly one header per signed-in person, decoded ids = token sub/tid = dos_qa; none after sign-out, no dos-sales.db; rahul's header byte-equal to the ruling; no A marker at any checkpoint or +0.4 s shot; first manifest without knownSchemaVersion, first pull without since; Shops 29, orders 380 (live 90-day count now 384); 'That order is not on this phone'; no s0.notPersisted; no 'no persistent store' console line",
+     "observed": "Run 4: every file check passed. Rahul's header was /s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, decoded 8760e17e/01a09a5b, equal to the token claims and to dos_qa. Amit's header was /se785...cmft and decoded correctly. 0 headers and anyDosSales 0 after the sign-out. 7 leak checkpoints, the watcher and the leak poll were clean, and the +400 ms shot had no hits. First manifest had knownSchemaVersion null; first pull had no since. Shops 29; orders total 384 (live SQL 384); route said 'That order is not on this phone'; crossOriginIsolated true; no 'no persistent store' line. One FAIL: the s0.notPersisted line showed for 51 ms (200-251 ms after arming) right after rahul's sign-in. In run 2 amit's '-journal' sidecar was counted as a second header; the script now counts sidecars apart.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5a.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run-v5a.log",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/v5a-06a-second-plus-400ms-desk.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run2-v5a/results-v5a.json"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5B desk: rahul -> one-tap sign-out -> kiran (Sai), same tab",
+     "expected": "as V5A with kiran: Shops 24, orders 218, no Tarsun beat names or rahul markers",
+     "observed": "All file and identity checks passed (kiran header /s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk = token 2239ec93/82f5c562). 0 leak hits, +400 ms shot clean. First manifest had no knownSchemaVersion; first pull had no since. Shops 24, orders 218; 'That order is not on this phone'. FAIL: s0.notPersisted flashed for 39 ms after rahul's sign-in.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5b.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run-v5b.log"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5C phone 390x844: rahul -> sign-out -> reload (restart) -> kiran",
+     "expected": "as V5B, at phone width, with no header after the reload",
+     "observed": "All file and identity checks passed, including 0 headers after the reload and kiran's single header (a -journal sidecar was present at one checkpoint and counted apart). 0 leak hits, +400 ms shot clean. Manifest and pull had no knownSchemaVersion and no since. Shops 24, orders 218; route not on phone. FAIL: s0.notPersisted flashed 82 ms after rahul's sign-in and 50 ms after kiran's.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5c.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/v5c-06a-second-plus-400ms-phone.png"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5D desk: order kept offline for rahul, kiran in between, cold-start tap, resend",
+     "expected": "strip '2 waiting to send'; sheet '2 changes have not reached the office', body names Rahul, no Send now offline, keep 'Sign out, keep here'; header kept; kiran adds a second header, no rahul marker, Shops 24/orders 218, 0 uploads; kiran's one-tap sign-out leaves only rahul's header; cold start -> same sheet, file kept; re-sign-in manifest -> upload -> pull without since, strip '2 waiting' then 'Updated just now'; dos_qa draft once with its line, salesperson rahul",
+     "observed": "Run 2: all 15 checks PASS. Strip 'Offline since 6:49 am \u00b7 2 waiting to send'; sheet title, body 'They stay on this phone for Rahul Deshmukh only\u2026', no Send now, keep 'Sign out, keep here'. After keep, rahul's header /s80j...cmft was still there. Kiran synced with 2 headers (identity PASS), Shops 24, orders 218, 0 uploads; watcher 9.2 s clean, +400 ms shot clean. Kiran's one-tap sign-out left rahul's header only. Cold start: tap 161 ms after the sign-in click, sheet at +54 ms with the same title, file kept. Resend order: manifest -> upload [2 ops] -> pull (no since) -> pull. Strip went '2 waiting to send' then 'Updated just now'. Upload accepted 2, each op once. dos_qa: order 01a09d7f-57f0-77e2-8a12-5c10e417c734 once with 1 line, salesperson rahul, 2 sync_ops. Run 1 passed the same checks; its only red was a leak-poll artefact (the poll ran into rahul's own later session), since fixed.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5d.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/v5d-04-leave-sheet-offline-desk.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/v5d-11-cold-start-after-tap-desk.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run1-v5d/v5d-leak-first-hit-desk.png"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5E data: two-line order, pull held 5 s, Sign out tapped, Save tapped inside the stall; then rahul signs in again",
+     "expected": "nothing kept, file deleted; at re-sign-in nothing waits, 0 uploads; dos_qa has no row for the order id (no header-only draft)",
+     "observed": "Draft had 2 lines (2 distinct variants). After the sign-out the file was gone (0 headers). At re-sign-in the strip never said 'waiting', 0 uploads; dos_qa had 0 sales_orders rows for 01a09d79-63fb-7797-9345-731a16173100 and 0 line rows.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5e.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/v5e-02-inside-stall-after-place-desk.png"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5E screen words (ruling (v)): the refused tap shows the engine's sentence 'This phone is signing out\u2026'",
+     "expected": "engine sentence on the order screen, never the generic line nor 'Saved on this phone'",
+     "observed": "The Save tap could not land. The tap came 86 ms into the held pull and the order screen was still up right after it, but (y) signs out on the device first, so the sign-in form replaced the screen and the click timed out after 3 s. No refused write happened, so neither the engine sentence nor the generic line nor 'Saved on this phone' showed (50 ms text watch, 7.6 s). V5E2A/B dispatched Save and Sign out in one browser task: the write landed first both times, so there was still no refusal to show.",
+     "result": "NOT TESTED",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5e.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run-v5e.log"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "V5E2A / V5E2B: 'Save on this phone' and 'Sign out' clicked in ONE browser task, offline, two-line order (A place first, B sign out first)",
+     "expected": "the order is whole or absent in dos_qa, never header-only; a kept order goes once; no generic error",
+     "observed": "Both orders: no sheet, sign-in form at 51-53 ms. Rahul's header was kept, meaning end() counted the landed write. No refusal, generic or 'Saved' text. At rahul's next sign-in: 1 upload (2 ops, each once); dos_qa order once with both lines (orderCount 1, lineCount 2).",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5e2a.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5e2b.json"
+     ]
+    },
+    {
+     "app": "sales web (memory store, plain Metro, no header injection)",
+     "step": "MEMORY: console line 'offline: no persistent store; running in memory' naming 'not cross-origin isolated' (desk and phone)",
+     "expected": "the line appears in the console once",
+     "observed": "Absent at both widths: the page and worker console held only info/log plus 401 and ERR_INTERNET_DISCONNECTED errors, and no 'offline:' line. crossOriginIsolated false. The sales app's Offline component passes no onLog to OfflineProvider (frontend/sales-app/app/_layout.tsx:294-316), so the engine's line at engine.ts:487 goes nowhere.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmem.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmemp.json"
+     ]
+    },
+    {
+     "app": "sales web (memory store)",
+     "step": "MEMORY walk desk 1280x800 and phone 390x844: beat line, queue offline, leave sheet offline, radio on, Send now, sign-out, dos_qa",
+     "expected": "s0.notPersisted shown; no OPFS store; sheet shows leave.bodyMemory and only Cancel offline and waits; online Send now appears (no keep), sends, sign-out completes; order once in dos_qa",
+     "observed": "Both widths:\n- beat line shown, 0 store headers, 'Saved on this phone', strip '2 waiting to send'\n- offline sheet: '2 changes have not reached the office', body = leave.bodyMemory, buttons Close + Cancel only; 3 s later still signed in with the sheet open\n- radio on: Send now appeared in about 20 ms (Send now + Cancel, no keep)\n- the engine's reconnect flush sent both ops at +13.3 s (accepted 2), just before the Send now click, and the strip went to 'Updated just now'\n- the Send now tap then signed out at once (sign-in form at 50/59 ms), with no second tap\n- dos_qa: orders 01a09d7b-034c\u2026 and 01a09d7b-3bb0\u2026 once each with 1 line, salesperson rahul, 4 sync_ops ok",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/vmem-03-leave-sheet-offline-desk.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/vmem-04-leave-sheet-online-desk.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/vmemp-04-leave-sheet-online-phone.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/sql-01-vmem-ops-and-orders.txt"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "WALK (merge review): a refresh in flight at the tap, then relaunch",
+     "expected": "sign-in form, still after the held refresh answers and after a reload; no token in localStorage; kept order goes once",
+     "observed": "A spoiled token on /sync/manifest set off /auth/refresh, held 10 s. Tap came 69 ms into the hold, keep 160 ms in; the sign-in form showed before the release. After the refresh answered: still /sign-in. Reload: sign-in form. localStorage auth keys empty at the form, after the answer and after the reload (signed in, it had dos.auth.refresh length 43 and dos.auth.session). auth_sessions for this device: 1 row, revoked (logout), 0 live. Rahul's file was kept; at his next sign-in 1 upload (2 ops once), order once with its line.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vrefresh.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/vrefresh-03-after-relaunch-desk.png"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "WALK (merge review): fast re-sign-in while end() waits on a held page \u2014 same person (VFASTA)",
+     "expected": "sign-in waits for the leaving; kept op goes once",
+     "observed": "Keep tapped inside the held pull, rahul's sign-in clicked 38 ms later. The login request went out 255 ms after the held page was released (8053 ms after the click). Header identity PASS. 1 upload, 2 ops each once; dos_qa order once with its line, salesperson rahul.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vfasta.json"
+     ]
+    },
+    {
+     "app": "sales web (persistent OPFS)",
+     "step": "WALK (merge review): fast re-sign-in while end() waits on a held page \u2014 another person (VFASTB)",
+     "expected": "sign-in waits; kiran sees none of rahul's data and uploads nothing; rahul's op goes once at his later sign-in",
+     "observed": "Run 2: kiran clicked 54 ms after keep; login request 254 ms after the release. Kiran: Shops 24, orders 218, 0 marker hits (3 checkpoints, watcher 17.1 s, poll null), 0 uploads. Headers: kiran's added, rahul's kept (identity PASS). Kiran's one-tap sign-out left rahul's header. Rahul's sign-in: 1 upload, ops once, dos_qa once. Run 1 passed the same checks; its only red was the leak-poll artefact (first hit at +30.9 s, after rahul re-signed in at +30.4 s; screenshot is rahul's own beat).",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vfastb.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run1-vfastb/vfastb-leak-first-hit-desk.png"
+     ]
+    },
+    {
+     "app": "sales web",
+     "step": "WALK (merge review): sign-out of a rep at more than one distributor (sibling sweep keeps the next open persistent)",
+     "expected": "sibling files created and deleted in OPFS, next open persistent",
+     "observed": "dos_qa has no salesperson with memberships at more than one distributor (0 rows), so the walk could not be run",
+     "result": "NOT TESTED",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/sql-00-baseline.txt"
+     ]
+    }
+   ],
+   "defects": [
+    {
+     "severity": "P1",
+     "detail": "On the web persistent store, the sales app's device database sometimes never opens and the engine hangs without saying so. It happens when the expo-sqlite chunk and worker arrive a little late: the first load after a Metro start, or a warm Metro with 600 ms added to those two bundles, as a first visit over a network would add.\n- Uncaught 'SQLiteError: not a database'.\n- The 6-file OPFS pool fills with orphan unnamed temp files ('0.xxxx') plus '/dos-sales.db-wal' (the legacy sweep's file), then the worker logs 'cannot create file'.\n- Rahul's engine makes no /sync call for 240 s: 'Still loading the beat onto this phone', Shops 0, 'Not updated yet'. The not-persisted line stays 240 s.\n- The next person's open fails 'cannot create file' and silently runs on memory.\n- Ruling (t)'s loud fallback never fires: the app hangs instead of falling back.\n- No leak and no data loss were seen.\nHit 4 of 4 under that condition; 0 of 5 without it.\nHypothesis for the fixer (not proven): the provider's legacy dos-sales.db open+destroy and the interim-name sweep race the engine's open on one wa-sqlite pool at mount.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run1-v5a/results-v5a.json; .../reproof/web/run3-v5a/results-v5a.json (pageerror at +423 ms, pool walk, consoleTimeline); .../reproof/web/run3-v5a/v5a-01-a-rahul-beat-synced-desk.png; .../reproof/web/diag-02-open-timeline-rahul-warm-metro-sqlite-delay-600ms.json; .../reproof/web/diag-03-open-timeline-rahul-warm-metro-sqlite-delay-600ms-repeat.json; control .../reproof/web/diag-01-open-timeline-rahul.json"
+    },
+    {
+     "severity": "P3",
+     "detail": "Ruling (t) console line is never printed in the sales web app. On a memory store (plain Metro, not cross-origin isolated) the console shows no 'offline: no persistent store; running in memory' line, at desk or phone. The sales Offline component (frontend/sales-app/app/_layout.tsx:294-316) passes no onLog to OfflineProvider, so the engine's onLog call at frontend/libs/offline/src/engine.ts:487 is a no-op. The screen line s0.notPersisted and the memory sheet do work.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmem.json and results-vmemp.json (summary.consoleNoPersistentStoreLine, consoleTimeline)"
+    },
+    {
+     "severity": "P3",
+     "detail": "On a persistent OPFS store the beat screen briefly shows 'This browser will not keep the offline copy after you close it' right after each sign-in, before the engine reports a persistent store. The ruling requires it never to show on V5A/B/C. Measured with a 50 ms DOM watch: 51 ms (V5A run 4), 39 ms (V5B), 82 ms and 50 ms (V5C rahul and kiran).",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5a.json, results-v5b.json, results-v5c.json (notPersistedWatch intervals)"
+    },
+    {
+     "severity": "P3",
+     "detail": "Observation, cause not investigated: in every web run a sales-service call answers 401 about 5-24 s after sign-in (e.g. GET /sync/manifest), followed by a successful /auth/refresh. Nothing broke. VREFRESH's 401 was deliberate; the others were not.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmem.json (consoleTimeline 401 at +5938 ms, auth refresh +5943 ms); run1-v5a/results-v5a.json failed[] '401 GET http://127.0.0.1:3003/sync/manifest'"
+    }
+   ],
+   "notTested": [
+    "V5E ruling (v) on-screen refusal sentence on web: the refusal could not be produced through the UI. (y) replaces the order screen at the sign-out tap, and both same-task dispatches (V5E2A/B) queued the write before end() began.",
+    "Merge-review walk 'sign-out of a rep at more than one distributor': dos_qa has no salesperson with more than one distributor membership.",
+    "Full frontend gate (cd frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check): not run by this web prover (8 GB RAM with Metro and Chromium up; expo export of 7 apps). Only the named DOS-167 test files were run, and all were green.",
+    "'Every test named in (s)-(v) seen red on main first': not reproducible without checking out pre-fix code, which this run may not do.",
+    "Android and iOS items (sales steps 1-6, long-name upgrade, delivery/warehouse keep x3, Settings > Sign out, SecureStore ordering, Hermes byte check, S-126, S-127, iOS keep x3 and Send now): out of scope for the web prover and left to the Android/iOS provers.",
+    "Production static export (hosted site) was not run. The P1 stuck-store condition was shown on the Metro dev server, cold and with added bundle latency."
+   ],
+   "environment": "Main checkout /Users/prajwalchavan/Desktop/Distribution OS at bafb7b5, macOS 14.6.1 (8 GB).\n- Services :3000-:3007 and worker on dos_qa (all /health 200 at start and end; left running).\n- Sales Metro :5175 (CI=1 pnpm --filter @dos/sales-app web --clear). It was restarted once, cold, to reproduce the first-load failure, and is left running (log ~/.dos-qa-logs/logs/dos167-reproof-web-sales-metro-2.log).\n- Chromium: Playwright chrome-headless-shell 145.0.7632.6 via QA/tools/pw-server.mjs on PW_PORT=9341; stopped at the end (pids 62748/62753/62760). The pw-server on 9333, older pw-server processes from earlier sessions, proxy8081.mjs, Appium :4723 and a Simulator.app process were not mine and were left untouched.\n- Persistent-store variants inject COOP/COEP plus local-network-access per context; the memory variants use plain Metro.\n- QA script QA/tools/e2e/s-098-shared-device.mjs updated:\n  - ruling-2 store names with a parseStoreName mirror, decoded ids asserted against token sub/tid and dos_qa;\n  - SQLite -journal/-wal/-shm sidecars counted apart;\n  - worker console capture; text watch with visible intervals; the leak poll stops at the second person's sign-out;\n  - V5D/V5E expectations per ruling 2; a two-line V5E;\n  - new variants V5E2A/B, VMEM/VMEMP, VREFRESH, VFASTA/B, each with pass-flag summaries.\n- Scratchpad helpers (not in repo): storename-v8.mts, diag-web-open.mjs.\n- Evidence: QA/evidence/batch2/dos-167/reproof/web/ (results-*.json, run-*.log, screenshots and text, run1/run2/run3-v5a, run1-v5d, run1-vfastb, diag-01..03, sql-00/01, unit logs).\n- git status --short: ' M QA/tools/e2e/s-098-shared-device.mjs' and '?? QA/evidence/batch2/dos-167/reproof/' only; no other untracked build output.\n- The walks added rahul draft orders to dos_qa (V5D, VMEM, VMEMP, VREFRESH, VFASTA, VFASTB, V5E2A, V5E2B), about 10 rows at Chavan Kirana Stores."
+  },
+  {
+   "platform": "Android: Pixel_7_API_36 emulator (sdk_gphone64_arm64, Android 16 / API 36, headless, -memory 3072), sales app in.distributionos.sales (debug APK, JS from Metro :5175), expo-sqlite, Static Hermes 250829098.0.17 (bytecode 98)",
+   "verdict": "partial",
+   "steps": [
+    {
+     "app": "sales (Android)",
+     "step": "Design step 1 on main bafb7b5: install -r, pm clear, sign in as rahul.deshmukh, wait for 'Updated just now', then `adb shell run-as in.distributionos.sales ls files/SQLite`. Decode every name with the parseStoreName rule and compare Rahul's name byte for byte with ruling 2 (s).",
+     "expected": "Exactly one s[0-9a-z]{50} file (+ -wal/-shm), decoded to rahul @ Tarsun. No dos-sales.db and no dos-sales__u-\u2026 name. The name byte-equals s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft.",
+     "observed": "Signed in; the strip read 'Updated just now' (manifest plus 14 pulls, all 200). files/SQLite held only s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (+ -shm, -wal), length 51, decoded to user 8760e17e-4830-7395-a946-1e02fffa1ad7 / tenant 01a09a5b-3c58-71c1-a34d-b93c569b0099 (rahul @ Tarsun). legacy [], interim [], strays []. Byte compare: 51 = 51 bytes, byte-equal True. Rahul's own Shops tab showed Chavan Kirana (the leak marker for later steps).",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/1-rahul-signin.log",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/1-rahul-ls.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/1-rahul-home-synced.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/1-rahul-shops.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/1-rahul-sync-log.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "First run: check `typeof BigInt` on this Hermes and run the product's own storeNameFor/parseStoreName on Hermes. Done with CDP Runtime.evaluate through Metro's inspector proxy on the live app (no source change), then compared with V8 (node 24.20.0).",
+     "expected": "BigInt exists on Hermes; the product's storeNameFor for Rahul equals the ruling's name; Hermes and V8 give the same digits.",
+     "observed": "Hermes: typeof BigInt = 'function', 36n*36n = '1296'. The product module ../libs/offline/src/engine.ts gave storeNameFor rahul = s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft, kiran = s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk, amit = se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft. parseStoreName on the device file returned rahul/Tarsun and null for -wal/-shm. Checks: hermesBigIntExists, hermesProductRahulEqualsRuling, hermesArithmeticEqualsV8 and v8EqualsRuling all true. The fallback note in ruling 2 is not needed on this Hermes.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/1-hermes-bigint-storename.json",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/driver/hermes-eval.mjs.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 2: \u22ef \u2192 Sign out with nothing queued (one tap).",
+     "expected": "The sign-in form shows; Rahul's file is removed with no -wal/-shm left behind.",
+     "observed": "The sign-in form showed at +3.1 s with no sheet. files/SQLite was empty at +0 s and +5 s (strays []). SecureStore lost key_v1-dos.auth.refresh and key_v1-dos.auth.session; only key_v1-dos.device remained. POST /auth/logout returned 200. No am_crash or Fatal signal.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/2-rahul-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/2-rahul-signout-requests.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/2-rahul-menu.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/2-rahul-signed-out.png"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 3: kiran.mhatre signs in on the same phone (no install, no clear). Take 6 screenshots about 150 ms apart and 3 full text dumps, then check Shops, search Chavan, and list the files.",
+     "expected": "No Rahul marker at any checkpoint; the first manifest has no knownSchemaVersion and the first pull no since; Shops 24; only Kiran's file, decoded to kiran @ Sai.",
+     "observed": "Shots at +0.33/0.70/1.14/1.49/1.85/2.25 s: sign-in form, then Sai Distributors 'Not updated yet / Still loading the beat', then Kiran's Manpada Road beat. The 3 dumps (+2.4 to +6.7 s) matched 0 markers. sales-service logged GET /sync/manifest with no knownSchemaVersion and GET /sync/pull with no since. Shops: 24; a search for Chavan found nothing. files/SQLite held only s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk (+wal/shm), decoded to kiran @ Sai.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-texts-early.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-2.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-4.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-after-sync.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-shops.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/3-kiran-search-chavan.png"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 4: Kiran signs out with one tap, then amit.pawar signs in (screenshot burst). Check Shops, search Chavan, check that SO-0875 is absent, scroll Orders > All to the capped line, and list the files.",
+     "expected": "Empty folder after Kiran leaves; no Rahul or Kiran marker for Amit; Shops 29; order total arrives from a full snapshot; only Amit's file.",
+     "observed": "Kiran's sign-out: the form showed at +3.1 s and files/SQLite was empty. Amit: the early shots showed Tarsun 'Not updated yet'; the dumps matched 0 markers. Manifest and first pull were fresh. Shops: 29; Chavan found nothing; SO-0875 (Rahul's order in dos_qa) was absent. Capped line read 'Showing the newest 100 of 384'. That is the design's 380 plus 4 drafts created today in dos_qa (00:50 by the earlier Android proof; 02:20, 02:24 and 02:37 by the iOS proof). dos_qa counts 387 for Amit, the same gap of 3 as the 199952b proof (383 vs 380). files/SQLite held only se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft, decoded to amit @ Tarsun.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/4-amit-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/4-amit-2.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/4-amit-after-sync.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/4-amit-orders-capped.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/4-amit-orders-capped.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/4-sql-baseline.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 5, queue: make the office unreachable (adb reverse --remove tcp:3003, force-stop, relaunch). As Amit, queue one order at Anand Bhavan Provision (Campa Cola 1 L, 1 case) with 'Save on this phone', then copy the file off the device read-only.",
+     "expected": "'Saved on this phone' with no generic failure; the strip shows it waiting; the order and its line are queued as one write.",
+     "observed": "Strip 'Offline since 7:12 am', then 'Offline since 7:12 am \u00b7 2 waiting to send'. The screen read 'Saved on this phone \u2014 It goes to the office as a draft as soon as there is a signal'; no generic failure line. _outbox held seq 1 sales_orders 01a09d95-7923-73b8-91ff-05386c614511 and seq 2 sales_order_lines, both queued, with the identical created_at 2026-09-14T01:44:52.624Z (one write). integrity_check ok. dos_qa had 0 rows for the order beforehand.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5a-offline-relaunch.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5b-queue-order.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5b-order-saved.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5b-amit-order-saved-on-phone.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5-sql-before.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 5, sheets: open Sign out while warm, then Cancel. Then force-stop, relaunch and tap Sign out at once (cold sheet).",
+     "expected": "'2 changes have not reached the office'; the body names Amit Pawar; no Send now while offline; 'Sign out, keep here'; Cancel leaves the person signed in.",
+     "observed": "Warm sheet: '2 changes have not reached the office', 'They stay on this phone for Amit Pawar only and go the next time Amit Pawar signs in here. Nobody else can see them.', 'No connection \u2014 they cannot go now.', 'Sign out, keep here', Cancel. Send now present: 0. Cancel returned to the order screen, still '2 waiting to send'. Cold start: \u22ef appeared at +7.9 s and Sign out was tapped at +11.7 s; the same sheet showed at +16.9 s with Send now 0.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5cd-warm-cold-sheet.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5c-amit-warm-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5d-amit-cold-sheet.png"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 5, keep: tap 'Sign out, keep here' on the cold sheet. List the files, read SecureStore, watch for a crash for 15 s, and copy the kept file off read-only.",
+     "expected": "The sign-in form shows. Amit's file is kept with tables _gps_buffer/_outbox/_sync_errors/_sync_state only; userId/tenantId/deviceId are stamped and cursor/schemaVersion/role/lastPulledAt are empty. Both ops are queued. No crash (addendum x) and no stored session (addendum y).",
+     "observed": "The sign-in form showed at +2.8 s. files/SQLite held se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft only (4067328 bytes, no -wal/-shm). Tables: _gps_buffer, _outbox, _sync_errors, _sync_state. Stamp userId efde1e76\u2026, tenantId 01a09a5b\u2026, deviceId 01a09d8b\u2026; cursor, schemaVersion, role, lastPulledAt and manifest empty. Both ops queued; integrity ok. SecureStore held only key_v1-dos.device. POST /auth/logout returned 200. At +15 s the app was still on the sign-in form (pid 6599), with no am_crash or Fatal signal in the crash/events/main/system buffers.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5e-signout-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5e-amit-kept-signed-out.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5e-sql-after-keep.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 5, another person while the file is kept: restore tcp:3003; Kiran signs in (burst), checks Shops and searches Anand; then Kiran signs out with one tap.",
+     "expected": "Kiran is clean: 0 markers, 0 uploads, Shops 24. Her sign-out leaves only Amit's file.",
+     "observed": "Early dumps matched 0 markers, including Amit's (Anand Bhavan, Godrej Hill, Amit Pawar). sales-service logged manifest, 8 pulls and errors: 0 POST /sync/upload. Shops: 24; a search for Anand found only her 'Anand General Store SD-0014'. While Kiran was signed in, files/SQLite held Kiran's s20y20\u2026 (+wal/shm) and Amit's se785\u2026. After her one-tap sign-out (form at +3.2 s) only se785\u2026 remained, with strays [].",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5f-kiran-while-kept.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5fg-kiran-shops-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5f-kiran-shops-chip.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5f-kiran-search-anand.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5g-kiran-signed-out.png"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Design step 5, owner returns: Amit signs in online. Check the request order, the outbox and dos_qa.",
+     "expected": "Calls go manifest \u2192 upload \u2192 pull without since. The strip shows '2 waiting' then 'Updated just now'. dos_qa holds the draft and its line exactly once, with salesperson Amit.",
+     "observed": "sales-service: 07:21:27.869 GET /sync/manifest (no knownSchemaVersion), 07:21:27.912 POST /sync/upload 200, 07:21:28.204 GET /sync/pull with no since. Screenshot at +0.75 s showed '2 waiting to send'; from +2.4 s the strip read 'Updated just now'. Both outbox ops acked. dos_qa: sales_orders 01a09d95-7923-73b8-91ff-05386c614511 draft, salesperson and created_by amit.pawar, count 1; line 01a09d96-5f85-70b6-bf7b-71d73e55e38a, count 1; sync_ops for both op ids {\"ok\": true}, once each.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5h-amit-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5h-amit-2.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5h-sql-after.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Upgrade from a long-name file with nothing unsent. Stop the main Metro; start the idle worktree .claude/worktrees/b2-dos167 (HEAD 4acd5f8 = 199952b^2) on :5175 with --clear. pm clear, sign in as rahul and sync. Stop it, restart the main Metro on :5175 with --clear, and reopen the app WITHOUT pm clear.",
+     "expected": "The 199952b JS writes dos-sales__u-\u2026__t-\u2026.db. After the swap the long file is gone within the first start, only s\u2026 remains, and Rahul's session is back with 'Updated just now'.",
+     "observed": "Hermes on the worktree bundle: storeNameFor returned 'dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db' and parseStoreName was absent (TypeError), so the 199952b JS was proven loaded. files/SQLite held that 92-character file (+wal/shm) after the sync. After the swap and am start (07:25:55), polls at +1/+7/+14 s still listed the long file. At +21 s only s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (+wal/shm) remained: the long file and its -wal/-shm were all gone. Rahul's home came back with 'Updated just now' and no sign-in form (POST /auth/refresh 200, then a fresh manifest and pull). Hermes confirmed the fixed JS. No crash.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6ab-metro-swap-to-199952b.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6c-old-js-rahul.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6d-metro-swap-to-main.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6e-upgrade-empty-long-file.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6e-fixed-reopen.png"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Upgrade from a long-name file with one op queued, office unreachable. On the 199952b JS: pm clear, sign in as rahul and sync, remove tcp:3003, relaunch offline, and queue one order at Chavan Kirana Stores. Swap to the main Metro with --clear and reopen WITHOUT pm clear, still offline. Then restore tcp:3003.",
+     "expected": "The long file STAYS; logcat shows 'offline: kept the store from before ruling 2'; the new s\u2026 file is created beside it. The kept long-file op is never sent, which the ruling accepts.",
+     "observed": "The long file's _outbox held 2 queued ops (order 01a09da5-7f69-7603-8145-c7a45d958b07 and its line). A first attempt typed 'OmSai' because adb dropped the space, so nothing was queued; the retry used Chavan. After the swap and reopen: the long file STAYED (integrity ok, 2 ops still queued, WAL folded into the main file) and the new s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft was first seen beside it at +20 s, stamped rahul/Tarsun/salesperson. The session came back 'Offline since 7:32 am' with no sign-in form, and there was no crash. FAIL: logcat was cleared right before the reopen and `grep -c 'kept the store from before ruling 2'` = 0, with no 'offline:' line at all. After tcp:3003 was restored: the s-file synced ('Updated just now'), POST /sync/upload count 0, and dos_qa had 0 rows and 0 sync_ops for the long-file order. Rahul's one-tap sign-out then removed his s-file and left the long file.",
+     "result": "FAIL",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6f-metro-swap-to-199952b-again.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6g-old-js-rahul.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6h-old-js-queue-into-long-file.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6h-old-js-queue-into-long-file-retry.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6i-metro-swap-to-main-again.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-upgrade-long-file-with-queued-op.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-fixed-reopen-long-file-kept.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-onlog-not-wired-source.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6kl-office-restored-and-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6h-sql-long-file-order.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Merge-review walk 'SecureStore ordering (Android)', approximated. Rahul is offline with a queued order; the token was refreshed on a cold start (POST /auth/refresh at 07:37:03). Tap 'Sign out, keep here', run am force-stop 248 ms later in the same device-side shell, relaunch, then restore tcp:3003 and sign Rahul in again.",
+     "expected": "The relaunch shows the sign-in form; no token in SecureStore; the kept ops go once at the owner's next sign-in.",
+     "observed": "Tap injected at 07:38:49.077 and force-stop done at 07:38:49.325 (pid gone). Before the relaunch, SecureStore already held only key_v1-dos.device. The relaunch showed the sign-in form at +8.3 s. The s-file was kept with system tables only, cursor/role/schemaVersion empty, 2 ops queued, integrity ok. No crash. POST /auth/logout reached the server at 07:38:49.439. On sign-in with the office back: manifest \u2192 POST /sync/upload (1) \u2192 pull without since; both ops acked; dos_qa holds order 01a09dab-8b6d-71cc-b75c-82fbbc4215ac and its line once each, salesperson rahul, sync_ops ok once each. Limit: the file was already in its final kept state at the first listing, so the force-stop may have landed after end() finished. 'Force-stop during end()' and 'keep within 100 ms of a refresh' are not proven; see notTested.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1a-securestore-walk-setup.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1b-keep-then-force-stop.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1b-relaunch.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1c-resend-after-interrupted-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1c-outbox-status.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1c-sql-after.txt"
+     ]
+    },
+    {
+     "app": "sales (Android)",
+     "step": "Crash watch across the whole run (addendum x on the sales keep path): after every step, read logcat -b crash plus a grep of the events/main/system buffers for am_crash, Fatal signal and am_anr.",
+     "expected": "No am_crash, Fatal signal or ANR for in.distributionos.sales, including after both keeps.",
+     "observed": "Every check was empty (steps 1-6, W1, teardown). The native SIGSEGV in exsqlite3_reset did not occur on either sales keep (5e, W1b).",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5e-signout-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1b-keep-then-force-stop.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/z-teardown-device.txt"
+     ]
+    }
+   ],
+   "defects": [
+    {
+     "severity": "P3",
+     "detail": "Ruling 2's pass line for the long-file upgrade cannot appear on a phone. The provider reports a kept 199952b file only through the optional onLog prop (frontend/libs/offline/src/react.tsx:90, sweepInterimStore called at :218). No field app passes onLog: frontend/sales-app/app/_layout.tsx:306-313 has no onLog, nor do the delivery and warehouse layouts. libs/offline has 0 non-test console.* calls. So 'offline: kept the store from before ruling 2' (and every other 'offline:' line, including 'no persistent store; running in memory') is silent on Android. File-level behaviour was correct: the file was kept with ops intact and a new s\u2026 file created beside it. Nothing was lost or leaked.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-upgrade-long-file-with-queued-op.txt (logcat cleared before the reopen; 'matches: 0'); /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-onlog-not-wired-source.txt"
+    },
+    {
+     "severity": "P3",
+     "detail": "Dev build only, predates ruling 2. After cold relaunches and sign-outs, LogBox reports 'Console Error: Can't perform a React state update on a component that hasn't mounted yet', with the source at ExpoRoot.js:135 (ContextNavigator). Its toast covers the bottom tab bar, so a tap on 'Shops' opened the LogBox inspector instead of the tab. The same warning appears in the 199952b Android proof (android/2-rahul-signout.txt). It points to a real async state update in the root navigator; release builds hide the toast but not the side effect.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5f-kiran-shops.png; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/logbox-console-error-logcat.txt (E/ReactNativeJS 07:15:51.811 pid 6599); /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5cd-warm-cold-sheet.txt"
+    }
+   ],
+   "notTested": [
+    "Merge-review walk 'SecureStore ordering (Android)' as specified: the keep tap within 100 ms of a forced token refresh, with am force-stop DURING end(). adb cannot align a tap with a refresh. The run above force-stopped 248 ms after the tap, and the file was already final, so 'during end()' is unproven.",
+    "Merge-review walk 'a refresh in flight at the tap' (let the 15-minute access token expire, then keep): not run; no expired-token window was set up on this phone.",
+    "Merge-review walk 'fast re-sign-in' (the same person, and separately another person, signing in while end() waits on a page in flight): not run; there is no way from adb to hold end() on an in-flight page.",
+    "Addendum (x)/(y)/(z) Android items for the delivery and warehouse apps (keep x3, keep x1, keep x3 with the office unreachable and relaunch, Settings > Sign out, S-126, S-127): outside this run's sales-only scope and not inferred from sales.",
+    "Delivery and warehouse design steps 1-3 with d\u2026/w\u2026 names: outside this run's scope.",
+    "iOS and web items of ruling 2: other provers; not inferred from Android.",
+    "The UNIT gate (cd frontend && pnpm lint/typecheck/test/build/format:check): not run by this prover."
+   ],
+   "environment": "Main checkout at bafb7b5 (DOS-167 ruling 2 merged); product source not edited. Emulator Pixel_7_API_36 booted headless by this run (-memory 3072 -no-snapshot-save) and LEFT RUNNING (emulator-5554). Sales debug APK built 2026-09-07; the JS came from Metro via QA/tools/proxy8081.mjs (host :8081 \u2192 :5175, pid 31366, left running). adb reverse 3000-3007 and 5175 restored at the end. Services :3000-:3007 all /health 200 and the worker (pid 16490) ran on dos_qa throughout and were left running; this run connected only to dos_qa, read-only. Metro: the web prover's main sales Metro (pids 64651/64653) was stopped for the upgrade. The worktree Metro (.claude/worktrees/b2-dos167, HEAD 4acd5f8 = 199952b^2) ran twice with `CI=1 expo start --port 5175 --clear`; sync-fonts was not run there, and that worktree's git status is unchanged (clean). The main sales Metro is LEFT RUNNING on :5175 from frontend/sales-app as `CI=1 pnpm web --clear` (sh pid 71645, node pid 71647), matching the original command line and CI=1 env; no worktree Metro remains. dos_qa rows written by this run through the app, all drafts: amit.pawar order 01a09d95-7923-73b8-91ff-05386c614511 + line 01a09d96-5f85-70b6-bf7b-71d73e55e38a; rahul.deshmukh order 01a09dab-8b6d-71cc-b75c-82fbbc4215ac + line 01a09dab-aa8a-7421-be74-6294b3181261. The 199952b long-file order 01a09da5-7f69-7603-8145-c7a45d958b07 was never sent. Teardown: the teardown sign-out tap missed (\u22ef not found after a Back key), so Rahul's last server session was not revoked by the product; `pm clear in.distributionos.sales` then removed all files, including the 199952b file with its unsendable op (merge review, defects outside the fix item 4). The app is left on the sign-in form. logcat buffers were set to 16M and cleared at prep and again before step 6j. File copies pulled off the device are only in the scratchpad (a167r/db-*). Driver copies are in reproof/android/driver/*.txt. git status --short shows only ' M QA/tools/e2e/s-098-shared-device.mjs' (the web prover's edit, not this run's) and '?? QA/evidence/batch2/dos-167/reproof/'; no untracked build output outside QA/. The web prover's pw-server.mjs processes were left untouched."
+  },
+  {
+   "platform": "Android \u2014 Pixel_7_API_36 emulator (Android 16, API 36, arm64, -memory 3072, headless, cold boot). Apps under test: in.distributionos.delivery and in.distributionos.warehouse, debug APKs (built Sep 7), with JavaScript served by Metro from the main checkout at bafb7b5 (DOS-167 ruling 2 plus addenda x, y, z merged). One comparison ran pre-DOS-167 delivery JavaScript from worktree b2-lean-manager-billing (144bcfe).",
+   "verdict": "pass",
+   "steps": [
+    {
+     "app": "environment",
+     "step": "Prepare. Stop the sales Metro :5175 to save RAM, start the MAIN delivery Metro :5177, boot the emulator, set logcat buffers to 16M. Services :3000-:3007 answer 200 on dos_qa.",
+     "expected": "Main checkout at bafb7b5; the delivery Metro serves from frontend/delivery-app; the emulator is online.",
+     "observed": "HEAD bafb7b5. The :5177 listener's working directory is frontend/delivery-app (main). emulator-5554 is online with 3 GB. The only git changes are under QA/.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dw0-prepare-environment.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d-sql-baseline.txt"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Design step 1. install -r and pm clear, then ganesh.more (Tarsun) signs in and syncs. List files/SQLite and decode each name with parseStoreName.",
+     "expected": "Exactly one d + 50 base-36 name (with -wal/-shm), decoding to ganesh at Tarsun. No dos-delivery.db and no 199952b name.",
+     "observed": "Before pm clear the phone held sachin's 199952b interim file from the earlier proof. After sign-in it held only d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft (51 characters, pattern true), which decodes to userId 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 and tenantId 01a09a5b-3c58-71c1-a34d-b93c569b0099 (ganesh @ Tarsun). Legacy 0, interim 0, strays 0. The home shows Tarsun's TRIP-ACTIVE with Prerna Super Market, Metro Kirana Bazar and Vaibhav Kirana Mart.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d1-ganesh.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d1-ganesh-home.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Design step 2. ganesh taps \u22ef > Sign out with nothing queued.",
+     "expected": "One tap with no sheet, then the sign-in form. His file is gone. No crash.",
+     "observed": "No sheet (count 0); the sign-in form showed within 3 s. files/SQLite is empty. The crash buffer is empty and there is no am_crash or Fatal signal.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d2-ganesh-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d2-ganesh-menu.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d2-ganesh-signed-out.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Design step 3. sachin.dalvi (Sai) signs in on the same phone. Take 6 screenshots 150 ms apart from the Sign in tap, plus 3 full text dumps, and grep them for ganesh's trip and stop markers.",
+     "expected": "No Tarsun marker at any checkpoint. After sync, only sachin's d-file (Sai).",
+     "observed": "The shots were at +0.33, +0.69, +1.03, +1.38, +1.74 and +2.25 s. Shot 1 is the sign-in form with a spinner; shot 4 is Sai's home reading 'Still filling this phone from the office.' I checked shots 1 and 4 by eye. The dumps were at +2.4, +4.7 and +8.3 s. The grep for 15 Tarsun stop names, 'Tarsun' and MH-05-AB-1234 over the dumps and the synced screen found 0. The phone then held only d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk, which decodes to sachin @ Sai. No legacy file.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin-texts-early.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin-shot-times.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin-4.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin-6.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin-home.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Addenda (x) and (y), keep run 1 of 3, through the \u22ef menu. Make the office unreachable (remove adb reverse tcp:3000 and tcp:3005, force-stop and relaunch). Queue stop 7 (Vaishnavi Provision) 'I am at the shop' and wait while the outbox retries. Sign out, then 'Sign out, keep here'. Watch for a crash, relaunch offline, then sign sachin in online.",
+     "expected": "The sheet reads '1 change has not reached the office', names the person and has no Send now. No am_crash or Fatal signal. The sign-in form shows after the keep and again after the relaunch. The kept op is sent exactly once at sachin's next sign-in.",
+     "observed": "The op 01a09dc0-22b3-725c-99c4-2bab9d2f3b97 was queued at attempts=4 when Sign out was tapped. The sheet read '1 change has not reached the office', 'They stay on this phone for Sachin Dalvi only\u2026' and 'No connection \u2014 they cannot go now.', with no Send now. After 'Sign out, keep here' the app pid stayed 4887 for all 16 samples over 20 s, the crash buffer was empty, there was no am_crash or Fatal signal, and the sign-in form showed. The kept file passed integrity_check; its tables are _gps_buffer, _outbox, _sync_errors and _sync_state; userId, tenantId and deviceId are stamped and cursor, schemaVersion and role are empty; the op is queued at attempts 6. The offline relaunch showed the sign-in form, not sachin's session. dos_qa held stop 7 pending and 0 sync_ops rows. After sachin signed in online there was 1 POST /sync/upload (200), 1 sync_ops row with ok true, stop 7 was arrived and the device outbox showed the op acked.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1a-offline-relaunch-queue.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1b-signout-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1c-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1b-sachin-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1b-sachin-kept-signed-out.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1b-relaunch-offline.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1c-sachin-after-send.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Addenda (x), (y) and (z1), keep run 2 of 3, through Settings (Me) > Sign out. Same method, with stop 8 (Nandivali Corner Store) queued offline.",
+     "expected": "Settings > Sign out opens the leave sheet (not an instant sign-out). No crash after the keep. The sign-in form shows after the keep and after the offline relaunch. The op is sent exactly once.",
+     "observed": "The first attempt was INVALID (a driver fault, recorded in the file): the button's coordinates were never found, so nothing was tapped, nothing was kept and there was no crash. The redo: op 01a09dc4-5d8d-77d3-ab8d-ea25f2326037 was queued at attempts 8. Settings 'Sign out' (bounds 42,2176 to 1038,2357) opened the sheet with the same title, Sachin Dalvi named and no Send now; there was no instant sign-out. After the keep, pid 6816 stayed alive for all 16 samples, with no am_crash or Fatal signal, and the sign-in form showed. The kept file holds only the system tables, with the op queued at attempts 13. The offline relaunch showed the sign-in form. Online: 1 /sync/upload (200), 1 sync_ops row, stop 8 arrived, op acked.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk2a-offline-relaunch-queue.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk2b-settings-signout-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk2b-redo-settings-signout-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk2c-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk2b-redo-sachin-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk2b-redo-relaunch-offline.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Addenda (x) and (y), keep run 3 of 3, through the \u22ef menu, with stop 9 (Vighnaharta Kirana) queued offline.",
+     "expected": "No crash after the keep. The sign-in form shows after the keep and after the offline relaunch. The op is sent exactly once. Across the three runs, each kept op has exactly one sync_ops row.",
+     "observed": "Op 01a09dca-f8dd-729d-8ea5-929e819d6054 was queued at attempts 3 before sign-out. The sheet named Sachin Dalvi and had no Send now. After the keep, pid 7756 stayed alive for all 16 samples, with no am_crash or Fatal signal, and the sign-in form showed. The kept file holds only the system tables, with the op queued at attempts 6. The offline relaunch showed the sign-in form. Online: 1 /sync/upload (200), 1 sync_ops row, stop 9 arrived, op acked. The three ops have exactly 1 sync_ops row each.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk3-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk3c-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk3b-sachin-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk3b-relaunch-offline.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "Addendum (z1) with nothing queued: sachin taps Settings (Me) > Sign out.",
+     "expected": "One tap with no sheet. The sign-in form shows and the file is removed.",
+     "observed": "No sheet; the sign-in form showed within 4 s. files/SQLite is empty. No crash.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dz1-delivery-settings-signout-nothing-queued.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dz1-delivery-after-signout.png"
+     ]
+    },
+    {
+     "app": "delivery",
+     "step": "S-127. After an offline relaunch with a completed pull, record whether the home says 'Still filling this phone from the office'. Then run the same check on the pre-DOS-167 JavaScript (delivery Metro started from worktree b2-lean-manager-billing, 144bcfe).",
+     "expected": "Record the sentence on main and on pre-DOS-167 JavaScript, to show whether DOS-167 caused it.",
+     "observed": "On MAIN the home showed 'Still filling this phone from the office \u2014 this may not be the whole trip yet.' at +20 s and +35 s, 3 of 3 offline relaunches. On PRE-DOS-167 JavaScript (the store was named dos-delivery.db, which proves the old bundle ran) it showed the same sentence at +20 s and +35 s. The first old-JS attempt was INVALID: the bundle was still building at 39%, so nobody signed in. It is recorded in the file, and the redo is the valid run. Conclusion: S-127 predates DOS-167. The worktree's git status stayed clean. The legacy dos-delivery.db was removed afterwards with pm clear.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1a-offline-relaunch-queue.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dk1a-sachin-offline-home.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-metro-swap-to-pre-dos167.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-pre-dos167-offline-relaunch.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-old-sachin-noform.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-redo-pre-dos167-offline-relaunch.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-redo-old-sachin-offline-home.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dw-metro-swap-to-warehouse.txt"
+     ]
+    },
+    {
+     "app": "warehouse",
+     "step": "S-126. Cold-start the warehouse app twice, each after install -r and pm clear: first with the Metro cache empty, then with it warm. Watch for 50-75 s for am_crash, Fatal signal or am_proc_died.",
+     "expected": "Record whether the Fabric cold-start SIGSEGV repeats.",
+     "observed": "It did not repeat. Both cold starts reached the sign-in form within about 12 s, with a stable pid (11248, then 11597), an empty crash buffer and no am_crash, Fatal signal or am_proc_died. Cold start 2 showed a dev LogBox console error (see defects). Before pm clear the phone held bharat's 199952b interim file.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w0-s126-cold-start.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w0-s126-cold-start-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w0-s126-cold-start-2.png"
+     ]
+    },
+    {
+     "app": "warehouse",
+     "step": "Design step 1. dinesh.patil (Tarsun) signs in on the freshly cleared app and syncs; list and decode files/SQLite.",
+     "expected": "Exactly one w + 50 name, decoding to dinesh at Tarsun. No dos-warehouse.db. His picklist marker (PICK-0078) shows.",
+     "observed": "Only w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft (+wal/shm), 51 characters, pattern true, decoding to 5b6fbe87-cb70-7195-8de1-a4f5046c3675 at 01a09a5b-\u2026 (dinesh @ Tarsun). Legacy 0, interim 0. The home shows PICK-0078 picking. The Pick-tab tap landed on the LogBox toast, so the pick-screen marker line is empty; this is noted in the file and the store check is unaffected.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1-dinesh.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w1-dinesh-home.png"
+     ]
+    },
+    {
+     "app": "warehouse",
+     "step": "Design step 2. dinesh taps \u22ef > Sign out with nothing queued.",
+     "expected": "One tap with no sheet. The sign-in form shows, the file is gone and there is no crash.",
+     "observed": "The first attempt was INVALID (a driver fault, recorded in the file): the full-screen dev LogBox covered the app, so \u22ef and Sign out were not found and nothing happened. The redo, after dismissing the LogBox: no sheet, the sign-in form showed within 3 s, files/SQLite is empty, no crash.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w2-dinesh-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w2-redo-dinesh-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w2-redo-dinesh-menu.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w2-redo-dinesh-signed-out.png"
+     ]
+    },
+    {
+     "app": "warehouse",
+     "step": "Design step 3. bharat.jadhav (Sai) signs in on the same phone. Take 6 screenshots 150 ms apart plus 3 full dumps, check the home and the Pick screen, and grep for markers only Tarsun has.",
+     "expected": "No Tarsun picklist number (PICK-0053..0078) and no other Tarsun marker at any checkpoint. Only bharat's w-file.",
+     "observed": "The shots were at +0.38, +0.87, +1.23, +1.59, +1.99 and +2.58 s. Shot 2 is Sai's home, still empty ('Not updated yet'); shot 4 shows Sai's PICK-0052 only. I checked both by eye. The grep over the dumps (+2.8, +5.0, +7.2 s), the home and the Pick screen for PICK-0053..0078, Tarsun, Bhosale Traders, Nutan Kirana Stores, Vitthal Traders and SO-0877/SO-0873/SO-0870 found 0; dos_qa confirms each of those shops and orders is Tarsun's only. bharat sees PICK-0051 and PICK-0052 (Sai). Files: only wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk, decoding to bharat @ Sai.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat-texts-early.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat-shot-times.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat-2.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat-4.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat-pick.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w-sql-baseline.txt"
+     ]
+    },
+    {
+     "app": "warehouse",
+     "step": "Addendum (z1) with nothing queued: bharat taps \u22ef > Settings > Sign out.",
+     "expected": "One tap with no sheet. The sign-in form shows and the file is removed.",
+     "observed": "Settings 'Sign out' (bounds 42,1896 to 1038,2096): no sheet, the sign-in form showed within 4 s, files/SQLite is empty, no crash.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wz1-warehouse-settings-signout-nothing-queued.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wz1-warehouse-after-signout.png"
+     ]
+    },
+    {
+     "app": "warehouse",
+     "step": "Addenda (x), (y) and (z1), warehouse keep path once. dinesh syncs online. Make the office unreachable (remove adb reverse tcp:3000 and tcp:3004, force-stop and relaunch). Open the PICK-0078 sheet from local data (deep link dos-warehouse://pick/26a39571-e117-71c1-b399-bca6f1167b13) and record one 'Picked' while the outbox retries. Then Settings > Sign out and 'Sign out, keep here'; watch for a crash, relaunch offline, and sign dinesh in online.",
+     "expected": "The leave sheet shows from Settings. No crash. The sign-in form shows after the keep and after the relaunch. The op is sent exactly once at dinesh's next sign-in.",
+     "observed": "Two queue attempts came first, both recorded in the files. In the first, offline, the home and Pick-tab wave lists could not be read, so nothing was queued and the guard held. In the second (cut after opening the sheet, no relaunch), the app's kept-alive tunnel uploaded the pick at once (op 01a09de9, pick line 399c804c, 220 pc, 1 sync_ops row, a normal online send), so there was no keep. Valid run: op 01a09ded-3b1e-7615-8af4-7c5b3c6b71d8 on pick line c04ec82a (Campa Cola 750 ml, 75 pc) was queued at attempts 4, with the strip reading 'Offline since 8:48 am \u00b7 1 waiting to send'. dos_qa held 0 picked and 0 sync_ops rows. Settings > Sign out opened the sheet: '1 change has not reached the office', 'for Dinesh Patil only', no Send now. After the keep, pid 14520 stayed alive for all 16 samples, with no am_crash or Fatal signal, and the sign-in form showed. The kept file passed integrity_check and holds only the system tables, with the op queued at attempts 8 and the stamp intact. The offline relaunch showed the sign-in form. Online: 1 POST /sync/upload (200), 1 sync_ops row with ok true, pick line 75 picked, outbox acked (attempts 9). Afterwards dinesh signed out with one tap and his file was removed.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a-dinesh-offline-pick.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a2-dinesh-offline-pick-deeplink.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-b-dinesh-settings-signout-keep.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-c-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a2-dinesh-picked-queued.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-b-dinesh-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-b-relaunch-offline.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w-cleanup-dinesh-signout.txt"
+     ]
+    },
+    {
+     "app": "delivery + warehouse",
+     "step": "No dos-delivery.db or dos-warehouse.db, and no 199952b long name, at any main-JavaScript step.",
+     "expected": "Every listing taken on main shows legacy 0 and interim 0.",
+     "observed": "Every lsdb on main JavaScript (D1-D3, K1-K3, Z1, W1-W3, Z1, WK) decoded to legacy=0, interim=0 and strays=0. The only dos-delivery.db was created on purpose by the pre-DOS-167 comparison, and pm clear removed it. The earlier proof's interim files were removed by pm clear at the fresh installs.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/d3-sachin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w3-bharat.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dw-metro-swap-to-warehouse.txt"
+     ]
+    },
+    {
+     "app": "environment",
+     "step": "Teardown. Run a final crash scan, adb emu kill, stop the delivery and warehouse Metros, point proxy8081 back at 5175, restart the sales Metro :5175 from main, check the services and the worker, and run git status.",
+     "expected": "Emulator down, :5176 and :5177 not listening, sales Metro :5175 running, services 200, worker up, changes only under QA/.",
+     "observed": "The final crash scan for both packages was empty. The emulator is killed (no qemu process, no adb device). :5176 and :5177 have 0 listeners. proxy8081 points at 5175. The sales Metro :5175 is running from frontend/sales-app (pid 89146). :3000-:3007 all answer 200. The worker is pid 16490. git status: ' M QA/tools/e2e/s-098-shared-device.mjs' (the web prover's) and '?? QA/evidence/batch2/dos-167/reproof/'. The pre-DOS-167 worktree is clean.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dw-z-teardown-device.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/dw-z-teardown-environment.txt"
+     ]
+    }
+   ],
+   "defects": [
+    {
+     "severity": "P2",
+     "detail": "This is outside DOS-167 and not attributed to it; there was no pre-DOS-167 comparison. After an offline relaunch the warehouse app cannot reach a picklist sheet whose lines are already on the phone. The home's 'WAVES ON THE FLOOR' and the Pick tab's 'WAVES' and 'ORDERS WAITING' are online reads, and offline they show only 'No connection. This is not the current picture.' The PICK-0078 sheet opened only through a deep link; once open it worked offline ('Picks are saved on this phone and sent when there is a signal.'). A picker whose phone restarts in a dead corner cannot continue a wave.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a-dinesh-offline-pick.txt; wk-a-dinesh-offline-home.png; wk-a-dinesh-pick-tab-offline.png; wk-a2-dinesh-pick-sheet-offline.png (same folder)"
+    },
+    {
+     "severity": "P3",
+     "detail": "S-127 still reproduces, and it predates DOS-167. After an offline relaunch with a completed pull, the delivery home says 'Still filling this phone from the office \u2014 this may not be the whole trip yet.' and 'Still filling this phone from the office.' at +20 s and +35 s. It happened 3 of 3 times on main (bafb7b5) and the same way on pre-DOS-167 JavaScript (144bcfe, store dos-delivery.db). Per addendum (x) it stays a P3 row and is not fixed in the ruling-2 lane.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-redo-pre-dos167-offline-relaunch.txt (comparison result at the end); dk1a-offline-relaunch-queue.txt; dk1a-sachin-offline-home.png; ds127-redo-old-sachin-offline-home.png (same folder)"
+    },
+    {
+     "severity": "P3",
+     "detail": "The warehouse variant of S-127, seen on main only (not compared with pre-DOS-167 JavaScript). After an offline relaunch with a completed pull, the PICK-0078 picking sheet shows 'Still filling this phone from the server'.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a2-dinesh-offline-pick-deeplink.txt; wk-a2-dinesh-pick-sheet-offline.png (same folder)"
+    },
+    {
+     "severity": "P3",
+     "detail": "Debug build only, not attributed to DOS-167. The warehouse app logs a React console error on cold start and at sign-in: 'Can't perform a React state update on a component that hasn't mounted yet\u2026'. It raises the LogBox toast, which covers the bottom tab bar, and a tap on 'Pick' opened the full LogBox instead. docs/18 records an earlier fix for this message on phones. The earlier proof saw it on delivery at 01:33.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/w0-s126-cold-start.txt (cold start 2 screen); w1-dinesh.txt; w1-dinesh-pick.png (same folder)"
+    }
+   ],
+   "notTested": [
+    "Merge-review walk 'a refresh in flight at the tap' (let the access token expire, tap keep, relaunch, check no token in SecureStore) on delivery or warehouse: not in this run's delivery/warehouse assignment, so not run.",
+    "Merge-review walk 'SecureStore ordering' (force a refresh, tap keep within 100 ms, am force-stop during end()) on delivery or warehouse: not run here (the Android sales re-prover's w1a/w1b files cover sales only; that is not inferred to these apps).",
+    "Merge-review walk 'fast re-sign-in' (the same person, and separately another person, signing in while end() waits on a page in flight) on delivery or warehouse: not run.",
+    "Rahul's store name byte-equal on Hermes versus V8, and the long-name upgrade (empty file and one queued op): sales-app items, outside this run.",
+    "'Send now' on the delivery or warehouse leave sheet while online: not run (the addendum lists it for iOS sales only).",
+    "S-127 comparison for the warehouse sentence 'Still filling this phone from the server' against pre-DOS-167 JavaScript: not run (the addendum asks for delivery only).",
+    "The distributor-switch leave path ('Switch anyway') on delivery or warehouse: not in this run's script.",
+    "Web and iOS: other provers."
+   ],
+   "environment": "Mac mini with 8 GB RAM, macOS 14.6.1. Emulator Pixel_7_API_36 (Android 16, arm64), booted headless with -memory 3072 -no-snapshot-save -no-window; logcat buffers set to 16M. JDK: Homebrew openjdk@21. Debug APKs were used as built (delivery Sep 7 13:05, warehouse Sep 7 06:47); no APK was rebuilt. Services :3000-:3007 and the worker (pid 16490) ran on dos_qa throughout; every psql call used postgres://dos:dos@127.0.0.1:5439/dos_qa, never dos. Metros, one at a time: main delivery :5177 (CI=1 pnpm web --clear), then pre-DOS-167 delivery :5177 from .claude/worktrees/b2-lean-manager-billing/frontend/delivery-app (144bcfe; expo start --port 5177 --clear without sync-fonts; that worktree's git status stayed clean), then main warehouse :5176. The sales Metro :5175 was stopped at 07:50 for RAM and restarted at 08:54 from frontend/sales-app (pid 89146). proxy8081.mjs was pointed at each Metro in turn and is back on 5175. Restarted without asking: the sales Metro :5175 and proxy8081; the warehouse Metro's first start failed because that shell put Homebrew's Node 22.9 ahead of fnm's Node 24, and it was restarted on Node 24. Test setup: location permissions were granted with pm grant after each pm clear, and Google 'Location Accuracy' dialogs were dismissed with 'No thanks'. The office was made unreachable by removing adb reverse tcp:3000 plus the service port and force-stopping and relaunching the app; removing the reverse alone does not cut an already-open connection, which is why one warehouse pick went online. Changes to dos_qa data from this run: Sai TRIP-ACTIVE stops 7, 8 and 9 are now arrived (one sync_ops row each), and PICK-0078 lines 399c804c (220 pc) and c04ec82a (75 pc) are now picked (one sync_ops row each). Phone state at the end: pm clear removed the legacy dos-delivery.db from the comparison; the delivery and warehouse apps hold no store file; the emulator is killed. Driver scripts are copied to QA/evidence/batch2/dos-167/reproof/android/driver-dw/; scratch copies of the phones' database files are in the session scratchpad dw167/. git status in the main checkout shows only ' M QA/tools/e2e/s-098-shared-device.mjs' (the web prover's) and '?? QA/evidence/batch2/dos-167/reproof/'. No other untracked build output was found."
+  },
+  {
+   "platform": "iOS \u2014 iPhone 16 Pro simulator (DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74), iOS 18.0, Expo Go 57.0.9 (SDK 57) in a fresh data container, driven headlessly with xcrun simctl, Appium 3.7.0 XCUITest and QA/tools/ios-drive.mjs (the simulator panel was never opened)",
+   "verdict": "pass",
+   "steps": [
+    {
+     "app": "Expo Go (setup)",
+     "step": "P0/P1 environment check and fresh container. Main is 9cab1e7; since bafb7b5 the only product change is manager-app load-out.tsx. Expo Go was uninstalled, reinstalled from ~/.expo/ios-simulator-app-cache/Expo-Go-57.0.9.tar.app, and the keychain was reset.",
+     "expected": "The stack is on dos_qa, sales Metro :5175 serves main after the merge, Appium is ready, and the new container has no SQLite files.",
+     "observed": "Services :3000\u2013:3007 answer 200, and sales-service runs with DATABASE_URL=dos_qa. The worker and Appium are ready. Metro :5175 was started at 08:54 from frontend/sales-app with CI=1 --clear. The old container still held three empty SQLite directories. The new container B93785C7-\u2026 has no SQLite path. Only the two old Expo Go .ips files from 02:18 and 02:23 exist.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/p0-prepare-environment.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/p1-fresh-container.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/p2-sql-baseline.txt"
+     ]
+    },
+    {
+     "app": "sales (Metro :5175)",
+     "step": "Design step 1. rahul.deshmukh signs in for the first time with ios-login (the only keychain reset in the sales sequence), then `find \"$C\" -path '*SQLite*'`.",
+     "expected": "Exactly one s+50 base-36 file that decodes to rahul @ Tarsun, no dos-sales* file, and rahul's own shops shown.",
+     "observed": "Attempt 1 stayed on the sign-in form behind Expo Go's first-run developer-menu onboarding (an environment issue). After dismissing it, attempt 2 reached SIGNED_IN with 'Updated just now'. The find shows exactly one file, s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft (plus -wal and -shm). It decodes to 8760e17e\u2026/01a09a5b\u2026 (rahul @ Tarsun) and is byte-equal to the name node (V8) BigInt computes and to the ruling's value. No legacy, 199952b-long-name or stray files exist. The Shops tab reads 'Shops: 30' and shows Chavan Kirana and Iyer Provision.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s1-rahul-signin.log",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sales-rahul.deshmukh-2-home.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s1-rahul-checks.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s1-rahul-home.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s1-rahul-shops.png"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Design step 2. Rahul signs out through the product with More, then Sign out, nothing queued.",
+     "expected": "One tap with no sheet, then the sign-in form, and no store file left.",
+     "observed": "The first two taps on More opened Expo Go's dev menu, because on a fresh install its floating gear [344,71] sits on top of More [317,70]. After the gear was dragged to the bottom, the app's menu opened. Tapping the Sign out row at (150,723) showed the sign-in form within ~1 s with no sheet. The find shows an empty SQLite directory: stores=0, legacy=0, strays=0.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s2-rahul-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s2-rahul-menu.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s2-rahul-menu-3.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s2-rahul-signed-out.png"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Design step 3. kiran.mhatre (Sai) signs in through the product form with no keychain reset, followed by an early screenshot burst, a page-source marker grep, a Shops count and a find.",
+     "expected": "No rahul marker at any point, Shops 24, and only kiran's file.",
+     "observed": "Six screenshots were taken from +1.34 s to +2.99 s. The first shows only 'Sai Distributors, Dombivli', 'Not updated yet', 'No beat today' and 'Shops: 0'. The page source at +4.07 s has 0 hits for each of Chavan Kirana, Iyer Provision, Khadakpada, Kalyan West Market, Station Road, SO-0875 and Tarsun. After sync the chip reads 'Shops: 24', and `has` returned NO for Chavan Kirana, Iyer Provision and Khadakpada. The find shows exactly one file, s20y20lc4mza3nywd3eh5sygvl7r431bgsoifpg41eqordf44xk, which decodes to kiran @ Sai.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s3-kiran-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s3-kiran-early-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s3-kiran-early-src.xml",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s3-kiran-shops.png"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Design step 4. Kiran signs out with one tap, then amit.pawar signs in through the form. Checks: markers, beat, Shops, a search for 'Chavan', Orders > All, and a find.",
+     "expected": "No file after kiran's sign-out. amit sees Shops 29 and his own beat, SO-0875 is absent, and only amit's file exists.",
+     "observed": "Kiran's sign-out was one tap with no sheet, and the find showed stores=0. For amit, the early burst ran from +1.72 s to +3.50 s. The first screenshot shows Tarsun with 'Not updated yet' and an empty beat. The early source has 0 hits for both rahul's and kiran's markers. Beat is Godrej Hill, the chip reads 'Shops: 29', and searching 'Chavan' gives 'Nothing matches'. The Orders check in s4b was not valid, because the keyboard covered the tab bar. It was redone in s4c: on Orders > All, has SO-0875 = NO and has SO-0872 = YES. The find shows exactly one file, se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (amit @ Tarsun). No total order count is shown on iOS.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s4a-kiran-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s4b-amit-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s4-amit-early-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s4-amit-search-chavan.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s4c-amit-orders.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s4c-amit-orders-all.png"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Addendum (x) iOS keep path, (y) keep run 1 of 3, and design step 5. sales-service :3003 is killed. amit saves one order for Prerna Super Market on the phone, the outbox retries, and he taps Sign out, then 'Sign out, keep here'. Watch for 20 s, then relaunch with terminate plus openurl while the office is still unreachable.",
+     "expected": "The sheet shows no Send now and names Amit. There is no crash and no new .ips. The sign-in form shows after the tap and after the relaunch. The kept file holds only its identity stamp and the queued ops.",
+     "observed": "The strip read 'Offline since 9:15 am \u00b7 2 waiting to send', and both ops were queued with 5 attempts, rising to 7 by the tap. The sheet read '2 changes have not reached the office' / 'They stay on this phone for Amit Pawar only\u2026' / 'No connection \u2014 they cannot go now.' / 'Sign out, keep here' / Cancel, and has 'Send now' = NO. The tap was at 09:17:56. Expo Go kept pid 92811 through all 16 screenshots over +1.6 to +19.9 s. The sign-in form already shows at +1.6 s. No new .ips appeared, and the simulator log has no Expo Go exit until my own force-quit. The relaunch showed the sign-in form with no amit data. The kept se785\u2026 file passes integrity_check and holds only _gps_buffer, _outbox, _sync_errors and _sync_state. userId, tenantId and deviceId are stamped; cursor, schemaVersion and role are empty. Both ops are queued, and dos_qa has 0 rows for order 01a09e05-c8c7\u2026.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1ab-offline-queue.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1c-outbox-queued.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1d-leave-sheet.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1d-amit-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1ef-keep-and-relaunch.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1e-keep-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1f-relaunch.png"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Design step 5 continued. sales-service is restarted. Kiran signs in while amit's kept file is on the phone, then signs out with one tap.",
+     "expected": "Kiran sees nothing of amit's and his ops are not sent under her session. Two files exist while she is signed in, and only amit's remains after her one-tap sign-out, because the sweep keeps a file with unsent changes.",
+     "observed": "The early source had 0 hits for each of Prerna Super Market, Godrej Hill, Kolsewadi, Birla College Road, Ansari Kirana, Amit Pawar, Tarsun and 'waiting to send'. Her first screenshot at +1.77 s shows only Sai. The chip reads 'Shops: 24'. Searching 'Prerna' gave 'Nothing matches', and her Orders had no 673 order. The find shows kiran's s20y\u2026 plus amit's se785\u2026. Amit's ops were still queued with 7 attempts, and dos_qa had 0 rows and 0 sync_ops for them. The sales-service log since the restart shows only manifest, pull and errors calls, with no upload. Kiran's sign-out was one tap, leaving only amit's se785\u2026.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1g-service-restart.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1h-kiran-while-kept.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1h-kiran-early-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1h-kiran-search-prerna.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1i-kiran-signout.txt"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Keep run 1, the owner's next sign-in. amit signs in again online.",
+     "expected": "The kept ops go first and reach the office exactly once.",
+     "observed": "The first screenshot at +1.42 s shows '2 waiting to send', and the strip read 'Updated just now' at 09:21:08. Requests went GET /sync/manifest, then POST /sync/upload once at 09:21:02.709, then pulls. dos_qa has order 01a09e05-c8c7-7741-b201-de8bb92ee5d1 once (draft, salesperson amit.pawar, Prerna Super Market) with 1 line. It also has 2 sync_ops with {\"ok\": true} from device 01a09dff\u2026. Both ops on the device are acked, and amit's order total went from 388 to 389.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1j-amit-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1j-amit-early-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1j-amit-after-send.png"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "(y) keep run 2 of 3: the same crash condition (service killed, order saved on the phone, outbox retrying), then 'Sign out, keep here', relaunch, restart, and the owner's sign-in.",
+     "expected": "No crash and no new .ips. The sign-in form shows after the tap and after the relaunch. The ops are sent exactly once.",
+     "observed": "Ops 3 and 4 were queued with 4 attempts, 7 at the tap. The sheet was the same, with Send now = NO. The tap was at 09:23:28. pid 96501 was unchanged for 20 s, the sign-in form showed at +1.8 s, and no new .ips appeared. The only log exit is my own force-quit. The relaunch showed the sign-in form, and the kept file held only the system tables with ops 3 and 4 queued. After the restart, amit's sign-in made exactly 1 POST /sync/upload. Order 01a09e0b-4e18-7549-9d95-80e2180b1a63 exists once with 1 line and 2 ok sync_ops, and ops 3 and 4 are acked.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y2abcd-offline-queue-sheet.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y2d-amit-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y2ef-keep-and-relaunch.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y2e-keep-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y2f-relaunch.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y2gh-restart-and-resend.txt"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "(y) keep run 3 of 3: same as run 2. The script checked the sheet text on screen before tapping 'Sign out, keep here'.",
+     "expected": "No crash and no new .ips. The sign-in form shows after the tap and after the relaunch. The ops are sent exactly once, and all three kept orders are in dos_qa exactly once.",
+     "observed": "Ops 5 and 6 were queued with 4 attempts, 5 at the tap. The sheet check passed. The tap was at 09:26:31. pid 98483 was unchanged for 20 s, the sign-in form showed at +1.5 s, no new .ips appeared, and the relaunch showed the sign-in form. The resend was 1 POST /sync/upload. Order 01a09e0e-b392-729b-8984-740a81924477 exists once with 1 line. Across the three runs: 3 orders with 1 row and 1 line each, and 6 of 6 sync_ops rows, all ok. At the end the DiagnosticReports folder still holds only the two .ips files from 02:18 and 02:23.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y3a-f-offline-queue-keep-relaunch.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y3d-amit-leave-sheet.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y3e-keep-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y3f-relaunch.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y3gh-restart-and-resend.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/z-teardown.txt"
+     ]
+    },
+    {
+     "app": "sales",
+     "step": "Addendum (y) iOS sales online: open the leave sheet while online and tap 'Send now'. Setup, which is test infrastructure only: the real sales-service moved to :3013, and a QA proxy on :3003 either passed requests, dropped connections ('down'), or answered 503 to POST /sync/upload only ('fail-upload').",
+     "expected": "While online with changes waiting, the sheet offers Send now. Tapping it sends the changes exactly once and then signs the person out.",
+     "observed": "Attempts 1 and 2 queued nothing. Online, the order screen has no 'Save on this phone' button. Instead, 'Place order' posts straight to the office, which created and submitted SO-0879 and left the outbox empty. Attempt 1 then signed out with one tap. Final run: the order was saved on the phone with the proxy down (2 ops queued), and the proxy then switched to fail-upload. The poll's manifest and pull answered 200 while the upload got 503, and the strip read '2 waiting to send' with no 'Offline'. The sheet showed the title, the body naming Amit, 'Send now', 'Sign out, keep here' and Cancel, with no 'No connection' line. The proxy switched to pass at 09:37:08, and Send now was tapped. The only 200 upload came at 09:37:09.356, auth POST /auth/logout at 09:37:09.632, and the sign-in form within ~1 s. The find shows no store file. dos_qa has order 01a09e17-3785-7178-afac-241d61ec39e6 once with 1 line and 2 ok sync_ops. Expo Go pid 99815 did not change and no new .ips appeared. sales-service was then restored on :3003 against dos_qa.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn0-proxy-setup.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn1-note-and-sn2-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn3-note-online-place-order.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn4-queue-offline-then-online-sheet.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn4d-leave-sheet-online.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn5-send-now-and-restore.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn5-after-send-now.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn-proxy.log",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/driver/qa-proxy-3003.mjs.txt"
+     ]
+    },
+    {
+     "app": "delivery (Metro :5177, started by this run)",
+     "step": "Ruling 2's short sequence (design steps 1\u20133) on delivery: ganesh.more signs in first, then one-tap sign-out, then sachin.dalvi (Sai) signs in through the form, then signs out.",
+     "expected": "Exactly one d+50 file per signed-in driver, none after each sign-out, no dos-delivery* file, and no ganesh marker for sachin.",
+     "observed": "ganesh reached SIGNED_IN (Tarsun, MH-05-AB-1234). The find shows exactly one file, d7aj1dpqy1p95fk8xw22vx5a3n03guzv9zghwmmy1imsvb8cmft (ganesh @ Tarsun, byte-equal to the V8 value), with no dos-delivery* file. His sign-out was one tap, leaving stores=0. For sachin, the early burst ran +1.90 to +3.62 s. The first screenshot shows Sai with 'Still filling this phone from the office.' and no Tarsun data. The early source has 0 hits for MH-05-AB-1234, Vaibhav Kirana Mart, Prerna Super Market, Tarsun, 80180, Godrej Hill and Kolsewadi. After sync, has MH-05-AB-1234 = NO and has MH-05-BQ-4471 = YES. The find shows exactly one file, d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (sachin @ Sai). His sign-out was one tap, leaving stores=0.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d1-metro-and-ganesh-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d1-ganesh-checks.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d1-ganesh-home.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d2-ganesh-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d3-sachin-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d3-sachin-early-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/d4-sachin-signout.txt"
+     ]
+    },
+    {
+     "app": "warehouse (Metro :5176, started by this run)",
+     "step": "Ruling 2's short sequence (design steps 1\u20133) on warehouse: dinesh.patil signs in first, then one-tap sign-out, then bharat.jadhav (Sai) signs in through the form, then signs out.",
+     "expected": "Exactly one w+50 file per signed-in person, none after each sign-out, no dos-warehouse* file, and no dinesh marker for bharat.",
+     "observed": "dinesh reached SIGNED_IN, and his Pick screen showed SO-0877, Bhosale Traders and Khadakpada. The find shows exactly one file, w5evl5qbaesu6s4sn3h8rgcsc503guzv9zghwmmy1imsvb8cmft (dinesh @ Tarsun), with no dos-warehouse* file. His sign-out at the (150,712) row was one tap, leaving stores=0. For bharat, the early burst ran +1.41 to +3.06 s. The first screenshot shows Sai with 'Not updated yet'. The early source has 0 hits for Tarsun, Khadakpada, Station Road, SO-0877, SO-0873, Bhosale Traders and Kalyan West Market. After sync, Pick shows only Sai orders (SO-0454, SO-0453\u2026) and has Khadakpada/SO-0877/Tarsun = NO. The find shows exactly one file, wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk (bharat @ Sai). His sign-out was one tap, leaving stores=0.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w1-metro-and-dinesh.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w1-dinesh-pick.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w2-dinesh-signout.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w3-bharat-signin.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w3-bharat-early-1.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w3-bharat-pick.png",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/w4-bharat-signout.txt"
+     ]
+    },
+    {
+     "app": "sales, delivery, warehouse",
+     "step": "Merge-review walk, iOS part: store names computed by Expo Go's JavaScript engine on iOS, compared byte for byte with V8 (node BigInt, driver/names-ios.mjs).",
+     "expected": "Every file name the iOS app creates equals the V8-computed <app><user><distributor> name, and Rahul's name equals the ruling's value.",
+     "observed": "All seven names seen on the device re-encode exactly (reencodes=true): rahul s80j3az\u2026cmft (the ruling's value), kiran s20y20l\u202644xk, amit se785zf\u2026cmft, ganesh d7aj1dp\u2026cmft, sachin d51kexl\u202644xk, dinesh w5evl5q\u2026cmft and bharat wf134ug\u202644xk. `typeof BigInt` was not queried inside the iOS runtime; the matching names are the evidence.",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s1-rahul-checks.txt",
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/driver/names-ios.mjs.txt"
+     ]
+    },
+    {
+     "app": "Expo Go (teardown)",
+     "step": "Teardown: ios-drive end, stop the Metros, xcrun simctl shutdown all, check services and Appium, git status.",
+     "expected": "Simulator shut down, all Metros stopped (including the sales Metro :5175), services and Appium still running, and changes only under QA/.",
+     "observed": "0 booted devices. Listeners on :5173\u2013:5179 are 0, and the QA proxy and :3013 are stopped. :3000\u2013:3007 answer 200, sales-service runs on dos_qa, and the worker and Appium (ready:true) are up. There are no store files on the device. git status --short lists only QA/ paths: ` M QA/tools/e2e/s-098-shared-device.mjs` (the web prover's), `?? QA/evidence/batch2/dos-167/reproof/`, and `?? QA/evidence/batch2/merge-reviews/dos171-1.md` and `s108-1.md` (written by other sessions).",
+     "result": "PASS",
+     "evidence": [
+      "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/z-teardown.txt"
+     ]
+    }
+   ],
+   "defects": [
+    {
+     "severity": "P3",
+     "detail": "S-129 is pre-existing, not a DOS-167 regression, and was seen again here. On iOS the kit sheets (the account menu and the DOS-167 leave sheet) expose one aggregated accessibility element: its label joins the title, the body and every button ('2 changes have not reached the office, They stay on this phone for Amit Pawar only\u2026, Send now, Sign out, keep here, Cancel, Close'). VoiceOver and test automation therefore cannot target 'Sign out, keep here', 'Send now' or 'Sign out' one by one, and every tap in this run had to be placed by coordinates taken from a screenshot.",
+     "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/sn4d-leave-sheet-online-labels.txt ; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/y1d-amit-leave-sheet-labels.txt ; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/ios/s2-rahul-signout.txt"
+    }
+   ],
+   "notTested": [
+    "Merge-review walk 'a refresh in flight at the tap' on iOS was not run. It needs the 15-minute access token to expire and the keep tap to land inside the refresh round trip, which Appium's 0.5\u20132 s commands cannot hit reliably. The iOS keychain (SecureStore) also cannot be read headlessly to show that no token remains. That walk belongs to the web and Android provers.",
+    "Merge-review walk 'fast re-sign-in while end() waits on a page in flight' (the same person, and another person) on iOS was not run. The sign-in would have to land in a sub-second window inside end(), which Appium commands cannot time.",
+    "Ruling 2 (v), the refusal sentence 'This phone is signing out; nothing more can be saved on it\u2026' on the sales order screen, was not run on iOS. It is the V5E race: a save tapped inside the sign-out window, which cannot be timed through Appium.",
+    "Ruling 2 (u), 'a kept file keeps its drafts', was not checked on iOS. Sales drafts live outside the SQLite store and were not inspected.",
+    "Addendum (z1), Settings > Sign out through the leave flow on delivery and warehouse (with one change queued, and with nothing queued), was not run on iOS. The addendum lists it for Android only. The iOS delivery and warehouse sign-outs here went through the More menu.",
+    "The delivery and warehouse keep path ('Sign out, keep here' with a change queued) was not run on iOS. It is not in the iOS list, where the keep path is on sales.",
+    "Android-only items were not run on iOS: the SecureStore ordering walk with am force-stop, the long-name upgrade from a 199952b file (empty, and with one queued op), S-126 (warehouse Fabric cold start) and the S-127 comparison against the pre-DOS-167 JS.",
+    "The design's amit 'orders 380' total was not checked on iOS. The iOS order list shows no single total, so isolation was proven by SO-0875 absent and SO-0872 present on Orders > All instead.",
+    "The web persistent-store variants V5A\u2013V5E and the memory-store variant belong to the web prover, not this run."
+   ],
+   "environment": "Main checkout /Users/prajwalchavan/Desktop/Distribution OS at 9cab1e7. Since the ruling-2 merge bafb7b5 the only product change under frontend/ or backend/ is frontend/manager-app/app/fulfilment/load-out.tsx; no commit, merge, reset, checkout or product edit was made. Simulator: iPhone 16 Pro, iOS 18.0 (DBCB09C3-\u2026), booted headlessly. For a fresh container, Expo Go 57.0.9 was uninstalled and reinstalled from ~/.expo/ios-simulator-app-cache/Expo-Go-57.0.9.tar.app (new data container B93785C7-\u2026), and the keychain was reset once per app on its first sign-in via a copy of ios-login.mjs that writes evidence here. On a fresh install Expo Go showed its developer-menu onboarding and put its floating gear over the app's More button; the gear was dragged to the bottom-right (environment only). Appium 3.7.0 XCUITest was already on :4723 and left running. Services :3000\u2013:3007 and the worker were on dos_qa and left running. sales-service :3003 was killed and restarted four times with DATABASE_URL=dos_qa, the way QA/tools/start-services.sh starts it (logs appended to ~/.dos-qa-logs/logs/sales-service.log). For the Send-now case it ran briefly on :3013 (log ~/.dos-qa-logs/logs/sales-service-3013.log) behind a QA proxy on :3003 (scratchpad qa-proxy-3003.mjs, copy in driver/); both were stopped and the service is restored on :3003 against dos_qa. Metros: sales :5175 was pre-running (started 08:54 from main, CI=1 --clear) and was stopped as instructed. Delivery :5177 and warehouse :5176 were started by this run from main with CI=1 (logs ~/.dos-qa-logs/logs/dos167-reproof-ios-delivery-metro.log and -warehouse-metro.log) and stopped. QA/tools/proxy8081.mjs (pid 89126, the Android prover's, pointing at :5175) was left as found. The simulator is shut down. Test data written to dos_qa: four draft orders for amit.pawar at Prerna Super Market (01a09e05-c8c7\u2026, 01a09e0b-4e18\u2026, 01a09e0e-b392\u2026, 01a09e17-3785\u2026), each with one line and ok sync_ops, plus SO-0879 (01a09e14-f29c\u2026), which was placed and submitted online as 'confirmed' during the first Send-now attempt and may now appear in Tarsun's warehouse pick queue. Read-only copies of the device stores were made to the scratchpad; the live app files were never opened by a host process. git status --short shows only QA/: ` M QA/tools/e2e/s-098-shared-device.mjs` (the web prover), `?? QA/evidence/batch2/dos-167/reproof/` (235 files in reproof/ios plus driver/h.sh.txt, ios-login-reproof.mjs.txt, names-ios.mjs.txt, qa-proxy-3003.mjs.txt), and `?? QA/evidence/batch2/merge-reviews/dos171-1.md` and `s108-1.md`, which other sessions wrote. No build output was added to the repository."
+  }
+ ],
+ "judge": {
+  "overall": "open",
+  "platforms": [
+   {
+    "platform": "web sales (persistent OPFS store)",
+    "status": "failed",
+    "reason": "Failed on a required V5A line. Runs 1 and 3 (the first load after a Metro start) and diag-02/03 (warm Metro with 600 ms added to the two expo-sqlite bundles) failed 4 of 4 times; the control diag-01 passed. In those runs Rahul's store never opened, the engine made no /sync call for 240 s, and the next person fell to memory with 'cannot create file'. I checked run3-v5a/v5a-01: 'Still loading the beat onto this phone', Shops 0, 'Not updated yet'. Its pool walk shows five '0.xxxx' temp files plus '/dos-sales.db-wal' filling the 6-file pool. Separately, the ruling's 'never shows s0.notPersisted' failed in V5A run 4, V5B and V5C: the line flashed for 39-82 ms after sign-in. Everything else held when the store opened. File names were decoded and matched token and dos_qa ids. The leak checks were clean, including the +400 ms shot (v5a-06a is Amit's own Godrej Hill beat). The first manifest and pull were fresh, and Shops/orders counts were right. V5D's kept order passed: the sheet (v5d-04), the cold-start sheet (v5d-11), and manifest -> upload -> pull with the order once in dos_qa. V5E (nothing kept, no header-only draft), V5E2A/B, VREFRESH and VFASTA/B passed. NOT TESTED: the ruling (v) refusal sentence, and a rep at two distributors."
+   },
+   {
+    "platform": "web sales (memory store variant)",
+    "status": "failed",
+    "reason": "One required line failed at desk and phone: the console never printed 'offline: no persistent store; running in memory'. No field app passes onLog (confirmed: no onLog in sales, delivery or warehouse app/, and sales _layout.tsx:303-313 passes none). Every user-facing line held. Offline, the sheet shows leave.bodyMemory with only Cancel and the person stays signed in (vmem-03). Online, it shows Send now + Cancel with no keep (vmem-04, vmemp-04). Sign-out followed, no OPFS file was created, and each order is once in dos_qa. Caveat: 'Send now sends' was not exercised on web, because the engine's reconnect flush had already sent both ops (0 uploads after the tap). iOS proved Send now instead."
+   },
+   {
+    "platform": "Android sales (with long-name upgrade)",
+    "status": "failed",
+    "reason": "One required line failed. In the upgrade with a queued op, logcat never showed 'offline: kept the store from before ruling 2' (same onLog cause). The file behaviour was right: the 92-character file was kept with both ops intact, the s-file was created beside it, and nothing was sent or lost. Everything else is proven by the evidence. On Hermes, BigInt exists and storeNameFor gives Rahul's name, byte-equal to the ruling and V8 (1-hermes-bigint-storename.json, 1-rahul-ls.txt). Kiran's early shot (3-kiran-2) is Sai with no Tarsun data, and her dumps had 0 markers. For Amit: Shops 29, SO-0875 absent, and only his file. On keep, the sheet named Amit with no Send now (5d). There was no crash, the sign-in form showed, SecureStore held only the device key, and the kept file had only system tables with its stamp, empty cursor and both ops queued (5e). The resend went manifest -> upload -> pull, once in dos_qa (5h). The empty long file was gone at +21 s (6e). The SecureStore ordering walk was only approximated: the force-stop came 248 ms after the tap, when end() had already finished."
+   },
+   {
+    "platform": "Android delivery",
+    "status": "proven",
+    "reason": "The d+50 names decoded to the right person and distributor, with no legacy or interim file. Ganesh -> sachin: shot 4 (d3-sachin-4) is Sai 'Still filling this phone', with no Tarsun trip. Caveat: early dumps 2 and 3 caught Google's Location Accuracy dialog, so that check rests on dump 1, the shots and the synced screen. Keep x3 (menu, Settings, menu) with the outbox retrying: the pid was stable for 20 s, no am_crash or Fatal signal, and the sign-in form showed after the keep and after the offline relaunch (dk2b-redo-relaunch-offline). Each op went once (1 upload, 1 sync_ops). (z1) Settings > Sign out opens the sheet with a queue, and signs out in one tap with nothing queued. S-127 reproduces on pre-DOS-167 JS, so it predates DOS-167."
+   },
+   {
+    "platform": "Android warehouse",
+    "status": "proven",
+    "reason": "The w+50 names decoded correctly. Dinesh -> bharat: shot 2 (w3-bharat-2) is Sai 'Not updated yet' with no Tarsun data, and there were 0 markers for PICK-0053..0078 or Tarsun shops and orders. Keep through Settings with one pick queued: the sheet showed, the pid was stable, there was no crash, and relaunch showed the sign-in form. The op went once (wk-c: 1 upload, pick line 75 picked, outbox acked). A one-tap Settings sign-out removes the file. S-126 did not repeat on 2 cold starts."
+   },
+   {
+    "platform": "iOS sales",
+    "status": "proven",
+    "reason": "find shows exactly one s+50 file per signed-in person, re-encoded and matched to V8, with no dos-sales* file (s1-rahul-checks). The early shots after the second sign-in (s3-kiran-early-1 Sai, s4-amit-early-1 Tarsun) show Shops 0 and no previous person's data, and the page-source grep found 0 markers. Keep x3 with sales-service killed and the outbox retrying (y1ef, y3a-f, z-teardown): the pid was unchanged, no new .ips appeared (only the 02:18 and 02:23 ones exist), and each relaunch showed the sign-in form (y1f-relaunch). Kiran saw nothing of Amit's while his file was kept. Each owner sign-in made 1 upload, and all three orders are once with their line. Send now online (sn4d, sn5): 1 upload 200, then logout, no store file left, order once. Not run on iOS: (v), the (u) drafts check, and the refresh and fast re-sign-in walks (web covered those two)."
+   },
+   {
+    "platform": "iOS delivery",
+    "status": "proven",
+    "reason": "Ganesh's d7aj\u2026 and sachin's d51k\u2026 decoded correctly and matched V8, and no file was left after each one-tap sign-out. The early shot d3-sachin-early-1 is Sai 'Still filling', and the early source had 0 Tarsun markers. Only the leak sequence is required for iOS delivery."
+   },
+   {
+    "platform": "iOS warehouse",
+    "status": "proven",
+    "reason": "Dinesh's w5ev\u2026 and bharat's wf13\u2026 decoded correctly, and no file was left after each one-tap sign-out. The early shot w3-bharat-early-1 is Sai with no Tarsun data, the early source had 0 Tarsun markers, and Pick shows only Sai orders. Only the leak sequence is required for iOS warehouse."
+   }
+  ],
+  "gaps": [
+   "Ruling (v) is not shown on any platform through the UI; only the api-client unit test proves it. (v) is the engine's refusal sentence on the sales order screen. The web V5E tap could not land, because (y) now replaces the order screen at the sign-out tap. iOS and Android did not run it. It needs a new route (for example a write during a distributor switch) or the architect's acceptance of the unit test.",
+   "The sign-out of a rep who works for two distributors (the sibling sweep on OPFS, and the next open staying persistent) was not run on any platform: dos_qa has no such salesperson.",
+   "The web P1 was not explored. Untested: what a write does while the store is stuck opening, whether a full OPFS pool heals after a reload or stays bricked on that browser profile, and the production static export (the hosted site). It was shown on the Metro dev server only.",
+   "Addendum (y) is not proven on a device under a real crash during end(), because (x) removed the crash. The Android force-stop landed 248 ms after the tap, when the kept file was already final. The iOS keychain cannot be read headlessly. The ordering itself is unit-tested only.",
+   "The merge-review walks 'a refresh in flight at the tap' and 'fast re-sign-in' (same person and another person) were proven on web only, not on Android or iOS.",
+   "The full frontend gate on the merged tree is not evidenced after the addendum (z) commits c236f18, c457b5b, 4be7fe2 and 9eed92b. The integrator's full gate ran on 31de0f8 before them, and the re-proof ran only the five named DOS-167 test files.",
+   "'Every test in (s)-(v) seen red first' rests on the builder's and verifier's word; the provers did not re-check it.",
+   "Ruling (u) 'a kept file keeps that person's drafts' was not checked on any device.",
+   "On web, the memory-store 'Send now sends' was not exercised, because the reconnect flush sent the ops before the tap. It is proven on iOS only.",
+   "The distributor-switch leave path ('Switch anyway', withheld on a memory store) was not walked on any platform."
+  ],
+  "newDefects": [
+   {
+    "priority": "P1",
+    "detail": "On web with a persistent store, the device database sometimes never opens. It happens when the expo-sqlite chunk and worker arrive late: the first load after a Metro start, or 600 ms of added latency, as on a first visit over a network.\n- SQLiteError 'not a database' is thrown.\n- The 6-file wa-sqlite pool fills with orphan temp files ('0.xxxx') and '/dos-sales.db-wal'.\n- The engine never calls /sync, and the beat stays 'Still loading' with Shops 0 for 240 s.\n- The next person's open fails with 'cannot create file' and runs on memory.\n- Ruling (t)'s announced fallback never fires for the stuck person.\nIt hit 4 of 4 times under the condition and 0 of 5 without it. No leak or loss was seen. Likely cause (unproven, but the orphan '/dos-sales.db-wal' supports it): DOS-167's mount-time sweeps race the engine's open on the one pool. react.tsx:181-205 opens and deletes the legacy dos-sales.db on every mount ('opening creates an empty file and deleting removes it again'), and the interim sweep at :213-221 runs beside it. So this is probably a DOS-167 regression exposed by ruling 2. It blocks closing the P0.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run3-v5a/results-v5a.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run3-v5a/v5a-01-a-rahul-beat-synced-desk.png; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/run1-v5a/results-v5a.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/diag-02-open-timeline-rahul-warm-metro-sqlite-delay-600ms.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/diag-03-open-timeline-rahul-warm-metro-sqlite-delay-600ms-repeat.json; control /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/diag-01-open-timeline-rahul.json; code /Users/prajwalchavan/Desktop/Distribution OS/frontend/libs/offline/src/react.tsx:181-221"
+   },
+   {
+    "priority": "P3",
+    "detail": "No field app passes onLog to OfflineProvider, so the engine's and provider's 'offline:' lines are silent on web and Android. That covers ruling (t)'s 'offline: no persistent store; running in memory' and ruling (s)'s 'offline: kept the store from before ruling 2'. It is the same root cause for the web memory-variant failure and the Android upgrade failure. The on-screen line and storeNote do work.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmem.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmemp.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-upgrade-long-file-with-queued-op.txt; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/6j-onlog-not-wired-source.txt; /Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app/app/_layout.tsx:303-313"
+   },
+   {
+    "priority": "P3",
+    "detail": "On a persistent web store, the beat screen shows 'This browser will not keep the offline copy after you close it' for 39-82 ms after every sign-in. status().persistent reads false while the store is still opening (engine.ts:919), and ruling 2 requires the line never to show on V5A/B/C. The fix is a status that is unknown until the open resolves.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5a.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5b.json; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-v5c.json (notPersistedWatch)"
+   },
+   {
+    "priority": "P2",
+    "detail": "Outside DOS-167 and not attributed to it. After an offline relaunch, a warehouse picker cannot reach a picklist already on the phone. The home 'Waves on the floor' and the Pick tab's waves and orders are online reads that show only 'No connection', so PICK-0078 opened only by deep link. Once open, the sheet worked offline.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a-dinesh-offline-pick.txt; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a2-dinesh-offline-pick-deeplink.txt"
+   },
+   {
+    "priority": "P3",
+    "detail": "The warehouse variant of S-127. After an offline relaunch with a completed pull, the PICK-0078 picking sheet says 'Still filling this phone from the server'. It was not compared with pre-DOS-167 JS. The delivery S-127 predates DOS-167.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/wk-a2-dinesh-offline-pick-deeplink.txt; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/ds127-redo-pre-dos167-offline-relaunch.txt"
+   },
+   {
+    "priority": "P3",
+    "detail": "Pre-existing and apparently unfiled. The Android debug builds of sales and warehouse raise LogBox 'Can't perform a React state update on a component that hasn't mounted yet' (ExpoRoot ContextNavigator) on cold start and sign-in. The toast covers the tab bar and swallows taps. The same message appears in the 199952b proof.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/logbox-console-error-logcat.txt; /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/android/5d-amit-cold-sheet.png"
+   },
+   {
+    "priority": "P3",
+    "detail": "Pre-existing, cause not investigated. A sales-service call such as GET /sync/manifest answers 401 about 5-24 s after sign-in, then a refresh succeeds and nothing breaks. The pre-DOS-167 S-098 probe shows the same 401s (15 occurrences), so it is not a DOS-167 regression.",
+    "evidence": "/Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/dos-167/reproof/web/results-vmem.json (401 then /auth/refresh); /Users/prajwalchavan/Desktop/Distribution OS/QA/evidence/batch2/s-098/results-v5a-v5b-v5c.json"
+   }
+  ],
+  "summary": "DOS-167 is not closed yet. On Android and iOS every required check held: nobody saw the previous person's shops, trips or picks. \"Sign out, keep here\" never crashed in nine tries across the three apps, the relaunch always came back to the sign-in form, and every kept order or delivery reached the office exactly once. On the web the shared-browser checks and the kept order passed, but when the database code loads a little slowly, as on a first visit over the internet, the browser's offline store never opens and the beat stays empty. That is most likely caused by a clean-up step this fix added, and it must be fixed and re-proved before closing. Three small misses and a few walks that could not be run are also left: a log line the apps never print, a warning that flashes for under a tenth of a second on the web, and walks such as a rep who works for two distributors."
+ },
+ "final": "proof-judged",
  "run": "wf_a77ba6a6-adc"
 }

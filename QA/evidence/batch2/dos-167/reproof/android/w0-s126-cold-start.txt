@@ -1,0 +1,40 @@
+## S-126 warehouse cold start after install -r + pm clear (Metro :5176 from main bafb7b5) 08:32:05
+proxy: 83284 node /Users/prajwalchavan/Desktop/Distribution OS/QA/tools/proxy8081.mjs 5176 ; via 8081: packager-status:running
+-- prior warehouse files (before pm clear)
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (08:32:08)
+total 2864
+drwx------ 2 u0_a213 u0_a213    4096 2026-09-14 01:53 .
+drwxrwx--x 3 u0_a213 u0_a213    4096 2026-09-14 01:49 ..
+-rw------- 1 u0_a213 u0_a213    4096 2026-09-14 01:53 dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db
+-rw------- 1 u0_a213 u0_a213   32768 2026-09-14 01:54 dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm
+-rw------- 1 u0_a213 u0_a213 2863432 2026-09-14 01:54 dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal
+-- decoded (parseStoreName rule): { "files": [ "dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db (4096)", "dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-shm (32768)", "dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db-wal (2863432)" ], "stores": [], "strays": [], "legacy": [], "interim": [ { "name": "dos-warehouse__u-fde0c980-27cb-7f1d-a008-ce4503d01611__t-82f5c562-b7eb-7521-8e19-4aa6befc64f8.db", "length": 96, "who": "bharat" } ], "other": [] }
+-- APK: -rw-r--r--@ 1 prajwalchavan  staff  96533394 Sep  7 06:47 frontend/warehouse-app/android/app/build/outputs/apk/debug/app-debug.apk
+### cold start 1 (Metro cache empty) 08:32:09
+install -r: ok
+pm clear: Success
+started at 08:32:12
++7.8s pid=11248 top= 
++16.5s pid=11248 top=in.distributionos.warehouse 
++22.1s pid=11248 top=in.distributionos.warehouse 
++28.2s pid=11248 top=in.distributionos.warehouse form
++32.5s pid=11248 top=in.distributionos.warehouse form
++37.6s pid=11248 top=in.distributionos.warehouse form
+shot w0-s126-cold-start-1.png
+screen: Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username.
+-- am_crash / Fatal signal / am_proc_died for warehouse since start:
+-- crash buffer:
+(end)
+### cold start 2 (Metro warm) 08:32:52
+install -r: ok
+pm clear: Success
+started at 08:33:04
++6.1s pid=11597 top= form
++11.3s pid=11597 top=in.distributionos.warehouse 
++15.8s pid=11597 top=in.distributionos.warehouse form
++20.2s pid=11597 top=in.distributionos.warehouse form
+shot w0-s126-cold-start-2.png
+screen: Distribution OS - Warehouse | Sign in | Username | Password | Sign in | Sign in | The godown sign-in. Ask your manager for a username. | !, Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronousl
+-- am_crash / Fatal signal / am_proc_died for warehouse since start:
+-- crash buffer:
+(end)

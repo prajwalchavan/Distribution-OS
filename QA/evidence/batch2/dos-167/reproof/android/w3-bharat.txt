@@ -1,0 +1,38 @@
+## W3 bharat.jadhav (Sai) signs in on the same phone, no install, no clear 08:37:24
+SIGNED_IN w3-bharat: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0052, 3027 of 3999 pc picked, picking | PICK-0052 | 3027 of 3999 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+strip has 'Updated just now' after ~3s
+logbox now: 0 (0 = clear)
+## W3 after sync 08:38:48
+home texts: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0052, 3027 of 3999 pc picked, picking | PICK-0052 | 3027 of 3999 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot w3-bharat-home.png
+tap 'Pick' at 405 2237
+pick texts: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated 1 min ago | Sai Distributors, Dombivli | Pick | ✓ Every beat | ✓ Every beat | Kopar Road | Kopar Road | Ayre Road | Ayre Road | ORDERS WAITING | Select all | Select all | Clear | Clear | 0 selected · 0 pc | Thakurli Station Kirana, SO-0454 · Kopar Road · 243 pc, confirmed | Thakurli Station Kirana | SO-0454 · Kopar Road · 243 pc | confirmed | Rajhans General Store, SO-0453 · Ayre Road · 537 pc, confirmed | Rajhans General Store | SO-0453 · Ayre Road · 537 pc | confirmed | Swami Samarth Stores, SO-9003 · Tilak Nagar · 2 pc, confirmed | Swami Samarth Stores | SO-9003 · Tilak Nagar · 2 pc | confirmed | WAVES | PICK-0052, 3027 of 3999 pc picked, picking | PICK-0052 | 3027 of 3999 pc picked | picking | PICK-0051, 8824 of 8824 pc picked, picked | PICK-0051 | picked | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+shot w3-bharat-pick.png
+-- picklist numbers bharat sees: PICK-0051 PICK-0052 
+--- shot times
+## w3-bharat sign-in tapped at 08:38:16 (1789355296.548608)
+1 +0.376s
+2 +0.87s
+3 +1.233s
+4 +1.591s
+5 +1.994s
+6 +2.578s
+--- A-marker grep (Tarsun-only PICK-0053..0078, 'Tarsun', Tarsun-only shops Bhosale Traders / Nutan Kirana Stores / Vitthal Traders and orders SO-0877 / SO-0873 / SO-0870) over the 3 early full dumps + home + pick screen (expect nothing)
+count: 0
+--- early dumps (first 250 chars each)
+dump1 +2.756s: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | 
+dump2 +5.04s: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | P
+dump3 +7.222s: SD | Sai Distributors, Dombivli | warehouse | More | ⋯ | Updated just now | Sai Distributors, Dombivli | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | 
+$ adb shell run-as in.distributionos.warehouse ls -la files/SQLite   (08:38:57)
+total 2836
+drwx------ 2 u0_a213 u0_a213    4096 2026-09-14 08:38 .
+drwxrwx--x 3 u0_a213 u0_a213    4096 2026-09-14 08:33 ..
+-rw------- 1 u0_a213 u0_a213    4096 2026-09-14 08:38 wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a213 u0_a213   32768 2026-09-14 08:38 wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a213 u0_a213 2834592 2026-09-14 08:38 wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk (4096)", "wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk-shm (32768)", "wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk-wal (2834592)" ], "stores": [ { "name": "wf134ugk70jtqq43yzvsimplap7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-warehouse", "userId": "fde0c980-27cb-7f1d-a008-ce4503d01611", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "bharat @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [bharat @ Sai] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.warehouse (08:38:57)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

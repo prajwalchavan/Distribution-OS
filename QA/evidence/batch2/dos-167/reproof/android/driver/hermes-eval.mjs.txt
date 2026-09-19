@@ -1,0 +1,69 @@
+// Evaluates read-only expressions in the running app's Hermes runtime through Metro's inspector proxy (CDP
+// Runtime.evaluate). No product source is touched: it asks the live JS VM on the emulator.
+// Usage: node hermes-eval.mjs <metroPort> [deviceFileName ...]
+const port = process.argv[2] ?? '5175'
+const deviceFiles = process.argv.slice(3)
+const list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json()
+const targets = list.filter((t) => t.webSocketDebuggerUrl && /distributionos\.sales/.test(`${t.description} ${t.title} ${t.appId ?? ''}`))
+const target = targets.at(-1) ?? list.filter((t) => t.webSocketDebuggerUrl).at(-1)
+if (!target) { console.log(JSON.stringify({ error: 'no inspector target', list }, null, 1)); process.exit(2) }
+const IDS = {
+  rahul: { userId: '8760e17e-4830-7395-a946-1e02fffa1ad7', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', role: 'salesperson' },
+  kiran: { userId: '2239ec93-0bcd-7737-a70c-c60aa4d9e9f1', tenantId: '82f5c562-b7eb-7521-8e19-4aa6befc64f8', role: 'salesperson' },
+  amit: { userId: 'efde1e76-9785-7827-aff2-6f56ecd33588', tenantId: '01a09a5b-3c58-71c1-a34d-b93c569b0099', role: 'salesperson' },
+}
+const expression = `(() => {
+  const out = { typeofBigInt: typeof BigInt, typeofHermesInternal: typeof HermesInternal };
+  try { out.hermesProps = HermesInternal.getRuntimeProperties(); } catch (e) { out.hermesPropsError = String(e); }
+  try {
+    const d = (h) => BigInt('0x' + h).toString(36).padStart(25, '0');
+    out.rahulByBigIntArithmetic = 's' + d('8760e17e48307395a9461e02fffa1ad7') + d('01a09a5b3c5871c1a34db93c569b0099');
+    out.bigintLiteralCheck = (36n * 36n).toString();
+  } catch (e) { out.arithmeticError = String(e); }
+  try {
+    const mods = __r.getModules();
+    const entries = mods instanceof Map ? Array.from(mods.entries()) : Object.entries(mods);
+    const hit = entries.find(([, m]) => m && typeof m.verboseName === 'string' && /offline\\/src\\/engine\\.ts$/.test(m.verboseName));
+    if (!hit) { out.engineModule = 'not found among ' + entries.length + ' modules'; }
+    else {
+      out.engineModule = hit[1].verboseName; out.engineInitialized = !!hit[1].isInitialized;
+      const ex = hit[1].isInitialized ? hit[1].publicModule.exports : null;
+      if (ex) {
+        const ids = ${JSON.stringify(IDS)};
+        out.productStoreNameFor = {};
+        for (const who of Object.keys(ids)) out.productStoreNameFor[who] = ex.storeNameFor('dos-sales', ids[who]);
+        out.productParseStoreName = {};
+        for (const f of ${JSON.stringify(deviceFiles)}) out.productParseStoreName[f] = ex.parseStoreName(f);
+      }
+    }
+  } catch (e) { out.moduleError = String(e); }
+  return JSON.stringify(out);
+})()`
+// Metro's inspector proxy answers 401 to an upgrade without a local Origin, so the `ws` client (QA/tools/node_modules) sends one.
+const { createRequire } = await import('node:module')
+const WS = createRequire('/Users/prajwalchavan/Desktop/Distribution OS/QA/tools/package.json')('ws')
+const ws = new WS(target.webSocketDebuggerUrl, { origin: `http://127.0.0.1:${port}` })
+const result = await new Promise((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error('CDP timeout')), 15000)
+  ws.on('open', () => ws.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression, returnByValue: true } })))
+  ws.on('message', (data) => {
+    const msg = JSON.parse(String(data))
+    if (msg.id === 1) { clearTimeout(timer); resolve(msg) }
+  })
+  ws.on('error', (e) => { clearTimeout(timer); reject(e) })
+})
+ws.close()
+const value = result?.result?.result?.value
+const parsed = typeof value === 'string' ? JSON.parse(value) : result
+const RULING = 's80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft'
+const v8 = { engine: `V8 ${process.version}`, typeofBigInt: typeof BigInt, rahulByBigIntArithmetic: 's' + BigInt('0x8760e17e48307395a9461e02fffa1ad7').toString(36).padStart(25, '0') + BigInt('0x01a09a5b3c5871c1a34db93c569b0099').toString(36).padStart(25, '0') }
+console.log(JSON.stringify({
+  at: new Date().toISOString(), target: { title: target.title, description: target.description, deviceName: target.deviceName },
+  hermes: parsed, v8,
+  checks: {
+    hermesBigIntExists: parsed?.typeofBigInt === 'function',
+    hermesProductRahulEqualsRuling: parsed?.productStoreNameFor?.rahul === RULING,
+    hermesArithmeticEqualsV8: parsed?.rahulByBigIntArithmetic === v8.rahulByBigIntArithmetic,
+    v8EqualsRuling: v8.rahulByBigIntArithmetic === RULING,
+  },
+}, null, 2))

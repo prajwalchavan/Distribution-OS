@@ -1,0 +1,67 @@
+## step4c amit shops, orders, listing 07:09:58
+strip: Updated just now 
+-- markers on amit's beat (expect none)
+shot 4-amit-beat.png
+tap 'Shops' at 675 2246
+chip: Shops: 29
+shot 4-amit-shops.png
+search Chavan: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Shops | Shops: 29 | Shops | Shops | Losing | Losing | Catalog | Catalog | Chavan | Add as new item | Add as new item | Nothing matches that | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+-- markers after search
+shot 4-amit-search-chavan.png
+tap 'Orders' at 405 2246
+tap 'All' at 417 1025
+orders all (top): Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | My orders | Waiting: 0 | Drafts: 5 | Orders | Orders | Needs you | Needs you | Travelling | Travelling | All | All | Drafts | Drafts | Not numbered yet, 14 Sep, 755 rupees, Draft | Not numbered yet | 14 Sep | ₹755.00 | 755 rupees | Draft | Not numbered yet, 14 Sep, 755 rupees, Draft | Not numbered yet | 14 Sep | ₹755.00 | 755 rupees | Draft | Not numbered yet, 14 Sep, 755 rupees, Draft | Not numbered yet | 14 Sep | ₹755.00 | 755 rupees | Draft | Not numbered yet, 14 Sep, 766 rupees, Draft | Not numbered yet | 14 Sep | ₹766.00 | 766 rupees | Draft | Not numbered yet, 12 Sep, 53
+-- SO-0875 on amit's list? 0
+shot 4-amit-orders-all.png
+SO-0860 SO-0859 SO-0858 SO-0855 SO-0864 SO-0863 SO-0862 SO-0857 SO-0846 SO-0853 SO-0848 SO-0845 
+SO-0832 SO-0823 SO-0817 SO-0818 SO-0820 SO-0822 SO-0819 SO-0811 SO-0809 SO-0812 SO-0790 SO-0798 
+SO-0787 SO-0786 SO-0783 SO-0780 SO-0776 SO-0768 SO-0775 SO-0772 SO-0771 SO-0764 SO-0763 SO-0762 
+SO-0744 SO-0739 SO-0748 SO-0735 SO-0732 SO-0736 SO-0738 SO-0723 SO-0730 SO-0722 SO-0726 SO-0719 
+SO-0710 SO-0705 SO-0713 SO-0712 SO-0702 SO-0711 SO-0697 SO-0701 SO-0699 SO-0698 SO-0693 SO-0692 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+SO-0693 SO-0692 SO-0685 SO-0682 SO-0686 SO-0687 SO-0679 SO-0673 SO-0677 SO-0674 SO-0665 
+shot 4-amit-orders-all-end.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:11:22)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:09 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:02 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 07:09 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:11 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 07:11 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2605056)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4470232)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- sync requests since step4 (kiran out, amit in)
+07:09:09.495 req-md GET /sync/manifest -> 200
+07:09:09.586 req-me GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500 -> 200
+07:09:10.286 req-mf GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:10.809 req-mg GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:11.403 req-mh GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:11.872 req-mi GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:12.296 req-mj GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:12.690 req-mk GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:13.186 req-ml GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:13.613 req-mm GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:14.065 req-mn GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:14.506 req-mo GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:14.965 req-mp GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:15.392 req-mq GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:09:15.508 req-mr GET /sync/errors?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&unresolvedOnly=true&limit=50 -> 200
+07:10:15.562 req-ms GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+07:10:15.600 req-mt GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:10:15.699 req-mu GET /sync/errors?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&unresolvedOnly=true&limit=50 -> 200
+07:11:15.793 req-mv GET /sync/manifest?knownSchemaVersion=36957a3c3b8da665 -> 200
+07:11:16.083 req-mw GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:11:16.199 req-mx GET /sync/errors?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&unresolvedOnly=true&limit=50 -> 200
+(21 requests)
+07:08:14.423 req-58 POST /auth/logout -> 200
+07:09:09.127 req-59 POST /auth/login -> 200
+(2 requests)
+-- logcat crash buffer (07:11:22)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

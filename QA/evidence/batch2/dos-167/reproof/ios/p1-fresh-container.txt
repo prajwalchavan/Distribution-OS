@@ -1,0 +1,33 @@
+## p1 fresh Expo Go container 2026-09-14 09:04:19
+device: iPhone 16 Pro DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 (iOS 18.0)
+        CFBundleVersion = "57.0.9";
+        DataContainer = "file:///Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227/";
+old data container: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/770DDD3F-0C5F-43FC-9E78-6D6AF12FA227
+$ find "$C" -path '*SQLite*'  (old container, before reinstall)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-warehouse-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+$ xcrun simctl uninstall DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 host.exp.Exponent
+exit 0
+$ xcrun simctl install DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 ~/.expo/ios-simulator-app-cache/Expo-Go-57.0.9.tar.app
+exit 0
+$ xcrun simctl keychain DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74 reset
+exit 0
+new data container: /Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/B93785C7-7612-4AA0-8089-57444CBD35FC
+$ find "$C" -path '*SQLite*'  (new container)
+(end of find; empty = fresh)
+/Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/B93785C7-7612-4AA0-8089-57444CBD35FC:
+total 8
+drwxr-xr-x@   7 prajwalchavan  staff   224 Sep 14 09:04 .
+drwxr-xr-x  133 prajwalchavan  staff  4256 Sep 14 09:04 ..
+-rw-r--r--    1 prajwalchavan  staff   513 Sep 14 09:04 .com.apple.mobile_container_manager.metadata.plist
+drwxr-xr-x    2 prajwalchavan  staff    64 Sep 14 09:04 Documents
+drwxr-xr-x    4 prajwalchavan  staff   128 Sep 14 09:04 Library
+drwxr-xr-x    2 prajwalchavan  staff    64 Sep 14 09:04 SystemData
+drwxr-xr-x    2 prajwalchavan  staff    64 Sep 14 09:04 tmp
+
+/Users/prajwalchavan/Library/Developer/CoreSimulator/Devices/DBCB09C3-80BF-48CE-AC4C-1F5892C0CE74/data/Containers/Data/Application/B93785C7-7612-4AA0-8089-57444CBD35FC/Documents:
+total 0
+drwxr-xr-x  2 prajwalchavan  staff   64 Sep 14 09:04 .
+drwxr-xr-x@ 7 prajwalchavan  staff  224 Sep 14 09:04 ..

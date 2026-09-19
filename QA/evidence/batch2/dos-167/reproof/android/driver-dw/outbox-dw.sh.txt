@@ -1,0 +1,16 @@
+#!/bin/zsh
+# Copy one store file (+ -wal/-shm) off the device READ-ONLY into the scratchpad and print integrity, tables, stamp,
+# outbox and sync errors. Usage: outbox-dw.sh <pkg> <db file name> <label>
+export ANDROID_HOME=$HOME/Library/Android/sdk; export PATH="$ANDROID_HOME/platform-tools:/opt/homebrew/bin:$PATH"
+PKG=$1; F=$2; LABEL=$3
+S=/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/dw167/db-$LABEL
+rm -rf "$S"; mkdir -p "$S"
+for suf in "" "-wal" "-shm"; do
+  if adb shell run-as $PKG ls "files/SQLite/$F$suf" >/dev/null 2>&1; then adb exec-out run-as $PKG cat "files/SQLite/$F$suf" > "$S/$F$suf"; fi
+done
+ls -la "$S" | tail -n +2
+echo "-- integrity"; sqlite3 "$S/$F" "PRAGMA integrity_check"
+echo "-- tables"; sqlite3 "$S/$F" ".tables"
+echo "-- _sync_state (value cut at 120)"; sqlite3 -separator '|' "$S/$F" "select key, substr(value,1,120) from _sync_state" 2>&1
+echo "-- _outbox"; sqlite3 -header -separator '|' "$S/$F" "select * from _outbox" 2>&1 | cut -c1-700
+echo "-- _sync_errors"; sqlite3 -header -separator '|' "$S/$F" "select * from _sync_errors" 2>&1 | cut -c1-300

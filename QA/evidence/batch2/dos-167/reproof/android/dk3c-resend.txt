@@ -1,0 +1,40 @@
+## K3c office back: restore adb reverse tcp:3000 + tcp:3005; sachin signs in online on the phone holding his kept stop-9 arrive 08:13:39
+-- dos_qa before: stop 9 pending / sync_ops for op: 0
+3000
+3005
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3004 tcp:3004
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3005 tcp:3005
+
+SIGNED_IN dk3c-sachin: For a better experience, your device will need to use Location Accuracy  | The following settings should be on: | Device location | Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide, and maintain Google’s services based on Google’s and third parties’ legitimate interests to serve users’ needs. | You can change this at any time in location settings. Manage settings or learn more | No thanks | Turn on
+tap 'No thanks' at 484 1809
+strip has 'Updated just now' after ~3s
+strip: Updated just now 
+shot dk3c-sachin-after-send.png
+-- dos_qa after (08:15:00)
+9|arrived|2026-09-14 08:12:00.024+05:30|2026-09-14 08:14:32.431263+05:30
+01a09dca-f8dd-729d-8ea5-929e819d6054|01a09dba-99ff-7700-b9f6-f6c2cc57f85a|{"ok": true}|2026-09-14 08:14:32.389697+05:30
+sync_ops rows for the op: 1
+-- all three kept ops, rows each: 01a09dc0-22b3-725c-99c4-2bab9d2f3b97=1, 01a09dc4-5d8d-77d3-ab8d-ea25f2326037=1, 01a09dca-f8dd-729d-8ea5-929e819d6054=1
+-- delivery-service /sync/upload requests since the office came back
+08:14:32.379 req-5o POST /sync/upload -> 200
+(1 requests)
+-- device outbox after
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|trip_stops|8d62c707-1fc1-749e-b460-9cd5a7c01584|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:30:09.840Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:30:09.840Z"}|2026-09-13T10:41:22.953Z|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|acked|7|2026-09-14T02:30:09.865Z|2026-09-14T02:32:54.393Z|2026-09-14T02:32:54.493Z||
+2|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|trip_stops|01aa7774-c6e8-734c-b5db-52031c1d25f1|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:34:47.051Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:34:47.051Z"}|2026-09-13T10:41:22.953Z|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|acked|14|2026-09-14T02:34:47.073Z|2026-09-14T02:40:02.829Z|2026-09-14T02:40:02.939Z||
+3|01a09dca-f8dd-729d-8ea5-929e819d6054|trip_stops|8fbd547e-b4fb-74ee-80dd-f1ed109447a7|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:42:00.024Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:42:00.024Z"}|2026-09-13T10:41:22.953Z|01a09dca-f8dd-729d-8ea5-929e819d6054|acked|7|2026-09-14T02:42:00.036Z|2026-09-14T02:44:32.237Z|2026-09-14T02:44:32.335Z||
+-- _sync_errors
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.delivery (08:15:01)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

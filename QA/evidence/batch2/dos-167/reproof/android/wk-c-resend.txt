@@ -1,0 +1,39 @@
+## WK-c office back: restore adb reverse tcp:3000 + tcp:3004; dinesh signs in online on the phone holding his kept pick 08:52:14
+-- dos_qa before: pick line c04ec82a 0 picked / sync_ops for op: 0
+3000
+3004
+-- adb reverse now:
+host-16 tcp:3001 tcp:3001
+host-16 tcp:3002 tcp:3002
+host-16 tcp:3003 tcp:3003
+host-16 tcp:3006 tcp:3006
+host-16 tcp:3007 tcp:3007
+host-16 tcp:5177 tcp:5177
+host-16 tcp:3005 tcp:3005
+host-16 tcp:5176 tcp:5176
+host-16 tcp:3000 tcp:3000
+host-16 tcp:3004 tcp:3004
+
+SIGNED_IN wk-c-dinesh: Tarsun Enterprise logo | Tarsun Enterprise | warehouse | More | ⋯ | Updated just now | Tarsun Enterprise | Inbound | ✓ Queues | ✓ Queues | Capture | Capture | Stock | Stock | Counts | Counts | BILLS TO COUNT | 0 | WAVES OPEN | 1 | PACKED, NO BILL | 0 | SHEETS WAITING | 1 | GATE COUNTS WAITING | 0 lines | Nothing at the gate | WAVES ON THE FLOOR | 1 being picked · 0 waiting to start | PICK-0078, 6146 of 7834 pc picked, picking | PICK-0078 | 6146 of 7834 pc picked | picking | PACKED WITHOUT A BILL | Inbound | Inbound | Pick | Pick | Pack | Pack | Load | Load
+strip has 'Updated just now' after ~3s
+logbox now: 0 (0 = clear)
+strip: Updated just now 
+shot wk-c-dinesh-after-send.png
+-- dos_qa after (08:53:33)
+pick line c04ec82a (Campa Cola 750 ml): 75 requested, 75 picked, updated 2026-09-14 08:53:07.765738+05:30
+01a09ded-3b1e-7615-8af4-7c5b3c6b71d8|01a09dde-6c4e-7717-87b0-4a67c2f2ee1e|{"ok": true}|2026-09-14 08:53:07.727043+05:30
+sync_ops rows for the op: 1
+-- warehouse-service /sync/upload requests since the office came back
+08:53:07.722 req-5u POST /sync/upload -> 200
+(1 requests)
+-- device outbox after
+-- _outbox||||
+seq|op_id|status|attempts|acked_at
+1|01a09de9-98c9-7105-bd68-76baf649663a|acked|1|2026-09-14T03:15:27.339Z
+2|01a09ded-3b1e-7615-8af4-7c5b3c6b71d8|acked|9|2026-09-14T03:23:07.623Z
+-- _sync_errors||||
+-- summary: stores=1 [dinesh @ Tarsun] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.warehouse (08:53:34)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

@@ -1,0 +1,57 @@
+## step5b save on this phone 07:14:50
+Save on this phone at 773 2012
+save tapped at 07:14:52
+after save: TE | Tarsun Enterprise | salesperson | More | ⋯ | Offline since 7:12 am · 2 waiting to send | Offline since 7:12 am · 2 waiting to send | Anand Bhavan Provision | Order | Items: 1 | No signal | Saved on this phone | It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands. | Open the order | Open the order | Back to the beat | Back to the beat | This order | Clear | Clear | Campa Cola 1 L | Campa Cola 1 L | 1 cs | ₹684.00 | 684 rupees | Add items | On this phone: 171 items | Search by item or brand | Campa Cola 2 L | Campa · 24 pc case | Add a case | Add a case | Items 1 · ₹684.00 before GST | Saved on this phone, busy | Saved on this phone | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+strip: Offline since 7:12 am · 2 waiting to send 
+generic failure line present? 0
+shot 5b-amit-order-saved-on-phone.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:14:59)
+total 6972
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:12 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:12 ..
+-rw------- 1 u0_a217 u0_a217 2605056 2026-09-14 07:09 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:14 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4470232 2026-09-14 07:14 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (2605056)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4470232)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- outbox of se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (copied read-only)
+total 13888
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 14 07:14 .
+drwxr-xr-x@ 14 prajwalchavan  wheel      448 Sep 14 07:14 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2605056 Sep 14 07:14 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 14 07:14 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4470232 Sep 14 07:14 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+key|value
+schemaVersion|36957a3c3b8da665
+role|salesperson
+protocol|1
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenant_id","type":"string","nullable":false},{"name":"variant_id","type":"st
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMTo0MjoxMS45MTBaIn0
+lastPulledAt|2026-09-14T01:42:16.910Z
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+deviceId|01a09d8b-2c1a-7298-a348-87d4bb93bca6
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09d96-ac8e-74c8-9491-116a1fef041b|sales_orders|01a09d95-7923-73b8-91ff-05386c614511|PUT|{"retailer_id":"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a09d96-ac8e-74c8-9491-116a1fef041b|queued|3|2026-09-14T01:44:52.624Z||||
+2|01a09d96-ac90-7417-a93e-269859639ef2|sales_order_lines|01a09d96-5f85-70b6-bf7b-71d73e55e38a|PUT|{"order_id":"01a09d95-7923-73b8-91ff-05386c614511","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09d96-ac90-7417-a93e-269859639ef2|queued|3|2026-09-14T01:44:52.624Z||||
+-- _sync_errors
+-- logcat crash buffer (07:14:59)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

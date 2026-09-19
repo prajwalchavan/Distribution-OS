@@ -1,0 +1,117 @@
+## K2b sachin signs out through Settings (Me) > Sign out with 1 queued (z1: expect the leave sheet, not an instant sign-out) 08:05:18
+-- outbox before
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|trip_stops|8d62c707-1fc1-749e-b460-9cd5a7c01584|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:30:09.840Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:30:09.840Z"}|2026-09-13T10:41:22.953Z|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|acked|7|2026-09-14T02:30:09.865Z|2026-09-14T02:32:54.393Z|2026-09-14T02:32:54.493Z||
+2|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|trip_stops|01aa7774-c6e8-734c-b5db-52031c1d25f1|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:34:47.051Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:34:47.051Z"}|2026-09-13T10:41:22.953Z|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|queued|6|2026-09-14T02:34:47.073Z||||
+-- _sync_errors
+logcat cleared at 08:05:18
+tap '⋯' at 947 247
+tap 'Me' at 540 1640
+settings screen: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:02 am · 1 waiting to send | Offline since 8:02 am · 1 waiting to send | Sai Distributors, Dombivli | Me | SIGNED IN AS | Sachin Dalvi | ROLE | delivery | DISTRIBUTOR | Sai Distributors, Dombivli | TABLES ON THIS PHONE | 19 | This phone | Held on this phone | Waiting to send: 1 | Refused: 0 | Needs attention | Needs attention | Location | You refused location on this account | I agree to be tracked | I agree to be tracked | What you are aiming at
+shot dk2b-sachin-settings.png
+Sign out button at: 
+shot dk2b-sachin-settings-signout-button.png
+
+Exception occurred while executing 'tap':
+java.lang.IllegalArgumentException: Argument expected after "tap"
+	at com.android.modules.utils.BasicShellCommandHandler.getNextArgRequired(BasicShellCommandHandler.java:295)
+	at com.android.server.input.InputShellCommand.runTap(InputShellCommand.java:484)
+	at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:294)
+	at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+	at android.os.ShellCommand.exec(ShellCommand.java:38)
+	at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:3887)
+	at android.os.Binder.shellCommand(Binder.java:1151)
+	at android.os.Binder.onTransact(Binder.java:953)
+	at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+	at android.os.Binder.execTransactInternal(Binder.java:1426)
+	at android.os.Binder.execTransact(Binder.java:1365)
+tapped Settings 'Sign out' at 08:05:59
+after tap: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:02 am · 1 waiting to send | Offline since 8:02 am · 1 waiting to send | Sai Distributors, Dombivli | Me | What you are aiming at | No connection. This is not the current picture. | network | Try again | Try again | Your devices | No connection. This is not the current picture. | network | Try again | Try again | Inbox | No connection. This is not the current picture. | network | Try again | Try again | Change your password | Change your password | Sign out | Sign out
+shot dk2b-sachin-leave-sheet.png
+sheet shown (z1)? 0
+instantly signed out instead? 0
+names the person? 
+Send now present? 0
+NOT FOUND: Sign out, keep here
+keep tapped at 08:06:07 (1789353367.352916)
++1.3s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-1.png
++2.5s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-2.png
++3.8s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-3.png
++5.0s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-4.png
++6.2s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-5.png
++7.5s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-6.png
++8.7s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-7.png
++9.9s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-8.png
++11.2s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-9.png
++12.4s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-10.png
++13.6s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-11.png
++14.9s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-12.png
++16.1s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-13.png
++17.3s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-14.png
++18.6s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-15.png
++19.9s pid=6007 top=in.distributionos.delivery shot=dk2b-keep-16.png
+screen at end: SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:02 am · 1 waiting to send | Offline since 8:02 am · 1 waiting to send | Sai Distributors, Dombivli | Me | What you are aiming at | No connection. This is not the current picture. | network | Try again | Try again | Your devices | No connection. This is not the current picture. | network | Try again | Try again | Inbox | No connection. This is not the current picture. | network | Try again | Try again | Change your password | Change your password | Sign out | Sign out
+shot dk2b-sachin-kept-signed-out.png
+sign-in form after keep? 0
+-- crash check for in.distributionos.delivery (08:06:29)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (08:06:29)
+total 7108
+drwx------ 2 u0_a214 u0_a214    4096 2026-09-14 08:04 .
+drwxrwx--x 3 u0_a214 u0_a214    4096 2026-09-14 08:04 ..
+-rw------- 1 u0_a214 u0_a214 2945024 2026-09-14 08:02 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-rw------- 1 u0_a214 u0_a214   32768 2026-09-14 08:06 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm
+-rw------- 1 u0_a214 u0_a214 4268352 2026-09-14 08:06 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal
+-- decoded (parseStoreName rule): { "files": [ "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk (2945024)", "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm (32768)", "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal (4268352)" ], "stores": [ { "name": "d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk", "length": 51, "pattern": true, "prefix": "dos-delivery", "userId": "5530f7b6-eb3a-7610-94df-7ab6000c3474", "tenantId": "82f5c562-b7eb-7521-8e19-4aa6befc64f8", "who": "sachin @ Sai" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=1 [sachin @ Sai] legacy=0 interim=0 strays=0 other=0
+-- kept file (read-only copy)
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 14 08:06 .
+drwxr-xr-x@ 16 prajwalchavan  wheel      512 Sep 14 08:06 ..
+-rw-r--r--@  1 prajwalchavan  wheel  2945024 Sep 14 08:06 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 14 08:06 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4268352 Sep 14 08:06 d51kexlh1c5fednj1ow9hv1rhw7r431bgsoifpg41eqordf44xk-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   load_sheets                 
+_outbox                       manufacturers               
+_sync_errors                  product_variants            
+_sync_state                   products                    
+brands                        receipts                    
+credit_note_lines             retailer_outstanding_summary
+credit_notes                  retailers                   
+deliveries                    tenant_products             
+delivery_challans             trip_stops                  
+delivery_lines                trips                       
+invoice_lines                 vehicles                    
+invoices                    
+-- _sync_state (value cut at 120)
+lastUploadAt|2026-09-14T02:32:54.493Z
+manifest|[{"table":"tenant_products","primaryKey":["id"],"columns":[{"name":"id","type":"string","nullable":false},{"name":"tenan
+schemaVersion|0e8ebf40b7d68023
+role|delivery
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMjozMjo1My40MDJaIn0
+lastPulledAt|2026-09-14T02:32:58.402Z
+userId|5530f7b6-eb3a-7610-94df-7ab6000c3474
+tenantId|82f5c562-b7eb-7521-8e19-4aa6befc64f8
+deviceId|01a09dba-99ff-7700-b9f6-f6c2cc57f85a
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|trip_stops|8d62c707-1fc1-749e-b460-9cd5a7c01584|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:30:09.840Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:30:09.840Z"}|2026-09-13T10:41:22.953Z|01a09dc0-22b3-725c-99c4-2bab9d2f3b97|acked|7|2026-09-14T02:30:09.865Z|2026-09-14T02:32:54.393Z|2026-09-14T02:32:54.493Z||
+2|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|trip_stops|01aa7774-c6e8-734c-b5db-52031c1d25f1|PATCH|{"state":"arrived","occurred_at":"2026-09-14T02:34:47.051Z","device_id":"01a09dba-99ff-7700-b9f6-f6c2cc57f85a","arrived_at":"2026-09-14T02:34:47.051Z"}|2026-09-13T10:41:22.953Z|01a09dc4-5d8d-77d3-ab8d-ea25f2326037|queued|8|2026-09-14T02:34:47.073Z||||
+-- _sync_errors
+## K2b relaunch while still offline (y): force-stop + start 08:06:30
+force-stop + start in.distributionos.delivery at 08:06:31
+after relaunch (+12s): SD | Sai Distributors, Dombivli | delivery | More | ⋯ | Offline since 8:02 am · 1 waiting to send | Offline since 8:02 am · 1 waiting to send | TRIP-ACTIVE · 12 Sep 2026 | Today's trip | On the road | 3 of 10 stops done | MH-05-BQ-4471 | Still filling this phone from the office — this may not be the whole trip yet. | STILL TO COLLECT | ₹85,307.00 | 85307 rupees | COLLECTED TODAY | ₹0.00 | 0 rupees | FLOAT AT START | ₹5,000.00 | 5000 rupees | STOPS | 3 / 10 | Next stop | Jain Kirana Mart, Shop 19, Nandivali, Dombivli East, Dombivli, 421201, 11546 rupees, At the shop | Jain Kirana Mart | Shop 19, Nandivali, Dombivli East, Dombivli, 421201 | ₹11,546.00 | 11546 rupees | At the shop | Stops in order | 3 of 10 stops done | Still filling this phone from the office. | 1. Milan Provision Mart, Shop 23, Nandivali, Dombivli East, Dombivli, 421201, 5707 rupees, Delivered | 1. Milan Provision Mart | ₹5,707.00 | 5707 rupees | Next stop | Next stop | Check in the vehicle | Check in the vehicle
+shot dk2b-relaunch-offline.png
+relaunch shows the sign-in form? 0
+relaunch shows sachin's session? 1
+-- crash check for in.distributionos.delivery (08:06:45)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)
+## K2b VERDICT for the attempt above: INVALID for the keep path (driver fault). findbtn never returned coordinates for the Settings 'Sign out' button, so 'adb shell input tap' ran with no arguments (IllegalArgumentException above); the leave sheet never opened, 'Sign out, keep here' was NOT FOUND and not tapped, nothing was kept; the relaunch showed sachin still signed in, as expected when no sign-out happened. No crash. The keep run is redone below (K2b-redo).

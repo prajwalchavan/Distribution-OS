@@ -1,0 +1,85 @@
+## step5h amit signs in again online: the kept ops go first 07:20:35 (epoch 1789350635)
+SIGNED_IN 5h-amit: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated just now | Godrej Hill | Today's beat | Shops: 10 | Visited: 0 | Ordered: 1 | ✓ Godrej Hill | ✓ Godrej Hill | Kolsewadi | Kolsewadi | Birla College Road | Birla College Road | Search this beat | Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 rupees, Ordered | Prerna Super Market | Godrej Hill, Kalyan West · your last order 14 Sep | ₹3,94,334.00 | 394334 rupees | Ordered | Ansari Kirana Stores, Godrej Hill, Kalyan West · your last order 11 Sep, 8042 rupees, To visit | Ansari Kirana Stores | Godrej Hill, Kalyan West · your last order 11 Sep | ₹8,042.00 | 8042 rupees | To visit | New Bombay Stores, Godrej Hill, Kalyan West · your last order 9 Sep, 131361 rupees, To visit | New Bombay Stores | Godrej Hill, Kalyan West · your last order 9 Sep | ₹1,31,361.00 | 131361 rupees | To visit | City Light Provision, Godrej Hill, Kalyan West · your last order 11 Sep, 29824 rupees, To visit | City Light Provision | Godrej Hill, Kalyan West · your last order 11 Sep | ₹29,824.00 | 29824 rupees | To visit | Metro Kirana Bazar, Godrej Hill, Kalyan West · your last order 11 Sep, 39300 rupees, To visit | Metro Kirana Bazar | Godrej Hill, Kalyan West · your last order 11 Sep | ₹39,300.00 | 39300 rupees | To visit | Friends Corner Stores, Godrej Hill, Kalyan West · your last order 31 Jul, 25537 rupees, To visit | Friends Corner Stores | Godrej Hill, Kalyan West · your last order 31 Jul | ₹25,537.00 | 25537 rupees | To visit | Sharma Kirana Stores, Godrej Hill, Kalyan West · your last order 7 Sep, 32464 rupees, To visit | Sharma Kirana Stores | ₹32,464.00 | 32464 rupees | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+--- shot times
+## 5h-amit sign-in tapped at 07:21:27 (1789350687.5080278)
+1 +0.3s
+2 +0.751s
+3 +1.137s
+4 +1.537s
+5 +1.901s
+6 +2.339s
+--- strip in the early dumps
+Updated just now 
+Updated just now 
+Updated just now 
+--- rahul/kiran markers in early dumps: 0
+poll 1 07:21:52: Updated just now 
+shot 5h-amit-after-send.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:21:52)
+total 8240
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:21 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:15 ..
+-rw------- 1 u0_a217 u0_a217 4067328 2026-09-14 07:21 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw------- 1 u0_a217 u0_a217   32768 2026-09-14 07:21 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw------- 1 u0_a217 u0_a217 4305432 2026-09-14 07:21 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (4067328)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm (32768)", "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal (4305432)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- amit's file after the resend (copied read-only)
+total 16424
+drwxr-xr-x@  5 prajwalchavan  wheel      160 Sep 14 07:21 .
+drwxr-xr-x@ 19 prajwalchavan  wheel      608 Sep 14 07:21 ..
+-rw-r--r--@  1 prajwalchavan  wheel  4067328 Sep 14 07:21 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-rw-r--r--@  1 prajwalchavan  wheel    32768 Sep 14 07:21 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+-rw-r--r--@  1 prajwalchavan  wheel  4305432 Sep 14 07:21 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+-- integrity
+ok
+-- tables
+_gps_buffer                   price_lists                 
+_outbox                       product_variants            
+_sync_errors                  products                    
+_sync_state                   retailer_links              
+bargain_requests              retailer_outstanding_summary
+beat_assignments              retailer_price_overrides    
+beats                         retailers                   
+brands                        sales_order_lines           
+invoice_lines                 sales_orders                
+invoices                      schemes                     
+manufacturers                 tenant_products             
+pjp                           visits                      
+price_list_items            
+-- _sync_state
+key|value
+userId|efde1e76-9785-7827-aff2-6f56ecd33588
+deviceId|01a09d8b-2c1a-7298-a348-87d4bb93bca6
+lastUploadAt|2026-09-14T01:51:27.907Z
+schemaVersion|36957a3c3b8da665
+role|salesperson
+tenantId|01a09a5b-3c58-71c1-a34d-b93c569b0099
+protocol|1
+cursor|eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xNFQwMTo1MToyOS4zMjBaIn0
+lastPulledAt|2026-09-14T01:51:34.320Z
+-- _outbox
+seq|op_id|tbl|row_id|op|data|base_updated_at|idempotency_key|status|attempts|created_at|sent_at|acked_at|rejection_code|rejection_message
+1|01a09d96-ac8e-74c8-9491-116a1fef041b|sales_orders|01a09d95-7923-73b8-91ff-05386c614511|PUT|{"retailer_id":"ffa4c055-0e89-7dea-97f2-a24e6ac0fef5","state":"draft","source":"salesperson","pricing_date_mode":"order","note":null,"expected_delivery_date":null}||01a09d96-ac8e-74c8-9491-116a1fef041b|acked|8|2026-09-14T01:44:52.624Z|2026-09-14T01:51:27.706Z|2026-09-14T01:51:27.907Z||
+2|01a09d96-ac90-7417-a93e-269859639ef2|sales_order_lines|01a09d96-5f85-70b6-bf7b-71d73e55e38a|PUT|{"order_id":"01a09d95-7923-73b8-91ff-05386c614511","variant_id":"f086f3e3-3697-7439-98d9-f20c231c110a","entered_qty":1,"entered_unit":"case"}||01a09d96-ac90-7417-a93e-269859639ef2|acked|8|2026-09-14T01:44:52.624Z|2026-09-14T01:51:27.706Z|2026-09-14T01:51:27.907Z||
+-- _sync_errors
+-- sales-service requests since step5h
+07:21:27.869 req-nf GET /sync/manifest -> 200
+07:21:27.912 req-ng POST /sync/upload -> 200
+07:21:28.204 req-nh GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500 -> 200
+07:21:28.828 req-ni GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:29.431 req-nj GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:30.028 req-nk GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:30.573 req-nl GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:31.020 req-nm GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:31.452 req-nn GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:31.959 req-no GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:32.432 req-np GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:32.952 req-nq GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:33.403 req-nr GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:33.903 req-ns GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:34.320 req-nt GET /sync/pull?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&limit=500&since=<cursor> -> 200
+07:21:34.431 req-nu GET /sync/errors?deviceId=01a09d8b-2c1a-7298-a348-87d4bb93bca6&unresolvedOnly=true&limit=50 -> 200
+(17 requests)
+-- logcat crash buffer (07:21:53)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)

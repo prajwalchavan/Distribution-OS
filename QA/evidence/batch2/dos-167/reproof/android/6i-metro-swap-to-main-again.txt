@@ -1,0 +1,5 @@
+## step6i stop the 199952b worktree Metro, restart the MAIN sales Metro :5175 (CI=1, pnpm web --clear) 07:31:58
+5175 listeners after stop: 0
+status: packager-status:running
+listener pid 71647 cwd: n/Users/prajwalchavan/Desktop/Distribution OS/frontend/sales-app
+adb reverse 3003 present: 0 (0 = office still unreachable)

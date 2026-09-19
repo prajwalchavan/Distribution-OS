@@ -1,0 +1,20 @@
+## D2 ganesh signs out through the ⋯ menu, nothing queued (expect one tap, no sheet) 07:56:10
+outbox status on strip: Updated just now 
+tap '⋯' at 947 247
+menu: More | More | Today | Today | Day summary | Day summary | Expenses | Expenses | Attention | Attention | Trip history | Trip history | Me | Me | Change your password | Change your password | Sign out | Sign out | Close | Close
+shot d2-ganesh-menu.png
+tap 'Sign out' at 540 2002
+after Sign out (+3s): Distribution OS - Delivery | Sign in | Username | Password | Sign in | Sign in | Use the username the office gave you. This app works with no signal once you have signed in once.
+shot d2-ganesh-signed-out.png
+sheet shown? 0
+top: in.distributionos.delivery pid: 3709
+$ adb shell run-as in.distributionos.delivery ls -la files/SQLite   (07:56:29)
+total 16
+drwx------ 2 u0_a214 u0_a214 4096 2026-09-14 07:56 .
+drwxrwx--x 3 u0_a214 u0_a214 4096 2026-09-14 07:54 ..
+-- decoded (parseStoreName rule): { "files": [], "stores": [], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0
+-- crash check for in.distributionos.delivery (07:56:29)
+- logcat -b crash:
+- am_crash / am_anr / Fatal signal (events+main+system):
+(end crash check)

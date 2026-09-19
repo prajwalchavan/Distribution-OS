@@ -1,0 +1,74 @@
+## s4b amit.pawar signs in through the product form (no keychain reset) 2026-09-14 09:13:54
+set XCUIElementTypeTextField 0 = amit.pawar
+set XCUIElementTypeSecureTextField 0 = Dos@1234
+shot s4-amit-filled.png
+tapped "Sign in" Button at 201,439 (2 of 2)
+tap returned at 2026-09-14 09:14:00 (1789357438.9414349)
+1 +1.72s
+2 +2.14s
+3 +2.56s
+4 +2.86s
+5 +3.17s
+6 +3.50s
+--- rahul (A) and kiran (B) markers in the early page source (expect 0 each)
+Chavan Kirana: 0
+Iyer Provision: 0
+Khadakpada: 0
+Kalyan West Market: 0
+Station Road: 0
+SO-0875: 0
+Sai Distributors: 0
+Manpada Road: 0
+Tilak Nagar: 0
+Ayre Road: 0
+Dombivli: 0
+tapped "Not Now" Button at 201,812 (1 of 1)
+Save Password sheet -> Not Now
+strip 'Updated just now' at 2026-09-14 09:14:07
+shot s4-amit-beat.png
+beat: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Godrej Hill|Today's beat|Shops: 10|Visited: 0|Ordered: 1|✓ Godrej Hill = 1|Kolsewadi|Birla College Road|Vertical scroll bar, 2 pages = 0%| = Search this beat|Prerna Super Market, Godrej Hill, Kalyan West · your last order 14 Sep, 394334 rupees, Ordered|Ansari Kirana Stores, Godrej Hill, Kalyan West · your last o
+$ ios-drive.mjs has "Godrej Hill"  (amit's own beat)
+YES
+exit 0
+tapped "Shops" Other at 252,806 (1 of 1)
+shops chip: Shops: 29|
+shot s4-amit-shops.png
+set XCUIElementTypeSearchField 0 = Chavan
+shot s4-amit-search-chavan.png
+search Chavan: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Shops|Shops: 29|Shops|Losing|Catalog| = Chavan|Nothing matches "Chavan" = Nothing matches "Chavan"|Add as new item|Nothing matches that|Vertical scroll bar, 1 page = 0%|Beat|Me|Q|W|E|R|T|Y|U|I|O|P|A|S|D|F|G|H|J|K|L|shift = 1|Z|X|C|V|B|N|M|delete|numbers|space|return|Emoji|Dictate|
+NO
+has Chavan Kirana exit 1 (must be 1)
+set XCUIElementTypeSearchField 0 = 
+tapped "Orders" Other at 151,806 (1 of 1)
+NOT FOUND All (matches 0)
+shot s4-amit-orders-all.png
+orders all: Expo Go|More|Tarsun Enterprise logo|Tarsun Enterprise|salesperson|Updated just now|Shops|Shops: 29|Shops|Losing|Catalog| =  |Anand Bhavan Provision, R-0043 · Kolsewadi · Kolsewadi, Kalyan East, 35548 rupees, C|Ansari Kirana Stores, R-0032 · Godrej Hill · Godrej Hill, Kalyan West, 8042 rupees, C|Vertical scroll bar, 5 pages = 0%|Beat|Me|Q|W|E|R|T|Y|U|I|O|P|A|S|D|F|G|H|J|K|L|shift = 1|Z|X|C|V|B|N|M|delete|numbers|space|return|Emoji|Dictate|
+$ ios-drive.mjs has "SO-0875"  (must exit 1)
+NO
+exit 1
+expected amit name: se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+$ find "$C" -path '*SQLite*'   (09:14:32)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-shm
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft-wal
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite/se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+(end of find)
+{
+ "stores": [
+  {
+   "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft",
+   "length": 51,
+   "pattern": true,
+   "prefix": "dos-sales",
+   "userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+   "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099",
+   "who": "amit.pawar @ Tarsun",
+   "reencodes": true
+  }
+ ],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=1 [amit.pawar @ Tarsun] legacy=0 interim=0 strays=0 other=0

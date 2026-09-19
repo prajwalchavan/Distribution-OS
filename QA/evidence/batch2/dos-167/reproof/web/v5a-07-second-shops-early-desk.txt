@@ -1,0 +1,134 @@
+TE
+Tarsun Enterprise
+salesperson
+Beat
+Orders
+Shops
+Me
+SETUP
+Settings
+Updated just now
+AP
+Amit Pawar
+salesperson
+Shops
+Shops: 29
+Shops
+Losing
+Catalog
+Anand Bhavan Provision
+R-0043 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+Ansari Kirana Stores
+R-0032 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Ashirwad Provision
+R-0055 · Birla College Road · Birla College Road, Kalyan West
+—
+C
+Birla Road Kirana Mart
+R-0058 · Birla College Road · Birla College Road, Kalyan West
+—
+C
+City Light Provision
+R-0034 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Dnyandeep Stores
+R-0048 · Kolsewadi · Kolsewadi, Kalyan East
+—
+B
+Friends Corner Stores
+R-0036 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Gavhane Kirana
+R-0039 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Gurukrupa Provision
+R-0059 · Birla College Road · Birla College Road, Kalyan West
+—
+B
+Hariom Kirana Bhandar
+R-0057 · Birla College Road · Birla College Road, Kalyan West
+—
+B
+Karve Provision
+R-0052 · Birla College Road · Birla College Road, Kalyan West
+—
+C
+Khan General Store
+R-0046 · Kolsewadi · Kolsewadi, Kalyan East
+—
+D
+Kolsewadi Corner Store
+R-0045 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+Mangal Traders
+R-0047 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+Meghana General Store
+R-0056 · Birla College Road · Birla College Road, Kalyan West
+—
+C
+Metro Kirana Bazar
+R-0035 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Nakshatra Kirana
+R-0050 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+New Bombay Stores
+R-0033 · Godrej Hill · Godrej Hill, Kalyan West
+—
+B
+Nutan Kirana Stores
+R-0054 · Birla College Road · Birla College Road, Kalyan West
+—
+C
+Prerna Super Market
+R-0031 · Godrej Hill · Godrej Hill, Kalyan West
+—
+A
+Rameshwar General Store
+R-0051 · Birla College Road · Birla College Road, Kalyan West
+—
+B
+Rukmini Provision
+R-0038 · Godrej Hill · Godrej Hill, Kalyan West
+—
+B
+Sahyadri Super Bazar
+R-0053 · Birla College Road · Birla College Road, Kalyan West
+—
+A
+Sharma Kirana Stores
+R-0037 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Shubhalabh Stores
+R-0040 · Godrej Hill · Godrej Hill, Kalyan West
+—
+C
+Sujata Stores
+R-0044 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+Trimurti General Store
+R-0041 · Kolsewadi · Kolsewadi, Kalyan East
+—
+C
+Vaibhav Kirana Mart
+R-0042 · Kolsewadi · Kolsewadi, Kalyan East
+—
+B
+Vasudha Stores
+R-0060 · Birla College Road · Birla College Road, Kalyan West
+—
+C

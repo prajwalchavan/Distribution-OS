@@ -1,0 +1,8 @@
+## step1 rahul Shops tab 07:04:54
+tap 'Shops' at 675 2246
+shops tab: Tarsun Enterprise logo | Tarsun Enterprise | salesperson | More | ⋯ | Updated 1 min ago | Shops | Shops: 30 | Shops | Shops | Losing | Losing | Catalog | Catalog | Search by name, code or phone | Ambika Provision Store, R-0009 · Station Road · Station Road, Kalyan West, 23995 rupees, C | Ambika Provision Store | R-0009 · Station Road · Station Road, Kalyan West | ₹23,995.00 | 23995 rupees | C | Balaji Wholesale Stores, R-0010 · Station Road · Station Road, Kalyan West, 720804 rupees, A | Balaji Wholesale Stores | R-0010 · Station Road · Station Road, Kalyan West | ₹7,20,804.00 | 720804 rupees | A | Bhosale Traders, R-0023 · Khadakpada · Khadakpada, Kalyan West, 74287 rupees, B | Bhosale Traders | R-0023 · Khadakpada · Khadakpada, Kalyan West | ₹74,287.00 | 74287 rupees | B | Chavan Kirana Stores, R-0024 · Khadakpada · Khadakpada, Kalyan West, 21892 rupees, C | Chavan Kirana Stores | R-0024 · Khadakpada · Khadakpada, Kalyan West | ₹21,892.00 | 21892 rupees | C | Deshmukh Kirana, R-0017 · Kalyan West Market · Bazarpeth, Kalyan West, 24365 rupees, C | Deshmukh Kirana | R-0017 · Kalyan West Market · Bazarpeth, Kalyan West | ₹24,365.00 | 24365 rupees | C | Ekvira Kirana, R-0014 · Kalyan West Market · Bazarpeth, Kalyan West, 39728 rupees, C | Ekvira Kirana | R-0014 · Kalyan West Market · Bazarpeth, Kalyan West | ₹39,728.00 | 39728 rupees | C | Ganesh General Store, R-0007 · Station Road · Station Road, Kalyan West, 94373 rupees, B 
+chip: Shops: 30
+-- markers
+   2 Chavan Kirana
+   4 Kalyan West Market
+   8 Khadakpada

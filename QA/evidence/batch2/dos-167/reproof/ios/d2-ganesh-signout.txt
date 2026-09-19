@@ -1,0 +1,21 @@
+## d2 ganesh signs out through the product (nothing queued; no keychain reset) 2026-09-14 09:39:35
+tapped "More" Button at 352,105 (1 of 1)
+shot d2-ganesh-menu.png
+menu labels: Expo Go|More, Today, Day summary, Expenses, Attention, Trip history, Me, Change your password, Sign out, Close, Horizontal scroll bar, 1 page, Vertical scroll bar, 1 page|gearshape.fill|
+$ ios-drive.mjs tapxy 150 723   (the Sign out row in d2-ganesh-menu.png) 2026-09-14 09:40:14
+tapped 150 723
+sign-in form visible after ~1s
+shot d2-ganesh-signed-out.png
+no leave sheet (one tap)
+$ find "$C" -path '*SQLite*'   (09:40:18)
+$C/Documents/ExponentExperienceData/@anonymous/dos-sales-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+$C/Documents/ExponentExperienceData/@anonymous/dos-delivery-7faf459a-6cfb-4f44-ac50-ca89e6b3ce20/SQLite
+(end of find)
+{
+ "stores": [],
+ "strays": [],
+ "legacy": [],
+ "interim": [],
+ "other": []
+}
+-- summary: stores=0 [] legacy=0 interim=0 strays=0 other=0

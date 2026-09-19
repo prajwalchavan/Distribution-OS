@@ -1,0 +1,24 @@
+## step5f-2 dismiss the dev LogBox toast (it covers the tab bar; the earlier Shops tap opened the LogBox inspector, see 5f-kiran-shops.png) 07:19:38
+toast still present: 0
+tap 'Shops' at 675 2246
+chip: Shops: 24
+shot 5f-kiran-shops-chip.png
+search at 540 1021
+search Anand: SD | Sai Distributors, Dombivli | salesperson | More | ⋯ | Updated 1 min ago | Shops | Shops: 24 | Shops | Shops | Losing | Losing | Catalog | Catalog | Anand | Anand General Store, SD-0014 · Tilak Nagar · Dombivli East, 4727 rupees, D | Anand General Store | SD-0014 · Tilak Nagar · Dombivli East | ₹4,727.00 | 4727 rupees | D | Beat | Beat | Orders | Orders | Shops | Shops | Me | Me
+amit/rahul markers: 0
+shot 5f-kiran-search-anand.png
+
+## step5g kiran one-tap sign-out: only amit's kept file may remain 07:19:58
+tap '⋯' at 947 247
+tap 'Sign out' at 540 2002
+sign-in form at +3.2s: Distribution OS - Sales | Sign in | Username | Password | Sign in | Use the username your distributor gave you.
+shot 5g-kiran-signed-out.png
+$ adb shell run-as in.distributionos.sales ls -la files/SQLite   (07:20:12)
+total 3992
+drwx------ 2 u0_a217 u0_a217    4096 2026-09-14 07:20 .
+drwxrwx--x 3 u0_a217 u0_a217    4096 2026-09-14 07:15 ..
+-rw------- 1 u0_a217 u0_a217 4067328 2026-09-14 07:16 se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft
+-- decoded (parseStoreName rule): { "files": [ "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft (4067328)" ], "stores": [ { "name": "se785zfuyt7tcdzqszqe91ohvs03guzv9zghwmmy1imsvb8cmft", "length": 51, "pattern": true, "prefix": "dos-sales", "userId": "efde1e76-9785-7827-aff2-6f56ecd33588", "tenantId": "01a09a5b-3c58-71c1-a34d-b93c569b0099", "who": "amit @ Tarsun" } ], "strays": [], "legacy": [], "interim": [], "other": [] }
+-- logcat crash buffer (07:20:12)
+-- am_crash / Fatal signal for in.distributionos.sales
+(end)
