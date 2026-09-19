@@ -1,0 +1,2124 @@
+{
+ "app": "http://localhost:5175",
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+ "shop": {
+  "id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "name": "Shree Ganesh Kirana"
+ },
+ "tab1Open": {
+  "label": "tab1 signed in, persistent store expected",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ "opfsOpen": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "tab1Draft": {
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "id": "01a0ba2f-50b1-7168-a0fd-760bdc10d572",
+  "lines": [
+   {
+    "id": "01a0ba2f-740b-742a-84fc-d395f4aacd1f",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ "orderId": "01a0ba2f-50b1-7168-a0fd-760bdc10d572",
+ "placeLabel": "Save on this phone",
+ "tab1Queued": {
+  "label": "tab1 order queued, unsent",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "opfsQueued": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "sqlBefore": "count\n0\n(1 row)",
+ "controlErrors": [],
+ "tab1AfterControl": {
+  "label": "tab1 after 30 s alone and offline",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "opfsAfterControl": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "tab2Early": {
+  "label": "tab2, ten seconds after opening",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ "tab2Settled": {
+  "label": "tab2 settled",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ "tab2SaidMemoryAfterMs": 11719,
+ "opfsFromTab2": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "tab2Errors": [],
+ "tab1WithTab2": {
+  "label": "tab1 while tab2 is open",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "opfsWithTab2": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "tab1OrderRowsWithTab2": 11,
+ "tab1ErrorsAfterTab2": [],
+ "tab2Draft": {
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "id": "01a0ba31-2cbb-7250-9a1d-9087e43ff407",
+  "lines": [
+   {
+    "id": "01a0ba31-4ffe-75e7-b6e0-9ad7004db17b",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ "tab2BeforeLeave": {
+  "label": "tab2 before the Sign out tap",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:33 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "tab2LeaveSheet": {
+  "sheet": true,
+  "text": "2 changes have not reached the office Close This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention. No connection — they cannot go now. Cancel",
+  "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+  "keepButton": false,
+  "sendNowButton": false,
+  "cancelButton": true,
+  "signInForm": false
+ },
+ "tab2AfterCancel": {
+  "label": "tab2 after Cancel",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:33 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "tab1BeforeReload": {
+  "label": "tab1 just before the reload",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "tab1AfterReload": {
+  "label": "tab1 reloaded, still offline",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ "opfsAfterReload": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "tab1OrderRowsAfterReload": 11,
+ "tab1OrdersBodyAfterReload": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nOffline since 8:30 pm · 2 waiting to send\nRD\nRahul Deshmukh\nsalesperson\nMy orders\nWaiting: 1\nDrafts: 4\nOrders\nNeeds you\nTravelling\nAll\nDrafts\nSO-0870\n19 Sep\n₹1,01,531.00\nPacked\nSO-0875\n19 Sep\n₹12,707.00\nPacked\nSO-0873\n19 Sep\n₹17,736.00\nSubmitted\nSO-0868\n19 Sep\n₹7,690.00\nBeing picked\nSO-0876\n19 Sep\n₹5,367.00\nSubmitted\nSO-0874\n19 Sep\n₹12,837.00\nConfirmed\nSO-0871\n19 Sep\n₹17,531.00\nConfirmed\nSO-0867\n19 Sep\n₹11,300.00\nPacked\nSO-0857\n18 Sep\n₹14,962.00\nOn the van\nSO-0855\n18 Sep\n₹22,508.00\nOn the van\nSO-9001\n17 Sep\n₹2,327.00\nPacked",
+ "syncAfterOnline": [
+  {
+   "t": 49520,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 49575,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 49599,
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&lim"
+  },
+  {
+   "t": 49669,
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&u"
+  },
+  {
+   "t": 49711,
+   "method": "POST",
+   "path": "/sync/upload"
+  },
+  {
+   "t": 49799,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 49813,
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&lim"
+  },
+  {
+   "t": 49856,
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&u"
+  }
+ ],
+ "firstUploadAfterOnlineMs": 49711,
+ "firstPullAfterOnlineMs": 49599,
+ "tab1Sent": {
+  "label": "tab1 after the queue went",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ "opfsFinal": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "sqlAfter": {
+  "count": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id\n01a0ba2f-50b1-7168-a0fd-760bdc10d572||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|34191c43-f0bc-70ab-a39d-fcbe8f94ae36\n(1 row)",
+  "lines": "count\n1\n(1 row)"
+ },
+ "net": [
+  {
+   "t": 2087,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/login",
+   "method": "POST"
+  },
+  {
+   "t": 2142,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/auth/login",
+   "status": 200
+  },
+  {
+   "t": 2167,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916447&signature=bbbb19c2cd",
+   "method": "GET"
+  },
+  {
+   "t": 2175,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916447&signature=bbbb19c2cd",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+   "t": 2367,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest",
+   "method": "GET"
+  },
+  {
+   "t": 2377,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/manifest",
+   "status": 200
+  },
+  {
+   "t": 2508,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500",
+   "method": "GET"
+  },
+  {
+   "t": 2600,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500",
+   "status": 200
+  },
+  {
+   "t": 2662,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 2719,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 2765,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 2828,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 2883,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 2960,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3023,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3062,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3117,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3159,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3212,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3322,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3379,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3448,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3508,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3576,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3631,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3695,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3758,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3839,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3906,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 3947,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 3999,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 4056,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 4071,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "method": "GET"
+  },
+  {
+   "t": 4075,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "status": 200
+  },
+  {
+   "t": 12294,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 12302,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/auth/refresh",
+   "status": 200
+  },
+  {
+   "t": 12314,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916458&signature=6ff9678776",
+   "method": "GET"
+  },
+  {
+   "t": 12316,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/inventory/availability?limit=500",
+   "method": "GET"
+  },
+  {
+   "t": 12317,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "method": "GET"
+  },
+  {
+   "t": 12318,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916458&signature=6ff9678776",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+   "t": 12320,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "status": 200
+  },
+  {
+   "t": 12340,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/pricing/bounds",
+   "method": "GET"
+  },
+  {
+   "t": 12362,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/pricing/bounds",
+   "status": 200
+  },
+  {
+   "t": 12365,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNTowM",
+   "method": "GET"
+  },
+  {
+   "t": 12376,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/inventory/availability?limit=500",
+   "status": 200
+  },
+  {
+   "t": 12404,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNTowM",
+   "status": 200
+  },
+  {
+   "t": 12409,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "method": "GET"
+  },
+  {
+   "t": 12414,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "status": 200
+  },
+  {
+   "t": 52607,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 52700,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 53757,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 53853,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 55917,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 56014,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 60071,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 60167,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 68230,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 68326,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 84386,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 84483,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 116553,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 117292,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 118457,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 118739,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/auth/refresh",
+   "status": 200
+  },
+  {
+   "t": 118843,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916564&signature=ccbd5dfb85",
+   "method": "GET"
+  },
+  {
+   "t": 119541,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/manifest",
+   "method": "GET"
+  },
+  {
+   "t": 119581,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916564&signature=ccbd5dfb85",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+   "t": 119726,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/manifest",
+   "status": 200
+  },
+  {
+   "t": 119822,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500",
+   "method": "GET"
+  },
+  {
+   "t": 120031,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500",
+   "status": 200
+  },
+  {
+   "t": 120175,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 120328,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 120464,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 120617,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 120777,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 120962,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 121138,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 121298,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 121483,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 121651,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 121828,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 122004,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 122197,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 122357,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 122566,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 122734,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 122951,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 123111,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 123336,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 123504,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 123777,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 123921,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 124066,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 124218,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 124314,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "method": "GET"
+  },
+  {
+   "t": 124443,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "status": 200
+  },
+  {
+   "t": 128492,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "method": "GET"
+  },
+  {
+   "t": 128580,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 128813,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 128853,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 128925,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916564&signature=ccbd5dfb85",
+   "method": "GET"
+  },
+  {
+   "t": 129046,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916564&signature=ccbd5dfb85",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 133751,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/manifest",
+   "method": "GET"
+  },
+  {
+   "t": 133791,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 134072,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/manifest",
+   "status": 401
+  },
+  {
+   "t": 134144,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/auth/refresh",
+   "status": 200
+  },
+  {
+   "t": 134241,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 134265,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/inventory/availability?limit=500",
+   "method": "GET"
+  },
+  {
+   "t": 134313,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/manifest",
+   "method": "GET"
+  },
+  {
+   "t": 134626,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+   "t": 134690,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/manifest",
+   "status": 200
+  },
+  {
+   "t": 134771,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/inventory/availability?limit=500",
+   "status": 200
+  },
+  {
+   "t": 134867,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500",
+   "method": "GET"
+  },
+  {
+   "t": 135019,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500",
+   "status": 200
+  },
+  {
+   "t": 135164,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 135212,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/pricing/bounds",
+   "method": "GET"
+  },
+  {
+   "t": 135422,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/pricing/bounds",
+   "status": 200
+  },
+  {
+   "t": 135494,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 135638,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 135791,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 135951,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 136112,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 136288,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 136449,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 136633,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 136794,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 136970,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 137123,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 137323,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 137492,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 137700,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 137868,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 138077,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 138246,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 138454,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 138623,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 138887,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 139040,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 139184,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "method": "GET"
+  },
+  {
+   "t": 139336,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0N",
+   "status": 200
+  },
+  {
+   "t": 139433,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "method": "GET"
+  },
+  {
+   "t": 139553,
+   "tab": "tab2",
+   "kind": "response",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "status": 200
+  },
+  {
+   "t": 144394,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 144490,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 145522,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 145619,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 147651,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 147747,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 151780,
+   "tab": "tab2",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 151886,
+   "tab": "tab2",
+   "kind": "failed",
+   "path": "/sync/upload",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 155905,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 155906,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 155916,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 155917,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 156271,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 156271,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 156282,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 156283,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 156613,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 156614,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 156624,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 156627,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 156958,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 156959,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 156969,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 156973,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 157304,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 157305,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 157316,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 157317,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 157660,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 157661,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 157673,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 157676,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 158006,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 158008,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 158019,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 158023,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 158380,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 158381,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 158392,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 158395,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 158725,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 158726,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 158738,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 158740,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 159068,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 159069,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 159082,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 159085,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 159416,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 159416,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 159428,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 159431,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 159771,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 159773,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 159784,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 159786,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 160114,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 160115,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 160126,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 160129,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 160449,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 160453,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 160465,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 160468,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 160795,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 160796,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 160809,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 160812,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 161144,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 161145,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 161157,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 161160,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 161484,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 161486,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 161498,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 161502,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 161827,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 161827,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 161840,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 161842,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 162170,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 162172,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 162183,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 162184,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 162511,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 162511,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 162524,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 162526,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 162854,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 162857,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 162868,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 162872,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 163201,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 163203,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/auth/refresh",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 163213,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "method": "GET"
+  },
+  {
+   "t": 163214,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916579&signature=6c9e477da1",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 163333,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "method": "GET"
+  },
+  {
+   "t": 163336,
+   "tab": "tab1",
+   "kind": "failed",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "error": "net::ERR_INTERNET_DISCONNECTED"
+  },
+  {
+   "t": 223345,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "method": "GET"
+  },
+  {
+   "t": 223354,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "status": 401
+  },
+  {
+   "t": 223357,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/auth/refresh",
+   "method": "POST"
+  },
+  {
+   "t": 223388,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/auth/refresh",
+   "status": 200
+  },
+  {
+   "t": 223400,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "method": "GET"
+  },
+  {
+   "t": 223406,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "status": 200
+  },
+  {
+   "t": 223424,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNTowM",
+   "method": "GET"
+  },
+  {
+   "t": 223488,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNTowM",
+   "status": 200
+  },
+  {
+   "t": 223494,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "method": "GET"
+  },
+  {
+   "t": 223511,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "status": 200
+  },
+  {
+   "t": 223536,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/upload",
+   "method": "POST"
+  },
+  {
+   "t": 223591,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/upload",
+   "status": 200
+  },
+  {
+   "t": 223624,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "method": "GET"
+  },
+  {
+   "t": 223628,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665",
+   "status": 200
+  },
+  {
+   "t": 223638,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNTowN",
+   "method": "GET"
+  },
+  {
+   "t": 223672,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNTowN",
+   "status": 200
+  },
+  {
+   "t": 223681,
+   "tab": "tab1",
+   "kind": "request",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "method": "GET"
+  },
+  {
+   "t": 223686,
+   "tab": "tab1",
+   "kind": "response",
+   "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&unresolvedOnly=true&limit=50",
+   "status": 200
+  }
+ ],
+ "pageErrors": []
+}
