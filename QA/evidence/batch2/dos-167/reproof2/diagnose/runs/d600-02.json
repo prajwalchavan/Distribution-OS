@@ -1,0 +1,162 @@
+{
+ "label": "d600-02",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 601,
+   "at": 1603
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 601,
+   "at": 2310
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "0.xoaxhezac9f",
+  "0.zg6l71dib8j",
+  "0.8dwbdn50yn",
+  "0.4sumlvpt9ti",
+  "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+  "/my1imsvb8cmft"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/8aa2bno7613",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.xoaxhezac9f"
+  },
+  {
+   "path": "expo-sqlite/bkj2fg2fv3",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.zg6l71dib8j"
+  },
+  {
+   "path": "expo-sqlite/f71llpdjf1",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.8dwbdn50yn"
+  },
+  {
+   "path": "expo-sqlite/h59045j31ab",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.4sumlvpt9ti"
+  },
+  {
+   "path": "expo-sqlite/jhtbijq228i",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  },
+  {
+   "path": "expo-sqlite/ph75fc4g97",
+   "kind": "file",
+   "size": 20480,
+   "sqlitePath": "/my1imsvb8cmft"
+  }
+ ],
+ "syncRequests": [],
+ "manifestCalls": 0,
+ "pullCalls": 0,
+ "notADatabase": 0,
+ "cannotCreate": 4,
+ "beatFinal": {
+  "notPersisted": true,
+  "stillLoading": true
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 997,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 1052,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 1096,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 1133,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 1149,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789886803&signature=fcae41e691ad3a2eb4a34406083de0e03797651d953d09f59fb53986fada"
+  },
+  {
+   "t": 1150,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 1153,
+   "kind": "beat",
+   "notPersisted": true,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 1701,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/447c7d2b-b97f-4641-a05b-e11cf0ae2403"
+  },
+  {
+   "t": 2430,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "cannot create file"
+  },
+  {
+   "t": 2430,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "cannot create file"
+  },
+  {
+   "t": 2432,
+   "kind": "console",
+   "source": "worker",
+   "type": "error",
+   "text": "cannot create file"
+  },
+  {
+   "t": 2432,
+   "kind": "console",
+   "source": "page",
+   "type": "error",
+   "text": "cannot create file"
+  },
+  {
+   "t": 16355,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": false
+}

@@ -1,0 +1,145 @@
+{
+ "label": "prod-d600-02",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5199/_expo/static/js/web/index-60684db7eabe64e5b2638430f39d49c4.js",
+   "heldMs": 601,
+   "at": 924
+  },
+  {
+   "url": "http://localhost:5199/_expo/static/js/web/worker-7b1b5806cbcbc26acb50bfd85f3ff0e5.js",
+   "heldMs": 601,
+   "at": 1549
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "/dos-sales.db-wal",
+  "0.pttlzz3a1e",
+  "0.194yjxiii2h",
+  "0.b8g5uhiyqtt",
+  "0.c78v7nhi3ff",
+  "0.rtn8z0f0op"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/236qzk95qg7",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": "/dos-sales.db-wal"
+  },
+  {
+   "path": "expo-sqlite/2nu1bai1av1",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.pttlzz3a1e"
+  },
+  {
+   "path": "expo-sqlite/5wl9ozezug9",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.194yjxiii2h"
+  },
+  {
+   "path": "expo-sqlite/939ow5p5b1",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.b8g5uhiyqtt"
+  },
+  {
+   "path": "expo-sqlite/ik072kd55og",
+   "kind": "file",
+   "size": 8192,
+   "sqlitePath": "0.c78v7nhi3ff"
+  },
+  {
+   "path": "expo-sqlite/npiw7y1xcg8",
+   "kind": "file",
+   "size": 20480,
+   "sqlitePath": "0.rtn8z0f0op"
+  }
+ ],
+ "walkEarly": [],
+ "syncRequests": [],
+ "manifestCalls": 0,
+ "pullCalls": 0,
+ "notADatabase": 1,
+ "cannotCreate": 0,
+ "beatFinal": {
+  "notPersisted": true,
+  "stillLoading": true
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 336,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 394,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 428,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 462,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 469,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789888284&signature=127703e5895b6a85e3ba2e745ebaccb51622147e3edac3bd2ddb9182119c"
+  },
+  {
+   "t": 471,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 473,
+   "kind": "opfs-early",
+   "files": 0
+  },
+  {
+   "t": 474,
+   "kind": "beat",
+   "notPersisted": true,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 942,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5199/d14eeefb-2074-4d65-b375-532817a47606"
+  },
+  {
+   "t": 1655,
+   "kind": "pageerror",
+   "text": "o: not a database"
+  },
+  {
+   "t": 15701,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": false
+}

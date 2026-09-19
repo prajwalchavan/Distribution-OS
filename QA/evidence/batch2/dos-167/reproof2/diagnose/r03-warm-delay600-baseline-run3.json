@@ -1,0 +1,399 @@
+{
+  "mode": "signin",
+  "opt": {
+    "delay": "600",
+    "seconds": "20"
+  },
+  "startedAt": "2026-09-14T04:43:36.109Z",
+  "phases": [
+    {
+      "name": "signin-delay-600",
+      "events": [
+        {
+          "t": 746,
+          "kind": "console",
+          "type": "info",
+          "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+        },
+        {
+          "t": 774,
+          "kind": "console",
+          "type": "log",
+          "text": "Running application \"main\" with appParams:\n {rootTag: #root, hydrate: undefined} \nDevelopment-level warnings: ON.\nPerformance optimizations: OFF."
+        },
+        {
+          "t": 45,
+          "kind": "request",
+          "method": "POST",
+          "url": "/auth/login"
+        },
+        {
+          "t": 82,
+          "kind": "response",
+          "status": 200,
+          "url": "/auth/login"
+        },
+        {
+          "t": 97,
+          "kind": "request",
+          "method": "GET",
+          "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/brandin"
+        },
+        {
+          "t": 104,
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+        },
+        {
+          "t": 547,
+          "kind": "beat",
+          "strip": "Not updated yet",
+          "notPersisted": true,
+          "stillLoading": true,
+          "shops": "0",
+          "path": "/"
+        },
+        {
+          "t": 566,
+          "kind": "held",
+          "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle",
+          "heldMs": 656
+        },
+        {
+          "t": 661,
+          "kind": "worker-created",
+          "url": "blob:http://localhost:5175/afcb50b3-0bd7-4d48-82d5-19df9de4b718"
+        },
+        {
+          "t": 1285,
+          "kind": "held",
+          "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle",
+          "heldMs": 623
+        },
+        {
+          "t": 1412,
+          "kind": "worker-console",
+          "type": "error",
+          "text": "cannot create file"
+        },
+        {
+          "t": 1412,
+          "kind": "console",
+          "type": "error",
+          "text": "cannot create file"
+        },
+        {
+          "t": 1417,
+          "kind": "worker-console",
+          "type": "error",
+          "text": "cannot create file"
+        },
+        {
+          "t": 1417,
+          "kind": "console",
+          "type": "error",
+          "text": "cannot create file"
+        },
+        {
+          "t": 20266,
+          "kind": "worker-closed"
+        }
+      ],
+      "lastSnap": {
+        "strip": "Not updated yet",
+        "notPersisted": true,
+        "stillLoading": true,
+        "shops": "0",
+        "path": "/"
+      },
+      "trace": [
+        {
+          "t": 1642,
+          "dir": "post",
+          "type": "open",
+          "id": 0,
+          "path": "./dos-sales.db",
+          "db": 0
+        },
+        {
+          "t": 1642,
+          "dir": "post",
+          "type": "open",
+          "id": 1,
+          "path": "./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "db": 1
+        },
+        {
+          "t": 1642,
+          "dir": "post",
+          "type": "open",
+          "id": 2,
+          "path": "./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db",
+          "db": 2
+        },
+        {
+          "t": 2355,
+          "dir": "reply",
+          "id": 1,
+          "error": null
+        },
+        {
+          "t": 2358,
+          "dir": "post",
+          "type": "exec",
+          "id": 3,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2358,
+          "dir": "reply",
+          "id": 2,
+          "error": null
+        },
+        {
+          "t": 2358,
+          "dir": "post",
+          "type": "exec",
+          "id": 4,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2370,
+          "dir": "reply",
+          "id": 3,
+          "error": null
+        },
+        {
+          "t": 2370,
+          "dir": "post",
+          "type": "exec",
+          "id": 5,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2371,
+          "dir": "reply",
+          "id": 4,
+          "error": null
+        },
+        {
+          "t": 2371,
+          "dir": "post",
+          "type": "exec",
+          "id": 6,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2380,
+          "dir": "reply",
+          "id": 5,
+          "error": null
+        },
+        {
+          "t": 2381,
+          "dir": "post",
+          "type": "exec",
+          "id": 7,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2386,
+          "dir": "reply",
+          "id": 6,
+          "error": null
+        },
+        {
+          "t": 2386,
+          "dir": "post",
+          "type": "exec",
+          "id": 8,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2391,
+          "dir": "reply",
+          "id": 7,
+          "error": null
+        },
+        {
+          "t": 2391,
+          "dir": "post",
+          "type": "exec",
+          "id": 9,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2394,
+          "dir": "reply",
+          "id": 8,
+          "error": "Error: Error code 14: unable to open database file"
+        },
+        {
+          "t": 2394,
+          "dir": "post",
+          "type": "close",
+          "id": 10,
+          "path": null,
+          "db": 2
+        },
+        {
+          "t": 2398,
+          "dir": "reply",
+          "id": 9,
+          "error": "Error: Error code 1: no such table: main._outbox"
+        },
+        {
+          "t": 2398,
+          "dir": "post",
+          "type": "close",
+          "id": 11,
+          "path": null,
+          "db": 1
+        },
+        {
+          "t": 2399,
+          "dir": "reply",
+          "id": 10,
+          "error": null
+        },
+        {
+          "t": 2401,
+          "dir": "reply",
+          "id": 0,
+          "error": "Error: sqlite3_open_v2"
+        },
+        {
+          "t": 2401,
+          "dir": "reply",
+          "id": 11,
+          "error": null
+        }
+      ],
+      "walk": [
+        [
+          "expo-sqlite/fvqnnc5kvr",
+          4096,
+          "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "106"
+        ],
+        [
+          "expo-sqlite/d3kuw52lwnw",
+          20480,
+          "/my1imsvb8cmft",
+          "106"
+        ],
+        [
+          "expo-sqlite/9dyywgk42x",
+          8192,
+          "0.bmprxayckpa",
+          "806"
+        ],
+        [
+          "expo-sqlite/7s4fdjpj42j",
+          8192,
+          "0.v1ckwencpe",
+          "806"
+        ],
+        [
+          "expo-sqlite/5v4g5p9ivge",
+          8192,
+          "0.v2yvkf0jbj",
+          "806"
+        ],
+        [
+          "expo-sqlite/5ibz6uh3bd2",
+          8192,
+          "0.05w8m8ytlu3w",
+          "806"
+        ]
+      ],
+      "summary": {
+        "manifestCalls": 0,
+        "pull200": 0,
+        "pageErrors": [],
+        "workerConsole": [
+          "error: cannot create file",
+          "error: cannot create file"
+        ],
+        "end": {
+          "strip": "Not updated yet",
+          "notPersisted": true,
+          "stillLoading": true,
+          "shops": "0",
+          "path": "/"
+        },
+        "poolFiles": 6,
+        "associations": [
+          {
+            "header": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+            "size": 4096,
+            "flags": "106"
+          },
+          {
+            "header": "/my1imsvb8cmft",
+            "size": 20480,
+            "flags": "106"
+          },
+          {
+            "header": "0.bmprxayckpa",
+            "size": 8192,
+            "flags": "806"
+          },
+          {
+            "header": "0.v1ckwencpe",
+            "size": 8192,
+            "flags": "806"
+          },
+          {
+            "header": "0.v2yvkf0jbj",
+            "size": 8192,
+            "flags": "806"
+          },
+          {
+            "header": "0.05w8m8ytlu3w",
+            "size": 8192,
+            "flags": "806"
+          }
+        ],
+        "rahulHeader": {
+          "header": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "size": 4096,
+          "flags": "106"
+        },
+        "garbageAssociations": 5,
+        "workerOpensBeforeFirstReply": [
+          "./dos-sales.db",
+          "./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+        ],
+        "workerPostsBeforeFirstReply": [
+          "open:./dos-sales.db",
+          "open:./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+          "open:./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db"
+        ],
+        "workerErrors": [
+          "Error: Error code 14: unable to open database file",
+          "Error: Error code 1: no such table: main._outbox",
+          "Error: sqlite3_open_v2"
+        ],
+        "pass": false
+      }
+    }
+  ],
+  "crossOriginIsolated": true,
+  "finishedAt": "2026-09-14T04:43:57.437Z",
+  "verdicts": [
+    {
+      "phase": "signin-delay-600",
+      "pass": false
+    }
+  ]
+}

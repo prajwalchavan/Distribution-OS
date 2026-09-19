@@ -651,3 +651,15 @@ The founder approved the request for the six confirmed findings and the one-line
 **Restarted:**
 - `wf_ee45b8a1-b2c` (`finish-lanes.js`): verify the money settlement slice as committed, build the money phone slice and the DOS-172 app slice, write the two missing reviews, then integrate and merge in the order S-108, money, DOS-171, DOS-172.
 - `wf_586d5dd5-dcf` (`dos167-ruling3.js`): diagnose S-138 by execution, then ruling 3, build, review, integrate with the full frontend gate, merge, re-proof and judge.
+
+### CI red on main — backend lint, `@dos/db` test-setup (2026-09-19)
+
+**Reported by the founder** as a GitHub Actions failure: `backend/libs/database/src/test-setup.ts:3:1 Unsafe call of a type that could not be resolved (@typescript-eslint/no-unsafe-call)`.
+
+**Cause.** That file was the one place in the backend where a package imported ITSELF by package name (`import { loadDotenv } from '@dos/db'`), which resolves to `dist/`. Turbo runs `lint` after its DEPENDENCIES' `^build`, not after the package's own build, so on a clean CI checkout `libs/database/dist` does not exist when `@dos/db:lint` runs, the import resolves to nothing, and the type-aware rule sees `any`. On this Mac `dist/` is always present from an earlier build, which is why it never went red locally.
+
+**Fix.** `import { loadDotenv } from './env.js'` — the same relative import `migrate.ts` and `seed.ts` already use. No behaviour change; `env.js` is what `@dos/db` re-exports.
+
+**Proof, executed under the CI condition (`rm -rf libs/database/dist`).** Before: `eslint .` exit 1, that one error. After: exit 0. Then the backend CI gates from the repo root: `pnpm format:check` 0, `pnpm lint` 0 (19 tasks), `pnpm typecheck` 0 (19), `pnpm build` 0 (14).
+
+**Swept for recurrences:** no other backend package (`@dos/domain`, `@dos/contracts`, `@dos/db`, `@dos/core`) imports its own package name anywhere in `src/`.

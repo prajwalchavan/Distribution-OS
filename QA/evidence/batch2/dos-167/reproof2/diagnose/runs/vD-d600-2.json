@@ -1,0 +1,465 @@
+{
+ "label": "vD-d600-2",
+ "delayMs": 600,
+ "user": "rahul",
+ "delayed": [
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/build/index.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=true&runModule=false",
+   "heldMs": 601,
+   "at": 1640
+  },
+  {
+   "url": "http://localhost:5175/node_modules/expo-sqlite/web/worker.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable&modulesOnly=false&runModule=true",
+   "heldMs": 600,
+   "at": 2344
+  }
+ ],
+ "crossOriginIsolated": true,
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft",
+ "headers": [
+  "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+ ],
+ "poolFiles": 6,
+ "walk": [
+  {
+   "path": "expo-sqlite/",
+   "kind": "directory"
+  },
+  {
+   "path": "expo-sqlite/26qf3osrxdx",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/547mqb0qffb",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/5tsue98pir",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/c0sv4hopmo5",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  },
+  {
+   "path": "expo-sqlite/k3colt5uu9",
+   "kind": "file",
+   "size": 3940352,
+   "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft"
+  },
+  {
+   "path": "expo-sqlite/s2zkfqwxtj",
+   "kind": "file",
+   "size": 4096,
+   "sqlitePath": ""
+  }
+ ],
+ "syncRequests": [
+  {
+   "t": 2497,
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2755,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500"
+  },
+  {
+   "t": 3355,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 3928,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 4690,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 5423,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 6094,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 6670,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 7490,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 8231,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 8767,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 9404,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 9932,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 10379,
+   "url": "/sync/errors?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&unresolvedOnly=true&limit=50"
+  }
+ ],
+ "manifestCalls": 1,
+ "pullCalls": 12,
+ "notADatabase": 0,
+ "cannotCreate": 0,
+ "beatFinal": {
+  "notPersisted": false,
+  "stillLoading": false
+ },
+ "afterReload": null,
+ "second": null,
+ "events": [
+  {
+   "t": 1013,
+   "kind": "sign-in-form"
+  },
+  {
+   "t": 1076,
+   "kind": "sign-in-click",
+   "who": "rahul"
+  },
+  {
+   "t": 1116,
+   "kind": "request",
+   "method": "POST",
+   "url": "/auth/login"
+  },
+  {
+   "t": 1156,
+   "kind": "response",
+   "status": 200,
+   "url": "/auth/login"
+  },
+  {
+   "t": 1172,
+   "kind": "request",
+   "method": "GET",
+   "url": "/storage/tenant/01a09a5b-3c58-71c1-a34d-b93c569b0099/branding/logo.jpg?expires=1789887604&signature=d79a948ee073227e9a06d5989e75a8be5fa82d55f348a01c3e1ffb991d4f"
+  },
+  {
+   "t": 1176,
+   "kind": "signed-in",
+   "who": "rahul"
+  },
+  {
+   "t": 1177,
+   "kind": "beat",
+   "notPersisted": true,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 1735,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./dos-sales.db\" t=1688"
+  },
+  {
+   "t": 1737,
+   "kind": "worker-created",
+   "url": "blob:http://localhost:5175/6860de43-60c9-4871-8000-dd6009808519"
+  },
+  {
+   "t": 2360,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=1 sqlite3=false vfs=false t=624"
+  },
+  {
+   "t": 2360,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-enter call=1 sqlite3=false vfs=false t=624"
+  },
+  {
+   "t": 2360,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=1 t=624"
+  },
+  {
+   "t": 2360,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG init-CREATES call=1 t=624"
+  },
+  {
+   "t": 2398,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-construct id=1 dir=expo-sqlite t=661"
+  },
+  {
+   "t": 2398,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-construct id=1 dir=expo-sqlite t=661"
+  },
+  {
+   "t": 2398,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-acquired id=1 capacity=0 size=0 paths=[] t=663"
+  },
+  {
+   "t": 2398,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-acquired id=1 capacity=0 size=0 paths=[] t=663"
+  },
+  {
+   "t": 2402,
+   "kind": "console",
+   "source": "worker",
+   "type": "warning",
+   "text": "DOSDIAG vfs-addcapacity id=1 capacity=6 t=667"
+  },
+  {
+   "t": 2402,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG vfs-addcapacity id=1 capacity=6 t=667"
+  },
+  {
+   "t": 2414,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./s80j3azqcg6our25a35rhwbg7r03guzv9zghwmmy1imsvb8cmft\" t=2368"
+  },
+  {
+   "t": 2421,
+   "kind": "console",
+   "source": "page",
+   "type": "warning",
+   "text": "DOSDIAG main-open path=\"./dos-sales__u-8760e17e-4830-7395-a946-1e02fffa1ad7__t-01a09a5b-3c58-71c1-a34d-b93c569b0099.db\" t=2371"
+  },
+  {
+   "t": 2497,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2501,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/manifest"
+  },
+  {
+   "t": 2719,
+   "kind": "beat",
+   "notPersisted": false,
+   "stillLoading": true,
+   "updated": true,
+   "notUpdated": true
+  },
+  {
+   "t": 2755,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500"
+  },
+  {
+   "t": 2808,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500"
+  },
+  {
+   "t": 3355,
+   "kind": "beat",
+   "notPersisted": false,
+   "stillLoading": false,
+   "updated": true,
+   "notUpdated": false
+  },
+  {
+   "t": 3355,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 3436,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NDQ3NjlaIn0"
+  },
+  {
+   "t": 3928,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 4096,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNS44NjM3MjVaIn0"
+  },
+  {
+   "t": 4690,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 4799,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi42NzkzOTZaIn0"
+  },
+  {
+   "t": 5423,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 5518,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi44MzIxMzdaIn0"
+  },
+  {
+   "t": 6094,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 6163,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNi45ODg0MjBaIn0"
+  },
+  {
+   "t": 6670,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 6789,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy4xMDM1NzRaIn0"
+  },
+  {
+   "t": 7490,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 7568,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy43MjQ4NjFaIn0"
+  },
+  {
+   "t": 8231,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 8292,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowNy44NzE0NjNaIn0"
+  },
+  {
+   "t": 8767,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 8853,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MTowOC4wMTk2OTRaIn0"
+  },
+  {
+   "t": 9404,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 9455,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy40MzU4NThaIn0"
+  },
+  {
+   "t": 9932,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 10003,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/pull?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QxMDo0MToxMy43MTkyNzRaIn0"
+  },
+  {
+   "t": 10379,
+   "kind": "request",
+   "method": "GET",
+   "url": "/sync/errors?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 10383,
+   "kind": "response",
+   "status": 200,
+   "url": "/sync/errors?deviceId=01a0b877-0990-70ba-8e48-8aa4f1ffde7d&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 16624,
+   "kind": "opfs-final",
+   "files": 6
+  }
+ ],
+ "pass": true,
+ "eventsTrimmed": {
+  "kept": 52,
+  "note": "only init-CREATES / first init-enter / vfs-construct / vfs-acquired / vfs-addcapacity / main-open / every error line, plus all non-console events"
+ }
+}
