@@ -32,6 +32,18 @@ const KEEP_WORDS = {
    */
   handOverBody: { device: 'tray.handOverBody', tab: 'tray.handOverBodyTab' },
   handOverBodyNoBook: { device: 'tray.handOverBodyNoBook', tab: 'tray.handOverBodyNoBookTab' },
+  /*
+   * CLOSING THE TRIP (merge review, 2026-09-19). D1 and D8 both printed "{count} writes are still on this
+   * phone" under nothing but a count gate, and D8 printed three more of the same claim: the reason the
+   * check-in button is refused, and the two money sentences `dayEndCash` chooses ("This phone holds ₹X in
+   * receipts"). Every one of them sits under a strip that on a browser with no OPFS already reads
+   * "· Not kept in this browser" — the phone denying and asserting the same keep in ONE render, over the
+   * outbox that decides whether the vehicle may be checked in and over money nobody has counted yet.
+   */
+  pending: { device: 'd8.pending', tab: 'd8.pendingTab' },
+  pendingBlocks: { device: 'd8.pendingBlocks', tab: 'd8.pendingBlocksTab' },
+  uncounted: { device: 'd8.uncounted', tab: 'd8.uncountedTab' },
+  uncountedSettled: { device: 'd8.uncountedSettled', tab: 'd8.uncountedSettledTab' },
 } as const
 
 export type KeepWord = keyof typeof KEEP_WORDS

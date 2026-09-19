@@ -132,7 +132,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     ).toEqual({
       handOverPaise: FLOAT + COUNTED + HELD,
       uncountedAllPaise: HELD,
-      note: 'd8.uncounted',
+      note: 'uncounted',
     })
 
     // The trip settled while that receipt was still queued. The settled figure is what the office
@@ -146,7 +146,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     ).toEqual({
       handOverPaise: FLOAT + COUNTED,
       uncountedAllPaise: HELD,
-      note: 'd8.uncountedSettled',
+      note: 'uncountedSettled',
     })
 
     // A hand-over short of the tolerance the owner accepted closes the trip the same way.
@@ -159,7 +159,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     ).toEqual({
       handOverPaise: FLOAT + COUNTED,
       uncountedAllPaise: HELD,
-      note: 'd8.uncountedSettled',
+      note: 'uncountedSettled',
     })
 
     // Held UPI is money the office has not counted either, but it is not cash in the driver's hand:
@@ -170,7 +170,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
         deviceCashPaise: COUNTED,
         deviceAllPaise: COUNTED + HELD,
       }),
-    ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'd8.uncounted' })
+    ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'uncounted' })
 
     // The office is ahead of the phone (a receipt the desk recorded itself): nothing is subtracted.
     expect(
@@ -212,7 +212,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     ).toEqual({
       handOverPaise: FLOAT + COUNTED,
       uncountedAllPaise: HELD,
-      note: 'd8.uncountedSettled',
+      note: 'uncountedSettled',
     })
 
     // And the other way round, which is the same rule: the office has NOT settled yet, so whatever
@@ -226,7 +226,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     ).toEqual({
       handOverPaise: FLOAT + COUNTED + HELD,
       uncountedAllPaise: HELD,
-      note: 'd8.uncounted',
+      note: 'uncounted',
     })
   })
 
@@ -287,7 +287,7 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
         deviceCashPaise: money.cashPaise,
         deviceAllPaise: money.allPaise,
       }),
-    ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'd8.uncounted' })
+    ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'uncounted' })
 
     // Counting it would have asked for the handed-over ₹2,500 again.
     expect(
@@ -313,8 +313,22 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
   it('DOS-169 guard: the two sentences D8 can print are real keys in this app\u2019s strings', async () => {
     // `Translator` is `(key: string, ...) => string`, so a renamed key type-checks and ships a raw
     // `d8.uncountedSettled` to a driver with every gate above still green.
+    //
+    // DOS-179 widened this: `dayEndCash` now names a keep WORD and `keepKey` turns it into one of TWO
+    // keys, so BOTH halves of each pair have to exist. A missing tab twin ships the key itself to a
+    // driver exactly the way a missing device key used to \u2014 on the browser build, where the phone's
+    // sentence was the wrong one anyway.
     const strings = await readStrings()
-    for (const key of ['d8.uncounted', 'd8.uncountedSettled', 'd8.pendingBlocks']) {
+    for (const key of [
+      'd8.uncounted',
+      'd8.uncountedTab',
+      'd8.uncountedSettled',
+      'd8.uncountedSettledTab',
+      'd8.pendingBlocks',
+      'd8.pendingBlocksTab',
+      'd8.pending',
+      'd8.pendingTab',
+    ]) {
       expect(strings).toContain(`'${key}':`)
     }
   })

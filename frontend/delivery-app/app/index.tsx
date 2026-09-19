@@ -35,6 +35,7 @@ import { useMemo } from 'react'
 
 import { useTracking } from './_layout'
 import { instantWithClock, longDate } from '../src/lib/dates'
+import { keepKey } from '../src/lib/keep'
 import {
   addressLine,
   bool,
@@ -460,9 +461,16 @@ export default function TodaysTrip(): React.JSX.Element {
           </Panel>
         )}
 
+        {/*
+          DOS-179 — "{count} writes are still on this phone" is only true of a store that keeps. On a
+          browser with no OPFS the strip at the top of THIS screen already reads "· Not kept in this
+          browser", so the phone used to deny and assert the same keep in one render, over the outbox
+          that decides whether the trip may be closed. The sentence asks the store like every other
+          keep verb in this app.
+        */}
         {status.pending === 0 ? null : (
           <Txt field="label" desk="meta" color={colors.text.secondary} testID="d1-pending">
-            {t('d8.pending', { count: status.pending })}
+            {t(keepKey('pending', status.persistent), { count: status.pending })}
           </Txt>
         )}
       </Stack>

@@ -80,8 +80,15 @@ export interface DayEndCash {
   readonly handOverPaise: number | null
   /** Doorstep money of any mode that this phone still holds, cash and UPI and cheques together. */
   readonly uncountedAllPaise: number
-  /** The sentence under the figure, or `null` when the office has everything. */
-  readonly note: 'd8.uncounted' | 'd8.uncountedSettled' | null
+  /**
+   * The sentence under the figure, or `null` when the office has everything.
+   *
+   * A keep WORD, not a string key (DOS-179): both sentences say "This phone holds {amount} in receipts",
+   * which is false on a browser with no OPFS. The screen turns the word into a key through `keepKey`, so
+   * the money sentence agrees with the strip above it instead of contradicting it. This file stays free
+   * of the device — which store opened is not arithmetic — and of the strings catalogue.
+   */
+  readonly note: 'uncounted' | 'uncountedSettled' | null
 }
 
 /**
@@ -137,7 +144,7 @@ export function dayEndCash(input: {
     return {
       handOverPaise: figures.expectedCashPaise,
       uncountedAllPaise,
-      note: uncountedAllPaise === 0 ? null : 'd8.uncountedSettled',
+      note: uncountedAllPaise === 0 ? null : 'uncountedSettled',
     }
   }
 
@@ -145,6 +152,6 @@ export function dayEndCash(input: {
   return {
     handOverPaise: figures.expectedCashPaise + uncountedCashPaise,
     uncountedAllPaise,
-    note: uncountedAllPaise === 0 ? null : 'd8.uncounted',
+    note: uncountedAllPaise === 0 ? null : 'uncounted',
   }
 }

@@ -355,6 +355,22 @@ export const strings = {
     'The cashier counts the money and the godown counts the van. The trip closes at the office, not here.',
   'd8.pending':
     '{count} writes are still on this phone. They go before the office can close the trip.',
+  /*
+   * DOS-179 — the same four sentences over a store that keeps nothing (a browser with no OPFS), chosen
+   * by `keepKey` in src/lib/keep.ts like every other keep verb in this app. The strip above these very
+   * screens already reads "· Not kept in this browser", so the phone's words here contradicted it in one
+   * render, over the outbox that decides whether the trip may be closed and over money nobody counted.
+   * Each tab twin keeps the INSTRUCTION word for word — what goes first, what the office still owes,
+   * where the cash goes — and changes only who is holding it.
+   */
+  'd8.uncountedTab':
+    'This tab holds {amount} in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.',
+  'd8.uncountedSettledTab':
+    'This tab holds {amount} in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.',
+  'd8.pendingBlocksTab':
+    '{count} records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.',
+  'd8.pendingTab':
+    '{count} writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.',
   'd8.failedReturn': 'Could not check the vehicle in',
   'd8.notActive': 'This trip is not out on the road',
 
