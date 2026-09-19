@@ -1,0 +1,655 @@
+[
+  {
+    "t": 733,
+    "kind": "granted",
+    "permission": "local-network-access"
+  },
+  {
+    "t": 734,
+    "kind": "load-on-corrupt-store"
+  },
+  {
+    "t": 1322,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/refresh"
+  },
+  {
+    "t": 1357,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/refresh"
+  },
+  {
+    "t": 1381,
+    "kind": "request",
+    "method": "GET",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789914720&signature=d8f14a00dc54155c0871"
+  },
+  {
+    "t": 1392,
+    "kind": "request-failed",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789914720&signature=d8f14a00dc54155c0871",
+    "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+    "t": 1416,
+    "kind": "worker-created",
+    "url": "blob:http://localhost:5175/8ef32f6b-ddf7-41df-8d48-333b516aba34"
+  },
+  {
+    "t": 1486,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: the device store could not be used; running in memory Error: Error: Error code 26: file is not a database\n    at workerMessageHandler (eval at <anonymous> (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:155278:16), <anonymous>:40974:27)\n    at Wor"
+  },
+  {
+    "t": 1487,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+  },
+  {
+    "t": 1489,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 1494,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 1498,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 1545,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 1558,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 1597,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 1609,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 1637,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 1654,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 1695,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 1713,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 1743,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 1764,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 1797,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 1823,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 1867,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 1889,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 1928,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 1947,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 1985,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 2010,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 2046,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 2077,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 2117,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 2140,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 2186,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 2196,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 2230,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 2233,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 2237,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 6300,
+    "kind": "screenshot",
+    "file": "a2-04-reload-early.png"
+  },
+  {
+    "t": 6311,
+    "kind": "screen",
+    "label": "after-corruption",
+    "stillLoading": false,
+    "notPersisted": true,
+    "couldNotBeOpened": false,
+    "updated": true,
+    "notUpdated": false,
+    "shopsLine": "Shops"
+  },
+  {
+    "t": 41668,
+    "kind": "screenshot",
+    "file": "a2-05-after-corruption-memory.png"
+  },
+  {
+    "t": 41669,
+    "kind": "body-after-corruption",
+    "text": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nRD\nRahul Deshmukh\nsalesperson\nStation Road\nToday's beat\nShops: 10\nVisited: 0\nOrdered: 3\n✓ Station Road\nKalyan West Market\nKhadakpada\nShree Ganesh Kirana\nStation Road, Kalyan West · your last order 19 Sep\n₹25,233.00\nOrdered\nOm Sai Provision Store\nStation Road, Kalyan West · your last order 7 Sep\n₹31,317.50\nTo visit\nMahalaxmi General Stores\nStation Road, Kalyan West · your last order 17 Sep\n₹12,307.00\nTo visit\nSai Krupa Super Bazar\nStation Road, Kalyan West · your last order 10 Sep\n₹1,64,401.00\nTo visit\nJai Bhavani Stores\nStation Road, Kalyan West · your last order 17 Sep\n₹23,463.00\nTo visit\nShivshakti Traders\nStation Road, Kalyan West · your last order 10 Sep\n₹23,703.00\nTo visit\nGanesh General Store\nStation Road, Kalyan West · your last order 16 Sep\n₹1,08,534.00\nTo visit\nKrishna Kirana Stores\nStation Road, Kalyan West · your last order 19 Sep\n—\nOrdered\nAmbika Provision Store\nStation Road, Kalyan West · your last order 14 Sep\n₹15,345.00\nTo visit\nBalaji Wholesale Stores\nStation Road, Kalyan West · your last order 19 Sep\n₹6,69,879.00\nOrdered\nThis browser will not keep the offline copy after you close "
+  },
+  {
+    "t": 41681,
+    "kind": "opfs-after-reload",
+    "files": [
+      {
+        "path": "expo-sqlite/",
+        "kind": "directory"
+      },
+      {
+        "path": "expo-sqlite/b1hp8rrvsnf",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/g3jhk0zj8p9",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/j5zgtmd6e3p",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/mi6ny70pfgh",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/rm83bhxvu1i",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/spfbgxhthbn",
+        "kind": "file",
+        "size": 4091904,
+        "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+        "magic": "XXXXXXXXXXXXXXXX"
+      }
+    ]
+  },
+  {
+    "t": 41681,
+    "kind": "second-engine-begin"
+  },
+  {
+    "t": 42299,
+    "kind": "screenshot",
+    "file": "a2-06-account-menu.png"
+  },
+  {
+    "t": 42348,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/logout"
+  },
+  {
+    "t": 42366,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/logout"
+  },
+  {
+    "t": 43919,
+    "kind": "screenshot",
+    "file": "a2-07-after-sign-out.png"
+  },
+  {
+    "t": 43920,
+    "kind": "after-sign-out-body",
+    "text": "Distribution OS - Sales\nSign in\nUsername\nPassword\nSign in\nUse the username your distributor gave you."
+  },
+  {
+    "t": 43945,
+    "kind": "sign-in-click",
+    "who": "rahul"
+  },
+  {
+    "t": 43975,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/login"
+  },
+  {
+    "t": 44013,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/login"
+  },
+  {
+    "t": 44032,
+    "kind": "signed-in",
+    "who": "rahul",
+    "url": "http://localhost:5175/"
+  },
+  {
+    "t": 44032,
+    "kind": "second-sign-in-took-ms",
+    "ms": 112
+  },
+  {
+    "t": 44033,
+    "kind": "request",
+    "method": "GET",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789914762&signature=a98762e9ee746a3a10f8"
+  },
+  {
+    "t": 44033,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: the device store could not be used; running in memory Error: Error: Error code 26: file is not a database\n    at workerMessageHandler (eval at <anonymous> (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:155278:16), <anonymous>:40974:27)\n    at Wor"
+  },
+  {
+    "t": 44033,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+  },
+  {
+    "t": 44034,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 44038,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 44039,
+    "kind": "request-failed",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789914762&signature=a98762e9ee746a3a10f8",
+    "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+    "t": 44039,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 44101,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 44112,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 44155,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 44166,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 44189,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 44202,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 44240,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 44256,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 44295,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 44314,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 44354,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 44379,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 44433,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 44455,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 44493,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 44512,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 44568,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 44594,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 44660,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 44692,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 44773,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 44795,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 44829,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 44839,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 44868,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 44872,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 44875,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 48117,
+    "kind": "screenshot",
+    "file": "a2-08-second-engine-early.png"
+  },
+  {
+    "t": 48118,
+    "kind": "screen",
+    "label": "second-engine",
+    "stillLoading": false,
+    "notPersisted": true,
+    "couldNotBeOpened": false,
+    "updated": true,
+    "notUpdated": false,
+    "shopsLine": "Shops"
+  },
+  {
+    "t": 83406,
+    "kind": "screenshot",
+    "file": "a2-09-second-engine-settled.png"
+  },
+  {
+    "t": 83407,
+    "kind": "body-second-engine",
+    "text": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nRD\nRahul Deshmukh\nsalesperson\nStation Road\nToday's beat\nShops: 10\nVisited: 0\nOrdered: 3\n✓ Station Road\nKalyan West Market\nKhadakpada\nShree Ganesh Kirana\nStation Road, Kalyan West · your last order 19 Sep\n₹25,233.00\nOrdered\nOm Sai Provision Store\nStation Road, Kalyan West · your last order 7 Sep\n₹31,317.50\nTo visit\nMahalaxmi General Stores\nStation Road, Kalyan West · your last order 17 Sep\n₹12,307.00\nTo visit\nSai Krupa Super Bazar\nStation Road, Kalyan West · your last order 10 Sep\n₹1,64,401.00\nTo visit\nJai Bhavani Stores\nStation Road, Kalyan West · your last order 17 Sep\n₹23,463.00\nTo visit\nShivshakti Traders\nStation Road, Kalyan West · your last order 10 Sep\n₹23,703.00\nTo visit\nGanesh General Store\nStation Road, Kalyan West · your last order 16 Sep\n₹1,08,534.00\nTo visit\nKrishna Kirana Stores\nStation Road, Kalyan West · your last order 19 Sep\n—\nOrdered\nAmbika Provision Store\nStation Road, Kalyan West · your last order 14 Sep\n₹15,345.00\nTo visit\nBalaji Wholesale Stores\nStation Road, Kalyan West · your last order 19 Sep\n₹6,69,879.00\nOrdered\nThis browser will not keep the offline copy after you close "
+  },
+  {
+    "t": 83411,
+    "kind": "opfs-final",
+    "files": [
+      {
+        "path": "expo-sqlite/",
+        "kind": "directory"
+      },
+      {
+        "path": "expo-sqlite/b1hp8rrvsnf",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/g3jhk0zj8p9",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/j5zgtmd6e3p",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/mi6ny70pfgh",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/rm83bhxvu1i",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/spfbgxhthbn",
+        "kind": "file",
+        "size": 4091904,
+        "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+        "magic": "XXXXXXXXXXXXXXXX"
+      }
+    ]
+  }
+]

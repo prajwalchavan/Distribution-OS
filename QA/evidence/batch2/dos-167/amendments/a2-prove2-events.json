@@ -1,0 +1,269 @@
+[
+  {
+    "t": 947,
+    "kind": "granted",
+    "permission": "local-network-access"
+  },
+  {
+    "t": 1446,
+    "kind": "request",
+    "method": "POST",
+    "url": "/auth/refresh"
+  },
+  {
+    "t": 1465,
+    "kind": "response",
+    "status": 200,
+    "url": "/auth/refresh"
+  },
+  {
+    "t": 1482,
+    "kind": "request",
+    "method": "GET",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789914916&signature=ac4d4cb47176266233f7"
+  },
+  {
+    "t": 1515,
+    "kind": "request-failed",
+    "url": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789914916&signature=ac4d4cb47176266233f7",
+    "error": "net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep"
+  },
+  {
+    "t": 1518,
+    "kind": "worker-created",
+    "url": "blob:http://localhost:5175/2325a3a5-1fca-4f1b-823a-7f18602d6ba8"
+  },
+  {
+    "t": 1573,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: the device store could not be used; running in memory Error: Error: Error code 26: file is not a database\n    at workerMessageHandler (eval at <anonymous> (http://localhost:5175/node_modules/expo-router/entry.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:155278:16), <anonymous>:40974:27)\n    at Wor"
+  },
+  {
+    "t": 1573,
+    "kind": "console",
+    "source": "page",
+    "type": "warning",
+    "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+  },
+  {
+    "t": 1575,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 1579,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/manifest"
+  },
+  {
+    "t": 1582,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 1644,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500"
+  },
+  {
+    "t": 1656,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 1697,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42MTk"
+  },
+  {
+    "t": 1708,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 1750,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MC42NDA"
+  },
+  {
+    "t": 1764,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 1816,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS40ODQ"
+  },
+  {
+    "t": 1833,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 1871,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS42NDE"
+  },
+  {
+    "t": 1891,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 1932,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS43ODk"
+  },
+  {
+    "t": 1955,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 2010,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0MS44OTk"
+  },
+  {
+    "t": 2032,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 2082,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi40ODE"
+  },
+  {
+    "t": 2101,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 2147,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi42MTk"
+  },
+  {
+    "t": 2172,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 2227,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi43NzQ"
+  },
+  {
+    "t": 2258,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 2310,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0Mi44NzU"
+  },
+  {
+    "t": 2333,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 2371,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC4zMTQ"
+  },
+  {
+    "t": 2381,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 2444,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/pull?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxMjo0Nzo0OC41Njk"
+  },
+  {
+    "t": 2447,
+    "kind": "request",
+    "method": "GET",
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 2451,
+    "kind": "response",
+    "status": 200,
+    "url": "/sync/errors?deviceId=01a0ba10-7e58-752e-a695-43d7432eea72&unresolvedOnly=true&limit=50"
+  },
+  {
+    "t": 3951,
+    "kind": "screenshot",
+    "file": "a2-10-loaded-2s.png"
+  },
+  {
+    "t": 3962,
+    "kind": "screen",
+    "label": "prove2",
+    "stillLoading": false,
+    "notPersisted": true,
+    "couldNotBeOpened": false,
+    "updated": true,
+    "notUpdated": false,
+    "shopsLine": "Shops"
+  },
+  {
+    "t": 13310,
+    "kind": "screenshot",
+    "file": "a2-11-not-kept-line.png"
+  },
+  {
+    "t": 13374,
+    "kind": "screenshot",
+    "file": "a2-12-beat-fullpage.png"
+  },
+  {
+    "t": 13374,
+    "kind": "console-lines",
+    "lines": [
+      "[warning] offline: the device store could not be used; running in memory Error: Error: Error code 26: file is not a database",
+      "[warning] offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+    ]
+  },
+  {
+    "t": 13427,
+    "kind": "screenshot",
+    "file": "a2-13-console-lines.png"
+  }
+]

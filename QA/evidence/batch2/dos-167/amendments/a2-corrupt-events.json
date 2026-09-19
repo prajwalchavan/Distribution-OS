@@ -1,0 +1,127 @@
+[
+  {
+    "t": 589,
+    "kind": "granted",
+    "permission": "local-network-access"
+  },
+  {
+    "t": 667,
+    "kind": "opfs-before-corrupt",
+    "files": [
+      {
+        "path": "expo-sqlite/",
+        "kind": "directory"
+      },
+      {
+        "path": "expo-sqlite/b1hp8rrvsnf",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/g3jhk0zj8p9",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/j5zgtmd6e3p",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/mi6ny70pfgh",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/rm83bhxvu1i",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/spfbgxhthbn",
+        "kind": "file",
+        "size": 4091904,
+        "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+        "magic": "SQLite format 3."
+      }
+    ]
+  },
+  {
+    "t": 684,
+    "kind": "corrupted",
+    "result": {
+      "name": "expo-sqlite/spfbgxhthbn",
+      "path": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+      "magicBefore": "SQLite format 3.",
+      "magicAfter": "XXXXXXXXXXXXXXXX",
+      "size": 4091904
+    }
+  },
+  {
+    "t": 687,
+    "kind": "opfs-after-corrupt",
+    "files": [
+      {
+        "path": "expo-sqlite/",
+        "kind": "directory"
+      },
+      {
+        "path": "expo-sqlite/b1hp8rrvsnf",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/g3jhk0zj8p9",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/j5zgtmd6e3p",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/mi6ny70pfgh",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/rm83bhxvu1i",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/spfbgxhthbn",
+        "kind": "file",
+        "size": 4091904,
+        "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+        "magic": "XXXXXXXXXXXXXXXX"
+      }
+    ]
+  },
+  {
+    "t": 750,
+    "kind": "screenshot",
+    "file": "a2-03-corrupted-opfs.png"
+  }
+]

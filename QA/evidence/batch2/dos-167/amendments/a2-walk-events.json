@@ -1,0 +1,64 @@
+[
+  {
+    "t": 1081,
+    "kind": "granted",
+    "permission": "local-network-access"
+  },
+  {
+    "t": 1178,
+    "kind": "opfs-final-walk",
+    "files": [
+      {
+        "path": "expo-sqlite/",
+        "kind": "directory"
+      },
+      {
+        "path": "expo-sqlite/b1hp8rrvsnf",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/g3jhk0zj8p9",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/j5zgtmd6e3p",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/mi6ny70pfgh",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/rm83bhxvu1i",
+        "kind": "file",
+        "size": 4096,
+        "sqlitePath": "",
+        "magic": ""
+      },
+      {
+        "path": "expo-sqlite/spfbgxhthbn",
+        "kind": "file",
+        "size": 4091904,
+        "sqlitePath": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+        "magic": "XXXXXXXXXXXXXXXX"
+      }
+    ]
+  },
+  {
+    "t": 1241,
+    "kind": "screenshot",
+    "file": "a2-20-opfs-at-the-end.png"
+  }
+]

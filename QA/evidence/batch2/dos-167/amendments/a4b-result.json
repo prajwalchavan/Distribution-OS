@@ -1,0 +1,317 @@
+{
+ "orderId": "01a0ba24-f6cc-702b-965b-e7d3e9122bb9",
+ "wantedHeader": "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n",
+ "sqlBefore": "count\n0\n(1 row)",
+ "before": {
+  "label": "the sign-in form run A left behind",
+  "notPersisted": false,
+  "stillLoading": false,
+  "signInForm": true,
+  "path": "/sign-in",
+  "strip": "(none)"
+ },
+ "opfsBefore": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "sizes": [
+   4091904
+  ],
+  "magic": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "syncCalls": [
+  {
+   "t": 313,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 362,
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo0O"
+  },
+  {
+   "t": 489,
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 60577,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 60659,
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 60720,
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 60753,
+   "method": "POST",
+   "path": "/sync/upload"
+  },
+  {
+   "t": 60869,
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 60882,
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  }
+ ],
+ "firstSyncCall": {
+  "t": 313,
+  "method": "GET",
+  "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+ },
+ "firstUploadAt": 60753,
+ "firstPullAt": 362,
+ "uploadBeforePull": false,
+ "after": {
+  "label": "after the queue had gone",
+  "notPersisted": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now"
+ },
+ "opfsAfter": {
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "sizes": [
+   4091904
+  ],
+  "magic": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ "ordersBody": "TE\nTarsun Enterprise\nsalesperson\nBeat\nOrders\nShops\nMe\nSETUP\nSettings\nUpdated just now\nRD\nRahul Deshmukh\nsalesperson\nMy orders\nWaiting: 0\nDrafts: 3\nOrders\nNeeds you\nTravelling\nAll\nDrafts\nSO-0870\n19 Sep\n₹1,01,531.00\nPacked\nSO-0875\n19 Sep\n₹12,707.00\nPacked\nSO-0873\n19 Sep\n₹17,736.00\nSubmitted\nSO-0868\n19 Sep\n₹7,690.00\nBeing picked\nSO-0876\n19 Sep\n₹5,367.00\nSubmitted\nSO-0874\n19 Sep\n₹12,837.00\nConfirmed\nSO-0871\n19 Sep\n₹17,531.00\nConfirmed\nSO-0867\n19 Sep\n₹11,300.00\nPacked\nSO-0857\n18 Sep\n₹14,962.00\nOn the van\nSO-0855\n18 Sep\n₹22,508.00\nOn the van\nSO-9001\n17 Sep\n₹2,327.00\nPacked",
+ "sqlAfter": {
+  "count": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id|created_at\n01a0ba24-f6cc-702b-965b-e7d3e9122bb9||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|34191c43-f0bc-70ab-a39d-fcbe8f94ae36|2026-09-19 20:27:43.376568+05:30\n(1 row)",
+  "lines": "count\n1\n(1 row)",
+  "ops": "(sql error: ERROR:  column \"payload\" does not exist\nLINE 1: ...outcome::text,120) as outcome from sync_ops where payload::t...\n                                                             ^\n)"
+ },
+ "net": [
+  {
+   "t": 2002,
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/login"
+  },
+  {
+   "t": 2077,
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/login"
+  },
+  {
+   "t": 2099,
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916202&signature=1a7a554282"
+  },
+  {
+   "t": 2242,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 2249,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 2291,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo0O"
+  },
+  {
+   "t": 2412,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo0O"
+  },
+  {
+   "t": 2418,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 2423,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 62506,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 62527,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 62588,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 62642,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 62649,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 62656,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 62682,
+   "kind": "request",
+   "method": "POST",
+   "path": "/sync/upload"
+  },
+  {
+   "t": 62759,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/upload"
+  },
+  {
+   "t": 62798,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 62803,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 62811,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 62844,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 62856,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 62860,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 70994,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 70995,
+   "kind": "request",
+   "method": "POST",
+   "path": "/auth/refresh"
+  },
+  {
+   "t": 70997,
+   "kind": "response",
+   "status": 401,
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 71017,
+   "kind": "response",
+   "status": 200,
+   "path": "/auth/refresh"
+  },
+  {
+   "t": 71030,
+   "kind": "request",
+   "method": "GET",
+   "path": "/storage/tenant/01a0b9b5-4765-777d-8073-f34f3a983513/branding/logo.jpg?expires=1789916271&signature=859ec4359b"
+  },
+  {
+   "t": 71032,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 71035,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+  },
+  {
+   "t": 71073,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 71110,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/pull?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xOVQxNDo1N"
+  },
+  {
+   "t": 71117,
+   "kind": "request",
+   "method": "GET",
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  },
+  {
+   "t": 71121,
+   "kind": "response",
+   "status": 200,
+   "path": "/sync/errors?deviceId=01a0ba24-d503-7580-9fbe-167dea11d03b&unresolvedOnly=true&limit=50"
+  }
+ ]
+}
