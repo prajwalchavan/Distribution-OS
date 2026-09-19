@@ -1,6 +1,7 @@
 /**
- * What D4 and D5 hand to the stop screen once the write is made (DOS-149), and what D4 refuses before
- * it asks for a photograph (DOS-148).
+ * D4's own rules, in one testable place: what it hands to the stop screen once the write is made
+ * (DOS-149), what it refuses before it asks for a photograph (DOS-148), and what a typed piece count
+ * means on a bill line (DOS-064).
  *
  * WHY A HANDOVER AT ALL. Both doorstep screens end the same way: the write lands, and the driver is put
  * back on the stop. A toast raised on D4 or D5 is drawn by a screen that `router.replace` is already
@@ -10,12 +11,12 @@
  * render's own `persistent`, so the app never promises a keep the store may not be able to make
  * (never-list #12, DOS-167 ruling 3 (ee)).
  *
- * Runs under vitest, not under Metro (the pattern `doorstep.ts` set): it imports `Translator` from the
- * kit — pure TypeScript, the string layer with no renderer — and nothing here may reach for a component
- * or a platform module.
+ * Runs under vitest, not under Metro (the pattern `doorstep.ts` set): what it takes from the kit is
+ * `Translator` and `parsePieces`, and from the domain `orderMachine` — pure TypeScript, no renderer.
+ * Nothing here may reach for a component or a platform module.
  */
 import { orderMachine, type OrderState } from '@dos/domain'
-import type { Translator } from '@dos/ui'
+import { parsePieces, type Translator } from '@dos/ui'
 
 import { keepKey } from './keep'
 
@@ -133,4 +134,22 @@ export function doorstepOrderBlock(
 /** The sentence for that refusal: what happened to the goods, and who the driver tells (UX-00 §12). */
 export function doorstepOrderRefusal(t: Translator, block: DoorstepOrderBlock): string {
   return block === 'godown' ? t('d4.notLoaded') : t('d4.notOnThisVan')
+}
+
+// ---------------------------------------------------------------------------
+// DOS-064 — pieces on a bill line
+// ---------------------------------------------------------------------------
+
+/**
+ * What a typed piece count means on a bill line: whole pieces, capped at what the bill carries — or
+ * null when what was typed is not a count at all.
+ *
+ * The cap is the same one the case stepper has always had (`Math.min(pieces, billed)`): a driver may
+ * drop less than the bill and never more, and whatever is not dropped is what comes back. `parsePieces`
+ * is the kit's, so "1,200" reads as 1200 and "1.5" is refused rather than silently truncated to 1.
+ */
+export function droppedPieces(typed: string, billedPcs: number): number | null {
+  const parsed = parsePieces(typed)
+  if (!parsed.ok) return null
+  return Math.max(0, Math.min(parsed.pieces, billedPcs))
 }

@@ -28,10 +28,13 @@ import {
   Row,
   Screen,
   Segments,
+  Sheet,
   Stack,
   StatusChip,
   TextInput,
   Txt,
+  parsePieces,
+  stepPiece,
   useColors,
   wordFor,
   useStrings,
@@ -47,6 +50,7 @@ import {
   doorDoneHref,
   doorstepOrderBlock,
   doorstepOrderRefusal,
+  droppedPieces,
 } from '../../../src/lib/at-the-door'
 import { longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
@@ -108,6 +112,101 @@ interface LineEntry {
 
 /** Free pieces are delivered and returned like any other piece (`RecordDeliveryInput`'s own rule). */
 const billedPieces = (line: LocalInvoiceLine): number => line.qty_pcs + line.free_qty_pcs
+
+/** The line whose pieces pad is open, with what it was showing when it opened. */
+interface PieceLine {
+  id: string
+  name: string
+  /** Pieces on the bill: the pad may go to any number of them and never past it. */
+  billed: number
+  pieces: number
+}
+
+/**
+ * D4 · the "Pieces" sheet (DOS-064): drop an exact count off a bill line — 70 of 75 when a shop refuses
+ * five loose bottles — or nudge it a piece at a time. The kit's `parsePieces` reads what was typed
+ * (whole pieces, "1,200" included, "1.5" refused rather than truncated) and the count is capped at what
+ * the bill carries, which is the same cap the case stepper has always had. The line's committed count
+ * fills the field when the sheet opens and is never live-updated while it is open.
+ */
+function PiecesSheet({
+  line,
+  onClose,
+  onSet,
+}: {
+  line: PieceLine | null
+  onClose: () => void
+  onSet: (pieces: number) => void
+}): React.JSX.Element {
+  const t = useStrings()
+  const [text, setText] = useState('')
+
+  useEffect(() => {
+    if (line !== null) setText(String(line.pieces))
+  }, [line])
+
+  const typed = parsePieces(text)
+  const value = line === null ? null : droppedPieces(text, line.billed)
+  const over = typed.ok && line !== null && typed.pieces > line.billed
+
+  return (
+    <Sheet
+      open={line !== null}
+      onClose={onClose}
+      title={t('qty.piecesTitle')}
+      testID="d4-pieces-sheet"
+    >
+      <Stack gap={4}>
+        <Txt field="bodyStrong" desk="body">
+          {line?.name ?? ''}
+        </Txt>
+        <TextInput
+          testID="d4-pieces-input"
+          label={t('qty.piecesLabel')}
+          value={text}
+          onChange={setText}
+          keyboard="decimal"
+          autoFocus
+          {...(text.trim() !== '' && !typed.ok ? { error: t('qty.piecesInvalid') } : {})}
+          {...(over ? { helper: t('d4.atMost', { pieces: line.billed }) } : {})}
+        />
+        <Row gap={3}>
+          <Button
+            testID="d4-piece-less"
+            label={t('qty.pieceLess')}
+            variant="secondary"
+            disabled={!typed.ok || typed.pieces <= 0}
+            onPress={() => {
+              if (typed.ok) setText(String(stepPiece(typed.pieces, -1)))
+            }}
+          />
+          <Button
+            testID="d4-piece-more"
+            label={t('qty.pieceMore')}
+            variant="secondary"
+            disabled={!typed.ok || (line !== null && typed.pieces >= line.billed)}
+            disabledReason={line === null ? undefined : t('d4.atMost', { pieces: line.billed })}
+            onPress={() => {
+              if (typed.ok) setText(String(stepPiece(typed.pieces, 1)))
+            }}
+          />
+        </Row>
+        <Button
+          testID="d4-pieces-set"
+          variant="primary"
+          size="floor"
+          fullWidth
+          label={t('qty.piecesSet')}
+          disabled={value === null}
+          disabledReason={t('qty.piecesInvalid')}
+          onPress={() => {
+            if (value !== null) onSet(value)
+          }}
+        />
+      </Stack>
+    </Sheet>
+  )
+}
 
 export default function AtTheDoor(): React.JSX.Element {
   const t = useStrings()
@@ -171,6 +270,8 @@ export default function AtTheDoor(): React.JSX.Element {
   const [proof, setProof] = useState<CapturedProof | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** DOS-064: which line's pieces pad is open, or null. */
+  const [pieceLine, setPieceLine] = useState<PieceLine | null>(null)
 
   /** Open on the likeliest outcome: the whole bill goes in. Every tap after that is a correction. */
   useEffect(() => {
@@ -301,6 +402,25 @@ export default function AtTheDoor(): React.JSX.Element {
   /** DOS-148: null unless the office has answered AND would refuse this very outcome on this bill. */
   const notOnTheVanBlock = doorstepOrderBlock(orderQuery.data?.item.state, outcome)
   const notOnTheVan = notOnTheVanBlock === null ? null : doorstepOrderRefusal(t, notOnTheVanBlock)
+
+  /**
+   * How many pieces of ONE line go in, from either control — the case stepper or the pieces pad. What
+   * is not dropped is what comes back, so the two halves of a line can never disagree with the credit
+   * note the office raises from them.
+   */
+  const drop = (lineId: string, pieces: number, billed: number): void => {
+    const capped = Math.max(0, Math.min(pieces, billed))
+    setEntries((held) => ({
+      ...held,
+      [lineId]: {
+        id: held[lineId]?.id ?? uuidv7(),
+        returnedSaleable: held[lineId]?.returnedSaleable ?? true,
+        reason: held[lineId]?.reason ?? null,
+        deliveredQtyPcs: capped,
+        returnedQtyPcs: billed - capped,
+      },
+    }))
+  }
 
   const setAll = (mode: 'full' | 'none'): void => {
     setEntries((held) => {
@@ -659,8 +779,21 @@ export default function AtTheDoor(): React.JSX.Element {
                       pieces={delivered}
                       caseSize={caseSize > 0 ? caseSize : 1}
                       onChange={(pieces) => {
-                        const capped = Math.max(0, Math.min(pieces, billed))
-                        set({ deliveredQtyPcs: capped, returnedQtyPcs: billed - capped })
+                        drop(line.id, pieces, billed)
+                      }}
+                      /*
+                       * DOS-064: a shop refusing five loose bottles of a 3 cs + 3 pc line had no
+                       * control at all — the case steps went 75 → 51 → 27, and a line under one case
+                       * could only go to zero. The pad is the kit's own (DOS-085), the same one S3 and
+                       * the manager's credit notes open.
+                       */
+                      onOpenPieces={() => {
+                        setPieceLine({
+                          id: line.id,
+                          name: line.description,
+                          billed,
+                          pieces: delivered,
+                        })
                       }}
                     />
                     {returned === 0 ? null : (
@@ -769,6 +902,17 @@ export default function AtTheDoor(): React.JSX.Element {
           </Txt>
         )}
       </Stack>
+
+      <PiecesSheet
+        line={pieceLine}
+        onClose={() => {
+          setPieceLine(null)
+        }}
+        onSet={(pieces) => {
+          if (pieceLine !== null) drop(pieceLine.id, pieces, pieceLine.billed)
+          setPieceLine(null)
+        }}
+      />
     </Screen>
   )
 }

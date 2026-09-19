@@ -247,6 +247,8 @@ export const strings = {
   'd4.creditNote': 'Credit note {no} raised for what did not go in',
   'd4.creditNoteQueued': 'The office raises the credit note when this reaches them',
   'd4.mismatch': 'Dropped plus taken back must equal what is on the bill',
+  /* DOS-064 — the pieces pad's own cap: nothing may be dropped that was never on the bill. */
+  'd4.atMost': 'Only {pieces} pc are on this bill',
   /*
    * DOS-148 — the bill the godown never counted out. The office refuses it whatever the phone does
    * (`deliveries.record`), and used to refuse it in the order machine's own words, in red, after the
@@ -487,6 +489,17 @@ export const strings = {
   'd12.targetProgress': '{achieved} of {target}',
   'd12.noTarget': 'No target set for you this month',
   'd12.consent': 'Location',
+
+  /*
+   * DOS-064 — THE KIT'S ZERO WORD, SAID BY AN APP THAT HAS NO ORDER SCREENS.
+   *
+   * `QtyStepper` prints `qty.notOrdered` where the case line would go once a line reaches zero, and the
+   * kit's catalogue answers "Not ordered" — true on S3, where a line at zero is an item nobody asked
+   * for. Both of this app's steppers mean something else. On D4 the line is PRINTED ON THE BILL in the
+   * driver's hand and zero means the shop took none of it; on the van sale it means nobody has put any
+   * of it on this bill yet. One word is true of both, and it is the answer to "how many": none.
+   */
+  'qty.notOrdered': 'Nothing',
 
   // --- the trade's own words for machine values ------------------------------------------------------
   'word.planned': 'Planned',
