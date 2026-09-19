@@ -42,6 +42,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../src/api'
+import { checkInBlock, dayEndCash } from '../src/lib/check-in'
 import { longDate } from '../src/lib/dates'
 import {
   addressLine,
@@ -141,16 +142,15 @@ export default function DaySummary(): React.JSX.Element {
   const tripDate = trip?.trip_date ?? remote?.tripDate ?? null
   const tripState = trip?.state ?? remote?.state ?? null
   /*
-   * WHAT THE PHONE HOLDS THAT THE OFFICE HAS NOT COUNTED.
+   * WHAT THE PHONE STILL HOLDS (DOS-169).
    *
-   * `settlementPreview` adds up `collections`; a doorstep receipt taken with no signal goes back as a
-   * `receipts` op (docs/23 §5.4 — `collections` is not a writable sync table), so it reaches
-   * receivables correctly and writes NO collections row, and the preview never sees it. Measured in
-   * the gate on TRIP-NEXT: the office said cash ₹5,000 and this phone held receipts for ₹7,500 on the
-   * same trip, and the screen told the driver to hand over ₹11,070 — ₹2,500 less than the money in
-   * their hand, with nothing on screen saying why. The difference is stated and the hand-over figure
-   * carries the cash half of it; the backend half (a `collections` sync handler that a device may
-   * actually reach) is in this slice's open points.
+   * `settlementPreview` now counts the trip's own RECEIPTS, however they reached the office — a
+   * doorstep payment taken with no signal goes back as a `receipts` op (docs/23 §5.4: `collections`
+   * is not a writable sync table) and is counted the moment it lands. So the phone adds only what it
+   * has NOT sent yet; it used to add everything it held on top of a figure that was already right,
+   * which asked the driver for the same rupee twice. On a settled trip it adds nothing at all: those
+   * figures are the ones the office settled with, and a receipt arriving afterwards is refused
+   * `trip_settled` — that money goes over the counter to the cashier. Both rules are `dayEndCash`.
    */
   /*
    * The stop list of a trip this phone does not hold (a settled one opened from D11) comes from the
@@ -185,20 +185,27 @@ export default function DaySummary(): React.JSX.Element {
     .filter((row) => row.mode === 'cash')
     .reduce((sum, row) => sum + row.amount_paise, 0)
   const deviceAllPaise = receipts.rows.reduce((sum, row) => sum + row.amount_paise, 0)
-  const countedAllPaise =
-    figures === undefined
-      ? 0
-      : figures.cashCollectedPaise + figures.upiCollectedPaise + figures.chequeCollectedPaise
-  const uncountedCashPaise =
-    figures === undefined ? 0 : Math.max(0, deviceCashPaise - figures.cashCollectedPaise)
-  const uncountedAllPaise =
-    figures === undefined ? 0 : Math.max(0, deviceAllPaise - countedAllPaise)
-  const handOverPaise =
-    figures === undefined ? null : figures.expectedCashPaise + uncountedCashPaise
+  const { handOverPaise, uncountedAllPaise, note } = dayEndCash({
+    tripState,
+    figures,
+    deviceCashPaise,
+    deviceAllPaise,
+  })
 
   const odometerKm = odometer.trim() === '' ? null : Number.parseInt(odometer.trim(), 10)
   const odometerBad = odometer.trim() !== '' && (odometerKm === null || Number.isNaN(odometerKm))
   const onTheRoad = tripState === 'active'
+  /*
+   * THE PHONE'S RECORDS GO BEFORE THE VEHICLE DOES (DOS-169). `trips.return` hands the trip to the
+   * office, which settles on what has reached it; a doorstep receipt still in the outbox would land
+   * after that and be refused. So a full outbox blocks check-in, and the driver is told the count.
+   */
+  const blocked = checkInBlock({
+    onTheRoad,
+    online: status.online,
+    pending: status.pending,
+    odometerBad,
+  })
 
   if (tripId === null) {
     return (
@@ -249,9 +256,15 @@ export default function DaySummary(): React.JSX.Element {
             size="floor"
             fullWidth
             loading={back.status === 'pending'}
-            disabled={!onTheRoad || odometerBad || !status.online}
+            disabled={blocked !== null}
             disabledReason={
-              !onTheRoad ? t('d8.notActive') : !status.online ? t('d6.online') : t('d2.odometer')
+              blocked === 'notActive'
+                ? t('d8.notActive')
+                : blocked === 'offline'
+                  ? t('d6.online')
+                  : blocked === 'pending'
+                    ? t('d8.pendingBlocks', { count: status.pending })
+                    : t('d2.odometer')
             }
             onPress={() => {
               setConfirming(true)
@@ -322,9 +335,9 @@ export default function DaySummary(): React.JSX.Element {
                   amount: formatINR(paise(handOverPaise ?? 0)),
                 })}
               </Txt>
-              {uncountedAllPaise === 0 ? null : (
+              {note === null ? null : (
                 <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
-                  {t('d8.uncounted', { amount: formatINR(paise(uncountedAllPaise)) })}
+                  {t(note, { amount: formatINR(paise(uncountedAllPaise)) })}
                 </Txt>
               )}
               <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
