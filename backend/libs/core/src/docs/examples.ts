@@ -2497,14 +2497,26 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
   // QA DOS-176 / DOS-177. Both are CREATING procedures whose row id is the client's, and both used to publish
   // ONE fixed id: the first service's document took it and every other service, and every later run, pressed an
   // id somebody else already held — a row RLS hides from them, so the insert died on the primary key (500).
+  //
+  // A proof id THIS example's own delivery holds is NOT spent, though — pressing it again is a REPLAY
+  // (`addPodInTx` matches the id AND the delivery), so it stays free and the document keeps publishing it.
+  // It has to: a delivery carries at most ten pieces of proof (`MAX_POD_PER_DELIVERY`), three services
+  // publish this example (owner, manager, delivery — `DOORSTEP`) onto the SAME delivery, and adding proof
+  // never changes which delivery that is. A walk that only ever handed out UNHELD ids would therefore add
+  // three rows per smoke run — 1 -> 4 -> 7 -> 10 — and put the example, and `pnpm smoke` with it, on a
+  // permanent 400 on the fourth run. Re-publishing what is already there also RECOVERS a database that has
+  // already spent the budget. Only `ctx.deliveryId` counts as "mine": the shopkeeper lane's delivery
+  // (`linkedDeliveryId`) is a different row, and a lane that pressed an id held on IT would get the 409.
   const podIds: TakenIds = async (candidates) =>
     new Set(
       (
         await tx
-          .select({ id: podEvidence.id })
+          .select({ id: podEvidence.id, deliveryId: podEvidence.deliveryId })
           .from(podEvidence)
           .where(and(eq(podEvidence.tenantId, tenantId), inArray(podEvidence.id, [...candidates])))
-      ).map((row) => row.id),
+      )
+        .filter((row) => row.deliveryId !== ctx.deliveryId)
+        .map((row) => row.id),
     )
   // A consent is per PERSON, so the whole tenant's rows are the taken set, not just one user's.
   const consentIds: TakenIds = async (candidates) =>
@@ -4021,7 +4033,9 @@ const OVERRIDES: Record<
   }),
   // The proof id is the client's and it walks the free-slot sequence (QA DOS-176): a fixed id meant every
   // service after the first pressed proof another crew's delivery already holds, and `pod_evidence_read`
-  // hides that row from a crew member, so the insert died on the primary key.
+  // hides that row from a crew member, so the insert died on the primary key. The walk re-publishes a slot
+  // THIS delivery already holds rather than spending the next one (`podIds`): proof is capped at ten a
+  // delivery, and three services press this example on every smoke run.
   'delivery.deliveries.addPod': (ctx, options) => {
     const slot = slotOf(ctx, 'delivery.deliveries.addPod')
     return {
