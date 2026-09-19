@@ -1,0 +1,491 @@
+[
+ {
+  "t": 2167,
+  "kind": "signed-in",
+  "tab": "tab1"
+ },
+ {
+  "t": 12184,
+  "kind": "says",
+  "label": "tab1 signed in, persistent store expected",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 12267,
+  "kind": "screenshot",
+  "file": "a4c-01-tab1-persistent-home.png"
+ },
+ {
+  "t": 12285,
+  "kind": "opfs",
+  "when": "tab1 open",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 21327,
+  "kind": "page-offline",
+  "tab": "tab1",
+  "offline": true,
+  "navigatorOnLine": false
+ },
+ {
+  "t": 22483,
+  "kind": "draft",
+  "tab": "tab1",
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "id": "01a0ba2f-50b1-7168-a0fd-760bdc10d572",
+  "lines": [
+   {
+    "id": "01a0ba2f-740b-742a-84fc-d395f4aacd1f",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 52484,
+  "kind": "screenshot",
+  "file": "a4c-02-tab1-draft-offline.png"
+ },
+ {
+  "t": 56535,
+  "kind": "says",
+  "label": "tab1 order queued, unsent",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 86535,
+  "kind": "screenshot",
+  "file": "a4c-03-tab1-order-queued.png"
+ },
+ {
+  "t": 86541,
+  "kind": "opfs",
+  "when": "tab1 queued",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 86571,
+  "kind": "sql",
+  "when": "before tab 2",
+  "count": "count\n0\n(1 row)"
+ },
+ {
+  "t": 116573,
+  "kind": "control-window",
+  "seconds": 30,
+  "pageErrors": []
+ },
+ {
+  "t": 116576,
+  "kind": "says",
+  "label": "tab1 after 30 s alone and offline",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 116581,
+  "kind": "opfs",
+  "when": "after control",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 119470,
+  "kind": "console",
+  "tab": "tab2",
+  "source": "page",
+  "type": "warning",
+  "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+ },
+ {
+  "t": 128248,
+  "kind": "says",
+  "label": "tab2, ten seconds after opening",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 128297,
+  "kind": "screenshot",
+  "file": "a4c-04-tab2-early.png"
+ },
+ {
+  "t": 128300,
+  "kind": "says",
+  "label": "tab2 settled",
+  "notPersisted": true,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 128363,
+  "kind": "screenshot",
+  "file": "a4c-05-tab2-memory-line.png"
+ },
+ {
+  "t": 128422,
+  "kind": "opfs",
+  "when": "from tab2",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 128425,
+  "kind": "says",
+  "label": "tab1 while tab2 is open",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 128455,
+  "kind": "screenshot",
+  "file": "a4c-07-tab1-while-tab2-open.png"
+ },
+ {
+  "t": 128459,
+  "kind": "opfs",
+  "when": "tab1 while tab2 open",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 133674,
+  "kind": "tab1-order-rows",
+  "when": "tab2 open",
+  "rows": 11
+ },
+ {
+  "t": 133699,
+  "kind": "screenshot",
+  "file": "a4c-08-tab1-orders-while-tab2-open.png"
+ },
+ {
+  "t": 133708,
+  "kind": "console",
+  "tab": "tab2",
+  "source": "page",
+  "type": "warning",
+  "text": "offline: no persistent store; running in memory {name: s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n, fallback: Object}"
+ },
+ {
+  "t": 143186,
+  "kind": "page-offline",
+  "tab": "tab2",
+  "offline": true,
+  "navigatorOnLine": false
+ },
+ {
+  "t": 144316,
+  "kind": "draft",
+  "tab": "tab2",
+  "gotCatalog": true,
+  "key": "dos.sales.draft.8760e17e-4830-7395-a946-1e02fffa1ad7.34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "id": "01a0ba31-2cbb-7250-9a1d-9087e43ff407",
+  "lines": [
+   {
+    "id": "01a0ba31-4ffe-75e7-b6e0-9ad7004db17b",
+    "variantId": "f086f3e3-3697-7439-98d9-f20c231c110a",
+    "qtyPcs": 24
+   }
+  ]
+ },
+ {
+  "t": 148374,
+  "kind": "says",
+  "label": "tab2 before the Sign out tap",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:33 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 148424,
+  "kind": "screenshot",
+  "file": "a4c-09-tab2-before-sign-out.png"
+ },
+ {
+  "t": 151842,
+  "kind": "screenshot",
+  "file": "a4c-10-tab2-leave-sheet.png"
+ },
+ {
+  "t": 151842,
+  "kind": "tab2-leave-sheet",
+  "sheet": true,
+  "text": "2 changes have not reached the office Close This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention. No connection — they cannot go now. Cancel",
+  "body": "This browser cannot keep them once you leave. Send them now while there is a signal — without one, stay signed in until there is. Anything refused can be fixed or discarded in Needs attention.",
+  "keepButton": false,
+  "sendNowButton": false,
+  "cancelButton": true,
+  "signInForm": false
+ },
+ {
+  "t": 153376,
+  "kind": "says",
+  "label": "tab2 after Cancel",
+  "notPersisted": false,
+  "savedOnPhone": true,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders/new?retailerId=34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+  "strip": "Offline since 8:33 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 153386,
+  "kind": "tab2-closed"
+ },
+ {
+  "t": 155390,
+  "kind": "says",
+  "label": "tab1 just before the reload",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 167877,
+  "kind": "says",
+  "label": "tab1 reloaded, still offline",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders",
+  "strip": "Offline since 8:30 pm · 2 waiting to send",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 167941,
+  "kind": "screenshot",
+  "file": "a4c-11-tab1-reloaded-offline.png"
+ },
+ {
+  "t": 167945,
+  "kind": "opfs",
+  "when": "after reload, offline",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 173766,
+  "kind": "tab1-order-rows",
+  "when": "after reload",
+  "rows": 11
+ },
+ {
+  "t": 173825,
+  "kind": "screenshot",
+  "file": "a4c-12-tab1-orders-after-reload.png"
+ },
+ {
+  "t": 175028,
+  "kind": "page-offline",
+  "tab": "tab1",
+  "offline": false,
+  "navigatorOnLine": true
+ },
+ {
+  "t": 223951,
+  "kind": "sync-after-online",
+  "firstUploadMs": 49711,
+  "firstPullMs": 49599,
+  "calls": [
+   {
+    "t": 49520,
+    "method": "GET",
+    "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 49575,
+    "method": "GET",
+    "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 49599,
+    "method": "GET",
+    "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&lim"
+   },
+   {
+    "t": 49669,
+    "method": "GET",
+    "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&u"
+   },
+   {
+    "t": 49711,
+    "method": "POST",
+    "path": "/sync/upload"
+   },
+   {
+    "t": 49799,
+    "method": "GET",
+    "path": "/sync/manifest?knownSchemaVersion=36957a3c3b8da665"
+   },
+   {
+    "t": 49813,
+    "method": "GET",
+    "path": "/sync/pull?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&lim"
+   },
+   {
+    "t": 49856,
+    "method": "GET",
+    "path": "/sync/errors?deviceId=01a0ba2f-283d-72b3-8afc-ad63ca87c2ae&u"
+   }
+  ]
+ },
+ {
+  "t": 231965,
+  "kind": "says",
+  "label": "tab1 after the queue went",
+  "notPersisted": false,
+  "savedOnPhone": false,
+  "stillLoading": false,
+  "signInForm": false,
+  "path": "/orders",
+  "strip": "Updated just now",
+  "who": "Rahul Deshmukh"
+ },
+ {
+  "t": 232037,
+  "kind": "screenshot",
+  "file": "a4c-13-tab1-sent.png"
+ },
+ {
+  "t": 237428,
+  "kind": "screenshot",
+  "file": "a4c-14-tab1-orders-sent.png"
+ },
+ {
+  "t": 237433,
+  "kind": "opfs",
+  "when": "final",
+  "fileCount": 6,
+  "headers": [
+   "/s80j3azqcg6our25a35rhwbg7r03gwbfseos24f0kl71vrczd3n"
+  ],
+  "wantedPresent": true,
+  "extraHeaders": [],
+  "sizeOfWanted": [
+   4091904
+  ],
+  "magicOfWanted": [
+   "SQLite format 3."
+  ],
+  "unreadable": 0
+ },
+ {
+  "t": 237504,
+  "kind": "sql-final",
+  "count": "count\n1\n(1 row)",
+  "row": "id|order_no|state|source|salesperson_id|retailer_id\n01a0ba2f-50b1-7168-a0fd-760bdc10d572||draft|salesperson|8760e17e-4830-7395-a946-1e02fffa1ad7|34191c43-f0bc-70ab-a39d-fcbe8f94ae36\n(1 row)",
+  "lines": "count\n1\n(1 row)"
+ }
+]

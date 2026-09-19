@@ -1,0 +1,29 @@
+{
+ "afterOffline": {
+  "onLine": false,
+  "events": [
+   {
+    "e": "offline",
+    "at": 1789830350159,
+    "onLine": false
+   }
+  ]
+ },
+ "afterOnline": {
+  "onLine": true,
+  "events": [
+   {
+    "e": "offline",
+    "at": 1789830350159,
+    "onLine": false
+   },
+   {
+    "e": "online",
+    "at": 1789830351667,
+    "onLine": true
+   }
+  ]
+ },
+ "offlineEventFired": true,
+ "onlineEventFired": true
+}

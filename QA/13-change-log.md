@@ -810,3 +810,9 @@ Run `wf_1683f0e7-b83` — two analysts on different lenses, then an adversarial 
 Both belong in the queued demo-data slice (docs/23 §10).
 
 **Open for the founder:** has any real collection ever been entered into Distribution OS, or does Tarsun's money still live only in the old books? If a real book exists anywhere — another database, a backup, an export from TradeEzee — name it and the repair re-runs against that. Until then there is nothing to correct. The copy `dos_test_q3_repair` is kept for now; the list is at `QA/evidence/batch2/dos-q3-repair/sign-off-list.md`.
+
+### QA/STATE.md pruned, and the machine held awake (2026-09-19 evening)
+
+**Held awake two ways**, at the founder's word ("keep system on, dont let it sleep"): the desktop app's own keep-awake hold, plus `caffeinate -dimsu -t 86400` (pid 58695), confirmed by `pmset -g assertions` showing `PreventUserIdleSystemSleep 1`. That covers idle sleep for 24 hours; a closed lid or a manual Sleep still sleeps, which is worth knowing rather than assuming.
+
+**STATE pruned from 107 lines of mixed history to current state only** (the previous version is kept in the session scratchpad as `STATE-before-prune.md`, and every fact in it that still matters is in this change log). The reason is not tidiness. Twice today a stale note in STATE sent work down a wrong path: the eleven "open" founder questions that `docs/22` had already answered on 2026-09-13, and a Q3 money repair aimed at a database that turns out to hold no real money. Both cost real work. STATE now opens with the rule that caused them — **read `docs/22` for what the founder has decided, never a note in STATE; if the two disagree, docs/22 wins and STATE is wrong** — and carries only what is running, what is queued, what merged today, the state of each database, and the standing rules. History lives here; findings live in `QA/findings/12`.
