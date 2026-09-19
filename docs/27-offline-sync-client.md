@@ -6,12 +6,12 @@ decide. No PowerSync, no vendor: SQLite on the device, four procedures of the `s
 
 ## 1. Scope and roles
 
-| App | Holds | Sends |
-| --- | --- | --- |
-| sales, delivery, warehouse | the role's read set (manifest) | the write queue (`sync.upload`) |
-| owner, manager | the read set, for reading on a bad connection | nothing offline in v1 — every desk write is an online oRPC call; the queue is present but unused |
-| retailer | the read set (own bills, orders, dues, catalog, prices) | nothing: `upload` is refused for the role by the permission matrix |
-| admin | nothing | nothing |
+| App                        | Holds                                                   | Sends                                                                                            |
+| -------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| sales, delivery, warehouse | the role's read set (manifest)                          | the write queue (`sync.upload`)                                                                  |
+| owner, manager             | the read set, for reading on a bad connection           | nothing offline in v1 — every desk write is an online oRPC call; the queue is present but unused |
+| retailer                   | the read set (own bills, orders, dues, catalog, prices) | nothing: `upload` is refused for the role by the permission matrix                               |
+| admin                      | nothing                                                 | nothing                                                                                          |
 
 Thirteen tables accept uploads today (`SyncRegistry.register` in the owning modules): `sales_orders`, `sales_order_lines`, `visits`,
 `receipts`, `allocations`, `collections`, `deliveries`, `pod_evidence`, `trip_stops`, `trip_expenses`, `pick_lines`, `documents`,
@@ -26,7 +26,7 @@ interface SyncStore {
   exec(sql: string, params?: unknown[]): Promise<void>
   query<T>(sql: string, params?: unknown[]): Promise<T[]>
   transaction<T>(fn: (tx: SyncStore) => Promise<T>): Promise<T>
-  persistent: boolean            // false only for the memory adapter
+  persistent: boolean // false only for the memory adapter
   kind: 'sqlite-native' | 'sqlite-web' | 'memory'
 }
 ```
@@ -62,6 +62,23 @@ A file has one holder at a time in a process (merge review of ruling 2): an engi
 resolved and opens it only once the holder before has let go — the engine of the same person still ending after a sign-out, or a
 sweep counting that file — and a sweep skips a file somebody holds (`offline: sweep skipped a store in use`).
 
+**On a browser there is also one OPEN at a time, for every name (ruling 3 (aa), 2026-09-19).** `openStore` in
+`store/open.web.ts` runs every call through one module-level chain: a second open waits for the first to SETTLE, success or
+failure, before it touches `expo-sqlite`; a rejection does not break the chain. `probeStoreKind()` stays outside it, because it
+opens nothing, and `open.native.ts` keeps no chain — each `openDatabaseAsync` there is its own native handle. The per-file
+holder above is not enough: it serialises one NAME, and the measured bug (S-138, P1) was three DIFFERENT names — this person's
+file, the legacy destroy, the 199952b sweep — landing in one microtask batch. When the expo-sqlite chunk and its wa-sqlite
+worker arrive late (a cold start, the first load after a deploy, a weak connection) all three reach the worker before its first
+init resolves: `expo-sqlite/web/worker.ts` `maybeInitAsync()` assigns `_sqlite3` only after its own `await`, so each builds its
+own WASM module and its own `AccessHandlePoolVFS` over one OPFS directory, and `wa-sqlite/sqlite-api.js:34-35` keeps ONE
+module-global scratch cell that `open_v2` writes and reads back across an await, so the calls swap file names. Measured 41 times
+in the browser, Metro and a production `expo export` alike: `jOpen zName=""`, `0.<random>` orphans flagged MAIN_DB that the
+pool's six slots never reclaim, `SQLiteError: not a database`, no `/sync` for 240 s, and `cannot create file` for the NEXT
+person on that browser profile. Serialising the product fixes it (6/6 on Metro, 3/3 in production); patching the libraries alone
+does not (0/3), and raising `AccessHandlePoolVFS.DEFAULT_CAPACITY` is explicitly not the fix — the slots go to garbage-named
+files, not to real demand. `openStore(name, deps?)` takes an optional second argument (`loadSqlite`, `timeoutMs`) purely as the
+test seam, so the rule is provable in Node without mocking the bare specifier; it is still a `StoreFactory`.
+
 Everything below is plain SQL that all three run identically. No ORM on the device.
 
 ## 3. Local schema
@@ -78,8 +95,8 @@ or the stored identity differs, checked at open before any read.
   - `_sync_state(key TEXT PRIMARY KEY, value TEXT)` — `cursor`, `schemaVersion`, `role`, `tenantId`, `userId`, `deviceId`,
     `lastPulledAt`, `lastUploadAt`, `protocol`. `userId` and `tenantId` are the stamp of who the file belongs to, written at open.
   - `_outbox(seq INTEGER PRIMARY KEY AUTOINCREMENT, op_id TEXT UNIQUE, tbl TEXT, row_id TEXT, op TEXT, data TEXT, base_updated_at TEXT,
-    idempotency_key TEXT, status TEXT, attempts INTEGER, created_at TEXT, sent_at TEXT, acked_at TEXT, rejection_code TEXT,
-    rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
+idempotency_key TEXT, status TEXT, attempts INTEGER, created_at TEXT, sent_at TEXT, acked_at TEXT, rejection_code TEXT,
+rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected`.
   - `_gps_buffer(ts TEXT, trip_id TEXT, lat REAL, lng REAL, accuracy_m REAL, speed_mps REAL, posted INTEGER)` — delivery only (§8).
   - `_sync_errors` — a mirror of the server's `sync_errors` rows for this device, so "Needs attention" works offline.
     Mirroring is BEST EFFORT: `sync.errors.list` is STAFF-only, the oRPC client exposes it to every app because the contract is
@@ -149,12 +166,12 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 
 ## 7. Conflict rules
 
-| Case | Rule |
-| --- | --- |
-| Insert-only tables (`visits`, `receipts`, `allocations`, `collections`, `deliveries`, `pod_evidence`, `trip_expenses`) | no `baseUpdatedAt`; cannot conflict |
-| Edit of a pulled row (`sales_orders` before submit, `trip_stops`, `pick_lines`) | `baseUpdatedAt` = the row's `updated_at` as pulled; server vetoes if stale |
-| Same row edited on two devices | the second write is `stale`; that device re-pulls and re-applies or drops, by the user's choice |
-| Local delete | `DELETE` op only on tables the server accepts it for; otherwise a status change, never a delete |
+| Case                                                                                                                   | Rule                                                                                            |
+| ---------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Insert-only tables (`visits`, `receipts`, `allocations`, `collections`, `deliveries`, `pod_evidence`, `trip_expenses`) | no `baseUpdatedAt`; cannot conflict                                                             |
+| Edit of a pulled row (`sales_orders` before submit, `trip_stops`, `pick_lines`)                                        | `baseUpdatedAt` = the row's `updated_at` as pulled; server vetoes if stale                      |
+| Same row edited on two devices                                                                                         | the second write is `stale`; that device re-pulls and re-applies or drops, by the user's choice |
+| Local delete                                                                                                           | `DELETE` op only on tables the server accepts it for; otherwise a status change, never a delete |
 
 The server is always right. The client never resolves a conflict by itself; it shows both versions and asks.
 
@@ -178,20 +195,20 @@ the shared PDF (rendered by the worker) carries the legal one. A slip is never r
 the last 30 s". Built that way it lied and then broke the client: the foreground pull runs every **60** s, so a phone
 with a perfect connection spent half of every minute saying "Offline — saved on this phone", and because the poll was
 itself gated on `online`, the first time it went stale the poll stopped scheduling work — **one pull per launch, for
-ever**, on every read-only app (owner, manager, retailer). `online` is now *the radio is on AND the last call reached a
-service* — a claim about the last thing we tried, not about the clock. Freshness is a different question and the strip
+ever**, on every read-only app (owner, manager, retailer). `online` is now _the radio is on AND the last call reached a
+service_ — a claim about the last thing we tried, not about the clock. Freshness is a different question and the strip
 already answers it from `lastPulledAt` ("Stock as of 9:40 am" past four hours, UX-00 §6.11). The poll is never gated on
 the state it produces: **the poll is the probe**.
 
 ```ts
 interface SyncStatus {
-  online: boolean                      // navigator.onLine / NetInfo AND the last call reached a service
+  online: boolean // navigator.onLine / NetInfo AND the last call reached a service
   store: 'sqlite-native' | 'sqlite-web' | 'memory'
   lastPulledAt: string | null
   pulling: boolean
-  pending: number                      // queued + sending
+  pending: number // queued + sending
   oldestPendingAt: string | null
-  rejected: number                     // needs attention
+  rejected: number // needs attention
   uploading: boolean
   schemaVersion: string | null
 }
@@ -288,15 +305,15 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
 
 ## 14. Failure modes
 
-| Failure | Behaviour |
-| --- | --- |
-| Device clock wrong | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational |
-| App killed mid-upload | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome) |
-| Server rolled forward (new manifest) | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot) |
-| Token expired while offline | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue |
-| Another person signs in on this phone | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167) |
-| Sign out tapped while a write is in hand | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167) |
-| Storage full | writes fail loudly ("Phone storage is full"); nothing is silently dropped |
+| Failure                                  | Behaviour                                                                                                                         |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Device clock wrong                       | cursors are server-issued; only `created_at` on outbox rows uses the device clock and it is informational                         |
+| App killed mid-upload                    | ops are `sending`; on restart they revert to `queued` and re-send with the same `opId` (server replay returns the stored outcome) |
+| Server rolled forward (new manifest)     | next manifest call re-snapshots; queued ops are sent before the drop (never lose writes to a re-snapshot)                         |
+| Token expired while offline              | queue keeps growing; refresh on reconnect; a dead refresh token prompts sign-in without wiping the queue                          |
+| Another person signs in on this phone    | a different file; a stamped file opened by the wrong identity is wiped before any read (DOS-167)                                  |
+| Sign out tapped while a write is in hand | finished, counted, file kept for that person; a write attempted after the tap → refused, never saved, never deleted (DOS-167)     |
+| Storage full                             | writes fail loudly ("Phone storage is full"); nothing is silently dropped                                                         |
 
 ## 15. What this does not do (yet)
 
