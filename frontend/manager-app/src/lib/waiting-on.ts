@@ -28,7 +28,7 @@ export interface GatedOrder {
 }
 
 /**
- * The kinds `order` is still waiting on, first raised first, each named once.
+ * The kinds `order` is still waiting on, most recently raised first, each named once.
  *
  * A gate belongs to this order when it names it. The one exception is a credit-limit gate raised
  * against the SHOP rather than an order (`entityType: 'retailer'`, no `orderId`): the shop's limit
