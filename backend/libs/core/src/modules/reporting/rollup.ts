@@ -468,6 +468,9 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
      where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
        and i.state not in ('draft', 'cancelled')
        and rule ->> 'ruleId' is not null
+       -- DOS-018: a line carries every rule the engine applied; only a SCHEME is scheme spend, and a
+       -- bargain counted here fell to the company side and looked like a claim to raise on a brand.
+       and coalesce(rule ->> 'kind', 'scheme') = 'scheme'
      group by 1`)
 
   const marginRow = margin.rows[0]
@@ -545,9 +548,15 @@ async function refreshOwnerSummary(
       from daily_tenant_stats where tenant_id = ${tenantId} and day = ${day}`)
   const pending = await tx.execute(sql`
     select count(*)::int as pending from approvals where tenant_id = ${tenantId} and status = 'pending'`)
+  /*
+   * DOS-018: trips ON THE ROAD. The owner's tile reads "{n} trips active" and the live map draws the
+   * vans that are out; counting `planned` (tomorrow's round), `loading` (still at the godown) and
+   * `closing` (back at the godown, being counted) made the tile say two while the map showed one.
+   * The manager's tile reads the same column and is cured by the same count.
+   */
   const active = await tx.execute(sql`
     select count(*)::int as active from trips
-     where tenant_id = ${tenantId} and state in ('planned', 'loading', 'active', 'closing')`)
+     where tenant_id = ${tenantId} and state = 'active'`)
   const inTransit = await tx.execute(sql`
     select coalesce(sum(r.amount_paise), 0)::bigint as paise
       from receipts r

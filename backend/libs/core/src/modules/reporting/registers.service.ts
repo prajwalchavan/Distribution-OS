@@ -179,15 +179,24 @@ export class ReportingRegistersService {
         to: input.to,
         ...(input.brandId ? { brandId: input.brandId } : {}),
       })
+      /*
+       * DOS-018: `applied_rules` carries EVERY rule the pricing engine applied to a line — an
+       * override, a scheme, an approved bargain, a manual price (`AppliedRule.kind`, @dos/domain) —
+       * and billing's aggregate returns that kind with each row. A bargain is a price argued for on
+       * one order and a scheme is a published offer with a funder behind it; counting them together
+       * put rows named "Scheme <id>", with no brand, on the owner's Profit screen, because no scheme
+       * of that id exists. Scheme spend is what the SCHEMES cost.
+       */
+      const schemeRules = spend.filter((row) => row.kind === 'scheme')
       const schemes = await this.schemes.schemesByIds(
         tx,
-        spend.map((r) => r.ruleId),
+        schemeRules.map((r) => r.ruleId),
       )
       const brands = await brandLabels(
         tx,
         [...schemes.values()].map((s) => s.brandId ?? '').filter((id) => id.length > 0),
       )
-      const rows: SchemeSpendRow[] = spend
+      const rows: SchemeSpendRow[] = schemeRules
         .map((row) => {
           const scheme = schemes.get(row.ruleId)
           return {

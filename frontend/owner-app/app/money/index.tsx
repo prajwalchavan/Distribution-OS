@@ -45,6 +45,7 @@ import {
   textColumn,
   useNames,
 } from '../../src/lib/ui'
+import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { rangeOf, shortDate, today, type RangeId } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -406,6 +407,16 @@ export default function OutstandingListItem(): React.JSX.Element {
                 {today()}
               </Txt>
             ) : null}
+            {/*
+              The two writes that now stay open on a refusal. `statements` is not one of them: DOS-007
+              gave it a toast of its own, queued or refused, because the answer it carries (how many
+              went out) belongs on the screen and not on a dialog that is already gone.
+            */}
+            <Refusal
+              of={[rebuild, writeOff]}
+              scope={dialog === null ? null : `${dialog}:${selected ?? 'all'}:${billId ?? 'none'}`}
+              testID="money-dialog-refusal"
+            />
           </Stack>
         }
         confirmLabel={
@@ -426,7 +437,16 @@ export default function OutstandingListItem(): React.JSX.Element {
             setNote('')
             setAmount(null)
           }
-          if (dialog === 'rebuild') void rebuild.mutateAsync(null).then(done, done)
+          /*
+            DOS-015: the rebuild answers the date it aged to and the shops it re-aged, and that answer
+            is the only thing on this screen that can tell a rebuild from a refusal — the ladder above
+            is unchanged either way when the worker's own nightly pass has already done the work.
+          */
+          if (dialog === 'rebuild')
+            void rebuild.mutateAsync(null).then((result) => {
+              done()
+              setToast(t('o10.rebuilt', { date: shortDate(result.asOf), count: result.retailers }))
+            }, stayOpen)
           if (dialog === 'statement')
             void statements
               .mutateAsync({ retailerIds: rows.slice(0, 200).map((row) => row.retailerId) })
@@ -443,7 +463,7 @@ export default function OutstandingListItem(): React.JSX.Element {
           if (dialog === 'writeOff' && billId !== null && amount !== null && amount > 0)
             void writeOff
               .mutateAsync({ invoiceId: billId, amountPaise: amount, note: note.trim() })
-              .then(done, done)
+              .then(done, stayOpen)
         }}
         testID="money-dialog"
       />

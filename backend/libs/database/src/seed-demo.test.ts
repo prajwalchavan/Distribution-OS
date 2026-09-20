@@ -670,4 +670,28 @@ describeDb('demo seed on an empty database', () => {
       .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
     expect(drift).toEqual([])
   }, 60_000)
+
+  /**
+   * DOS-018: every trip the demo writes carries a number of the TRIP series' own shape,
+   * `TRIP-<yyyymmdd>-<n>` (`tenant-bootstrap.ts` gives the series the prefix `TRIP-`). Two did not:
+   * today's active trip was `TRIP-ACTIVE` and tomorrow's planned round `TRIP-NEXT`, placeholders that
+   * reached the owner's live map and trips register and read as internal labels on the screen a
+   * distributor shows a driver.
+   */
+  it('DOS-018: no seeded trip is numbered TRIP-ACTIVE or TRIP-NEXT; every trip number is of the TRIP series shape', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+
+    const numbers = (
+      await db.execute(
+        sql`SELECT trip_no FROM trips WHERE tenant_id = ${tenantId} ORDER BY trip_no`,
+      )
+    ).rows as { trip_no: string | null }[]
+    expect(numbers.length).toBeGreaterThan(1)
+    expect(numbers.filter((r) => r.trip_no === 'TRIP-ACTIVE' || r.trip_no === 'TRIP-NEXT')).toEqual(
+      [],
+    )
+    expect(numbers.filter((r) => !/^TRIP-\d{8}-\d+$/.test(r.trip_no ?? ''))).toEqual([])
+    // And they are still one per trip: a number nobody can tell from another is no better.
+    expect(new Set(numbers.map((r) => r.trip_no)).size).toBe(numbers.length)
+  }, 180_000)
 })

@@ -240,11 +240,22 @@ export interface MixSegment {
 /**
  * Largest-remainder allocation so the printed percentages add up to 100.0 exactly — the same rule the
  * pricing engine uses to spread an order-level discount to the paisa.
+ *
+ * DOS-002: a series may ARRIVE with a fold of its own — the reporting API answers `topGroups` named
+ * groups plus one literally called "Other" — and sorted by value that fold often outranks a real
+ * group. Folding blindly at the fifth position then pushed a named group into a SECOND segment with
+ * the same label, and the chart printed "Other" twice while hiding the brand. A slice already called
+ * `otherLabel` is therefore never a head segment: it joins this chart's own fold, and the one
+ * "Other" that results is the last segment whatever its size.
  */
 export function mixSegments(slices: readonly MixSlice[], otherLabel: string): MixSegment[] {
   const sorted = [...slices].sort((a, b) => b.value - a.value)
-  const head = sorted.slice(0, chart.maxMixSlices - 1)
-  const tail = sorted.slice(chart.maxMixSlices - 1)
+  const named = sorted.filter((s) => s.label !== otherLabel)
+  const head = named.slice(0, chart.maxMixSlices - 1)
+  const tail = [
+    ...named.slice(chart.maxMixSlices - 1),
+    ...sorted.filter((s) => s.label === otherLabel),
+  ]
   const merged: MixSlice[] =
     tail.length > 0
       ? [...head, { label: otherLabel, value: tail.reduce((sum, s) => sum + s.value, 0) }]
