@@ -315,6 +315,26 @@ export default function OrderQueue(): React.JSX.Element {
       const kinds = waitingOnKinds(row, pending)
       return kinds.length === 0 ? null : kinds.map(word).join(' · ')
     }),
+    /*
+     * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit CONFIRMS and
+     * carries a notice the desk reads here; strict and stop are held by the gate and carry the same
+     * notice. The chip reads the order's own record, never a second credit rule.
+     */
+    {
+      key: 'credit',
+      head: t('m2.creditNotice'),
+      priority: 'chip',
+      cell: (row) => {
+        if (row.creditNotice === null) return null
+        const held = waitingOnKinds(row, pending).includes('credit_limit')
+        return (
+          <StatusChip
+            label={t(held ? 'm2.overLimitHeld' : 'm2.overLimitWarn')}
+            family={held ? 'brick' : 'ochre'}
+          />
+        )
+      },
+    },
     textColumn('placed', t('m2.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
@@ -681,6 +701,28 @@ export default function OrderQueue(): React.JSX.Element {
                   family={STATE_FAMILY[order.state] ?? 'neutral'}
                 />
               </Field>
+              {order.creditNotice === null ? null : (
+                <Field label={t('m2.creditNotice')}>
+                  <Stack gap={1} testID="order-credit-notice">
+                    <Txt
+                      field="body"
+                      desk="body"
+                      color={
+                        order.creditNotice.headroomPaise < 0 ? colors.status.ochre.fg : undefined
+                      }
+                    >
+                      {t('m2.creditNoticeLine', {
+                        owed: formatINR(paise(order.creditNotice.outstandingPaise)),
+                        limit: formatINR(paise(order.creditNotice.creditLimitPaise)),
+                        mode: word(order.creditNotice.creditMode),
+                      })}
+                    </Txt>
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {order.creditNotice.reasons.map(word).join(' · ')}
+                    </Txt>
+                  </Stack>
+                </Field>
+              )}
               {order.stockShortages.length === 0 ? null : (
                 <Field label={t('m2.shortAtGodown')}>
                   <Stack gap={1} testID="order-stock-shortages">

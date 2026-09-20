@@ -55,6 +55,7 @@ import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
 import { today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import { orderOutcome } from '../../src/lib/outcome'
+import { creditChipCopy, placedCopy } from '../../src/lib/placed'
 import {
   useBargains,
   useCatalogIndex,
@@ -166,6 +167,20 @@ export default function OrderEntry(): React.JSX.Element {
     { enabled: local.online && basket.length > 0, staleTime: 30_000 },
   )
 
+  /*
+   * DOS-081: the office's own credit verdict, BEFORE the tap. The rep may ask for it (permissions.ts
+   * CREDIT_CHECKERS) and the device never re-implements the rule — this shows `creditCheck`'s own
+   * reasons and headroom, and it never disables Place: stop and strict HOLD the order, the doorway
+   * does not refuse it (docs/plans/receivables.md §4.14). Keyed on the whole rupee, so a stepper tap
+   * that does not move the rupee figure reads the cached answer instead of asking again.
+   */
+  const draftNetPaise = quote.result?.totals.netPaise ?? 0
+  const creditCheck = useQuery(
+    ['receivables', 'creditCheck', retailerId, Math.floor(draftNetPaise / 100)],
+    () => api.api.receivables.creditCheck({ retailerId, orderTotalPaise: draftNetPaise }),
+    { enabled: local.online && draftNetPaise > 0, staleTime: 30_000 },
+  )
+
   /** The shop's own last basket, ready to be the whole order in one tap. */
   const usual: DraftLine[] = useMemo(
     () =>
@@ -232,6 +247,7 @@ export default function OrderEntry(): React.JSX.Element {
           queued: true as const,
           priceChanges: [] as PriceChange[],
           shortages: [] as OrderShortage[],
+          reply: null,
         }
       }
 
@@ -275,6 +291,12 @@ export default function OrderEntry(): React.JSX.Element {
         queued: false as const,
         priceChanges,
         shortages: submitted.item.stockShortages,
+        /*
+         * DOS-081: submitted, not confirmed, means the office is holding this order — the reply says
+         * so and the banner must too. "Order placed" over a credit hold sends the rep away from the
+         * counter believing the goods are coming.
+         */
+        reply: { state: submitted.item.state, approvalFlags: submitted.item.approvalFlags },
       }
     },
     {
@@ -342,6 +364,10 @@ export default function OrderEntry(): React.JSX.Element {
    * for a basket the rep has already changed never becomes the figure read across the counter.
    */
   const payable = payableSummary({ netPaise, discountPaise }, payableQuote.data?.totals ?? null)
+  /* DOS-081: what the office will say about this shop's credit, in its own words. Offline: nothing. */
+  const creditChip = creditChipCopy(creditCheck.data)
+  /* DOS-081: and, after the tap, whether it was placed or held — from the reply, not the radio. */
+  const placedWords = placedCopy(outcome, place.data?.reply)
 
   /** The header's status row (DOS-161): pinned above the scroll at desk width, scrolled with the body off it. */
   const orderChips = (
@@ -358,6 +384,16 @@ export default function OrderEntry(): React.JSX.Element {
           figure
         />
       ) : null}
+      {creditChip === null ? null : (
+        <StatusChip
+          testID="credit-chip"
+          label={t(creditChip.key, {
+            over: formatINR(paise(creditChip.overPaise)),
+            days: creditChip.overdueDays,
+          })}
+          family={creditChip.family}
+        />
+      )}
       {local.online ? null : <StatusChip label={t('s0.offlineChip')} family="ochre" />}
     </Row>
   )
@@ -382,8 +418,9 @@ export default function OrderEntry(): React.JSX.Element {
        */
       label={
         placed !== null
-          ? // DOS-180: what became of THIS order, never what the radio is doing now.
-            t(outcome.buttonKey)
+          ? // DOS-180: what became of THIS order, never what the radio is doing now; DOS-081
+            // narrows the office's own branch into placed / held.
+            t(placedWords.buttonKey)
           : local.online
             ? t('s3.place')
             : t(keepKey('queue', local.persistent))
@@ -470,12 +507,12 @@ export default function OrderEntry(): React.JSX.Element {
         {phone ? orderChips : null}
         {placed !== null ? (
           <Panel
-            title={t(outcome.titleKey)}
+            title={t(placedWords.titleKey)}
             meta={
               // The office's own words when it refused; otherwise the sentence for this state.
               outcome.kind === 'refused' && rejection !== undefined
                 ? rejection.error.message
-                : t(outcome.bodyKey)
+                : t(placedWords.bodyKey)
             }
           >
             <Stack gap={3}>

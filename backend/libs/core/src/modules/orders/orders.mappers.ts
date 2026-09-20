@@ -38,6 +38,7 @@ export function toOrder(row: OrderRow, office: boolean): Order {
     totalPaise: row.totalPaise,
     approvalFlags: row.approvalFlags,
     stockShortages: office ? row.stockShortages : [],
+    creditNotice: office ? row.creditNotice : null,
     expectedDeliveryDate: row.expectedDeliveryDate,
     note: row.note,
     submittedAt: iso(row.submittedAt),

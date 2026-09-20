@@ -10,6 +10,7 @@ import {
   QueryIntSchema,
 } from './common.js'
 import { AppliedRuleSchema } from './pricing.js'
+import { CreditCheckOutput } from './receivables.js'
 import { PaymentTermsSchema } from './retailers.js'
 
 /**
@@ -113,6 +114,22 @@ export const OrderShortageSchema = z.object({
 
 export type OrderShortage = z.infer<typeof OrderShortageSchema>
 
+/**
+ * The shop's credit position when the order was submitted, in the words `receivables.creditCheck`
+ * uses — the device never re-implements the rule (DOS-081). Present on an order whose check found
+ * anything to say, in EVERY credit mode; it is a notice, not a gate.
+ */
+export const CreditNoticeSchema = CreditCheckOutput.pick({
+  creditMode: true,
+  reasons: true,
+  outstandingPaise: true,
+  creditLimitPaise: true,
+  headroomPaise: true,
+  overdueDays: true,
+  orderTotalPaise: true,
+})
+export type CreditNotice = z.infer<typeof CreditNoticeSchema>
+
 export const OrderSchema = z.object({
   id: IdSchema,
   /** Assigned from the `SO` series at submit, never at draft (ADR 0001). */
@@ -141,6 +158,12 @@ export const OrderSchema = z.object({
    * the order confirms short and the warehouse decides what to do with it.
    */
   stockShortages: z.array(OrderShortageSchema),
+  /**
+   * The shop's credit position at submit when the check found something to say (DOS-081): a "warn at
+   * the limit" shop's order confirms and carries this; strict and stop carry it beside their gate.
+   * Office-only — `null` for a retailer-role caller — and `null` when nothing was wrong.
+   */
+  creditNotice: CreditNoticeSchema.nullable(),
   expectedDeliveryDate: z.string().nullable(),
   note: z.string().nullable(),
   submittedAt: z.string().nullable(),

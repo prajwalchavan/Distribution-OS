@@ -153,8 +153,10 @@ export const strings = {
   's2.creditDays': 'Credit days',
   's2.openBills': 'Open bills',
   's2.terms': 'Terms',
-  's2.creditRunsAtSubmit':
-    'The office checks the credit ({mode}) when the order is submitted, not here.',
+  /* DOS-081: the office's own verdict at the door, not "the office checks it, not here". */
+  's2.creditHeadroom': 'Headroom {amount} · {mode}',
+  's2.creditOver': 'Over the limit by {amount} · {mode}',
+  's2.creditOffline': 'Owes {owed} of {limit} — checked again at submit',
   's2.schemes': 'Schemes this shop is in',
   's2.schemesMeta': 'Live today. The price screen applies them.',
   's2.schemeWindow': '{from} to {to}',
@@ -208,6 +210,23 @@ export const strings = {
    */
   's3.queueTab': 'Hold until there is a signal',
   's3.queuedTab': 'Held in this tab only',
+  /* DOS-081: the office took it but is holding it — and what it waits on. */
+  's3.held': 'Waiting for the office',
+  's3.heldTitle': 'With the office',
+  's3.heldBody': 'It has its number. The office decides before it ships.',
+  's3.heldCreditTitle': 'Held for credit',
+  's3.heldCreditBody': 'The office decides before it ships.',
+  's3.heldBargainTitle': 'Waiting on the rate you asked for',
+  's3.heldBargainBody': 'The office decides the rate, then the order goes ahead.',
+  's3.heldFloorTitle': 'Waiting for the office',
+  's3.heldFloorBody': 'A price on this order is below the floor.',
+  /* DOS-081: the credit verdict BEFORE the tap. It never stops the tap. */
+  's3.creditWillHoldOver': 'Will be held for credit — over the limit by {over}',
+  's3.creditWillHoldOverdue': 'Will be held for credit — {days} days overdue',
+  's3.creditWillHoldBills': 'Will be held for credit — too many open bills',
+  's3.creditWarnOver': 'Over the credit limit by {over} (warn only)',
+  's3.creditWarnOverdue': '{days} days overdue (warn only)',
+  's3.creditWarnBills': 'Too many open bills (warn only)',
   's3.placedTitle': 'Order placed',
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */

@@ -78,6 +78,15 @@ type Detail = {
   totalPaise: number
   approvalFlags: string[]
   stockShortages: Shortage[]
+  creditNotice: {
+    creditMode: string
+    reasons: string[]
+    outstandingPaise: number
+    creditLimitPaise: number
+    headroomPaise: number
+    overdueDays: number
+    orderTotalPaise: number
+  } | null
   cancelReason: string | null
   lines: Line[]
   transitions: { event: string; toState: string; actorId: string; deviceId: string | null }[]
@@ -112,6 +121,7 @@ describeDb('orders (DATABASE_URL)', () => {
   const retailerA = uuidv7() // credit mode `indicate`, linked to shopUserId
   const retailerB = uuidv7() // credit mode `strict` with a ₹10 limit
   const retailerC = uuidv7() // credit mode `stop` with a ₹10 limit (DOS-020)
+  const retailerD = uuidv7() // DOS-081: `indicate` with room to spare — no notice at all
   const variantA = uuidv7() // 100 pcs in the godown
   const variantB = uuidv7() // no stock at all
   const variantCess = uuidv7() // DOS-079: on `cessHsn`, 28% GST + 12% cess, ₹22.97 a piece
@@ -256,6 +266,17 @@ describeDb('orders (DATABASE_URL)', () => {
         tier: 'C',
         creditMode: 'stop',
         creditLimitPaise: 1000,
+      },
+      {
+        id: retailerD,
+        tenantId,
+        code: `R4-${run}`,
+        name: `Shop D ${run}`,
+        phone: `+91905${run}4`,
+        stateCode: '27',
+        tier: 'C',
+        creditMode: 'indicate',
+        creditLimitPaise: 10_000_000,
       },
     ])
     await db.insert(retailerLinks).values({
@@ -1179,6 +1200,73 @@ describeDb('orders (DATABASE_URL)', () => {
       )
     ).rows as { n: number }[]
     expect(stored[0]?.n).toBe(2)
+  })
+
+  it('DOS-081: an indicate-mode shop over its limit confirms and the order carries a credit notice the desk reads', async () => {
+    // Shop A is "Warn at the limit" with a ₹0 limit, so this order takes it past it. Founder, 2026-09-13:
+    // the order GOES THROUGH and the office sees a notice on it; only strict and stop are held.
+    const id = uuidv7()
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos081-${run}`,
+      id,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    expect(created.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${id}/submit`, {
+      idempotencyKey: `submit-dos081-${run}`,
+    })
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('confirmed')
+    // A warn-mode breach is NOT a gate: `approval_flags` still means "waiting on somebody".
+    expect(submitted.body.item.approvalFlags).toEqual([])
+    expect(submitted.body.item.creditNotice).toMatchObject({
+      creditMode: 'indicate',
+      reasons: ['limit_exceeded'],
+      creditLimitPaise: 0,
+      orderTotalPaise: submitted.body.item.totalPaise,
+    })
+    // Office-only, like the approvals and the shortage record.
+    const asShop = await call<{ item: Detail }>(app, shop, 'GET', `/orders/${id}`)
+    expect(asShop.status).toBe(200)
+    expect(asShop.body.item.creditNotice).toBeNull()
+
+    // A strict shop over its limit still carries BOTH: the gate that holds it and the same notice.
+    const held = uuidv7()
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos081b-${run}`,
+      id: held,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 30, enteredUnit: 'piece' }],
+    })
+    const heldRes = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${held}/submit`, {
+      idempotencyKey: `submit-dos081b-${run}`,
+    })
+    expect(heldRes.status).toBe(200)
+    expect(heldRes.body.item.state).toBe('submitted')
+    expect(heldRes.body.item.approvalFlags).toContain('credit_limit')
+    expect(heldRes.body.item.creditNotice).toMatchObject({
+      creditMode: 'strict',
+      reasons: ['limit_exceeded'],
+    })
+
+    // A shop within its limit gets no notice at all.
+    const clean = uuidv7()
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos081c-${run}`,
+      id: clean,
+      retailerId: retailerD,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    const cleanRes = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${clean}/submit`, {
+      idempotencyKey: `submit-dos081c-${run}`,
+    })
+    expect(cleanRes.status).toBe(200)
+    expect(cleanRes.body.item.state).toBe('confirmed')
+    expect(cleanRes.body.item.creditNotice).toBeNull()
   })
 
   // -----------------------------------------------------------------------------------------------------

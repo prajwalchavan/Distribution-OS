@@ -160,6 +160,11 @@ export const strings = {
   /* DOS-079: the figure is GST plus compensation cess, so the head is not "GST". */
   'm2.tax': 'Tax',
   'm2.cessInside': 'includes cess {amount}',
+  /* DOS-081: the credit position recorded on the order at submit, in every mode. */
+  'm2.creditNotice': 'Credit',
+  'm2.overLimitHeld': 'Over limit · held',
+  'm2.overLimitWarn': 'Over limit · warn only',
+  'm2.creditNoticeLine': 'Owed {owed} against a limit of {limit} · {mode}',
   /* DOS-078: what the godown could not hold when the order confirmed. */
   'm2.short': 'Stock',
   'm2.shortCount': 'Short {count}',
@@ -912,6 +917,10 @@ export const strings = {
   'word.PRE': 'Pays in advance',
   'word.ON': 'Pays on delivery',
   'word.POST_FULFILLMENT': 'Credit',
+  /* DOS-081: the credit check's own reasons, as the desk would say them. */
+  'word.limit_exceeded': 'Over the credit limit',
+  'word.bill_count_exceeded': 'Too many open bills',
+  'word.overdue_days_exceeded': 'Bills past the agreed days',
   'word.indicate': 'Warn only',
   'word.strict': 'Needs approval',
   'word.stop': 'Blocked',

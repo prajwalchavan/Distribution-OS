@@ -16,7 +16,7 @@
  * has no GPS and the visit still gets recorded.
  */
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { haversineMetres } from '@dos/domain'
+import { formatINR, haversineMetres, paise } from '@dos/domain'
 import {
   AgeingBuckets,
   Button,
@@ -96,6 +96,17 @@ export default function ShopCard(): React.JSX.Element {
     ['receivables', 'outstanding', retailerId],
     () => api.api.receivables.outstanding.get({ retailerId }),
     { enabled: retailerId !== '' && tab === 'bills', staleTime: 60_000 },
+  )
+  /*
+   * DOS-081: the shop card said the office checks credit "not here" — but the rep may ask
+   * (`CREDIT_CHECKERS`), and what the rep needs at the door is the headroom before a single item is
+   * added. `orderTotalPaise: 0` asks about the shop as it stands. Offline the card says what the
+   * device knows and that it is checked again at submit; the device never re-implements the rule.
+   */
+  const creditNow = useQuery(
+    ['receivables', 'creditCheck', retailerId, 0],
+    () => api.api.receivables.creditCheck({ retailerId, orderTotalPaise: 0 }),
+    { enabled: retailerId !== '' && local.online, staleTime: 60_000 },
   )
 
   const beatName = beats.find((beat) => beat.id === shop?.beat_id)?.name ?? null
@@ -233,8 +244,26 @@ export default function ShopCard(): React.JSX.Element {
                   <Field label={t('s2.openBills')}>{dues?.open_bills ?? 0}</Field>
                   <Field label={t('s2.terms')}>{word(shop.payment_terms)}</Field>
                 </Row>
-                <Txt field="label" desk="meta" color={colors.text.secondary}>
-                  {t('s2.creditRunsAtSubmit', { mode: word(shop.credit_mode) })}
+                <Txt
+                  field="label"
+                  desk="meta"
+                  color={colors.text.secondary}
+                  testID="credit-verdict"
+                >
+                  {creditNow.data === undefined
+                    ? t('s2.creditOffline', {
+                        owed: formatINR(paise(dues?.outstanding_paise ?? 0)),
+                        limit: formatINR(paise(shop.credit_limit_paise ?? 0)),
+                      })
+                    : creditNow.data.headroomPaise >= 0
+                      ? t('s2.creditHeadroom', {
+                          amount: formatINR(paise(creditNow.data.headroomPaise)),
+                          mode: word(shop.credit_mode),
+                        })
+                      : t('s2.creditOver', {
+                          amount: formatINR(paise(-creditNow.data.headroomPaise)),
+                          mode: word(shop.credit_mode),
+                        })}
                 </Txt>
               </Stack>
             </Panel>

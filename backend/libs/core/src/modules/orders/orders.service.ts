@@ -272,13 +272,15 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
-    const { flags, bargainIds } = await approvalFlags(tx, order, lines)
+    const { flags, bargainIds, creditNotice } = await approvalFlags(tx, order, lines)
     const [submitted] = await tx
       .update(salesOrders)
       .set({
         state: to,
         orderNo: order.orderNo ?? (await nextDocumentNumber(tx, 'SO', now)),
         approvalFlags: flags,
+        // DOS-081: the credit position the desk reads, in every mode — a record, never a gate.
+        creditNotice,
         submittedAt: now,
         updatedAt: now,
       })

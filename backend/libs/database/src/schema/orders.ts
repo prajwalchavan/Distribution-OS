@@ -80,6 +80,23 @@ export interface StockShortage {
   shortQtyPcs: number
 }
 
+/**
+ * The shop's credit position when this order was submitted, recorded when the check found something
+ * to say (DOS-081; founder, 2026-09-13). A "warn at the limit" shop's order GOES THROUGH and the desk
+ * sees this notice on it; strict and stop are still HELD by a `credit_limit` approval, and carry the
+ * notice too. It is a record, never a gate: `approval_flags` keeps meaning "waiting on somebody".
+ */
+export interface CreditNotice {
+  /** The same words the contract's `CreditNoticeSchema` uses, like `AppliedRule`'s `kind`. */
+  creditMode: 'indicate' | 'strict' | 'stop'
+  reasons: ('limit_exceeded' | 'bill_count_exceeded' | 'overdue_days_exceeded')[]
+  outstandingPaise: number
+  creditLimitPaise: number
+  headroomPaise: number
+  overdueDays: number
+  orderTotalPaise: number
+}
+
 export const salesOrders = pgTable(
   'sales_orders',
   {
@@ -123,6 +140,8 @@ export const salesOrders = pgTable(
       .$type<StockShortage[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    /** The credit position at submit when there was something to say (DOS-081); office-only, else NULL. */
+    creditNotice: jsonb('credit_notice').$type<CreditNotice>(),
     expectedDeliveryDate: text('expected_delivery_date'),
     note: text('note'),
     submittedAt: tz('submitted_at'),

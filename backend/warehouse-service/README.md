@@ -8800,6 +8800,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9014,6 +9025,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9235,6 +9257,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9440,6 +9473,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9655,6 +9699,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9881,6 +9936,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -10083,6 +10149,17 @@ curl "http://localhost:3004/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -10265,6 +10342,17 @@ curl "http://localhost:3004/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -10467,6 +10555,17 @@ curl "http://localhost:3004/orders?state=draft&openOnly=true&retailerId=01a06dbc
           "shortQtyPcs": 24
         }
       ],
+      "creditNotice": {
+        "creditMode": "indicate",
+        "reasons": [
+          "limit_exceeded"
+        ],
+        "outstandingPaise": 2680000,
+        "creditLimitPaise": 2680000,
+        "headroomPaise": 4000,
+        "overdueDays": 7,
+        "orderTotalPaise": 2680000
+      },
       "expectedDeliveryDate": "2026-09-04",
       "note": null,
       "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -10723,6 +10822,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -22415,6 +22525,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -33197,6 +33318,17 @@ request.json
         "shortQtyPcs": 24
       }
     ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
