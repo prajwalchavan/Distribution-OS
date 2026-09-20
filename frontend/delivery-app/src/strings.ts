@@ -213,6 +213,20 @@ export const strings = {
   'd3.arrivedLabel': 'Arrived',
   'd3.openBills': '{count} bills still open at this shop',
   'd3.openBills.one': '1 bill still open at this shop',
+  /*
+   * DOS-066 — what the person holding the goods knows before they go in. Tell, never block (founder,
+   * 2026-09-13): the bill on the van already passed the credit gate at order submit. Only credit mode
+   * `stop` earns the chip and the sentence; `strict` and `indicate` look exactly as they did.
+   */
+  'd3.overdue': 'Overdue {amount} · oldest due {date}',
+  'd3.overdueNoDate': 'Overdue {amount}',
+  'd3.overdueLabel': 'Overdue',
+  'd3.daysLate': '{count} days late on the oldest bill',
+  'd3.daysLate.one': '1 day late on the oldest bill',
+  'd3.oldestDue': 'due {date}',
+  'd3.creditStopped': 'Credit stopped',
+  'd3.stoppedLine':
+    'The office has stopped credit for this shop — take the money before the goods go in.',
 
   // --- D4 at the door ----------------------------------------------------------------------------
   'd4.title': 'At the door',
