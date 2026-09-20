@@ -21280,7 +21280,7 @@ Queue a CSV / JSON export of a register (async, audited) · contract `reporting.
 |---|---|---|
 | `idempotencyKey` | string | yes |
 | `id` | uuid | yes |
-| `register` | dailySales | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
+| `register` | dailySales | orders | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
 | `format` | csv | json | no |
 | `filters` | record | no |
 | `deviceId` | string | no |

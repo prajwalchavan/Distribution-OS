@@ -51,6 +51,11 @@ export const strings = {
   'app.export': 'Export CSV',
   'app.exportQueued': 'Export queued',
   'app.exportReady': 'Download export',
+  // DOS-014: a queued export is polled, so the button says where it has got to.
+  'app.exportPreparing': 'Preparing…',
+  'app.exportReadyToast': 'Export ready',
+  'app.exportFailed': 'The export could not be prepared',
+  'app.exportSlow': 'Still preparing — see Reports → Exports',
   'app.print': 'Print',
   'app.open': 'Open',
   'app.save': 'Save changes',
@@ -587,6 +592,11 @@ export const strings = {
   'o22.tallyLedger': 'Tally ledger',
   'o22.syncLedger': 'Tally sync log',
   'o22.empty': 'No export requested yet',
+  // DOS-014: Request export asks what and when before it queues anything.
+  'o22.period': 'Period',
+  'o22.requestBody': '{register} · {format} · {from} to {to}',
+  'o22.queue': 'Queue export',
+  'o22.queuedToast': 'Export queued',
 
   // --- O23 Notifications ------------------------------------------------------------------------------------------------
   'o23.tab': 'Messages',

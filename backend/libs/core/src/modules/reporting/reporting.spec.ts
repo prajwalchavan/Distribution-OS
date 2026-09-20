@@ -70,7 +70,7 @@ import {
   type Db,
   type TenantContext,
 } from '@dos/db'
-import { tenantStorage } from '../../platform/index.js'
+import { createObjectStorage, tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { rollupTenantDay } from './rollup.js'
 import { ReportingModule } from './index.js'
@@ -1416,6 +1416,88 @@ describeDb('reporting (DATABASE_URL)', () => {
       tx.execute(sql`select count(*)::int as n from export_jobs where tenant_id = ${tenantId}`),
     )
     expect(Number((rows.rows[0] as { n: number }).n)).toBe(1)
+  })
+
+  // -----------------------------------------------------------------------------------------------
+  // DOS-014: "Export CSV" on Orders exported the daily-sales register, because there was no orders
+  // register to export. Every list the owner reads is exportable (the owner brief), so the orders list
+  // is a register of its own: one row per order, the shop and the rep named beside their ids, money in
+  // integer paise like every other register, and the same 92-day cap enforced before a job is queued.
+
+  /** The rendered file of a finished export job, read straight out of the object store. */
+  const csvOf = async (jobId: string): Promise<string> => {
+    const rows = await as(ctxFor('owner', ownerId), (tx) =>
+      tx.execute(sql`select object_key from export_jobs where id = ${jobId}`),
+    )
+    const key = (rows.rows[0] as { object_key: string | null } | undefined)?.object_key
+    expect(key).toBeTruthy()
+    return (await createObjectStorage().get(key ?? '')).toString('utf8')
+  }
+
+  it('DOS-014: an orders export renders one CSV row per order in the window with its number, shop name, state and total, honours the state filter, and refuses a window wider than 92 days with window_too_wide', async () => {
+    const id = uuidv7()
+    const queued = await call<{ item: ReportExportJob }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-${run}`,
+      id,
+      register: 'orders',
+      format: 'csv',
+      filters: { from, to },
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.item.kind).toBe('report_orders_csv')
+    expect(queued.body.item.status).toBe('succeeded')
+    expect(queued.body.item.rowCount).toBe(1)
+
+    const csv = await csvOf(id)
+    expect(csv).toContain(`SO-${run}`)
+    expect(csv).toContain(`Shop A1 ${run}`)
+    expect(csv).toContain('packed')
+    expect(csv).toContain('26880')
+    // ids travel beside the names, so the file joins to anything else the owner holds
+    expect(csv).toContain(shopA1)
+
+    // the register's own filters answer: nothing was delivered in this window
+    const empty = uuidv7()
+    const filtered = await call<{ item: ReportExportJob }>(
+      app,
+      owner,
+      'POST',
+      '/reporting/exports',
+      {
+        idempotencyKey: `exp-orders-delivered-${run}`,
+        id: empty,
+        register: 'orders',
+        format: 'csv',
+        filters: { from, to, state: 'delivered' },
+      },
+    )
+    expect(filtered.status).toBe(200)
+    expect(filtered.body.item.rowCount).toBe(0)
+
+    const wide = await call<{ code: string }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-wide-${run}`,
+      id: uuidv7(),
+      register: 'orders',
+      format: 'csv',
+      filters: { from: plusDays(to, -200), to },
+    })
+    expect(wide.status).toBe(400)
+  })
+
+  it('DOS-014: a salesperson-credited order appears in the owner’s orders export (the register is back-office scoped, not rep-scoped)', async () => {
+    const id = uuidv7()
+    const queued = await call<{ item: ReportExportJob }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-rep-${run}`,
+      id,
+      register: 'orders',
+      format: 'csv',
+      filters: { from, to, salespersonId: rep1Id },
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.item.rowCount).toBe(1)
+    const csv = await csvOf(id)
+    expect(csv).toContain('Rep One')
+    expect(csv).toContain(rep1Id)
   })
 
   // ===============================================================================================

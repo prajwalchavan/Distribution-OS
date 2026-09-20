@@ -5,27 +5,30 @@
  * this screen is a queue with a download beside every finished row. The Tally half is the ledger-name
  * map and the sync log — what this product calls an account against what Tally calls it.
  */
-import { parseReportExportKind } from '@dos/contracts'
-import type { ExportJob, TallyMapping } from '@dos/contracts'
+import { parseReportExportKind, REGISTER_WINDOW_DAYS, ReportRegisterSchema } from '@dos/contracts'
+import type { ExportJob, ReportRegister, TallyMapping } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
+  Chips,
+  Dialog,
   Register,
   Screen,
   Segments,
   Stack,
   StatusChip,
+  Toast,
   Txt,
   useStrings,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
 import { documents } from '@dos/ui/platform'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { Async, PageTabs, textColumn, useNames } from '../../src/lib/ui'
+import { Async, PageTabs, RangeSegments, textColumn, useNames } from '../../src/lib/ui'
 import { absoluteUrl } from '../../src/config'
-import { instantWithClock, rangeOf } from '../../src/lib/dates'
+import { clampWindow, instantWithClock, longDate, rangeOf, type RangeId } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
 const JOB_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -56,10 +59,41 @@ export default function Exports(): React.JSX.Element {
   const names = useNames()
   const [view, setView] = useState<'exports' | 'tally'>('exports')
 
-  const span = rangeOf('d90')
+  /*
+   * DOS-014: "Request export" fired a fixed GST-sales export for a fixed 90 days, with no dialog and
+   * no message — two identical jobs appeared and the owner learnt nothing. It now asks which register
+   * and which period, clamps the window to that register's own cap so no ask can come back 400
+   * `window_too_wide`, and says what it queued.
+   */
+  const [asking, setAsking] = useState(false)
+  const [register, setRegister] = useState<ReportRegister>('collections')
+  const [range, setRange] = useState<RangeId>('d30')
+  const [toast, setToast] = useState<string | null>(null)
+
+  const cap = REGISTER_WINDOW_DAYS[register as keyof typeof REGISTER_WINDOW_DAYS] as
+    number | undefined
+  const span = clampWindow(rangeOf(range), cap ?? 3_650)
+
   const jobs = useQuery(['integrations', 'exports'], () =>
     api.api.integrations.exports.list({ limit: 100 }),
   )
+  /*
+   * A queued job is rendered by the worker off-process, so the list must be re-read until nothing is
+   * moving; `useQuery` has no refetch interval, so the screen owns the timer and clears it.
+   */
+  const working = (jobs.data?.items ?? []).some(
+    (row) => row.status === 'queued' || row.status === 'running',
+  )
+  const refetchJobs = jobs.refetch
+  useEffect(() => {
+    if (!working) return
+    const timer = setInterval(() => {
+      void refetchJobs()
+    }, 3_000)
+    return () => {
+      clearInterval(timer)
+    }
+  }, [working, refetchJobs])
   const mappings = useQuery(
     ['integrations', 'tally', 'mappings'],
     () => api.api.integrations.tally.mappings.list({ limit: 200 }),
@@ -71,11 +105,17 @@ export default function Exports(): React.JSX.Element {
       api.api.reporting.exports.request({
         id: meta.id,
         idempotencyKey: meta.idempotencyKey,
-        register: 'gstSalesRegister',
+        register,
         format: 'csv',
         filters: { from: span.from, to: span.to },
       }),
-    { invalidates: [['integrations', 'exports']] },
+    {
+      invalidates: [['integrations', 'exports']],
+      onSuccess: () => {
+        setAsking(false)
+        setToast(t('o22.queuedToast'))
+      },
+    },
   )
 
   const open = (id: string): void => {
@@ -150,7 +190,7 @@ export default function Exports(): React.JSX.Element {
             loading={request.status === 'pending'}
             onPress={() => {
               request.reset()
-              request.mutate(null)
+              setAsking(true)
             }}
             testID="exports-request"
           />
@@ -187,6 +227,65 @@ export default function Exports(): React.JSX.Element {
           </Async>
         )}
       </Stack>
+
+      <Dialog
+        open={asking}
+        onClose={() => {
+          setAsking(false)
+        }}
+        title={t('o22.request')}
+        body={
+          <Stack gap={3}>
+            <Txt field="label" desk="meta">
+              {t('o22.register')}
+            </Txt>
+            <Chips
+              testID="exports-register-chips"
+              items={ReportRegisterSchema.options.map((id) => ({
+                id,
+                label: word(id),
+                selected: id === register,
+              }))}
+              onToggle={(id) => {
+                setRegister(id as ReportRegister)
+              }}
+            />
+            <Txt field="label" desk="meta">
+              {t('o22.period')}
+            </Txt>
+            <RangeSegments
+              value={range}
+              onChange={(id) => {
+                setRange(id as RangeId)
+              }}
+              testID="exports-period"
+            />
+            <Txt field="bodyStrong" desk="body" testID="exports-request-summary">
+              {t('o22.requestBody', {
+                register: word(register),
+                format: 'CSV',
+                from: longDate(span.from),
+                to: longDate(span.to),
+              })}
+            </Txt>
+          </Stack>
+        }
+        confirmLabel={t('o22.queue')}
+        busy={request.status === 'pending'}
+        onConfirm={() => {
+          request.mutate(null)
+        }}
+        testID="exports-request-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="exports-toast"
+      />
     </Screen>
   )
 }

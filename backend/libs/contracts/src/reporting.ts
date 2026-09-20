@@ -11,6 +11,7 @@ import {
 } from './common.js'
 import { ExportJobStatusSchema } from './integrations.js'
 import { SchemeFundingSourceSchema, SchemeRewardKindSchema } from './pricing.js'
+import { OrderStateSchema } from './orders.js'
 import { AgeingBucketSchema, AgeingBucketsSchema, ReceiptModeSchema } from './receivables.js'
 
 /**
@@ -145,6 +146,7 @@ export const SERIES_POINT_CAPS: Readonly<Record<SeriesGrain, number>> = {
  */
 export const REGISTER_WINDOW_DAYS = {
   dailySales: 92,
+  orders: 92,
   repDaily: 92,
   repProductivity: 31,
   schemeSpend: 92,
@@ -247,6 +249,8 @@ export type RankingMetric = z.infer<typeof RankingMetricSchema>
  */
 export const ReportRegisterSchema = z.enum([
   'dailySales',
+  /** The orders list itself (DOS-014): every list the owner reads is exportable. CSV only, like `outstanding`. */
+  'orders',
   'repProductivity',
   'schemeSpend',
   'stockValue',
@@ -1231,6 +1235,25 @@ export const CollectionsGroupBySchema = z.enum(['day', 'collector'])
 export type CollectionsGroupBy = z.infer<typeof CollectionsGroupBySchema>
 
 /** Window ≤ 31 days. */
+/**
+ * The orders register (DOS-014): `orders.list`'s own filters with the window REQUIRED and capped, so the
+ * file the owner downloads is the list the owner is looking at. `openOnly` is not offered — a dated export
+ * says which states it wants. No JSON GET on this contract: the screen is `orders.list`, this is the CSV.
+ */
+export const OrdersRegisterInput = registerWindow(
+  z.object({
+    from: IsoDateSchema,
+    to: IsoDateSchema,
+    state: OrderStateSchema.optional(),
+    states: z.array(OrderStateSchema).max(10).optional(),
+    retailerId: IdSchema.optional(),
+    salespersonId: IdSchema.optional(),
+    q: z.string().trim().min(1).max(60).optional(),
+    ...CursorInput,
+  }),
+  REGISTER_WINDOW_DAYS.orders,
+)
+
 export const CollectionsRegisterInput = registerWindow(
   z.object({
     from: IsoDateSchema,
