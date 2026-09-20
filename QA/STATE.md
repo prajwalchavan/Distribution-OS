@@ -8,13 +8,26 @@ Last updated: 2026-09-20, 20:15 IST
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_f5cf1873-fd0` | `wd6lkguoc` | **Finish wave 3** — runner `QA/tools/batch2/workflows/finish-wave3.js`, the ten lanes `lean-wave3.js` left unmerged, three at a time, merges serialized. |
+| `wf_03d6ec07-1f8` | `wi3counce` | **The last wave-3 lane**, `lean-retailer-platform` — runner `QA/tools/batch2/workflows/finish-retailer-platform.js`: repair, adversarial re-verify, a DEVICE walk, Fable re-review, integrate, merge. |
 
-**Wave 3 (`wf_2c3fe029-0c9`) ended 2026-09-20 23:34: 118 agents, 0 errors, 6 of its 16 groups merged.** Reading its journal, the other ten stopped for three different reasons and only one of them was a defect:
+**Wave 3 is otherwise finished. 20 of 21 lean groups are on main; 148 of 158 batch-2 findings merged.**
+`finish-wave3.js` (`wf_f5cf1873-fd0`, 40 agents, 0 errors) merged nine of its ten lanes: `lean-kit-polish`
+`a79c160`, `lean-manager-money` `2477fcf`, `lean-sales-rep` `0738479`, `lean-owner-money-approvals`
+`5fea76a`, `lean-sales-orders-pricing` `0bac7e0`, `lean-delivery-collect` `c85316a`, `lean-warehouse-pick`
+`4247c0d`, `lean-manager-order-lifecycle` `e926a7f`, `lean-warehouse-rules` `30c83f7`.
 
-- **FOUR were stopped by my own gate, not by a fault** — `lean-kit-polish`, `lean-manager-money`, `lean-sales-rep`, `lean-owner-money-approvals`. Each has an integration verdict of **pass** whose only major is "the platform walks are still owed" — one of them says so in those words ("OWED, NOT A MERGE BLOCKER"). `serious()`/`ivBad()` in that runner stopped a lane on ANY problem above minor, so it held work its own architect had cleared. That is the same over-strict stop condition already corrected once on the DOS-167 amendments lane, and it cost this wave four lanes. `finish-wave3.js` carries the corrected rule: a lane stops on a failed verdict or a **blocker**; a major is carried, logged and owed.
-- **FOUR carry real defects their verifier proved** — `lean-sales-orders-pricing` (a shop's credit limit and outstanding reach the shop's own device through `sync.pull`: `credit_notice` and `stock_shortages` were added to `sales_orders`), `lean-manager-order-lifecycle` (a deferred item built against an explicit prohibition; a production line that survives deletion with the whole warehouse suite green), `lean-retailer-platform` (DOS-102's app half calls the wrong service and can never work; its "lands where it left off" half does not survive a restart on Android or iOS), `lean-delivery-collect` (a regression introduced by its own repair round: one clock in `seed-demo/delivery.ts:522` left on the pre-fix base). Each gets a repair round, an adversarial re-verify and a fresh Fable review before anything merges.
-- **TWO owe a measurement nobody was allowed to take** — `lean-warehouse-pick` (DOS-118's residual is mitigated but never measured) and `lean-warehouse-rules` (its lane smoke). Every lane environment in wave 3 was forbidden to start a server, so that proof could not exist. `finish-wave3.js` lifts that for the walk stage only, under the port rule: if :3000–:3007 are held, use :3100 and never kill what you did not start.
+**The walk stage worked, and it is the answer to the walks-owed debt.** Given permission to start services
+under the port rule, two lanes walked web desk 1280, web phone 390, the Pixel 7 AND the iOS simulator, with
+measured geometry and screenshots in `QA/evidence/batch2/walks/`. That is the first iOS walk this programme
+has recorded. Every remaining "merged, proof owed" finding should be settled the same way, not by another
+round of static reading.
+
+**`lean-retailer-platform` failed its re-verification, honestly and usefully.** The repair moved the retailer
+home screen's memberships read onto the auth link, where `AUTH_RETRY_PATHS` (`frontend/libs/api-client/src/client.ts:38-43`)
+lists only me/sessions/revokeSession/changePassword — so a 401 on `auth.memberships.summary` is never retried
+and the home screen can still tell a shop that owes lakhs "You owe ₹0.00 across 3 distributors". Never-list #12
+in the first place a shop looks. It is a one-line set entry plus the proof that it fires, and it is what the
+run above is fixing, together with the DOS-102 device walk that no wave-3 lane was allowed to take.
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
 
@@ -42,6 +55,16 @@ Absolute 0 BROKEN survives as a **main-health** gate the integrator runs once af
 5. **Full A.12 regression** — 7 apps × browser + Android, iOS sanity. The largest device block.
 6. **Phase 2** — the cross-role chain.
 
+## One new question for the founder (raised by a lane, not yet asked)
+
+`lean-manager-order-lifecycle` hit the founder's own DOS-023 rule of 2026-09-20 — every list orders by
+server time — and found one place it cannot apply cleanly. Orders now sort by `created_at`, exactly as he
+said. **Bills and trips sort by `invoice_date` and `trip_date`**, the column each list's own window filters
+on, because a bill dated 14 Aug that was typed today would otherwise jump to the top of a 1–31 Aug window.
+The lane recorded that as the ONE stated exception in docs/22 rather than deciding it, which is right.
+Ask him: pure server time everywhere (a follow-up moves both lists to `created_at` with new indexes and
+nothing else changes), or keep the two date columns where the list is a dated register?
+
 ## Expected tomorrow (2026-09-20)
 
 The founder hands over a **real data extract** ("okk share real data extract with you tomorrow"). Copy it before reading; never work in place. Then decide which job it is, and do not start either until that is clear:
@@ -52,7 +75,7 @@ The founder hands over a **real data extract** ("okk share real data extract wit
 
 `c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · `ed3e1b7` DOS-178+179+180 honesty · `f144e29` DOS-175+176+177 money-delivery · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
 
-**Coverage: 135 of 158 batch-2 findings merged** (the ten lanes above carry the remaining 23). P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
+**Coverage: 148 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
 
 ## Databases
 
