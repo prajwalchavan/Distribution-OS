@@ -299,6 +299,15 @@ export const strings = {
   's5.cancelReason': 'Why',
   's5.cancelConfirm': 'Cancel order',
   's5.cancelNeedsSignal': 'Cancelling needs a signal',
+  /*
+   * DOS-142 — the office's own words, on the rep's screen. The row carries `cancel_reason` and
+   * `cancelled_at` and no `cancelled_by`, so the sentence never says who: a name we do not hold
+   * would be worse than none in front of the shopkeeper who placed the order.
+   */
+  's5.cancelled': 'This order was cancelled',
+  's5.cancelledReason': 'Reason given: {reason}',
+  's5.cancelledNoReason': 'No reason was recorded with the cancellation.',
+  's5.cancelledAt': 'Cancelled {when}',
   's5.notOnDevice': 'That order is not on this phone',
   's5.trayTitle': 'Needs you',
   's5.trayOnline': 'Signal is good. Anything waiting goes on its own.',

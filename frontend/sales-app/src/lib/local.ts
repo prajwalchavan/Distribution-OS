@@ -119,6 +119,8 @@ export interface LocalOrder extends LocalMeta {
   submitted_at: string | null
   confirmed_at: string | null
   cancelled_at: string | null
+  /* DOS-142: what the office typed when it cancelled. The pull has always sent it; nothing read it. */
+  cancel_reason: string | null
   created_at: string
 }
 

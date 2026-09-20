@@ -263,6 +263,31 @@ export default function OrderDetail(): React.JSX.Element {
           </Txt>
         )}
 
+        {/*
+          DOS-142 — WHY, not just that it is off.
+          The manager's own cancel dialog promises the rep will be told, and `cancel_reason` has
+          always come down with the row (`tablePull(salesOrders)` omits nothing). The rep stands in
+          the shop that placed it, so the sentence belongs here, above the lines, and not in a chip:
+          "Cancelled" alone left them ringing the office. Who cancelled is not on the row — the
+          schema has `cancelled_at` and `cancel_reason` and no `cancelled_by` — so it is not claimed.
+        */}
+        {order.state === 'cancelled' ? (
+          <Panel title={t('s5.cancelled')}>
+            <Stack gap={2}>
+              <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                {order.cancel_reason === null || order.cancel_reason.trim() === ''
+                  ? t('s5.cancelledNoReason')
+                  : t('s5.cancelledReason', { reason: order.cancel_reason })}
+              </Txt>
+              {order.cancelled_at === null ? null : (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('s5.cancelledAt', { when: instantWithClock(order.cancelled_at) })}
+                </Txt>
+              )}
+            </Stack>
+          </Panel>
+        ) : null}
+
         <Panel title={t('s5.lines')} meta={t('s5.linesMeta', { count: lines.length })}>
           {lines.length === 0 ? (
             <EmptyState message={t('s5.noLines')} />
@@ -412,6 +437,8 @@ type OrderView = Pick<
   | 'expected_delivery_date'
   | 'note'
   | 'submitted_at'
+  | 'cancelled_at'
+  | 'cancel_reason'
   | 'created_at'
 > & { _pending?: LocalOrder['_pending'] }
 
@@ -439,6 +466,8 @@ function viewOfServerOrder(item: OrderDetailWire): OrderView {
     expected_delivery_date: item.expectedDeliveryDate,
     note: item.note,
     submitted_at: item.submittedAt,
+    cancelled_at: item.cancelledAt,
+    cancel_reason: item.cancelReason,
     created_at: item.createdAt,
   }
 }
