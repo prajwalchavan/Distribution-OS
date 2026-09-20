@@ -386,6 +386,20 @@
       "when": 1789941326945,
       "tag": "0054_grns_supplier_guarantees",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1789948350515,
+      "tag": "0055_inbound_reports_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1789948350516,
+      "tag": "0056_inbound_reports_guarantees",
+      "breakpoints": true
     }
   ]
 }

@@ -178,7 +178,7 @@ export function toInbound(
     retailerName: extra.retailerName,
     body: row.body,
     // DOS-103: set on a report a shop filed from the app, null on a text the webhook captured. The
-    // column is plain text with a CHECK (migration 0049), so the mapper narrows it to the contract's
+    // column is plain text with a CHECK (migration 0056), so the mapper narrows it to the contract's
     // enum and answers null for anything else rather than putting an unknown word on the wire.
     kind: INBOUND_KINDS.includes(row.kind as InboundKind) ? (row.kind as InboundKind) : null,
     refType: INBOUND_REF_TYPES.includes(row.refType as InboundRefType)
