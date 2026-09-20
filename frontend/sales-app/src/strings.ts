@@ -156,7 +156,8 @@ export const strings = {
   's2.creditRunsAtSubmit':
     'The office checks the credit ({mode}) when the order is submitted, not here.',
   's2.schemes': 'Schemes this shop is in',
-  's2.schemesMeta': 'Live today. The price screen applies them.',
+  /* DOS-088: all of them, not the six that happened to be first — so the panel says how many. */
+  's2.schemesMeta': '{count} live today. The price screen applies them.',
   's2.schemeWindow': '{from} to {to}',
   's2.habits': 'How this shop buys',
   's2.ordersLast30': 'Orders, 30 days',

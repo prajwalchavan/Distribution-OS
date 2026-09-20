@@ -43,6 +43,7 @@ import { useMemo, useState } from 'react'
 import { longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import {
+  schemesForShop,
   useBeats,
   useLastOrderOf,
   useLocalState,
@@ -103,28 +104,13 @@ export default function ShopCard(): React.JSX.Element {
   /**
    * The schemes this shop is inside today — the banner a rep opens the door with.
    *
-   * The filter is the engine's own applicability rule (`@dos/domain`: an empty list means "no
-   * restriction", every list that is set must match), read off the same rows the price is computed
-   * from. Nothing here decides a discount; that is `priceOrder()` on the order screen.
+   * DOS-088: EVERY one of them, newest `valid_from` first. This used to end in `.slice(0, 6)` over
+   * rows held in id order, so six of the pilot's fourteen reached the panel and the month's
+   * launches were among the eight that did not. The rule itself is `schemesForShop` in
+   * `src/lib/local.ts`, where a test can reach it; nothing here decides a discount, which is
+   * `priceOrder()` on the order screen, from the same rows.
    */
-  const banners = useMemo(() => {
-    if (shop === null) return []
-    const day = today()
-    return schemes
-      .filter((row) => row.valid_from <= day && row.valid_to >= day)
-      .filter((row) => {
-        const rule = (row.applicability ?? {}) as {
-          tiers?: string[]
-          retailerIds?: string[]
-          beatIds?: string[]
-        }
-        if (rule.tiers?.length && !rule.tiers.includes(shop.tier ?? '')) return false
-        if (rule.retailerIds?.length && !rule.retailerIds.includes(shop.id)) return false
-        if (rule.beatIds?.length && !rule.beatIds.includes(shop.beat_id ?? '')) return false
-        return true
-      })
-      .slice(0, 6)
-  }, [schemes, shop])
+  const banners = useMemo(() => schemesForShop(schemes, shop, today()), [schemes, shop])
 
   if (shop === null) {
     return (
@@ -240,7 +226,7 @@ export default function ShopCard(): React.JSX.Element {
             </Panel>
 
             {banners.length === 0 ? null : (
-              <Panel title={t('s2.schemes')} meta={t('s2.schemesMeta')}>
+              <Panel title={t('s2.schemes')} meta={t('s2.schemesMeta', { count: banners.length })}>
                 <Group>
                   {banners.map((scheme) => (
                     <ListRow

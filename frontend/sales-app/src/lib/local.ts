@@ -713,6 +713,42 @@ export function useSchemes(): LocalSchemeRow[] {
   return useTable<LocalSchemeRow>('schemes', { where: 'active = 1', orderBy: 'id ASC' }).rows
 }
 
+/**
+ * DOS-088 — EVERY live scheme this shop is inside, newest first.
+ *
+ * The shop card used to end its list with `.slice(0, 6)` over rows held in `id ASC` order, so six
+ * of the pilot's fourteen live schemes reached the panel and which six was an accident of insert
+ * order: the month's launches and the order-value offer were among the eight a rep never saw. A
+ * panel a rep pitches from cannot be a sample.
+ *
+ * Schemes carry no "launch" field, so newest `valid_from` first is the nearest true ordering, with
+ * the id as the tiebreak so two schemes opened on the same day keep a stable place. The filter is
+ * unchanged and is the engine's own applicability rule (`@dos/domain`): an empty list means "no
+ * restriction", every list that IS set must match. Nothing here decides a discount — `priceOrder()`
+ * on the order screen does that, from the same rows.
+ */
+export function schemesForShop(
+  schemes: readonly LocalSchemeRow[],
+  shop: Pick<LocalRetailer, 'id' | 'tier' | 'beat_id'> | null,
+  onDate: string = today(),
+): LocalSchemeRow[] {
+  if (shop === null) return []
+  return schemes
+    .filter((row) => row.valid_from <= onDate && row.valid_to >= onDate)
+    .filter((row) => {
+      const rule = (row.applicability ?? {}) as {
+        tiers?: string[]
+        retailerIds?: string[]
+        beatIds?: string[]
+      }
+      if (rule.tiers?.length && !rule.tiers.includes(shop.tier ?? '')) return false
+      if (rule.retailerIds?.length && !rule.retailerIds.includes(shop.id)) return false
+      if (rule.beatIds?.length && !rule.beatIds.includes(shop.beat_id ?? '')) return false
+      return true
+    })
+    .sort((a, b) => b.valid_from.localeCompare(a.valid_from) || a.id.localeCompare(b.id))
+}
+
 export function useOverrides(retailerId: string | null): LocalOverride[] {
   return useTable<LocalOverride>('retailer_price_overrides', {
     where: 'retailer_id = ?',
