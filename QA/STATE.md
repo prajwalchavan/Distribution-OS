@@ -1,6 +1,6 @@
 Stage: 1
 Current phase: 4 — Implement approved changes (batch 2). Phase 2 (cross-role chain) follows.
-Last updated: 2026-09-20, early
+Last updated: 2026-09-20, 20:15 IST
 
 **This file is CURRENT STATE ONLY.** Every history — what was found, what was ruled, what was merged and why — lives in `QA/13-change-log.md`. Findings live in `QA/findings/12-batch2-new-findings.md`. Founder decisions live in `docs/22-source-of-truth.md` §8; **read docs/22, never a note in here, for what the founder has decided.** Twice on 2026-09-19 a stale note in this file sent work down a wrong path (eleven "open" questions docs/22 had already answered on 09-13, and a Q3 money repair on a database that holds no real money). If this file and docs/22 disagree, docs/22 wins and this file is wrong.
 
@@ -8,7 +8,13 @@ Last updated: 2026-09-20, early
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_3f1c…` | see below | **Lean wave 3** — the last 16 groups, 84 items, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat, three lanes at a time, merges in dependency order |
+| `wf_f5cf1873-fd0` | `wd6lkguoc` | **Finish wave 3** — runner `QA/tools/batch2/workflows/finish-wave3.js`, the ten lanes `lean-wave3.js` left unmerged, three at a time, merges serialized. |
+
+**Wave 3 (`wf_2c3fe029-0c9`) ended 2026-09-20 23:34: 118 agents, 0 errors, 6 of its 16 groups merged.** Reading its journal, the other ten stopped for three different reasons and only one of them was a defect:
+
+- **FOUR were stopped by my own gate, not by a fault** — `lean-kit-polish`, `lean-manager-money`, `lean-sales-rep`, `lean-owner-money-approvals`. Each has an integration verdict of **pass** whose only major is "the platform walks are still owed" — one of them says so in those words ("OWED, NOT A MERGE BLOCKER"). `serious()`/`ivBad()` in that runner stopped a lane on ANY problem above minor, so it held work its own architect had cleared. That is the same over-strict stop condition already corrected once on the DOS-167 amendments lane, and it cost this wave four lanes. `finish-wave3.js` carries the corrected rule: a lane stops on a failed verdict or a **blocker**; a major is carried, logged and owed.
+- **FOUR carry real defects their verifier proved** — `lean-sales-orders-pricing` (a shop's credit limit and outstanding reach the shop's own device through `sync.pull`: `credit_notice` and `stock_shortages` were added to `sales_orders`), `lean-manager-order-lifecycle` (a deferred item built against an explicit prohibition; a production line that survives deletion with the whole warehouse suite green), `lean-retailer-platform` (DOS-102's app half calls the wrong service and can never work; its "lands where it left off" half does not survive a restart on Android or iOS), `lean-delivery-collect` (a regression introduced by its own repair round: one clock in `seed-demo/delivery.ts:522` left on the pre-fix base). Each gets a repair round, an adversarial re-verify and a fresh Fable review before anything merges.
+- **TWO owe a measurement nobody was allowed to take** — `lean-warehouse-pick` (DOS-118's residual is mitigated but never measured) and `lean-warehouse-rules` (its lane smoke). Every lane environment in wave 3 was forbidden to start a server, so that proof could not exist. `finish-wave3.js` lifts that for the walk stage only, under the port rule: if :3000–:3007 are held, use :3100 and never kill what you did not start.
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
 
@@ -26,6 +32,12 @@ Absolute 0 BROKEN survives as a **main-health** gate the integrator runs once af
 1. **Money + DOS-172 platform walks** — Fable's merge-gate ruling items 2–7 (`QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`). Device-bound: they queue behind the DOS-167 walks. DOS-168/169/170 and DOS-172 are **MERGED, PROOF OWED, still OPEN** until these pass.
 2. **Lean wave 3** — the last 16 groups, 84 items, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat. Nothing is held back: all sixteen `defer` lists are empty. Waits only for the device queue above to clear.
 3. **The suspects still unprobed** — S-141, S-142, S-144, S-145, S-149, S-150, S-153, S-154, S-155. S-153 (the seed builds 44 of 48 trip settlements from the wrong table) and S-155 (a turbo cache hit reports the cross-app guards green without running them) are the two that make other tests untrustworthy; do those first.
+3b. **The four product answers of 2026-09-20 (docs/22 §8) — a lane of their own, after wave 3.** Batch 1 fixed only the mechanical half of each; these are the product clauses the founder has now decided:
+   - **DOS-075** — `priceOrder()` counts a line under an exclusive scheme toward a threshold ("bills over ₹X") while still giving it nothing from that scheme. `backend/libs/domain/src/pricing/schemes.ts` + its specs; every order/invoice line's `applied_rules` must still read true.
+   - **DOS-023** — every list in every app orders by server time, newest first, record id only as a tie-break. Batch 1 (`bdd6055`) did picking sheets alone; this is the convention across all seven apps and the contracts behind them.
+   - **DOS-043** — a trip may depart before its planned date; the trip carries the planned date and "departed early" beside it. Batch 1 (`d20a584`) settled who may depart, not when.
+   - **DOS-057 / DOS-099** — NOTHING TO BUILD. A permanent public link to a shop's papers is refused; phone sharing stays. Recorded so nobody proposes it again.
+
 4. **docs as-built** — docs/22 rows for what merged today, docs/23 §10 #6, docs/27 §14, `pnpm docs:readme` per merge.
 5. **Full A.12 regression** — 7 apps × browser + Android, iOS sanity. The largest device block.
 6. **Phase 2** — the cross-role chain.
@@ -40,7 +52,7 @@ The founder hands over a **real data extract** ("okk share real data extract wit
 
 `c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · `ed3e1b7` DOS-178+179+180 honesty · `f144e29` DOS-175+176+177 money-delivery · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
 
-**Coverage: 75 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
+**Coverage: 135 of 158 batch-2 findings merged** (the ten lanes above carry the remaining 23). P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
 
 ## Databases
 

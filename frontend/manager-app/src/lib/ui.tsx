@@ -39,6 +39,7 @@ import { useState, type ReactNode } from 'react'
 import { PAGE_TABS } from '../nav'
 import { absoluteUrl } from '../config'
 import { clampWindow, instantWithClock, type DateRange } from './dates'
+import { outcomeUnknown } from './money-intents'
 
 // ---------------------------------------------------------------------------
 // Panels and section furniture
@@ -231,6 +232,22 @@ export function Refusal({ of, scope, testID }: RefusalProps): React.JSX.Element 
  */
 export function stayOpen(): void {
   /* the refusal stays on the mutation state; <Refusal> prints it */
+}
+
+/**
+ * `stayOpen`, and read the record back when nobody knows whether the write landed (DOS-136).
+ *
+ * A 400 or a 409 is an answer, and what the panel behind the dialog shows is still true. A dropped
+ * reply or a failed service is not: the request may have committed on the way to a reply that never
+ * arrived — a banked receipt that still read "Collected" was exactly that — so the reads the surface
+ * sits on are refetched before the reader decides what to do next. The dialog still stays open with
+ * the refusal on it; this only makes sure the state behind it is the server's.
+ */
+export function stayOpenAnd(...reread: readonly (() => unknown)[]): (error: unknown) => void {
+  return (error) => {
+    if (!outcomeUnknown(error as { kind?: string } | null)) return
+    for (const read of reread) void read()
+  }
 }
 
 // ---------------------------------------------------------------------------

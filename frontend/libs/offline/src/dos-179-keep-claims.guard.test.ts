@@ -173,6 +173,13 @@ const CLASSIFIED: Readonly<Record<string, Readonly<Partial<Record<Kind, readonly
       's3.queue',
       's3.queued',
       's3.queuedTitle',
+      /*
+       * DOS-086 (merge review, 2026-09-20) gave this body the phone's verb — the held order now reads
+       * "…and this phone submits it the moment it lands" instead of sending the rep to My orders to do
+       * it by hand. It was already the device half of `keepWords.queuedBody`; saying so here is what
+       * makes the twin, the routing and the screen check apply to the sentence as well as the title.
+       */
+      's3.queuedBody',
       's3.addItemsMeta',
       's5.deviceTotal',
       's5.queuedExplain',
@@ -201,7 +208,12 @@ const CLASSIFIED: Readonly<Record<string, Readonly<Partial<Record<Kind, readonly
       's11.empty',
     ],
     hardware: ['x4.thisDevice'],
-    progress: ['s0.filling', 's4.appliesAfterSync'],
+    /*
+     * `s3.draftBody` joins the two of these for the same reason `s0.filling` is here: DOS-086's sweep
+     * is an ACTION the device is taking ("this phone is submitting it now"), over an order the same
+     * sentence says the OFFICE already has. It claims no keep — the opposite — so it needs no tab twin.
+     */
+    progress: ['s0.filling', 's3.draftBody', 's4.appliesAfterSync'],
   },
   warehouse: {
     keep: ['w.savedOnDevice', 'w5.offlineNote', 'x4.tables', 'x4.tablesLabel'],
