@@ -407,9 +407,11 @@ export class InventoryService {
    * QA DOS-054). Read from `tenant_settings` — readable by every staff role — and NEVER hard-coded at
    * the call site. An absent or malformed row is the 30-day default `bootstrapTenant` seeds; only an
    * integer >= 0 counts, so the empty string the owner's screen saves when the field is CLEARED reads
-   * as 30 — the number that screen keeps showing — and never as 0. `0` switches the rule off: every
-   * dated batch then sorts by expiry alone, and because `sellable_stock` does not filter expired lots
-   * an already-expired batch comes FIRST again, exactly as plain FEFO always did.
+   * as 30 — the number that screen keeps showing — and never as 0. `0` switches the rule off, so every
+   * batch is compliant and the order is plain FEFO again — with ONE deliberate difference: the cutoff
+   * is then today, and `sellable_stock` does not filter expired lots, so a batch that is ALREADY past
+   * its expiry sorts LAST rather than first. Safer than the plain FEFO it replaces, and still
+   * available: the rule only ever changes the ORDER, never what can be taken.
    */
   async minShelfLifeDays(tx: Db): Promise<number> {
     const { tenantId } = currentTenant()
