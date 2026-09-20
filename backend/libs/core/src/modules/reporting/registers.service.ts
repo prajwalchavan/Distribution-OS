@@ -372,7 +372,11 @@ export class ReportingRegistersService {
           stopsDelivered: row.stopsDelivered,
           stopsPartial: row.stopsPartial,
           stopsFailed: row.stopsFailed,
-          onTimeRate: ratio(row.stopsOnTime, attempted),
+          /*
+           * QA DOS-067: out of the attempted stops that CARRIED AN ETA, never out of every attempted
+           * stop — a stop nobody promised a time for is neither late nor on time (performance.ts).
+           */
+          onTimeRate: ratio(row.stopsOnTime, row.stopsWithEta),
           podCoverageRate: ratio(row.stopsWithPod, attempted),
           cashVariancePaise: row.cashVariancePaise,
         }
@@ -384,6 +388,7 @@ export class ReportingRegistersService {
           stopsPartial: acc.stopsPartial + r.stopsPartial,
           stopsFailed: acc.stopsFailed + r.stopsFailed,
           onTime: acc.onTime + r.stopsOnTime,
+          withEta: acc.withEta + r.stopsWithEta,
           pod: acc.pod + r.stopsWithPod,
           // Only a settled trip has a variance; an open one contributes nothing, not a zero.
           cashVariancePaise: acc.cashVariancePaise + (r.cashVariancePaise ?? 0),
@@ -394,6 +399,7 @@ export class ReportingRegistersService {
           stopsPartial: 0,
           stopsFailed: 0,
           onTime: 0,
+          withEta: 0,
           pod: 0,
           cashVariancePaise: 0,
         },
@@ -410,7 +416,7 @@ export class ReportingRegistersService {
           stopsDelivered: sums.stopsDelivered,
           stopsPartial: sums.stopsPartial,
           stopsFailed: sums.stopsFailed,
-          onTimeRate: ratio(sums.onTime, attempted),
+          onTimeRate: ratio(sums.onTime, sums.withEta),
           podCoverageRate: ratio(sums.pod, attempted),
           cashVariancePaise: sums.cashVariancePaise,
         },

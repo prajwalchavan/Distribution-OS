@@ -492,8 +492,9 @@ export const strings = {
   // --- D11 trip history ----------------------------------------------------------------------------
   'd11.title': 'Your trips',
   'd11.empty': 'No trips yet',
-  'd11.onTime': 'Delivered on the first attempt',
-  'd11.window': 'Last 30 days',
+  // DOS-067: the register measures ON TIME against the stop's ETA — never a first-attempt rate.
+  'd11.onTime': 'On time',
+  'd11.window': 'Last 30 days and what is planned',
   'd11.stops': '{done} of {total} done',
   'd11.thisTrip': 'The trip you are on',
   'd11.notThisPhone': 'Not on this phone — read from the office',

@@ -404,6 +404,24 @@ export async function seedDelivery(
     taken(tripId, door.mode, door.amountPaise)
   }
 
+  /** The time the office promised a stop: 9:00 IST, then one every half hour down the beat. */
+  function stopEta(day: Date, sequence: number): Date {
+    return atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30)
+  }
+
+  /**
+   * When the crew actually finished it.
+   *
+   * QA DOS-067: every completion used to be stamped ten to twenty minutes AFTER its own ETA, so the
+   * one performance figure the crew sees — the on-time rate — read 0% on a driver with 104 of 125
+   * stops delivered. A demo day is now mostly inside the promise with every fourth stop running late,
+   * which is both believable and enough to prove the register divides by the right thing.
+   */
+  function stopCompleted(day: Date, sequence: number): Date {
+    const eta = stopEta(day, sequence)
+    return new Date(eta.getTime() + (sequence % 4 === 0 ? 25 : -8) * 60_000)
+  }
+
   function addStop(
     tripId: string,
     sequence: number,
@@ -445,15 +463,17 @@ export async function seedDelivery(
       failureNote: failureReason ? FAILURE_NOTES[failureReason] : partialNote,
       createdAt: occurred(atIstTime(day, 8, 30)),
       plannedCollectionPaise: inv.totalPaise,
-      etaAt: atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30),
-      startedAt: occurred(
-        atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30),
-      ),
+      etaAt: stopEta(day, sequence),
+      // Left the last shop twenty-five minutes before this one was promised; at the door seven
+      // minutes before it was finished, so arriving never comes after the delivery it precedes.
+      startedAt: occurred(new Date(stopEta(day, sequence).getTime() - 25 * 60_000)),
       arrivedAt:
         state === 'pending'
           ? null
           : occurred(
-              atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30 + 10),
+              completedAt === null
+                ? new Date(stopEta(day, sequence).getTime() + 10 * 60_000)
+                : new Date(completedAt.getTime() - 7 * 60_000),
             ),
       completedAt: completedAt ? occurred(completedAt) : null,
       arrivedLat: retailer ? jitter(rng, retailer.lat, 0.0005) : null,
@@ -669,7 +689,7 @@ export async function seedDelivery(
             inv,
             'delivered',
             day,
-            atIstTime(day, 9 + Math.floor(i / 2), 20 + (i % 2) * 20),
+            stopCompleted(day, i + 1),
             def.driverId,
             def.driverDeviceId,
           )
@@ -790,7 +810,7 @@ export async function seedDelivery(
           inv,
           state,
           day,
-          state === 'failed' ? null : atIstTime(day, 9 + Math.floor(i / 2), 20 + (i % 2) * 20),
+          state === 'failed' ? null : stopCompleted(day, i + 1),
           def.driverId,
           def.driverDeviceId,
         )

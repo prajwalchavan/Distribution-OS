@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { z } from 'zod'
 import type {
   CollectionsRegisterOutput,
+  DeliveryPerformanceOutput,
   DailyRepStatsOutput,
   DailyTenantStatsOutput,
   FillRateOutput,
@@ -28,6 +29,7 @@ type Lapsed = z.infer<typeof LapsedRetailersOutput>
 type StockValue = z.infer<typeof StockValueOutput>
 type FillRate = z.infer<typeof FillRateOutput>
 type Collections = z.infer<typeof CollectionsRegisterOutput>
+type DeliveryPerf = z.infer<typeof DeliveryPerformanceOutput>
 import { businessDate, financialYear, uuidv7 } from '@dos/domain'
 import {
   ageingSnapshots,
@@ -63,6 +65,7 @@ import {
   suppliers,
   tenantProductCosts,
   tenants,
+  tripStops,
   trips,
   users,
   vehicles,
@@ -1090,6 +1093,110 @@ describeDb('reporting (DATABASE_URL)', () => {
       const refused = await call(app, store, 'GET', path, { from, to })
       expect(refused.status).toBe(403)
     }
+  })
+
+  /**
+   * DOS-067 — "DELIVERED ON THE FIRST ATTEMPT 0%" FOR A DRIVER WITH 104 OF 125 STOPS DELIVERED.
+   *
+   * Two faults met in that one figure. The KPI was LABELLED as a first-attempt rate and is an
+   * ON-TIME rate (`completed_at <= eta_at`), which is a different measurement of a different thing.
+   * And `performance.ts` says in its own comment that "a stop with no ETA is never counted as late
+   * (nothing was promised) and never as on time either" — while the rate divided the on-time stops
+   * by every ATTEMPTED stop, so a stop nobody ever promised a time for counted as late. A trip
+   * planned with no ETAs at all therefore reported 0% on time, which reads as a driver who is never
+   * on time rather than a day nobody put times against.
+   *
+   * The denominator is the attempted stops THAT CARRIED AN ETA. A trip with no ETA anywhere is 0/0,
+   * which the contract's own rule makes 0 — but it is now honest arithmetic instead of a verdict.
+   */
+  it('DOS-067: the on-time rate is out of the stops that carried an ETA, and a stop with none is neither', async () => {
+    const perfVehicleId = uuidv7()
+    const perfLocationId = uuidv7()
+    const tripId = uuidv7()
+    await db.insert(locations).values({
+      id: perfLocationId,
+      tenantId,
+      kind: 'vehicle',
+      name: `Tempo perf ${run}`,
+    })
+    await db.insert(vehicles).values({
+      id: perfVehicleId,
+      tenantId,
+      regNo: `MH05 P ${run}`,
+      locationId: perfLocationId,
+    })
+    await db.insert(trips).values({
+      id: tripId,
+      tenantId,
+      tripNo: `TRIP-PERF-${run}`,
+      tripDate: to,
+      vehicleId: perfVehicleId,
+      driverId: crewId,
+      state: 'settled',
+      plannedStops: 4,
+    })
+    const at = (hour: number): Date =>
+      new Date(Date.parse(`${to}T${String(hour).padStart(2, '0')}:00:00Z`))
+    await db.insert(tripStops).values([
+      // promised 10:00, done 09:30 — on time
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 1,
+        retailerId: shopA1,
+        state: 'delivered',
+        etaAt: at(10),
+        completedAt: at(9),
+      },
+      // promised 11:00, done 10:00 — on time
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 2,
+        retailerId: shopA2,
+        state: 'delivered',
+        etaAt: at(11),
+        completedAt: at(10),
+      },
+      // promised 12:00, done 13:00 — late
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 3,
+        retailerId: shopB1,
+        state: 'partial',
+        etaAt: at(12),
+        completedAt: at(13),
+      },
+      // nobody promised a time for this one: it is neither late nor on time
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 4,
+        retailerId: shopA1,
+        state: 'delivered',
+        completedAt: at(14),
+      },
+    ])
+
+    const perf = await call<DeliveryPerf>(
+      app,
+      owner,
+      'GET',
+      '/reporting/registers/delivery-performance',
+      { from, to, driverId: crewId, limit: 50 },
+    )
+    expect(perf.status).toBe(200)
+    const row = perf.body.items.find((i) => i.tripId === tripId)
+    expect(row?.stopsDelivered).toBe(3)
+    expect(row?.stopsPartial).toBe(1)
+    // Two of the THREE stops that carried an ETA, never two of the four that were attempted.
+    expect(row?.onTimeRate).toBeCloseTo(2 / 3, 6)
+    expect(perf.body.totals.onTimeRate).toBeCloseTo(2 / 3, 6)
   })
 
   /**
