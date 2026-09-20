@@ -52,6 +52,7 @@ import type { PickRow } from '../../src/lib/local'
 import { useHydrated, useLocalPickLines, useLocalPicklist } from '../../src/lib/local'
 import { keepKey } from '../../src/lib/keep'
 import { pickGate } from '../../src/lib/pick-gate'
+import { sheetStatus } from '../../src/lib/sheet-status'
 import { useRecordPick } from '../../src/lib/queue'
 import { DeskOnly, ExpiryChip, LocalAsync, Panel, pl, workFamily } from '../../src/lib/ui'
 
@@ -104,7 +105,13 @@ export default function PickingSheet(): React.JSX.Element {
     start.data !== undefined && start.data.item.id === picklistId
       ? start.data.item.status
       : undefined
-  const liveStatus = startedHere ?? sheet?.status
+  /*
+   * DOS-120: and the reply stops speaking the moment the row it stands in for does. This used to be
+   * `startedHere ?? sheet?.status`, which kept "picking" for as long as the screen stayed mounted —
+   * PICK-0083's chip said `picking` beside "7 of 7 picked" with the confirm enabled, and only said
+   * `picked` after navigating away and back. The rule is `sheetStatus`, beside `pickGate`.
+   */
+  const liveStatus = sheetStatus({ startedHere, deviceStatus: sheet?.status })
   const gate = pickGate({ startedHere, deviceStatus: sheet?.status ?? null })
   const notStarted = gate === 'not-started'
   const locked = gate !== 'pickable'
