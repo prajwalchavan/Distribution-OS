@@ -49,6 +49,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, shiftDays, shortInstant, today } from '../../src/lib/dates'
+import { overdueAmount } from '../../src/lib/shops'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -274,7 +275,7 @@ export default function Shops(): React.JSX.Element {
                 <Stack gap={2}>
                   <Money value={dues.data?.outstandingPaise ?? null} size="moneyM" />
                   <Txt field="label" desk="meta" color={colors.text.secondary}>
-                    {t('m1.overdue', { amount: String(dues.data?.overduePaise ?? 0) })}
+                    {t('m1.overdue', { amount: overdueAmount(dues.data?.overduePaise) })}
                   </Txt>
                   <Field label={t('m14.oldest')}>{longDate(dues.data?.oldestDueDate)}</Field>
                   {series.data === undefined ? null : (
