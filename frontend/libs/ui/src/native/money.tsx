@@ -338,7 +338,19 @@ export function NumberPad({
  */
 function PadInsets({ children }: { children: ReactNode }): React.JSX.Element {
   const insets = useSafeAreaInsets()
-  return <View style={{ flex: 1, paddingTop: insets.top }}>{children}</View>
+  const theme = useTheme()
+  /*
+   * The wrapper paints the pad's OWN surface. Without it the strip this component just introduced
+   * above `NumberPad` — which paints `bg.surface` on its own root (see 6.2) — would show the Modal
+   * window's default background instead, an RN/Android platform colour that follows neither our
+   * theme nor the pad. Invisible in the light theme only by luck; under `theme="dark"` it is a pale
+   * band across the top of a dark pad. Same colour, same View: nothing to measure on a device.
+   */
+  return (
+    <View style={{ flex: 1, paddingTop: insets.top, backgroundColor: theme.colors.bg.surface }}>
+      {children}
+    </View>
+  )
 }
 
 // ---------------------------------------------------------------------------
