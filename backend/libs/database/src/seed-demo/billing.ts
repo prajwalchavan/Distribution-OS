@@ -464,6 +464,8 @@ export async function seedBilling(
       fulfilFromLocationId: godown,
       subtotalPaise: priced.taxable,
       taxPaise: priced.igst + priced.cess,
+      // DOS-079: the cess share of `tax_paise`, so the order reads what the bill bills.
+      cessPaise: priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
       submittedAt: occurred(atIstTime(date, 10, 20)),
@@ -486,7 +488,9 @@ export async function seedBilling(
       listRatePaise: rate,
       ratePaise: rate,
       gstBps: v.gstBps,
+      cessBps: v.cessBps,
       taxPaise: priced.igst + priced.cess,
+      cessPaise: priced.cess,
       lineTotalPaise: priced.total,
     })
     invoiceRows.push({
@@ -605,6 +609,7 @@ export async function seedBilling(
       fulfilFromLocationId: godown,
       subtotalPaise: priced.taxable,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
+      cessPaise: priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
       submittedAt: occurred(atIstTime(cancelledDate, 10, 0)),
@@ -626,7 +631,9 @@ export async function seedBilling(
       listRatePaise: waferRate,
       ratePaise: waferRate,
       gstBps: wafer.gstBps,
+      cessBps: wafer.cessBps,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
+      cessPaise: priced.cess,
       lineTotalPaise: priced.total,
     })
     invoiceRows.push({
@@ -795,6 +802,7 @@ export async function seedBilling(
       fulfilFromLocationId: vanLocationId,
       subtotalPaise: priced.taxable,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
+      cessPaise: priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
       submittedAt: occurred(atIstTime(vanDate, 11, 0)),
@@ -817,7 +825,9 @@ export async function seedBilling(
       listRatePaise: waferRate,
       ratePaise: waferRate,
       gstBps: wafer.gstBps,
+      cessBps: wafer.cessBps,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
+      cessPaise: priced.cess,
       lineTotalPaise: priced.total,
     })
     invoiceRows.push({
@@ -1390,6 +1400,7 @@ export async function seedPendingVanSaleOrder(
       fulfilFromLocationId: vanLocationId,
       subtotalPaise: priced.taxable,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
+      cessPaise: priced.cess,
       roundOffPaise: roundOff,
       totalPaise: rounded,
       submittedAt: occurred(atIstTime(TODAY_SEED, 9, 30)),
@@ -1412,7 +1423,9 @@ export async function seedPendingVanSaleOrder(
       listRatePaise: pendingRate,
       ratePaise: pendingRate,
       gstBps: vanStockVariant.gstBps,
+      cessBps: vanStockVariant.cessBps,
       taxPaise: priced.cgst + priced.sgst + priced.cess,
+      cessPaise: priced.cess,
       lineTotalPaise: priced.total,
     },
   ])

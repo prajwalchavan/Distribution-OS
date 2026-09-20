@@ -1,6 +1,6 @@
 {
-  "id": "68383d09-04fe-4254-ba00-22b2956b4c14",
-  "prevId": "57d5873c-29ff-4dc0-8835-4ed96137b4c6",
+  "id": "5cde1c57-9bb4-4686-9709-7fa7e559bad9",
+  "prevId": "260ae785-b19e-414b-a9c2-5d3d7069e16e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -11413,8 +11413,22 @@
           "primaryKey": false,
           "notNull": true
         },
+        "cess_bps": {
+          "name": "cess_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "tax_paise": {
           "name": "tax_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cess_paise": {
+          "name": "cess_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -11725,6 +11739,13 @@
           "notNull": true,
           "default": 0
         },
+        "cess_paise": {
+          "name": "cess_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "round_off_paise": {
           "name": "round_off_paise",
           "type": "bigint",
@@ -11741,6 +11762,13 @@
         },
         "approval_flags": {
           "name": "approval_flags",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "stock_shortages": {
+          "name": "stock_shortages",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
@@ -11815,33 +11843,6 @@
             },
             {
               "expression": "updated_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "sales_orders_created_idx": {
-          "name": "sales_orders_created_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -14807,12 +14808,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "cancelled_at": {
-          "name": "cancelled_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -16691,33 +16686,6 @@
           ],
           "isUnique": true,
           "where": "invoice_no IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "invoices_date_idx": {
-          "name": "invoices_date_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "invoice_date",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

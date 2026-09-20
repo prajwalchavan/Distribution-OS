@@ -20,7 +20,18 @@ import { pieces } from '../quantity.js'
 export type SchemeTriggerKind = 'qty' | 'value' | 'mix'
 export type SchemeTriggerUnit = 'pcs' | 'case' | 'inr'
 export type SchemeRewardKind =
-  'free_qty' | 'line_pct' | 'order_pct' | 'cash_discount_pct' | 'net_scheme_amount'
+  | 'free_qty'
+  | 'line_pct'
+  | 'order_pct'
+  | 'cash_discount_pct'
+  | 'net_scheme_amount'
+  /**
+   * Paise off EVERY whole trigger unit once `triggerMin` is reached — "₹15 off per case on 2+" is
+   * ₹30 on two cases and ₹45 on three (DOS-087; founder, 2026-09-13). `net_scheme_amount` keeps its
+   * own meaning, once per multiple of the trigger. The unit is the scheme's `triggerUnit`, so `inr`
+   * is refused: there is no unit to pay per.
+   */
+  | 'per_unit_amount'
 export type SchemeFundingSource = 'company' | 'distributor'
 export type PricingDateMode = 'order' | 'delivery'
 
@@ -65,7 +76,7 @@ export interface SchemeRule {
   triggerUnit: SchemeTriggerUnit
   slabs?: readonly SchemeSlab[] | null | undefined
   rewardKind: SchemeRewardKind
-  /** free pieces (`free_qty`), basis points (`*_pct`) or paise (`net_scheme_amount`). */
+  /** free pieces (`free_qty`), basis points (`*_pct`) or paise (`net_scheme_amount`, `per_unit_amount`). */
   rewardValue: number
   freeVariantId?: string | null | undefined
   applicability: SchemeApplicability
@@ -461,8 +472,24 @@ function isLineLevel(scheme: SchemeRule): boolean {
     scheme.triggerKind !== 'mix' &&
     (scheme.rewardKind === 'free_qty' ||
       scheme.rewardKind === 'line_pct' ||
-      scheme.rewardKind === 'net_scheme_amount')
+      scheme.rewardKind === 'net_scheme_amount' ||
+      scheme.rewardKind === 'per_unit_amount')
   )
+}
+
+/**
+ * Whole trigger units in `lines` — the count a `per_unit_amount` reward is paid on (DOS-087).
+ *
+ * WHOLE units only: 2 cs + 6 loose pieces on a per-case scheme pays for two cases, never for two and
+ * a half, because `measure('case', …)` floors each line against its own case size. A value trigger
+ * has no unit to pay per, so it is refused rather than silently paid once.
+ */
+function units(scheme: SchemeRule, lines: readonly LineState[]): number {
+  if (scheme.triggerUnit === 'inr')
+    throw new PricingError(
+      `scheme ${scheme.id}: a per_unit_amount reward needs a pcs or case trigger, not inr`,
+    )
+  return measure(scheme.triggerUnit, lines)
 }
 
 function measure(unit: SchemeTriggerUnit, lines: readonly LineState[]): number {
@@ -558,6 +585,8 @@ function lineRewardValue(
       return percentOf(line.gross, bps(reward.value, `scheme ${scheme.id} reward`))
     case 'net_scheme_amount':
       return nonNegativeInt(reward.value, `scheme ${scheme.id} reward`) * reward.multiples
+    case 'per_unit_amount':
+      return nonNegativeInt(reward.value, `scheme ${scheme.id} reward`) * units(scheme, [line])
     default:
       return 0
   }
@@ -576,6 +605,8 @@ function orderRewardValue(
       return percentOf(base, bps(reward.value, `scheme ${scheme.id} reward`))
     case 'net_scheme_amount':
       return nonNegativeInt(reward.value, `scheme ${scheme.id} reward`) * reward.multiples
+    case 'per_unit_amount':
+      return nonNegativeInt(reward.value, `scheme ${scheme.id} reward`) * units(scheme, scope)
     case 'free_qty': {
       const anchor = largest(scope)
       return anchor
@@ -652,6 +683,19 @@ function applyLineReward(c: Candidate, line: LineState, lines: readonly LineStat
       })
       break
     }
+    // DOS-087: the same amount on every whole unit measured, once the trigger is met; a slab replaces
+    // the per-unit amount, it does not multiply it.
+    case 'per_unit_amount': {
+      const amount = addDiscount(line, reward.value * units(scheme, [line]))
+      line.rules.push({
+        ruleId: scheme.id,
+        version: scheme.version,
+        kind: 'scheme',
+        rewardKind: scheme.rewardKind,
+        amountPaise: amount,
+      })
+      break
+    }
     default:
       return
   }
@@ -719,6 +763,8 @@ function orderReward(
       return spread(scheme, scope, percentOf(scopeBase(scope), reward.value))
     case 'net_scheme_amount':
       return spread(scheme, scope, reward.value * reward.multiples)
+    case 'per_unit_amount':
+      return spread(scheme, scope, reward.value * units(scheme, scope))
     case 'free_qty': {
       const anchor = largest(scope)
       const qty = reward.value * reward.multiples

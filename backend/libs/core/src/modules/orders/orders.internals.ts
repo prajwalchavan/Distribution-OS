@@ -15,7 +15,14 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { orderStateTransitions, outboxEvents, salesOrders, type ActorRole, type Db } from '@dos/db'
+import {
+  orderStateTransitions,
+  outboxEvents,
+  salesOrders,
+  type ActorRole,
+  type CreditNotice,
+  type Db,
+} from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
@@ -122,10 +129,28 @@ export async function approvalFlags(
   tx: Db,
   order: OrderRow,
   lines: OrderLineRow[],
-): Promise<{ flags: ApprovalKind[]; bargainIds: string[] }> {
+): Promise<{ flags: ApprovalKind[]; bargainIds: string[]; creditNotice: CreditNotice | null }> {
   const flags: ApprovalKind[] = []
   const credit = await checkCredit(tx, order.retailerId, order.totalPaise)
   if (credit.breached) flags.push('credit_limit')
+  /*
+   * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit goes through and
+   * the desk sees a NOTICE on it; strict and stop are still held by the gate above and carry the same
+   * notice. The flag list keeps meaning gates — an indicate breach adds none, so submit's
+   * `flags.length === 0` auto-confirm is untouched.
+   */
+  const creditNotice: CreditNotice | null =
+    credit.reasons.length === 0
+      ? null
+      : {
+          creditMode: credit.creditMode,
+          reasons: [...credit.reasons],
+          outstandingPaise: credit.outstandingPaise,
+          creditLimitPaise: credit.creditLimitPaise,
+          headroomPaise: credit.headroomPaise,
+          overdueDays: credit.overdueDays,
+          orderTotalPaise: credit.orderTotalPaise,
+        }
   const bargainIds = await pendingBargainsForOrder(tx, {
     retailerId: order.retailerId,
     orderId: order.id,
@@ -138,7 +163,7 @@ export async function approvalFlags(
       !l.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
   )
   if (below) flags.push('below_floor')
-  return { flags, bargainIds }
+  return { flags, bargainIds, creditNotice }
 }
 
 /** Pieces a location can still promise, from the ATP view (on hand − reserved) that reps also see. */
@@ -337,7 +362,9 @@ export async function listOrders(
      */
     .orderBy(desc(salesOrders.createdAt), desc(salesOrders.id))
     .limit(input.limit + 1)
-  const items = rows.slice(0, input.limit).map(toOrder)
+  // DOS-078: the shortage record is office-only, exactly as on `get`.
+  const office = ctx.actorRole !== 'retailer'
+  const items = rows.slice(0, input.limit).map((row) => toOrder(row, office))
   const last = items[items.length - 1]
   return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
 }

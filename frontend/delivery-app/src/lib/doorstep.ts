@@ -16,8 +16,9 @@
  * a platform module. `keepKey` is imported for the same reason: the button's own word is a keep claim
  * (DOS-179, never-list #12) and one rule decides it.
  *
- * DOS-071 will rename `d4.podRequired` to `d4.podRequiredCredit` and add `podState`; when it lands,
- * `doorstepRefusal('photo')` follows the rename — the sentence lives here now, not on the screen.
+ * DOS-071 landed: `pod.ts` decides whether THIS bill owes a photograph and why, `d4.podRequired` is
+ * now `d4.podRequiredCredit`, and the "office wants one on every delivery" case is its own block with
+ * its own sentence. The sentence lives here, not on the screen.
  */
 import { toApiError } from '@dos/api-client'
 import { wordFor, type Translator } from '@dos/ui'
@@ -44,7 +45,7 @@ import { keepKey } from './keep'
  * so it is what it says it is: a belt on a value any caller can hold. Whichever half refuses, it
  * refuses out loud; neither is ever silent.
  */
-export type DoorstepBlock = 'recorded' | 'retake' | 'photo' | 'mismatch' | null
+export type DoorstepBlock = 'recorded' | 'retake' | 'photo' | 'photoAlways' | 'mismatch' | null
 
 /** Everything about this bill that can stand between the driver and the doorstep write. */
 export interface DoorstepGate {
@@ -52,8 +53,13 @@ export interface DoorstepGate {
   alreadyRecorded: boolean
   /** The photograph is over `MAX_INLINE_BASE64` and could not travel with an offline write. */
   proofTooBig: boolean
-  /** The tenant's proof-of-delivery policy asks for a photograph on THIS bill. */
+  /** The tenant's proof-of-delivery policy asks for a photograph on THIS bill (`pod.ts` decides). */
   photoRequired: boolean
+  /**
+   * DOS-071: it is asked for because the office wants one on EVERY delivery, not because this shop is
+   * on credit. Two policies, two sentences: a cash shop was being told it was on credit.
+   */
+  photoOnEveryDelivery?: boolean
   hasPhoto: boolean
   /** Dropped + taken back equals what is on the bill, on every line. */
   balanced: boolean
@@ -66,7 +72,8 @@ export interface DoorstepGate {
 export function doorstepBlock(gate: DoorstepGate): DoorstepBlock {
   if (gate.alreadyRecorded) return 'recorded'
   if (gate.proofTooBig) return 'retake'
-  if (gate.photoRequired && !gate.hasPhoto) return 'photo'
+  if (gate.photoRequired && !gate.hasPhoto)
+    return gate.photoOnEveryDelivery === true ? 'photoAlways' : 'photo'
   if (!gate.balanced) return 'mismatch'
   return null
 }
@@ -83,7 +90,9 @@ export function doorstepRefusal(
     case 'retake':
       return t('d4.podRetake')
     case 'photo':
-      return t('d4.podRequired')
+      return t('d4.podRequiredCredit')
+    case 'photoAlways':
+      return t('d4.podRequiredAlways')
     case 'mismatch':
       return t('d4.mismatch')
   }

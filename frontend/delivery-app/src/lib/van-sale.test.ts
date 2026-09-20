@@ -50,6 +50,10 @@ const S28_QUOTE: Quote = {
       appliedRules: [],
       lineNetPaise: 22140,
       gstBps: 1200,
+      // DOS-079 added compensation cess to the quote. S-28's item is an ordinary 12 % HSN with no
+      // cess, so both figures are 0 and `taxPaise` below is unchanged — GST alone, to the paisa.
+      cessBps: 0,
+      cessPaise: 0,
       taxPaise: 2657,
       lineTotalPaise: 24797,
     },
@@ -63,6 +67,7 @@ const S28_QUOTE: Quote = {
     bargainPaise: 0,
     netPaise: 22140,
     taxPaise: 2657,
+    cessPaise: 0,
     roundOffPaise: 3,
     totalPaise: 24800,
   },

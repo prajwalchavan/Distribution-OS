@@ -93,7 +93,8 @@ export default function Prices(): React.JSX.Element {
 
   const reward = (row: Scheme): string => {
     if (row.rewardKind === 'free_qty') return t('m15.rewardFree', { count: row.rewardValue })
-    if (row.rewardKind === 'net_scheme_amount')
+    // DOS-087: `per_unit_amount` is money too — paise per case or per piece, not a percentage.
+    if (row.rewardKind === 'net_scheme_amount' || row.rewardKind === 'per_unit_amount')
       return t('m15.rewardAmount', {
         label: word(row.rewardKind),
         amount: formatINR(paise(row.rewardValue)),

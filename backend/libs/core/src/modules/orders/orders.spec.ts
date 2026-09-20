@@ -52,6 +52,8 @@ type Line = {
   packSizeAtEntry: number
   qtyPcs: number
   gstBps: number
+  cessBps: number
+  cessPaise: number
   taxPaise: number
   lineTotalPaise: number
   listRatePaise: number
@@ -70,10 +72,21 @@ type Detail = {
   paymentTerms: string
   subtotalPaise: number
   discountPaise: number
+  cessPaise: number
   taxPaise: number
   roundOffPaise: number
   totalPaise: number
   approvalFlags: string[]
+  stockShortages: Shortage[]
+  creditNotice: {
+    creditMode: string
+    reasons: string[]
+    outstandingPaise: number
+    creditLimitPaise: number
+    headroomPaise: number
+    overdueDays: number
+    orderTotalPaise: number
+  } | null
   cancelReason: string | null
   lines: Line[]
   transitions: { event: string; toState: string; actorId: string; deviceId: string | null }[]
@@ -85,13 +98,24 @@ type Detail = {
     decisionNote: string | null
   }[]
 }
-type Shortage = { lineId: string; requestedPcs: number; reservedPcs: number; shortQtyPcs: number }
+type Shortage = {
+  lineId: string
+  variantId: string
+  requestedPcs: number
+  reservedPcs: number
+  shortQtyPcs: number
+}
+/** The device side of the same aggregate: what `sync.manifest` publishes and what `sync.pull` sends. */
+type Manifest = { tables: { table: string; columns: { name: string }[] }[] }
+type Pull = { changes: { table: string; rows: Record<string, unknown>[] }[] }
 
 describeDb('orders (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
   const run = uuidv7().slice(-8)
   const hsn = `8${Date.now().toString().slice(-6)}`
+  /** DOS-079: aerated waters — 28% GST plus 12% compensation cess, the rate Campa Cola is billed at. */
+  const cessHsn = `9${Date.now().toString().slice(-6)}`
   const tenantId = uuidv7()
   const ownerId = uuidv7()
   const repId = uuidv7()
@@ -100,8 +124,11 @@ describeDb('orders (DATABASE_URL)', () => {
   const retailerA = uuidv7() // credit mode `indicate`, linked to shopUserId
   const retailerB = uuidv7() // credit mode `strict` with a ₹10 limit
   const retailerC = uuidv7() // credit mode `stop` with a ₹10 limit (DOS-020)
+  const retailerD = uuidv7() // DOS-081: `indicate` with room to spare — no notice at all
   const variantA = uuidv7() // 100 pcs in the godown
   const variantB = uuidv7() // no stock at all
+  const variantCess = uuidv7() // DOS-079: on `cessHsn`, 28% GST + 12% cess, ₹22.97 a piece
+  const variantShort = uuidv7() // DOS-078: 120 pcs (10 cs) in the godown and nothing more
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const shop: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
@@ -116,6 +143,8 @@ describeDb('orders (DATABASE_URL)', () => {
   const strictOrder = uuidv7()
   const strictOrderDos004 = uuidv7() // DOS-004: a second over-limit order for Shop B, left pending
   const tripApprovalDos004 = uuidv7() // DOS-004: an approval with no order behind it
+  const strictOrderDos006 = uuidv7() // DOS-006: an over-limit order released by its gate
+  const strictOrderDos006Next = uuidv7() // DOS-006: the shop's next order, gated again
   const shopOrder = uuidv7()
   const syncOrder = uuidv7()
   let godown = ''
@@ -168,15 +197,38 @@ describeDb('orders (DATABASE_URL)', () => {
         hsnCode: hsn,
         mrpPaise: 2000,
       },
+      {
+        id: variantCess,
+        productId,
+        name: 'Campa Cola 750 ml (cess)',
+        netQty: 750,
+        netUnit: 'ml',
+        defaultCaseSize: 24,
+        hsnCode: cessHsn,
+        mrpPaise: 4000,
+      },
+      {
+        id: variantShort,
+        productId,
+        name: 'Neelam Sandal Soap 3x100 g',
+        netQty: 300,
+        netUnit: 'g',
+        defaultCaseSize: 24,
+        hsnCode: hsn,
+        mrpPaise: 3000,
+      },
     ])
     // the tenant sells in 12s even though the manufacturer prints 24 (docs/17 B: sell-side pack wins)
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantShort, caseSizeOverride: 12 },
     ])
-    await db
-      .insert(hsnRates)
-      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1200, effectiveFrom: '2020-04-01' })
+    await db.insert(hsnRates).values([
+      { id: uuidv7(), hsnCode: hsn, gstBps: 1200, effectiveFrom: '2020-04-01' },
+      { id: uuidv7(), hsnCode: cessHsn, gstBps: 2800, cessBps: 1200, effectiveFrom: '2020-04-01' },
+    ])
 
     const identityId = uuidv7()
     await db.insert(retailerIdentities).values({
@@ -220,6 +272,17 @@ describeDb('orders (DATABASE_URL)', () => {
         creditMode: 'stop',
         creditLimitPaise: 1000,
       },
+      {
+        id: retailerD,
+        tenantId,
+        code: `R4-${run}`,
+        name: `Shop D ${run}`,
+        phone: `+91905${run}4`,
+        stateCode: '27',
+        tier: 'C',
+        creditMode: 'indicate',
+        creditLimitPaise: 10_000_000,
+      },
     ])
     await db.insert(retailerLinks).values({
       id: uuidv7(),
@@ -238,6 +301,8 @@ describeDb('orders (DATABASE_URL)', () => {
     await db.insert(priceListItems).values([
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantShort, ratePaise: 1000 },
     ])
 
     const locs = await db
@@ -580,6 +645,96 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(item?.retailerName).toBeNull()
   })
 
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-006: an "Over credit limit" approval RELEASES THE ORDER; it does not change the shop's limit.
+  // Founder, 2026-09-13 (docs/22 §8): approving lets only that one order through, and the limit is a
+  // setting changed on the shop's page (`retailers.setCredit`, audited). This guard pins the semantics
+  // so the alternative — approve also raises the limit — cannot arrive without a decision to allow it.
+
+  it('DOS-006: approving an over-limit gate lets only that order through — the limit is unchanged, no set_credit is audited, and the next order raises a fresh gate', async () => {
+    const [before] = await db
+      .select({ limit: retailers.creditLimitPaise })
+      .from(retailers)
+      .where(eq(retailers.id, retailerB))
+    expect(before?.limit).toBe(1000)
+
+    await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos006-${run}`,
+      id: strictOrderDos006,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos006}/submit`,
+      { idempotencyKey: `submit-dos006-${run}` },
+    )
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.approvalFlags).toEqual(['credit_limit'])
+
+    // The gate production raises names the ORDER it releases, and asks for no limit at all.
+    const [gate] = await asOwner((tx) =>
+      tx
+        .select()
+        .from(approvals)
+        .where(and(eq(approvals.orderId, strictOrderDos006), eq(approvals.kind, 'credit_limit'))),
+    )
+    expect(gate?.entityType).toBe('sales_order')
+    expect(gate?.entityId).toBe(strictOrderDos006)
+    expect(gate?.payload).toEqual({
+      orderNo: submitted.body.item.orderNo,
+      totalPaise: submitted.body.item.totalPaise,
+      flag: 'credit_limit',
+    })
+
+    const decided = await call<{ item: { status: string }; order: Detail | null }>(
+      app,
+      owner,
+      'POST',
+      `/approvals/${gate?.id ?? ''}/decide`,
+      { idempotencyKey: `decide-dos006-${run}`, decision: 'approve', note: 'festive stocking' },
+    )
+    expect(decided.status).toBe(200)
+    expect(decided.body.item.status).toBe('approved')
+    expect(decided.body.order?.state).toBe('confirmed')
+
+    // The shop is exactly where it was: same limit, and nothing claims a limit was set.
+    const [after] = await db
+      .select({ limit: retailers.creditLimitPaise })
+      .from(retailers)
+      .where(eq(retailers.id, retailerB))
+    expect(after?.limit).toBe(before?.limit)
+    const credits = await asOwner((tx) =>
+      tx
+        .select({ id: auditLog.id })
+        .from(auditLog)
+        .where(and(eq(auditLog.action, 'retailer.set_credit'), eq(auditLog.entityId, retailerB))),
+    )
+    expect(credits).toEqual([])
+
+    // So the shop's next over-limit order is gated again, exactly as the first one was.
+    await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos006-next-${run}`,
+      id: strictOrderDos006Next,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const next = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos006Next}/submit`,
+      { idempotencyKey: `submit-dos006-next-${run}` },
+    )
+    expect(next.status).toBe(200)
+    expect(next.body.item.state).toBe('submitted')
+    expect(next.body.item.approvalFlags).toEqual(['credit_limit'])
+  })
+
   it('lets the rep cancel a draft', async () => {
     const res = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${repeatOrder}/cancel`, {
       idempotencyKey: `cancel-${run}`,
@@ -711,6 +866,15 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(submitted.body.item.state).toBe('confirmed')
     expect(submitted.body.item.orderNo).toMatch(/^SO-\d{4}$/)
     expect(submitted.body.item.approvalFlags).toEqual([])
+    /*
+     * The THIRD door for the two office-only fields, beside `GET /orders/{id}` and `sync.pull`:
+     * the shop's own submit reply. `confirmInTx` runs under `asSystem`, which flips the DATABASE
+     * setting `app.actor_role` and not `currentTenant()`, so `detail()` inside it still maps for a
+     * retailer — but only a test says so. Shop A is `indicate` with a limit of 0 (fixture :250), so
+     * the very same submit made by the rep carries a `limit_exceeded` notice (DOS-081 below).
+     */
+    expect(submitted.body.item.creditNotice).toBeNull()
+    expect(submitted.body.item.stockShortages).toEqual([])
     // the audit rows name the shopkeeper, not "system"
     expect(submitted.body.item.transitions.map((t) => t.event)).toEqual(['submit', 'confirm'])
     expect(submitted.body.item.transitions.every((t) => t.actorId === shopUserId)).toBe(true)
@@ -1021,6 +1185,19 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(confirmed.body.shortages).toEqual([
       { lineId: line, variantId: variantA, requestedPcs: 90, reservedPcs: 76, shortQtyPcs: 14 },
     ])
+    // DOS-078: the desk's own confirm records the same list on the order, and a second confirm reads
+    // it back instead of answering an empty one — the record is history, not a one-off reply.
+    expect(confirmed.body.item.stockShortages).toEqual(confirmed.body.shortages)
+    const again = await call<{ item: Detail; shortages: Shortage[] }>(
+      app,
+      owner,
+      'POST',
+      `/orders/${id}/confirm`,
+      { idempotencyKey: `confirm-short-again-${run}` },
+    )
+    expect(again.status).toBe(200)
+    expect(again.body.item.stockShortages).toEqual(confirmed.body.shortages)
+    expect(again.body.shortages).toEqual(confirmed.body.shortages)
     // confirm left the gate exactly as it was decided: it decides nothing itself
     expect(
       confirmed.body.item.approvals.map(({ status, decidedBy, decisionNote }) => ({
@@ -1035,6 +1212,214 @@ describeDb('orders (DATABASE_URL)', () => {
       )
     ).rows as { reserved: number }[]
     expect(balances[0]?.reserved).toBe(100)
+  })
+
+  const shortOrder = uuidv7()
+  const shortLineA = uuidv7()
+  const shortLineB = uuidv7()
+
+  it("DOS-078: a rep's order beyond the godown's stock confirms short and the shortage is recorded on the order", async () => {
+    // Exactly 10 cases of 12 in the godown, opened here rather than in `beforeAll`: the earlier tests
+    // count the godown's balance ROWS, and a second item would be a second row for them.
+    const inventory = app.get(InventoryService)
+    await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantShort,
+        batchNo: 'OPENING',
+        mrpPaise: 3000,
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 120,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-short`,
+        },
+      ])
+    })
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos078-${run}`,
+      id: shortOrder,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        // 12 cs of an item the godown holds 10 cs of, and 1 cs of one it holds none of.
+        { id: shortLineA, variantId: variantShort, enteredQty: 12, enteredUnit: 'case' },
+        { id: shortLineB, variantId: variantB, enteredQty: 1, enteredUnit: 'case' },
+      ],
+    })
+    expect(created.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${shortOrder}/submit`,
+      {
+        idempotencyKey: `submit-dos078-${run}`,
+      },
+    )
+    expect(submitted.status).toBe(200)
+    // Over-available is accepted, never blocked (UX-00 §6.4): it confirms, short, and says so.
+    expect(submitted.body.item.state).toBe('confirmed')
+    const expected = [
+      {
+        lineId: shortLineA,
+        variantId: variantShort,
+        requestedPcs: 144,
+        reservedPcs: 120,
+        shortQtyPcs: 24,
+      },
+      {
+        lineId: shortLineB,
+        variantId: variantB,
+        requestedPcs: 12,
+        reservedPcs: 0,
+        shortQtyPcs: 12,
+      },
+    ]
+    expect(submitted.body.item.stockShortages).toEqual(expected)
+
+    // The desk reads the same record on the order and in its list.
+    const read = await call<{ item: Detail }>(app, manager, 'GET', `/orders/${shortOrder}`)
+    expect(read.status).toBe(200)
+    expect(read.body.item.stockShortages).toEqual(expected)
+    const listed = await call<{ items: Detail[] }>(app, manager, 'GET', '/orders?limit=50')
+    expect(listed.status).toBe(200)
+    expect(listed.body.items.find((o) => o.id === shortOrder)?.stockShortages).toEqual(expected)
+  })
+
+  it('DOS-078: the shop reads no shortage on its order', async () => {
+    // Office-only, like `approvals`: what the godown is short of is not the shopkeeper's business.
+    const read = await call<{ item: Detail }>(app, shop, 'GET', `/orders/${shortOrder}`)
+    expect(read.status).toBe(200)
+    expect(read.body.item.stockShortages).toEqual([])
+    const listed = await call<{ items: Detail[] }>(app, shop, 'GET', '/orders?limit=50')
+    expect(listed.status).toBe(200)
+    expect(listed.body.items.find((o) => o.id === shortOrder)?.stockShortages).toEqual([])
+    // The `[]` is the mapping, not an empty column: the record itself is still on the row.
+    const stored = (
+      await db.execute(
+        sql`select jsonb_array_length(stock_shortages)::int as n from sales_orders where id = ${shortOrder}`,
+      )
+    ).rows as { n: number }[]
+    expect(stored[0]?.n).toBe(2)
+  })
+
+  it('DOS-081: an indicate-mode shop over its limit confirms and the order carries a credit notice the desk reads', async () => {
+    // Shop A is "Warn at the limit" with a ₹0 limit, so this order takes it past it. Founder, 2026-09-13:
+    // the order GOES THROUGH and the office sees a notice on it; only strict and stop are held.
+    const id = uuidv7()
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos081-${run}`,
+      id,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    expect(created.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${id}/submit`, {
+      idempotencyKey: `submit-dos081-${run}`,
+    })
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.state).toBe('confirmed')
+    // A warn-mode breach is NOT a gate: `approval_flags` still means "waiting on somebody".
+    expect(submitted.body.item.approvalFlags).toEqual([])
+    expect(submitted.body.item.creditNotice).toMatchObject({
+      creditMode: 'indicate',
+      reasons: ['limit_exceeded'],
+      creditLimitPaise: 0,
+      orderTotalPaise: submitted.body.item.totalPaise,
+    })
+    // Office-only, like the approvals and the shortage record.
+    const asShop = await call<{ item: Detail }>(app, shop, 'GET', `/orders/${id}`)
+    expect(asShop.status).toBe(200)
+    expect(asShop.body.item.creditNotice).toBeNull()
+
+    // A strict shop over its limit still carries BOTH: the gate that holds it and the same notice.
+    const held = uuidv7()
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos081b-${run}`,
+      id: held,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 30, enteredUnit: 'piece' }],
+    })
+    const heldRes = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${held}/submit`, {
+      idempotencyKey: `submit-dos081b-${run}`,
+    })
+    expect(heldRes.status).toBe(200)
+    expect(heldRes.body.item.state).toBe('submitted')
+    expect(heldRes.body.item.approvalFlags).toContain('credit_limit')
+    expect(heldRes.body.item.creditNotice).toMatchObject({
+      creditMode: 'strict',
+      reasons: ['limit_exceeded'],
+    })
+
+    // A shop within its limit gets no notice at all.
+    const clean = uuidv7()
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos081c-${run}`,
+      id: clean,
+      retailerId: retailerD,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    const cleanRes = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${clean}/submit`, {
+      idempotencyKey: `submit-dos081c-${run}`,
+    })
+    expect(cleanRes.status).toBe(200)
+    expect(cleanRes.body.item.state).toBe('confirmed')
+    expect(cleanRes.body.item.creditNotice).toBeNull()
+  })
+
+  it("DOS-078/DOS-081: the shop's DEVICE holds neither the shortage record nor the credit notice", async () => {
+    /*
+     * THE OTHER DOOR. `toOrder(row, office)` blanks both fields on the oRPC path, but `sales_orders`
+     * is ALSO a sync pull table and the retailer role holds it (its own bills and orders, docs/07 §0).
+     * `sync.pull` is `select *`, so a column nobody strips there is on the shopkeeper's phone however
+     * carefully `GET /orders/{id}` hides it — the exact shape of QA DOS-072, whose note stands: "no
+     * screen draws it" is not the same as "it is not on the phone". The manifest and the rows are one
+     * `omit`, so both halves are checked, and the rep keeps both: it warns against the limit offline
+     * (DOS-081) and tells the shopkeeper what the godown could not fill (DOS-078).
+     */
+    const OFFICE_ONLY = ['stock_shortages', 'credit_notice']
+    const deviceId = uuidv7()
+    const columnsOf = async (actor: Actor) => {
+      const manifest = await call<Manifest>(app, actor, 'GET', '/sync/manifest')
+      expect(manifest.status).toBe(200)
+      return manifest.body.tables
+        .find((t) => t.table === 'sales_orders')
+        ?.columns.map((c) => c.name)
+    }
+    const rowsOf = async (actor: Actor) => {
+      const pulled = await call<Pull>(app, actor, 'GET', '/sync/pull', {
+        deviceId,
+        limit: '500',
+        'tables[0]': 'sales_orders',
+      })
+      expect(pulled.status).toBe(200)
+      return pulled.body.changes.find((c) => c.table === 'sales_orders')?.rows ?? []
+    }
+
+    const shopColumns = await columnsOf(shop)
+    expect(shopColumns).toBeDefined()
+    expect(shopColumns).toContain('total_paise')
+    for (const key of OFFICE_ONLY) expect(shopColumns, key).not.toContain(key)
+
+    const shopRows = await rowsOf(shop)
+    // The two orders this block built for shop A: one short, one over a warn-mode limit.
+    expect(shopRows.map((r) => r.id)).toContain(shortOrder)
+    expect(shopRows.length).toBeGreaterThan(0)
+    for (const row of shopRows)
+      for (const key of OFFICE_ONLY) expect(Object.keys(row), key).not.toContain(key)
+
+    // The rep's copy is untouched: it is the office side of both facts.
+    const repColumns = await columnsOf(rep)
+    for (const key of OFFICE_ONLY) expect(repColumns, key).toContain(key)
+    const repRows = await rowsOf(rep)
+    expect(repRows.map((r) => r.id)).toContain(shortOrder)
+    for (const key of OFFICE_ONLY) expect(Object.keys(repRows[0] ?? {}), key).toContain(key)
   })
 
   // -----------------------------------------------------------------------------------------------------
@@ -1219,6 +1604,42 @@ describeDb('orders (DATABASE_URL)', () => {
       })
     expect(byId.get(la)).toMatchObject({ gstBps: 1_200, taxPaise: 2_880, lineTotalPaise: 26_880 })
     expect(byId.get(lb)).toMatchObject({ gstBps: 1_200, taxPaise: 2_100, lineTotalPaise: 19_600 })
+  })
+
+  it('DOS-079: an order line on a 28% + 12% cess HSN stores cess inside its tax and the header carries the cess share', async () => {
+    const line = uuidv7()
+    const placed = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos079-${run}`,
+      id: uuidv7(),
+      retailerId: retailerA,
+      source: 'salesperson',
+      // 4 cs of 12 = 48 pcs at ₹22.97 = ₹1,102.56 taxable; 28% GST ₹308.72 + 12% cess ₹132.31 = ₹441.03
+      lines: [{ id: line, variantId: variantCess, enteredQty: 4, enteredUnit: 'case' }],
+    })
+    expect(placed.status).toBe(200)
+    const order = placed.body.item
+    const [only] = order.lines
+    if (!only) throw new Error('DOS-079: the order lost its only line')
+    expect(only).toMatchObject({
+      qtyPcs: 48,
+      ratePaise: 2_297,
+      gstBps: 2_800,
+      cessBps: 1_200,
+      cessPaise: 13_231,
+      taxPaise: 44_103,
+      lineTotalPaise: 154_359,
+    })
+    // Amendment (a): `tax_paise` IS GST + cess, so every consumer that reads the taxable as
+    // `lineTotalPaise − taxPaise` (billing, repricing, the retailer app) still reads the net.
+    expect(only.lineTotalPaise - only.taxPaise).toBe(110_256)
+    expect(order).toMatchObject({
+      subtotalPaise: 110_256,
+      discountPaise: 0,
+      cessPaise: 13_231,
+      taxPaise: 44_103,
+      roundOffPaise: 41,
+      totalPaise: 154_400,
+    })
   })
 
   const countRows = async (orderId: string) => {
@@ -1644,6 +2065,83 @@ describeDb('orders (DATABASE_URL)', () => {
       decision: 'approve',
     })
     expect(again.status).toBe(409)
+  })
+
+  it('DOS-090: a rate asked on a draft still on the phone waits for that draft and gates exactly one order', async () => {
+    /*
+     * The rep asks for a rate while the order is still a DRAFT ON THE PHONE, so `bargain_requests.order_id`
+     * names an order the server has never seen — by design (`orders.create` later writes that very id).
+     * What must hold: the request waits for THAT order and prices no other order of the shop, and when the
+     * draft is finally placed it raises exactly one gate. No FK, no nullable-until-submit, no timed lapse.
+     */
+    const phoneDraftId = uuidv7()
+    const bargainId = uuidv7()
+    const asked = await call<{ item: { status: string; orderId: string | null } }>(
+      app,
+      rep,
+      'POST',
+      '/pricing/bargains',
+      {
+        idempotencyKey: `dos090-ask-${run}`,
+        id: bargainId,
+        retailerId: retailerA,
+        variantId: variantA,
+        askedRatePaise: 900,
+        qtyPcs: 12,
+        orderId: phoneDraftId,
+      },
+    )
+    expect(asked.status).toBe(200)
+    expect(asked.body.item.status).toBe('requested')
+    expect(asked.body.item.orderId).toBe(phoneDraftId)
+    // The office cannot open it: there is no such order yet. This is what the screens must say.
+    expect((await call(app, manager, 'GET', `/orders/${phoneDraftId}`)).status).toBe(404)
+
+    // Another order of the SAME shop and item, with its own id, is untouched by that request.
+    const otherId = uuidv7()
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos090-other-${run}`,
+      id: otherId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const other = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${otherId}/submit`, {
+      idempotencyKey: `dos090-other-submit-${run}`,
+    })
+    expect(other.status).toBe(200)
+    expect(other.body.item.approvalFlags).toEqual([])
+    expect(other.body.item.lines[0]).toMatchObject({ ratePaise: 1_000 })
+
+    // And when the draft is placed under its own id, it raises exactly one gate, naming that request.
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos090-place-${run}`,
+      id: phoneDraftId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const placed = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${phoneDraftId}/submit`,
+      {
+        idempotencyKey: `dos090-place-submit-${run}`,
+      },
+    )
+    expect(placed.status).toBe(200)
+    expect(placed.body.item.approvalFlags).toEqual(['bargain'])
+    const gates = await call<{ items: Gate[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      orderId: phoneDraftId,
+    })
+    expect(gates.body.items).toHaveLength(1)
+    expect(gates.body.items[0]).toMatchObject({
+      kind: 'bargain',
+      entityType: 'bargain_request',
+      entityId: bargainId,
+    })
   })
 
   it('DOS-005: approving an approval that names a bargain request approves the request at the asked rate and closes its other copy', async () => {
@@ -3404,6 +3902,67 @@ describeDb('orders (DATABASE_URL)', () => {
         await db.update(priceLists).set({ active: true }).where(inArray(priceLists.id, activeLists))
         await cancel('te', p.orderId)
       }
+    })
+  })
+  /**
+   * DOS-141 — a refused decision has to say WHICH gate and WHOSE decision it is about.
+   *
+   * Two desks open the queue, both press Approve, and the second one was told "approval
+   * 01a09766-114f-73f5-b1fc-9d9cab81e82e was already approved": a row id, no order, no name, no time.
+   */
+  describe('DOS-141 a refused decision is written for the desk that pressed', () => {
+    it('DOS-141: a gate already decided names the order, the approver and the IST time, and carries no id', async () => {
+      const orderId = uuidv7()
+      const lineId = uuidv7()
+      const draft = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos141-create-${run}`,
+        id: orderId,
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: lineId, variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+      })
+      expect(draft.status).toBe(200)
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${orderId}/submit`,
+        { idempotencyKey: `dos141-submit-${run}` },
+      )
+      expect(submitted.status).toBe(200)
+      const orderNo = submitted.body.item.orderNo ?? ''
+      expect(orderNo).not.toBe('')
+
+      // The gate the first desk has already approved, decided at 4:20 pm IST on 13 September.
+      const approvalId = uuidv7()
+      await db.insert(approvals).values({
+        id: approvalId,
+        tenantId,
+        kind: 'credit_limit',
+        orderId,
+        entityType: 'sales_order',
+        entityId: orderId,
+        requestedBy: repId,
+        status: 'approved',
+        payload: {},
+        decidedBy: ownerId,
+        decidedAt: new Date('2026-09-13T10:50:00.000Z'),
+      })
+
+      const refused = await call<{ message: string }>(
+        app,
+        manager,
+        'POST',
+        `/approvals/${approvalId}/decide`,
+        { idempotencyKey: `dos141-decide-${run}`, decision: 'approve' },
+      )
+      expect(refused.status).toBe(409)
+      expect(refused.body.message).toBe(
+        `the credit limit gate on ${orderNo} was already approved by Owner on 13 Sep, 4:20 pm`,
+      )
+      expect(refused.body.message).not.toContain(approvalId)
+      expect(refused.body.message).not.toContain(ownerId)
+      expect(refused.body.message).not.toContain('T10:50')
     })
   })
 })

@@ -295,13 +295,15 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
-    const { flags, bargainIds } = await approvalFlags(tx, order, lines)
+    const { flags, bargainIds, creditNotice } = await approvalFlags(tx, order, lines)
     const [submitted] = await tx
       .update(salesOrders)
       .set({
         state: to,
         orderNo: order.orderNo ?? (await nextDocumentNumber(tx, 'SO', now)),
         approvalFlags: flags,
+        // DOS-081: the credit position the desk reads, in every mode — a record, never a gate.
+        creditNotice,
         submittedAt: now,
         updatedAt: now,
       })
@@ -370,7 +372,9 @@ export class OrdersService {
    * warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
-    if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
+    // DOS-078: an idempotent re-confirm reads the stored record back, never an empty list.
+    if (order.state === 'confirmed')
+      return { item: await this.detail(tx, order), shortages: order.stockShortages }
     const to = transition(order.state, 'confirm')
     const waiting = await tx
       .select({ id: approvals.id, kind: approvals.kind })
@@ -402,7 +406,9 @@ export class OrdersService {
           discountBps: line.discountBps,
           discountPaise: line.discountPaise,
           gstBps: line.gstBps,
+          cessBps: line.cessBps,
           taxPaise: line.taxPaise,
+          cessPaise: line.cessPaise,
           lineTotalPaise: line.lineTotalPaise,
           freeQtyPcs: line.freeQtyPcs,
           appliedRules: line.appliedRules,
@@ -441,6 +447,9 @@ export class OrdersService {
         ...(repriced?.totals ?? {}),
         state: to,
         fulfilFromLocationId: locationId,
+        // DOS-078: what the godown could not hold is RECORDED on the order — never a refusal, never a
+        // clamp, never a new gate — so the desk sees it before pack instead of only the caller who confirmed.
+        stockShortages: shortages,
         confirmedAt: now,
         updatedAt: now,
       })

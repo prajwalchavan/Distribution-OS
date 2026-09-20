@@ -10,8 +10,12 @@ import { currentTenant } from '../../platform/index.js'
  * once the trip has been settled. A plain exported function — the worker's rollup sweep imports it
  * without Nest DI (coordination §3.9 worker rule).
  *
- * ON TIME is `completed_at <= eta_at`: a stop with no ETA is never counted as late (nothing was
- * promised) and never as on time either, so the rate is honest about how much of the day was planned.
+ * ON TIME is `completed_at <= eta_at` on an ATTEMPTED stop (delivered or partial). A stop with no ETA
+ * is never counted as late (nothing was promised) and never as on time either — which is why
+ * `stopsWithEta` travels beside `stopsOnTime`: it is the denominator of the rate, and dividing by
+ * every attempted stop instead made an unpromised stop count as a late one. Measured on the founder's
+ * own data as "DELIVERED ON THE FIRST ATTEMPT 0%" for a crew with 104 of 125 stops delivered (QA
+ * DOS-067); a trip planned with no ETAs at all is 0/0, which the contract's ratio rule makes 0.
  * POD COVERAGE counts the delivered / partial stops with at least one `pod_evidence` row — the
  * denominator is attempts that ended in goods changing hands, not every stop, because a failed stop
  * has nothing to prove.
@@ -43,8 +47,10 @@ export interface DeliveryPerformanceRow {
   stopsDelivered: number
   stopsPartial: number
   stopsFailed: number
-  /** Stops completed at or before their planned ETA (null ETA never counts). */
+  /** Attempted stops completed at or before their planned ETA (null ETA never counts). */
   stopsOnTime: number
+  /** Attempted stops that carried an ETA at all: the denominator of the on-time rate (QA DOS-067). */
+  stopsWithEta: number
   /** Delivered or partial stops carrying at least one proof-of-delivery row. */
   stopsWithPod: number
   /** `trip_settlements.cash_variance_paise`; null until the trip is settled. */
@@ -75,7 +81,8 @@ export async function deliveryPerformanceRows(
       stopsDelivered: sql<number>`count(*) filter (where ${tripStops.state} = 'delivered')`,
       stopsPartial: sql<number>`count(*) filter (where ${tripStops.state} = 'partial')`,
       stopsFailed: sql<number>`count(*) filter (where ${tripStops.state} = 'failed')`,
-      stopsOnTime: sql<number>`count(*) filter (where ${tripStops.completedAt} is not null and ${tripStops.etaAt} is not null and ${tripStops.completedAt} <= ${tripStops.etaAt})`,
+      stopsOnTime: sql<number>`count(*) filter (where ${tripStops.state} in ('delivered', 'partial') and ${tripStops.completedAt} is not null and ${tripStops.etaAt} is not null and ${tripStops.completedAt} <= ${tripStops.etaAt})`,
+      stopsWithEta: sql<number>`count(*) filter (where ${tripStops.state} in ('delivered', 'partial') and ${tripStops.completedAt} is not null and ${tripStops.etaAt} is not null)`,
       // A stop proves itself through its deliveries' evidence rows; EXISTS keeps the fan-out out of the
       // counts above (a stop with three photos is one covered stop, not three).
       stopsWithPod: sql<number>`count(*) filter (where ${tripStops.state} in ('delivered', 'partial') and exists (
@@ -116,6 +123,7 @@ export async function deliveryPerformanceRows(
     stopsPartial: Number(r.stopsPartial),
     stopsFailed: Number(r.stopsFailed),
     stopsOnTime: Number(r.stopsOnTime),
+    stopsWithEta: Number(r.stopsWithEta),
     stopsWithPod: Number(r.stopsWithPod),
     cashVariancePaise: r.cashVariancePaise === null ? null : Number(r.cashVariancePaise),
     startedAt: r.startedAt ? r.startedAt.toISOString() : null,

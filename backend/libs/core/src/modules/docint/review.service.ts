@@ -41,6 +41,7 @@ import {
   type TenantContext,
 } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
+import { istMoment, personWord } from '../../platform/refusal-words.js'
 import { DESK_WRITERS, lockDocument, notFound, transition } from './docint.internals.js'
 import { reviewedOf, toSession, type CheckRow, type SessionRow } from './docint.mappers.js'
 import { docintConfig } from './pipeline/config.js'
@@ -326,7 +327,9 @@ async function lockedError(tx: Db, holder: SessionRow): Promise<ORPCError<'CONFL
     .where(eq(users.id, holder.reviewerId))
     .limit(1)
   return new ORPCError('CONFLICT', {
-    message: `${u?.name ?? 'another reviewer'} is reviewing this document (until ${holder.lockedUntil.toISOString()})`,
+    // The reviewer's name and an IST time, because this sentence is shown to the person who pressed
+    // (DOS-141): "until 2026-10-12T00:00:00.000Z" is a machine's way of saying "until 12 Oct, 12:00 am".
+    message: `${personWord(u?.name)} is reviewing this document (until ${istMoment(holder.lockedUntil)})`,
     data: {
       code: 'locked',
       reviewSessionId: holder.id,

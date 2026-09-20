@@ -282,8 +282,15 @@ export default function Shops(): React.JSX.Element {
                   <Field label={t('o6.lastOrder')}>
                     {instantWithClock(behaviour.data?.item.lastOrderAt ?? null)}
                   </Field>
+                  {/*
+                    DOS-093: `reporting.retailers.behaviour` is a 404 until the nightly rollup has
+                    seen the shop, so a shop added this morning had no `data` — and `?? 0` printed
+                    "0 days to pay", which reads as a shop that settles the same day. `lastOrder`
+                    above already prints an em dash for exactly this; now so does the figure beside
+                    it. No new string key: this file already writes `'—'` inline.
+                  */}
                   <Field label={t('o6.avgDaysToPay')}>
-                    {String(behaviour.data?.item.avgDaysToPay ?? 0)}
+                    {behaviour.data === undefined ? '—' : String(behaviour.data.item.avgDaysToPay)}
                   </Field>
                   <Field label={t('o6.visits')}>{String(visits.data?.items.length ?? 0)}</Field>
                 </Stack>

@@ -1,5 +1,5 @@
 {
-  "id": "57d5873c-29ff-4dc0-8835-4ed96137b4c6",
+  "id": "260ae785-b19e-414b-a9c2-5d3d7069e16e",
   "prevId": "4a245907-9cc6-4c55-a140-7f06dc23edec",
   "version": "7",
   "dialect": "postgresql",
@@ -11413,8 +11413,22 @@
           "primaryKey": false,
           "notNull": true
         },
+        "cess_bps": {
+          "name": "cess_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "tax_paise": {
           "name": "tax_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cess_paise": {
+          "name": "cess_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -11725,6 +11739,13 @@
           "notNull": true,
           "default": 0
         },
+        "cess_paise": {
+          "name": "cess_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "round_off_paise": {
           "name": "round_off_paise",
           "type": "bigint",
@@ -11815,33 +11836,6 @@
             },
             {
               "expression": "updated_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "sales_orders_created_idx": {
-          "name": "sales_orders_created_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -16685,33 +16679,6 @@
           ],
           "isUnique": true,
           "where": "invoice_no IS NOT NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "invoices_date_idx": {
-          "name": "invoices_date_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "invoice_date",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}

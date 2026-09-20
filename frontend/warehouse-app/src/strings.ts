@@ -229,7 +229,8 @@ export const strings = {
   'w3.line': 'Line {index} of {total}',
   'w3.counted': 'Received',
   'w3.damaged': 'Damaged',
-  'w3.countLabel': 'Pieces received',
+  'w3.countLabel': 'Good pieces',
+  'w3.countSplit': 'Count the good pieces here. Damaged ones are counted on the next step.',
   'w3.damagedLabel': 'Pieces damaged',
   'w3.next': 'Next line',
   'w3.done': 'Save the count',
@@ -267,6 +268,8 @@ export const strings = {
   'w4.mixedLocation': 'Those orders are picked from two different godowns — choose one.',
   'w4.onWave': 'Already on a wave',
   'w4.waves': 'WAVES',
+  'w4.wavesToPick': '{count} waves still to pick',
+  'w4.wavesToPick.one': '{count} wave still to pick',
   'w4.wavesEmpty': 'No wave yet',
   'w4.wavePicked': '{picked} of {requested} pc picked',
   'w4.selectAll': 'Select all',
@@ -286,6 +289,7 @@ export const strings = {
   'w5.reasonDamaged': 'Damaged carton',
   'w5.reasonHeld': 'Batch held back',
   'w5.reasonOther': 'Something else',
+  'w5.chooseReason': 'Say why the rest is not coming — the desk acts on this word.',
   'w5.fefo': 'Older lot first · {batch}',
   'w5.linesLeft': '{count} lines not yet picked',
   'w5.linesLeft.one': '{count} line not yet picked',
@@ -293,6 +297,7 @@ export const strings = {
   /* Picking has no Save step (UX-00 section 9.4): this button goes to packing, so it says so. */
   'w5.confirm': 'Take it to packing',
   'w5.notStarted': 'This sheet has not been started',
+  'w5.waiting': 'Getting this wave from the office…',
   'w5.cancelIsManager': 'A wave is cancelled by the manager.',
   // DOS-138: the desk cancelled the order while this sheet was live; these pieces go back on the rack.
   'w5.putBackTitle': 'Put back',
@@ -303,6 +308,14 @@ export const strings = {
   'w5.bin': 'Requested {pieces} pc',
   'w5.enterPieces': 'Pieces picked',
   'w5.overAsk': 'This batch asks for {pieces} pc. Count again — more cannot be saved on this line.',
+  /*
+   * The two labels the pad's OWN button wears while the save would be refused (DOS-118, merge
+   * review). The sentences above the pad say the whole of it; these say it where the thumb is, for
+   * a picker whose scrolled view of a tall sheet holds the keypad and nothing above it. Short
+   * enough to sit on one button line at 390 px.
+   */
+  'w5.shortOverAsk': 'Too many pieces',
+  'w5.shortNeedsReason': 'Choose a reason',
   'w5.pickedAll': 'Picked in full',
   'w5.status': 'Sheet is {status}',
   'w5.offlineNote': 'Picks are saved on this phone and sent when there is a signal.',
@@ -345,6 +358,8 @@ export const strings = {
   'w7.title': 'Load',
   'w7.tab': 'Sheets',
   'w7.sheets': 'LOAD SHEETS',
+  'w7.sheetsWaiting': '{count} sheets not sent out yet',
+  'w7.sheetsWaiting.one': '{count} sheet not sent out yet',
   'w7.sheetsEmpty': 'No sheet yet',
   'w7.build': 'Build a sheet',
   'w7.vehicle': 'Vehicle',

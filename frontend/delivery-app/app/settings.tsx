@@ -64,9 +64,16 @@ export default function Me(): React.JSX.Element {
 
   const me = useQuery(['auth', 'me'], () => api.auth.me(), { enabled: signedIn })
   const sessions = useQuery(['auth', 'sessions'], () => api.auth.sessions(), { enabled: signedIn })
+  /*
+   * DOS-065 — THE CREW'S INBOX HOLDS WHAT IS ADDRESSED TO THE CREW. `messages.list` with no filter
+   * is the whole tenant's outbound log, which a staff caller may read: this screen printed twenty
+   * rows of what the office had sent to SHOPS since June — order confirmations, other people's
+   * receipts, every shop's payment history — on the one screen a driver reads with one hand.
+   * `mine` is `recipientUserId = actor` for a staff caller (messages.service.ts:90).
+   */
   const inbox = useQuery(
     ['messages', 'mine'],
-    () => api.api.notifications.messages.list({ limit: 20 }),
+    () => api.api.notifications.messages.list({ mine: true, limit: 20 }),
     {
       enabled: signedIn,
     },

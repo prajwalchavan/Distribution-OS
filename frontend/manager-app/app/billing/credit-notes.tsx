@@ -24,7 +24,7 @@ import {
   type CreditNoteReason,
 } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { creditedPiecesByLine, piecesLeftToCredit, uuidv7 } from '@dos/domain'
+import { creditedPiecesByLine, piecesLeftToCredit } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -47,7 +47,7 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import {
   Async,
@@ -60,11 +60,12 @@ import {
   moneyColumn,
   pageTotal,
   pagedCount,
-  stayOpen,
+  stayOpenAnd,
   textColumn,
   useCan,
   useNames,
 } from '../../src/lib/ui'
+import { keepIds } from '../../src/lib/money-intents'
 import { longDate, rangeOf, today, type RangeId } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -150,12 +151,22 @@ export default function CreditNotes(): React.JSX.Element {
     { enabled: billId !== null && bill.data !== undefined },
   )
 
+  /*
+   * The line ids come from the INPUT, made once per bill (DOS-136). A `uuidv7()` inside the call was a
+   * new id on every press, so a retry after a lost reply was a different request under the spent
+   * idempotency key and the service refused it — over a note it had already drafted.
+   */
   const create = useMutation(
     (
       input: {
         invoiceId: string
         reason: CreditNoteReason
-        lines: readonly { invoiceLineId: string; qtyPcs: number; ratePaise: number }[]
+        lines: readonly {
+          id: string
+          invoiceLineId: string
+          qtyPcs: number
+          ratePaise: number
+        }[]
       },
       meta,
     ) =>
@@ -166,7 +177,7 @@ export default function CreditNotes(): React.JSX.Element {
         reason: input.reason,
         noteDate: today(),
         lines: input.lines.map((line) => ({
-          id: uuidv7(),
+          id: line.id,
           invoiceLineId: line.invoiceLineId,
           qtyPcs: line.qtyPcs,
           saleable: isSaleableCreditNoteReason(input.reason),
@@ -228,13 +239,26 @@ export default function CreditNotes(): React.JSX.Element {
         : undefined
     return { line, left, text, pieces, error }
   })
-  const draftLines = entries
-    .filter((entry) => entry.error === undefined && entry.pieces > 0)
-    .map((entry) => ({
-      invoiceLineId: entry.line.id,
-      qtyPcs: entry.pieces,
-      ratePaise: entry.line.ratePaise,
-    }))
+  /*
+   * One id per bill line, made the first time that line is drafted and kept while this bill's sheet is
+   * open, so pressing "Draft the credit note" again sends the same lines (DOS-136).
+   */
+  const heldLineIds = useRef<{ billId: string | null; ids: Record<string, string> }>({
+    billId: null,
+    ids: {},
+  })
+  if (heldLineIds.current.billId !== billId) heldLineIds.current = { billId, ids: {} }
+  const returned = entries.filter((entry) => entry.error === undefined && entry.pieces > 0)
+  heldLineIds.current.ids = keepIds(
+    heldLineIds.current.ids,
+    returned.map((entry) => entry.line.id),
+  )
+  const draftLines = returned.map((entry) => ({
+    id: heldLineIds.current.ids[entry.line.id] ?? entry.line.id,
+    invoiceLineId: entry.line.id,
+    qtyPcs: entry.pieces,
+    ratePaise: entry.line.ratePaise,
+  }))
   /** A typed entry that is not a whole count, or is above what is left: nothing is sent until it is fixed. */
   const invalid = entries.some((entry) => entry.error !== undefined)
   /*
@@ -254,9 +278,11 @@ export default function CreditNotes(): React.JSX.Element {
       setActing(null)
       setReason('')
     }
-    if (acting === 'issue') void issue.mutateAsync(selected).then(done, stayOpen)
+    /* A write whose reply never arrived may still have landed: the note is read back (DOS-136). */
+    const unknown = stayOpenAnd(detail.refetch, list.refetch)
+    if (acting === 'issue') void issue.mutateAsync(selected).then(done, unknown)
     if (acting === 'cancel')
-      void cancel.mutateAsync({ id: selected, reason: reason.trim() }).then(done, stayOpen)
+      void cancel.mutateAsync({ id: selected, reason: reason.trim() }).then(done, unknown)
   }
 
   return (
@@ -493,11 +519,14 @@ export default function CreditNotes(): React.JSX.Element {
                   onPress={() => {
                     void create
                       .mutateAsync({ invoiceId: billId, reason: kind, lines: draftLines })
-                      .then(() => {
-                        setDrafting(false)
-                        setBillId(null)
-                        setReturning({})
-                      }, stayOpen)
+                      .then(
+                        () => {
+                          setDrafting(false)
+                          setBillId(null)
+                          setReturning({})
+                        },
+                        stayOpenAnd(list.refetch, prior.refetch),
+                      )
                   }}
                   testID="note-create"
                 />
