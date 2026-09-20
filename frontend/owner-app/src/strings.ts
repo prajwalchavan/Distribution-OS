@@ -153,7 +153,9 @@ export const strings = {
   'o4.speed': 'Speed',
   'o4.stops': 'Stops',
   'o4.noPositions': 'No vehicle has reported a position today',
-  'o4.mapNote': 'Map tiles arrive with the MapView component; positions are live.',
+  'o4.mapNote':
+    'Positions are live; the map is OpenStreetMap on the web and the phone’s own maps on a device.',
+  'o4.noFix': 'No vehicle has reported a position to put on the map',
   'o4.openInMaps': 'Open in maps',
   'o4.trace': 'Trip trace',
 
