@@ -28,14 +28,14 @@ import {
   type TenantContext,
 } from '@dos/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { tenantStorage } from '../../platform/index.js'
+import { PG_POOL, tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { OrdersModule, OrdersService } from '../orders/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
 import { SyncModule } from '../sync/index.js'
-import { WarehouseModule } from './index.js'
+import { PicklistsService, WarehouseModule } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -2542,23 +2542,90 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(row?.cancel_reason).toMatch(/every order on it was cancelled: Shop refused the load\./)
   })
 
-  it('DOS-138: an order cancelled from confirmed while it sits on an OPEN wave no longer breaks the wave — start marks its lines put-back, starts the others and answers 200', async () => {
-    const dead = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-dead')
-    const live = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-live')
-    const waved = await wave([dead, live], 'dos138-open')
+  /**
+   * The other half of the pair, and the half the old version of the case below actually proved: on a
+   * service that mounts BOTH modules (owner, manager — `src/service/definitions.ts`), the registered
+   * hook reaches an OPEN sheet too, because `LIVE_PICKLIST_STATUSES` includes 'open'. Pinned here on
+   * its own, with the assertion taken BEFORE `start`, so the two mechanisms are told apart by name.
+   */
+  it('DOS-138: the desk cancels an order sitting on an OPEN wave — the registered hook marks its lines put-back there and then, before any picker starts the sheet', async () => {
+    const dead = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-desk-open')
+    const live = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-desk-live')
+    const waved = await wave([dead, live], 'dos138-desk-open')
     expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
 
-    // cancelled from `confirmed`, which has always been allowed — the wave is open, so nothing is
-    // put back by the hook's own filter until the sheet is started
     const cancelled = await call<{ item: { state: string } }>(
       app,
       manager,
       'POST',
       `/orders/${dead}/cancel`,
-      { idempotencyKey: `dos138-open-cancel-${run}`, reason: 'Shop cancelled before picking.' },
+      {
+        idempotencyKey: `dos138-desk-open-cancel-${run}`,
+        reason: 'Shop cancelled before picking.',
+      },
     )
     expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
     expect(cancelled.body.item.state).toBe('cancelled')
+
+    // no `start` has run: whatever marked these rows was the hook
+    const marked = await pickLineRows(waved.id, dead)
+    expect(marked.length).toBeGreaterThan(0)
+    expect(
+      marked.every((r) => r.cancelled_at !== null),
+      'the hook skipped an OPEN sheet — the picker would be handed the dead order the moment it starts',
+    ).toBe(true)
+    expect((await pickLineRows(waved.id, live)).every((r) => r.cancelled_at === null)).toBe(true)
+  })
+
+  /**
+   * The design's amendment (c): a service that mounts orders WITHOUT warehouse — sales-service and
+   * retailer-service (`src/service/definitions.ts`) — registers no `registerCancelled` hook, so
+   * NOTHING marks the put-back when the rep cancels from the van. `picklists.start` has to reconcile
+   * the sheet itself before the godown starts the wave.
+   *
+   * This case used to cancel through `app`, which mounts orders AND warehouse: the hook had already
+   * written `cancelled_at` before `start` ran (`LIVE_PICKLIST_STATUSES` includes 'open'), so it proved
+   * the hook a second time and the reconcile could be deleted from `picklists.service.ts` with all 46
+   * cases of this file still green (verifier, DOS-138). A SECOND Nest app shaped like sales-service is
+   * what makes the named mechanism the test's own — its `OrdersService` is a different instance with no
+   * hook on it — and the assertion taken BETWEEN the cancel and the start is what pins the reconcile:
+   * the lines are still unmarked there, so only `start` can be what marks them.
+   */
+  it('DOS-138: an order cancelled from the SALES app — a service that mounts orders without warehouse, so no put-back hook is registered — no longer breaks the wave: start marks its lines put-back itself, starts the others and answers 200', async () => {
+    const dead = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-dead')
+    const live = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-live')
+    const waved = await wave([dead, live], 'dos138-open')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+
+    // sales-service's shape for this call: OrdersModule and the modules it imports itself, and no
+    // WarehouseModule — so `PicklistsService.onModuleInit` never runs in this container.
+    const salesApp = await bootTestApp([OrdersModule])
+    try {
+      expect(
+        () => salesApp.get(PicklistsService, { strict: false }),
+        'the sales-shaped app resolved PicklistsService — it mounted warehouse, and this case would prove the hook again',
+      ).toThrow()
+      const cancelled = await call<{ item: { state: string } }>(
+        salesApp,
+        rep,
+        'POST',
+        `/orders/${dead}/cancel`,
+        { idempotencyKey: `dos138-open-cancel-${run}`, reason: 'Shop cancelled before picking.' },
+      )
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      expect(cancelled.body.item.state).toBe('cancelled')
+    } finally {
+      await salesApp.get<{ end: () => Promise<void> } | null>(PG_POOL)?.end()
+      await salesApp.close()
+    }
+
+    // Nothing has touched the sheet: no hook existed to touch it. This is the state `start` inherits.
+    const beforeStart = await pickLineRows(waved.id, dead)
+    expect(beforeStart.length).toBeGreaterThan(0)
+    expect(
+      beforeStart.every((r) => r.cancelled_at === null),
+      'the cancel marked the lines, so a hook WAS registered — this case is proving the wrong mechanism again',
+    ).toBe(true)
 
     const started = await call<{ item: PicklistBody }>(
       app,
@@ -2571,7 +2638,44 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(started.body.item.status).toBe('picking')
     expect(await orderState(live)).toBe('picking')
     expect(await orderState(dead)).toBe('cancelled')
-    expect((await pickLineRows(waved.id, dead)).every((r) => r.cancelled_at !== null)).toBe(true)
+
+    // `start` itself did the put-back, on the very rows that were unmarked a moment ago, bumping the
+    // delta cursor so the picker's phone carries it.
+    const afterStart = await pickLineRows(waved.id, dead)
+    expect(afterStart.map((r) => r.id)).toEqual(beforeStart.map((r) => r.id))
+    expect(
+      afterStart.every((r) => r.cancelled_at !== null),
+      'start left the dead order on the sheet: the picker is asked for goods no one ordered',
+    ).toBe(true)
+    afterStart.forEach((row, i) => {
+      expect(
+        Number(row.updated_ms),
+        `pick line ${row.id} was put back without bumping updated_at`,
+      ).toBeGreaterThan(Number(beforeStart[i]?.updated_ms ?? '0'))
+    })
     expect((await pickLineRows(waved.id, live)).every((r) => r.cancelled_at === null)).toBe(true)
+
+    // …and the sheet is not hung on the order that went away: the live one picks in full and completes.
+    const rowLive = started.body.item.lines.find((l) => l.orderId === live)
+    expect(rowLive, 'no pick line for the live order').toBeDefined()
+    const finished = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-open-pick-${run}`,
+        lines: [
+          {
+            id: rowLive?.id ?? '',
+            orderLineId: rowLive?.orderLineId ?? '',
+            lotId: rowLive?.lotId ?? lotB,
+            pickedQtyPcs: rowLive?.requestedQtyPcs ?? 12,
+          },
+        ],
+      },
+    )
+    expect(finished.status, JSON.stringify(finished.body)).toBe(200)
+    expect(finished.body.item.status).toBe('picked')
   })
 })
