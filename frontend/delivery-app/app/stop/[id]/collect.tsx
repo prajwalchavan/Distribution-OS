@@ -21,7 +21,7 @@
  * server's own offline dedupe key.
  */
 import { useApi, useMutation, useSession } from '@dos/api-client/react'
-import { useSyncStatus } from '@dos/offline/react'
+import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
   Group,
@@ -34,7 +34,6 @@ import {
   Stack,
   StatusChip,
   TextInput,
-  Toast,
   Txt,
   formatINR,
   useColors,
@@ -46,6 +45,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
+import { doorDoneHref, pullAfterDoorstepWrite } from '../../../src/lib/at-the-door'
 import { longDate, today } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -72,6 +72,13 @@ export default function Collect(): React.JSX.Element {
   const stopId = typeof params.id === 'string' ? params.id : null
   const hydrated = useHydrated()
   const status = useSyncStatus()
+  /*
+   * DOS-063 — the stop screen behind this one reads the shop's dues off SQLite. `collections.record`
+   * posts the receipt and the new outstanding in one transaction at the office, so the device is one
+   * pull away from the right figure; without that pull the crew read the OLD dues back to a shopkeeper
+   * who had just paid, for as long as the sixty-second poll took to come round.
+   */
+  const engine = useSyncEngine()
   const myUserId = useMyUserId()
 
   const { stop } = useLocalStop(stopId)
@@ -93,7 +100,6 @@ export default function Collect(): React.JSX.Element {
   const [chequeDate, setChequeDate] = useState(today())
   const [bank, setBank] = useState('')
   const [bookNo, setBookNo] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -129,10 +135,14 @@ export default function Collect(): React.JSX.Element {
       invalidates: [['trip'], ['settlement'], ['collections']],
       onSuccess: (result) => {
         haptics.success()
-        setToast(
-          t('d5.recorded', { no: result.receipt.receiptNo ?? result.receipt.id.slice(0, 8) }),
+        void pullAfterDoorstepWrite(engine, 'payment recorded')
+        // DOS-149: the receipt number is read on the stop, not on a screen already being replaced.
+        router.replace(
+          doorDoneHref(stopId ?? '', {
+            code: 'money',
+            no: result.receipt.receiptNo ?? result.receipt.id.slice(0, 8),
+          }),
         )
-        router.replace(`/stop/${String(stopId ?? '')}`)
       },
       onError: (failed) => {
         haptics.error()
@@ -172,12 +182,12 @@ export default function Collect(): React.JSX.Element {
           receivedBy: myUserId,
         })
         haptics.success()
-        setToast(
-          t(keepKey('recordedMoney', status.persistent), {
+        router.replace(
+          doorDoneHref(stopId ?? '', {
+            code: 'moneyKept',
             no: bookNo.trim() === '' ? id.slice(0, 8) : bookNo.trim(),
           }),
         )
-        router.replace(`/stop/${String(stopId ?? '')}`)
       } catch (thrown) {
         haptics.error()
         setError(thrown instanceof Error ? thrown.message : t('d5.failed'))
@@ -371,14 +381,6 @@ export default function Collect(): React.JSX.Element {
           </Txt>
         )}
       </Stack>
-
-      <Toast
-        open={toast !== null}
-        message={toast ?? ''}
-        onDismiss={() => {
-          setToast(null)
-        }}
-      />
     </Screen>
   )
 }

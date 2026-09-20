@@ -239,7 +239,16 @@ export const strings = {
   'd4.podNotRequired': 'A photo is not required here, but it settles arguments later',
   'd4.podNoCamera': 'No camera on this device — attach a file instead',
   'd4.podFailed': 'That photo could not be read. Take it again.',
-  'd4.podGeo': 'Where you were is attached as proof',
+  /*
+   * DOS-070 — WHAT THE GEO PROOF ACTUALLY IS. This used to read "Where you were is attached as proof",
+   * printed on a web build whose own home screen said "Location is off — this phone is not sharing
+   * location". D4 has never asked the phone for a fix: what travels is `trip_stops.arrived_lat/lng`,
+   * the ONE reading taken when the crew tapped "I am at the shop". So the line names that reading and
+   * when it was taken — and where there is no arrival fix there is no line, because there is no `geo`
+   * row either.
+   */
+  'd4.podGeoArrival': 'Where you were when you arrived goes with this as proof',
+  'd4.podGeoArrivalAt': 'Where you were when you arrived, {when}, goes with this as proof',
   'd4.record': 'Record the delivery',
   'd4.recordOffline': 'Save on this phone',
   'd4.recordOfflineTab': 'Hold until there is a signal',
@@ -247,6 +256,18 @@ export const strings = {
   'd4.creditNote': 'Credit note {no} raised for what did not go in',
   'd4.creditNoteQueued': 'The office raises the credit note when this reaches them',
   'd4.mismatch': 'Dropped plus taken back must equal what is on the bill',
+  /* DOS-064 — the pieces pad's own cap: nothing may be dropped that was never on the bill. */
+  'd4.atMost': 'Only {pieces} pc are on this bill',
+  /*
+   * DOS-148 — the bill the godown never counted out. The office refuses it whatever the phone does
+   * (`deliveries.record`), and used to refuse it in the order machine's own words, in red, after the
+   * crew had photographed a signed bill. Both sentences name the goods and the next action, never the
+   * machine: a driver cannot tell from "cannot apply deliver_partial" whether he or the godown is wrong.
+   */
+  'd4.notLoaded':
+    'This bill was not loaded on this van — it is still in the godown. Tell the office; do not hand anything over.',
+  'd4.notOnThisVan':
+    'This bill is not out for delivery on this van. Tell the office before you hand anything over.',
   'd4.willRecord': 'Will be recorded as {outcome}',
   'd4.alreadyDone': 'This bill is already recorded as {outcome}',
   'd4.failedRecord': 'Could not record the delivery',
@@ -478,6 +499,17 @@ export const strings = {
   'd12.noTarget': 'No target set for you this month',
   'd12.consent': 'Location',
 
+  /*
+   * DOS-064 — THE KIT'S ZERO WORD, SAID BY AN APP THAT HAS NO ORDER SCREENS.
+   *
+   * `QtyStepper` prints `qty.notOrdered` where the case line would go once a line reaches zero, and the
+   * kit's catalogue answers "Not ordered" — true on S3, where a line at zero is an item nobody asked
+   * for. Both of this app's steppers mean something else. On D4 the line is PRINTED ON THE BILL in the
+   * driver's hand and zero means the shop took none of it; on the van sale it means nobody has put any
+   * of it on this bill yet. One word is true of both, and it is the answer to "how many": none.
+   */
+  'qty.notOrdered': 'Nothing',
+
   // --- the trade's own words for machine values ------------------------------------------------------
   'word.planned': 'Planned',
   'word.loading': 'Being loaded',
@@ -522,5 +554,6 @@ export const strings = {
   'word.photo': 'Photo',
   'word.signature': 'Signature',
   'word.otp': 'OTP',
-  'word.geo': 'Where you were',
+  /* DOS-070: the same claim named the same way wherever a proof row is listed. */
+  'word.geo': 'Arrival point',
 } as const

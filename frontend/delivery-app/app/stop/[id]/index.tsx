@@ -37,6 +37,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
+import { DOOR_DONE_CLEARED, doorDoneMessage } from '../../../src/lib/at-the-door'
 import { instantWithClock, longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -68,7 +69,7 @@ export default function StopScreen(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
   const router = useRouter()
-  const params = useLocalSearchParams<{ id: string }>()
+  const params = useLocalSearchParams<{ id: string; done?: string; doneNo?: string }>()
   const stopId = typeof params.id === 'string' ? params.id : null
   const hydrated = useHydrated()
   /* DOS-179: the toast below claims a keep, so it has to know what this device's store turned out to be. */
@@ -92,6 +93,18 @@ export default function StopScreen(): React.JSX.Element {
   const [note, setNote] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  /*
+   * DOS-149 — WHAT THE DRIVER HAS JUST DONE, SAID BY THE SCREEN HE LANDED ON. D4 and D5 replace
+   * themselves with this route, so a toast raised there was drawn by a screen already being torn down
+   * and the credit note's number was never read. The sentence is resolved here, against THIS render's
+   * own store, and shown once: `seen` is what a dismissal means, and dismissing also drops both
+   * parameters from the route (`DOOR_DONE_CLEARED`), so the NEXT MOUNT of this stop — a reload, or
+   * walking back to it — reads no code and says nothing (`seen` alone is per-mount and would not
+   * survive either). That the address bar itself loses them is the web walk's to confirm.
+   */
+  const [handoffSeen, setHandoffSeen] = useState(false)
+  const handoff = handoffSeen ? null : doorDoneMessage(t, sync.persistent, params)
+  const saying = toast ?? handoff
 
   const shop = stop === null ? undefined : shops.get(stop.retailer_id)
   const open = deliveries.rows.filter((row) => row.outcome === null)
@@ -449,10 +462,12 @@ export default function StopScreen(): React.JSX.Element {
       </Sheet>
 
       <Toast
-        open={toast !== null}
-        message={toast ?? ''}
+        open={saying !== null}
+        message={saying ?? ''}
         onDismiss={() => {
           setToast(null)
+          setHandoffSeen(true)
+          router.setParams(DOOR_DONE_CLEARED)
         }}
       />
     </Screen>

@@ -20,19 +20,22 @@
  * asks for it.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
-import { useSyncStatus } from '@dos/offline/react'
+import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
+  Group,
+  ListRow,
   Money,
   QtyStepper,
   Row,
   Screen,
-  Segments,
+  Sheet,
   Stack,
   StatusChip,
   TextInput,
-  Toast,
   Txt,
+  parsePieces,
+  stepPiece,
   useColors,
   wordFor,
   useStrings,
@@ -44,6 +47,14 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
+import {
+  doorDoneHref,
+  doorstepOrderBlock,
+  doorstepOrderRefusal,
+  droppedPieces,
+  geoProofLine,
+  pullAfterDoorstepWrite,
+} from '../../../src/lib/at-the-door'
 import { longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -105,6 +116,101 @@ interface LineEntry {
 /** Free pieces are delivered and returned like any other piece (`RecordDeliveryInput`'s own rule). */
 const billedPieces = (line: LocalInvoiceLine): number => line.qty_pcs + line.free_qty_pcs
 
+/** The line whose pieces pad is open, with what it was showing when it opened. */
+interface PieceLine {
+  id: string
+  name: string
+  /** Pieces on the bill: the pad may go to any number of them and never past it. */
+  billed: number
+  pieces: number
+}
+
+/**
+ * D4 · the "Pieces" sheet (DOS-064): drop an exact count off a bill line — 70 of 75 when a shop refuses
+ * five loose bottles — or nudge it a piece at a time. The kit's `parsePieces` reads what was typed
+ * (whole pieces, "1,200" included, "1.5" refused rather than truncated) and the count is capped at what
+ * the bill carries, which is the same cap the case stepper has always had. The line's committed count
+ * fills the field when the sheet opens and is never live-updated while it is open.
+ */
+function PiecesSheet({
+  line,
+  onClose,
+  onSet,
+}: {
+  line: PieceLine | null
+  onClose: () => void
+  onSet: (pieces: number) => void
+}): React.JSX.Element {
+  const t = useStrings()
+  const [text, setText] = useState('')
+
+  useEffect(() => {
+    if (line !== null) setText(String(line.pieces))
+  }, [line])
+
+  const typed = parsePieces(text)
+  const value = line === null ? null : droppedPieces(text, line.billed)
+  const over = typed.ok && line !== null && typed.pieces > line.billed
+
+  return (
+    <Sheet
+      open={line !== null}
+      onClose={onClose}
+      title={t('qty.piecesTitle')}
+      testID="d4-pieces-sheet"
+    >
+      <Stack gap={4}>
+        <Txt field="bodyStrong" desk="body">
+          {line?.name ?? ''}
+        </Txt>
+        <TextInput
+          testID="d4-pieces-input"
+          label={t('qty.piecesLabel')}
+          value={text}
+          onChange={setText}
+          keyboard="decimal"
+          autoFocus
+          {...(text.trim() !== '' && !typed.ok ? { error: t('qty.piecesInvalid') } : {})}
+          {...(over ? { helper: t('d4.atMost', { pieces: line.billed }) } : {})}
+        />
+        <Row gap={3}>
+          <Button
+            testID="d4-piece-less"
+            label={t('qty.pieceLess')}
+            variant="secondary"
+            disabled={!typed.ok || typed.pieces <= 0}
+            onPress={() => {
+              if (typed.ok) setText(String(stepPiece(typed.pieces, -1)))
+            }}
+          />
+          <Button
+            testID="d4-piece-more"
+            label={t('qty.pieceMore')}
+            variant="secondary"
+            disabled={!typed.ok || (line !== null && typed.pieces >= line.billed)}
+            disabledReason={line === null ? undefined : t('d4.atMost', { pieces: line.billed })}
+            onPress={() => {
+              if (typed.ok) setText(String(stepPiece(typed.pieces, 1)))
+            }}
+          />
+        </Row>
+        <Button
+          testID="d4-pieces-set"
+          variant="primary"
+          size="floor"
+          fullWidth
+          label={t('qty.piecesSet')}
+          disabled={value === null}
+          disabledReason={t('qty.piecesInvalid')}
+          onPress={() => {
+            if (value !== null) onSet(value)
+          }}
+        />
+      </Stack>
+    </Sheet>
+  )
+}
+
 export default function AtTheDoor(): React.JSX.Element {
   const t = useStrings()
   const api = useApi()
@@ -116,6 +222,12 @@ export default function AtTheDoor(): React.JSX.Element {
   const deliveryId = typeof params.deliveryId === 'string' ? params.deliveryId : null
   const hydrated = useHydrated()
   const status = useSyncStatus()
+  /*
+   * DOS-063 — the screen this one replaces reads the stop off SQLite, and nothing told the device to
+   * go and fetch what the office has just written. The public pull is the whole fix; a screen never
+   * writes the office's answer into the device's tables itself.
+   */
+  const engine = useSyncEngine()
 
   const { stop } = useLocalStop(stopId)
   const { trip } = useLocalTrip(stop?.trip_id ?? null)
@@ -139,13 +251,30 @@ export default function AtTheDoor(): React.JSX.Element {
   )
   const podPolicy = tripDetail.data?.item.policy.podRequired ?? 'credit_only'
 
+  /*
+   * DOS-148 — WHAT THE OFFICE HAS THIS BILL'S ORDER AS. A bill added to a trip already on the road never
+   * meets the depart gate, so a stop can offer "Deliver this bill" for goods still in the godown; the
+   * driver then photographed a signed bill and read the order machine's own refusal in red. With a
+   * signal this answers before the camera is ever offered. With none it answers nothing, and the office
+   * still refuses at the door — the device never refuses more than the server would.
+   */
+  const orderQuery = useQuery(
+    ['order', row?.order_id ?? null],
+    () => api.api.orders.get({ id: row?.order_id ?? '' }),
+    {
+      enabled: session !== null && row !== null && row.order_id !== null,
+      staleTime: 60_000,
+    },
+  )
+
   const [entries, setEntries] = useState<Record<string, LineEntry>>({})
   const [receiver, setReceiver] = useState('')
   const [note, setNote] = useState('')
   const [proof, setProof] = useState<CapturedProof | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** DOS-064: which line's pieces pad is open, or null. */
+  const [pieceLine, setPieceLine] = useState<PieceLine | null>(null)
 
   /** Open on the likeliest outcome: the whole bill goes in. Every tap after that is a correction. */
   useEffect(() => {
@@ -208,12 +337,20 @@ export default function AtTheDoor(): React.JSX.Element {
       invalidates: [['trip'], ['stops']],
       onSuccess: (result) => {
         haptics.success()
-        setToast(
-          result.creditNoteId === null
-            ? t('d4.recorded')
-            : t('d4.creditNote', { no: result.creditNoteId.slice(0, 8) }),
+        void pullAfterDoorstepWrite(engine, 'delivery recorded')
+        /*
+         * DOS-149: the outcome travels to the stop, which is the screen that is still there a second
+         * later. The credit note is named by its NUMBER — what the shopkeeper is holding — and only
+         * falls back to the head of its id when the office has not numbered it.
+         */
+        const note =
+          result.item.creditNote?.creditNoteNo ?? result.creditNoteId?.slice(0, 8) ?? null
+        router.replace(
+          doorDoneHref(
+            stopId ?? '',
+            note === null ? { code: 'delivered' } : { code: 'credit', note },
+          ),
         )
-        router.replace(`/stop/${String(stopId ?? '')}`)
       },
       onError: (failed) => {
         // No answer from the office is not a refusal: `commit` saves the delivery on the phone instead
@@ -265,6 +402,30 @@ export default function AtTheDoor(): React.JSX.Element {
   const podRequired =
     podPolicy === 'always' || (podPolicy === 'credit_only' && onCredit && outcome !== 'failed')
   const proofTooBig = proof !== null && proof.contentBase64.length > MAX_INLINE_BASE64
+  /** DOS-070: what may honestly be said about the geo proof, or null when none is travelling. */
+  const geoProof = geoProofLine(t, stop)
+  /** DOS-148: null unless the office has answered AND would refuse this very outcome on this bill. */
+  const notOnTheVanBlock = doorstepOrderBlock(orderQuery.data?.item.state, outcome)
+  const notOnTheVan = notOnTheVanBlock === null ? null : doorstepOrderRefusal(t, notOnTheVanBlock)
+
+  /**
+   * How many pieces of ONE line go in, from either control — the case stepper or the pieces pad. What
+   * is not dropped is what comes back, so the two halves of a line can never disagree with the credit
+   * note the office raises from them.
+   */
+  const drop = (lineId: string, pieces: number, billed: number): void => {
+    const capped = Math.max(0, Math.min(pieces, billed))
+    setEntries((held) => ({
+      ...held,
+      [lineId]: {
+        id: held[lineId]?.id ?? uuidv7(),
+        returnedSaleable: held[lineId]?.returnedSaleable ?? true,
+        reason: held[lineId]?.reason ?? null,
+        deliveredQtyPcs: capped,
+        returnedQtyPcs: billed - capped,
+      },
+    }))
+  }
 
   const setAll = (mode: 'full' | 'none'): void => {
     setEntries((held) => {
@@ -307,6 +468,11 @@ export default function AtTheDoor(): React.JSX.Element {
   }
 
   const commit = (): void => {
+    // DOS-148: the same belt as the shared gate below, on the one fact the office alone knows.
+    if (notOnTheVan !== null) {
+      announce(notOnTheVan)
+      return
+    }
     const blocked = doorstepBlock(gate)
     if (blocked !== null) {
       announce(doorstepRefusal(t, blocked, row.outcome))
@@ -433,8 +599,8 @@ export default function AtTheDoor(): React.JSX.Element {
         })
         if (result.via === 'phone') {
           haptics.success()
-          setToast(t(keepKey('savedOnPhone', status.persistent)))
-          router.replace(`/stop/${String(stopId ?? '')}`)
+          // No pull: there is no signal, and `queueDelivery` has already written this phone's own row.
+          router.replace(doorDoneHref(stopId ?? '', { code: 'kept' }))
         }
       } catch (thrown) {
         haptics.error()
@@ -510,6 +676,12 @@ export default function AtTheDoor(): React.JSX.Element {
               {error}
             </Txt>
           )}
+          {/*
+            DOS-148: the one refusal the shared gate cannot hold, because it is the OFFICE's fact about
+            the order and not this bill's own. It is layered over `footer` rather than folded into
+            `DoorstepGate` for exactly that reason — every other thing in that gate is knowable on a
+            phone with no signal, and this one is null until the office has answered.
+          */}
           <Button
             testID="d4-record"
             variant="primary"
@@ -517,6 +689,15 @@ export default function AtTheDoor(): React.JSX.Element {
             fullWidth
             loading={busy || record.status === 'pending'}
             {...footer}
+            {...(notOnTheVan === null
+              ? {}
+              : {
+                  disabled: true,
+                  disabledReason: notOnTheVan,
+                  onPress: () => {
+                    announce(notOnTheVan)
+                  },
+                })}
           />
         </Stack>
       }
@@ -603,8 +784,21 @@ export default function AtTheDoor(): React.JSX.Element {
                       pieces={delivered}
                       caseSize={caseSize > 0 ? caseSize : 1}
                       onChange={(pieces) => {
-                        const capped = Math.max(0, Math.min(pieces, billed))
-                        set({ deliveredQtyPcs: capped, returnedQtyPcs: billed - capped })
+                        drop(line.id, pieces, billed)
+                      }}
+                      /*
+                       * DOS-064: a shop refusing five loose bottles of a 3 cs + 3 pc line had no
+                       * control at all — the case steps went 75 → 51 → 27, and a line under one case
+                       * could only go to zero. The pad is the kit's own (DOS-085), the same one S3 and
+                       * the manager's credit notes open.
+                       */
+                      onOpenPieces={() => {
+                        setPieceLine({
+                          id: line.id,
+                          name: line.description,
+                          billed,
+                          pieces: delivered,
+                        })
                       }}
                     />
                     {returned === 0 ? null : (
@@ -614,19 +808,27 @@ export default function AtTheDoor(): React.JSX.Element {
                         </Txt>
                         {/* ONE decision (DOS-058): the reason decides where the pieces go. "Shop refused it"
                             puts them back on the van; "Damaged" and "Past its date" send them to the damaged /
-                            expiry bin, and the server refuses a damaged or expired line marked saleable. */}
-                        <Segments
-                          testID={`d4-reason-${line.id}`}
-                          items={LINE_REASONS.slice(0, 3).map((code) => ({
-                            id: code,
-                            label: wordFor(t, code),
-                          }))}
-                          value={entry?.reason ?? 'refused'}
-                          onChange={(id) => {
-                            const code = id as DeliveryLineReason
-                            set({ reason: code, returnedSaleable: isSaleableReturn(code) })
-                          }}
-                        />
+                            expiry bin, and the server refuses a damaged or expired line marked saleable.
+
+                            STACKED, NOT SHARED (DOS-163). These three side by side were wider than the line
+                            card on a 402 pt iPhone, and "Past its date" — the one that routes stock to the
+                            expiry bin — was the half a driver could not read. Three labels of the trade's own
+                            length do not fit one phone line, so they take a row each, exactly as D3's "Why was
+                            nothing delivered?" sheet does. The words themselves are never shortened: the desk,
+                            the shop's proof screen and the credit note read the same keys. */}
+                        <Group testID={`d4-reason-${line.id}`}>
+                          {LINE_REASONS.slice(0, 3).map((code) => (
+                            <ListRow
+                              key={code}
+                              testID={`d4-reason-${line.id}-${code}`}
+                              primary={wordFor(t, code)}
+                              state={(entry?.reason ?? 'refused') === code ? 'selected' : 'default'}
+                              onPress={() => {
+                                set({ reason: code, returnedSaleable: isSaleableReturn(code) })
+                              }}
+                            />
+                          ))}
+                        </Group>
                         <Txt
                           field="label"
                           desk="meta"
@@ -655,6 +857,7 @@ export default function AtTheDoor(): React.JSX.Element {
                 testID="d4-photo"
                 label={proof === null ? t('d4.podPhoto') : t('d4.podRetake')}
                 variant={proof === null && podRequired ? 'primary' : 'secondary'}
+                {...(notOnTheVan === null ? {} : { disabled: true, disabledReason: notOnTheVan })}
                 onPress={() => {
                   void (async () => {
                     try {
@@ -682,9 +885,13 @@ export default function AtTheDoor(): React.JSX.Element {
                 />
               )}
             </Row>
-            {stop?.arrived_lat === null || stop?.arrived_lat === undefined ? null : (
+            {/*
+              DOS-070: one rule decides both whether there is a geo line and what it may claim —
+              the arrival fix, and when it was taken. No fix, no line, and no `geo` row below either.
+            */}
+            {geoProof === null ? null : (
               <Txt field="label" desk="meta" color={colors.text.secondary} testID="d4-geo">
-                {t('d4.podGeo')}
+                {geoProof}
               </Txt>
             )}
             <TextInput
@@ -713,11 +920,14 @@ export default function AtTheDoor(): React.JSX.Element {
         )}
       </Stack>
 
-      <Toast
-        open={toast !== null}
-        message={toast ?? ''}
-        onDismiss={() => {
-          setToast(null)
+      <PiecesSheet
+        line={pieceLine}
+        onClose={() => {
+          setPieceLine(null)
+        }}
+        onSet={(pieces) => {
+          if (pieceLine !== null) drop(pieceLine.id, pieces, pieceLine.billed)
+          setPieceLine(null)
         }}
       />
     </Screen>
