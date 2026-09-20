@@ -379,7 +379,7 @@ export const strings = {
   'o13.due': 'Due ₹',
   'o13.state': 'State',
   'o13.pdf': 'Open bill',
-  'o13.pdfQueued': 'The bill is being prepared — it will open here in a moment',
+  'o13.pdfQueued': 'The bill is being prepared — it will be offered here in a moment',
   'o13.pdfSlow': 'The bill is still being prepared; ask for it again',
   'o13.pdfReady': 'The bill is ready — open it',
   'o13.printBill': 'Print bill',
