@@ -1658,10 +1658,36 @@ describe('DOS-086 the device is told which of its own writes the office accepted
       { table: 'sales_order_lines', rowId: 'l-accepted' },
     ])
 
-    // A second flush with nothing left to send says nothing: the signal is the landing, not the state.
-    off()
+    /*
+     * ONCE PER OP, asserted while the listener is still attached (review of the first version, which
+     * unsubscribed first and so proved only that `off()` works): a second flush with nothing left to
+     * send says nothing at all, because the signal is the landing, not the state.
+     */
     await engine.flush()
+    expect(seen).toEqual([
+      { table: 'sales_orders', rowId: 'o-accepted' },
+      { table: 'sales_order_lines', rowId: 'l-accepted' },
+    ])
+
+    // And a listener that has let go hears nothing about the next write, while a new one does.
+    off()
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-later',
+      op: 'PUT',
+      data: { retailer_id: 'r3', state: 'draft' },
+    })
+    const after: { table: string; rowId: string }[] = []
+    const offAfter = engine.onAccepted((ops) => {
+      for (const op of ops) after.push({ table: op.table, rowId: op.rowId })
+    })
+    server.offline = false
+    await engine.flush()
+    expect(after).toEqual([{ table: 'sales_orders', rowId: 'o-later' }])
     expect(seen).toHaveLength(2)
+
+    offAfter()
     await engine.stop()
   })
 })
