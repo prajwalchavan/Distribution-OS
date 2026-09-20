@@ -1,0 +1,1 @@
+ALTER TABLE "sales_orders" ADD COLUMN "stock_shortages" jsonb DEFAULT '[]'::jsonb NOT NULL;

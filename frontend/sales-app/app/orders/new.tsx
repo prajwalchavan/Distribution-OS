@@ -21,12 +21,14 @@
  * NOT ONE COST, MARGIN OR LANDED PRICE (docs/23 §3.3). `tenant_product_costs` is not in this role's
  * manifest and `tenantCatalog.costs` refuses a salesperson, so there is nothing here to leak.
  */
+import type { OrderShortage } from '@dos/contracts'
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { useNeedsAttention, useRow, useSyncEngine } from '@dos/offline/react'
 import { formatINR, formatQty, paise, pieces, uuidv7 } from '@dos/domain'
 import {
   Box,
   Button,
+  caseLine,
   EmptyState,
   Group,
   Money,
@@ -53,6 +55,7 @@ import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
 import { today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import { orderOutcome } from '../../src/lib/outcome'
+import { creditAsk, creditChipCopy, placedCopy } from '../../src/lib/placed'
 import {
   useBargains,
   useCatalogIndex,
@@ -69,6 +72,7 @@ import {
   describePriceChange,
   diffQuoteVsOrder,
   formatCaseSummary,
+  payableSummary,
   quoteOnDevice,
   summarizeCases,
   type DraftLine,
@@ -136,6 +140,63 @@ export default function OrderEntry(): React.JSX.Element {
     [quote.result],
   )
 
+  /*
+   * DOS-083: WHAT THE SHOP WILL OWE, before the rep commits.
+   *
+   * The device engine answers the net; `hsn_rates` is not in a salesperson's manifest, so the phone
+   * cannot add GST (or, since DOS-079, cess) by itself. `pricing.quote` can, and its `totalPaise` is
+   * the very figure the placed order and the bill carry. The key is the BASKET, not a keystroke: the
+   * same items and pieces read the same cached answer, a changed one asks again. With no signal the
+   * query does not run and the summary stays honestly "before GST".
+   */
+  const basket = useMemo(
+    () =>
+      draft.lines
+        .filter((line) => line.qtyPcs > 0)
+        .map((line) => ({ lineId: line.id, variantId: line.variantId, qtyPcs: line.qtyPcs }))
+        .sort((a, b) => a.variantId.localeCompare(b.variantId)),
+    [draft.lines],
+  )
+  const basketKey = useMemo(
+    () => basket.map((line) => `${line.variantId}:${String(line.qtyPcs)}`).join(','),
+    [basket],
+  )
+  const payableQuote = useQuery(
+    ['pricing', 'quote', retailerId, basketKey],
+    () => api.api.pricing.quote({ retailerId, orderId: draft.id, lines: basket }),
+    { enabled: local.online && basket.length > 0, staleTime: 30_000 },
+  )
+
+  const netPaise = quote.result?.totals.netPaise ?? 0
+  const discountPaise = quote.result?.totals.discountPaise ?? 0
+  /*
+   * The quote is refused unless its net matches the basket on screen (`payableSummary`), so a reply
+   * for a basket the rep has already changed never becomes the figure read across the counter.
+   */
+  const payable = payableSummary({ netPaise, discountPaise }, payableQuote.data?.totals ?? null)
+
+  /*
+   * DOS-081: the office's own credit verdict, BEFORE the tap. The rep may ask for it (permissions.ts
+   * CREDIT_CHECKERS) and the device never re-implements the rule — this shows `creditCheck`'s own
+   * reasons and headroom, and it never disables Place: stop and strict HOLD the order, the doorway
+   * does not refuse it (docs/plans/receivables.md §4.14). Keyed on the whole rupee, so a stepper tap
+   * that does not move the rupee figure reads the cached answer instead of asking again.
+   *
+   * THE AMOUNT IS THE PAYABLE (review of DOS-081). The server's submit-time gate weighs the order's
+   * GST-inclusive total — `approvalFlags()` → `checkCredit(tx, retailerId, order.totalPaise)` — so
+   * asking about the device engine's before-GST net answered a different question: a strict shop
+   * owing ₹20,000 against a ₹50,000 limit read no chip at all on a ₹28,739.70 net and was held at
+   * submit on its ₹32,030 payable. `creditAsk` sends the payable whenever DOS-083's quote fits this
+   * basket and the net only when there is none, and the chip then says "(before GST)" — the basis
+   * travels with the figure, it is never guessed at the chip.
+   */
+  const ask = creditAsk(payable.payablePaise, netPaise)
+  const creditCheck = useQuery(
+    ['receivables', 'creditCheck', retailerId, Math.floor(ask.amountPaise / 100), ask.basis],
+    () => api.api.receivables.creditCheck({ retailerId, orderTotalPaise: ask.amountPaise }),
+    { enabled: local.online && ask.amountPaise > 0, staleTime: 30_000 },
+  )
+
   /** The shop's own last basket, ready to be the whole order in one tap. */
   const usual: DraftLine[] = useMemo(
     () =>
@@ -199,7 +260,13 @@ export default function OrderEntry(): React.JSX.Element {
           lines: draft.lines.filter((line) => line.qtyPcs > 0),
           catalog: byVariant,
         })
-        return { id: draft.id, queued: true as const, priceChanges: [] as PriceChange[] }
+        return {
+          id: draft.id,
+          queued: true as const,
+          priceChanges: [] as PriceChange[],
+          shortages: [] as OrderShortage[],
+          reply: null,
+        }
       }
 
       /*
@@ -226,13 +293,29 @@ export default function OrderEntry(): React.JSX.Element {
        */
       const priceChanges =
         quote.result === null ? [] : diffQuoteVsOrder(quote.result.lines, created.item.lines)
-      await api.api.orders.submit({
+      const submitted = await api.api.orders.submit({
         id: draft.id,
         idempotencyKey: `${draft.id}:submit`,
         deviceId: deviceId(),
       })
       void meta
-      return { id: draft.id, queued: false as const, priceChanges }
+      /*
+       * DOS-078: the godown's answer, from the submit reply the tap already has. An order beyond what
+       * the godown holds is never refused (UX-00 §6.4) — it confirms short — so the rep is told at the
+       * counter, while they can still say "the rest follows" instead of the shop finding out at the door.
+       */
+      return {
+        id: draft.id,
+        queued: false as const,
+        priceChanges,
+        shortages: submitted.item.stockShortages,
+        /*
+         * DOS-081: submitted, not confirmed, means the office is holding this order — the reply says
+         * so and the banner must too. "Order placed" over a credit hold sends the rep away from the
+         * counter believing the goods are coming.
+         */
+        reply: { state: submitted.item.state, approvalFlags: submitted.item.approvalFlags },
+      }
     },
     {
       invalidates: [['orders']],
@@ -292,8 +375,14 @@ export default function OrderEntry(): React.JSX.Element {
       caseSize: byVariant.get(line.variantId)?.caseSize ?? 1,
     })),
   )
-  const netPaise = quote.result?.totals.netPaise ?? 0
-  const discountPaise = quote.result?.totals.discountPaise ?? 0
+  /*
+   * DOS-081: what the office will say about this shop's credit, in its own words. Offline: nothing.
+   * `ask.basis` is the one that was SENT, and it is part of the query key, so a verdict computed on
+   * the net can never be rendered under the payable's wording while the newer answer is in flight.
+   */
+  const creditChip = creditChipCopy(creditCheck.data, ask.basis)
+  /* DOS-081: and, after the tap, whether it was placed or held — from the reply, not the radio. */
+  const placedWords = placedCopy(outcome, place.data?.reply)
 
   /** The header's status row (DOS-161): pinned above the scroll at desk width, scrolled with the body off it. */
   const orderChips = (
@@ -310,6 +399,16 @@ export default function OrderEntry(): React.JSX.Element {
           figure
         />
       ) : null}
+      {creditChip === null ? null : (
+        <StatusChip
+          testID="credit-chip"
+          label={t(creditChip.key, {
+            over: formatINR(paise(creditChip.overPaise)),
+            days: creditChip.overdueDays,
+          })}
+          family={creditChip.family}
+        />
+      )}
       {local.online ? null : <StatusChip label={t('s0.offlineChip')} family="ochre" />}
     </Row>
   )
@@ -334,8 +433,9 @@ export default function OrderEntry(): React.JSX.Element {
        */
       label={
         placed !== null
-          ? // DOS-180: what became of THIS order, never what the radio is doing now.
-            t(outcome.buttonKey)
+          ? // DOS-180: what became of THIS order, never what the radio is doing now; DOS-081
+            // narrows the office's own branch into placed / held.
+            t(placedWords.buttonKey)
           : local.online
             ? t('s3.place')
             : t(keepKey('queue', local.persistent))
@@ -370,10 +470,16 @@ export default function OrderEntry(): React.JSX.Element {
             */}
             <Box grow>
               <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
-                {t('s3.summaryCompact', {
-                  lines: draft.lines.length,
-                  amount: formatINR(paise(netPaise)),
-                })}
+                {/* DOS-083: with a signal this is the payable the bill will carry, not the net. */}
+                {payable.withGst
+                  ? t('s3.summaryCompactPayable', {
+                      lines: draft.lines.length,
+                      amount: formatINR(paise(payable.payablePaise ?? netPaise)),
+                    })
+                  : t('s3.summaryCompact', {
+                      lines: draft.lines.length,
+                      amount: formatINR(paise(netPaise)),
+                    })}
               </Txt>
             </Box>
             {renderPlaceButton(false)}
@@ -387,18 +493,24 @@ export default function OrderEntry(): React.JSX.Element {
                   qty: formatCaseSummary(caseSummary),
                 })}
               </Txt>
-              <Money value={netPaise} size="moneyL" />
+              <Money value={payable.payablePaise ?? netPaise} size="moneyL" />
               {/*
-                BEFORE GST, AND IT SAYS SO.
+                WHAT THE SHOP PAYS, AND IT SAYS WHICH FIGURE IT IS.
 
-                `priceOrder()` answers the net of the lines; the bill this becomes adds GST on top —
-                SO-1113 was ₹19,495.89 net and ₹21,781.00 on the invoice. The rate comes from the dated
-                HSN table, which is NOT in this role's device manifest, so the phone genuinely cannot
-                compute the tax. Printing the net as if it were the total is what a rep would read out
-                across the counter, and it would be ₹2,285 short of the bill.
+                `priceOrder()` answers the net of the lines; the bill adds GST, and on an aerated
+                drink compensation cess too. The rates come from the dated HSN table, which is NOT in
+                this role's device manifest, so the phone cannot compute the tax by itself — but
+                `pricing.quote` can, and its total is exactly what the placed order and the bill say
+                (DOS-083, DOS-079). With a signal the big figure is that payable and the line below
+                breaks it down; with none it is the net, still marked "before GST", never a guess.
               */}
               <Txt field="label" desk="meta" color={colors.text.secondary}>
-                {t('s3.beforeGst')}
+                {payable.withGst
+                  ? t((payable.cessPaise ?? 0) > 0 ? 's3.withGstCess' : 's3.withGst', {
+                      net: formatINR(paise(payable.netPaise)),
+                      tax: formatINR(paise(payable.taxPaise ?? 0)),
+                    })
+                  : t('s3.beforeGst')}
               </Txt>
             </Stack>
             {renderPlaceButton(true)}
@@ -410,12 +522,12 @@ export default function OrderEntry(): React.JSX.Element {
         {phone ? orderChips : null}
         {placed !== null ? (
           <Panel
-            title={t(outcome.titleKey)}
+            title={t(placedWords.titleKey)}
             meta={
               // The office's own words when it refused; otherwise the sentence for this state.
               outcome.kind === 'refused' && rejection !== undefined
                 ? rejection.error.message
-                : t(outcome.bodyKey)
+                : t(placedWords.bodyKey)
             }
           >
             <Stack gap={3}>
@@ -432,6 +544,26 @@ export default function OrderEntry(): React.JSX.Element {
                   {place.data?.priceChanges.map((change) => (
                     <Txt key={change.variantId} field="body" desk="body">
                       {describePriceChange(change)}
+                    </Txt>
+                  ))}
+                </Stack>
+              )}
+              {(place.data?.shortages.length ?? 0) === 0 ? null : (
+                <Stack gap={1}>
+                  <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+                    {t('s3.shortAtGodown', { count: place.data?.shortages.length ?? 0 })}
+                  </Txt>
+                  {place.data?.shortages.map((short) => (
+                    <Txt key={short.lineId} field="body" desk="body">
+                      {`${byVariant.get(short.variantId)?.name ?? short.variantId.slice(0, 8)} — ${
+                        short.reservedPcs === 0
+                          ? t('s3.noneInStock')
+                          : caseLine(
+                              short.shortQtyPcs,
+                              byVariant.get(short.variantId)?.caseSize ?? 1,
+                              t,
+                            )
+                      }`}
                     </Txt>
                   ))}
                 </Stack>
@@ -805,6 +937,12 @@ function BargainSheet({
         variantId: item?.variantId ?? '',
         askedRatePaise: input.askedRatePaise,
         qtyPcs: qtyPcs > 0 ? qtyPcs : undefined,
+        /*
+         * DOS-090: the DRAFT's id, which is not on the server yet — `place()` creates the order under
+         * this very id, which is how this request ends up gating that one order and no other. Sending
+         * it unattached instead would make an auto-approved ask a standing rate on every future order
+         * of the shop. The office screens say "not placed yet" until the draft is placed.
+         */
         orderId,
       }),
     {

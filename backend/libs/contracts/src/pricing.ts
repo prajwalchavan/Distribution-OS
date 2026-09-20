@@ -143,7 +143,10 @@ export const SchemeRewardKindSchema = z.enum([
   'line_pct',
   'order_pct',
   'cash_discount_pct',
+  /** Paise off once per MULTIPLE of the trigger ("₹15 for every 2 cases"). */
   'net_scheme_amount',
+  /** Paise off EVERY whole trigger unit once the trigger is met ("₹15 a case on 2+", DOS-087). */
+  'per_unit_amount',
 ])
 export const SchemeFundingSourceSchema = z.enum(['company', 'distributor'])
 export const PricingDateModeSchema = z.enum(['order', 'delivery'])
@@ -183,7 +186,7 @@ const schemeEconomics = {
   triggerUnit: SchemeTriggerUnitSchema,
   slabs: z.array(SchemeSlabSchema).max(20).nullable(),
   rewardKind: SchemeRewardKindSchema,
-  /** free pieces, bps for the pct kinds, paise for net_scheme_amount. */
+  /** free pieces, bps for the pct kinds, paise for net_scheme_amount and per_unit_amount. */
   rewardValue: z.number().int().nonnegative(),
   freeVariantId: IdSchema.nullable(),
   applicability: SchemeApplicabilitySchema,
@@ -280,6 +283,12 @@ export const UpsertSchemeInput = MutationBase.extend({
       BpsSchema.safeParse(s.rewardValue).success,
     'percentage rewards are basis points 0..10000',
   )
+  // DOS-087: `per_unit_amount` is paise per unit, so it needs a unit — a rupee trigger has none.
+  .refine(
+    (s) =>
+      s.rewardKind !== 'per_unit_amount' || s.triggerUnit === 'pcs' || s.triggerUnit === 'case',
+    'a per-unit amount needs a pcs or case trigger',
+  )
 export const UpsertSchemeOutput = z.object({ item: SchemeSchema })
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -334,8 +343,12 @@ export const QuotedLineSchema = z.object({
   lineNetPaise: PaiseSchema,
   /** GST rate of the item's HSN on `pricingDate`: the rate the order stores on this line. */
   gstBps: BpsSchema,
-  /** GST on `lineNetPaise` at `gstBps`. Cess is not included (DOS-079). */
+  /** Compensation-cess rate of the same HSN on `pricingDate`; 0 for everything but sin/luxury goods. */
+  cessBps: BpsSchema,
+  /** GST plus compensation cess on `lineNetPaise` at the dated HSN rates (DOS-079). */
   taxPaise: PaiseSchema,
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: PaiseSchema,
   /** `lineNetPaise + taxPaise`: the line as the placed order carries it. */
   lineTotalPaise: PaiseSchema,
 })
@@ -359,8 +372,10 @@ export const QuoteOutput = z.object({
     bargainPaise: PaiseSchema,
     /** Before GST. */
     netPaise: PaiseSchema,
-    /** Sum of the lines' `taxPaise`. */
+    /** Sum of the lines' `taxPaise` (GST plus cess). */
     taxPaise: PaiseSchema,
+    /** Sum of the lines' `cessPaise`, inside `taxPaise` (DOS-079). */
+    cessPaise: PaiseSchema,
     /** Signed residue of rounding `netPaise + taxPaise` to the rupee. */
     roundOffPaise: PaiseSchema,
     /** What the shop pays: `netPaise + taxPaise + roundOffPaise`, a whole number of rupees. */
@@ -383,6 +398,11 @@ export const BargainSchema = z.object({
   id: IdSchema,
   retailerId: IdSchema,
   variantId: IdSchema,
+  /**
+   * The order this rate was asked for, as the client numbered it. It may not exist on the server: a
+   * rate asked on a draft still on the rep's phone names the id that draft will be placed under
+   * (DOS-090), so `orders.get` answers 404 until it is. Null = any order of this shop.
+   */
   orderId: IdSchema.nullable(),
   requestedBy: IdSchema,
   listRatePaise: PaiseSchema,
@@ -404,6 +424,11 @@ export const RequestBargainInput = MutationBase.extend({
   askedRatePaise: PaiseSchema.nonnegative(),
   /** Lets the rep's per-order cap (`maxOrderDiscountPaise`) be checked; without it that cap needs a decision. */
   qtyPcs: PiecesSchema.optional(),
+  /**
+   * The client's order id. It MAY NOT BE ON THE SERVER YET — a rep asks for a rate while the order is
+   * still a draft on the phone, and `orders.create` writes that same id later (DOS-090). The request
+   * waits for that order and prices nothing else; omit it and the rate applies to any order of the shop.
+   */
   orderId: IdSchema.optional(),
   note: z.string().trim().max(200).optional(),
 })

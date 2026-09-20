@@ -153,8 +153,10 @@ export const strings = {
   's2.creditDays': 'Credit days',
   's2.openBills': 'Open bills',
   's2.terms': 'Terms',
-  's2.creditRunsAtSubmit':
-    'The office checks the credit ({mode}) when the order is submitted, not here.',
+  /* DOS-081: the office's own verdict at the door, not "the office checks it, not here". */
+  's2.creditHeadroom': 'Headroom {amount} · {mode}',
+  's2.creditOver': 'Over the limit by {amount} · {mode}',
+  's2.creditOffline': 'Owes {owed} of {limit} — checked again at submit',
   /*
    * DOS-093 — a shop added this morning has no rollup yet, and `behaviour` answers 404
    * `behaviour_not_computed`. That is the contract's own answer, not a fault: it is a sentence.
@@ -200,6 +202,10 @@ export const strings = {
   /* DOS-161: the phone footer's one line — the desk stack's "Items · qty · money · before GST" said as one sentence. */
   's3.summaryCompact': 'Items {lines} · {amount} before GST',
   's3.beforeGst': 'before GST',
+  /* DOS-083: with a signal the footer's big figure is the payable `pricing.quote` answers, not the net. */
+  's3.withGst': 'the shop pays · {net} + {tax} GST',
+  's3.withGstCess': 'the shop pays · {net} + {tax} GST and cess',
+  's3.summaryCompactPayable': 'Items {lines} · {amount} the shop pays',
   's3.place': 'Place order',
   's3.placed': 'Order placed',
   's3.queue': 'Save on this phone',
@@ -210,10 +216,38 @@ export const strings = {
    */
   's3.queueTab': 'Hold until there is a signal',
   's3.queuedTab': 'Held in this tab only',
+  /* DOS-081: the office took it but is holding it — and what it waits on. */
+  's3.held': 'Waiting for the office',
+  's3.heldTitle': 'With the office',
+  's3.heldBody': 'It has its number. The office decides before it ships.',
+  's3.heldCreditTitle': 'Held for credit',
+  's3.heldCreditBody': 'The office decides before it ships.',
+  's3.heldBargainTitle': 'Waiting on the rate you asked for',
+  's3.heldBargainBody': 'The office decides the rate, then the order goes ahead.',
+  's3.heldFloorTitle': 'Waiting for the office',
+  's3.heldFloorBody': 'A price on this order is below the floor.',
+  /*
+   * DOS-081: the credit verdict BEFORE the tap. It never stops the tap.
+   *
+   * The office is asked about the PAYABLE (GST and cess in), the same figure its submit-time gate
+   * weighs. The `…Net` pair is the fallback with no signal or before the quote lands: the same
+   * sentence on the before-GST net, saying so, because that figure is short by exactly the tax.
+   */
+  's3.creditWillHoldOver': 'Will be held for credit — over the limit by {over}',
+  's3.creditWillHoldOverNet': 'Will be held for credit — over the limit by {over} (before GST)',
+  's3.creditWillHoldOverdue': 'Will be held for credit — {days} days overdue',
+  's3.creditWillHoldBills': 'Will be held for credit — too many open bills',
+  's3.creditWarnOver': 'Over the credit limit by {over} (warn only)',
+  's3.creditWarnOverNet': 'Over the credit limit by {over} before GST (warn only)',
+  's3.creditWarnOverdue': '{days} days overdue (warn only)',
+  's3.creditWarnBills': 'Too many open bills (warn only)',
   's3.placedTitle': 'Order placed',
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
   's3.pricesChanged': 'Prices changed since you built this order:',
+  /* DOS-078: the godown's answer at the counter — the order stands, the rest follows. */
+  's3.shortAtGodown': 'The godown is short on {count} item(s) — the shop gets the rest:',
+  's3.noneInStock': 'none in stock',
   's3.queuedTitle': 'Saved on this phone',
   /*
    * DOS-086 — the sweep submits the landed draft itself (`submitLandedDrafts` in src/lib/queue.ts),
@@ -582,6 +616,8 @@ export const strings = {
   'word.order_pct': 'Order discount',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Off the net',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.pcs': 'pieces',
   'word.case': 'cases',
   'word.inr': 'rupees',

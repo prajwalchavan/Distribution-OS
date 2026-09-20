@@ -13,8 +13,9 @@ import type { OrderRow } from './orders.mappers.js'
  *
  * The engine is never re-implemented here: quantities are converted to pieces with the tenant's SELL-SIDE pack
  * size (docs/17 B: `tenant_products.case_size_override` else `product_variants.default_case_size`), the pieces go
- * through `pricing.quote` (which runs `priceOrder()` from @dos/domain), and GST arrives with the quote, per line,
- * at the HSN rate dated to the pricing date (DOS-096) — so a line stores exactly the tax the shop was quoted.
+ * through `pricing.quote` (which runs `priceOrder()` from @dos/domain), and tax arrives with the quote, per line,
+ * at the HSN's GST and compensation-cess rates dated to the pricing date (DOS-096, DOS-079) — so a line stores
+ * exactly the tax the shop was quoted, and `line_total − tax` is its taxable.
  * Order-level rules are already spread across the lines by the engine's `allocate()`, so the header is a plain
  * sum of its lines and no paisa is lost.
  */
@@ -34,7 +35,10 @@ export interface EnteredLine {
 export interface OrderTotals {
   subtotalPaise: number
   discountPaise: number
+  /** GST plus compensation cess (DOS-079). */
   taxPaise: number
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: number
   roundOffPaise: number
   totalPaise: number
 }
@@ -50,6 +54,7 @@ export const ZERO_TOTALS: OrderTotals = {
   subtotalPaise: 0,
   discountPaise: 0,
   taxPaise: 0,
+  cessPaise: 0,
   roundOffPaise: 0,
   totalPaise: 0,
 }
@@ -115,7 +120,9 @@ export type PricedLineFields = Pick<
   | 'discountBps'
   | 'discountPaise'
   | 'gstBps'
+  | 'cessBps'
   | 'taxPaise'
+  | 'cessPaise'
   | 'lineTotalPaise'
   | 'appliedRules'
   | 'priceLocked'
@@ -135,7 +142,10 @@ export function pricedLineFields(q: QuotedLine): PricedLineFields {
     discountBps: q.grossPaise > 0 ? Math.round((discountPaise * 10_000) / q.grossPaise) : 0,
     discountPaise,
     gstBps: q.gstBps,
+    cessBps: q.cessBps,
+    // The quote is the only place an order's cess is computed; this copies it (DOS-079 amendment b).
     taxPaise: q.taxPaise,
+    cessPaise: q.cessPaise,
     lineTotalPaise: q.lineTotalPaise,
     appliedRules: toStoredRules(q.appliedRules),
     // A negotiated or overridden rate must survive re-pricing at delivery (§4.4).
@@ -150,21 +160,27 @@ export function pricedLineFields(q: QuotedLine): PricedLineFields {
  * freshly quoted order this equals the quote's own `totals.totalPaise` / `roundOffPaise`.
  */
 export function orderTotals(
-  lines: readonly Pick<OrderLineRow, 'discountPaise' | 'taxPaise' | 'lineTotalPaise'>[],
+  lines: readonly Pick<
+    OrderLineRow,
+    'discountPaise' | 'taxPaise' | 'cessPaise' | 'lineTotalPaise'
+  >[],
 ): OrderTotals {
   let subtotal = 0
   let discount = 0
   let tax = 0
+  let cess = 0
   for (const line of lines) {
     subtotal += line.lineTotalPaise - line.taxPaise + line.discountPaise
     discount += line.discountPaise
     tax += line.taxPaise
+    cess += line.cessPaise
   }
   const { rounded, roundOff } = roundToRupee(paise(subtotal - discount + tax))
   return {
     subtotalPaise: subtotal,
     discountPaise: discount,
     taxPaise: tax,
+    cessPaise: cess,
     roundOffPaise: roundOff,
     totalPaise: rounded,
   }

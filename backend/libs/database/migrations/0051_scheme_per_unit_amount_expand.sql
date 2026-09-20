@@ -1,0 +1,1 @@
+ALTER TYPE "public"."scheme_reward_kind" ADD VALUE 'per_unit_amount';
