@@ -1054,4 +1054,31 @@ describe('<Dialog> below the desk touch floor (DOS-122)', () => {
     expect(html).toContain('height:63px')
     expect(html).not.toContain('height:32px')
   })
+
+  /*
+   * The blast radius of keying on `theme.touch`, asserted rather than assumed. `buildTheme`
+   * (`theme.tsx:101`) collapses ONLY the `phone` floor to `desk` on a desk viewport — `field` and
+   * `floor` are stated per SCREEN in UX-00 section 5.2 ("every tap target ... in sales, delivery and
+   * retailer", "on every warehouse screen"), glove-and-thumb floors a big monitor does not repeal. So
+   * the warehouse (floor), sales, delivery and retailer (field) apps opened in a 1280 px BROWSER get
+   * the stacked full-width pair too, not the 32 px one. That is the design working, not DOS-122
+   * leaking: it is the same button those apps already draw everywhere else on that same screen. The
+   * two cases below are the ones no test covered — a field/floor app at a DESK viewport — so an
+   * accidental change to that rule (e.g. collapsing `floor` to `desk` in `buildTheme`) fails here
+   * instead of surfacing as a silently re-shrunk warehouse confirm.
+   */
+  it('keeps the WAREHOUSE app at its own 76 dp floor, stacked and full width, even on a 1280 px browser — a desk monitor does not repeal a glove floor', () => {
+    const html = dialog('floor', 'desk')
+    expect(html).toContain('flex-direction:column-reverse')
+    expect(html).toContain('height:76px')
+    expect(html).toContain('width:100%')
+    expect(html).not.toContain('height:32px')
+  })
+
+  it('keeps the SALES/DELIVERY/RETAILER apps at their own 69 dp field floor, stacked, on a 1280 px browser', () => {
+    const html = dialog('field', 'desk')
+    expect(html).toContain('flex-direction:column-reverse')
+    expect(html).toContain('height:69px')
+    expect(html).not.toContain('height:32px')
+  })
 })
