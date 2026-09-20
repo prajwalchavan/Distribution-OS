@@ -269,3 +269,38 @@ describe('DOS-069: the RupeeInput pad Modal gets its own safe-area measurement',
     expect(source).toMatch(/paddingTop:\s*insets\.top/)
   })
 })
+
+/**
+ * DOS-150. Typing 4 7 5 6 then Clear then Done left the field showing '—' with 'Record the payment'
+ * disabled, yet the accessibility node's content-desc was still '4756 rupees' — measured on the Pixel
+ * 7 (delivery-060-08). `<Money>`'s non-null branch sets an EXPLICIT `accessibilityLabel`; the null
+ * branch set none at all, and an absent prop is indistinguishable from an `undefined` one once React
+ * Native strips it before the native diff — the same Fabric prop-retention class as DOS-158's Button
+ * `busy` state: a value that goes from EXPLICIT to ABSENT is not always cleared, so the null branch
+ * needs its OWN explicit value, never nothing.
+ */
+describe('DOS-150: an emptied Money reads "not entered" to a screen reader, not the last amount', () => {
+  it('gives the null branch its own explicit accessibilityLabel, never an absent one', () => {
+    const body = nativeMoneyBody('Money')
+    const nullBranchEnd = body.indexOf('const spoken =')
+    expect(nullBranchEnd, 'Money has no `const spoken =` after its null branch').toBeGreaterThan(-1)
+    const nullBranch = body.slice(0, nullBranchEnd)
+    expect(nullBranch).toContain('if (value === null)')
+    expect(nullBranch).toContain('accessibilityLabel={theme.t(')
+    expect(nullBranch).not.toContain('accessibilityLabel={spoken}')
+  })
+
+  it("adds a 'not entered' kit string distinct from the '—' glyph money.none prints", () => {
+    const strings = readFileSync(join(here, 'strings.ts'), 'utf8')
+    expect(strings).toMatch(/'money\.notEntered':\s*'[^']+'/)
+    const label = /'money\.notEntered':\s*'([^']+)'/.exec(strings)?.[1]
+    expect(label).not.toBe('—')
+  })
+
+  it("the null branch reads exactly the new 'money.notEntered' string", () => {
+    const body = nativeMoneyBody('Money')
+    const nullBranchEnd = body.indexOf('const spoken =')
+    const nullBranch = body.slice(0, nullBranchEnd)
+    expect(nullBranch).toContain("accessibilityLabel={theme.t('money.notEntered')}")
+  })
+})

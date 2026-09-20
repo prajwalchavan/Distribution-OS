@@ -88,10 +88,20 @@ export function Money({
   }
   if (value === null) {
     return (
+      /*
+       * DOS-150: an EXPLICIT accessibilityLabel, always — the non-null branch below sets one too.
+       * With none here, an emptied field (typed 4756, then Clear) still announced '4756 rupees':
+       * measured on the Pixel 7, the content-desc did not clear when this branch stopped passing the
+       * prop at all. React Native strips an `undefined` prop before it reaches the native diff, so an
+       * ABSENT `accessibilityLabel` and an explicitly-`undefined` one look identical to Fabric on
+       * Android — the same prop-retention class as DOS-158's Button `busy` state, whose fix was the
+       * same shape: never let a re-render leave an accessibility prop unset when it was set before.
+       */
       <Txt
         field="moneyM"
         desk="cellMoney"
         testID={testID}
+        accessibilityLabel={theme.t('money.notEntered')}
         color={theme.colors.text.secondary}
         style={typeStyle(token)}
       >
