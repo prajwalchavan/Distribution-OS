@@ -475,7 +475,12 @@ export const strings = {
   's12.billed': 'Billed {when}',
   /* DOS-091 — S12b, one bill opened from the shop's Bills tab. */
   's12b.title': 'Bill {no}',
-  's12b.needsSignal': 'A bill is not kept on this phone. Open it where there is a signal.',
+  /*
+   * A bill is read from the office — its open amount moves every time money is taken — so it is not
+   * held offline at all. Said without naming the machine, which `keepKey` alone is allowed to do
+   * (DOS-179): there is no keep to claim here, only a read that needs a signal.
+   */
+  's12b.needsSignal': 'A bill is read from the office. Open it where there is a signal.',
   's12b.lines': 'What is on this bill',
   's12b.rate': '{rate}/pc',
   's12b.taxes': 'Taxes and total',
@@ -494,8 +499,6 @@ export const strings = {
   's12b.credits': 'Returns against this bill',
   's12b.noCredits': 'Nothing has been returned against this bill',
   's12b.for': 'For {name}',
-  's12b.notMine':
-    'This bill is not on the shop you opened. Go back to the shop and open it from its Bills tab.',
   /* DOS-179 — where the totals came from, when the signal is gone and the store may be too. */
   's12.offline':
     'No signal: these are bill totals from this phone, not what is still open on each one.',
