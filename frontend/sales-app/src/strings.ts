@@ -220,11 +220,19 @@ export const strings = {
   's3.heldBargainBody': 'The office decides the rate, then the order goes ahead.',
   's3.heldFloorTitle': 'Waiting for the office',
   's3.heldFloorBody': 'A price on this order is below the floor.',
-  /* DOS-081: the credit verdict BEFORE the tap. It never stops the tap. */
+  /*
+   * DOS-081: the credit verdict BEFORE the tap. It never stops the tap.
+   *
+   * The office is asked about the PAYABLE (GST and cess in), the same figure its submit-time gate
+   * weighs. The `…Net` pair is the fallback with no signal or before the quote lands: the same
+   * sentence on the before-GST net, saying so, because that figure is short by exactly the tax.
+   */
   's3.creditWillHoldOver': 'Will be held for credit — over the limit by {over}',
+  's3.creditWillHoldOverNet': 'Will be held for credit — over the limit by {over} (before GST)',
   's3.creditWillHoldOverdue': 'Will be held for credit — {days} days overdue',
   's3.creditWillHoldBills': 'Will be held for credit — too many open bills',
   's3.creditWarnOver': 'Over the credit limit by {over} (warn only)',
+  's3.creditWarnOverNet': 'Over the credit limit by {over} before GST (warn only)',
   's3.creditWarnOverdue': '{days} days overdue (warn only)',
   's3.creditWarnBills': 'Too many open bills (warn only)',
   's3.placedTitle': 'Order placed',

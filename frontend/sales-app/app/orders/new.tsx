@@ -55,7 +55,7 @@ import { forgetDraft, useOrderDraft } from '../../src/lib/draft'
 import { today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import { orderOutcome } from '../../src/lib/outcome'
-import { creditChipCopy, placedCopy } from '../../src/lib/placed'
+import { creditAsk, creditChipCopy, placedCopy } from '../../src/lib/placed'
 import {
   useBargains,
   useCatalogIndex,
@@ -167,18 +167,34 @@ export default function OrderEntry(): React.JSX.Element {
     { enabled: local.online && basket.length > 0, staleTime: 30_000 },
   )
 
+  const netPaise = quote.result?.totals.netPaise ?? 0
+  const discountPaise = quote.result?.totals.discountPaise ?? 0
+  /*
+   * The quote is refused unless its net matches the basket on screen (`payableSummary`), so a reply
+   * for a basket the rep has already changed never becomes the figure read across the counter.
+   */
+  const payable = payableSummary({ netPaise, discountPaise }, payableQuote.data?.totals ?? null)
+
   /*
    * DOS-081: the office's own credit verdict, BEFORE the tap. The rep may ask for it (permissions.ts
    * CREDIT_CHECKERS) and the device never re-implements the rule — this shows `creditCheck`'s own
    * reasons and headroom, and it never disables Place: stop and strict HOLD the order, the doorway
    * does not refuse it (docs/plans/receivables.md §4.14). Keyed on the whole rupee, so a stepper tap
    * that does not move the rupee figure reads the cached answer instead of asking again.
+   *
+   * THE AMOUNT IS THE PAYABLE (review of DOS-081). The server's submit-time gate weighs the order's
+   * GST-inclusive total — `approvalFlags()` → `checkCredit(tx, retailerId, order.totalPaise)` — so
+   * asking about the device engine's before-GST net answered a different question: a strict shop
+   * owing ₹20,000 against a ₹50,000 limit read no chip at all on a ₹28,739.70 net and was held at
+   * submit on its ₹32,030 payable. `creditAsk` sends the payable whenever DOS-083's quote fits this
+   * basket and the net only when there is none, and the chip then says "(before GST)" — the basis
+   * travels with the figure, it is never guessed at the chip.
    */
-  const draftNetPaise = quote.result?.totals.netPaise ?? 0
+  const ask = creditAsk(payable.payablePaise, netPaise)
   const creditCheck = useQuery(
-    ['receivables', 'creditCheck', retailerId, Math.floor(draftNetPaise / 100)],
-    () => api.api.receivables.creditCheck({ retailerId, orderTotalPaise: draftNetPaise }),
-    { enabled: local.online && draftNetPaise > 0, staleTime: 30_000 },
+    ['receivables', 'creditCheck', retailerId, Math.floor(ask.amountPaise / 100), ask.basis],
+    () => api.api.receivables.creditCheck({ retailerId, orderTotalPaise: ask.amountPaise }),
+    { enabled: local.online && ask.amountPaise > 0, staleTime: 30_000 },
   )
 
   /** The shop's own last basket, ready to be the whole order in one tap. */
@@ -357,15 +373,12 @@ export default function OrderEntry(): React.JSX.Element {
       caseSize: byVariant.get(line.variantId)?.caseSize ?? 1,
     })),
   )
-  const netPaise = quote.result?.totals.netPaise ?? 0
-  const discountPaise = quote.result?.totals.discountPaise ?? 0
   /*
-   * The quote is refused unless its net matches the basket on screen (`payableSummary`), so a reply
-   * for a basket the rep has already changed never becomes the figure read across the counter.
+   * DOS-081: what the office will say about this shop's credit, in its own words. Offline: nothing.
+   * `ask.basis` is the one that was SENT, and it is part of the query key, so a verdict computed on
+   * the net can never be rendered under the payable's wording while the newer answer is in flight.
    */
-  const payable = payableSummary({ netPaise, discountPaise }, payableQuote.data?.totals ?? null)
-  /* DOS-081: what the office will say about this shop's credit, in its own words. Offline: nothing. */
-  const creditChip = creditChipCopy(creditCheck.data)
+  const creditChip = creditChipCopy(creditCheck.data, ask.basis)
   /* DOS-081: and, after the tap, whether it was placed or held — from the reply, not the radio. */
   const placedWords = placedCopy(outcome, place.data?.reply)
 
