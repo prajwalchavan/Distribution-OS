@@ -291,7 +291,6 @@ export const strings = {
   'p6.decisionNote': 'Their note',
   'p6.revokeReason': 'Closing note',
   'p6.deniedByOwner': 'Their owner said no',
-  'p6.lapsed': 'Lapsed, no answer',
   'p6.handedBack': 'Handed back from the Distribution OS console.',
   'p6.emptyOpen': 'No window is open right now',
   'p6.emptyWaiting': 'Nobody’s owner is being waited on',
@@ -392,6 +391,8 @@ export const strings = {
   'word.quarterly': 'Quarterly',
   'word.yearly': 'Yearly',
   'word.requested': 'Waiting for their owner',
+  // A status of its own since DOS-110: asked, and nobody answered inside the hours it asked for.
+  'word.lapsed': 'Lapsed, no answer',
   'word.approved': 'Open',
   'word.rejected': 'Refused',
   'word.revoked': 'Handed back',

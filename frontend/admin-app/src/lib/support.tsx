@@ -35,7 +35,7 @@ import { uuidv7 } from '@dos/domain'
 import type { AdminSupportGrant, SupportScope } from '@dos/contracts'
 import { useEffect, useState } from 'react'
 
-import { Field, Note, Panel, askLapsed, grantFamily, useCan } from './ui'
+import { Field, Note, Panel, grantChip, useCan } from './ui'
 import { instantWithClock, untilInstant } from './dates'
 import { useWord } from './words'
 
@@ -224,9 +224,10 @@ export function InsidePanel({
   const [handBack, setHandBack] = useState(false)
 
   const live = grants.find((grant) => grant.active) ?? null
-  const waiting = grants.find((grant) => grant.status === 'requested' && !askLapsed(grant)) ?? null
+  /** Waiting means waiting: an ask whose own hours ran out is `lapsed` on the wire (DOS-110). */
+  const waiting = grants.find((grant) => grant.status === 'requested') ?? null
   /** An ask nobody answered inside the hours it asked for: it is shut, and the panel says why. */
-  const lapsed = grants.find((grant) => askLapsed(grant)) ?? null
+  const lapsed = grants.find((grant) => grant.status === 'lapsed') ?? null
 
   /**
    * Open the window: mint the five-minute pass on auth-service (the only process holding the signing
@@ -477,8 +478,7 @@ export function InsidePanel({
             <Row wrap>
               <StatusChip
                 testID="window-state"
-                label={word(waiting.status)}
-                family={grantFamily(waiting.status, false)}
+                {...grantChip(waiting, { openNow: t('p6.openNow'), word })}
               />
             </Row>
             <Txt field="body" desk="body" color={colors.text.secondary}>
@@ -494,7 +494,7 @@ export function InsidePanel({
             <Row wrap>
               <StatusChip
                 testID="window-state"
-                label={lapsed === null ? t('word.closed') : t('p6.lapsed')}
+                label={lapsed === null ? t('word.closed') : word(lapsed.status)}
                 family="neutral"
               />
             </Row>

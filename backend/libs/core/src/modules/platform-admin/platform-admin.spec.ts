@@ -873,6 +873,88 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
 
   // ---------------------------------------------------------------- subscriptions, users, metrics
 
+  /**
+   * DOS-110 — the console and the owner's service must agree on what a request IS.
+   *
+   * An ask is openable only inside the hours it asked for, counted from the ask itself; past that,
+   * `tenancy.support.approve` answers 409 `request_expired`. Both list endpoints nevertheless called
+   * it `requested` for ever, so the console's home tile counted asks nobody could answer, its
+   * "Waiting for their owner" segment listed them, and the two services would have disagreed the
+   * moment one of them learned better. One derivation, imported by both.
+   */
+  it('DOS-110: the console lists a lapsed ask as lapsed, excludes it from status=requested and openOnly, counts it under status=lapsed, revoke answers 409 request_expired, and a fresh ask reads requested on both services', async () => {
+    const lapsedId = uuidv7()
+    const requestedAt = new Date(Date.now() - 5 * HOUR_MS)
+    await db.insert(supportGrants).values({
+      id: lapsedId,
+      tenantId,
+      adminUserId,
+      requestedAt,
+      requestedHours: 4,
+      reason: 'Ticket #4390: an ask nobody answered inside the four hours it asked for.',
+      expiresAt: new Date(requestedAt.getTime() + 4 * HOUR_MS),
+      scope: 'read',
+    })
+    const freshId = uuidv7()
+    const fresh = await consoleCall<{ item: Grant }>('POST', '/admin/support-grants', {
+      idempotencyKey: `fresh-${run}`,
+      id: freshId,
+      tenantId,
+      reason: 'Ticket #4391: a request raised just now, which their owner can still answer.',
+      scope: 'read_only',
+      hours: 1,
+    })
+    expect(fresh.status, JSON.stringify(fresh.body)).toBe(200)
+    expect(fresh.body.item.status).toBe('requested')
+
+    const all = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      limit: 200,
+    })
+    expect(all.body.items.find((g) => g.id === lapsedId)?.status).toBe('lapsed')
+    expect(all.body.items.find((g) => g.id === lapsedId)?.active).toBe(false)
+
+    const waiting = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      status: 'requested',
+      limit: 200,
+    })
+    expect(waiting.body.items.map((g) => g.id)).toContain(freshId)
+    expect(waiting.body.items.map((g) => g.id)).not.toContain(lapsedId)
+    const open = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      openOnly: true,
+      limit: 200,
+    })
+    expect(open.body.items.map((g) => g.id)).not.toContain(lapsedId)
+    const lapsed = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      status: 'lapsed',
+      limit: 200,
+    })
+    expect(lapsed.body.items.map((g) => g.id)).toContain(lapsedId)
+    expect(lapsed.body.items.every((g) => g.status === 'lapsed')).toBe(true)
+
+    // Nothing to withdraw: the ask closed itself when its hours ran out, and `rejected` stays the
+    // word for a refusal the owner made.
+    const withdraw = await consoleCall<{ data?: { code?: string } }>(
+      'POST',
+      `/admin/support-grants/${lapsedId}/revoke`,
+      { idempotencyKey: `withdraw-${run}`, id: lapsedId },
+    )
+    expect(withdraw.status).toBe(409)
+    expect(withdraw.body.data?.code).toBe('request_expired')
+    const [untouched] = await db.select().from(supportGrants).where(eq(supportGrants.id, lapsedId))
+    expect(untouched?.revokedAt).toBeNull()
+
+    // ...and the two services read the SAME fresh ask the same way.
+    const ownerSide = await call<{ items: Grant[] }>(app, owner, 'GET', '/tenancy/support-grants', {
+      limit: 200,
+    })
+    expect(ownerSide.body.items.find((g) => g.id === freshId)?.status).toBe('requested')
+    expect(ownerSide.body.items.find((g) => g.id === lapsedId)?.status).toBe('lapsed')
+  })
+
   it('records what a distributor pays us, and keeps the plan on the tenant row in step', async () => {
     const id = uuidv7()
     const body = {

@@ -80,6 +80,29 @@ describeDb('tenancy support access (DATABASE_URL)', () => {
     return id
   }
 
+  /**
+   * An ask nobody answered inside its own hours: requested five hours ago for four, so its
+   * `expires_at` — the column `request()` writes and `approve()` reads — is already behind us. The
+   * write side has always known this one is finished (409 `request_expired`); DOS-110 is the read
+   * side learning to say so.
+   */
+  const lapsedGrant = async (tenant = tenantId): Promise<string> => {
+    const id = uuidv7()
+    const requestedAt = new Date(Date.now() - 5 * HOUR_MS)
+    await db.insert(supportGrants).values({
+      id,
+      tenantId: tenant,
+      adminUserId,
+      requestedAt,
+      requestedHours: 4,
+      reason:
+        'Ticket #2: the August GST register does not tie; we would like to read the invoices.',
+      expiresAt: new Date(requestedAt.getTime() + 4 * HOUR_MS),
+      scope: 'read',
+    })
+    return id
+  }
+
   beforeAll(async () => {
     await db.insert(tenants).values([
       { id: tenantId, slug: `sup-${run}`, legalName: 'Support test', stateCode: '27' },
@@ -277,6 +300,72 @@ describeDb('tenancy support access (DATABASE_URL)', () => {
       idempotencyKey: uuidv7(),
     })
     expect(missing.status).toBe(404)
+  })
+
+  /**
+   * DOS-110 — an ask that ran out of its own hours read `requested` for ever.
+   *
+   * The window is counted from the ASK (`expiresAt = requestedAt + hours`), so a four-hour request
+   * nobody answered by teatime can never be opened: `approve` answers 409 `request_expired`, and it
+   * always has. The READS lied — `statusOf()` returned `requested` whatever the clock, `openOnly`
+   * kept it for ever and `status=requested` listed it — so the console's "Waiting for their owner"
+   * showed a hundred rows with nobody waiting on any of them, and two apps grew a clock of their own
+   * to tell the difference. One derivation now says `lapsed`, on both services, and the clients read
+   * the server's word.
+   */
+  it('DOS-110: an ask not answered inside its own hours lists as lapsed, is absent from status=requested and openOnly, present under status=lapsed, and approve and revoke answer 409 request_expired', async () => {
+    const id = await lapsedGrant()
+
+    const all = await call<{ items: Grant[] }>(app, owner, 'GET', '/tenancy/support-grants', {
+      limit: 200,
+    })
+    const row = all.body.items.find((g) => g.id === id)
+    expect(row?.status).toBe('lapsed')
+    expect(row?.active).toBe(false)
+    // Nothing was ever opened, so there is no window to print and nobody decided it.
+    expect(row?.expiresAt).toBeNull()
+    expect(row?.decidedBy).toBeNull()
+
+    const waiting = await call<{ items: Grant[] }>(app, owner, 'GET', '/tenancy/support-grants', {
+      status: 'requested',
+      limit: 200,
+    })
+    expect(waiting.body.items.map((g) => g.id)).not.toContain(id)
+    const open = await call<{ items: Grant[] }>(app, owner, 'GET', '/tenancy/support-grants', {
+      openOnly: true,
+      limit: 200,
+    })
+    expect(open.body.items.map((g) => g.id)).not.toContain(id)
+
+    const lapsed = await call<{ items: Grant[] }>(app, owner, 'GET', '/tenancy/support-grants', {
+      status: 'lapsed',
+      limit: 200,
+    })
+    expect(lapsed.body.items.map((g) => g.id)).toContain(id)
+    expect(lapsed.body.items.every((g) => g.status === 'lapsed')).toBe(true)
+
+    // Neither decision is offered any more, and both say the same thing when one is attempted.
+    const approve = await call<{ data?: { code?: string } }>(
+      app,
+      owner,
+      'POST',
+      `/tenancy/support-grants/${id}/approve`,
+      { id, idempotencyKey: uuidv7(), hours: 1 },
+    )
+    expect(approve.status).toBe(409)
+    expect(approve.body.data?.code).toBe('request_expired')
+    const refuse = await call<{ data?: { code?: string } }>(
+      app,
+      owner,
+      'POST',
+      `/tenancy/support-grants/${id}/revoke`,
+      { id, idempotencyKey: uuidv7() },
+    )
+    expect(refuse.status).toBe(409)
+    expect(refuse.body.data?.code).toBe('request_expired')
+    const [untouched] = await db.select().from(supportGrants).where(eq(supportGrants.id, id))
+    expect(untouched?.revokedAt).toBeNull()
+    expect(untouched?.approvedAt).toBeNull()
   })
 
   it('filters the list by status and by "still open"', async () => {
