@@ -15,7 +15,7 @@
  */
 import type { Receipt } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { receiptMayBeDeposited, receiptMayBounce, uuidv7 } from '@dos/domain'
+import { receiptMayBeDeposited, receiptMayBounce } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -50,11 +50,20 @@ import {
   countText,
   moneyColumn,
   pagedCount,
-  stayOpen,
+  stayOpenAnd,
   textColumn,
   useCan,
   useNames,
 } from '../../src/lib/ui'
+import {
+  bounceBody,
+  bounceIntent,
+  bounceProblem,
+  depositBody,
+  depositIntent,
+  type BounceIntent,
+  type DepositIntent,
+} from '../../src/lib/money-intents'
 import { absoluteUrl } from '../../src/config'
 import { rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
@@ -82,11 +91,18 @@ export default function Receipts(): React.JSX.Element {
   const [reversing, setReversing] = useState(false)
   const [reason, setReason] = useState('')
 
-  // --- banking a receipt, and a cheque the bank returned ---------------------------------------------
-  const [depositing, setDepositing] = useState(false)
+  /*
+   * --- banking a receipt, and a cheque the bank returned --------------------------------------------
+   * The instant is fixed when the dialog OPENS and travels in the mutation's input (DOS-136): made
+   * inside the call, a retry after a lost reply carried a new `depositedAt` under the spent
+   * idempotency key and was refused over money that was already in the bank.
+   */
+  const [depositing, setDepositing] = useState<Date | null>(null)
   const [depositRef, setDepositRef] = useState('')
-  const [bouncing, setBouncing] = useState(false)
+  const [bouncing, setBouncing] = useState<Date | null>(null)
   const [bounceReason, setBounceReason] = useState('')
+  /** Set by a press with an empty reason: the field then says what to write (DOS-141). */
+  const [bounceAsked, setBounceAsked] = useState(false)
   const [charges, setCharges] = useState<number | null>(null)
 
   // --- recording a payment ----------------------------------------------------------------------
@@ -107,6 +123,8 @@ export default function Receipts(): React.JSX.Element {
     { enabled: selected !== null },
   )
   const receipt = detail.data?.item
+  /** The bills this receipt settled, by id, from the receipt's own read (DOS-011 / DOS-033). */
+  const settled = new Map((detail.data?.invoices ?? []).map((bill) => [bill.id, bill]))
 
   const shopHits = useQuery(
     ['retailers', 'search', shopQuery],
@@ -136,7 +154,9 @@ export default function Receipts(): React.JSX.Element {
     (input: { id: string; reason: string }, meta) =>
       api.api.receivables.receipts.reverse({
         id: input.id,
-        reversalId: uuidv7(),
+        /* The intent's own id, like every other write here: a fresh uuidv7 inside the call made a
+           retry after a lost reply a different request under the spent key (DOS-136). */
+        reversalId: meta.id,
         reason: input.reason,
         idempotencyKey: meta.idempotencyKey,
       }),
@@ -152,26 +172,11 @@ export default function Receipts(): React.JSX.Element {
    * `receipts.get`, and the server refuses to bank it until the trip's cash is handed over (DOS-132).
    */
   const deposit = useMutation(
-    (input: { receiptId: string; ref: string }, meta) =>
-      api.api.receivables.receipts.deposit({
-        id: meta.id,
-        idempotencyKey: meta.idempotencyKey,
-        receiptIds: [input.receiptId],
-        depositedAt: new Date().toISOString(),
-        ...(input.ref === '' ? {} : { depositRef: input.ref }),
-      }),
+    (input: DepositIntent, meta) => api.api.receivables.receipts.deposit(depositBody(input, meta)),
     { invalidates: [['receipts'], ['receivables'], ['reporting']] },
   )
   const bounce = useMutation(
-    (input: { id: string; reason: string; chargesPaise: number | null }, meta) =>
-      api.api.receivables.receipts.bounce({
-        id: input.id,
-        reversalId: meta.id,
-        idempotencyKey: meta.idempotencyKey,
-        bouncedAt: new Date().toISOString(),
-        reason: input.reason,
-        ...(input.chargesPaise === null ? {} : { bankChargesPaise: input.chargesPaise }),
-      }),
+    (input: BounceIntent, meta) => api.api.receivables.receipts.bounce(bounceBody(input, meta)),
     { invalidates: [['receipts'], ['receivables'], ['outstanding'], ['reporting']] },
   )
 
@@ -297,11 +302,26 @@ export default function Receipts(): React.JSX.Element {
                 />
               </Field>
 
+              {/*
+                DOS-033: "Put against" printed the bill's UUID, because an allocation carries only an
+                invoice id. `receipts.get` now names each bill it settled (DOS-011), so the row reads
+                OPEN/0005 with the state the payment left it in. Never a read per allocation — the
+                numbers come from the same reply. The id fallback is for a bill the reply could not
+                name, which the money desk should never see.
+              */}
               <Panel title={t('m9.allocations')}>
                 <Stack gap={2}>
-                  {detail.data?.allocations.map((row) => (
-                    <ListRow key={row.id} primary={row.invoiceId} trailingMoney={row.amountPaise} />
-                  ))}
+                  {detail.data?.allocations.map((row) => {
+                    const bill = settled.get(row.invoiceId)
+                    return (
+                      <ListRow
+                        key={row.id}
+                        primary={bill?.invoiceNo ?? row.invoiceId.slice(0, 8)}
+                        secondary={bill === undefined ? undefined : word(bill.state)}
+                        trailingMoney={row.amountPaise}
+                      />
+                    )
+                  })}
                 </Stack>
               </Panel>
 
@@ -328,7 +348,7 @@ export default function Receipts(): React.JSX.Element {
                   }
                   onPress={() => {
                     deposit.reset()
-                    setDepositing(true)
+                    setDepositing(new Date())
                   }}
                   testID="receipt-deposit"
                 />
@@ -341,7 +361,8 @@ export default function Receipts(): React.JSX.Element {
                   disabledReason={t('m9.notBounceable')}
                   onPress={() => {
                     bounce.reset()
-                    setBouncing(true)
+                    setBounceAsked(false)
+                    setBouncing(new Date())
                   }}
                   testID="receipt-bounce"
                 />
@@ -463,7 +484,7 @@ export default function Receipts(): React.JSX.Element {
                   setShopId(null)
                   setAmount(null)
                   setReference('')
-                }, stayOpen)
+                }, stayOpenAnd(list.refetch))
             }}
             testID="receipt-submit"
           />
@@ -497,18 +518,21 @@ export default function Receipts(): React.JSX.Element {
         busy={reverse.status === 'pending'}
         onConfirm={() => {
           if (selected === null) return
-          void reverse.mutateAsync({ id: selected, reason: reason.trim() }).then(() => {
-            setReversing(false)
-            setReason('')
-          }, stayOpen)
+          void reverse.mutateAsync({ id: selected, reason: reason.trim() }).then(
+            () => {
+              setReversing(false)
+              setReason('')
+            },
+            stayOpenAnd(detail.refetch, list.refetch),
+          )
         }}
         testID="reverse-dialog"
       />
 
       <Dialog
-        open={depositing}
+        open={depositing !== null}
         onClose={() => {
-          setDepositing(false)
+          setDepositing(null)
         }}
         title={t('m9.deposit')}
         body={
@@ -530,19 +554,22 @@ export default function Receipts(): React.JSX.Element {
         confirmLabel={t('m9.deposit')}
         busy={deposit.status === 'pending'}
         onConfirm={() => {
-          if (selected === null) return
-          void deposit.mutateAsync({ receiptId: selected, ref: depositRef.trim() }).then(() => {
-            setDepositing(false)
-            setDepositRef('')
-          }, stayOpen)
+          if (selected === null || depositing === null) return
+          void deposit.mutateAsync(depositIntent([selected], depositRef.trim(), depositing)).then(
+            () => {
+              setDepositing(null)
+              setDepositRef('')
+            },
+            stayOpenAnd(detail.refetch, list.refetch),
+          )
         }}
         testID="receipt-deposit-dialog"
       />
 
       <Dialog
-        open={bouncing}
+        open={bouncing !== null}
         onClose={() => {
-          setBouncing(false)
+          setBouncing(null)
         }}
         title={t('m10.bounceTitle')}
         body={
@@ -556,6 +583,11 @@ export default function Receipts(): React.JSX.Element {
               value={bounceReason}
               onChange={setBounceReason}
               capitalize="sentences"
+              error={
+                bounceAsked && bounceProblem(bounceReason) !== null
+                  ? t('m10.bounceNeedsReason')
+                  : undefined
+              }
               testID="receipt-bounce-reason"
             />
             <RupeeInput
@@ -571,14 +603,23 @@ export default function Receipts(): React.JSX.Element {
         destructive
         busy={bounce.status === 'pending'}
         onConfirm={() => {
-          if (selected === null) return
+          if (selected === null || bouncing === null) return
+          /* The bank's own words are required by the server too; the dialog asks for them here
+             instead of sending an empty reason and printing "Input validation failed" (DOS-141). */
+          if (bounceProblem(bounceReason) !== null) {
+            setBounceAsked(true)
+            return
+          }
           void bounce
-            .mutateAsync({ id: selected, reason: bounceReason.trim(), chargesPaise: charges })
-            .then(() => {
-              setBouncing(false)
-              setBounceReason('')
-              setCharges(null)
-            }, stayOpen)
+            .mutateAsync(bounceIntent(selected, bounceReason.trim(), charges, bouncing))
+            .then(
+              () => {
+                setBouncing(null)
+                setBounceReason('')
+                setCharges(null)
+              },
+              stayOpenAnd(detail.refetch, list.refetch),
+            )
         }}
         testID="receipt-bounce-dialog"
       />

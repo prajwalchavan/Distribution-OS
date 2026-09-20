@@ -28,6 +28,11 @@ export const en = {
 
   // Money and quantity (UX-00 sections 4.5, 6.3, 6.4).
   'money.none': '—',
+  /*
+   * DOS-150: the '—' glyph above is what `<Money>`'s empty branch PRINTS; a screen reader needs a
+   * word of its own, never the em dash spoken as "dash" and never the amount that used to be there.
+   */
+  'money.notEntered': 'Not entered',
   'money.rupeeSymbol': '₹',
   'money.spoken': '{rupees} rupees {paise} paise',
   'money.spokenWhole': '{rupees} rupees',

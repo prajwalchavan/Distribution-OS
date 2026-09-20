@@ -236,6 +236,11 @@ export class BargainsService {
  * asked for this order or for no order at all (a standalone ask applies to every order of the shop). A plain
  * function over the caller's transaction — the pattern orders already uses for receivables' credit check — so
  * submit names each request on its gate without reading pricing's table itself (DOS-005).
+ *
+ * `bargain_requests.order_id` is a plain id with no foreign key ON PURPOSE (DOS-090): the rep asks for a rate
+ * while the order is still a draft on the phone, and `orders.create` writes that id later. The request simply
+ * WAITS for that order — it prices no other order of the shop, and `orders.get` answers 404 for its id until
+ * the draft is placed, which is what the office screens must say rather than offering a link to nothing.
  */
 export async function pendingBargainsForOrder(
   tx: Db,

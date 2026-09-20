@@ -14,6 +14,12 @@
  *
  * The lines come from the DEVICE's own `pick_lines` — the same rows the picker just walked — so this
  * screen opens with no round trip and reads correctly in a shed.
+ *
+ * THE DIALOG NAMES THE SHORTFALL (QA DOS-050). The pack list hands over the wave as `?picklist=`, and
+ * the sheet's own rows for THIS order — never the queue page, which is filtered and limited — give
+ * Σ requested and Σ picked. When they differ the confirmation says so before the cartons are taped
+ * shut: a packer who is told "7 cartons leave the godown" and nothing else cannot know that 74 pieces
+ * of the order are not in them.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
@@ -49,8 +55,9 @@ export default function PackOrder(): React.JSX.Element {
   const colors = useColors()
   const router = useRouter()
   const { session } = useSession()
-  const params = useLocalSearchParams<{ orderId: string }>()
+  const params = useLocalSearchParams<{ orderId: string; picklist?: string }>()
   const orderId = typeof params.orderId === 'string' ? params.orderId : ''
+  const picklistId = typeof params.picklist === 'string' ? params.picklist : ''
   const signedIn = session !== null
 
   /** `packs.list` scoped to one order answers "has this been packed already" in one read. */
@@ -74,6 +81,13 @@ export default function PackOrder(): React.JSX.Element {
     ['retailer', retailerId],
     () => api.api.retailers.get({ id: retailerId }),
     { enabled: signedIn && retailerId !== '' },
+  )
+
+  /* The wave this order was walked on, when the pack list named one: the source of the shortfall. */
+  const picklist = useQuery(
+    ['picklists', 'detail', picklistId],
+    () => api.api.warehouse.picklists.get({ id: picklistId }),
+    { enabled: signedIn && picklistId !== '' },
   )
 
   const invoice = useQuery(
@@ -133,6 +147,16 @@ export default function PackOrder(): React.JSX.Element {
   const shop = pack?.retailerName ?? retailer.data?.item.name ?? '—'
   const orderNo = order.data?.item.orderNo ?? pack?.orderNo ?? orderId.slice(0, 8)
   const packed = pack !== null
+
+  /** Σ asked and Σ picked on the wave, for THIS order alone. Null until the sheet is in hand. */
+  const walked = (picklist.data?.item.lines ?? []).filter((l) => l.orderId === orderId)
+  const asked = walked.reduce((n, l) => n + l.requestedQtyPcs, 0)
+  const taken = walked.reduce((n, l) => n + l.pickedQtyPcs, 0)
+  const shortPcs = walked.length === 0 ? 0 : Math.max(0, asked - taken)
+  const shortNotice =
+    shortPcs === 0
+      ? ''
+      : ` ${t('w6.shortNotice', { picked: taken, total: asked, short: shortPcs })}`
 
   return (
     <Screen
@@ -307,10 +331,10 @@ export default function PackOrder(): React.JSX.Element {
           setAsk(null)
         }}
         title={t('w6.confirmTitle', { order: orderNo })}
-        body={t(ask === 'park' ? 'w6.parkBody' : 'w6.confirmBody', {
+        body={`${t(ask === 'park' ? 'w6.parkBody' : 'w6.confirmBody', {
           packages: packages ?? 1,
           shop,
-        })}
+        })}${shortNotice}`}
         confirmLabel={t(ask === 'park' ? 'w6.parkIt' : 'w6.packIt')}
         busy={confirm.status === 'pending'}
         onConfirm={() => {

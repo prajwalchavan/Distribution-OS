@@ -95,7 +95,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
@@ -5031,6 +5031,7 @@ curl "http://localhost:3006/pricing/price-lists?activeOnly=false&withItems=true"
           "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
           "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
           "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
           "ratePaise": 4000,
           "inclusiveOfGst": true
         }
@@ -5149,6 +5150,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "ratePaise": 4000,
         "inclusiveOfGst": true
       }
@@ -5273,6 +5275,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "ratePaise": 4000,
         "inclusiveOfGst": true
       }
@@ -5722,7 +5725,7 @@ Create or update a scheme; a change to its economics bumps the version · contra
 | `triggerMin` | integer | yes |
 | `triggerUnit` | pcs | case | inr | yes |
 | `slabs` | object[] | no |
-| `rewardKind` | free_qty | line_pct | order_pct | cash_discount_pct | net_scheme_amount | yes |
+| `rewardKind` | free_qty | line_pct | order_pct | cash_discount_pct | net_scheme_amount | per_unit_amount | yes |
 | `rewardValue` | integer | yes |
 | `freeVariantId` | uuid | no |
 | `applicability` | object | no |
@@ -5995,7 +5998,9 @@ request.json
       ],
       "lineNetPaise": 2680000,
       "gstBps": 500,
+      "cessBps": 500,
       "taxPaise": 12000,
+      "cessPaise": 12000,
       "lineTotalPaise": 2680000
     }
   ],
@@ -6018,6 +6023,7 @@ request.json
     "bargainPaise": 4000,
     "netPaise": 2680000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000
   }
@@ -7681,7 +7687,7 @@ request.json
 
 ### POST `/inventory/cycle-counts`
 
-Open a physical count of a location (expected pieces frozen per lot) · contract `inventory.cycleCounts.open`
+Open a physical count of a location (expected pieces taken at count time; blind for the godown) · contract `inventory.cycleCounts.open`
 
 **Roles:** owner, manager, warehouse
 
@@ -8369,11 +8375,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -8399,7 +8426,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -8571,11 +8600,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -8601,7 +8651,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -8780,11 +8832,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -8810,7 +8883,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -8973,11 +9048,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9003,7 +9099,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -9176,11 +9274,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9206,7 +9325,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -9390,11 +9511,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9420,7 +9562,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -9580,11 +9724,32 @@ curl "http://localhost:3006/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9610,7 +9775,9 @@ curl "http://localhost:3006/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -9750,11 +9917,32 @@ curl "http://localhost:3006/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9780,7 +9968,9 @@ curl "http://localhost:3006/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -9940,11 +10130,32 @@ curl "http://localhost:3006/orders?state=draft&openOnly=true&retailerId=01a06dbc
       "subtotalPaise": 2680000,
       "discountPaise": 12000,
       "taxPaise": 12000,
+      "cessPaise": 12000,
       "roundOffPaise": 12000,
       "totalPaise": 2680000,
       "approvalFlags": [
         "text"
       ],
+      "stockShortages": [
+        {
+          "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "requestedPcs": 24,
+          "reservedPcs": 24,
+          "shortQtyPcs": 24
+        }
+      ],
+      "creditNotice": {
+        "creditMode": "indicate",
+        "reasons": [
+          "limit_exceeded"
+        ],
+        "outstandingPaise": 2680000,
+        "creditLimitPaise": 2680000,
+        "headroomPaise": 4000,
+        "overdueDays": 7,
+        "orderTotalPaise": 2680000
+      },
       "expectedDeliveryDate": "2026-09-04",
       "note": null,
       "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -10186,11 +10397,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -10216,7 +10448,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -10731,6 +10965,14 @@ curl "http://localhost:3006/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "amountPaise": 4000,
       "allocatedAt": "2026-09-04T10:30:00.000Z",
       "allocatedBy": "01a06d83-2db2-7449-8f15-c2bd4fbc3f1c"
+    }
+  ],
+  "invoices": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceNo": "SO-0042",
+      "state": "draft",
+      "openPaise": 4000
     }
   ],
   "reversal": {
@@ -12040,6 +12282,7 @@ curl "http://localhost:3006/receivables/outstanding?beatId=01a06d3e-cfdb-7635-85
   "totals": {
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "unallocatedCreditPaise": 4000,
     "retailers": 1,
     "buckets": {
       "b0_7": 1,
@@ -17312,7 +17555,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -17739,7 +17983,8 @@ curl "http://localhost:3006/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b"
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -17955,7 +18200,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -18187,7 +18433,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -18417,7 +18664,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -18643,7 +18891,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -19416,7 +19665,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -19649,7 +19899,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -21205,11 +21456,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -21235,7 +21507,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -24441,11 +24715,32 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
+    "creditNotice": {
+      "creditMode": "indicate",
+      "reasons": [
+        "limit_exceeded"
+      ],
+      "outstandingPaise": 2680000,
+      "creditLimitPaise": 2680000,
+      "headroomPaise": 4000,
+      "overdueDays": 7,
+      "orderTotalPaise": 2680000
+    },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -24471,7 +24766,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {

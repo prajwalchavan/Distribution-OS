@@ -62,6 +62,7 @@ import {
 } from '../../src/lib/ui'
 import { longDate, rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
 import { readAllReservations, reservedPcs } from '../../src/lib/reservations'
+import { orderLabel, resolutionOf, type OrderResolution } from '../../src/lib/bargain-order'
 import { waitingOnKinds } from '../../src/lib/waiting-on'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
@@ -76,6 +77,24 @@ const STATE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   delivered: 'moss',
   cancelled: 'neutral',
   closed: 'moss',
+}
+
+/**
+ * Why Cancel is off, or `null` when the desk may press it (QA DOS-138, DOS-139).
+ *
+ * The desk — owner or manager — cancels up to and INCLUDING picking (founder, 2026-09-13): the hold is
+ * released and the picker's sheet shows the lines to put back. A packed order carries an issued GST
+ * bill, so it is cancelled through that bill and goes with it; after dispatch the only correction is a
+ * credit note. Saying which of the three it is beats the server's own 409, which the desk cannot act on.
+ */
+function cancelBlock(
+  state: string,
+): 'm2.alreadyClosed' | 'm2.cancelViaBill' | 'm2.afterDispatch' | null {
+  if (state === 'cancelled' || state === 'closed') return 'm2.alreadyClosed'
+  if (state === 'packed') return 'm2.cancelViaBill'
+  if (state === 'dispatched' || state === 'delivered' || state === 'partially_delivered')
+    return 'm2.afterDispatch'
+  return null
 }
 
 const STATES = ['submitted', 'confirmed', 'picking', 'packed', 'dispatched', 'cancelled'] as const
@@ -195,6 +214,41 @@ export default function OrderQueue(): React.JSX.Element {
     api.api.pricing.bargains.list({ status: 'requested', limit: 20 }),
   )
 
+  /*
+   * DOS-090: a rate request carries the order id the REP'S PHONE minted. That is deliberate — the draft
+   * is placed under the same id later, which is how the request gates that order and no other — but it
+   * means `orders.get` answers 404 until it is placed, and the row used to name an order nobody could
+   * open. One read per distinct id on this page (at most the 20 above), settled so a 404 is an answer
+   * rather than a failed query, cached for a minute.
+   */
+  const rateOrderIds = [
+    ...new Set(
+      (bargains.data?.items ?? [])
+        .map((row) => row.orderId)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
+  const rateOrders = useQuery(
+    ['orders', 'rate-requests', rateOrderIds.join(',')],
+    async (): Promise<[string, OrderResolution][]> => {
+      const settled = await Promise.allSettled(rateOrderIds.map((id) => api.api.orders.get({ id })))
+      return rateOrderIds.map((id, i) => {
+        const answer = settled[i]
+        if (answer === undefined || answer.status === 'rejected') return [id, { kind: 'missing' }]
+        return [
+          id,
+          {
+            kind: 'found',
+            orderNo: answer.value.item.orderNo,
+            state: answer.value.item.state,
+          },
+        ]
+      })
+    },
+    { enabled: rateOrderIds.length > 0, staleTime: 60_000 },
+  )
+  const resolvedRateOrders = new Map<string, OrderResolution>(rateOrders.data ?? [])
+
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
     { invalidates: [['orders'], ['warehouse'], ['billing'], ['reporting']] },
@@ -289,6 +343,23 @@ export default function OrderQueue(): React.JSX.Element {
       ),
     },
     /*
+     * DOS-078: what the godown could not hold when this order confirmed. The order was never refused
+     * for it (UX-00 §6.4) — this is the desk's warning before it goes to pack, read from the order's
+     * own record, never recomputed from reservations.
+     */
+    {
+      key: 'short',
+      head: t('m2.short'),
+      priority: 'chip',
+      cell: (row) =>
+        row.stockShortages.length === 0 ? null : (
+          <StatusChip
+            label={t('m2.shortCount', { count: row.stockShortages.length })}
+            family="ochre"
+          />
+        ),
+    },
+    /*
      * DOS-027: the gates this order is still held by, read from the approvals themselves.
      * `row.approvalFlags` is the stored copy raised at submit — nothing keeps it in step with the
      * decisions, and it was empty for an order with two gates pending, which is precisely when this
@@ -298,6 +369,26 @@ export default function OrderQueue(): React.JSX.Element {
       const kinds = waitingOnKinds(row, pending)
       return kinds.length === 0 ? null : kinds.map(word).join(' · ')
     }),
+    /*
+     * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit CONFIRMS and
+     * carries a notice the desk reads here; strict and stop are held by the gate and carry the same
+     * notice. The chip reads the order's own record, never a second credit rule.
+     */
+    {
+      key: 'credit',
+      head: t('m2.creditNotice'),
+      priority: 'chip',
+      cell: (row) => {
+        if (row.creditNotice === null) return null
+        const held = waitingOnKinds(row, pending).includes('credit_limit')
+        return (
+          <StatusChip
+            label={t(held ? 'm2.overLimitHeld' : 'm2.overLimitWarn')}
+            family={held ? 'brick' : 'ochre'}
+          />
+        )
+      },
+    },
     textColumn('placed', t('m2.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
@@ -387,8 +478,14 @@ export default function OrderQueue(): React.JSX.Element {
       .map((row) => ({
         id: row.id,
         kind: 'bargain' as const,
-        what: names.retailer(row.retailerId),
-        why: t('m2.askedRate'),
+        // DOS-090: which order this rate is for — and "not placed yet" when it is still on the phone.
+        what: [
+          names.retailer(row.retailerId),
+          orderLabel(resolutionOf(row.orderId, resolvedRateOrders), t),
+        ]
+          .filter((part): part is string => part !== null && part !== '')
+          .join(' · '),
+        why: `${t('m2.askedRate')} · ${t('m2.rateAsked', { when: shortInstant(row.createdAt) })}`,
         amount: row.askedRatePaise,
       })),
   ]
@@ -664,6 +761,45 @@ export default function OrderQueue(): React.JSX.Element {
                   family={STATE_FAMILY[order.state] ?? 'neutral'}
                 />
               </Field>
+              {order.creditNotice === null ? null : (
+                <Field label={t('m2.creditNotice')}>
+                  <Stack gap={1} testID="order-credit-notice">
+                    <Txt
+                      field="body"
+                      desk="body"
+                      color={
+                        order.creditNotice.headroomPaise < 0 ? colors.status.ochre.fg : undefined
+                      }
+                    >
+                      {t('m2.creditNoticeLine', {
+                        owed: formatINR(paise(order.creditNotice.outstandingPaise)),
+                        limit: formatINR(paise(order.creditNotice.creditLimitPaise)),
+                        mode: word(order.creditNotice.creditMode),
+                      })}
+                    </Txt>
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {order.creditNotice.reasons.map(word).join(' · ')}
+                    </Txt>
+                  </Stack>
+                </Field>
+              )}
+              {order.stockShortages.length === 0 ? null : (
+                <Field label={t('m2.shortAtGodown')}>
+                  <Stack gap={1} testID="order-stock-shortages">
+                    {order.stockShortages.map((short) => (
+                      <Txt key={short.lineId} field="body" desk="body">
+                        {`${
+                          order.lines.find((line) => line.id === short.lineId)?.variantName ??
+                          short.variantId.slice(0, 8)
+                        } — ${t('m2.shortPieces', {
+                          short: formatCount(short.shortQtyPcs),
+                          requested: formatCount(short.requestedPcs),
+                        })}`}
+                      </Txt>
+                    ))}
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('m2.terms')}>{word(order.paymentTerms)}</Field>
               <Field label={t('m2.expected')}>{longDate(order.expectedDeliveryDate)}</Field>
 
@@ -702,7 +838,15 @@ export default function OrderQueue(): React.JSX.Element {
                 <Money value={order.discountPaise} size="cell" />
               </Field>
               <Field label={t('m2.tax')}>
-                <Money value={order.taxPaise} size="cell" />
+                <Stack gap={1}>
+                  <Money value={order.taxPaise} size="cell" />
+                  {/* DOS-079: cess is INSIDE the tax, so the figure above is not GST alone. */}
+                  {order.cessPaise > 0 ? (
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('m2.cessInside', { amount: formatINR(paise(order.cessPaise)) })}
+                    </Txt>
+                  ) : null}
+                </Stack>
               </Field>
               <Field label={t('m2.total')}>
                 <Money value={order.totalPaise} size="moneyM" />
@@ -755,12 +899,19 @@ export default function OrderQueue(): React.JSX.Element {
                       }}
                     />
                   ) : null}
+                  {/*
+                   * DOS-138 / DOS-139: Cancel used to be offered on every state but `cancelled` and
+                   * `delivered`, so a picking order answered the machine's raw "cannot apply cancel in
+                   * state picking" and a packed one answered nothing the desk could act on. The desk may
+                   * now cancel up to and including picking (founder); a packed order is cancelled
+                   * through its bill, and after dispatch the only correction is a credit note.
+                   */}
                   <Button
                     label={t('m2.cancel')}
                     variant="destructive"
                     shortcut="2"
-                    disabled={order.state === 'cancelled' || order.state === 'delivered'}
-                    disabledReason={t('m2.alreadyClosed')}
+                    disabled={cancelBlock(order.state) !== null}
+                    disabledReason={t(cancelBlock(order.state) ?? 'm2.alreadyClosed')}
                     onPress={() => {
                       setActing('cancel')
                     }}
@@ -801,6 +952,11 @@ export default function OrderQueue(): React.JSX.Element {
             {acting === 'confirm' ? (
               <Txt field="label" desk="meta" color={colors.text.secondary}>
                 {creditLine()}
+              </Txt>
+            ) : null}
+            {acting === 'cancel' && order?.state === 'picking' ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="order-picking">
+                {t('m2.cancelPicking')}
               </Txt>
             ) : null}
             {acting === 'confirm' ? null : (

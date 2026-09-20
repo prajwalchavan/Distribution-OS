@@ -92,7 +92,9 @@ export const NUMBERING_SERIES = [
  * | `delivery.settlement_tolerance_paise` | number | cash short/over a crew may hand in without the owner. |
  * | `delivery.pod_required`    | string   | `always` / `credit_only` / `never`: when a photo/signature is a must. |
  * | `delivery.geofence_metres` | number   | distance from the shop pin that turns the arrival amber (evidence). |
+ * | `delivery.expense_proof_min_paise` | number | a trip expense at or above it must carry a photo of its bill; 0 = every expense. |
  * | `dpdp.gps_retention_days`  | number   | days raw `trip_points` are kept; stop coordinates and POD stay. |
+ * | `inventory.min_shelf_life_days` | number | days of life a batch must have left before it is offered first. |
  * | `notifications.default_locale` | string | `LocaleSchema` value a message falls back to when the shop has no `preferred_lang`. |
  * | `whatsapp.phone_number_id` | string   | the Meta Cloud API phone number this tenant sends from. ABSENT = stub adapter. |
  *
@@ -135,7 +137,9 @@ export const TENANT_SETTING_KEYS = {
   deliverySettlementTolerancePaise: 'delivery.settlement_tolerance_paise',
   deliveryPodRequired: 'delivery.pod_required',
   deliveryGeofenceMetres: 'delivery.geofence_metres',
+  deliveryExpenseProofMinPaise: 'delivery.expense_proof_min_paise',
   dpdpGpsRetentionDays: 'dpdp.gps_retention_days',
+  inventoryMinShelfLifeDays: 'inventory.min_shelf_life_days',
   notificationsDefaultLocale: 'notifications.default_locale',
   whatsappPhoneNumberId: 'whatsapp.phone_number_id',
 } as const
@@ -157,6 +161,18 @@ export const DEFAULT_NOTIFICATION_LOCALE = 'en-IN'
 export const DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE = 10_000_000
 
 /**
+ * The minimum shelf life a batch must have left before the godown offers it first (founder,
+ * 2026-09-13, QA DOS-054): one number for the whole distributor, 30 days unless the owner changes it
+ * in Settings. Stock reservation and the pick sheet pass over a batch with fewer days left WHENEVER
+ * ANOTHER BATCH CAN COVER THE LINE — the rule changes the ORDER lots are offered in, never how many
+ * pieces are available — and a picker who takes one anyway is warned, not stopped (FEFO warns, it
+ * never blocks: docs/design R03). `0` switches the rule off: every batch is compliant.
+ *
+ * Seeded so a distributor never reads "absent"; an absent or malformed row falls back to this figure.
+ */
+export const DEFAULT_MIN_SHELF_LIFE_DAYS = 30
+
+/**
  * Delivery policy defaults (docs/plans/delivery.md §3 item 11, coordination §7 q14, q23, q28 — the
  * founder changes the ROW, never the code). ₹100 of cash short/over closes a trip without the owner;
  * beyond it, or any van stock that does not tally, the settlement is red and `dos_trip_settlement_guard`
@@ -170,6 +186,12 @@ export const POD_REQUIRED_MODES = ['always', 'credit_only', 'never'] as const
 export type PodRequiredMode = (typeof POD_REQUIRED_MODES)[number]
 export const DEFAULT_POD_REQUIRED: PodRequiredMode = 'credit_only'
 export const DEFAULT_GEOFENCE_METRES = 150
+/**
+ * A trip expense at or above ₹200 must carry a photograph of its bill (founder, 2026-09-13, QA
+ * DOS-071): diesel always has a pump bill, a ₹30 parking slip often does not. The owner may change it
+ * — 0 asks for a photo on every expense — and the server applies it to the crew and the desk alike.
+ */
+export const DEFAULT_EXPENSE_PROOF_MIN_PAISE = 20_000
 export const DEFAULT_GPS_RETENTION_DAYS = 90
 
 export const DEFAULT_FLAGS = [
@@ -246,8 +268,18 @@ export async function bootstrapTenant(
       { tenantId, key: TENANT_SETTING_KEYS.deliveryGeofenceMetres, value: DEFAULT_GEOFENCE_METRES },
       {
         tenantId,
+        key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise,
+        value: DEFAULT_EXPENSE_PROOF_MIN_PAISE,
+      },
+      {
+        tenantId,
         key: TENANT_SETTING_KEYS.dpdpGpsRetentionDays,
         value: DEFAULT_GPS_RETENTION_DAYS,
+      },
+      {
+        tenantId,
+        key: TENANT_SETTING_KEYS.inventoryMinShelfLifeDays,
+        value: DEFAULT_MIN_SHELF_LIFE_DAYS,
       },
       {
         tenantId,

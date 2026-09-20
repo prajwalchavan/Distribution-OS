@@ -404,6 +404,47 @@ export async function seedDelivery(
     taken(tripId, door.mode, door.amountPaise)
   }
 
+  /**
+   * The time the office promised a stop: the van is on the road at 9:00 IST, the first door is
+   * promised for 9:30, and one every half hour down the beat after that.
+   */
+  function stopEta(day: Date, sequence: number): Date {
+    return atIstTime(day, 9 + Math.floor(sequence / 2), (sequence % 2) * 30)
+  }
+
+  /**
+   * When the crew actually finished it.
+   *
+   * QA DOS-067: every completion used to be stamped ten to twenty minutes AFTER its own ETA, so the
+   * one performance figure the crew sees — the on-time rate — read 0% on a driver with 104 of 125
+   * stops delivered. A demo day is now mostly inside the promise with every fourth stop running late,
+   * which is both believable and enough to prove the register divides by the right thing.
+   *
+   * Merge review: THE SLIP DECAYS, IT DOES NOT VANISH. A stop that ran well past its promise cannot
+   * be followed by one finished eight minutes early — the van would have had to leave the first shop
+   * before the crew was done in it, which is the contradiction the review caught. The door after a
+   * late one lands a minute inside its own promise instead, so three doors in four are still on time
+   * and every clock on the day runs forwards.
+   */
+  function stopCompleted(day: Date, sequence: number): Date {
+    const slip = sequence % 4 === 0 ? 18 : sequence % 4 === 1 ? -1 : -8
+    return new Date(stopEta(day, sequence).getTime() + slip * 60_000)
+  }
+
+  /**
+   * When the crew left the shop before this one — twenty-five minutes before this door was promised,
+   * and NEVER before the door before it was finished. A late stop pushes the next departure out; the
+   * crew are in one van.
+   */
+  function stopStarted(day: Date, sequence: number): Date {
+    const leave = new Date(stopEta(day, sequence).getTime() - 25 * 60_000)
+    if (sequence <= 1) return leave
+    const previousDone = stopCompleted(day, sequence - 1)
+    return leave.getTime() >= previousDone.getTime()
+      ? leave
+      : new Date(previousDone.getTime() + 2 * 60_000)
+  }
+
   function addStop(
     tripId: string,
     sequence: number,
@@ -434,6 +475,22 @@ export async function seedDelivery(
       state === 'partial' ? nth(PARTIAL_REASONS, partialSeq++ % PARTIAL_REASONS.length) : null
     const partialNote =
       partial && shortLine ? `${shortPcs} pcs ${partial.note}` : (partial?.note ?? null)
+    /**
+     * When the crew were done at this door. A FAILED stop here keeps `completed_at` null on the stop
+     * row — nothing was delivered — but the crew still stood there and still stamped the failure, so
+     * it runs on the same beat clock as every other door (`stopCompleted`). A stop that is merely
+     * `arrived` has no such moment: the crew are inside it right now.
+     *
+     * That null DIVERGES FROM THE SERVICE and is not held up as the intended shape: `fail` in
+     * trips.service.ts writes `completedAt` like `deliver` does, so a stop failed through the api
+     * carries one. It is a pre-existing shape of the demo rows (on main before this lane), harmless
+     * to every register because they exclude a failed stop by state — not a rule anything may read.
+     *
+     * QA verification: this is the clock the ETA move of DOS-067 missed. The failed row's stamp was
+     * still written against the OLD half-hour grid, which put every failed delivery fifteen minutes
+     * BEFORE the arrival it follows (64 rows on a fresh seed, gap exactly 15.0 min).
+     */
+    const doorFinishedAt = completedAt ?? (state === 'failed' ? stopCompleted(day, sequence) : null)
     stopRows.push({
       id: stopId,
       tenantId,
@@ -445,15 +502,17 @@ export async function seedDelivery(
       failureNote: failureReason ? FAILURE_NOTES[failureReason] : partialNote,
       createdAt: occurred(atIstTime(day, 8, 30)),
       plannedCollectionPaise: inv.totalPaise,
-      etaAt: atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30),
-      startedAt: occurred(
-        atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30),
-      ),
+      etaAt: stopEta(day, sequence),
+      // Left the last shop once it was done there; at the door seven minutes before this one was
+      // finished, so arriving never comes after the delivery it precedes.
+      startedAt: occurred(stopStarted(day, sequence)),
       arrivedAt:
         state === 'pending'
           ? null
           : occurred(
-              atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30 + 10),
+              doorFinishedAt === null
+                ? new Date(stopEta(day, sequence).getTime() + 10 * 60_000)
+                : new Date(doorFinishedAt.getTime() - 7 * 60_000),
             ),
       completedAt: completedAt ? occurred(completedAt) : null,
       arrivedLat: retailer ? jitter(rng, retailer.lat, 0.0005) : null,
@@ -475,9 +534,11 @@ export async function seedDelivery(
         invoiceId: inv.id,
         outcome: 'failed',
         deliveredBy: driverId,
-        deliveredAt: occurred(
-          atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30 + 25),
-        ),
+        // The moment the crew gave up, seven minutes after they reached the door — the SAME value
+        // the stop's own `arrived_at` is derived from, so a failure is never stamped before it.
+        // Read `doorFinishedAt` itself, not the expression behind it: a caller that one day passes a
+        // `completedAt` for a failed stop must not be able to split the two clocks again.
+        deliveredAt: occurred(doorFinishedAt ?? stopCompleted(day, sequence)),
         deviceId,
         idempotencyKey: `delivery:${tripId}:${inv.id}`,
         note: failureReason ? FAILURE_NOTES[failureReason] : null,
@@ -669,7 +730,7 @@ export async function seedDelivery(
             inv,
             'delivered',
             day,
-            atIstTime(day, 9 + Math.floor(i / 2), 20 + (i % 2) * 20),
+            stopCompleted(day, i + 1),
             def.driverId,
             def.driverDeviceId,
           )
@@ -790,7 +851,7 @@ export async function seedDelivery(
           inv,
           state,
           day,
-          state === 'failed' ? null : atIstTime(day, 9 + Math.floor(i / 2), 20 + (i % 2) * 20),
+          state === 'failed' ? null : stopCompleted(day, i + 1),
           def.driverId,
           def.driverDeviceId,
         )

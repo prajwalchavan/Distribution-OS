@@ -41,9 +41,11 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
+import { istDateWord, istMoment, personWord } from '../../platform/refusal-words.js'
 import { BillingService, sellerBranding } from '../billing/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
+import { userLabels } from '../tenancy/index.js'
 import {
   activeWarehouseLocation,
   DC_SERIES,
@@ -339,11 +341,14 @@ export class LoadSheetsService {
         const sheet = await this.lockSheet(tx, input.id)
         if (sheet.status !== 'draft')
           throw new ORPCError('CONFLICT', {
-            message: `load sheet ${sheet.id} is ${sheet.status}; only a draft is approved`,
+            message: `${await this.sheetWords(tx, sheet)} is ${sheet.status}; only a draft is approved`,
           })
         if (sheet.approvedBy !== null)
           throw new ORPCError('CONFLICT', {
-            message: `load sheet ${sheet.id} was already approved by ${sheet.approvedBy}`,
+            // A second desk pressing Approve is told which van's sheet and whose approval, in IST (DOS-141).
+            message: `${await this.sheetWords(tx, sheet)} was already approved by ${personWord(
+              (await userLabels(tx, [sheet.approvedBy])).get(sheet.approvedBy),
+            )} on ${istMoment(sheet.approvedAt)}`,
             data: {
               code: 'already_approved',
               approvedBy: sheet.approvedBy,
@@ -877,6 +882,19 @@ export class LoadSheetsService {
     const [row] = await tx.select().from(loadSheets).where(eq(loadSheets.id, id))
     if (!row) throw new ORPCError('NOT_FOUND', { message: `load sheet ${id} not found` })
     return row
+  }
+
+  /**
+   * A load sheet as the desk names it: "the load sheet for MH-05-CD-5678 on 13 Sep" (DOS-141).
+   *
+   * Its row id is a UUID, and a refusal built from it ("load sheet 01a0976e-bbaf-… was already
+   * approved by a1cbd424-…") tells a manager nothing about which van is waiting at the gate. The
+   * vehicle registration and the sheet date are what is written on the sheet itself.
+   */
+  private async sheetWords(tx: Db, sheet: LoadSheetRow): Promise<string> {
+    const regNo = (await vehicleRegNos(tx, [sheet.toLocationId])).get(sheet.toLocationId)
+    const van = regNo === undefined || regNo === '' ? '' : ` for ${regNo}`
+    return `the load sheet${van} on ${istDateWord(sheet.sheetDate)}`
   }
 
   private async lockSheet(tx: Db, id: string): Promise<LoadSheetRow> {

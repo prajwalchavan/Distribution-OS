@@ -123,8 +123,13 @@ export const FulfilmentQueueStateSchema = OrderStateSchema.extract([
 ])
 export type FulfilmentQueueState = z.infer<typeof FulfilmentQueueStateSchema>
 
-/** FEFO warns, it never blocks (docs/design R03); a short line warns once its reason is recorded. */
-export const PickWarningCodeSchema = z.enum(['fefo_override', 'short_pick'])
+/**
+ * FEFO warns, it never blocks (docs/design R03); a short line warns once its reason is recorded, and
+ * `short_shelf_life` is raised when the batch taken has fewer days left than the distributor's
+ * `inventory.min_shelf_life_days` rule (founder, 2026-09-13, QA DOS-054) — recorded and shown to the
+ * desk, never a refusal.
+ */
+export const PickWarningCodeSchema = z.enum(['fefo_override', 'short_pick', 'short_shelf_life'])
 export type PickWarningCode = z.infer<typeof PickWarningCodeSchema>
 
 /** A lot on a load sheet either belongs to a packed order or is loose van-sale stock. */
@@ -163,6 +168,19 @@ export const FulfilmentQueueItemSchema = z.object({
   totalQtyPcs: PiecesSchema,
   /** The live picklist this order is already on, or null when it is still free to be waved. */
   picklistId: IdSchema.nullable(),
+  /** That wave's PICK number, so the row names the sheet rather than an id (QA DOS-050). */
+  picklistNo: z.string().nullable(),
+  /**
+   * Where the wave stands: `open` / `picking` means the order is STILL BEING PICKED, `picked` means
+   * every line is walked and the order is genuinely ready to pack. Null when it is on no live wave.
+   */
+  picklistStatus: PicklistStatusSchema.nullable(),
+  /**
+   * Σ picked pieces on that live wave, 0 when there is none. `totalQtyPcs − pickedQtyPcs` is what the
+   * order is short of once `picklistStatus` is `picked` — the figure the packer must see before the
+   * cartons are taped shut (QA DOS-050).
+   */
+  pickedQtyPcs: PiecesSchema,
 })
 export type FulfilmentQueueItem = z.infer<typeof FulfilmentQueueItemSchema>
 
@@ -233,6 +251,12 @@ export const PickLineSchema = z.object({
   shortReason: z.string().nullable(),
   /** True when an earlier-expiry lot at the same location still had stock when this one was taken. */
   fefoOverride: z.boolean(),
+  /**
+   * True when this lot expires inside the distributor's minimum shelf life (QA DOS-054). Derived on
+   * every read from the lot's expiry and the setting — no column — so changing the rule re-judges the
+   * sheet. A lot with no expiry date is never short-dated.
+   */
+  shortShelfLife: z.boolean(),
   pickedBy: IdSchema.nullable(),
   pickedAt: z.string().nullable(),
 })
@@ -249,6 +273,8 @@ export const ConsolidatedPickLotSchema = z.object({
   loosePcs: z.number().int().nonnegative(),
   /** True when this lot is not the earliest-expiry lot with stock: a warning on the sheet, never a block. */
   fefoWarning: z.boolean(),
+  /** True when this lot expires inside the distributor's minimum shelf life (QA DOS-054). */
+  shortShelfLife: z.boolean(),
 })
 export type ConsolidatedPickLot = z.infer<typeof ConsolidatedPickLotSchema>
 
@@ -273,6 +299,11 @@ export const PicklistDetailSchema = PicklistSummarySchema.extend({
   orders: z.array(PicklistOrderSchema),
   lines: z.array(PickLineSchema),
   consolidated: z.array(ConsolidatedPickRowSchema),
+  /**
+   * The distributor's `inventory.min_shelf_life_days` rule, so the sheet can name it in words ("Under
+   * the 30-day rule") instead of printing a bare date. `0` means the rule is off (QA DOS-054).
+   */
+  minShelfLifeDays: z.number().int().nonnegative(),
 })
 export type PicklistDetail = z.infer<typeof PicklistDetailSchema>
 
@@ -488,6 +519,9 @@ export const ReservationRowSchema = z.object({
   id: IdSchema,
   orderId: IdSchema.nullable(),
   orderNo: z.string().nullable(),
+  /** The shop the hold is for, read through `OrdersService.fulfilmentOrders` (QA DOS-050). */
+  retailerId: IdSchema.nullable(),
+  retailerName: z.string().nullable(),
   orderLineId: IdSchema,
   variantId: IdSchema,
   variantName: z.string(),

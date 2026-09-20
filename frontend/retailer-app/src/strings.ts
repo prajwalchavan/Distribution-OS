@@ -332,6 +332,8 @@ export const strings = {
   'r9.forItem': 'On {item}',
   'r9.linePct': 'Buy {min} {unit} and take {pct} off those items',
   'r9.lineAmount': 'Buy {min} {unit} and take {amount} off',
+  /* DOS-087: on EVERY unit once the trigger is met — "₹15 off every case when you buy 2 or more". */
+  'r9.perUnitAmount': '{amount} off every {unit} when you buy {min} or more',
   'r9.orderPct': 'Spend {min} on an order and take {pct} off it',
   'r9.orderAmount': 'Spend {min} on an order and take {amount} off',
   'r9.slabs': 'More you buy, more you save: {slabs}',

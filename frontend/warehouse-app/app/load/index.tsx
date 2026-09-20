@@ -37,7 +37,9 @@ import { useState } from 'react'
 
 import { instantWithClock, shortDate } from '../../src/lib/dates'
 import { loadSheetInput, packOnTrip } from '../../src/lib/trip-plan'
+import { atLeastPl } from '../../src/lib/queue-depth'
 import { Async, atLeast, Panel, PageTabs, useCan, workFamily } from '../../src/lib/ui'
+import { workFirst } from '../../src/lib/work-first'
 
 /** W7 reads the newest 50 packed orders, then up to the contract's page cap — also create's cap per sheet. */
 const PACKED_FIRST = 50
@@ -55,11 +57,33 @@ export default function LoadSheets(): React.JSX.Element {
   const [tripId, setTripId] = useState<string | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
 
+  /*
+   * THE SHEETS STILL WAITING ARE ASKED FOR BY NAME (DOS-047).
+   *
+   * One unfiltered page of 30 came back entirely `confirmed` on the pilot's floor, and the one draft
+   * sheet waiting for its carton count was not on it — the work this screen exists for, missing from
+   * the screen. `LoadSheetsListInput.status` takes ONE status, so the drafts are their own read and
+   * the newest page follows them; `workFirst` lists a sheet on both pages once.
+   */
+  const drafts = useQuery(
+    ['loadSheets', 'draft'],
+    () => api.api.warehouse.loadSheets.list({ status: 'draft', limit: 20 }),
+    { enabled: signedIn },
+  )
   const sheets = useQuery(
     ['loadSheets', 'all'],
     () => api.api.warehouse.loadSheets.list({ limit: 30 }),
     { enabled: signedIn },
   )
+  const sheetsShown = workFirst(drafts.data?.items ?? [], sheets.data?.items ?? [])
+  /*
+   * A PAGE OF TWENTY IS NOT A TOTAL (DOS-047, merge review). `atLeast`'s own docblock measured
+   * "Sheets waiting 20 against 166" on the pilot database, and this read is that same page of twenty;
+   * W1 prints it through `atLeast` already. `atLeastPl` is that rule inside the sentence this panel
+   * says: "20+ sheets not sent out yet" while there is more behind the cursor, the true figure once
+   * the page reached the end, and no meta line at all while the answer is unread.
+   */
+  const sheetsWaiting = atLeastPl(t, 'w7.sheetsWaiting', drafts.data)
   /**
    * The trips a load can be built for (DOS-137): planned, or already loading. Its own key — W10 caches
    * `['trips', 'open']` with the active trips in it — and both refresh on the `[['trips']]` invalidation.
@@ -177,14 +201,18 @@ export default function LoadSheets(): React.JSX.Element {
       <Stack gap={6}>
         <PageTabs group="/load" active="/load" />
 
-        <Panel title={t('w7.sheets')} testID="w7-sheets">
+        <Panel
+          title={t('w7.sheets')}
+          {...(sheetsWaiting === undefined ? {} : { meta: sheetsWaiting })}
+          testID="w7-sheets"
+        >
           <Async
-            state={sheets}
-            empty={(sheets.data?.items.length ?? 0) === 0}
+            state={[drafts, sheets]}
+            empty={sheetsShown.length === 0}
             emptyMessage={t('w7.sheetsEmpty')}
           >
             <Group>
-              {(sheets.data?.items ?? []).map((sheet) => (
+              {sheetsShown.map((sheet) => (
                 <ListRow
                   key={sheet.id}
                   testID={`w7-sheet-${sheet.id}`}

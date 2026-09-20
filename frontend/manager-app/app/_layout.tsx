@@ -351,11 +351,16 @@ function Chrome({
       secondary: staffRetailer(shop)?.code ?? strings['app.searchShops'],
       href: `/shops?q=${encodeURIComponent(staffRetailer(shop)?.code ?? shop.name)}`,
     })),
+    /*
+     * A bill is looked up to be ACTED ON — cancelled before the van leaves, its e-way bill entered —
+     * so it opens on the Billing desk, on the issued register, with its own panel already open
+     * (DOS-145). It used to land on the sales register: the right number, but nothing to press.
+     */
     ...(billHits.data?.items ?? []).map((bill) => ({
       key: `bill:${bill.id}`,
       primary: bill.invoiceNo ?? bill.externalInvoiceNo ?? strings['app.searchBills'],
       secondary: bill.buyerName,
-      href: `/registers?q=${encodeURIComponent(bill.invoiceNo ?? bill.id)}`,
+      href: `/billing?view=bills&bill=${encodeURIComponent(bill.id)}&q=${encodeURIComponent(bill.invoiceNo ?? bill.externalInvoiceNo ?? bill.id)}`,
     })),
     ...(orderHits.data?.items ?? []).map((order) => ({
       key: `order:${order.id}`,

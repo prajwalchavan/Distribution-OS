@@ -86,6 +86,22 @@ const DEFAULT_MESSAGE: Readonly<Record<ApiErrorKind, string>> = {
   unknown: 'Something could not be completed. Try again.',
 }
 
+/**
+ * The one platform sentence that is not written for a person (DOS-136).
+ *
+ * Every service message in this product is business language and is shown as it is. The idempotency
+ * guard (`@dos/core` platform/idempotency.ts) is the exception: it answers 409 "idempotencyKey was
+ * already used with a different request", which reached an accountant pressing "Bank it" again after
+ * the reply to the first press was dropped — over money the service had already banked. What it MEANS
+ * to the person at the desk is that the intent did land and what is on screen is behind the books.
+ */
+const IDEMPOTENCY_CONFLICT = 'idempotencykey was already used with a different request'
+const ALREADY_SAVED = 'This was already saved. Close this and open it again to see it.'
+
+function reword(message: string): string {
+  return message.trim().toLowerCase() === IDEMPOTENCY_CONFLICT ? ALREADY_SAVED : message
+}
+
 /** `SyncEngineEndedError` from `@dos/offline`, recognised by its name and carrying its own sentence. */
 function isEngineSigningOut(
   err: unknown,
@@ -167,7 +183,7 @@ export function toApiError(err: unknown): ApiError {
       // `ORPCError` types both of these loosely; they are only ever shown behind "Details".
       code,
       data,
-      message: serviceMessage(data, code) ?? (usable ? message : DEFAULT_MESSAGE[kind]),
+      message: reword(serviceMessage(data, code) ?? (usable ? message : DEFAULT_MESSAGE[kind])),
       cause: err,
     })
   }

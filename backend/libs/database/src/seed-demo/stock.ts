@@ -287,13 +287,14 @@ export async function seedStock(
 
     const freightPaise = inv.supplierStateCode === '27' ? 50_000 : 180_000
     const totalPaise = subtotal + cgst + sgst + igst + cess + freightPaise
+    const invoiceNo = `${SUPPLIER_BILL_PREFIX[inv.supplierKey] ?? 'SUP'}/26-27/${String(400 + seq * 7 + (invoiceIndex % 5)).padStart(5, '0')}`
     invoiceRows.push({
       id: invoiceId,
       tenantId,
       supplierId,
       source: 'manual',
       status: 'received',
-      invoiceNo: `${SUPPLIER_BILL_PREFIX[inv.supplierKey] ?? 'SUP'}/26-27/${String(400 + seq * 7 + (invoiceIndex % 5)).padStart(5, '0')}`,
+      invoiceNo,
       invoiceDate: isoDate(inv.invoiceDate),
       supplierGstin: null,
       placeOfSupplyState: '27',
@@ -314,6 +315,10 @@ export async function seedStock(
       tenantId,
       grnNo: `GRN-${String(invoiceIndex + 1).padStart(4, '0')}`,
       supplierInvoiceId: invoiceId,
+      // QA DOS-050: denormalised so the gate's own token can name the lorry — `supplier_invoices` is
+      // back-office RLS and the warehouse reads nothing there.
+      supplierId,
+      supplierInvoiceNo: invoiceNo,
       locationId: godown.id,
       status: 'posted',
       countedBy: people.warehouse.id,

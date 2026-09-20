@@ -302,6 +302,12 @@ export const TripPolicySchema = z.object({
   geofenceMetres: z.number().int().nonnegative(),
   /** `dpdp.gps_retention_days` — raw breadcrumbs are pruned after it. Default 90. */
   gpsRetentionDays: z.number().int().positive(),
+  /**
+   * `delivery.expense_proof_min_paise` — a trip expense at or above this must carry a photo of its
+   * bill (`inline` or `proofObjectKey`); 0 asks for one on every expense. Default ₹200. The rule runs
+   * on the server for the crew and the desk alike (400 `expense_proof_required`).
+   */
+  expenseProofMinPaise: PaiseSchema,
 })
 export type TripPolicy = z.infer<typeof TripPolicySchema>
 
@@ -1220,6 +1226,10 @@ export const CreateVanSaleOutput = z.object({
  * Diesel, toll, parking… with a proof photo (`files.uploadUrl`, `domain: 'expense'`, `entityId` = this
  * id; or `inline` on the local driver). Only while the trip is `active` or `closing` (409). No journal
  * row here: expenses hit the books once, at settlement, so the trip's cash story is one entry.
+ *
+ * An expense at or above `TripPolicy.expenseProofMinPaise` (default ₹200) MUST carry a photo of its
+ * bill: 400 `expense_proof_required` otherwise, for the crew and the desk alike (QA DOS-071). A replay
+ * of an expense already stored is never turned into a refusal.
  */
 export const RecordExpenseInput = MutationBase.extend({
   id: IdSchema,

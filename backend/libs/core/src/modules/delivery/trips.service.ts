@@ -286,6 +286,11 @@ export class TripsService {
       // The crew never lists another crew's trips: RLS hides them AND the filter is forced.
       const mine = input.mine || ctx.actorRole === 'delivery'
       const filters: (SQL | undefined)[] = [
+        /*
+         * RLS is the guarantee; the literal is what lets the planner start from the tenant-led
+         * `trips_date_idx` instead of scanning the table (docs/20 rule 8).
+         */
+        eq(trips.tenantId, ctx.tenantId),
         input.state ? eq(trips.state, input.state) : undefined,
         input.states && input.states.length > 0 ? inArray(trips.state, input.states) : undefined,
         input.vehicleId ? eq(trips.vehicleId, input.vehicleId) : undefined,
@@ -293,13 +298,25 @@ export class TripsService {
         input.from ? gte(trips.tripDate, input.from) : undefined,
         input.to ? lte(trips.tripDate, input.to) : undefined,
         mine ? or(eq(trips.driverId, ctx.actorId), eq(trips.helperId, ctx.actorId)) : undefined,
-        input.cursor ? lt(trips.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor trip's own (trip_date, id), read inside this tenant's transaction with its
+         * own tenant fence, so no other distributor's row can anchor a page and an unknown cursor matches
+         * nothing (DOS-009, the DOS-023/DOS-133 convention).
+         */
+        input.cursor
+          ? sql`(${trips.tripDate}, ${trips.id}) < (select c.trip_date, c.id from trips c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(trips)
         .where(and(...defined(filters)))
-        .orderBy(desc(trips.id))
+        /*
+         * Newest first by TRIP DATE (DOS-009), the same column `from`/`to` filters on — a pre-planned trip
+         * is a future-dated row and belongs on top, whatever its id says. Ids are minted on the device and
+         * the demo seed's are hashes, so id order is not the running order of the board.
+         */
+        .orderBy(desc(trips.tripDate), desc(trips.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const vehicles = await loadVehicles(

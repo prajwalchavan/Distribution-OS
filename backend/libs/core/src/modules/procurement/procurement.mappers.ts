@@ -96,12 +96,20 @@ export function toInvoiceWithLines(
   return { ...toInvoice(row), lines: lines.map(toInvoiceLine) }
 }
 
-/** Pieces only: what the gate sees. */
-export function toGrn(row: GrnRow): Grn {
+/**
+ * Pieces only: what the gate sees. `supplierName` and `lineCount` are read alongside the row — the
+ * name from `suppliers` (staff-readable), never from `supplier_invoices`, which is back-office RLS
+ * and would blank the whole join for a warehouse token (QA DOS-050).
+ */
+export function toGrn(row: GrnRow, extra: { supplierName: string | null; lineCount: number }): Grn {
   return {
     id: row.id,
     grnNo: row.grnNo,
     supplierInvoiceId: row.supplierInvoiceId,
+    supplierId: row.supplierId,
+    supplierName: row.supplierId === null ? null : extra.supplierName,
+    supplierInvoiceNo: row.supplierInvoiceNo,
+    lineCount: extra.lineCount,
     locationId: row.locationId,
     status: row.status,
     countedBy: row.countedBy,
@@ -145,9 +153,10 @@ export function toGrnWithLines(
   row: GrnRow,
   lines: GrnLineRow[],
   discrepancies: DiscrepancyRow[],
+  supplierName: string | null = null,
 ): GrnWithLines {
   return {
-    ...toGrn(row),
+    ...toGrn(row, { supplierName, lineCount: lines.length }),
     lines: lines.map(toGrnLine),
     discrepancies: discrepancies.map(toDiscrepancy),
   }

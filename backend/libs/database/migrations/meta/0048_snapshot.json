@@ -1,5 +1,5 @@
 {
-  "id": "8a623d19-629f-46c8-8b19-62dc35f27c46",
+  "id": "260ae785-b19e-414b-a9c2-5d3d7069e16e",
   "prevId": "4a245907-9cc6-4c55-a140-7f06dc23edec",
   "version": "7",
   "dialect": "postgresql",
@@ -11413,8 +11413,22 @@
           "primaryKey": false,
           "notNull": true
         },
+        "cess_bps": {
+          "name": "cess_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "tax_paise": {
           "name": "tax_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cess_paise": {
+          "name": "cess_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -11720,6 +11734,13 @@
         },
         "tax_paise": {
           "name": "tax_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cess_paise": {
+          "name": "cess_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -24577,30 +24598,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ref_type": {
-          "name": "ref_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ref_id": {
-          "name": "ref_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "media_object_key": {
           "name": "media_object_key",
           "type": "text",
@@ -24634,33 +24631,6 @@
           "columns": [
             {
               "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "received_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "inbound_messages_retailer_idx": {
-          "name": "inbound_messages_retailer_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "retailer_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -24713,69 +24683,20 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "inbound_messages_created_by_users_id_fk": {
-          "name": "inbound_messages_created_by_users_id_fk",
-          "tableFrom": "inbound_messages",
-          "tableTo": "users",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "inbound_messages_read": {
-          "name": "inbound_messages_read",
+        "inbound_messages_staff": {
+          "name": "inbound_messages_staff",
           "as": "PERMISSIVE",
-          "for": "SELECT",
+          "for": "ALL",
           "to": [
             "app_rw"
           ],
-          "using": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (\n        (SELECT current_setting('app.actor_role', true)) <> 'retailer'\n        OR retailer_id IN (\n          SELECT l.retailer_id FROM retailer_links l\n          WHERE l.tenant_id = (SELECT current_setting('app.tenant_id', true))\n            AND l.user_id = (SELECT current_setting('app.actor_id', true))\n            AND l.status = 'active'\n        )\n      )"
-        },
-        "inbound_messages_write_insert": {
-          "name": "inbound_messages_write_insert",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "app_rw"
-          ],
-          "withCheck": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'"
-        },
-        "inbound_messages_write_update": {
-          "name": "inbound_messages_write_update",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "app_rw"
-          ],
-          "using": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'",
-          "withCheck": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'"
-        },
-        "inbound_messages_write_delete": {
-          "name": "inbound_messages_write_delete",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "app_rw"
-          ],
-          "using": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) <> 'retailer'"
-        },
-        "inbound_messages_shop_insert": {
-          "name": "inbound_messages_shop_insert",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "app_rw"
-          ],
-          "withCheck": "tenant_id = (SELECT current_setting('app.tenant_id', true))\n        AND (SELECT current_setting('app.actor_role', true)) = 'retailer'\n        AND channel = 'in_app'\n        AND created_by = (SELECT current_setting('app.actor_id', true))\n        AND retailer_id IN (\n          SELECT l.retailer_id FROM retailer_links l\n          WHERE l.tenant_id = (SELECT current_setting('app.tenant_id', true))\n            AND l.user_id = (SELECT current_setting('app.actor_id', true))\n            AND l.status = 'active'\n        )"
+          "using": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'salesperson', 'delivery', 'accountant', 'warehouse', 'system')",
+          "withCheck": "tenant_id = (SELECT current_setting('app.tenant_id', true)) AND (SELECT current_setting('app.actor_role', true)) IN ('owner', 'manager', 'salesperson', 'delivery', 'accountant', 'warehouse', 'system')"
         }
       },
       "checkConstraints": {},

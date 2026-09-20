@@ -10,6 +10,7 @@ import {
   QueryIntSchema,
 } from './common.js'
 import { AppliedRuleSchema } from './pricing.js'
+import { CreditCheckOutput } from './receivables.js'
 import { PaymentTermsSchema } from './retailers.js'
 
 /**
@@ -90,12 +91,44 @@ export const OrderLineSchema = z.object({
   discountBps: BpsSchema,
   discountPaise: PaiseSchema,
   gstBps: BpsSchema,
+  /** Compensation-cess rate of the item's HSN on the pricing date; 0 for everything but sin/luxury goods. */
+  cessBps: BpsSchema,
+  /** GST plus compensation cess (DOS-079); `lineTotalPaise − taxPaise` is still the taxable. */
   taxPaise: PaiseSchema,
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: PaiseSchema,
   lineTotalPaise: PaiseSchema,
   appliedRules: z.array(AppliedRuleSchema),
   priceLocked: z.boolean(),
 })
 export type OrderLine = z.infer<typeof OrderLineSchema>
+
+/** Reserved pieces per line; a line the location cannot cover is reserved short, never refused. */
+export const OrderShortageSchema = z.object({
+  lineId: IdSchema,
+  variantId: IdSchema,
+  requestedPcs: PiecesSchema,
+  reservedPcs: PiecesSchema,
+  shortQtyPcs: PiecesSchema,
+})
+
+export type OrderShortage = z.infer<typeof OrderShortageSchema>
+
+/**
+ * The shop's credit position when the order was submitted, in the words `receivables.creditCheck`
+ * uses — the device never re-implements the rule (DOS-081). Present on an order whose check found
+ * anything to say, in EVERY credit mode; it is a notice, not a gate.
+ */
+export const CreditNoticeSchema = CreditCheckOutput.pick({
+  creditMode: true,
+  reasons: true,
+  outstandingPaise: true,
+  creditLimitPaise: true,
+  headroomPaise: true,
+  overdueDays: true,
+  orderTotalPaise: true,
+})
+export type CreditNotice = z.infer<typeof CreditNoticeSchema>
 
 export const OrderSchema = z.object({
   id: IdSchema,
@@ -112,10 +145,25 @@ export const OrderSchema = z.object({
   externalRef: z.string().nullable(),
   subtotalPaise: PaiseSchema,
   discountPaise: PaiseSchema,
+  /** GST plus compensation cess on the lines (DOS-079). */
   taxPaise: PaiseSchema,
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: PaiseSchema,
   roundOffPaise: PaiseSchema,
   totalPaise: PaiseSchema,
   approvalFlags: z.array(z.string()),
+  /**
+   * What the godown could not fully hold when this order was confirmed (DOS-078): empty until it is
+   * confirmed, and office-only — a retailer-role caller always reads `[]`. Recorded, never acted on:
+   * the order confirms short and the warehouse decides what to do with it.
+   */
+  stockShortages: z.array(OrderShortageSchema),
+  /**
+   * The shop's credit position at submit when the check found something to say (DOS-081): a "warn at
+   * the limit" shop's order confirms and carries this; strict and stop carry it beside their gate.
+   * Office-only — `null` for a retailer-role caller — and `null` when nothing was wrong.
+   */
+  creditNotice: CreditNoticeSchema.nullable(),
   expectedDeliveryDate: z.string().nullable(),
   note: z.string().nullable(),
   submittedAt: z.string().nullable(),
@@ -214,15 +262,6 @@ export const SubmitOrderInput = MutationBase.extend({
   deviceId: DeviceIdSchema.optional(),
 })
 export const SubmitOrderOutput = OrderItemOutput
-
-/** Reserved pieces per line; a line the location cannot cover is reserved short, never refused. */
-export const OrderShortageSchema = z.object({
-  lineId: IdSchema,
-  variantId: IdSchema,
-  requestedPcs: PiecesSchema,
-  reservedPcs: PiecesSchema,
-  shortQtyPcs: PiecesSchema,
-})
 
 export const ConfirmOrderInput = MutationBase.extend({
   id: IdSchema,

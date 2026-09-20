@@ -6,6 +6,7 @@ import {
   FillRateInput,
   GstPurchaseRegisterInput,
   GstSalesRegisterInput,
+  OrdersRegisterInput,
   RepProductivityInput,
   SchemeSpendInput,
   StockValueInput,
@@ -75,6 +76,15 @@ export const REGISTER_SPECS: Record<ReportRegister, RegisterSpec> = {
         })),
         out.nextCursor,
       )
+    },
+  },
+  orders: {
+    input: OrdersRegisterInput,
+    paged: true,
+    read: async (stack, raw) => {
+      const input = raw as z.infer<typeof OrdersRegisterInput>
+      const out = await stack.registers.orders(input)
+      return rows(out.items, out.nextCursor)
     },
   },
   repProductivity: {

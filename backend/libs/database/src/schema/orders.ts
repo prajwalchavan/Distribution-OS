@@ -66,6 +66,37 @@ export interface AppliedRule {
   freeVariantId?: string
 }
 
+/**
+ * A line the godown could not fully hold when the order was confirmed (DOS-078). The order is NEVER
+ * refused for it — over-available is accepted (UX-00 §6.4) and the warehouse decides what to do with a
+ * shortage — it is RECORDED, so the office sees it before pack. Kept identical to the contract's
+ * `OrderShortageSchema`, like `AppliedRule`.
+ */
+export interface StockShortage {
+  lineId: string
+  variantId: string
+  requestedPcs: number
+  reservedPcs: number
+  shortQtyPcs: number
+}
+
+/**
+ * The shop's credit position when this order was submitted, recorded when the check found something
+ * to say (DOS-081; founder, 2026-09-13). A "warn at the limit" shop's order GOES THROUGH and the desk
+ * sees this notice on it; strict and stop are still HELD by a `credit_limit` approval, and carry the
+ * notice too. It is a record, never a gate: `approval_flags` keeps meaning "waiting on somebody".
+ */
+export interface CreditNotice {
+  /** The same words the contract's `CreditNoticeSchema` uses, like `AppliedRule`'s `kind`. */
+  creditMode: 'indicate' | 'strict' | 'stop'
+  reasons: ('limit_exceeded' | 'bill_count_exceeded' | 'overdue_days_exceeded')[]
+  outstandingPaise: number
+  creditLimitPaise: number
+  headroomPaise: number
+  overdueDays: number
+  orderTotalPaise: number
+}
+
 export const salesOrders = pgTable(
   'sales_orders',
   {
@@ -90,7 +121,10 @@ export const salesOrders = pgTable(
     externalRef: text('external_ref'),
     subtotalPaise: paise('subtotal_paise').notNull().default(0),
     discountPaise: paise('discount_paise').notNull().default(0),
+    /** GST plus compensation cess, the invoice's cgst + sgst + igst + cess; `cess_paise` is the cess share. */
     taxPaise: paise('tax_paise').notNull().default(0),
+    /** The compensation-cess share of `tax_paise`, never an addition on top of it (DOS-079). */
+    cessPaise: paise('cess_paise').notNull().default(0),
     roundOffPaise: paise('round_off_paise').notNull().default(0),
     totalPaise: paise('total_paise').notNull().default(0),
     /** Approval-worthy conditions raised at submit (credit_limit, bargain, below_floor). */
@@ -98,6 +132,16 @@ export const salesOrders = pgTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    /**
+     * What the godown could not hold at confirm (DOS-078): office-only, empty until confirmed, and
+     * history afterwards — a cancel releases the reservations and leaves this record standing.
+     */
+    stockShortages: jsonb('stock_shortages')
+      .$type<StockShortage[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    /** The credit position at submit when there was something to say (DOS-081); office-only, else NULL. */
+    creditNotice: jsonb('credit_notice').$type<CreditNotice>(),
     expectedDeliveryDate: text('expected_delivery_date'),
     note: text('note'),
     submittedAt: tz('submitted_at'),
@@ -110,6 +154,8 @@ export const salesOrders = pgTable(
   (t) => [
     /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
     index('sales_orders_updated_idx').on(t.tenantId, t.updatedAt),
+    /** The desk's order list, newest first by server time with an (created_at, id) keyset (QA DOS-009). */
+    index('sales_orders_created_idx').on(t.tenantId, t.createdAt, t.id),
     index('sales_orders_retailer_idx').on(t.tenantId, t.retailerId, t.createdAt),
     index('sales_orders_state_idx').on(t.tenantId, t.state, t.createdAt),
     index('sales_orders_salesperson_idx').on(t.tenantId, t.salespersonId, t.createdAt),
@@ -166,7 +212,11 @@ export const salesOrderLines = pgTable(
     discountBps: bps('discount_bps').notNull().default(0),
     discountPaise: paise('discount_paise').notNull().default(0),
     gstBps: bps('gst_bps').notNull(),
+    /** Compensation-cess rate of the item's HSN on the pricing date (0 for everything but sin/luxury goods). */
+    cessBps: bps('cess_bps').notNull().default(0),
+    /** GST plus compensation cess; `cess_paise` is the cess share, so `line_total − tax` is still the taxable. */
     taxPaise: paise('tax_paise').notNull().default(0),
+    cessPaise: paise('cess_paise').notNull().default(0),
     lineTotalPaise: paise('line_total_paise').notNull().default(0),
     appliedRules: jsonb('applied_rules')
       .$type<AppliedRule[]>()

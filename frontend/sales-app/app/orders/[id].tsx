@@ -53,7 +53,7 @@ import {
   useSchemes,
   useShop,
 } from '../../src/lib/local'
-import { piecesOfLine } from '../../src/lib/queue'
+import { piecesOfLine, useSubmitAcceptedDrafts } from '../../src/lib/queue'
 import { quoteOnDevice } from '../../src/lib/pricing'
 import { Field, Panel, orderFamily } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
@@ -78,6 +78,10 @@ export default function OrderDetail(): React.JSX.Element {
   const bargains = useBargains(localOrder?.retailer_id ?? null)
   const [cancelling, setCancelling] = useState(false)
   const [reason, setReason] = useState('')
+  /* DOS-092: the confirm was a silent no-op on an empty reason. Now the field says what is missing. */
+  const [sayWhy, setSayWhy] = useState(false)
+  /* DOS-086: this order's own draft submits itself the moment the office takes it. */
+  useSubmitAcceptedDrafts()
 
   /**
    * The server's own view, when there is signal: the approvals a submit raised and the state the
@@ -261,6 +265,31 @@ export default function OrderDetail(): React.JSX.Element {
           </Txt>
         )}
 
+        {/*
+          DOS-142 — WHY, not just that it is off.
+          The manager's own cancel dialog promises the rep will be told, and `cancel_reason` has
+          always come down with the row (`tablePull(salesOrders)` omits nothing). The rep stands in
+          the shop that placed it, so the sentence belongs here, above the lines, and not in a chip:
+          "Cancelled" alone left them ringing the office. Who cancelled is not on the row — the
+          schema has `cancelled_at` and `cancel_reason` and no `cancelled_by` — so it is not claimed.
+        */}
+        {order.state === 'cancelled' ? (
+          <Panel title={t('s5.cancelled')}>
+            <Stack gap={2}>
+              <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                {order.cancel_reason === null || order.cancel_reason.trim() === ''
+                  ? t('s5.cancelledNoReason')
+                  : t('s5.cancelledReason', { reason: order.cancel_reason })}
+              </Txt>
+              {order.cancelled_at === null ? null : (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('s5.cancelledAt', { when: instantWithClock(order.cancelled_at) })}
+                </Txt>
+              )}
+            </Stack>
+          </Panel>
+        ) : null}
+
         <Panel title={t('s5.lines')} meta={t('s5.linesMeta', { count: lines.length })}>
           {lines.length === 0 ? (
             <EmptyState message={t('s5.noLines')} />
@@ -357,6 +386,7 @@ export default function OrderDetail(): React.JSX.Element {
         open={cancelling}
         onClose={() => {
           setCancelling(false)
+          setSayWhy(false)
         }}
         title={t('s5.cancelTitle')}
         testID="cancel-dialog"
@@ -371,8 +401,12 @@ export default function OrderDetail(): React.JSX.Element {
             <TextInput
               label={t('s5.cancelReason')}
               value={reason}
-              onChange={setReason}
+              onChange={(next) => {
+                setReason(next)
+                if (next.trim() !== '') setSayWhy(false)
+              }}
               capitalize="sentences"
+              error={sayWhy ? t('s5.cancelSayWhy') : undefined}
             />
             {cancel.error === undefined ? null : (
               <Txt field="label" desk="meta" color={colors.status.brick.fg}>
@@ -382,10 +416,26 @@ export default function OrderDetail(): React.JSX.Element {
           </Stack>
         }
         confirmLabel={t('s5.cancelConfirm')}
+        /*
+         * DOS-092: "Keep it" beside "Cancel the order". The kit's default dismiss label is the word
+         * "Cancel", which on THIS dialog is the opposite of what it does — `DialogProps.cancelLabel`
+         * exists for exactly that, so no kit change is needed.
+         */
+        cancelLabel={t('s5.cancelKeep')}
         destructive
         busy={cancel.status === 'pending'}
         onConfirm={() => {
-          if (reason.trim().length > 0) cancel.mutate({ reason: reason.trim() })
+          /*
+           * The contract requires a reason (`CancelOrderInput.reason.min(1)`) and that is right: a
+           * cancellation with no reason is the defect DOS-142 was about, on the other side. What was
+           * wrong was doing nothing about it — the tap on a destructive button vanished. Nothing is
+           * sent, and the field says why not.
+           */
+          if (reason.trim() === '') {
+            setSayWhy(true)
+            return
+          }
+          cancel.mutate({ reason: reason.trim() })
         }}
       />
     </Screen>
@@ -410,6 +460,8 @@ type OrderView = Pick<
   | 'expected_delivery_date'
   | 'note'
   | 'submitted_at'
+  | 'cancelled_at'
+  | 'cancel_reason'
   | 'created_at'
 > & { _pending?: LocalOrder['_pending'] }
 
@@ -437,6 +489,8 @@ function viewOfServerOrder(item: OrderDetailWire): OrderView {
     expected_delivery_date: item.expectedDeliveryDate,
     note: item.note,
     submitted_at: item.submittedAt,
+    cancelled_at: item.cancelledAt,
+    cancel_reason: item.cancelReason,
     created_at: item.createdAt,
   }
 }

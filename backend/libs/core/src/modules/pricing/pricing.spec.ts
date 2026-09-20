@@ -40,9 +40,11 @@ describeDb('pricing (DATABASE_URL)', () => {
   const v1 = uuidv7() // ₹10 default, ₹9 tier A, case 12
   const v2 = uuidv7() // ₹20 default only, case 24
   const vUnrated = uuidv7() // its HSN has no GST rate on any date (DOS-096)
+  const vCess = uuidv7() // DOS-079: 28% GST + 12% compensation cess, ₹22.97 a piece
   // Per-run HSN codes so no other spec's rate row can answer for them (8 and 9 are orders' and ai's prefixes).
   const hsn = `7${Date.now().toString().slice(-6)}` // 18% from 2020-04-01
   const hsnNoRate = `6${Date.now().toString().slice(-6)}` // never given an hsn_rates row
+  const hsnCess = `5${Date.now().toString().slice(-6)}` // 28% + 12% cess from 2020-04-01 (DOS-079)
   const shopA = uuidv7() // tier A, has the final override
   const shopC = uuidv7() // tier C, gets the scheme; linked to the retailer-role user
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
@@ -102,11 +104,21 @@ describeDb('pricing (DATABASE_URL)', () => {
         defaultCaseSize: 12,
         hsnCode: hsnNoRate,
       },
+      {
+        id: vCess,
+        productId,
+        name: 'Campa Cola 750 ml',
+        netQty: 750,
+        netUnit: 'ml',
+        defaultCaseSize: 12,
+        hsnCode: hsnCess,
+      },
     ])
     // The quote carries GST (DOS-096), so every item it prices needs a dated rate for its HSN.
-    await db
-      .insert(hsnRates)
-      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1800, effectiveFrom: '2020-04-01' })
+    await db.insert(hsnRates).values([
+      { id: uuidv7(), hsnCode: hsn, gstBps: 1800, effectiveFrom: '2020-04-01' },
+      { id: uuidv7(), hsnCode: hsnCess, gstBps: 2800, cessBps: 1200, effectiveFrom: '2020-04-01' },
+    ])
     await db.insert(retailers).values([
       {
         id: shopA,
@@ -229,6 +241,70 @@ describeDb('pricing (DATABASE_URL)', () => {
     const lists = await call<{ items: PriceList[] }>(app, rep, 'GET', '/pricing/price-lists', {})
     expect(lists.status).toBe(200)
     expect(lists.body.items.map((l) => l.name).sort()).toEqual(['Default', 'Tier A'])
+  })
+
+  // -------------------------------------------------------------------------------------------------------
+  // DOS-013: a price list names what it prices. The owner's Prices screen used to name rows from the
+  // tenant's LISTED catalogue, so a variant that is priced but not listed (Chamak Glass Cleaner, priced in
+  // all four lists) showed as "1c3586ee". The name belongs on the wire, resolved the way order and invoice
+  // lines resolve it (DOS-003): the tenant's local alias, else the global variant name.
+
+  it('DOS-013: priceLists.list names every item — a variant the tenant does not list carries the global variant name, a listed one its local alias', async () => {
+    // v1 is listed under the tenant's own word for it; v2 is priced but never listed.
+    await db
+      .insert(tenantProducts)
+      .values({ id: uuidv7(), tenantId, variantId: v1, localAlias: `Makhana Salted ${run}` })
+
+    const lists = await call<{ items: PriceList[] }>(app, owner, 'GET', '/pricing/price-lists', {})
+    expect(lists.status).toBe(200)
+    const items = lists.body.items.find((l) => l.id === defaultListId)?.items ?? []
+    const byVariant = new Map(items.map((i) => [i.variantId, i]))
+    expect(byVariant.get(v1)?.variantName).toBe(`Makhana Salted ${run}`)
+    expect(byVariant.get(v2)?.variantName).toBe('Peri Peri 60g')
+    expect(items.every((i) => i.variantName !== '' && i.variantName !== i.variantId)).toBe(true)
+  })
+
+  it('DOS-013: setItems and the price-list upsert answer the same names, and a same-key replay of setItems answers 200 with the stored reply', async () => {
+    // the same rates the list already carries: this proves the reply's names, not a price change
+    const body = {
+      idempotencyKey: `pli-dos013-${run}`,
+      priceListId: defaultListId,
+      items: [
+        { id: uuidv7(), variantId: v1, ratePaise: 1000 },
+        { id: uuidv7(), variantId: v2, ratePaise: 2000 },
+      ],
+    }
+    const set = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      body,
+    )
+    expect(set.status).toBe(200)
+    const names = new Map(set.body.item.items.map((i) => [i.variantId, i.variantName]))
+    expect(names.get(v1)).toBe(`Makhana Salted ${run}`)
+    expect(names.get(v2)).toBe('Peri Peri 60g')
+
+    // DOS-160: the stored reply of the first call answers the replay, whatever the schema has since gained.
+    const replay = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      body,
+    )
+    expect(replay.status).toBe(200)
+    expect(replay.body).toEqual(set.body)
+
+    const upsert = await call<{ item: PriceList }>(app, owner, 'POST', '/pricing/price-lists', {
+      idempotencyKey: `pl-dos013-${run}`,
+      id: defaultListId,
+      name: 'Default',
+      isDefault: true,
+    })
+    expect(upsert.status).toBe(200)
+    expect(new Map(upsert.body.item.items.map((i) => [i.variantId, i.variantName]))).toEqual(names)
   })
 
   it('owner creates a "buy 12 get 1 free" scheme; replay is idempotent; economics change bumps the version', async () => {
@@ -601,6 +677,34 @@ describeDb('pricing (DATABASE_URL)', () => {
     ).toBe(1800)
   })
 
+  it('DOS-079: a quote for a cess item carries cessBps/cessPaise inside taxPaise and the rupee-rounded payable', async () => {
+    await db.insert(priceListItems).values({
+      id: uuidv7(),
+      tenantId,
+      priceListId: defaultListId,
+      variantId: vCess,
+      ratePaise: 2297,
+    })
+    // 48 pcs at ₹22.97 = ₹1,102.56; 28% GST ₹308.72 + 12% cess ₹132.31 = ₹441.03 of tax.
+    const q = await quoteFor(rep, shopA, [{ lineId: 'lc', variantId: vCess, qtyPcs: 48 }])
+    expect(q.status).toBe(200)
+    expect(q.body.lines[0]).toMatchObject({
+      lineNetPaise: 110_256,
+      gstBps: 2_800,
+      cessBps: 1_200,
+      cessPaise: 13_231,
+      taxPaise: 44_103,
+      lineTotalPaise: 154_359,
+    })
+    expect(q.body.totals).toMatchObject({
+      netPaise: 110_256,
+      taxPaise: 44_103,
+      cessPaise: 13_231,
+      roundOffPaise: 41,
+      totalPaise: 154_400,
+    })
+  })
+
   it('DOS-096: a quote for an item whose HSN has no GST rate is a 400 naming the HSN, never a silent 0%', async () => {
     await db.insert(priceListItems).values({
       id: uuidv7(),
@@ -681,6 +785,55 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(below.body.totals.grossPaise).toBe(40_000)
     expect(below.body.orderRules).toEqual([])
     expect(below.body.totals.discountPaise).toBe(0)
+  })
+
+  it('DOS-087: a per-unit amount saved through the contract takes ₹15 off every case from 2 cases on', async () => {
+    // Founder, 2026-09-13: "₹15 off per case on 2+" is ₹15 on EVERY case once two are bought. v2 is a
+    // case of 24 at ₹20 and this scheme's window is its own, so nothing else prices these quotes.
+    const perCaseId = uuidv7()
+    const saved = await call<{ item: Scheme }>(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-dos087-${run}`,
+      id: perCaseId,
+      name: '₹15 off per case on 2+',
+      scope: { all: true },
+      triggerKind: 'qty',
+      triggerMin: 2,
+      triggerUnit: 'case',
+      rewardKind: 'per_unit_amount',
+      rewardValue: 1_500,
+      validFrom: '2032-03-01',
+      validTo: '2032-03-31',
+    })
+    expect(saved.status).toBe(200)
+    expect(saved.body.item.rewardKind).toBe('per_unit_amount')
+
+    const quoteIn2032 = (qtyPcs: number) =>
+      call<Quote>(app, rep, 'POST', '/pricing/quote', {
+        retailerId: shopA,
+        pricingDate: '2032-03-15',
+        lines: [{ lineId: 'l1', variantId: v2, qtyPcs }],
+      })
+    expect((await quoteIn2032(24)).body.totals.discountPaise).toBe(0) // one case: under the trigger
+    expect((await quoteIn2032(48)).body.totals.discountPaise).toBe(3_000) // ₹15 × 2
+    expect((await quoteIn2032(72)).body.totals.discountPaise).toBe(4_500) // ₹15 × 3
+    // 2 cs + 6 loose pieces is two cases: loose pieces never round up.
+    expect((await quoteIn2032(54)).body.totals.discountPaise).toBe(3_000)
+
+    // And the contract refuses one with no unit to pay per.
+    const refused = await call(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-dos087-inr-${run}`,
+      id: uuidv7(),
+      name: '₹15 off per rupee',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerMin: 50_000,
+      triggerUnit: 'inr',
+      rewardKind: 'per_unit_amount',
+      rewardValue: 1_500,
+      validFrom: '2032-03-01',
+      validTo: '2032-03-31',
+    })
+    expect(refused.status).toBe(400)
   })
 
   it("DOS-076: pricing.quote reports a brand-scoped cash discount on that brand's lines only", async () => {

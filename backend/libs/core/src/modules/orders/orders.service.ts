@@ -136,6 +136,15 @@ const FULFILMENT_EVENT_TYPE: Readonly<Record<FulfilmentEvent, OrderEventType>> =
 }
 
 /**
+ * What a downstream module runs when an order is cancelled, inside the cancelling transaction
+ * (QA DOS-138). It never returns anything: it either lands with the cancellation or neither does.
+ */
+export type OrderCancelledHook = (tx: Db, order: OrderRow, reason: string) => Promise<void>
+
+/** Who may cancel an order the floor has already started picking (founder, QA DOS-138): the desk. */
+const PICKING_CANCELLERS: readonly string[] = ['owner', 'manager']
+
+/**
  * The Sales Order aggregate (§4.3). Everything a device or the console does to an order goes through here:
  * lines are priced by the engine (`pricing-lines.ts`), states move only through `orderMachine`, every move
  * writes an `order_state_transitions` row and an `outbox_events` row, and stock is only ever touched through
@@ -148,6 +157,20 @@ export class OrdersService {
     private readonly quotes: QuoteService,
     private readonly inventory: InventoryService,
   ) {}
+
+  /**
+   * What a DOWNSTREAM module does when an order is cancelled, inside the same transaction (QA DOS-138).
+   * Warehouse registers `putBackOrder` from `PicklistsService.onModuleInit`, so a desk cancel mid-pick
+   * marks the picker's lines put-back in the one transaction that voids the hold — the DOS-172
+   * `registerRoadHold` pattern: downstream registers with upstream, and orders never names a picking
+   * sheet. A service that mounts orders WITHOUT warehouse (sales, retailer) registers nothing and
+   * cancels exactly as before; `picklists.start` reconciles such an order before it starts a wave.
+   */
+  private readonly cancelledHooks: OrderCancelledHook[] = []
+
+  registerCancelled(hook: OrderCancelledHook): void {
+    if (!this.cancelledHooks.includes(hook)) this.cancelledHooks.push(hook)
+  }
 
   // -------------------------------------------------------------------------------------------------------------
   // drafting
@@ -272,13 +295,15 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
-    const { flags, bargainIds } = await approvalFlags(tx, order, lines)
+    const { flags, bargainIds, creditNotice } = await approvalFlags(tx, order, lines)
     const [submitted] = await tx
       .update(salesOrders)
       .set({
         state: to,
         orderNo: order.orderNo ?? (await nextDocumentNumber(tx, 'SO', now)),
         approvalFlags: flags,
+        // DOS-081: the credit position the desk reads, in every mode — a record, never a gate.
+        creditNotice,
         submittedAt: now,
         updatedAt: now,
       })
@@ -347,7 +372,9 @@ export class OrdersService {
    * warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
-    if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
+    // DOS-078: an idempotent re-confirm reads the stored record back, never an empty list.
+    if (order.state === 'confirmed')
+      return { item: await this.detail(tx, order), shortages: order.stockShortages }
     const to = transition(order.state, 'confirm')
     const waiting = await tx
       .select({ id: approvals.id, kind: approvals.kind })
@@ -379,7 +406,9 @@ export class OrdersService {
           discountBps: line.discountBps,
           discountPaise: line.discountPaise,
           gstBps: line.gstBps,
+          cessBps: line.cessBps,
           taxPaise: line.taxPaise,
+          cessPaise: line.cessPaise,
           lineTotalPaise: line.lineTotalPaise,
           freeQtyPcs: line.freeQtyPcs,
           appliedRules: line.appliedRules,
@@ -418,6 +447,9 @@ export class OrdersService {
         ...(repriced?.totals ?? {}),
         state: to,
         fulfilFromLocationId: locationId,
+        // DOS-078: what the godown could not hold is RECORDED on the order — never a refusal, never a
+        // clamp, never a new gate — so the desk sees it before pack instead of only the caller who confirmed.
+        stockShortages: shortages,
         confirmedAt: now,
         updatedAt: now,
       })
@@ -472,6 +504,27 @@ export class OrdersService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order, ['draft', 'submitted'])
+        /*
+         * QA DOS-139: `packed` has a cancel edge, but it belongs to ONE caller — `billing.invoices
+         * .cancel`, which takes it through `cancelInTx` after it has put the stock back and reversed
+         * the money. A packed order carries an issued GST bill, so cancelling the order alone would
+         * leave that bill standing. Say the route instead of taking it, for every role.
+         */
+        if (order.state === 'packed')
+          throw new ORPCError('CONFLICT', {
+            message: `order ${order.orderNo ?? order.id} is packed and billed; cancel the bill and the order goes with it`,
+            data: { code: 'cancel_the_bill' },
+          })
+        /*
+         * QA DOS-138 (founder): once the floor is picking, only the DESK cancels — the picker is told
+         * which lines to put back, and a rep phoning it in with no desk in the loop is not that. The
+         * matrix row stays `ORDER_PLACERS`; this is the same shape as the retailer's state limit above.
+         */
+        if (order.state === 'picking' && !PICKING_CANCELLERS.includes(ctx.actorRole))
+          throw new ORPCError('CONFLICT', {
+            message: `order ${order.orderNo ?? order.id} is being picked; only the desk can cancel it now`,
+            data: { code: 'desk_only' },
+          })
         return { item: await this.cancelInTx(tx, order, input.reason, input.deviceId ?? null) }
       }),
     )
@@ -506,6 +559,8 @@ export class OrdersService {
       .where(eq(salesOrders.id, order.id))
       .returning()
     const next = cancelled ?? order
+    // Downstream, in this same transaction: warehouse marks the picker's lines put-back (QA DOS-138).
+    for (const hook of this.cancelledHooks) await hook(tx, next, reason)
     await recordTransition(tx, next, order.state, to, 'cancel', deviceId, reason)
     await emitOrderEvent(tx, next, 'OrderCancelled')
     return this.detail(tx, next)

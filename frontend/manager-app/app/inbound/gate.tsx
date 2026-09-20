@@ -4,8 +4,9 @@
  * This is the ONE place in the whole product where a person types a number that is not already on a
  * document: "zero manual entry except the blind gate count". Everything about the screen follows from
  * the word BLIND — the expected pieces are not shown while the count is being taken, because a
- * figure on the screen is a figure the counter will agree with. `procurement.grns.get` does carry
- * `expectedQtyPcs`, and this screen deliberately does not print it until the line has a count.
+ * figure on the screen is a figure the counter will agree with. `procurement.grns.get` carries
+ * `expectedQtyPcs` for a DESK role only — it is null for the godown's own token (QA DOS-045) — and
+ * this screen, which a manager opens, deliberately does not print it until the line has a count.
  *
  * The pad is `<NumberPad>` in `count` mode (UX-00 §6.3): digits are appended, never parsed from a
  * float, and the target is the app's touch floor because the person is standing at a lorry.
@@ -215,7 +216,7 @@ export default function GateCount(): React.JSX.Element {
                          * The expected figure appears only ONCE the line has a count. Before that the
                          * line says what it is asking for and nothing else — that is what blind means.
                          */}
-                        {shown === null
+                        {shown === null || line.expectedQtyPcs === null
                           ? t('m19.received')
                           : t('m19.expectedAfter', { count: line.expectedQtyPcs })}
                       </Txt>

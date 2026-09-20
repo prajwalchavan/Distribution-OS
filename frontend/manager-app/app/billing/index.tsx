@@ -47,7 +47,7 @@ import {
 } from '@dos/ui'
 import { documents, platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import {
   Async,
@@ -101,11 +101,46 @@ export default function BillingDesk(): React.JSX.Element {
 
   const mayCancel = can('billing.invoices.cancel')
   const mayIssueForPack = can('billing.invoices.issueForPack')
-  const params = useLocalSearchParams<{ q?: string }>()
-  const [view, setView] = useState<'queue' | 'bills'>('queue')
+  /*
+   * DOS-145: someone arriving with a bill in the url is looking for a BILL. `view=bills` (the header
+   * search's own link) and a bare `?q=` both open the issued register rather than the order queue,
+   * and `bill=` opens that bill's panel — cancel, e-way bill — without a second search.
+   */
+  const params = useLocalSearchParams<{ q?: string; view?: string; bill?: string }>()
+  const [view, setView] = useState<'queue' | 'bills'>(
+    params.view === 'bills' || (typeof params.q === 'string' && params.q !== '')
+      ? 'bills'
+      : 'queue',
+  )
   const [range, setRange] = useState<RangeId>('d30')
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(
+    typeof params.bill === 'string' && params.bill !== '' ? params.bill : null,
+  )
+  /*
+   * DOS-145 (review): those three initialisers run once, when this screen MOUNTS. The header search
+   * reaches a bill with `router.push('/billing?view=bills&bill=…')`, and a router may reuse a screen
+   * that is already mounted rather than mounting a second copy — so a manager already standing on the
+   * Billing desk, searching for a bill, would have been left on whatever tab they were on, which is
+   * the exact symptom the finding reports. The url is therefore re-applied whenever it CHANGES, and
+   * only then: a tab the manager picks by hand afterwards is theirs to keep, because the url has not
+   * moved. (The expression is the initialiser's, deliberately repeated rather than hoisted — the cold
+   * open and the re-entry must never be able to drift apart.)
+   */
+  const urlIntent = `${params.view ?? ''}|${params.q ?? ''}|${params.bill ?? ''}`
+  const appliedIntent = useRef(urlIntent)
+  useEffect(() => {
+    if (appliedIntent.current === urlIntent) return
+    appliedIntent.current = urlIntent
+    setQ(typeof params.q === 'string' ? params.q : '')
+    setView(
+      params.view === 'bills' || (typeof params.q === 'string' && params.q !== '')
+        ? 'bills'
+        : 'queue',
+    )
+    if (typeof params.bill === 'string' && params.bill !== '') setSelected(params.bill)
+  }, [urlIntent, params.bill, params.q, params.view])
+
   const [dialog, setDialog] = useState<'cancel' | 'eway' | 'billPack' | null>(null)
   const [reason, setReason] = useState('')
   const [ewayNo, setEwayNo] = useState('')

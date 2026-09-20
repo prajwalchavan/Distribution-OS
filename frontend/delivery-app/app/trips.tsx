@@ -4,9 +4,17 @@
  * `trips.list` FORCES `mine` for the delivery role on the server, so this list is this crew member's
  * road and nobody else's — the app does not have to ask for that and could not widen it if it tried.
  *
- * The one figure docs/23 §5.2 allows here is the crew's own on-time rate, from
- * `reporting.registers.deliveryPerformance` scoped to the signed-in driver. That register caps its
- * window at 31 days (`window_too_wide` otherwise), which is why the range is a month and says so.
+ * The one figure docs/23 §5.2 allows here is the crew's own ON-TIME rate, from
+ * `reporting.registers.deliveryPerformance` scoped to the signed-in driver — the share of stops made
+ * by the time the office promised. It was labelled "Delivered on the first attempt", which is a
+ * different measurement of a different thing, and read 0% for a crew with 104 of 125 stops delivered
+ * (QA DOS-067). That register caps its window at 31 days (`window_too_wide` otherwise), which is why
+ * the score is a month of ROAD ALREADY DRIVEN and ends today.
+ *
+ * THE LIST IS WIDER THAN THE SCORE, and deliberately. `trips.list` was asked for the same window, so
+ * the trip the home screen calls "Today's trip" — a round planned for the next working day, which is
+ * how the godown loads ahead — was missing from the crew's own list of trips. The list runs to the
+ * end of the week ahead; the score never counts a trip nobody has driven yet.
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
 import {
@@ -35,6 +43,8 @@ export default function Trips(): React.JSX.Element {
 
   const to = today()
   const from = shiftDays(to, -29)
+  /** What is planned ahead: a trip dated after today is on the list, never in the score. */
+  const until = shiftDays(to, 7)
 
   /*
    * THE LIST MUST BE THE WINDOW THE CHIP CLAIMS, AND IT MUST BE IN ORDER.
@@ -47,8 +57,8 @@ export default function Trips(): React.JSX.Element {
    * server has no date ordering to ask for (recorded as an open point).
    */
   const trips = useQuery(
-    ['trips', 'mine', from, to],
-    () => api.api.delivery.trips.list({ mine: true, from, to, limit: 50 }),
+    ['trips', 'mine', from, until],
+    () => api.api.delivery.trips.list({ mine: true, from, to: until, limit: 50 }),
     { enabled: signedIn },
   )
   const rows = useMemo(
