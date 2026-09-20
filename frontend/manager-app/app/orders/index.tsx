@@ -31,6 +31,7 @@ import {
   TextInput,
   Toast,
   Txt,
+  formatCount,
   formatINR,
   paise,
   useColors,
@@ -59,6 +60,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
+import { readAllReservations, reservedPcs } from '../../src/lib/reservations'
 import { waitingOnKinds } from '../../src/lib/waiting-on'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
@@ -148,9 +150,22 @@ export default function OrderQueue(): React.JSX.Element {
     { enabled: order !== undefined },
   )
 
+  /*
+   * DOS-130: every hold, not the first page of them. Holds are per LOT, so the pieces this order has
+   * taken out of stock are the sum of `qtyPcs` over all of them, and a page cut off mid-way would
+   * under-report the one figure the manager reads as a quantity before confirming.
+   */
   const reservations = useQuery(
     ['warehouse', 'reservations', selected ?? 'none'],
-    () => api.api.warehouse.reservations.list({ orderId: selected ?? '', state: 'pending' }),
+    () =>
+      readAllReservations((cursor) =>
+        api.api.warehouse.reservations.list({
+          orderId: selected ?? '',
+          state: 'pending',
+          limit: 200,
+          ...(cursor === null ? {} : { cursor }),
+        }),
+      ),
     { enabled: selected !== null && can('warehouse.reservations.list') },
   )
 
@@ -685,7 +700,16 @@ export default function OrderQueue(): React.JSX.Element {
 
               {can('warehouse.reservations.list') ? (
                 <Field label={t('m2.reservations')}>
-                  {String(reservations.data?.items.length ?? 0)}
+                  <Stack gap={1}>
+                    <Txt field="body" desk="cell" numeric>
+                      {t('qty.piecesOnly', {
+                        pieces: formatCount(reservedPcs(reservations.data ?? [])),
+                      })}
+                    </Txt>
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('m2.reservationsLots', { count: (reservations.data ?? []).length })}
+                    </Txt>
+                  </Stack>
                 </Field>
               ) : null}
 
@@ -712,7 +736,7 @@ export default function OrderQueue(): React.JSX.Element {
                     <Button
                       label={t('m2.release')}
                       variant="secondary"
-                      disabled={(reservations.data?.items.length ?? 0) === 0}
+                      disabled={(reservations.data ?? []).length === 0}
                       disabledReason={t('m2.nothingHeld')}
                       onPress={() => {
                         setActing('release')
