@@ -58,12 +58,21 @@ describe('DOS-017 the owner live map draws a map', () => {
       marksFromRows: /markers\b[\s\S]*?rows\s*\n?\s*\.filter\(/.test(screen),
       // The register survives underneath: trip, stops and staleness are not pin material.
       keepsRegister: /testID="map-register"/.test(screen),
+      /*
+       * Android's engine is the Google Maps SDK, which draws a GREY BOX without a key of the
+       * distributor's own (`android.config.googleMaps.apiKey` in app.json — docs/26 §2 "maps key",
+       * still to arrive). The kit's native fallback only catches a MISSING `react-native-maps`, and
+       * this app now installs it, so a dev build would mount the keyless engine and show that grey
+       * box instead of the honest list. Until the key lands, Android asks for the list by name.
+       */
+      androidListUntilKey: /listOnly=\{process\.env\.EXPO_OS === 'android'\}/.test(screen),
     }).toEqual({
       imported: true,
       rendered: true,
       markersProp: true,
       marksFromRows: true,
       keepsRegister: true,
+      androidListUntilKey: true,
     })
   })
 
