@@ -1,0 +1,1 @@
+ALTER TABLE "pick_lines" ADD COLUMN "cancelled_at" timestamp with time zone;

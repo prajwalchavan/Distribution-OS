@@ -62,6 +62,24 @@ const STATE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   closed: 'moss',
 }
 
+/**
+ * Why Cancel is off, or `null` when the desk may press it (QA DOS-138, DOS-139).
+ *
+ * The desk — owner or manager — cancels up to and INCLUDING picking (founder, 2026-09-13): the hold is
+ * released and the picker's sheet shows the lines to put back. A packed order carries an issued GST
+ * bill, so it is cancelled through that bill and goes with it; after dispatch the only correction is a
+ * credit note. Saying which of the three it is beats the server's own 409, which the desk cannot act on.
+ */
+function cancelBlock(
+  state: string,
+): 'o5.alreadyClosed' | 'o5.cancelViaBill' | 'o5.afterDispatch' | null {
+  if (state === 'cancelled' || state === 'closed') return 'o5.alreadyClosed'
+  if (state === 'packed') return 'o5.cancelViaBill'
+  if (state === 'dispatched' || state === 'delivered' || state === 'partially_delivered')
+    return 'o5.afterDispatch'
+  return null
+}
+
 const STATES = [
   'submitted',
   'confirmed',
@@ -416,11 +434,18 @@ export default function Orders(): React.JSX.Element {
                   setConfirming('release')
                 }}
               />
+              {/*
+               * DOS-138 / DOS-139: Cancel used to be offered on every state but `cancelled` and
+               * `delivered`, so a picking order answered the machine's raw refusal and a packed one
+               * answered nothing the owner could act on. The desk may now cancel up to and including
+               * picking (founder); a packed order goes with its bill, and after dispatch it is a
+               * credit note.
+               */}
               <Button
                 label={t('o5.cancel')}
                 variant="destructive"
-                disabled={order.state === 'cancelled' || order.state === 'delivered'}
-                disabledReason={t('o5.state')}
+                disabled={cancelBlock(order.state) !== null}
+                disabledReason={t(cancelBlock(order.state) ?? 'o5.alreadyClosed')}
                 onPress={() => {
                   setConfirming('cancel')
                 }}
@@ -452,6 +477,11 @@ export default function Orders(): React.JSX.Element {
               {order?.orderNo ?? ''}
             </Txt>
             <Money value={order?.totalPaise ?? null} size="moneyM" />
+            {confirming === 'cancel' && order?.state === 'picking' ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="order-picking">
+                {t('o5.cancelPicking')}
+              </Txt>
+            ) : null}
             {confirming === 'confirm' ? null : (
               <TextInput
                 label={t('o5.cancelReason')}

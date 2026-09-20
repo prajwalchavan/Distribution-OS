@@ -2312,6 +2312,102 @@ describeDb('orders (DATABASE_URL)', () => {
     })
   })
 
+  it('DOS-138: the desk cancels an order mid-pick — the manager gets 200 cancelled with the reason, every held piece is released and an OrderCancelled event is written; the rep is 409 "only the desk", and a shop is still limited to draft and submitted', async () => {
+    const orders = app.get(OrdersService)
+    const orderId = uuidv7()
+    const lineId = uuidv7()
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos138-create-${run}`,
+      id: orderId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: lineId, variantId: variantA, enteredQty: 2, enteredUnit: 'piece' }],
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const submitted = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${orderId}/submit`, {
+      idempotencyKey: `dos138-submit-${run}`,
+    })
+    expect(submitted.status, JSON.stringify(submitted.body)).toBe(200)
+    expect(submitted.body.item.state).toBe('confirmed')
+    await asOwner((tx) =>
+      orders.applyFulfilmentEvent(tx, orderId, 'start_picking', null, 'DOS-138 spec'),
+    )
+
+    const heldFor = async (): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(
+              sql`select coalesce(sum(qty), 0)::int as held from reservations
+                   where tenant_id = ${tenantId} and order_line_id = ${lineId} and state = 'pending'`,
+            )
+          ).rows as { held: number }[]
+        )[0]?.held ?? 0,
+      )
+    expect(await heldFor()).toBeGreaterThan(0)
+
+    // the rep may not cancel what the floor is already picking — the desk is in the loop or nobody is
+    const byRep = await call<{ message?: string }>(app, rep, 'POST', `/orders/${orderId}/cancel`, {
+      idempotencyKey: `dos138-rep-${run}`,
+      reason: 'shop phoned me',
+    })
+    expect(byRep.status, JSON.stringify(byRep.body)).toBe(409)
+    expect(byRep.body.message).toMatch(/only the desk can cancel it now/)
+    expect(await heldFor()).toBeGreaterThan(0)
+
+    // the manager does, and the hold goes with it
+    const byDesk = await call<{ item: Detail }>(app, manager, 'POST', `/orders/${orderId}/cancel`, {
+      idempotencyKey: `dos138-desk-${run}`,
+      reason: 'Shop shut for a wedding.',
+    })
+    expect(byDesk.status, JSON.stringify(byDesk.body)).toBe(200)
+    expect(byDesk.body.item.state).toBe('cancelled')
+    expect(byDesk.body.item.cancelReason).toBe('Shop shut for a wedding.')
+    expect(await heldFor()).toBe(0)
+    expect(byDesk.body.item.transitions.map((t) => [t.event, t.toState])).toContainEqual([
+      'cancel',
+      'cancelled',
+    ])
+    const events = (
+      await db.execute(
+        sql`select event_type from outbox_events
+             where tenant_id = ${tenantId} and aggregate_id = ${orderId} and event_type = 'OrderCancelled'`,
+      )
+    ).rows as { event_type: string }[]
+    expect(events).toHaveLength(1)
+
+    // a shop's reach did not widen with the desk's: it still cancels only its own draft or submitted order
+    const shopOrderId = uuidv7()
+    const shopDraft = await call<{ item: Detail }>(app, shop, 'POST', '/orders', {
+      idempotencyKey: `dos138-shop-create-${run}`,
+      id: shopOrderId,
+      retailerId: retailerA,
+      source: 'retailer_app',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    expect(shopDraft.status, JSON.stringify(shopDraft.body)).toBe(200)
+    await call(app, shop, 'POST', `/orders/${shopOrderId}/submit`, {
+      idempotencyKey: `dos138-shop-submit-${run}`,
+    })
+    await asOwner((tx) =>
+      orders.applyFulfilmentEvent(tx, shopOrderId, 'start_picking', null, 'DOS-138 spec'),
+    )
+    const byShop = await call<{ message?: string }>(
+      app,
+      shop,
+      'POST',
+      `/orders/${shopOrderId}/cancel`,
+      { idempotencyKey: `dos138-shop-${run}`, reason: 'changed my mind' },
+    )
+    // A shop cannot reach a picking order at all: its UPDATE policy on `sales_orders` stops at
+    // `submitted`, so the row cannot even be locked — answered as an id it cannot see, never 200.
+    expect([404, 409], JSON.stringify(byShop.body)).toContain(byShop.status)
+    const [shopState] = (
+      await db.execute(sql`select state::text as s from sales_orders where id = ${shopOrderId}`)
+    ).rows as { s: string }[]
+    expect(shopState?.s).toBe('picking')
+  })
+
   it('DOS-139: orders.cancel on a packed order is 409 "cancel the bill and the order goes with it" for every role, and writes nothing', async () => {
     const orders = app.get(OrdersService)
     const orderId = uuidv7()

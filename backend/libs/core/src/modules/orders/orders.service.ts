@@ -136,6 +136,15 @@ const FULFILMENT_EVENT_TYPE: Readonly<Record<FulfilmentEvent, OrderEventType>> =
 }
 
 /**
+ * What a downstream module runs when an order is cancelled, inside the cancelling transaction
+ * (QA DOS-138). It never returns anything: it either lands with the cancellation or neither does.
+ */
+export type OrderCancelledHook = (tx: Db, order: OrderRow, reason: string) => Promise<void>
+
+/** Who may cancel an order the floor has already started picking (founder, QA DOS-138): the desk. */
+const PICKING_CANCELLERS: readonly string[] = ['owner', 'manager']
+
+/**
  * The Sales Order aggregate (§4.3). Everything a device or the console does to an order goes through here:
  * lines are priced by the engine (`pricing-lines.ts`), states move only through `orderMachine`, every move
  * writes an `order_state_transitions` row and an `outbox_events` row, and stock is only ever touched through
@@ -148,6 +157,20 @@ export class OrdersService {
     private readonly quotes: QuoteService,
     private readonly inventory: InventoryService,
   ) {}
+
+  /**
+   * What a DOWNSTREAM module does when an order is cancelled, inside the same transaction (QA DOS-138).
+   * Warehouse registers `putBackOrder` from `PicklistsService.onModuleInit`, so a desk cancel mid-pick
+   * marks the picker's lines put-back in the one transaction that voids the hold — the DOS-172
+   * `registerRoadHold` pattern: downstream registers with upstream, and orders never names a picking
+   * sheet. A service that mounts orders WITHOUT warehouse (sales, retailer) registers nothing and
+   * cancels exactly as before; `picklists.start` reconciles such an order before it starts a wave.
+   */
+  private readonly cancelledHooks: OrderCancelledHook[] = []
+
+  registerCancelled(hook: OrderCancelledHook): void {
+    if (!this.cancelledHooks.includes(hook)) this.cancelledHooks.push(hook)
+  }
 
   // -------------------------------------------------------------------------------------------------------------
   // drafting
@@ -483,6 +506,16 @@ export class OrdersService {
             message: `order ${order.orderNo ?? order.id} is packed and billed; cancel the bill and the order goes with it`,
             data: { code: 'cancel_the_bill' },
           })
+        /*
+         * QA DOS-138 (founder): once the floor is picking, only the DESK cancels — the picker is told
+         * which lines to put back, and a rep phoning it in with no desk in the loop is not that. The
+         * matrix row stays `ORDER_PLACERS`; this is the same shape as the retailer's state limit above.
+         */
+        if (order.state === 'picking' && !PICKING_CANCELLERS.includes(ctx.actorRole))
+          throw new ORPCError('CONFLICT', {
+            message: `order ${order.orderNo ?? order.id} is being picked; only the desk can cancel it now`,
+            data: { code: 'desk_only' },
+          })
         return { item: await this.cancelInTx(tx, order, input.reason, input.deviceId ?? null) }
       }),
     )
@@ -517,6 +550,8 @@ export class OrdersService {
       .where(eq(salesOrders.id, order.id))
       .returning()
     const next = cancelled ?? order
+    // Downstream, in this same transaction: warehouse marks the picker's lines put-back (QA DOS-138).
+    for (const hook of this.cancelledHooks) await hook(tx, next, reason)
     await recordTransition(tx, next, order.state, to, 'cancel', deviceId, reason)
     await emitOrderEvent(tx, next, 'OrderCancelled')
     return this.detail(tx, next)

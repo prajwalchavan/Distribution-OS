@@ -2316,4 +2316,233 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(packed.length).toBeGreaterThanOrEqual(2)
     expect(packed.at(-1)?.id).toBe(olderId)
   })
+  // -----------------------------------------------------------------------------------------------------
+  // QA DOS-138 (founder): the desk may cancel an order the floor is already picking. The hold goes, the
+  // picker's lines are marked put-back in the SAME transaction (PicklistsService registers the hook with
+  // OrdersService at start-up), and the wave carries on with the orders that are still live.
+
+  /** The pick_lines rows of one order on one sheet, as the picker's device would pull them. */
+  const pickLineRows = async (
+    picklistId: string,
+    orderId: string,
+  ): Promise<{ id: string; cancelled_at: string | null; updated_at: string }[]> =>
+    (
+      await db.execute(
+        sql`select id, cancelled_at::text as cancelled_at, updated_at::text as updated_at
+              from pick_lines where picklist_id = ${picklistId} and order_id = ${orderId} order by id`,
+      )
+    ).rows as { id: string; cancelled_at: string | null; updated_at: string }[]
+
+  it('DOS-138: the desk cancels one order of a two-order wave mid-pick — its pick lines carry cancelled_at with updated_at bumped, the other order is untouched, a pick on a put-back line is refused online and from the offline queue, the remaining order still packs, and cancelling the last order closes the sheet', async () => {
+    const orderA = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-a')
+    const orderB = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-b')
+    const waved = await wave([orderA, orderB], 'dos138')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    expect(await orderState(orderA)).toBe('picking')
+
+    // one line of A is already off the rack when the shop phones
+    const sheet = started.body.item
+    const rowA = sheet.lines.find((l) => l.orderId === orderA)
+    const rowB = sheet.lines.find((l) => l.orderId === orderB)
+    expect(rowA, 'no pick line for order A').toBeDefined()
+    expect(rowB, 'no pick line for order B').toBeDefined()
+    const partly = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-pick-a-${run}`,
+        lines: [
+          {
+            id: rowA?.id ?? '',
+            orderLineId: rowA?.orderLineId ?? '',
+            lotId: rowA?.lotId ?? lotB,
+            pickedQtyPcs: 6,
+          },
+        ],
+      },
+    )
+    expect(partly.status, JSON.stringify(partly.body)).toBe(200)
+
+    const beforeB = await pickLineRows(waved.id, orderB)
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'POST',
+      `/orders/${orderA}/cancel`,
+      { idempotencyKey: `dos138-cancel-a-${run}`, reason: 'Shop shut for a wedding.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // A's lines are put back, with updated_at bumped so the picker's delta pull carries them…
+    const afterA = await pickLineRows(waved.id, orderA)
+    expect(afterA.length).toBeGreaterThan(0)
+    expect(afterA.every((r) => r.cancelled_at !== null)).toBe(true)
+    // …and B's are untouched, to the microsecond
+    expect(await pickLineRows(waved.id, orderB)).toEqual(beforeB)
+
+    // the sheet is still the picker's work, because B is still on it
+    const midway = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/picklists/${waved.id}`,
+    )
+    expect(midway.body.item.status).toBe('picking')
+
+    // a pick against a put-back line is refused online…
+    const refused = await call<{ message?: string }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-pick-putback-${run}`,
+        lines: [
+          {
+            id: rowA?.id ?? '',
+            orderLineId: rowA?.orderLineId ?? '',
+            lotId: rowA?.lotId ?? lotB,
+            pickedQtyPcs: 12,
+          },
+        ],
+      },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toMatch(/was cancelled; put the pieces back/)
+
+    // …and from the offline queue it is a 2xx sync_errors row, never a 4xx that would wedge the device
+    const queued = await call<{
+      accepted: number
+      rejected: { code: string; messageEn: string }[]
+    }>(app, packer, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `dos138-device-${run}`,
+      ops: [
+        {
+          opId: `dos138-op-${run}`,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: rowA?.id ?? '',
+          data: {
+            picklist_id: waved.id,
+            order_line_id: rowA?.orderLineId ?? '',
+            lot_id: rowA?.lotId ?? lotB,
+            picked_qty_pcs: 12,
+          },
+        },
+      ],
+    })
+    expect(queued.status, JSON.stringify(queued.body)).toBe(200)
+    expect(queued.body.rejected).toHaveLength(1)
+    expect(queued.body.rejected[0]?.code).toBe('pick_rejected')
+    expect(queued.body.rejected[0]?.messageEn).toMatch(/was cancelled; put the pieces back/)
+
+    // B is picked in full and packs; the sheet does not hang on the order that went away
+    const finished = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-pick-b-${run}`,
+        lines: [
+          {
+            id: rowB?.id ?? '',
+            orderLineId: rowB?.orderLineId ?? '',
+            lotId: rowB?.lotId ?? lotB,
+            pickedQtyPcs: rowB?.requestedQtyPcs ?? 12,
+          },
+        ],
+      },
+    )
+    expect(finished.status, JSON.stringify(finished.body)).toBe(200)
+    expect(finished.body.item.status).toBe('picked')
+    const packedB = await packOrder(orderB, 'dos138-b', packer, 1)
+    expect(packedB.res.status, JSON.stringify(packedB.res.body)).toBe(200)
+    const afterPack = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/picklists/${waved.id}`,
+    )
+    expect(afterPack.body.item.status).toBe('packed')
+  })
+
+  it('DOS-138: cancelling every order of a live wave closes the sheet, naming the reason', async () => {
+    const only = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-only')
+    const waved = await wave([only], 'dos138-only')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos138-only-start-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      owner,
+      'POST',
+      `/orders/${only}/cancel`,
+      { idempotencyKey: `dos138-only-cancel-${run}`, reason: 'Shop refused the load.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+
+    const sheet = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/picklists/${waved.id}`,
+    )
+    expect(sheet.body.item.status).toBe('cancelled')
+    const [row] = (
+      await db.execute(sql`select cancel_reason from picklists where id = ${waved.id}`)
+    ).rows as { cancel_reason: string | null }[]
+    expect(row?.cancel_reason).toMatch(/every order on it was cancelled: Shop refused the load\./)
+  })
+
+  it('DOS-138: an order cancelled from confirmed while it sits on an OPEN wave no longer breaks the wave — start marks its lines put-back, starts the others and answers 200', async () => {
+    const dead = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-dead')
+    const live = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-live')
+    const waved = await wave([dead, live], 'dos138-open')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+
+    // cancelled from `confirmed`, which has always been allowed — the wave is open, so nothing is
+    // put back by the hook's own filter until the sheet is started
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'POST',
+      `/orders/${dead}/cancel`,
+      { idempotencyKey: `dos138-open-cancel-${run}`, reason: 'Shop cancelled before picking.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-open-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+    expect(await orderState(live)).toBe('picking')
+    expect(await orderState(dead)).toBe('cancelled')
+    expect((await pickLineRows(waved.id, dead)).every((r) => r.cancelled_at !== null)).toBe(true)
+    expect((await pickLineRows(waved.id, live)).every((r) => r.cancelled_at === null)).toBe(true)
+  })
 })

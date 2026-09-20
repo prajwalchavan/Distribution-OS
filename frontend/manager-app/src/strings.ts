@@ -170,7 +170,11 @@ export const strings = {
   'm2.decideFirst':
     'Waiting on {what}. Approve or reject each one first; the last approval confirms the order.',
   'm2.nothingHeld': 'Nothing is held for this order',
-  'm2.alreadyClosed': 'This order is already cancelled or delivered',
+  'm2.alreadyClosed': 'This order is already cancelled or closed',
+  // DOS-138 / DOS-139: why Cancel is off, and what to do instead.
+  'm2.cancelViaBill': 'Cancel its bill; the order is cancelled with it',
+  'm2.afterDispatch': 'After dispatch the only correction is a credit note',
+  'm2.cancelPicking': 'The picker will be told which lines to put back.',
   'm2.schemeApplied': 'Scheme applied',
 
   // --- AI drafts ----------------------------------------------------------------------------------
