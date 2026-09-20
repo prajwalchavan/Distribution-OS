@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -15,6 +19,23 @@ import {
   toEditableRupees,
   type MoneyPadKey,
 } from './money.js'
+
+const here = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * Reads `native/money.tsx` and extracts one exported function's source text — the same
+ * read-the-source technique `parity.test.ts` uses for the Fabric prop-retention class of bug
+ * (DOS-158): there is no native render harness in this workspace (importing `native/index.js` in
+ * Node pulls in `react-native`, which does not resolve outside Metro), so a native-only defect is
+ * pinned by what the SOURCE does rather than by rendering it.
+ */
+function nativeMoneyBody(name: string): string {
+  const source = readFileSync(join(here, 'native', 'money.tsx'), 'utf8')
+  const start = source.indexOf(`export function ${name}(`)
+  expect(start, `${name} is not exported from native/money.tsx`).toBeGreaterThan(-1)
+  const next = source.indexOf('\nexport ', start + 1)
+  return source.slice(start, next === -1 ? undefined : next)
+}
 
 describe('formatMoney', () => {
   it('groups the Indian way and always shows two decimals', () => {
@@ -215,5 +236,36 @@ describe('the money pad enters rupees, paise only after "." (DOS-060)', () => {
     expect(paiseFromPadEntry(ceiling)).toBe(999_999_999_999)
     expect(String(paiseFromPadEntry(ceiling))).toHaveLength(12)
     expect(formatPadEntry(ceiling)).toBe('₹9,99,99,99,999.99')
+  })
+})
+
+/**
+ * DOS-069. An RN `Modal` always presents its content in a SEPARATE native window (a new
+ * `UIViewController` on iOS, a new `Dialog` window on Android), so the app's ONE `SafeAreaProvider`
+ * (mounted once in `ThemeProvider`, over the first window) never gets a native measurement for it —
+ * measured on the Pixel 7: the pad's title "Amount taken" painted straight under the status bar clock
+ * (a-17/a-18, "4:23" and the title overlapping). The fix nests a second `SafeAreaProvider` inside the
+ * Modal so it gets its OWN measurement for that window — never moving the pad into the DOS-164
+ * overlay stack, which presents inside the CURRENT window and is not this Modal's problem.
+ */
+describe('DOS-069: the RupeeInput pad Modal gets its own safe-area measurement', () => {
+  it("imports react-native-safe-area-context's SafeAreaProvider — a Modal is always its own native window", () => {
+    const source = readFileSync(join(here, 'native', 'money.tsx'), 'utf8')
+    expect(source).toMatch(/SafeAreaProvider.*from 'react-native-safe-area-context'/)
+  })
+
+  it("wraps the pad Modal's content in that provider, not the DOS-164 overlay stack", () => {
+    const body = nativeMoneyBody('RupeeInput')
+    const modalStart = body.indexOf('<Modal')
+    expect(modalStart, 'RupeeInput has no <Modal>').toBeGreaterThan(-1)
+    const modalRegion = body.slice(modalStart)
+    expect(modalRegion).toContain('<SafeAreaProvider>')
+    expect(modalRegion).not.toContain('OverlayStackProvider')
+  })
+
+  it('reads useSafeAreaInsets().top and applies it as paddingTop inside that provider', () => {
+    const source = readFileSync(join(here, 'native', 'money.tsx'), 'utf8')
+    expect(source).toContain('useSafeAreaInsets()')
+    expect(source).toMatch(/paddingTop:\s*insets\.top/)
   })
 })

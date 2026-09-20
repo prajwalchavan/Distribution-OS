@@ -6,8 +6,9 @@
  * `parseRupees` / `fromRupees`, so no float stands between the driver's thumb and the ledger. In
  * `count` mode the pad appends digits (1 2 3 4 -> 1234).
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Modal, Pressable, TextInput as RNTextInput, View } from 'react-native'
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import {
   formatMoney,
@@ -314,6 +315,22 @@ export function NumberPad({
   )
 }
 
+/*
+ * DOS-069: an RN `Modal` always presents its content in a SEPARATE native window (a new
+ * `UIViewController` on iOS, a new `Dialog` window on Android) — never the CURRENT one, which is what
+ * the DOS-164 overlay stack is for, and why the pad stays a plain `Modal` rather than moving in there.
+ * The app's one `SafeAreaProvider` (`native/ThemeProvider.tsx`) is mounted over the FIRST window and
+ * never gets a fresh native measurement for a second one, so `useSafeAreaInsets()` inside the Modal
+ * either throws (no provider in scope, RN < 0.79's error) or silently returns the first window's
+ * stale/zero insets — measured on the Pixel 7: the pad's title painted straight under the status bar
+ * clock ("Amount taken" and "4:23" overlapping, a-17/a-18). A second `SafeAreaProvider` HERE, scoped
+ * to just this Modal, gets its own native `onInsetsChange` for the Modal's own window.
+ */
+function PadInsets({ children }: { children: ReactNode }): React.JSX.Element {
+  const insets = useSafeAreaInsets()
+  return <View style={{ flex: 1, paddingTop: insets.top }}>{children}</View>
+}
+
 // ---------------------------------------------------------------------------
 // 6.3 RupeeInput — a pad on a field app, a decimal field on a desk one
 // ---------------------------------------------------------------------------
@@ -434,17 +451,21 @@ export function RupeeInput({
           setPadOpen(false)
         }}
       >
-        <NumberPad
-          label={label}
-          value={value}
-          onChange={onChange}
-          mode="money"
-          expected={expected ?? null}
-          expectedLabel={expectedLabel}
-          onDone={() => {
-            setPadOpen(false)
-          }}
-        />
+        <SafeAreaProvider>
+          <PadInsets>
+            <NumberPad
+              label={label}
+              value={value}
+              onChange={onChange}
+              mode="money"
+              expected={expected ?? null}
+              expectedLabel={expectedLabel}
+              onDone={() => {
+                setPadOpen(false)
+              }}
+            />
+          </PadInsets>
+        </SafeAreaProvider>
       </Modal>
     </View>
   )
