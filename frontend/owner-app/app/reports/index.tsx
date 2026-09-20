@@ -35,6 +35,7 @@ import {
   moneyColumn,
   textColumn,
 } from '../../src/lib/ui'
+import { turnsLabel } from '../../src/lib/turns'
 import {
   instantWithClock,
   grainFor,
@@ -360,14 +361,10 @@ export default function Growth(): React.JSX.Element {
                 {/*
                   `stockTurns` is a `ratio` on the wire like a fill rate, but it is a MULTIPLE, not a
                   percentage: 0.89 turns in a month is "0.9×", and printing it as "89%" says the wrong
-                  thing about the one number this chart exists for.
+                  thing about the one number this chart exists for. `turnsLabel` is why it is not one
+                  decimal either (DOS-018): a slow month's ticks are 0.05 apart.
                 */}
-                <TrendChart
-                  series={stockRates}
-                  legend
-                  height={160}
-                  formatValue={(value) => `${value.toFixed(1)}×`}
-                />
+                <TrendChart series={stockRates} legend height={160} formatValue={turnsLabel} />
               </Async>
             </Panel>
           </Half>

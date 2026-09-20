@@ -192,6 +192,7 @@ export const strings = {
   'o18.date': 'Date',
   'o18.vehicle': 'Vehicle',
   'o18.stops': 'Stops',
+  'o18.openingCash': 'Opening cash ₹',
   'o18.collected': 'Collected ₹',
   'o18.expenses': 'Expenses ₹',
   'o18.settle': 'Settle trip',

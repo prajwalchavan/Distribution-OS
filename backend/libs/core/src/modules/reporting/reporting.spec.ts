@@ -63,7 +63,9 @@ import {
   suppliers,
   tenantProductCosts,
   tenants,
+  trips,
   users,
+  vehicles,
   withTenant,
   type Db,
   type TenantContext,
@@ -120,6 +122,8 @@ describeDb('reporting (DATABASE_URL)', () => {
   const lotId = uuidv7()
   const schemeCompanyId = uuidv7()
   const schemeDistributorId = uuidv7()
+  /** An APPROVED BARGAIN on the same bill line: a price the rep argued for, not a scheme (DOS-018). */
+  const bargainRuleId = uuidv7()
   const supplierId = uuidv7()
   let godown = ''
 
@@ -538,6 +542,13 @@ describeDb('reporting (DATABASE_URL)', () => {
           version: 1,
           rewardKind: 'order_pct',
           amountPaise: 800,
+        },
+        // A line carries every rule the engine applied, and only some of them are schemes.
+        {
+          kind: 'bargain' as const,
+          ruleId: bargainRuleId,
+          version: 1,
+          amountPaise: 5_000,
         },
       ],
     })
@@ -1222,6 +1233,85 @@ describeDb('reporting (DATABASE_URL)', () => {
   })
 
   /**
+   * DOS-018: `applied_rules` is every rule the pricing engine applied to a line — an override, a
+   * SCHEME, an approved bargain, a manual price (`AppliedRule.kind`, @dos/domain) — and billing's
+   * aggregate returns the kind with each row. The register counted all four as scheme spend, so the
+   * owner's Profit screen listed "Scheme fd5079b5" with no brand against it: an id, because no scheme
+   * of that id exists, because the rule was never a scheme.
+   */
+  it('DOS-018: scheme spend counts scheme rules only, and never names a row by its id', async () => {
+    const spend = await call<{
+      items: { schemeId: string; schemeName: string; brandName: string | null }[]
+      totals: { amountPaise: number }
+    }>(app, accountant, 'GET', '/reporting/registers/scheme-spend', { from, to, limit: 50 })
+    expect(spend.status).toBe(200)
+    expect(spend.body.items.map((i) => i.schemeId).sort()).toEqual(
+      [schemeCompanyId, schemeDistributorId].sort(),
+    )
+    // The bargain on the same line is 5 000 paise; the two schemes are 1 200 + 800.
+    expect(spend.body.totals.amountPaise).toBe(2_000)
+    // Every row is a scheme this distributor can name, with the brand it belongs to.
+    expect(spend.body.items.every((i) => i.schemeName !== i.schemeId)).toBe(true)
+    expect(spend.body.items.every((i) => i.brandName !== null)).toBe(true)
+  })
+
+  /**
+   * DOS-018: the owner's tile reads "{n} trips active" and the live map draws the vans that are out.
+   * The summary counted `planned` and `loading` too, so tomorrow's round — a plan with no van on the
+   * road — was counted as active and the tile said two while the map showed one. The manager's tile
+   * (m1.trips) reads the same column and is cured by the same count.
+   */
+  it('DOS-018: the owner summary counts trips on the road, not a plan for tomorrow', async () => {
+    const tripTenantId = uuidv7()
+    const vanLocationId = uuidv7()
+    const vehicleId = uuidv7()
+    await db.insert(tenants).values({
+      id: tripTenantId,
+      slug: `rep-t-${run}`,
+      legalName: 'Trips on the road',
+      stateCode: '27',
+    })
+    await db.insert(locations).values({
+      id: vanLocationId,
+      tenantId: tripTenantId,
+      kind: 'vehicle',
+      name: `Tempo ${run}`,
+    })
+    await db.insert(vehicles).values({
+      id: vehicleId,
+      tenantId: tripTenantId,
+      regNo: `MH05 T ${run}`,
+      locationId: vanLocationId,
+    })
+    await db.insert(trips).values([
+      {
+        id: uuidv7(),
+        tenantId: tripTenantId,
+        tripNo: `TRIP-${run}-1`,
+        tripDate: today,
+        vehicleId,
+        state: 'active',
+        plannedStops: 10,
+      },
+      {
+        id: uuidv7(),
+        tenantId: tripTenantId,
+        tripNo: `TRIP-${run}-2`,
+        tripDate: plusDays(today, 1),
+        vehicleId,
+        state: 'planned',
+        plannedStops: 8,
+      },
+    ])
+
+    await rollupTenantDay(db, tripTenantId, today)
+
+    const summary = await db.execute(sql`
+      select active_trips from owner_summary where tenant_id = ${tripTenantId}`)
+    expect(Number(summary.rows[0]?.active_trips)).toBe(1)
+  })
+
+  /**
    * docs/plans/reporting.md §2 and §5.14: a filing shows what actually landed. Four of the five seeded
    * supplier bills are extracted / in review / disputed / cancelled and must contribute nothing.
    */
@@ -1353,6 +1443,24 @@ describeDb('reporting (DATABASE_URL)', () => {
     // The order's three lines, each picked at 80%: 96 + 192 + 48 of 120 + 240 + 60.
     expect(Number((once.day as { ordered_pcs: unknown }).ordered_pcs)).toBe(420)
     expect(Number((once.day as { picked_pcs: unknown }).picked_pcs)).toBe(336)
+  })
+
+  /**
+   * DOS-018, the same rule one layer down: the Profit screen's scheme-spend LINE comes from
+   * `daily_owner_stats`, which the rollup fills from `applied_rules` with the same
+   * everything-is-a-scheme reading the register had — a rule with no scheme behind it fell to the
+   * `company` side and made a brand look like it owed a claim for a price a rep argued for. The chart
+   * and the list on that one screen have to agree, and they have to agree about schemes.
+   */
+  it('DOS-018: the day rollup counts scheme rules only as scheme spend', async () => {
+    await rollupTenantDay(db, tenantId, to)
+    const owner = await db.execute(sql`
+      select scheme_spend_company_paise, scheme_spend_distributor_paise
+        from daily_owner_stats where tenant_id = ${tenantId} and day = ${to}`)
+    expect({
+      company: Number(owner.rows[0]?.scheme_spend_company_paise),
+      distributor: Number(owner.rows[0]?.scheme_spend_distributor_paise),
+    }).toEqual({ company: 1_200, distributor: 800 })
   })
 
   it("DOS-117: once a day carries its nightly ageing snapshot, today's rollup still takes dues from the live summary and re-running a past day keeps the closing figure it stored", async () => {

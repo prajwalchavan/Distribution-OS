@@ -290,7 +290,7 @@ export default function Orders(): React.JSX.Element {
                   family={STATE_FAMILY[order.state] ?? 'neutral'}
                 />
               </Field>
-              <Field label={t('o5.terms')}>{order.paymentTerms}</Field>
+              <Field label={t('o5.terms')}>{word(order.paymentTerms)}</Field>
               <Field label={t('o5.expected')}>{longDate(order.expectedDeliveryDate)}</Field>
 
               <Panel title={t('o5.lines', { count: order.lines.length })}>

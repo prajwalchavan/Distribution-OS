@@ -123,7 +123,8 @@ export async function seedDeliveryRoad(
     {
       id: DEMO_PLANNED_TRIP_ID,
       tenantId,
-      tripNo: 'TRIP-NEXT',
+      // The TRIP series' own shape, never a placeholder the owner and the crew would read (DOS-018).
+      tripNo: `TRIP-${isoDate(tomorrow).replace(/-/g, '')}-1`,
       tripDate: isoDate(tomorrow),
       vehicleId: tempo?.id ?? demoVehicleId('tempo'),
       driverId: people.delivery.ganesh.id,
