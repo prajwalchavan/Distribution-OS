@@ -247,13 +247,25 @@ describe('DOS-086 the hook runs the sweep on a mount, not only on an acceptance'
 
     expect({
       // The landing, while a screen with the hook happens to be mounted.
-      onAcceptance: /useAccepted\(\(\) => \{\s*void sweep\(\)/.test(hook),
+      onAcceptance: /useAccepted\(run\)/.test(hook),
       // And the catch-up, for everything that landed while none was.
-      onMount: /useEffect\(\(\) => \{[\s\S]*?void sweep\(\)[\s\S]*?\}, \[ready, sweep\]\)/.test(
-        hook,
-      ),
+      onMount: /useEffect\(\(\) => \{[\s\S]*?run\(\)[\s\S]*?\}, \[ready, run\]\)/.test(hook),
       // The outbox is unreadable before the store opens, so the sweep waits for `ready`.
       waitsForStore: /if \(!ready\) return/.test(hook),
-    }).toEqual({ onAcceptance: true, onMount: true, waitsForStore: true })
+      /*
+       * MERGE-REVIEW MINOR 1: a sweep asked for with `void` must name its own failure. The submit
+       * itself is already caught inside `submitLandedDrafts`, but `engine.outbox()` and
+       * `engine.getRow()` read the STORE, and a store being torn down or wiped under a sign-out
+       * (DOS-167) throws — unhandled, that is a red box on a phone over a call nobody asked for.
+       */
+      namesItsFailure: /void sweep\(\)\.catch\(/.test(hook),
+      bareVoidSweep: /void sweep\(\)(?!\.catch)/.test(hook),
+    }).toEqual({
+      onAcceptance: true,
+      onMount: true,
+      waitsForStore: true,
+      namesItsFailure: true,
+      bareVoidSweep: false,
+    })
   })
 })
