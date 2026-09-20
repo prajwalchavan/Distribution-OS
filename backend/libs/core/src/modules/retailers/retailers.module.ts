@@ -30,10 +30,21 @@ export class RetailersModule implements OnModuleInit {
       select a.beat_id from beat_assignments a
        where a.tenant_id = (select current_setting('app.tenant_id', true)) and a.user_id = ${userId}
          and a.valid_from <= current_date and (a.valid_to is null or a.valid_to >= current_date))`
+    /*
+     * THE CREW'S COPY CARRIES NO CREDIT TERMS (QA DOS-072). A driver's device held the shop's limit,
+     * its bill count, its days and its tier — docs/23 §5.3 flagged it before the walk found it — and
+     * "no screen draws it" is not the same as "it is not on the phone". What the door actually needs
+     * is `credit_mode` (may this shop take goods on credit at all) and the dues, which come from
+     * `retailer_outstanding_summary`; those stay. The rep keeps the block: it quotes and warns
+     * against the limit offline. The manifest is built from this same `omit`, so a device that held
+     * the columns re-snapshots on the new schema hash instead of keeping a stale copy.
+     */
+    const CREDIT_TERMS = ['credit_limit_paise', 'credit_limit_bills', 'credit_days', 'tier']
     this.registry.registerPull(
       'retailers',
       tablePull(retailers, {
         extra: (r) => (r.ctx.actorRole === 'salesperson' ? ownBeats(r.ctx.actorId) : undefined),
+        omit: (role) => (role === 'delivery' ? CREDIT_TERMS : []),
       }),
     )
     this.registry.registerPull('beats', tablePull(beats))

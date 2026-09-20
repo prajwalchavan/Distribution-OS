@@ -507,8 +507,12 @@ None required. D8 shows totals only; D11 may show own on-time rate (`deliveryPer
   `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`. The order writes (`orders.create/submit` for
   non-van orders): closed by DOS-115 (2026-09-13).
   Recommendation: drop `delivery` from `outstanding.list`; move retailer/beat/visit writes off STAFF.
-- `retailers.get` returns the staff shape (code, tier, credit limit, credit days, mode) to the crew; the ROLE_GROUPS comment says
-  credit terms are back-office. The crew needs `creditMode` and dues, not the limit. Field-level narrowing to consider.
+- CLOSED (DOS-072, batch 2): `retailers.get/list` answer the delivery role the PUBLIC shop — name, owner, phone, alt phone,
+  address, GST, payment terms — and no credit block, code, identity or onboarded-by (`toView`, shared with DOS-052's warehouse
+  half). The DEVICE copy is narrowed with it: the `retailers` pull omits `credit_limit_paise`, `credit_limit_bills`,
+  `credit_days` and `tier` for this role and KEEPS `credit_mode`, which with `retailer_outstanding_summary` is the money the door
+  needs. The manifest is built from the same omit, so the schema hash changes and a device that held those columns re-snapshots.
+  The rep's copy is untouched: it quotes and warns against the limit offline.
 
 ### 5.4 Offline (must work before the pilot)
 
