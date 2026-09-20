@@ -193,6 +193,7 @@ describe('DOS-062 where the money at this door goes', () => {
           { id: 'inv-0099', invoiceNo: 'INV/0099', state: 'paid', openPaise: 0 },
           { id: 'inv-0825', invoiceNo: 'INV/0825', state: 'issued', openPaise: 785_600 },
         ],
+        doorBills: [JUNE, TODAY],
         unallocatedPaise: 0,
         money,
       }),
@@ -202,6 +203,7 @@ describe('DOS-062 where the money at this door goes', () => {
       appliedLines(t, {
         allocations: [],
         invoices: [],
+        doorBills: [],
         unallocatedPaise: 50_000,
         money,
       }),
@@ -272,6 +274,36 @@ describe('DOS-062 review — a tag is capped at what the office says the bill st
     expect(billsThatTakeMoney([{ ...PART_PAID, openPaise: 0 }])).toEqual([])
     // Before the office answers, its face value is the only figure the device has.
     expect(owedHerePaise([UNKNOWN])).toBe(118_000)
+  })
+
+  it('DOS-062 a FIFO reply that touched only INV/0099 still names INV/0825 as open', () => {
+    // The finding's own acceptance sentence: untagged cash of ₹7,856 at Vaibhav's door, the office
+    // pays June's bill to the paisa, and the crew must be able to say "this paid INV/0099 of 26 Jun;
+    // today's bill stays open". `invoices` is `settled` — THE BILLS THE RECEIPT TOUCHED — so INV/0825
+    // is not in the reply at all, and a screen that reads only the reply says nothing about the bill
+    // in the shopkeeper's hand. The bills riding on this door are what names it.
+    expect(
+      appliedLines(t, {
+        allocations: [{ invoiceId: 'inv-0099', amountPaise: 785_600 }],
+        invoices: [{ id: 'inv-0099', invoiceNo: 'INV/0099', state: 'paid', openPaise: 0 }],
+        doorBills: [JUNE, TODAY],
+        unallocatedPaise: 0,
+        money,
+      }),
+    ).toEqual(['This paid INV/0099 ₹7856.00', 'INV/0825 is still open — ₹7856.00'])
+    // A bill the office already had as paid is not owed at this door and is not read out as open,
+    // and a door bill the reply DID touch is named once, from the reply's newer figure.
+    expect(
+      appliedLines(t, {
+        allocations: [{ invoiceId: 'inv-part', amountPaise: 6_000 }],
+        invoices: [
+          { id: 'inv-part', invoiceNo: 'Tc803a3a5/1', state: 'partially_paid', openPaise: 10_000 },
+        ],
+        doorBills: [PAID, PART_PAID],
+        unallocatedPaise: 0,
+        money,
+      }),
+    ).toEqual(['This paid Tc803a3a5/1 ₹60.00', 'Tc803a3a5/1 is still open — ₹100.00'])
   })
 
   it('DOS-062 an office that refuses the split tells the driver what to do, not raw paise', () => {
