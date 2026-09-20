@@ -110,6 +110,8 @@ export const salesOrders = pgTable(
   (t) => [
     /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
     index('sales_orders_updated_idx').on(t.tenantId, t.updatedAt),
+    /** The desk's order list, newest first by server time with an (created_at, id) keyset (QA DOS-009). */
+    index('sales_orders_created_idx').on(t.tenantId, t.createdAt, t.id),
     index('sales_orders_retailer_idx').on(t.tenantId, t.retailerId, t.createdAt),
     index('sales_orders_state_idx').on(t.tenantId, t.state, t.createdAt),
     index('sales_orders_salesperson_idx').on(t.tenantId, t.salespersonId, t.createdAt),

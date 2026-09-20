@@ -881,13 +881,25 @@ export class BillingService {
               ilike(invoices.buyerName, `%${input.q}%`),
             )
           : undefined,
-        input.cursor ? lt(invoices.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor bill's own (invoice_date, id), read inside this tenant's transaction with
+         * its own tenant fence, so no other distributor's row can anchor a page and an unknown cursor
+         * matches nothing (DOS-009, the DOS-023/DOS-133 convention).
+         */
+        input.cursor
+          ? sql`(${invoices.invoiceDate}, ${invoices.id}) < (select c.invoice_date, c.id from invoices c where c.tenant_id = ${tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(invoices)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(invoices.id))
+        /*
+         * Newest first by INVOICE DATE (DOS-009), the same column `from`/`to` filters on — a bill register
+         * is by bill date. Ids are minted by the client and an imported brand bill is minted long after
+         * the date it carries, so id order is not age.
+         */
+        .orderBy(desc(invoices.invoiceDate), desc(invoices.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const due = await this.outstandingByInvoice(tx, page)

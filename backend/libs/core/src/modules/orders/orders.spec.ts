@@ -2,7 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { ORPCError } from '@orpc/server'
 import { permissionFor, SYNC_REJECTION_CODES, type Quote } from '@dos/contracts'
-import { uuidv7 } from '@dos/domain'
+import { businessDate, uuidv7 } from '@dos/domain'
 import {
   approvals,
   auditLog,
@@ -2310,6 +2310,116 @@ describeDb('orders (DATABASE_URL)', () => {
       // none of those reads wrote an order or a line
       expect(await counts()).toEqual(before)
     })
+  })
+
+  it("DOS-009: orders.list is newest first by creation time — an order back-dated by a day with an id that sorts higher lands below today's orders; with limit=1 the cursor walks every order of the tenant exactly once in (created_at, id) order, with and without the from/to window; a rep still sees only its own orders and a shop only its own", async () => {
+    interface OrderPage {
+      items: { id: string; createdAt: string; salespersonId: string | null; retailerId: string }[]
+      nextCursor: string | null
+    }
+    /*
+     * An order shaped like the demo seed's and like an import: its id sorts above every real UUIDv7 (a
+     * seeded id is a hash with no time in it) but it was created a day ago. Written straight to the table
+     * on the owner pool, which bypasses RLS — the DOS-023/DOS-098 precedent.
+     */
+    const olderId = `ffffffff-ffff-7fff-bfff-0009${run}`
+    const yesterday = new Date(Date.now() - 86_400_000)
+    await db.insert(salesOrders).values({
+      id: olderId,
+      tenantId,
+      orderNo: `SO-D009-${run}`,
+      retailerId: retailerA,
+      state: 'delivered',
+      source: 'salesperson',
+      createdBy: repId,
+      salespersonId: repId,
+      paymentTerms: 'ON',
+      submittedAt: yesterday,
+      createdAt: yesterday,
+    })
+
+    // today's newest order, drafted now, so the lowest id of the three newest but the youngest row
+    const newest = uuidv7()
+    const drafted = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos009-create-${run}`,
+      id: newest,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'piece' }],
+    })
+    expect(drafted.status, JSON.stringify(drafted.body)).toBe(200)
+
+    const page = (actor: Actor, query: Record<string, unknown>) =>
+      call<OrderPage>(app, actor, 'GET', '/orders', query)
+
+    // (a) the back-dated order with the higher id is NOT the top row; today's order is
+    const top = await page(owner, { limit: 1 })
+    expect(top.status, JSON.stringify(top.body)).toBe(200)
+    expect(top.body.items[0]?.id).toBe(newest)
+
+    /** Follows `nextCursor` to the end and returns every order in the order the pages gave them. */
+    const walk = async (
+      actor: Actor,
+      query: Record<string, unknown>,
+      limit: number,
+    ): Promise<OrderPage['items']> => {
+      const seen: OrderPage['items'] = []
+      let cursor: string | undefined
+      for (let pages = 0; pages < 2000; pages += 1) {
+        const got = await page(actor, { ...query, limit, cursor })
+        expect(got.status, JSON.stringify(got.body)).toBe(200)
+        seen.push(...got.body.items)
+        if (got.body.nextCursor === null) return seen
+        cursor = got.body.nextCursor
+      }
+      throw new Error('orders.list never ended its cursor walk')
+    }
+    const expectEachOnceNewestFirst = (items: OrderPage['items']): void => {
+      const ids = items.map((i) => i.id)
+      expect(new Set(ids).size, 'no order comes back twice').toBe(ids.length)
+      items.forEach((item, i) => {
+        const before = items[i - 1]
+        if (before !== undefined)
+          expect(Date.parse(item.createdAt), `${item.id} after ${before.id}`).toBeLessThanOrEqual(
+            Date.parse(before.createdAt),
+          )
+      })
+    }
+    const countOf = async (): Promise<number> =>
+      (
+        (
+          await db.execute(
+            sql`select count(*)::int as n from sales_orders where tenant_id = ${tenantId}`,
+          )
+        ).rows as { n: number }[]
+      )[0]?.n ?? 0
+
+    // (b) one row at a time, the whole tenant, each order exactly once and newest first
+    const all = await walk(owner, {}, 1)
+    expectEachOnceNewestFirst(all)
+    expect(all).toHaveLength(await countOf())
+    expect(all[0]?.id).toBe(newest)
+    // the back-dated row sits below every order made today, whatever its id says
+    const olderAt = all.findIndex((i) => i.id === olderId)
+    expect(olderAt).toBeGreaterThan(0)
+    expect(Date.parse(all[olderAt - 1]?.createdAt ?? '')).toBeGreaterThanOrEqual(
+      Date.parse(yesterday.toISOString()),
+    )
+
+    // (c) the same walk inside the from/to window the desk uses: the window filters the same column
+    const today = businessDate().date
+    const windowed = await walk(owner, { from: today, to: today }, 2)
+    expectEachOnceNewestFirst(windowed)
+    expect(windowed.some((i) => i.id === newest)).toBe(true)
+    expect(windowed.some((i) => i.id === olderId)).toBe(false)
+
+    // (d) the reach rules are untouched by the new order: a rep sees only its own, a shop only its own
+    const repSees = await walk(rep, {}, 3)
+    expectEachOnceNewestFirst(repSees)
+    expect(repSees.every((i) => i.salespersonId === repId)).toBe(true)
+    const shopSees = await walk(shop, {}, 3)
+    expectEachOnceNewestFirst(shopSees)
+    expect(shopSees.every((i) => i.retailerId === retailerA)).toBe(true)
   })
 
   // -----------------------------------------------------------------------------------------------------

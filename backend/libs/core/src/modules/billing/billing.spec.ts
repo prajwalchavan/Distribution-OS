@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
-import { uuidv7 } from '@dos/domain'
+import { businessDate, uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
   createDb,
@@ -1553,6 +1553,116 @@ describeDb('billing (DATABASE_URL)', () => {
     })
     expect(bill).toMatchObject({ discountPaise: 0, taxablePaise: 21_600, totalPaise: 24_200 })
     expect(bill.totalPaise).toBe(submitted.body.item.totalPaise)
+  })
+
+  it('DOS-009: invoices.list is newest first by invoice_date then id — a bill dated yesterday whose id sorts higher lands below today’s bills; two bills on one date come back higher id first; the cursor walks each once with limit=1; from/to still filter on invoice_date; openOnly and q are unchanged', async () => {
+    interface BillPage {
+      items: { id: string; invoiceDate: string; state: string; invoiceNo: string | null }[]
+      nextCursor: string | null
+    }
+    const today = businessDate().date
+    const yesterday = businessDate(new Date(Date.now() - 86_400_000)).date
+
+    /** A brand bill carries its own date and its own number, so the register can be dated by hand. */
+    const importBill = async (id: string, tag: string, invoiceDate: string) => {
+      const res = await call<{ item: Detail }>(app, accountant, 'POST', '/invoices/brand-dms', {
+        idempotencyKey: `dos009-${tag}-${run}`,
+        id,
+        retailerId: shopMh,
+        externalInvoiceNo: `D9/${tag}/${run}`,
+        invoiceDate,
+        placeOfSupplyState: '27',
+        roundOffPaise: 0,
+        lines: [
+          {
+            id: uuidv7(),
+            variantId: variantA,
+            description: 'Wafers 45 g',
+            hsnCode: hsn,
+            qtyPcs: 24,
+            ratePaise: 900,
+            gstBps: 1_200,
+          },
+        ],
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+      return id
+    }
+
+    // A bill shaped like the demo seed's and like a FieldAssist import: its id sorts above every real
+    // UUIDv7, but it is yesterday's bill. Version 7 and variant b keep it a valid uuid.
+    const olderId = await importBill(`ffffffff-ffff-7fff-bfff-0009${run}`, 'older', yesterday)
+    // two bills on ONE date: the second is minted later, so its id is the higher of the two
+    const todayFirst = await importBill(uuidv7(), 'today-a', today)
+    const todayLast = await importBill(uuidv7(), 'today-b', today)
+    expect(todayLast > todayFirst).toBe(true)
+
+    const page = (query: Record<string, unknown>) =>
+      call<BillPage>(app, manager, 'GET', '/invoices', query)
+
+    // (a) the top row is today's later bill, not the higher-id bill from yesterday
+    const top = await page({ limit: 1 })
+    expect(top.status, JSON.stringify(top.body)).toBe(200)
+    expect(top.body.items[0]?.id).toBe(todayLast)
+
+    /** Follows `nextCursor` to the end and returns every bill in the order the pages gave them. */
+    const walk = async (
+      query: Record<string, unknown>,
+      limit: number,
+    ): Promise<BillPage['items']> => {
+      const seen: BillPage['items'] = []
+      let cursor: string | undefined
+      for (let pages = 0; pages < 2000; pages += 1) {
+        const got = await page({ ...query, limit, cursor })
+        expect(got.status, JSON.stringify(got.body)).toBe(200)
+        seen.push(...got.body.items)
+        if (got.body.nextCursor === null) return seen
+        cursor = got.body.nextCursor
+      }
+      throw new Error('invoices.list never ended its cursor walk')
+    }
+    const expectEachOnceNewestFirst = (items: BillPage['items']): void => {
+      const ids = items.map((i) => i.id)
+      expect(new Set(ids).size, 'no bill comes back twice').toBe(ids.length)
+      items.forEach((item, i) => {
+        const before = items[i - 1]
+        if (before !== undefined)
+          expect(
+            item.invoiceDate <= before.invoiceDate,
+            `${item.invoiceNo ?? item.id} (${item.invoiceDate}) after ${before.invoiceNo ?? before.id} (${before.invoiceDate})`,
+          ).toBe(true)
+      })
+    }
+    const countOf = async (): Promise<number> =>
+      (
+        (
+          await db.execute(
+            sql`select count(*)::int as n from invoices where tenant_id = ${tenantId}`,
+          )
+        ).rows as { n: number }[]
+      )[0]?.n ?? 0
+
+    const all = await walk({}, 1)
+    expectEachOnceNewestFirst(all)
+    expect(all).toHaveLength(await countOf())
+    // on one date the higher id comes first, and yesterday's bill sits below both of today's
+    const at = (id: string) => all.findIndex((i) => i.id === id)
+    expect(at(todayLast)).toBeLessThan(at(todayFirst))
+    expect(at(todayFirst)).toBeLessThan(at(olderId))
+
+    // (b) the window still filters on invoice_date, and the order inside it is the same
+    const todayOnly = await walk({ from: today, to: today }, 2)
+    expectEachOnceNewestFirst(todayOnly)
+    expect(todayOnly.every((i) => i.invoiceDate === today)).toBe(true)
+    expect(todayOnly.some((i) => i.id === olderId)).toBe(false)
+
+    // (c) openOnly and q are untouched by the new order
+    const open = await walk({ openOnly: true }, 2)
+    expectEachOnceNewestFirst(open)
+    expect(open.every((i) => i.state === 'issued' || i.state === 'partially_paid')).toBe(true)
+    const searched = await page({ q: `D9/older/${run}`, limit: 50 })
+    expect(searched.status).toBe(200)
+    expect(searched.body.items.map((i) => i.id)).toEqual([olderId])
   })
 
   // ---------------------------------------------------------------------------------------------------------------
