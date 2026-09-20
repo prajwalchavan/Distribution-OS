@@ -124,10 +124,15 @@ export default function Home(): React.JSX.Element {
   )
 
   /**
-   * DOS-102: every distributor's dues, last bill and van, in one call. `auth.*` is routed to the auth
-   * service by the client, so this does not need the open tenant's own service.
+   * DOS-102: every distributor's dues, last bill and van, in one call.
+   *
+   * `api.auth`, NOT `api.api.auth`. The client builds two links: `api.api` over the full contract at
+   * `apiUrl` (this app's own service, :3006) and `api.auth` over the auth contract at `authUrl`
+   * (:3000). retailer-service serves no `auth` route at all, so the tenant-client spelling — which
+   * typechecks, because the full contract re-exports `auth` — 404s and leaves this panel quoting
+   * ₹0.00 to a shop that owes lakhs (`src/lib/dos-102-summary-service.guard.test.ts`).
    */
-  const across = useQuery(['memberships', 'summary'], () => api.api.auth.memberships.summary(), {
+  const across = useQuery(['memberships', 'summary'], () => api.auth.memberships.summary(), {
     enabled: signedIn,
     staleTime: 60_000,
   })
