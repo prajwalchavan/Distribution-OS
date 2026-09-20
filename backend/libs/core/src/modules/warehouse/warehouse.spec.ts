@@ -2839,4 +2839,101 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(finished.status, JSON.stringify(finished.body)).toBe(200)
     expect(finished.body.item.status).toBe('picked')
   })
+
+  /**
+   * The same reconcile, but the wave carried ONE order — the common case, and the one that turned a
+   * sheet into a zombie (merge review, blocker 1).
+   *
+   * `putBackOrder` marks the lines and, finding no live line left, closes the sheet as `cancelled`
+   * with the reason. `start` used to carry on from its own pre-read `status === 'open'` row and write
+   * `picking` over that closure through `updatePicklist`, which has no machine: the sheet then read
+   * `picking` AND carried `cancelled_at`, with zero live lines. `cancel` refuses it (open only) and
+   * `refreshCompletion` can never mark it (no totals), so nothing could ever close it again and W5
+   * showed "0 of 0" with Confirm live. The decisive readings here are the sheet's own status after
+   * `start` and the ABSENCE of a `PicklistStarted` row: a sheet nobody can pick was never started.
+   */
+  it('DOS-138 (review blocker 1): the only order on an OPEN wave is cancelled from the sales app — start closes the sheet instead of reviving it, writes no PicklistStarted, and a second start is a 409', async () => {
+    type ClosedPicklist = PicklistBody & { cancelledAt: string | null; cancelReason: string | null }
+    const only = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-solo')
+    const waved = await wave([only], 'dos138-solo')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    expect(waved.res.body.item.status).toBe('open')
+
+    // Cancelled from a container with no put-back hook, exactly as the rep's own service would.
+    const salesApp = await bootTestApp([OrdersModule])
+    try {
+      expect(
+        () => salesApp.get(PicklistsService, { strict: false }),
+        'the sales-shaped app resolved PicklistsService — it mounted warehouse, and the hook would do the marking',
+      ).toThrow()
+      const cancelled = await call<{ item: { state: string } }>(
+        salesApp,
+        rep,
+        'POST',
+        `/orders/${only}/cancel`,
+        { idempotencyKey: `dos138-solo-cancel-${run}`, reason: 'Shop closed for the festival.' },
+      )
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      expect(cancelled.body.item.state).toBe('cancelled')
+    } finally {
+      await salesApp.get<{ end: () => Promise<void> } | null>(PG_POOL)?.end()
+      await salesApp.close()
+    }
+
+    const beforeStart = await pickLineRows(waved.id, only)
+    expect(beforeStart.length).toBeGreaterThan(0)
+    expect(
+      beforeStart.every((r) => r.cancelled_at === null),
+      'a hook marked the lines — this case is proving the wrong mechanism',
+    ).toBe(true)
+
+    const started = await call<{ item: ClosedPicklist }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-solo-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    expect(
+      started.body.item.status,
+      'start wrote picking over a sheet the reconcile had just cancelled — the sheet is a zombie',
+    ).toBe('cancelled')
+    expect(started.body.item.cancelledAt).not.toBeNull()
+    expect(started.body.item.cancelReason).toContain('the order was cancelled before picking started')
+
+    // The put-back itself committed: every line carries cancelled_at, and the database agrees with
+    // the reply about the closure.
+    const afterStart = await pickLineRows(waved.id, only)
+    expect(afterStart.map((r) => r.id)).toEqual(beforeStart.map((r) => r.id))
+    expect(
+      afterStart.every((r) => r.cancelled_at !== null),
+      'the reconcile was rolled back: the lines are still asking for goods nobody ordered',
+    ).toBe(true)
+    const [row] = (
+      await db.execute(
+        sql`select status, cancelled_at::text as cancelled_at, cancel_reason
+              from picklists where id = ${waved.id}`,
+      )
+    ).rows as { status: string; cancelled_at: string | null; cancel_reason: string | null }[]
+    expect(row?.status).toBe('cancelled')
+    expect(row?.cancelled_at).not.toBeNull()
+
+    // Nothing was started, so no picker and no downstream consumer was ever told one was.
+    expect(
+      await outboxTypes(waved.id),
+      'PicklistStarted was written for a sheet that is cancelled',
+    ).toEqual([])
+
+    // And the sheet stays closed: a second tap of Start is the ordinary refusal, not a revival.
+    const again = await call<{ message?: string }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-solo-start2-${run}` },
+    )
+    expect(again.status, JSON.stringify(again.body)).toBe(409)
+    expect(again.body.message).toContain('is cancelled')
+  })
 })

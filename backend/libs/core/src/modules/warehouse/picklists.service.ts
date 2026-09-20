@@ -431,6 +431,19 @@ export class PicklistsService implements OnModuleInit {
         )
         for (const orderId of cancelled)
           await this.putBackOrder(tx, orderId, 'the order was cancelled before picking started')
+        /*
+         * …and if that left the sheet with nothing live on it, `putBackOrder` has just CLOSED the
+         * sheet (:161-167). `sheet` is the row read before the loop, so carrying on from its `open`
+         * would write `picking` over the closure through `updatePicklist`, which has no machine: the
+         * sheet would read `picking` while carrying `cancelled_at`, with no line left to pick, no
+         * `cancel` (open only) and no `refreshCompletion` (no totals) able to close it again — a
+         * permanent zombie showing "0 of 0" with Confirm live (merge review, blocker 1). A 409 here
+         * would roll the put-back marking back with it, so the answer is the sheet as it now is: the
+         * closure commits, nothing is started, and the picker's screen reads Cancelled with the reason.
+         */
+        const afterPutBack = await this.findPicklist(tx, sheet.id)
+        if (afterPutBack.status === 'cancelled')
+          return { item: await picklistDetail(tx, afterPutBack, this.orders) }
         for (const orderId of sheet.orderIds) {
           if (cancelled.has(orderId)) continue
           await this.orders.applyFulfilmentEvent(tx, orderId, 'start_picking', deviceId, null)
