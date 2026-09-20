@@ -28,6 +28,12 @@ Absolute 0 BROKEN survives as a **main-health** gate the integrator runs once af
 1. **Money + DOS-172 platform walks** — Fable's merge-gate ruling items 2–7 (`QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`). Device-bound: they queue behind the DOS-167 walks. DOS-168/169/170 and DOS-172 are **MERGED, PROOF OWED, still OPEN** until these pass.
 2. **Lean wave 3** — the last 16 groups, 84 items, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat. Nothing is held back: all sixteen `defer` lists are empty. Waits only for the device queue above to clear.
 3. **The suspects still unprobed** — S-141, S-142, S-144, S-145, S-149, S-150, S-153, S-154, S-155. S-153 (the seed builds 44 of 48 trip settlements from the wrong table) and S-155 (a turbo cache hit reports the cross-app guards green without running them) are the two that make other tests untrustworthy; do those first.
+3b. **The four product answers of 2026-09-20 (docs/22 §8) — a lane of their own, after wave 3.** Batch 1 fixed only the mechanical half of each; these are the product clauses the founder has now decided:
+   - **DOS-075** — `priceOrder()` counts a line under an exclusive scheme toward a threshold ("bills over ₹X") while still giving it nothing from that scheme. `backend/libs/domain/src/pricing/schemes.ts` + its specs; every order/invoice line's `applied_rules` must still read true.
+   - **DOS-023** — every list in every app orders by server time, newest first, record id only as a tie-break. Batch 1 (`bdd6055`) did picking sheets alone; this is the convention across all seven apps and the contracts behind them.
+   - **DOS-043** — a trip may depart before its planned date; the trip carries the planned date and "departed early" beside it. Batch 1 (`d20a584`) settled who may depart, not when.
+   - **DOS-057 / DOS-099** — NOTHING TO BUILD. A permanent public link to a shop's papers is refused; phone sharing stays. Recorded so nobody proposes it again.
+
 4. **docs as-built** — docs/22 rows for what merged today, docs/23 §10 #6, docs/27 §14, `pnpm docs:readme` per merge.
 5. **Full A.12 regression** — 7 apps × browser + Android, iOS sanity. The largest device block.
 6. **Phase 2** — the cross-role chain.
