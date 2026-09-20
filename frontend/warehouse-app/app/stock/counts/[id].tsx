@@ -1,10 +1,11 @@
 /**
  * W8 — walking one cycle count, lot by lot, blind (docs/23 §4.1).
  *
- * `CycleCountLineSchema` carries `expectedPcs`, and this screen deliberately does not draw it while
- * counting: a count against a number on the same screen is a transcription. The expected figure is
- * the SERVER's business — it froze it when the count was opened, and it works out the variance when
- * the desk posts it.
+ * `CycleCountLineSchema` carries `expectedPcs`, and this screen never draws it: a count against a
+ * number on the same screen is a transcription. Since QA DOS-045 the server does not even send it to
+ * this app — `expectedPcs` and `variancePcs` are null for the godown's token and carry figures only
+ * for a desk role. The expected figure is the SERVER's business: it is the on-hand at the moment the
+ * line was counted, and the desk sees the variance when it posts.
  *
  * One `<NumberPad>` per lot, saved in one `cycleCounts.count` call. Posting the differences into the
  * ledger is BACK_OFFICE (`permissions.ts`), and the screen says so rather than drawing a 403.

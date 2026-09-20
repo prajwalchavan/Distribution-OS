@@ -375,7 +375,7 @@ describeDb('inventory (DATABASE_URL)', () => {
     ).toBe(403)
   })
 
-  it('runs a cycle count: open freezes the expectation, count is blind, post writes the differences once', async () => {
+  it('runs a cycle count: open snapshots the expectation, the counter is told neither figure, post writes the differences once', async () => {
     // docs/23 §8.18 — STOCK_KEEPERS open and count, the owner or a manager posts; the accountant reads.
     const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
     const accountant: Actor = { tenantId, actorId: ownerId, role: 'accountant' }
@@ -400,13 +400,17 @@ describeDb('inventory (DATABASE_URL)', () => {
     })
     expect(opened.status).toBe(200)
     expect(opened.body.item.status).toBe('open')
+    // QA DOS-045: the godown reads no target; the desk reads the open-time snapshot.
     expect(opened.body.item.lines).toEqual([
-      expect.objectContaining({
-        lotId: lotLate,
-        expectedPcs: Number(before.on_hand),
-        countedPcs: null,
-      }),
+      expect.objectContaining({ lotId: lotLate, expectedPcs: null, countedPcs: null }),
     ])
+    const deskOpen = await call<{ item: { lines: { expectedPcs: number | null }[] } }>(
+      app,
+      owner,
+      'GET',
+      `/inventory/cycle-counts/${id}`,
+    )
+    expect(deskOpen.body.item.lines[0]?.expectedPcs).toBe(Number(before.on_hand))
     // posting before counting is refused; the rep may not open a count at all
     expect(
       (
@@ -434,7 +438,14 @@ describeDb('inventory (DATABASE_URL)', () => {
     })
     expect(counted.status).toBe(200)
     expect(counted.body.item.status).toBe('counted')
-    expect(counted.body.item.lines[0]?.variancePcs).toBe(-2)
+    expect(counted.body.item.lines[0]?.variancePcs).toBeNull()
+    const deskCounted = await call<{ item: { lines: { variancePcs: number | null }[] } }>(
+      app,
+      owner,
+      'GET',
+      `/inventory/cycle-counts/${id}`,
+    )
+    expect(deskCounted.body.item.lines[0]?.variancePcs).toBe(-2)
     // the godown may not post the difference into the books; the desk does, once
     expect(
       (
@@ -916,6 +927,205 @@ describeDb('inventory (DATABASE_URL)', () => {
       [vanId]: 3,
       [shopFloorId]: 2,
     })
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-045 — the count is measured against the stock at COUNT time, and the counter is never told the figure
+
+  /** A lot of its own with `pcs` pieces in the godown, so no other expectation in this file moves. */
+  const freshLot = async (label: string, pcs: number): Promise<string> => {
+    const lotId = uuidv7()
+    const lot = await call(app, owner, 'POST', '/inventory/lots', {
+      idempotencyKey: `lot-${label}-${run}`,
+      id: lotId,
+      variantId,
+      batchNo: `${label}-${run}`.toUpperCase(),
+      mrpPaise: 1000,
+    })
+    expect(lot.status).toBe(200)
+    const opened = await call(app, owner, 'POST', '/inventory/adjustments', {
+      idempotencyKey: `open-${label}-${run}`,
+      lotId,
+      locationId: godown,
+      qtyDelta: pcs,
+      reason: 'opening',
+    })
+    expect(opened.status).toBe(200)
+    return lotId
+  }
+
+  type CountLine = {
+    lotId: string
+    expectedPcs: number | null
+    countedPcs: number | null
+    variancePcs: number | null
+  }
+  type CountBody = { item: { status: string; lines: CountLine[] } }
+
+  it('DOS-045: expected is the on-hand at count time — open a count on a lot holding 9, post a -2 adjustment on that lot, count 9: the line answers expectedPcs 7 and variancePcs +2, and post writes ONE +2 cycle_count ledger row', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const lotId = await freshLot('dos045a', 9)
+    const id = uuidv7()
+    const opened = await call<CountBody>(app, store, 'POST', '/inventory/cycle-counts', {
+      idempotencyKey: `dos045a-open-${run}`,
+      id,
+      locationId: godown,
+      lotIds: [lotId],
+    })
+    expect(opened.status).toBe(200)
+    // the desk's view at open: what the ledger said before anyone walked the rack
+    const atOpen = await call<CountBody>(app, owner, 'GET', `/inventory/cycle-counts/${id}`)
+    expect(atOpen.body.item.lines[0]?.expectedPcs).toBe(9)
+
+    // two pieces are written off while the counter is walking the rack
+    const damaged = await call(app, owner, 'POST', '/inventory/adjustments', {
+      idempotencyKey: `dos045a-damage-${run}`,
+      lotId,
+      locationId: godown,
+      qtyDelta: -2,
+      reason: 'adjustment',
+      note: 'crushed',
+    })
+    expect(damaged.status).toBe(200)
+
+    const counted = await call<CountBody>(
+      app,
+      store,
+      'POST',
+      `/inventory/cycle-counts/${id}/count`,
+      {
+        idempotencyKey: `dos045a-count-${run}`,
+        id,
+        lines: [{ lotId, countedPcs: 9 }],
+      },
+    )
+    expect(counted.status).toBe(200)
+    expect(counted.body.item.status).toBe('counted')
+
+    const atCount = await call<CountBody>(app, owner, 'GET', `/inventory/cycle-counts/${id}`)
+    expect(atCount.body.item.lines[0]?.expectedPcs).toBe(7)
+    expect(atCount.body.item.lines[0]?.variancePcs).toBe(2)
+
+    const posted = await call<{ entries: { reason: string; qtyDelta: number }[] }>(
+      app,
+      owner,
+      'POST',
+      `/inventory/cycle-counts/${id}/post`,
+      { idempotencyKey: `dos045a-post-${run}`, id },
+    )
+    expect(posted.status).toBe(200)
+    expect(posted.body.entries).toEqual([
+      expect.objectContaining({ reason: 'cycle_count', qtyDelta: 2 }),
+    ])
+    const rows = (
+      await db.execute(
+        sql`select count(*)::int as n, coalesce(sum(qty_delta), 0)::int as total from stock_ledger
+             where tenant_id = ${tenantId} and ref_type = 'cycle_count' and ref_id = ${id}`,
+      )
+    ).rows[0] as { n: number; total: number }
+    expect(Number(rows.n)).toBe(1)
+    expect(Number(rows.total)).toBe(2)
+    const after = (
+      await db.execute(
+        sql`select on_hand from stock_balances where tenant_id = ${tenantId} and lot_id = ${lotId} and location_id = ${godown}`,
+      )
+    ).rows[0] as { on_hand: number }
+    expect(Number(after.on_hand)).toBe(9)
+  })
+
+  it("DOS-045: a warehouse token's open, count and get replies carry expectedPcs null and variancePcs null on every line, while the owner's carry the figures", async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const lotId = await freshLot('dos045b', 12)
+    const id = uuidv7()
+    const opened = await call<CountBody>(app, store, 'POST', '/inventory/cycle-counts', {
+      idempotencyKey: `dos045b-open-${run}`,
+      id,
+      locationId: godown,
+      lotIds: [lotId],
+    })
+    expect(opened.status).toBe(200)
+    expect(opened.body.item.lines).toEqual([
+      expect.objectContaining({ lotId, expectedPcs: null, variancePcs: null, countedPcs: null }),
+    ])
+    const counted = await call<CountBody>(
+      app,
+      store,
+      'POST',
+      `/inventory/cycle-counts/${id}/count`,
+      {
+        idempotencyKey: `dos045b-count-${run}`,
+        id,
+        lines: [{ lotId, countedPcs: 10 }],
+      },
+    )
+    expect(counted.status).toBe(200)
+    expect(counted.body.item.lines).toEqual([
+      expect.objectContaining({ lotId, expectedPcs: null, countedPcs: 10, variancePcs: null }),
+    ])
+    const blindGet = await call<CountBody>(app, store, 'GET', `/inventory/cycle-counts/${id}`)
+    expect(blindGet.body.item.lines[0]?.expectedPcs).toBeNull()
+    expect(blindGet.body.item.lines[0]?.variancePcs).toBeNull()
+    // the delivery crew counts van stock the same way: never the target
+    const crew: Actor = { tenantId, actorId: ownerId, role: 'delivery' }
+    const crewGet = await call<CountBody>(app, crew, 'GET', `/inventory/cycle-counts/${id}`)
+    expect(crewGet.body.item.lines[0]?.expectedPcs).toBeNull()
+    // the desk sees both figures
+    const deskGet = await call<CountBody>(app, owner, 'GET', `/inventory/cycle-counts/${id}`)
+    expect(deskGet.body.item.lines[0]?.expectedPcs).toBe(12)
+    expect(deskGet.body.item.lines[0]?.variancePcs).toBe(-2)
+  })
+
+  it('DOS-045 guard: a line counted in an earlier call keeps its count-time expected when a later call counts another line', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const first = await freshLot('dos045c1', 8)
+    const second = await freshLot('dos045c2', 4)
+    const id = uuidv7()
+    expect(
+      (
+        await call(app, store, 'POST', '/inventory/cycle-counts', {
+          idempotencyKey: `dos045c-open-${run}`,
+          id,
+          locationId: godown,
+          lotIds: [first, second],
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (
+        await call(app, store, 'POST', `/inventory/cycle-counts/${id}/count`, {
+          idempotencyKey: `dos045c-count1-${run}`,
+          id,
+          lines: [{ lotId: first, countedPcs: 8 }],
+        })
+      ).status,
+    ).toBe(200)
+    // the first lot moves AFTER it was counted; its line must keep the 8 it was measured against
+    expect(
+      (
+        await call(app, owner, 'POST', '/inventory/adjustments', {
+          idempotencyKey: `dos045c-move-${run}`,
+          lotId: first,
+          locationId: godown,
+          qtyDelta: -3,
+          reason: 'adjustment',
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (
+        await call(app, store, 'POST', `/inventory/cycle-counts/${id}/count`, {
+          idempotencyKey: `dos045c-count2-${run}`,
+          id,
+          lines: [{ lotId: second, countedPcs: 4 }],
+        })
+      ).status,
+    ).toBe(200)
+    const detail = await call<CountBody>(app, owner, 'GET', `/inventory/cycle-counts/${id}`)
+    const byLot = new Map(detail.body.item.lines.map((l) => [l.lotId, l]))
+    expect(byLot.get(first)?.expectedPcs).toBe(8)
+    expect(byLot.get(first)?.variancePcs).toBe(0)
+    expect(byLot.get(second)?.expectedPcs).toBe(4)
+    expect(byLot.get(second)?.variancePcs).toBe(0)
   })
 
   it('keeps the ledger append-only even for the owner', async () => {

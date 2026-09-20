@@ -36,7 +36,13 @@ import { GrnService, ProcurementModule, SupplierInvoiceService } from './index.j
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
-type GrnLine = { id: string; variantId: string; lotId: string | null; expectedQtyPcs: number }
+type GrnLine = {
+  id: string
+  variantId: string
+  lotId: string | null
+  /** Null for a blind counter: the gate is never told the target (QA DOS-045). */
+  expectedQtyPcs: number | null
+}
 type Grn = {
   id: string
   grnNo: string | null
@@ -797,6 +803,104 @@ describeDb('procurement (DATABASE_URL)', () => {
       ...order,
     })
     expect(raised.status).toBe(200)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-045 — a blind gate count: the counter is told neither the expected pieces nor the short/excess findings
+
+  /** A second approved bill with both lines matched, so a fresh GRN can be opened and counted. */
+  const approvedInvoice = async (label: string): Promise<string> => {
+    const id = uuidv7()
+    const res = await call<{ item: { status: string } }>(
+      app,
+      owner,
+      'POST',
+      '/procurement/supplier-invoices',
+      {
+        ...invoice,
+        idempotencyKey: `inv-${label}-${run}`,
+        id,
+        invoiceNo: `GK/${run}/${label}`,
+        irn: undefined,
+        lines: invoice.lines.map((l) => ({ ...l, id: uuidv7() })),
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.item.status).toBe('approved')
+    return id
+  }
+
+  it("DOS-045: a warehouse token's grns.count and grns.get replies carry expectedQtyPcs null and no short or excess finding; the manager's carry the figure and all findings", async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const supplierInvoiceId = await approvedInvoice('D45A')
+    const id = uuidv7()
+    const opened = await call<{ item: Grn }>(app, owner, 'POST', '/procurement/grns', {
+      idempotencyKey: `dos045-grn-${run}`,
+      id,
+      supplierInvoiceId,
+      locationId: godown,
+    })
+    expect(opened.status).toBe(200)
+    const lineOf = (variantId: string) =>
+      opened.body.item.lines.find((l) => l.variantId === variantId)?.id ?? ''
+
+    // the gate counts 178 of 180 (2 short) and 154 good + 2 damaged of 156
+    const counted = await call<{ item: Grn }>(app, store, 'POST', `/procurement/grns/${id}/count`, {
+      idempotencyKey: `dos045-count-${run}`,
+      lines: [
+        { grnLineId: lineOf(variantA), countedQtyPcs: 178 },
+        { grnLineId: lineOf(variantB), countedQtyPcs: 154, damagedQtyPcs: 2 },
+      ],
+    })
+    expect(counted.status).toBe(200)
+    expect(counted.body.item.lines.map((l) => l.expectedQtyPcs)).toEqual([null, null])
+    expect(counted.body.item.discrepancies.map((d) => d.kind)).toEqual(['damaged'])
+
+    const blindGet = await call<{ item: Grn }>(app, store, 'GET', `/procurement/grns/${id}`)
+    expect(blindGet.status).toBe(200)
+    expect(blindGet.body.item.lines.map((l) => l.expectedQtyPcs)).toEqual([null, null])
+    expect(blindGet.body.item.discrepancies.map((d) => d.kind)).toEqual(['damaged'])
+
+    // the desk reads the bill and the whole reconciliation
+    const deskGet = await call<{ item: Grn }>(app, manager, 'GET', `/procurement/grns/${id}`)
+    expect(deskGet.status).toBe(200)
+    expect(
+      Object.fromEntries(deskGet.body.item.lines.map((l) => [l.variantId, l.expectedQtyPcs])),
+    ).toEqual({ [variantA]: 180, [variantB]: 156 })
+    expect(deskGet.body.item.discrepancies.map((d) => d.kind).sort()).toEqual(['damaged', 'short'])
+  })
+
+  it('DOS-045: grns.discrepancies for the warehouse role lists damaged findings only; for the owner all kinds', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const blind = await call<{ items: { kind: string }[] }>(
+      app,
+      store,
+      'GET',
+      '/procurement/discrepancies',
+      {},
+    )
+    expect(blind.status).toBe(200)
+    expect(blind.body.items.length).toBeGreaterThan(0)
+    expect([...new Set(blind.body.items.map((d) => d.kind))]).toEqual(['damaged'])
+    // asking for the withheld kind by name answers nothing, never the figures
+    const asking = await call<{ items: { kind: string }[] }>(
+      app,
+      store,
+      'GET',
+      '/procurement/discrepancies',
+      { kind: 'short' },
+    )
+    expect(asking.status).toBe(200)
+    expect(asking.body.items).toEqual([])
+    const desk = await call<{ items: { kind: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/procurement/discrepancies',
+      {},
+    )
+    expect(desk.status).toBe(200)
+    expect([...new Set(desk.body.items.map((d) => d.kind))].sort()).toEqual(['damaged', 'short'])
   })
 
   it('refuses requests without tenant context', async () => {

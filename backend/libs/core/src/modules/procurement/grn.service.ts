@@ -447,10 +447,14 @@ export class GrnService {
     requireRole(GRN_VIEWERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
+      // QA DOS-045: a blind role reads the damage it recorded itself and nothing else — a short or
+      // excess row names the expected pieces (counted + short = expected). Narrowed in SQL, not after
+      // the page, so a page never comes back mysteriously short of its limit.
       const filters: (SQL | undefined)[] = [
         input.grnId ? eq(inboundDiscrepancies.grnId, input.grnId) : undefined,
         input.status ? eq(inboundDiscrepancies.status, input.status) : undefined,
         input.kind ? eq(inboundDiscrepancies.kind, input.kind) : undefined,
+        blindActor() ? eq(inboundDiscrepancies.kind, 'damaged') : undefined,
         input.cursor ? lt(inboundDiscrepancies.id, input.cursor) : undefined,
       ]
       const rows = await tx
@@ -693,7 +697,29 @@ export class GrnService {
       .from(inboundDiscrepancies)
       .where(eq(inboundDiscrepancies.grnId, grn.id))
       .orderBy(asc(inboundDiscrepancies.id))
-    return toGrnWithLines(grn, lines, findings)
+    return blindGate(toGrnWithLines(grn, lines, findings))
+  }
+}
+
+/**
+ * True when the reader is at the gate rather than at the desk: the owner, a manager, the accountant and
+ * the system read the bill's figures; everyone else is counting and must not be told them (QA DOS-045).
+ */
+function blindActor(): boolean {
+  return !BACK_OFFICE.includes(currentTenant().actorRole)
+}
+
+/**
+ * The blind gate count (docs/23 §8.18): a counter who can read the target is not counting. For a blind
+ * role the reply drops `expectedQtyPcs` on every line AND every short/excess finding — those are the
+ * target in disguise, since counted + short = expected. `damaged` stays: the counter typed it.
+ */
+function blindGate(item: GrnWithLines): GrnWithLines {
+  if (!blindActor()) return item
+  return {
+    ...item,
+    lines: item.lines.map((l) => ({ ...l, expectedQtyPcs: null })),
+    discrepancies: item.discrepancies.filter((d) => d.kind === 'damaged'),
   }
 }
 

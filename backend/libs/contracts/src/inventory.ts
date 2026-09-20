@@ -266,10 +266,14 @@ export const CycleCountLineSchema = z.object({
   variantId: IdSchema,
   batchNo: z.string(),
   expiryDate: z.string().nullable(),
-  /** On-hand at the moment the count was opened. */
-  expectedPcs: PiecesSchema,
+  /**
+   * On-hand at the moment the line was last counted — the open-time snapshot until then, so a lot that
+   * moved between the two is measured against the stock the counter actually walked past (QA DOS-045).
+   * NULL for a blind role (the godown, the crew): the counter is never told the target.
+   */
+  expectedPcs: PiecesSchema.nullable(),
   countedPcs: PiecesSchema.nullable(),
-  /** `countedPcs − expectedPcs`; null until counted. */
+  /** `countedPcs − expectedPcs`; null until counted, and always null for a blind role. */
   variancePcs: z.number().int().nullable(),
 })
 export type CycleCountLine = z.infer<typeof CycleCountLineSchema>
@@ -297,8 +301,8 @@ const CycleCountItemOutput = z.object({ item: CycleCountDetailSchema })
 
 /**
  * Opens a count: one line per lot with a balance at the location (or only `lotIds`), `expectedPcs`
- * frozen from `stock_balances` at that moment. Lines are server-created — the client cannot know the
- * lots in advance — under the count's client-generated id.
+ * snapshotted from `stock_balances` at that moment and refreshed when the line is counted. Lines are
+ * server-created — the client cannot know the lots in advance — under the count's client-generated id.
  */
 export const OpenCycleCountInput = MutationBase.extend({
   id: IdSchema,
@@ -421,7 +425,8 @@ export const inventoryContract = {
       .route({
         method: 'POST',
         path: '/inventory/cycle-counts',
-        summary: 'Open a physical count of a location (expected pieces frozen per lot)',
+        summary:
+          'Open a physical count of a location (expected pieces taken at count time; blind for the godown)',
       })
       .input(OpenCycleCountInput)
       .output(OpenCycleCountOutput),

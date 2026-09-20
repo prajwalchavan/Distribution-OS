@@ -238,7 +238,11 @@ export const GrnLineSchema = z.object({
   supplierInvoiceLineId: IdSchema.nullable(),
   variantId: IdSchema,
   lotId: IdSchema.nullable(),
-  expectedQtyPcs: PiecesSchema,
+  /**
+   * Billed + free pieces off the supplier bill. NULL for a blind role (the godown): a gate hand who can
+   * read the target is not counting (QA DOS-045), and short/excess findings are withheld with it.
+   */
+  expectedQtyPcs: PiecesSchema.nullable(),
   countedQtyPcs: PiecesSchema.nullable(),
   damagedQtyPcs: PiecesSchema,
 })
@@ -450,7 +454,8 @@ export const procurementContract = {
       .route({
         method: 'POST',
         path: '/procurement/grns/{id}/count',
-        summary: 'Blind gate count: pieces received and damaged per line',
+        summary:
+          'Blind gate count: pieces received and damaged per line (no expected figure, no short or excess finding)',
       })
       .input(CountGrnInput)
       .output(CountGrnOutput),
