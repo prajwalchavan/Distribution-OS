@@ -416,7 +416,9 @@ transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` �
   (a balance row stays at zero once a lot has stood there; a "0 pc" row is not expected on the vehicle — DOS-049).
 - **W10 Trips: create, start loading** — `delivery.trips.create/startLoading/list/get` (planned, warehouse included).
 - **W11 Reservations (what is held for whom)** — `warehouse.reservations.list` ✓; `release` ✗ by design.
-- **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned).
+- **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned). The inbox is the notices addressed to
+  the person signed in: `messages.list` scopes a warehouse login to `recipient_user_id = actor` (DOS-052 — it used to answer the
+  distributor's whole outbound log to its SHOPS, order values and all). The crew is not narrowed; it sends bills at the door.
 
 ### 4.2 Graphs
 
@@ -431,6 +433,8 @@ None beyond counts on W1 (a `<Sparkline>` of packs per day from `reporting.regis
   Consequence for the frontend: either (a) load-out confirm lives in the manager app (M7) and the warehouse app's W7 is read-only
   "waiting for manager", or (b) an `auth.stepUp` procedure (manager username + PIN on the warehouse device → short-lived
   manager token scoped to `loadSheets.confirm`) is added and warehouse-service accepts it. Decision needed; (a) needs no backend.
+- `retailers.get/list` answer the warehouse role the PUBLIC shop (name, owner, phone, address, GST, terms) and no credit block —
+  no tier, limit, bills, days, mode, code, identity or onboarded-by (DOS-052). W6 needs the name on the carton and nothing else.
 - Can but no screen (wider than the app): `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
   `catalog.propose`, `tenantCatalog.suppliers`. The order writes (`orders.create/setLines/submit/repeatLast`, a loader placing and
   submitting orders): closed by DOS-115 (2026-09-13).
