@@ -98,6 +98,8 @@ describe('DOS-014 exports: chosen, and reported', () => {
       toast: /o22\.queuedToast/.test(screen),
       pollsTheList:
         /const refetchJobs = jobs\.refetch/.test(screen) && /void refetchJobs\(\)/.test(screen),
+      // design E: a register whose input has no from/to sends `{}` — never dates the server strips
+      noWindowForUnwindowed: /cap === undefined \? \{\}/.test(screen),
     }).toEqual({
       hardCoded: false,
       offersEveryRegister: true,
@@ -107,9 +109,44 @@ describe('DOS-014 exports: chosen, and reported', () => {
       saysWhat: true,
       toast: true,
       pollsTheList: true,
+      noWindowForUnwindowed: true,
     })
 
     expect(catalogue['o22.queue']).toBe('Queue export')
     expect(catalogue['o22.queuedToast']).toBe('Export queued')
+  })
+
+  /*
+   * `stockValue` and `outstanding` are point-in-time registers: `StockValueInput` and
+   * `OutstandingListInput` carry no `from` / `to`, so Zod strips the window the dialog sent and the
+   * worker renders the WHOLE register. The dialog offered a period anyway and the summary line read
+   * "Stock value · CSV · 14 Aug to 12 Sep" — a sentence the file then contradicted. Design E: the
+   * period control is hidden for those registers, `filters` is `{}`, and the line says so.
+   */
+  it('DOS-014: a register with no window offers no period, promises none, and sends none', async () => {
+    const screen = await read('../../app/reports/exports.tsx')
+    const dialog = /<Dialog[\s\S]*?testID="exports-request-dialog"/.exec(screen)?.[0] ?? ''
+
+    expect({
+      // the period label and the segments only exist when the register HAS a window
+      hidesPeriodLabel: /cap === undefined \? null : \(/.test(dialog),
+      // …and the segments themselves sit INSIDE that branch, never before it
+      periodIsConditional:
+        dialog.indexOf('cap === undefined ? null : (') >= 0 &&
+        dialog.indexOf('cap === undefined ? null : (') < dialog.indexOf('<RangeSegments'),
+      // and the summary line drops the dates instead of inventing them
+      saysWholeRegister: /o22\.requestBodyWhole/.test(dialog),
+      // the request itself carries no dates for those registers
+      sendsNoDates:
+        /filters: cap === undefined \? \{\} : \{ from: span\.from, to: span\.to \}/.test(screen),
+    }).toEqual({
+      hidesPeriodLabel: true,
+      periodIsConditional: true,
+      saysWholeRegister: true,
+      sendsNoDates: true,
+    })
+
+    expect(catalogue['o22.requestBody']).toBe('{register} · {format} · {from} to {to}')
+    expect(catalogue['o22.requestBodyWhole']).toBe('{register} · {format} · whole register')
   })
 })

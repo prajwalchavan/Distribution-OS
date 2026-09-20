@@ -107,7 +107,13 @@ export default function Exports(): React.JSX.Element {
         idempotencyKey: meta.idempotencyKey,
         register,
         format: 'csv',
-        filters: { from: span.from, to: span.to },
+        /*
+         * `stockValue` and `outstanding` are point-in-time reads: their inputs carry no `from` / `to`
+         * (`StockValueInput`, `OutstandingListInput`), so a window sent here is silently stripped and
+         * the whole register is rendered. Send `{}` for them and say so in the dialog, rather than
+         * printing a period the file does not honour.
+         */
+        filters: cap === undefined ? {} : { from: span.from, to: span.to },
       }),
     {
       invalidates: [['integrations', 'exports']],
@@ -250,23 +256,29 @@ export default function Exports(): React.JSX.Element {
                 setRegister(id as ReportRegister)
               }}
             />
-            <Txt field="label" desk="meta">
-              {t('o22.period')}
-            </Txt>
-            <RangeSegments
-              value={range}
-              onChange={(id) => {
-                setRange(id as RangeId)
-              }}
-              testID="exports-period"
-            />
+            {cap === undefined ? null : (
+              <>
+                <Txt field="label" desk="meta">
+                  {t('o22.period')}
+                </Txt>
+                <RangeSegments
+                  value={range}
+                  onChange={(id) => {
+                    setRange(id as RangeId)
+                  }}
+                  testID="exports-period"
+                />
+              </>
+            )}
             <Txt field="bodyStrong" desk="body" testID="exports-request-summary">
-              {t('o22.requestBody', {
-                register: word(register),
-                format: 'CSV',
-                from: longDate(span.from),
-                to: longDate(span.to),
-              })}
+              {cap === undefined
+                ? t('o22.requestBodyWhole', { register: word(register), format: 'CSV' })
+                : t('o22.requestBody', {
+                    register: word(register),
+                    format: 'CSV',
+                    from: longDate(span.from),
+                    to: longDate(span.to),
+                  })}
             </Txt>
           </Stack>
         }

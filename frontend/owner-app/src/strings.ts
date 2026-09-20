@@ -605,6 +605,7 @@ export const strings = {
   // DOS-014: Request export asks what and when before it queues anything.
   'o22.period': 'Period',
   'o22.requestBody': '{register} · {format} · {from} to {to}',
+  'o22.requestBodyWhole': '{register} · {format} · whole register',
   'o22.queue': 'Queue export',
   'o22.queuedToast': 'Export queued',
 
