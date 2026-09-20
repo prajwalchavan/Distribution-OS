@@ -244,6 +244,23 @@ export interface EndResult {
   rejected: number
 }
 
+/**
+ * ONE OP THE OFFICE TOOK, named (DOS-086).
+ *
+ * A device write that lands is invisible to a screen: `_pending` goes null and the table changes,
+ * but nothing says WHICH row it was or that the office was the one that changed it. Some writes have
+ * a second half that only the online API can do — a queued order is a `draft` until `orders.submit`
+ * numbers it, and `orders.sync.ts` refuses any state past `draft` from a device — so the app has to
+ * know the moment its own draft arrived, by id, to make that call for the rep instead of leaving it
+ * in a list to remember.
+ */
+export interface AcceptedOp {
+  opId: string
+  table: string
+  rowId: string
+  op: SyncOp['op']
+}
+
 export interface SyncEngineOptions {
   transport: SyncTransport
   /** One id per install (docs/27 §4); the app already has it for `auth_sessions`. */
@@ -396,6 +413,7 @@ export class SyncEngine {
   private store: HeldStore | null = null
   private readonly bus = new ChangeBus()
   private readonly statusListeners = new Set<(status: SyncStatus) => void>()
+  private readonly acceptedListeners = new Set<(ops: readonly AcceptedOp[]) => void>()
   private shapes = new Map<string, TableShape>()
   private manifestTables: SyncTableManifest[] = []
 
@@ -1047,6 +1065,20 @@ export class SyncEngine {
   }
 
   /**
+   * The ops the office has just taken (DOS-086) — table, row and opId, in the order they were sent.
+   *
+   * It fires once per accepted op, from `settle()`, after the device has recorded the ack: a replay
+   * counts, because a replay IS the answer a device that lost the response gets (ADR 0007), and a
+   * refused op never does. A listener that throws never touches the upload loop.
+   */
+  onAccepted(listener: (ops: readonly AcceptedOp[]) => void): () => void {
+    this.acceptedListeners.add(listener)
+    return () => {
+      this.acceptedListeners.delete(listener)
+    }
+  }
+
+  /**
    * The platform telling us the radio came back or went away (NetInfo, `online`/`offline` events); it
    * never ends the session. The ANSWER is kept — discarding it left a React Native app, where there is
    * no `navigator.onLine` to fall back on, unable to say it was offline at all — and coming back is
@@ -1084,6 +1116,21 @@ export class SyncEngine {
   private emitStatus(): void {
     const snapshot = this.status()
     for (const listener of [...this.statusListeners]) listener(snapshot)
+  }
+
+  /**
+   * A listener here is a SCREEN, and a screen that throws must not stop the queue draining (DOS-086):
+   * the ack is already written, so the throw is logged like any other and the loop carries on.
+   */
+  private emitAccepted(ops: readonly AcceptedOp[]): void {
+    if (ops.length === 0 || this.acceptedListeners.size === 0) return
+    for (const listener of [...this.acceptedListeners]) {
+      try {
+        listener(ops)
+      } catch (error) {
+        this.note(error, 'sync.accepted')
+      }
+    }
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1606,6 +1653,7 @@ export class SyncEngine {
     const byOpId = new Map(rejections.map((rejection) => [rejection.opId, rejection]))
     const at = new Date(this.now()).toISOString()
     const touched = new Set<string>([OUTBOX_CHANNEL])
+    const accepted: AcceptedOp[] = []
     let stale = false
     await store.transaction(async (tx) => {
       for (const op of batch) {
@@ -1618,6 +1666,7 @@ export class SyncEngine {
             [at, op.opId],
           )
           if (shape) await this.setPending(tx, shape, op.rowId, null)
+          accepted.push({ opId: op.opId, table: op.table, rowId: op.rowId, op: op.op })
           continue
         }
         if (upgradeRequired) {
@@ -1645,6 +1694,7 @@ export class SyncEngine {
       await writeState(tx, 'lastUploadAt', at)
     })
     this.bus.emit(touched)
+    this.emitAccepted(accepted)
     // A `stale` op means the server's row moved on: fetch it so the tray can show both versions.
     if (stale && !this.pulling) await this.sync('stale-rejection')
   }

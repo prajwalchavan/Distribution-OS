@@ -17,10 +17,12 @@
  * What the rep sees in the meantime is the DEVICE's own quote (`src/lib/pricing.ts`), recomputed from
  * the same local lines by the same engine, and every screen marks it as waiting rather than placed.
  */
-import { useOutbox } from '@dos/offline/react'
+import { useApi } from '@dos/api-client/react'
+import { useAccepted, useOutbox, useSyncEngine } from '@dos/offline/react'
 import type { EnqueueInput } from '@dos/offline'
 import { useCallback } from 'react'
 
+import { deviceId } from '../api'
 import type { CatalogItem } from './local'
 import type { DraftLine } from './pricing'
 
@@ -93,4 +95,54 @@ export function piecesOfLine(
 ): number {
   if (line.qty_pcs !== null && line.qty_pcs > 0) return line.qty_pcs
   return line.entered_unit === 'case' ? line.entered_qty * Math.max(1, caseSize) : line.entered_qty
+}
+
+/**
+ * DOS-086 — THE DRAFT SUBMITS ITSELF THE MOMENT IT REACHES THE OFFICE.
+ *
+ * An order written in a dead spot goes into the outbox as a `draft`, because that is the only state
+ * `orders.sync.ts` accepts from a device: the SO number, the credit check and the stock reservation
+ * are the server's to decide and it will not take them from a phone. That is right. What was wrong
+ * is what happened next — the draft landed, and then sat there, numberless, until the rep happened
+ * to open My orders and press "Submit order" on each one. A rep who forgets has an order the office
+ * cannot see, and nothing on any screen says so.
+ *
+ * So the device finishes what it started. `useAccepted` names the row the office has just taken; a
+ * `sales_orders` row this app queued is always a draft header (`useEnqueueOrder` writes no other
+ * kind), so the second half of the intent — the online `orders.submit`, under the SAME
+ * `${id}:submit` key the order screen uses — goes out for it at once, and the pull after it brings
+ * the number down.
+ *
+ * ONE CALL PER ORDER, whichever screens are mounted: the ids in flight are held at module scope
+ * rather than in a ref, so the beat, My orders and the order screen together still make one request.
+ * A submit the server refuses (a credit hold, an approval) changes nothing — the order stays a draft
+ * with its "Submit order" button, which is exactly where the rep was before.
+ */
+const submitting = new Set<string>()
+
+export function useSubmitAcceptedDrafts(): void {
+  const api = useApi()
+  const engine = useSyncEngine()
+  useAccepted((ops) => {
+    for (const op of ops) {
+      if (op.table !== 'sales_orders' || op.op !== 'PUT') continue
+      const orderId = op.rowId
+      if (submitting.has(orderId)) continue
+      submitting.add(orderId)
+      void api.api.orders
+        .submit({ id: orderId, idempotencyKey: `${orderId}:submit`, deviceId: deviceId() })
+        .then(
+          () => engine?.sync('queued order submitted'),
+          /*
+           * Left as a draft on purpose. The office refused the submit (credit, an approval, a
+           * state it has already moved past) and the rep's own screen is the place that says so —
+           * never a toast over a beat list from a call nobody asked for.
+           */
+          () => undefined,
+        )
+        .finally(() => {
+          submitting.delete(orderId)
+        })
+    }
+  })
 }

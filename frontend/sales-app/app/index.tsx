@@ -36,6 +36,7 @@ import {
   useOutstandingByShop,
   useVisitsByShop,
 } from '../src/lib/local'
+import { useSubmitAcceptedDrafts } from '../src/lib/queue'
 import { LocalAsync, TwoLine, duesFamily, useMyUserId } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
 
@@ -46,6 +47,8 @@ export default function Beat(): React.JSX.Element {
   const word = useWord()
   const userId = useMyUserId()
   const local = useLocalState()
+  /* DOS-086: an order queued in a dead spot submits itself the moment it reaches the office. */
+  useSubmitAcceptedDrafts()
 
   const day = today()
   const beats = useBeats()

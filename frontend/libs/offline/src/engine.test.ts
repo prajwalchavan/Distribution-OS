@@ -1600,3 +1600,68 @@ describe('6d. a user’s retry is a new operation', () => {
     )
   })
 })
+
+// DOS-086 ---------------------------------------------------------------------------------------------------------
+
+describe('DOS-086 the device is told which of its own writes the office accepted', () => {
+  /*
+   * A draft queued in a dead spot is a draft until someone submits it, and `orders.sync.ts` refuses
+   * any state past `draft` from a device — so the app has to make the online `orders.submit` call
+   * itself, the moment the draft lands. It can only do that if the engine says WHICH op landed:
+   * `_pending` going null is a table change with no name on it, and the outbox row is `acked`
+   * whether the write was an order, a line or a visit.
+   *
+   * So the signal carries the table and the row id, fires once per accepted op, and never carries a
+   * refused one — submitting an order the office refused would be the app arguing with it.
+   */
+  it('DOS-086 names every accepted op by table and row, once, and never a refused one', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const seen: { table: string; rowId: string }[] = []
+    const off = engine.onAccepted((ops) => {
+      for (const op of ops) seen.push({ table: op.table, rowId: op.rowId })
+    })
+
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-accepted',
+      op: 'PUT',
+      data: { retailer_id: 'r1', state: 'draft' },
+    })
+    await engine.enqueue({
+      table: 'sales_order_lines',
+      id: 'l-accepted',
+      op: 'PUT',
+      data: { order_id: 'o-accepted', variant_id: 'v1', entered_qty: 2 },
+    })
+    const refused = await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-refused',
+      op: 'PUT',
+      data: { retailer_id: 'r2', state: 'draft' },
+    })
+    server.rejections.set(refused, { code: 'credit_hold', messageEn: 'Shop is on credit hold' })
+
+    // Nothing has reached the office yet, so nothing has been accepted yet.
+    expect(seen).toEqual([])
+
+    server.offline = false
+    await engine.flush()
+
+    expect(seen).toEqual([
+      { table: 'sales_orders', rowId: 'o-accepted' },
+      { table: 'sales_order_lines', rowId: 'l-accepted' },
+    ])
+
+    // A second flush with nothing left to send says nothing: the signal is the landing, not the state.
+    off()
+    await engine.flush()
+    expect(seen).toHaveLength(2)
+    await engine.stop()
+  })
+})

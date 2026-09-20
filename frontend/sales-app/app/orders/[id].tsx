@@ -53,7 +53,7 @@ import {
   useSchemes,
   useShop,
 } from '../../src/lib/local'
-import { piecesOfLine } from '../../src/lib/queue'
+import { piecesOfLine, useSubmitAcceptedDrafts } from '../../src/lib/queue'
 import { quoteOnDevice } from '../../src/lib/pricing'
 import { Field, Panel, orderFamily } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
@@ -78,6 +78,8 @@ export default function OrderDetail(): React.JSX.Element {
   const bargains = useBargains(localOrder?.retailer_id ?? null)
   const [cancelling, setCancelling] = useState(false)
   const [reason, setReason] = useState('')
+  /* DOS-086: this order's own draft submits itself the moment the office takes it. */
+  useSubmitAcceptedDrafts()
 
   /**
    * The server's own view, when there is signal: the approvals a submit raised and the state the

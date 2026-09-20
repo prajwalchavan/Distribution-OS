@@ -23,6 +23,7 @@ import {
   legacyStoreName,
   storeNameFor,
   SyncEngine,
+  type AcceptedOp,
   type EndResult,
   type SyncEngineOptions,
 } from './engine.js'
@@ -328,6 +329,29 @@ export function OfflineProvider({
 /** The engine itself, for the rare screen that needs `sync()` on a pull-to-refresh. */
 export function useSyncEngine(): SyncEngine | null {
   return useContext(EngineContext)
+}
+
+export type { AcceptedOp }
+
+/**
+ * "The office has just taken this write" (DOS-086).
+ *
+ * The one signal a screen cannot get from `useTable`: a row whose `_pending` went null changed, but
+ * nothing says the OFFICE is why, and a queued write whose second half only the online API can do —
+ * a draft order that still needs `orders.submit` — has to be finished the moment it lands, not left
+ * in a list for a rep to remember. `handler` is held in a ref, so a screen may pass an inline
+ * function without re-subscribing on every render; the engine swallows anything it throws.
+ */
+export function useAccepted(handler: (ops: readonly AcceptedOp[]) => void): void {
+  const engine = useSyncEngine()
+  const latest = useRef(handler)
+  latest.current = handler
+  useEffect(() => {
+    if (engine === null) return
+    return engine.onAccepted((ops) => {
+      latest.current(ops)
+    })
+  }, [engine])
 }
 
 const IDLE: SyncStatus = {
