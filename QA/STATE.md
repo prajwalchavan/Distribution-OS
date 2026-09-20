@@ -1,6 +1,6 @@
 Stage: 1
 Current phase: 4 — Implement approved changes (batch 2). Phase 2 (cross-role chain) follows.
-Last updated: 2026-09-20, early
+Last updated: 2026-09-20, 20:15 IST
 
 **This file is CURRENT STATE ONLY.** Every history — what was found, what was ruled, what was merged and why — lives in `QA/13-change-log.md`. Findings live in `QA/findings/12-batch2-new-findings.md`. Founder decisions live in `docs/22-source-of-truth.md` §8; **read docs/22, never a note in here, for what the founder has decided.** Twice on 2026-09-19 a stale note in this file sent work down a wrong path (eleven "open" questions docs/22 had already answered on 09-13, and a Q3 money repair on a database that holds no real money). If this file and docs/22 disagree, docs/22 wins and this file is wrong.
 
@@ -8,7 +8,9 @@ Last updated: 2026-09-20, early
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_3f1c…` | see below | **Lean wave 3** — the last 16 groups, 84 items, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat, three lanes at a time, merges in dependency order |
+| `wf_2c3fe029-0c9` | `w0iuf074c` | **Lean wave 3** — 20 groups, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat, three lanes at a time, merges in dependency order. **11 of 20 groups merged** (60 findings). Nine lanes left: five reviewed by Fable (`lean-kit-polish` and `lean-manager-money` = MERGE, no blockers; `lean-delivery-collect`, `lean-owner-money-approvals`, `lean-sales-rep` = MERGE AFTER FIXES, in repair), four still building (`lean-manager-order-lifecycle`, `lean-retailer-platform`, `lean-sales-orders-pricing`, `lean-warehouse-pick`). |
+
+`lean-retailer-platform` hit drizzle-kit's interactive rename prompt (`inbound_messages_staff` → `inbound_messages_read`) and its `db:generate` exited 144; that lane must answer "create column" non-interactively or hand-write the migration (CLAUDE.md warns of this).
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
 
@@ -40,7 +42,7 @@ The founder hands over a **real data extract** ("okk share real data extract wit
 
 `c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · `ed3e1b7` DOS-178+179+180 honesty · `f144e29` DOS-175+176+177 money-delivery · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
 
-**Coverage: 75 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
+**Coverage: 135 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
 
 ## Databases
 
