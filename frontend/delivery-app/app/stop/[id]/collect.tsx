@@ -257,6 +257,12 @@ export default function Collect(): React.JSX.Element {
           appliedLines(t, {
             allocations: result.allocations,
             invoices: result.invoices,
+            /*
+             * `invoices` is `settled` — the bills this receipt TOUCHED. Untagged money spent on an
+             * older bill comes back naming that one alone, so the bill in the shopkeeper's hand is
+             * named from the bills riding on this door, at what the office last said they owe.
+             */
+            doorBills,
             unallocatedPaise: result.unallocatedPaise,
             money: (value) => formatINR(paise(value)),
           }),

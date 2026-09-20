@@ -196,13 +196,26 @@ export interface SettledBill {
 
 /**
  * What the office actually did with the money, as lines the driver reads out at the door: the bills it
- * paid, the bills it left open, and anything that stayed on account.
+ * paid, the bills still open, and anything that stayed on account.
+ *
+ * `result.invoices` IS NOT EVERY BILL AT THIS DOOR. It is `settled` — "the bills a mutation touched"
+ * — so an untagged receipt that the office's oldest-first rule spends entirely on a June bill comes
+ * back naming June's bill and nothing else. That is the finding's own case: ₹7,856 at Vaibhav's door
+ * pays INV/0099 to the paisa, and the bill in the shopkeeper's hand, INV/0825, is absent from the
+ * reply. The sentence the crew owes him — "this pays INV/0099 of 26 Jun; today's bill stays open" —
+ * needs the bills RIDING ON THIS DOOR as well, which is `doorBills`.
+ *
+ * A door bill the reply did touch is named from the reply (the newer figure of the two) and never
+ * twice; a door bill the office had already settled, or that has nothing left on it, is not money
+ * owed here and is not read out at all.
  */
 export function appliedLines(
   t: Translator,
   result: {
     allocations: readonly { invoiceId: string; amountPaise: number }[]
     invoices: readonly SettledBill[]
+    /** The bills riding on this stop, as the screen listed them over the pad. */
+    doorBills: readonly DoorBill[]
     unallocatedPaise: number
     money: (paise: number) => string
   },
@@ -214,12 +227,22 @@ export function appliedLines(
   const lines = result.allocations.map((one) =>
     t('d5.appliedTo', { no: numberOf(one.invoiceId), amount: result.money(one.amountPaise) }),
   )
+  const touched = new Set(result.invoices.map((bill) => bill.id))
   for (const bill of result.invoices) {
     if (bill.openPaise <= 0) continue
     lines.push(
       t('d5.leftOpen', {
         no: bill.invoiceNo ?? bill.id.slice(0, 8),
         amount: result.money(bill.openPaise),
+      }),
+    )
+  }
+  for (const bill of billsThatTakeMoney(result.doorBills)) {
+    if (touched.has(bill.invoiceId)) continue
+    lines.push(
+      t('d5.leftOpen', {
+        no: bill.invoiceNo ?? bill.invoiceId.slice(0, 8),
+        amount: result.money(owedOn(bill)),
       }),
     )
   }
