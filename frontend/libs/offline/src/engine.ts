@@ -1226,7 +1226,13 @@ export class SyncEngine {
         )
       }
     })
+    /*
+     * The strip and the rail badge count what this table holds (DOS-053), so a row that arrived here is a row
+     * they must already be showing: the tray is never one number ahead of the chrome pointing at it.
+     */
+    await this.refreshCounts()
     this.bus.emit([ERRORS_CHANNEL])
+    this.emitStatus()
   }
 
   /** Loop while `hasMore`, always echoing the cursor the LAST response gave (docs/07 §0 rule 3). */
@@ -1981,13 +1987,19 @@ export class SyncEngine {
     const [pending] = await store.query<{ n: number; at: string | null }>(
       `SELECT COUNT(*) AS n, MIN(created_at) AS at FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending')`,
     )
-    const [rejected] = await store.query<{ n: number }>(
-      `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'rejected'`,
-    )
     /*
+     * THE REFUSED COUNT IS THE TRAY (DOS-053). Counted off the outbox's own `status = 'rejected'` it disagreed
+     * with `needsAttention()` the moment a refusal had no outbox row behind it — one the server still holds,
+     * brought back by `pullErrors` after a reinstall or a reload of the web fallback: a real tray item, counted
+     * nowhere, so X4 read "Refused 0" over a tray holding two. Same table, same predicate as `needsAttention`,
+     * minus the rows a person has already dealt with.
+     *
      * DOS-178: a payment handed to the cashier is nobody's work any more, so it leaves `rejected` — but it
      * is still the only record that the shop paid, so it is counted here and a sign-out keeps the file.
      */
+    const [rejected] = await store.query<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND handed_over_at IS NULL`,
+    )
     const [held] = await store.query<{ n: number }>(
       `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'kept'`,
     )

@@ -1159,3 +1159,91 @@ describe('6b. a refused payment is kept and handed to the cashier', () => {
     expect(Number(left[0]?.n ?? 0)).toBe(1)
   })
 })
+
+// 6c -------------------------------------------------------------------------------------------------------------
+
+/**
+ * DOS-053 — ONE refused count, and it is the tray.
+ *
+ * The strip's badge, the rail's badge and X4's "Refused" chip all read `status().rejected`; the tray itself
+ * draws `needsAttention()`. The two were counted from different tables — the outbox's own `status = 'rejected'`
+ * against `_sync_errors` — and they disagree the moment a rejection has no outbox row behind it: a refusal the
+ * server still holds, pulled back by `pullErrors` after a reinstall or (on the web fallback) a reload, is a tray
+ * item this device can act on and was counted nowhere. The warehouse gate saw the two sides of exactly that:
+ * "Refused 0" over a tray holding two, and a rail badge of 1 over the same two.
+ *
+ * So the count is the tray: `_sync_errors` minus the rows a person has already dealt with — thrown away, or
+ * (DOS-178) handed to the cashier, which is the one row the tray still lists and nobody owes work on.
+ */
+describe('6c. the refused count and the tray are the same number', () => {
+  const SERVER_ERROR = {
+    id: 'e1',
+    opId: 'op-from-yesterday',
+    table: 'sales_orders',
+    rowId: 'o9',
+    code: 'credit_hold',
+    messageEn: 'Shop is on credit hold',
+    messageHi: 'दुकान क्रेडिट होल्ड पर है',
+    deviceId: 'device-1',
+    createdAt: '2026-09-05T10:00:00.000Z',
+    resolved: false,
+    resolvedAt: null,
+  }
+
+  it('DOS-053 a rejection pulled from the server counts in status().rejected, like the tray it draws', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    server.serverErrors = [SERVER_ERROR]
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const tray = await engine.needsAttention()
+    expect(tray).toHaveLength(1)
+    expect(tray[0]?.op).toBeNull()
+    expect(engine.status().rejected).toBe(tray.length)
+    await engine.stop()
+  })
+
+  it('DOS-053 the count the strip is handed after the pull says so too, without waiting for the next write', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const seen: number[] = []
+    engine.onStatus((status) => {
+      seen.push(status.rejected)
+    })
+    server.serverErrors = [SERVER_ERROR]
+    await engine.sync('again')
+
+    expect(seen.at(-1)).toBe(1)
+    expect(connectionStateFrom(engine.status()).needsAttention).toBe(1)
+    await engine.stop()
+  })
+
+  it('DOS-053 a refusal this device raised itself and one pulled from the server are counted once each', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    server.serverErrors = [SERVER_ERROR]
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'retailer_required', messageEn: 'The order has no shop' })
+    await engine.flush()
+
+    expect(await engine.needsAttention()).toHaveLength(2)
+    expect(engine.status().rejected).toBe(2)
+
+    // Thrown away is dealt with: it leaves both the tray and the count, and the pull never brings it back.
+    await engine.discard(opId)
+    await engine.sync('again')
+    expect(await engine.needsAttention()).toHaveLength(1)
+    expect(engine.status().rejected).toBe(1)
+    await engine.stop()
+  })
+})
