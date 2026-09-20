@@ -40,7 +40,7 @@ import { location } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
-import { longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
+import { dueKey, longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import {
   schemesForShop,
@@ -343,10 +343,15 @@ export default function ShopCard(): React.JSX.Element {
                   {(outstanding.data?.bills ?? []).map((bill) => (
                     <TwoLine
                       key={bill.id}
+                      testID={`shop-bill-${bill.id}`}
                       primary={bill.invoiceNo}
-                      secondary={t('s12.due', {
+                      /*
+                       * DOS-091: `ageDays` is days SINCE the due date and negative before it, so
+                       * "Due 10 Sep · 2 days" said nothing about which side of it the shop is on.
+                       */
+                      secondary={t(dueKey(bill.ageDays), {
                         when: longDate(bill.dueDate),
-                        age: bill.ageDays,
+                        age: dayCount(t, bill.ageDays),
                       })}
                       trailing={
                         <Stack gap={1} align="end">
@@ -358,6 +363,9 @@ export default function ShopCard(): React.JSX.Element {
                           />
                         </Stack>
                       }
+                      onPress={() => {
+                        router.push(`/bills/${bill.id}`)
+                      }}
                     />
                   ))}
                 </Stack>
@@ -374,9 +382,14 @@ export default function ShopCard(): React.JSX.Element {
                     {invoices.map((bill) => (
                       <TwoLine
                         key={bill.id}
+                        testID={`shop-bill-local-${bill.id}`}
                         primary={bill.invoice_no ?? bill.id.slice(0, 8)}
                         secondary={t('s12.billed', { when: longDate(bill.invoice_date) })}
                         trailing={<Money value={bill.total_paise} size="moneyM" />}
+                        /* The same destination with no signal: the bill screen says it needs one. */
+                        onPress={() => {
+                          router.push(`/bills/${bill.id}`)
+                        }}
                       />
                     ))}
                   </Stack>
@@ -405,6 +418,18 @@ export default function ShopCard(): React.JSX.Element {
 /** Paise as a plain rupee figure for a chip label — the chip itself is not a `<Money>` slot. */
 function rupees(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+}
+
+/**
+ * A count of days as words, so neither S12 sentence ever reads "1 days" (DOS-091). The translator
+ * has no plural rule of its own, so the choice is made here and both forms are in `strings.ts`.
+ */
+function dayCount(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  days: number,
+): string {
+  const n = Math.abs(days)
+  return n === 1 ? t('s12.day') : t('s12.days', { days: n })
 }
 
 interface CheckInProps {

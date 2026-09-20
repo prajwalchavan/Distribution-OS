@@ -186,6 +186,20 @@ export function startOfIstDay(isoDate: string = today()): string {
 }
 
 /**
+ * DOS-091 — which SIDE of the due date a bill's `ageDays` is on.
+ *
+ * `OpenBill.ageDays` is "days since the due date, negative when it is not due yet" (the contract's
+ * own words), and the S12 line printed it as "Due 10 Sep · 2 days" whichever way it pointed. A rep
+ * quoting that to a shopkeeper is telling them either that they have two days left or that they are
+ * two days late, and cannot tell which. The sign is the whole meaning, so the copy is chosen by it.
+ */
+export function dueKey(ageDays: number): 's12.overdue' | 's12.dueToday' | 's12.dueIn' {
+  if (ageDays > 0) return 's12.overdue'
+  if (ageDays === 0) return 's12.dueToday'
+  return 's12.dueIn'
+}
+
+/**
  * The ISO weekday of an IST business date: Monday 1 … Sunday 7 (DOS-084).
  *
  * `beats.visit_days` is stored in exactly this numbering, so "is this beat walked today" is a

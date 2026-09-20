@@ -454,9 +454,43 @@ export const strings = {
 
   // --- S12 the shop's bills ----------------------------------------------------------------------
   's12.noBills': 'No open bill',
-  's12.due': 'Due {when} · {age} days',
+  /*
+   * DOS-091 — `ageDays` is days SINCE the due date and is negative before it, so "Due 10 Sep · 2
+   * days" told a rep either that the shop has two days left or that it is two days late, with no
+   * way to tell which. `dueKey()` in src/lib/dates.ts picks by the sign; `{days}` is always its
+   * magnitude. A count of exactly 1 takes the `.one` sentence.
+   */
+  's12.overdue': 'Was due {when} · {age} overdue',
+  's12.dueToday': 'Due today, {when}',
+  's12.dueIn': 'Due {when} · in {age}',
+  /* The count as words, so neither sentence above ever reads "1 days". */
+  's12.day': '1 day',
+  's12.days': '{days} days',
   's12.ofTotal': 'of {total}',
   's12.billed': 'Billed {when}',
+  /* DOS-091 — S12b, one bill opened from the shop's Bills tab. */
+  's12b.title': 'Bill {no}',
+  's12b.needsSignal': 'A bill is not kept on this phone. Open it where there is a signal.',
+  's12b.lines': 'What is on this bill',
+  's12b.rate': '{rate}/pc',
+  's12b.taxes': 'Taxes and total',
+  's12b.taxable': 'Taxable',
+  's12b.cgst': 'CGST',
+  's12b.sgst': 'SGST',
+  's12b.igst': 'IGST',
+  's12b.cess': 'Cess',
+  's12b.roundOff': 'Round off',
+  's12b.total': 'Bill total',
+  's12b.stillDue': 'Still due',
+  's12b.settled': 'Paid on this bill',
+  's12b.openPdf': 'Open the bill',
+  's12b.printPdf': 'Print',
+  's12b.pdfPending': 'The printed bill is still being made. Try again in a moment.',
+  's12b.credits': 'Returns against this bill',
+  's12b.noCredits': 'Nothing has been returned against this bill',
+  's12b.for': 'For {name}',
+  's12b.notMine':
+    'This bill is not on the shop you opened. Go back to the shop and open it from its Bills tab.',
   /* DOS-179 — where the totals came from, when the signal is gone and the store may be too. */
   's12.offline':
     'No signal: these are bill totals from this phone, not what is still open on each one.',
