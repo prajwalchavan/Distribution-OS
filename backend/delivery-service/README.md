@@ -80,6 +80,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/pricing/schemes` | Schemes (the single table the engine reads; the field and the shop get the public shape) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -6139,6 +6140,93 @@ request.json
   "code": "CONFLICT",
   "status": 409,
   "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/pricing/rates`
+
+The shop’s standing per-piece rate for every listed item: the engine at one piece · contract `pricing.rates`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery, retailer
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `retailerId` | uuid | yes |
+| `pricingDate` | string | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3005/pricing/rates?retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&pricingDate=2026-09-04" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "pricingDate": "2026-09-04",
+  "items": [
+    {
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "caseSize": 24,
+      "listRatePaise": 4000,
+      "ratePaise": 4000
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "delivery-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
 }
 ```
 
@@ -33954,6 +34042,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `pricing.schemes.list` | – | – | – | – | – | ✓ | – |
 | `pricing.schemes.upsert` | – | – | – | – | – | – | – |
 | `pricing.quote` | – | – | – | – | – | ✓ | – |
+| `pricing.rates` | – | – | – | – | – | ✓ | – |
 | `pricing.bargains.request` | – | – | – | – | – | ✓ | – |
 | `pricing.bargains.decide` | – | – | – | – | – | – | – |
 | `pricing.bargains.list` | – | – | – | – | – | ✓ | – |

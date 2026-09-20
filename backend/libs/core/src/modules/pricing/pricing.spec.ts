@@ -14,6 +14,7 @@ import {
   retailerIdentities,
   retailerLinks,
   retailers,
+  tenantProducts,
   tenants,
   users,
 } from '@dos/db'
@@ -758,6 +759,79 @@ describeDb('pricing (DATABASE_URL)', () => {
       },
     ])
     expect(q.body.totals.netPaise).toBe(q.body.lines.reduce((n, l) => n + l.lineNetPaise, 0))
+  })
+
+  it('DOS-104: pricing.rates answers one row per listed variant whose ratePaise and listRatePaise equal a qty-1 pricing.quote for the same shop and date — tier list, retailer override, approved bargain and a final override included — answers [] for an empty catalogue, and a retailer login rates only its own shop (403 for another)', async () => {
+    interface Rates {
+      retailerId: string
+      pricingDate: string
+      items: { variantId: string; caseSize: number; listRatePaise: number; ratePaise: number }[]
+    }
+    // Nothing is listed yet: the rate list IS the listed catalogue, so it is empty, never an error.
+    const empty = await call<Rates>(app, rep, 'GET', '/pricing/rates', {
+      retailerId: shopC,
+      pricingDate: today,
+    })
+    expect(empty.status).toBe(200)
+    expect(empty.body.items).toEqual([])
+
+    // The DOS-076 test above re-posted the default list with its own single item, so the two rates
+    // this spec started with are put back before anything is listed. (`price-lists/{id}/items`
+    // replaces the list's items; that is not what this finding is about.)
+    const relisted = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      {
+        idempotencyKey: `pli-rates-${run}`,
+        priceListId: defaultListId,
+        items: [
+          { id: uuidv7(), variantId: v1, ratePaise: 1000 },
+          { id: uuidv7(), variantId: v2, ratePaise: 2000 },
+        ],
+      },
+    )
+    expect(relisted.status).toBe(200)
+
+    await db.insert(tenantProducts).values([
+      { id: uuidv7(), tenantId, variantId: v1, listed: true },
+      { id: uuidv7(), tenantId, variantId: v2, listed: true },
+      // Unlisted, and its HSN has no rate: it must not be quoted, and must not 400 the whole list.
+      { id: uuidv7(), tenantId, variantId: vUnrated, listed: false },
+    ])
+
+    // Shop C: tier C, the "buy 12 get 1 free" scheme, and the bargain the owner approved above.
+    // Shop A: tier A's own list plus the FINAL retailer override that blocks schemes.
+    for (const [actor, retailerId] of [
+      [rep, shopC],
+      [owner, shopA],
+    ] as const) {
+      const rates = await call<Rates>(app, actor, 'GET', '/pricing/rates', {
+        retailerId,
+        pricingDate: today,
+      })
+      expect(rates.status, retailerId).toBe(200)
+      expect(rates.body.retailerId).toBe(retailerId)
+      expect(rates.body.pricingDate).toBe(today)
+      expect(rates.body.items.map((i) => i.variantId).sort()).toEqual([v1, v2].sort())
+      // The projection IS the engine: every figure must equal what a qty-1 quote answers.
+      for (const item of rates.body.items) {
+        const quoted = await quoteFor(actor, retailerId, [
+          { lineId: item.variantId, variantId: item.variantId, qtyPcs: 1 },
+        ])
+        expect(quoted.status).toBe(200)
+        const line = quoted.body.lines[0]
+        expect(item.ratePaise, `${retailerId} ${item.variantId} rate`).toBe(line?.ratePaise)
+        expect(item.listRatePaise, `${retailerId} ${item.variantId} list`).toBe(line?.listRatePaise)
+        expect(item.caseSize, `${retailerId} ${item.variantId} case`).toBe(line?.caseSize)
+      }
+    }
+
+    // A shop rates its own shop and no other — the same rule `pricing.quote` already enforces.
+    expect((await call(app, shop, 'GET', '/pricing/rates', { retailerId: shopC })).status).toBe(200)
+    expect((await call(app, shop, 'GET', '/pricing/rates', { retailerId: shopA })).status).toBe(403)
+    expect((await call(app, null, 'GET', '/pricing/rates', { retailerId: shopC })).status).toBe(401)
   })
 
   it('refuses requests without tenant context', async () => {

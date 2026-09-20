@@ -2,7 +2,7 @@ import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq, gt, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
-import type { QuoteInput, QuoteOutput } from '@dos/contracts'
+import type { QuoteInput, QuoteOutput, RateItem, RatesInput, RatesOutput } from '@dos/contracts'
 import {
   bargainRequests,
   hsnRates,
@@ -30,9 +30,19 @@ import {
   type SchemeRule,
 } from '@dos/domain'
 import { currentTenant, DB, requireDb, requireRole, STAFF } from '../../platform/index.js'
+import { listedVariantIds } from '../tenant-catalog/index.js'
 
 type QuoteIn = z.infer<typeof QuoteInput>
 type QuoteOut = z.infer<typeof QuoteOutput>
+type RatesIn = z.infer<typeof RatesInput>
+type RatesOut = z.infer<typeof RatesOutput>
+
+/**
+ * DOS-104 bounds. `MAX_RATE_ITEMS` is the longest price list one read answers; `RATE_CHUNK` is
+ * `QuoteInput`'s own per-call ceiling, so the engine runs at most twice for a full list.
+ */
+const MAX_RATE_ITEMS = 1_000
+const RATE_CHUNK = 500
 
 export interface PricedRetailer {
   id: string
@@ -77,6 +87,48 @@ export class QuoteService {
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) => this.quoteInTx(tx, ctx, input))
+  }
+
+  /**
+   * DOS-104 — the shop's standing per-piece rate for every LISTED item, as the order screen prints it.
+   *
+   * A PROJECTION OF THE ONE ENGINE, never a second price path: it runs `quoteInTx` at one piece for
+   * the listed variants and keeps four numbers a row, so `rates.items[v]` and a qty-1
+   * `pricing.quote` for the same shop and date can never disagree (pinned by a parity spec). It reads
+   * no price list, override or bargain itself.
+   *
+   * Because it prices ONE piece, no quantity scheme can show in it. That is deliberate: the basket
+   * quote stays the only source of a scheme's effect, a free quantity or GST.
+   *
+   * Bounded: the listed catalogue up to 1 000 items, chunked at `QuoteInput`'s 500 per engine run.
+   */
+  async rates(input: RatesIn): Promise<RatesOut> {
+    requireRole([...STAFF, 'retailer'])
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
+      // The same 403 `quote` gives a shop asking for someone else's rates.
+      const retailer = await this.loadRetailer(tx, ctx, input.retailerId)
+      const pricingDate = input.pricingDate ?? todayIst()
+      const variantIds = await listedVariantIds(tx, ctx.tenantId, MAX_RATE_ITEMS)
+      const items: RateItem[] = []
+      for (let i = 0; i < variantIds.length; i += RATE_CHUNK) {
+        const chunk = variantIds.slice(i, i + RATE_CHUNK)
+        const quoted = await this.quoteInTx(tx, ctx, {
+          retailerId: retailer.id,
+          pricingDate,
+          lines: chunk.map((variantId) => ({ lineId: variantId, variantId, qtyPcs: 1 })),
+        })
+        for (const line of quoted.lines)
+          items.push({
+            variantId: line.variantId,
+            caseSize: line.caseSize,
+            listRatePaise: line.listRatePaise,
+            ratePaise: line.ratePaise,
+          })
+      }
+      return { retailerId: retailer.id, pricingDate, items }
+    })
   }
 
   /**

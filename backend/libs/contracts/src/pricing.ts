@@ -363,6 +363,45 @@ export const QuoteOutput = z.object({
 })
 export type Quote = z.infer<typeof QuoteOutput>
 
+/**
+ * DOS-104 — the shop's standing per-piece rate for every item on the price list, and nothing else.
+ *
+ * WHY IT EXISTS. The order screen prints "your rate / list rate" on every row before the shopkeeper
+ * has touched anything, and the only way to get those two numbers was to quote the WHOLE listed
+ * catalogue at one piece: 171 lines of applied rules, free items and GST — ~55 KB — for four numbers
+ * a row. This is that same read, PROJECTED: `{ variantId, caseSize, listRatePaise, ratePaise }`.
+ *
+ * WHAT IT IS NOT. It is not a second pricing path. It runs the ONE engine (`priceOrder`, through
+ * `quoteInTx`) at one piece and throws the rest away; it never reads a price list, an override or a
+ * bargain of its own. A qty-1 quote therefore answers exactly the same two rates, which a parity spec
+ * pins. Because it prices one piece, no quantity scheme can show in it — the basket quote stays the
+ * only source of a scheme's effect, a free quantity or GST, and the screen must not pretend otherwise.
+ *
+ * There is no variant list on the query string: 500 ids would not fit a URL, and the rate list IS the
+ * listed catalogue.
+ */
+export const RatesInput = z.object({
+  retailerId: IdSchema,
+  /** Defaults to today (IST), like `quote`. */
+  pricingDate: IsoDateSchema.optional(),
+})
+export type RatesIn = z.infer<typeof RatesInput>
+
+export const RateItemSchema = z.object({
+  variantId: IdSchema,
+  caseSize: z.number().int().positive(),
+  listRatePaise: PaiseSchema,
+  ratePaise: PaiseSchema,
+})
+export type RateItem = z.infer<typeof RateItemSchema>
+
+export const RatesOutput = z.object({
+  retailerId: IdSchema,
+  pricingDate: IsoDateSchema,
+  items: z.array(RateItemSchema),
+})
+export type Rates = z.infer<typeof RatesOutput>
+
 // ---------------------------------------------------------------------------------------------------------------
 // bargains
 
@@ -518,6 +557,14 @@ export const pricingContract = {
     })
     .input(QuoteInput)
     .output(QuoteOutput),
+  rates: oc
+    .route({
+      method: 'GET',
+      path: '/pricing/rates',
+      summary: 'The shop’s standing per-piece rate for every listed item: the engine at one piece',
+    })
+    .input(RatesInput)
+    .output(RatesOutput),
   bargains: {
     request: oc
       .route({

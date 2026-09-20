@@ -575,3 +575,24 @@ function toCost(row: typeof tenantProductCosts.$inferSelect): Cost {
     effectiveFrom: row.effectiveFrom.toISOString(),
   }
 }
+
+/**
+ * DOS-104 — the variant ids this distributor has LISTED, in its own catalogue order.
+ *
+ * `pricing.rates` prices exactly these at one piece, so the rate list a shop opens is the catalogue it
+ * is looking at and nothing else. A plain function on the caller's transaction (no Nest DI, no role
+ * check, no `currentTenant()` of its own): pricing is downstream of tenant-catalog, so it may import
+ * this through the module's `index.ts`, and RLS on `tenant_products` has already scoped the rows.
+ *
+ * Bounded at `limit` (1 000 by default): a price list longer than that is not a price list a phone
+ * should be shown in one read, and the caller chunks what it does with them.
+ */
+export async function listedVariantIds(tx: Db, tenantId: string, limit = 1_000): Promise<string[]> {
+  const rows = await tx
+    .select({ variantId: tenantProducts.variantId })
+    .from(tenantProducts)
+    .where(and(eq(tenantProducts.tenantId, tenantId), eq(tenantProducts.listed, true)))
+    .orderBy(asc(tenantProducts.sortOrder), asc(tenantProducts.id))
+    .limit(limit)
+  return rows.map((r) => r.variantId)
+}

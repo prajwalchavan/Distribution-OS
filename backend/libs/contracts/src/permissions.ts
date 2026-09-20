@@ -526,6 +526,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'pricing.schemes.list': ANY_MEMBER,
   'pricing.schemes.upsert': MANAGEMENT,
   'pricing.quote': ANY_MEMBER,
+  // DOS-104: the same engine at one piece, projected to four numbers a row — the price list a shop or
+  // a rep opens. Same audience as `quote`, same own-shop rule inside it.
+  'pricing.rates': ANY_MEMBER,
   'pricing.bargains.request': ANY_MEMBER,
   'pricing.bargains.decide': MANAGEMENT,
   'pricing.bargains.list': ANY_MEMBER,
