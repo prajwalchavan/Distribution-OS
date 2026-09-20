@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common'
 import { catchError, concatMap, from, throwError, type Observable } from 'rxjs'
 import type { PlatformAuditAction } from '@dos/contracts'
-import { platformAudit, withSystem, type Db } from '@dos/db'
+import { auditLog, platformAudit, withSystem, type Db } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
 import { DB } from '../platform/db.module.js'
 import type { SupportAwareRequest } from '../modules/tenancy/tenant.guard.js'
@@ -69,18 +69,43 @@ export class SupportAuditInterceptor implements NestInterceptor {
     if (!this.db) return
     try {
       await withSystem(this.db, async (tx) => {
+        const detail = {
+          grantId,
+          scope: access.claims.scope,
+          method: access.method,
+          route: access.route,
+          outcome,
+        }
         await tx.insert(platformAudit).values({
           id: uuidv7(),
           adminUserId: access.claims.adminUserId,
           action: 'support.read' satisfies PlatformAuditAction,
           tenantId: access.claims.tenantId,
-          payload: {
-            grantId,
-            scope: access.claims.scope,
-            method: access.method,
-            route: access.route,
-            outcome,
-          },
+          payload: detail,
+        })
+        // AND THE SAME FACT IN THE DISTRIBUTOR'S OWN TRAIL (DOS-111). "Audited" is the third of the
+        // founder's three words, and until this row existed it was audited for US: `platform_audit`
+        // is readable only from the console, so an owner who opened a window could not check that
+        // support stayed on the ticket it named while it read their purchase costs and every shop's
+        // dues. This row hangs off the GRANT — `support_grant` + the grant id — so it lands beside
+        // the `support.approve` and `support.revoke` rows the owner's own decisions wrote
+        // (`modules/tenancy/support.service.ts`), and `tenancy.audit.list` shows it on the owner's
+        // Settings › Audit and under the window itself.
+        //
+        // `actor_role` is `platform_admin` and never the owner the request is BORROWING: the row says
+        // an outsider read this, which is the only reason it is worth writing. The insert is the same
+        // `withSystem` transaction as the platform row above — one round trip, both trails or
+        // neither — and `audit_log`'s INSERT policy admits `actor_role = 'system'`, which is what
+        // `withSystem` sets.
+        await tx.insert(auditLog).values({
+          id: uuidv7(),
+          tenantId: access.claims.tenantId,
+          actorId: access.claims.adminUserId,
+          actorRole: 'platform_admin',
+          action: 'support.read',
+          entityType: 'support_grant',
+          entityId: grantId,
+          after: detail,
         })
       })
     } catch (error) {

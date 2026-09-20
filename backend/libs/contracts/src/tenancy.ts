@@ -374,8 +374,13 @@ export type SupportScope = z.infer<typeof SupportScopeSchema>
  * `requested` — a platform admin asked and NOTHING is open yet; the owner sees a card in its app.
  * `approved` — the owner said yes; the grant is live from `approvedAt` until `expiresAt` and then
  * lapses on its own (`expired`). `rejected` — the owner said no. `revoked` — either side pulled it
- * before it lapsed. There is no state in which support reads a tenant's rows without an `approved`
- * row whose `expiresAt` is still in the future: `active` below is derived from exactly that.
+ * before it lapsed. `lapsed` — asked and never answered inside its own hours (the row's `expires_at`
+ * while unapproved, written as `requestedAt + requestedHours`); it can never be opened, the console
+ * asks again. There is no state in which support reads a tenant's rows without an `approved` row
+ * whose `expiresAt` is still in the future: `active` below is derived from exactly that.
+ *
+ * `lapsed` is LAST on purpose: the README sampler and `pnpm smoke` take an enum's first value, so
+ * the published examples keep saying `requested`.
  */
 export const SupportGrantStatusSchema = z.enum([
   'requested',
@@ -383,6 +388,7 @@ export const SupportGrantStatusSchema = z.enum([
   'rejected',
   'revoked',
   'expired',
+  'lapsed',
 ])
 export type SupportGrantStatus = z.infer<typeof SupportGrantStatusSchema>
 
@@ -424,7 +430,10 @@ export type SupportGrantItem = z.infer<typeof SupportGrantItemOutput>
 /** Newest first. Defaults to the grants that still matter: `requested` and live `approved` ones. */
 export const SupportListInput = z.object({
   status: SupportGrantStatusSchema.optional(),
-  /** Only the grants that are open right now (requested, or approved and not yet expired). */
+  /**
+   * Only the grants that are open right now: requested and not yet lapsed, or approved and not yet
+   * expired. An ask whose own hours ran out is `lapsed` and is never in this list.
+   */
   openOnly: QueryBoolSchema.optional(),
   ...CursorInput,
 })

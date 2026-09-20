@@ -1664,7 +1664,7 @@ Requests from Distribution OS support to look inside this distributor · contrac
 
 | Field | Type | Required |
 |---|---|---|
-| `status` | requested | approved | rejected | revoked | expired | no |
+| `status` | requested | approved | rejected | revoked | expired | lapsed | no |
 | `openOnly` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |

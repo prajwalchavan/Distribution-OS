@@ -29,7 +29,8 @@ import {
   type Series,
 } from '@dos/ui'
 
-import { Async, Columns, Half, Note, Panel, ReloadButton, askLapsed } from '../src/lib/ui'
+import { Async, Columns, Half, Note, Panel, ReloadButton } from '../src/lib/ui'
+import { countKey, pageCount } from '../src/lib/counts'
 import { formatBytes, shortDate } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
@@ -38,24 +39,6 @@ const WINDOW_DAYS = 30
 /** A count with tabular digits and Indian grouping; `—` while there is nothing to show. */
 function count(value: number | null | undefined): string {
   return value === null || value === undefined ? '—' : value.toLocaleString('en-IN')
-}
-
-/**
- * How many rows of a paged list belong on the work list, said honestly.
- *
- * A cursor list has no total, so a page that came back FULL and still has a cursor prints "50+"
- * rather than pretending 50 is the answer — the same rule the warehouse home strip settled on. When
- * `keep` throws rows away the "+" goes with them: a page of 200 that yields 3 is 3, not "3+", and
- * only a page where every row survived can have more behind it.
- */
-function pageCount<Row>(
-  list: { items: readonly Row[]; nextCursor: string | null } | undefined,
-  keep: (row: Row) => boolean = () => true,
-): { label: string; value: number } {
-  if (list === undefined) return { label: '—', value: 0 }
-  const n = list.items.filter(keep).length
-  const more = list.nextCursor !== null && n === list.items.length
-  return { label: `${n.toLocaleString('en-IN')}${more ? '+' : ''}`, value: n }
 }
 
 export default function Platform(): React.JSX.Element {
@@ -128,14 +111,14 @@ export default function Platform(): React.JSX.Element {
   const due = pageCount(pastDue.data)
   const ending = pageCount(endingSoon.data)
   /*
-   * ONLY the asks somebody can still answer. `status: 'requested'` is what the wire calls an ask
-   * nobody decided — including one whose own hours ran out days ago, which their owner can no longer
-   * open (409 `request_expired`). Measured on the founder's database: this chip read "200+ support
-   * requests waiting for an owner" and NOT ONE of the two hundred was still openable, on the panel
-   * whose whole job is to say what the console should do today. `askLapsed()` is the same rule the
-   * Support register and the distributorship panel read by.
+   * ONLY the asks somebody can still answer — and that is now what `status: 'requested'` MEANS
+   * (DOS-110). It used to include every ask whose own hours had run out, which their owner can no
+   * longer open (409 `request_expired`): measured on the founder's database, this chip read "200+
+   * support requests waiting for an owner" and NOT ONE of the two hundred was still openable, on the
+   * panel whose whole job is to say what the console should do today. The server derives `lapsed`
+   * itself, so the page that arrives is the answer and nothing is filtered out of it here.
    */
-  const asked = pageCount(waiting.data, (row) => !askLapsed(row))
+  const asked = pageCount(waiting.data)
   const readFailed =
     pastDue.error !== undefined || endingSoon.error !== undefined || waiting.error !== undefined
   /*
@@ -210,14 +193,25 @@ export default function Platform(): React.JSX.Element {
                   family={due.value > 0 ? 'ochre' : 'neutral'}
                   solid={due.value > 0}
                 />
+                {/*
+                  ONE of a thing is not "{count} things" (DOS-114): this tile read "1 support
+                  requests waiting for an owner" on the panel that says what the console should do
+                  today. There is no plural form in this repo on purpose — Hindi and Marathi do not
+                  share English's one-or-many rule — so each sentence has two keys and `countKey`
+                  picks, from the LABEL, so a page of "1+" still takes the plural.
+                */}
                 <StatusChip
                   testID="attention-ending"
-                  label={t('p1.trialEnding', { count: ending.label })}
+                  label={t(countKey(ending, 'p1.trialEndingOne', 'p1.trialEnding'), {
+                    count: ending.label,
+                  })}
                   family={ending.value > 0 ? 'clay' : 'neutral'}
                 />
                 <StatusChip
                   testID="attention-waiting"
-                  label={t('p1.waitingOwners', { count: asked.label })}
+                  label={t(countKey(asked, 'p1.waitingOwner', 'p1.waitingOwners'), {
+                    count: asked.label,
+                  })}
                   family={asked.value > 0 ? 'clay' : 'neutral'}
                 />
               </Row>

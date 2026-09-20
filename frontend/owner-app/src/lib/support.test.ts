@@ -13,6 +13,24 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+interface NodeFs {
+  readFileSync: (path: string, encoding: 'utf8') => string
+}
+
+interface NodeUrl {
+  fileURLToPath: (url: URL) => string
+}
+
+const NODE_FS: string = 'node:fs'
+const NODE_URL: string = 'node:url'
+
+/** This module's own source, for the rule that is a DELETION (DOS-110). */
+async function read(relative: string): Promise<string> {
+  const { readFileSync } = (await import(NODE_FS)) as NodeFs
+  const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+  return readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8')
+}
+
 import {
   chosenHours,
   supportDecision,
@@ -54,10 +72,10 @@ const LIVE_WINDOW: SupportGrantClock = {
   expiresAt: '2026-10-12T07:10:29.663Z',
 }
 
-/** dos_qa 7232298a: asked for 4 h at 12:50 IST on 12 Sep and never answered. On the wire it still reads
- * `requested` (DOS-110), with no `expiresAt`; its own hours ran out at 16:50 IST that day. */
+/** dos_qa 7232298a: asked for 4 h at 12:50 IST on 12 Sep and never answered. Its own hours ran out at
+ * 16:50 IST that day, and since DOS-110 the wire says so: `lapsed`, with no `expiresAt`. */
 const LAPSED_ASK: SupportGrantClock = {
-  status: 'requested',
+  status: 'lapsed',
   active: false,
   requestedAt: '2026-09-12T07:20:00.000Z',
   requestedHours: 4,
@@ -98,7 +116,7 @@ afterEach(() => {
 })
 
 describe('O24 Settings › Support access: what the owner may decide', () => {
-  it("DOS-108: a request waiting for the owner offers Approve and Refuse, an open window offers Revoke, and a refused, revoked, expired or lapsed request (still 'requested' on the wire after its own hours) offers nothing", () => {
+  it('DOS-108: a request waiting for the owner offers Approve and Refuse, an open window offers Revoke, and a refused, revoked, expired or lapsed request offers nothing', () => {
     expect(supportDecision(FRESH_ASK, NOW)).toMatchObject({
       kind: 'waiting',
       actions: ['approve', 'refuse'],
@@ -128,9 +146,33 @@ describe('O24 Settings › Support access: what the owner may decide', () => {
     expect(supportDecision(LIVE_WINDOW, stale)).toEqual(CLOSED)
     expect(supportDecision({ ...LIVE_WINDOW, expiresAt: null }, NOW)).toEqual(CLOSED)
 
-    // Closed by default: a status this build does not know yet (DOS-110's `lapsed`) offers nothing.
-    const lapsed = 'lapsed' as unknown as SupportGrantClock['status']
-    expect(supportDecision({ ...TEMPLATE_ASK, status: lapsed }, NOW)).toEqual(CLOSED)
+    // Closed by default: any status this build does not know yet offers nothing either.
+    const unknown = 'archived' as unknown as SupportGrantClock['status']
+    expect(supportDecision({ ...TEMPLATE_ASK, status: unknown }, NOW)).toEqual(CLOSED)
+  })
+
+  /**
+   * DOS-110 — the owner app kept a clock of its own, and it no longer needs one.
+   *
+   * `askLapsed()` here was a copy of the console's copy of a rule the SERVER already enforced: an ask
+   * is openable only inside the hours it asked for, counted from the ask. The server derives that
+   * once now, for both services, and answers `lapsed`. What is left is the stale-page safety, which
+   * falls out of the hours themselves: a request whose every offerable hour has passed has nothing to
+   * offer, so it is closed — no second clock, and no second word for the same state.
+   */
+  it('DOS-110: the owner app has no lapsed clock of its own — a lapsed ask is lapsed because the server said so', async () => {
+    const support: Record<string, unknown> = await import('./support')
+    expect(Object.keys(support)).not.toContain('askLapsed')
+
+    const code = await read('./support.ts')
+    // No arithmetic on `requestedHours` against `now` outside the hours the owner may still approve.
+    expect(code).not.toMatch(/requestedHours \* 3_600_000/)
+
+    // The server's word, whatever the clock says: nothing is offered on a lapsed ask.
+    expect(supportDecision(LAPSED_ASK, NOW)).toEqual(CLOSED)
+    expect(supportDecision({ ...TEMPLATE_ASK, status: 'lapsed' }, NOW)).toEqual(CLOSED)
+    // ...and a request that IS waiting still offers its hours.
+    expect(supportDecision(TEMPLATE_ASK, NOW)).toMatchObject({ kind: 'waiting' })
   })
 
   it('DOS-108: the owner approves for the hours support asked or fewer; a 2-hour ask offers 1 h and 2 h, never the fixed 4 h owner-service refuses, and a choice no longer offered falls back to the hours asked', () => {
