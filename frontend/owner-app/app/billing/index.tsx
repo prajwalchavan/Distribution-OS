@@ -42,6 +42,7 @@ import {
   textColumn,
   useNames,
 } from '../../src/lib/ui'
+import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { absoluteUrl } from '../../src/config'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
@@ -385,6 +386,7 @@ export default function Billing(): React.JSX.Element {
                   setDialog('eway')
                 }}
               />
+              <Refusal of={[irn]} scope={invoice.id} testID="invoice-panel-refusal" />
               <Button
                 label={t('o13.irn')}
                 variant="ghost"
@@ -393,6 +395,13 @@ export default function Billing(): React.JSX.Element {
                   irn.mutate(invoice.id)
                 }}
               />
+              {/*
+                Offered on every bill that is not already cancelled, because whether this one may
+                still be cancelled is the SERVER's rule and not a state on this row: after dispatch
+                the only correction is a credit note, and the app has no dispatch state to gate on.
+                The dialog therefore stays open and prints that sentence (DOS-012); it is not a
+                disabled button with a reason it cannot know.
+              */}
               <Button
                 label={t('o13.cancel')}
                 variant="destructive"
@@ -435,6 +444,11 @@ export default function Billing(): React.JSX.Element {
                 maxLength={12}
               />
             )}
+            <Refusal
+              of={[cancel, setEway]}
+              scope={invoice === undefined || dialog === null ? null : `${invoice.id}:${dialog}`}
+              testID="invoice-dialog-refusal"
+            />
           </Stack>
         }
         confirmLabel={dialog === 'cancel' ? t('o13.cancel') : t('app.save')}
@@ -448,9 +462,11 @@ export default function Billing(): React.JSX.Element {
             setEwayNo('')
           }
           if (dialog === 'cancel')
-            void cancel.mutateAsync({ id: invoice.id, reason: reason.trim() }).then(done, done)
+            void cancel.mutateAsync({ id: invoice.id, reason: reason.trim() }).then(done, stayOpen)
           else
-            void setEway.mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() }).then(done, done)
+            void setEway
+              .mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() })
+              .then(done, stayOpen)
         }}
         testID="invoice-dialog"
       />
