@@ -318,6 +318,7 @@ export const strings = {
   'o10.byShop': 'Shop by shop',
   'o10.history': 'Ageing over time',
   'o10.rebuild': 'Rebuild ageing',
+  'o10.rebuilt': 'Ageing rebuilt to {date} — {count} shops',
   'o10.writeOff': 'Write off',
   'o10.writeOffAmount': 'Amount to write off',
   'o10.writeOffReason': 'Reason',
