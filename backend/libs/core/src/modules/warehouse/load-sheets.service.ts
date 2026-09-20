@@ -348,7 +348,7 @@ export class LoadSheetsService {
             // A second desk pressing Approve is told which van's sheet and whose approval, in IST (DOS-141).
             message: `${await this.sheetWords(tx, sheet)} was already approved by ${personWord(
               (await userLabels(tx, [sheet.approvedBy])).get(sheet.approvedBy),
-            )} at ${istMoment(sheet.approvedAt)}`,
+            )} on ${istMoment(sheet.approvedAt)}`,
             data: {
               code: 'already_approved',
               approvedBy: sheet.approvedBy,

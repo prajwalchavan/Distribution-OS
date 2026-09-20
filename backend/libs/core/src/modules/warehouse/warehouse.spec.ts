@@ -987,7 +987,8 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(refused.body.data?.code).toBe('already_approved')
     const message = refused.body.message
     expect(message).toContain(`MH-05-WH-${run.slice(-4)}`)
-    expect(message).toContain('was already approved by Manager')
+    // "on 13 Sep, 4:20 pm", the same preposition the approvals gate uses before a date (merge minor 3).
+    expect(message).toContain('was already approved by Manager on ')
     // the sheet's own IST date, as a desk says it: "4 Aug", never "2026-08-04"
     const [sheetRow] = (
       await db.execute(sql`select sheet_date::text as d from load_sheets where id = ${sheetId}`)
