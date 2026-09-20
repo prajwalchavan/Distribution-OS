@@ -741,6 +741,8 @@ export const strings = {
   'm14.empty': 'No shop matches',
   'm14.detail': '{shop}',
   'm14.balance': 'Balance ₹',
+  'm14.debit': 'Debit ₹',
+  'm14.credit': 'Credit ₹',
   'm14.entry': 'What',
   'm14.oldest': 'Oldest bill',
   'm14.behaviour': 'How they buy',

@@ -20,6 +20,7 @@ import {
   Dialog,
   Money,
   Register,
+  Row,
   RupeeInput,
   Screen,
   Search,
@@ -49,7 +50,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, shiftDays, shortInstant, today } from '../../src/lib/dates'
-import { overdueAmount } from '../../src/lib/shops'
+import { overdueAmount, statementRows } from '../../src/lib/shops'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -93,9 +94,21 @@ export default function Shops(): React.JSX.Element {
     () => api.api.receivables.outstanding.get({ retailerId: selected ?? '', includeBills: true }),
     { enabled: selected !== null },
   )
+  /*
+   * The statement window is the SAME ninety days "Send the statement" queues below, so the panel and
+   * the message the shopkeeper receives cover one period, and the opening row can say which day the
+   * balance is carried from.
+   */
+  const statementFrom = shiftDays(today(), -90)
   const ledger = useQuery(
-    ['receivables', 'ledger', selected ?? 'none'],
-    () => api.api.receivables.ledger.get({ retailerId: selected ?? '', limit: 30 }),
+    ['receivables', 'ledger', selected ?? 'none', statementFrom],
+    () =>
+      api.api.receivables.ledger.get({
+        retailerId: selected ?? '',
+        from: statementFrom,
+        to: today(),
+        limit: 30,
+      }),
     { enabled: selected !== null },
   )
   const series = useQuery(
@@ -303,23 +316,44 @@ export default function Shops(): React.JSX.Element {
                 </Panel>
               )}
 
+              {/*
+                Three figures per row, under one head: what the document added, what it took off, and
+                the balance it left. Without them the single balance column read as the document's own
+                amount (DOS-036).
+              */}
               <Panel title={t('m14.ledger')}>
                 <Stack gap={2}>
-                  {(ledger.data?.items ?? []).slice(0, 12).map((row) => (
-                    <Stack
-                      key={`${row.kind}-${row.refId}-${row.date}`}
-                      gap={1}
-                      border="bottom"
-                      borderTone="faint"
-                      padY={2}
-                    >
+                  <Row gap={3} border="bottom" borderTone="hairline" padY={1}>
+                    {[t('m14.debit'), t('m14.credit'), t('m14.balance')].map((head) => (
+                      <Stack key={head} grow align="end">
+                        <Txt field="label" desk="meta" color={colors.text.secondary}>
+                          {head}
+                        </Txt>
+                      </Stack>
+                    ))}
+                  </Row>
+                  {statementRows(ledger.data ?? { openingPaise: 0, items: [] }, {
+                    from: statementFrom,
+                    limit: 12,
+                  }).map((row) => (
+                    <Stack key={row.key} gap={1} border="bottom" borderTone="faint" padY={2}>
                       <Txt field="body" desk="cell" numberOfLines={1}>
-                        {`${word(row.kind)} · ${row.refNo ?? ''}`}
+                        {row.refNo === null ? word(row.kind) : `${word(row.kind)} · ${row.refNo}`}
                       </Txt>
                       <Txt field="label" desk="meta" color={colors.text.secondary}>
                         {longDate(row.date)}
                       </Txt>
-                      <Money value={row.balancePaise} size="cell" />
+                      <Row gap={3}>
+                        <Stack grow align="end">
+                          <Money value={row.debitPaise} size="cell" symbol={false} />
+                        </Stack>
+                        <Stack grow align="end">
+                          <Money value={row.creditPaise} size="cell" symbol={false} />
+                        </Stack>
+                        <Stack grow align="end">
+                          <Money value={row.balancePaise} size="cell" symbol={false} />
+                        </Stack>
+                      </Row>
                     </Stack>
                   ))}
                 </Stack>
