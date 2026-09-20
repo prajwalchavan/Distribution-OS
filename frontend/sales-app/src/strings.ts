@@ -215,15 +215,21 @@ export const strings = {
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
   's3.pricesChanged': 'Prices changed since you built this order:',
   's3.queuedTitle': 'Saved on this phone',
+  /*
+   * DOS-086 — the sweep submits the landed draft itself (`submitLandedDrafts` in src/lib/queue.ts),
+   * so neither of these two sentences may send the rep to My orders to do it by hand. They say who
+   * is doing the work instead; `dos-086-placed-copy.guard.test.ts` is what keeps the chore out.
+   */
   's3.queuedBody':
-    'It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.',
+    'It goes to the office as soon as there is a signal, and this phone submits it the moment it lands.',
   /*
    * DOS-180 — the two states between "held on the phone" and "placed". The queued op writes a DRAFT
    * (queue.ts), so an order the office has accepted still has no number and nobody has checked the
    * shop's credit; and a refusal belongs to the Needs-you tray, which carries the office's sentence.
    */
   's3.draftTitle': 'Reached the office as a draft',
-  's3.draftBody': 'It has no number yet. Submit it from My orders.',
+  's3.draftBody':
+    'The office has it and this phone is submitting it now. If the office refuses, Needs you will say why.',
   's3.draftLabel': 'Sent as a draft',
   's3.refusedTitle': 'The office refused this order',
   's3.refusedBody': 'Open Needs you to see what the office said, and what to do about it.',
