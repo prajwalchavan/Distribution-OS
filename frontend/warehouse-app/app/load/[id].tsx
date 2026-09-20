@@ -26,6 +26,7 @@ import {
   NumberPad,
   Row,
   Screen,
+  Sheet,
   Stack,
   StatusChip,
   TextInput,
@@ -35,6 +36,7 @@ import {
   useStrings,
 } from '@dos/ui'
 import { caseLine } from '@dos/ui'
+import type { LoadSheetLot } from '@dos/contracts'
 import { newId } from '@dos/api-client'
 import { documents, haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -65,12 +67,34 @@ export default function LoadSheet(): React.JSX.Element {
   const [note, setNote] = useState('')
   const [ask, setAsk] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  /** The crew's count per van-stock lot, in pieces. A lot absent from this map has not been counted. */
+  const [vanCounts, setVanCounts] = useState<Record<string, number>>({})
+  const [countingLot, setCountingLot] = useState<LoadSheetLot | null>(null)
+  const [vanPieces, setVanPieces] = useState<number | null>(null)
 
   const approved = item?.approvedBy !== null && item?.approvedBy !== undefined
   const draft = item?.status === 'draft'
   const expected = item?.expectedPackages ?? 0
   const variance = counted !== null && counted !== expected
-  const blocked = !approved || counted === null || (variance && note.trim() === '')
+  /*
+   * DOS-121. Since DOS-039 the check-out moves the VAN STOCK THE CREW COUNTED and nothing else — the
+   * packed orders' pieces left the rack as `sale` at pack. This screen used to send
+   * `countedVanStock: []` on every sheet, so a van-sales trip would have driven away with its van
+   * stock still booked in the godown and none of it on the vehicle. So: one count per `source = 'van'`
+   * lot, blind like the carton count (nothing to copy off the screen), and no vehicle leaves until
+   * every one of them has a figure — 0 included, which simply means that lot is not going.
+   */
+  const vanLots = item?.lots.filter((lot) => lot.source === 'van') ?? []
+  const vanCounted = vanLots.every((lot) => vanCounts[lot.lotId] !== undefined)
+  /*
+   * DOS-049. "Blind count: what the bill says is not on this screen" stood two inches above ORDERS ON
+   * THIS SHEET — Cartons 7 / 12 / 12 / 4 / 3 — and 7 + 12 + 12 + 4 + 3 is the 38 the pad is asking
+   * for. A crew three cartons short types 38 and the count is theatre. So the per-order figure waits
+   * for the crew's own: once a number is keyed it comes back, and on a confirmed sheet it is simply
+   * the record of what went out.
+   */
+  const cartonsVisible = !draft || counted !== null
+  const blocked = !approved || counted === null || !vanCounted || (variance && note.trim() === '')
 
   const confirm = useMutation(
     (_input: { go: true }, meta) =>
@@ -78,7 +102,10 @@ export default function LoadSheet(): React.JSX.Element {
         id: sheetId,
         idempotencyKey: meta.idempotencyKey,
         countedPackages: counted ?? 0,
-        countedVanStock: [],
+        // `LoadSheetVanStockInput.qtyPcs` is positive: a lot counted zero is simply left off.
+        countedVanStock: vanLots
+          .map((lot) => ({ lotId: lot.lotId, qtyPcs: vanCounts[lot.lotId] ?? 0 }))
+          .filter((line) => line.qtyPcs > 0),
         challanId: newId(),
         ...(variance && note.trim() !== '' ? { varianceNote: note.trim() } : {}),
       }),
@@ -145,7 +172,9 @@ export default function LoadSheet(): React.JSX.Element {
                       ? t('w7.waitingBody')
                       : counted === null
                         ? t('w7.countPackages')
-                        : t('w7.variance'),
+                        : !vanCounted
+                          ? t('w7.countVanFirst')
+                          : t('w7.variance'),
                   }
                 : {})}
               onPress={() => {
@@ -236,9 +265,13 @@ export default function LoadSheet(): React.JSX.Element {
                       key={order.orderId}
                       testID={`w7-order-${order.orderId}`}
                       primary={order.retailerName}
-                      secondary={`${order.orderNo ?? order.orderId.slice(0, 8)} · ${t(
-                        'w6.packages',
-                      )} ${String(order.packages)}`}
+                      secondary={
+                        cartonsVisible
+                          ? `${order.orderNo ?? order.orderId.slice(0, 8)} · ${t(
+                              'w6.packages',
+                            )} ${String(order.packages)}`
+                          : (order.orderNo ?? order.orderId.slice(0, 8))
+                      }
                       trailing={
                         order.invoiceNo === null ? (
                           <StatusChip label={t('w6.noBill')} family="ochre" />
@@ -251,18 +284,42 @@ export default function LoadSheet(): React.JSX.Element {
                 </Group>
               </Panel>
 
-              <Panel title={t('w7.lots')} testID="w7-lots">
+              <Panel
+                title={t('w7.lots')}
+                {...(draft && approved && vanLots.length > 0 ? { meta: t('w3.blind') } : {})}
+                testID="w7-lots"
+              >
                 <Group>
-                  {item.lots.map((lot) => (
-                    <ListRow
-                      key={`${lot.lotId}-${lot.source}`}
-                      testID={`w7-lot-${lot.lotId}`}
-                      primary={lot.variantName}
-                      secondary={caseLine(lot.qtyPcs, lot.caseSize ?? 1, t)}
-                      trailing={<ExpiryChip expiryDate={lot.expiryDate} />}
-                      reason={lot.source === 'van' ? t('w7.sourceVan') : t('w7.sourceOrder')}
-                    />
-                  ))}
+                  {item.lots.map((lot) => {
+                    // A van lot on a draft the crew may still count: blind until the figure is keyed,
+                    // and pressable so it can be. Everything else is the sheet as it stands.
+                    const counting = draft && approved && lot.source === 'van'
+                    const keyed = vanCounts[lot.lotId]
+                    return (
+                      <ListRow
+                        key={`${lot.lotId}-${lot.source}`}
+                        testID={counting ? `w7-van-${lot.lotId}` : `w7-lot-${lot.lotId}`}
+                        primary={lot.variantName}
+                        secondary={
+                          !counting
+                            ? caseLine(lot.qtyPcs, lot.caseSize ?? 1, t)
+                            : keyed === undefined
+                              ? t('w7.vanUncounted')
+                              : t('w7.countedWas', { count: keyed })
+                        }
+                        trailing={<ExpiryChip expiryDate={lot.expiryDate} />}
+                        reason={lot.source === 'van' ? t('w7.sourceVan') : t('w7.sourceOrder')}
+                        {...(counting
+                          ? {
+                              onPress: () => {
+                                setCountingLot(lot)
+                                setVanPieces(keyed ?? null)
+                              },
+                            }
+                          : {})}
+                      />
+                    )
+                  })}
                 </Group>
               </Panel>
 
@@ -325,6 +382,41 @@ export default function LoadSheet(): React.JSX.Element {
           )}
         </Async>
       </Stack>
+
+      <Sheet
+        open={countingLot !== null}
+        onClose={() => {
+          setCountingLot(null)
+        }}
+        title={countingLot?.variantName ?? ''}
+        testID="w7-van-sheet"
+      >
+        <Stack gap={4}>
+          <NumberPad
+            testID="w7-van-pad"
+            mode="count"
+            label={t('w7.vanPieces')}
+            value={vanPieces}
+            onChange={setVanPieces}
+            doneLabel={t('action.done')}
+            onDone={() => {
+              if (countingLot === null || vanPieces === null) return
+              const lotId = countingLot.lotId
+              setVanCounts((was) => ({ ...was, [lotId]: vanPieces }))
+              haptics.tap()
+              setCountingLot(null)
+            }}
+          />
+          <Button
+            label={t('w.close')}
+            variant="ghost"
+            onPress={() => {
+              setCountingLot(null)
+            }}
+            testID="w7-van-cancel"
+          />
+        </Stack>
+      </Sheet>
 
       <Dialog
         open={ask}

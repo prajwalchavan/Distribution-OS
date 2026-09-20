@@ -1,0 +1,39 @@
+# Merge review: lean group lean-owner-desk (owner), branch qa/b2-lean-owner-desk
+
+Fable, 2026-09-20. Read-only review of 622da3b…35a6e54 (six commits, 26 files) against the planner's binding notes in `lean-groups.json` (no `verdicts/lean-lean-owner-desk.md` exists — the implementer is right about that) and the six findings in `QA/findings/01-walkthrough-owner.md`. Lens: the owner's desk tells the truth.
+
+**Decision:** MERGE AFTER FIXES
+
+The fixes match the notes. DOS-002: `mixSegments` keeps a slice already labelled `otherLabel` out of the head and folds it once, last (geometry.ts:244-259); both charts ask `topGroups: 4`; no types.ts change; the test is real geometry. DOS-012: billing, orders and staff close only on success and import `Refusal`/`stayOpen` from the one copy `src/lib/refusal.tsx` (DOS-108 (a)); the sweep stops at the four files the notes name. DOS-008: `invoices.pdf` is a GET (billing.ts:871), `documentRender` re-reads `pdf_object_key` on every call and `requestRender` de-duplicates the outbox per (document, variant) (platform/documents.ts), so fifteen polls queue one render; the timer is torn down on bill change or close; the file is a button. DOS-015: `RebuildAgeingOutput.asOf/retailers` exist (receivables.ts:740); no receivables change. DOS-018: register and rollup both filter `kind = 'scheme'` (registers.service.ts:189, rollup.ts:473) — the rollup step past the notes is right, it is an owned file, and the fixture's bargain rule turns the existing "splits" test red without the fix; `active_trips = state 'active'` (rollup.ts:557); seed trips numbered `TRIP-<yyyymmdd>-1`, today's block `continue`s before the per-vehicle numbering (delivery.ts:750) so no collision. No existing test weakened. Nothing outside `ownsFiles` except the six new unowned files under `owner-app/src/lib/` (no other group owns them); `app.json` untouched; no contract change, so READMEs stand.
+
+## Blockers
+
+1. **Android now mounts Google Maps with no key, which is a grey box, not the list the notes asked to prove.** `frontend/owner-app/app/map.tsx:131-139` renders `<MapView>` unconditionally; the kit's native map (`libs/ui/src/native/map.tsx:92,107`) falls back to the list ONLY when `require('react-native-maps')` throws, and `package.json:57` now links it, so the next `expo run:android` dev build carries the native module and `app.json:16-18` carries no `android.config.googleMaps.apiKey` (docs/26:29 — the founder's key). The implementer's "the kit draws its honest list on Android" is wrong in code, and no emulator was run. **Fix** (owned file, one line + one guard line): in `map.tsx` pass `listOnly={process.env.EXPO_OS === 'android'}` with a comment naming the key and docs/26, so Android draws the marker list and the register until the key is in `app.json`; in `dos-017-live-map.guard.test.ts` add `androidListUntilKey: /listOnly=\{process\.env\.EXPO_OS === 'android'\}/.test(screen)` → `true`. When the key arrives, that line and the guard line go together with the `app.json` entry. Web and iOS are untouched by this.
+2. **Gate on the merged tree after fix 1.** Frontend: `pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm format:check`, and the kit's cross-app guards with `--force` (S-155). Backend: `pnpm --filter @dos/core test -- src/modules/reporting` and `pnpm --filter @dos/db test -- src/seed-demo.test.ts` on a `dos_test_*` database, then lint, typecheck, format:check.
+
+## Minors
+
+- DOS-002 merges on TEXT: the kit's `chart.other` ("Other", strings.ts:147) must equal the API's literal `'Other'` (reporting.service.ts:888). A localised kit would draw two Others again. Later: map `group.key === 'other'` to `t('chart.other')` in `owner-app/app/index.tsx:108` and `reports/index.tsx:189`.
+- `o13.pdfQueued` now says "it will open here in a moment" — it does not open; a button is offered. "it will be offered here in a moment" is the true sentence.
+- `turnsLabel` is also the point formatter (web/charts.tsx:101): a raw ratio prints up to three decimals ("0.893×") where the axis wanted them. Cosmetic; round the value or accept.
+- `seed-demo.test.ts:675` claims the TRIP series' shape; the series numbers `TRIP-0001` (numbering.ts). The seed's shape is its own; the two cannot collide, but the comment overstates. And on a Sunday `ageDays === 0` never runs (delivery.ts:631-636), so the `TRIP-ACTIVE` proof bites only on a working day.
+- Five of six items are proved by source-regex guards (red-by-construction, the batch's convention). Every behavioural claim below rests on the walks.
+- DOS-012's second half (disabled, unexplained Confirm / Release / Cancel on a delivered order) is not in this group; it belongs with lean-orders-panels.
+
+## Conflicts
+
+- **main:** merge base is main's head 5f710dc; `git merge-tree` is clean. Fast-forward.
+- **In flight (8 lean-backend-platform, 9 lean-warehouse-pick):** none of the 26 files.
+- **Still to merge, all of which wait for this group:** `owner-app/src/strings.ts` gains five keys at three places (orders-panels, admin-support, sales-orders-pricing, owner-money-approvals, manager-order-lifecycle, retailer-platform, warehouse-rules rebase over them); `reporting.spec.ts` now carries a bargain rule (5 000 paise) on the issued bill's line — any scheme-spend assertion in lean-delivery-collect or lean-owner-money-approvals must count 2 000, not 7 000; `delivery.ts:643` (`activeTripNo`) for lean-delivery-collect; `seed-demo.test.ts` appends for lean-admin-support; `rollup.ts:468-474,551-559` for lean-owner-money-approvals.
+
+## Walks
+
+- **Web, desk and phone (owed before any item closes):** Today and Reports brand mix = four brands + one Other, last, Neelam visible; Billing › a paid delivered bill › Cancel bill → dialog stays open with the 409 sentence, IRN refusal in the panel; Billing › a never-rendered bill › Open bill with the worker running → "The bill is ready — open it" within 30 s and it opens (the finding's own evidence says a second GET once stayed `queued` after the render — if that recurs, the cause is upstream of this fix and must be filed, not patched here); Money › Rebuild ageing → "Ageing rebuilt to … — N shops", write-off refusal stays open; Orders panel › terms "Credit", refusal on confirm/cancel/release; Staff dialog refusal; Live map › OSM tiles, pins, pin ↔ row selection, a stale van ochre, a no-fix van a row only; Trips › "Opening cash ₹"; Reports › stock-turns ticks all distinct; Today tile trips count after one worker rollup.
+- **Android, Pixel 7 dev build:** live map shows the list + register (fix 1), order terms, trips column, in-Sheet dialog refusal (DOS-164), rebuild toast.
+- **iOS:** home and live map (Apple Maps, no key) — still the unproven target repo-wide.
+- Seed caveat for the walker: see Defects outside — the Today tile and the Profit chart's history will disagree with the fix until that file is changed; do not file it against this group.
+
+## Defects outside this group
+
+1. `backend/libs/database/src/seed-demo/reporting.ts:930-933` (lean-owner-money-approvals): the seed writes `owner_summary.active_trips` with the old wide `state in ('planned','loading','active','closing')`. After `pnpm db:seed` the Today tile says "2 trips active" while the map shows one, until the worker's 15-minute rollup runs. Fix: `state = 'active'`.
+2. `backend/libs/database/src/seed-demo/reporting.ts:686-703` (same lane): `schemeSpendByDay` sums EVERY `applied_rules` entry, and the seed writes override (sales.ts:674) and bargain (sales.ts:693) rules with `amountPaise`, so `daily_owner_stats.scheme_spend_*` for the whole seeded year carries them while the register beneath now does not — and this does NOT heal: the worker rolls up today only. Fix: add `and coalesce(rule ->> 'kind', 'scheme') = 'scheme'` to the WHERE, then re-seed `dos_qa` (which the DOS-018 trip numbers need anyway; this lane could not touch it).

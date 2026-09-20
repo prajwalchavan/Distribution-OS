@@ -638,6 +638,9 @@ export async function seedDelivery(
       // now, the rest are pending.
       const tripId = activeTripId()
       const def = vehicleDef('tempo')
+      // The TRIP series' own shape, like every other trip below: a placeholder ("TRIP-ACTIVE") is an
+      // internal label, and it reached the owner's live map and the driver's screen (DOS-018).
+      const activeTripNo = `TRIP-${dayKey.replace(/-/g, '')}-1`
       const onRoad = attemptsByDay.get(isoDate(previousWorkingDay()))?.filter((a) => a.onRoad) ?? []
       const done = attemptsByDay.get(dayKey)?.filter((a) => a.outcome === 'delivered') ?? []
       const stops = [...done, ...onRoad]
@@ -645,7 +648,7 @@ export async function seedDelivery(
       tripRows.push({
         id: tripId,
         tenantId,
-        tripNo: 'TRIP-ACTIVE',
+        tripNo: activeTripNo,
         tripDate: isoDate(day),
         vehicleId: vehicleRowId(def.key),
         driverId: def.driverId,
@@ -678,7 +681,7 @@ export async function seedDelivery(
       })
       demoTrips.push({
         id: tripId,
-        tripNo: 'TRIP-ACTIVE',
+        tripNo: activeTripNo,
         tripDate: isoDate(day),
         vehicle: demoVehicle(def.key),
         state: 'active',

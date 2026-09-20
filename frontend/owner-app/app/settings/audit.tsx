@@ -22,6 +22,7 @@ import {
 import { useState } from 'react'
 
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../../src/lib/ui'
+import { auditWho } from '../../src/lib/support-reads'
 import { instantWithClock, rangeOf, type RangeId } from '../../src/lib/dates'
 import { RangeSegments } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
@@ -60,7 +61,13 @@ export default function Audit(): React.JSX.Element {
     textColumn('when', t('o25.when'), (row) => instantWithClock(row.occurredAt), {
       priority: 'identity',
     }),
-    textColumn('who', t('o25.who'), (row) => names.staff(row.actorId)),
+    /*
+     * DOS-111: a `support.read` row is written by somebody at DISTRIBUTION OS, who holds no
+     * membership here, so the staff directory cannot name them and this column printed eight
+     * characters of a uuid. `auditWho` prints what they are instead — the same word the role column
+     * carries — and leaves every colleague's row exactly as it was.
+     */
+    textColumn('who', t('o25.who'), (row) => auditWho(row, names.staff, word)),
     textColumn('role', t('o7.role'), (row) => word(row.actorRole)),
     textColumn('action', t('o25.action'), (row) => word(row.action)),
     textColumn('entity', t('o25.entity'), (row) => word(row.entityType), { priority: 'chip' }),
@@ -163,7 +170,7 @@ export default function Audit(): React.JSX.Element {
         {current === null ? null : (
           <Stack gap={4}>
             <Field label={t('o25.when')}>{instantWithClock(current.occurredAt)}</Field>
-            <Field label={t('o25.who')}>{names.staff(current.actorId)}</Field>
+            <Field label={t('o25.who')}>{auditWho(current, names.staff, word)}</Field>
             <Field
               label={t('o25.entity')}
             >{`${current.entityType} ${current.entityId ?? ''}`}</Field>

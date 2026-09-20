@@ -262,10 +262,20 @@ export class MessagesService {
 
   /**
    * The handler rule on top of RLS: a salesperson sees the shops on its own beats and its own
-   * notices; everyone else what the policy admits (staff: the tenant; the shop: its own rows).
+   * notices; the godown only its own notices; everyone else what the policy admits (staff: the
+   * tenant; the shop: its own rows).
+   *
+   * THE GODOWN'S "INBOX" WAS THE DISTRIBUTOR'S OUTBOX (QA DOS-052). W12 lists this procedure
+   * unfiltered and printed "Order SO-0459 of ₹8,044.00 confirmed. Delivery on the next beat day…" —
+   * WhatsApp and SMS the office sent to SHOPS, order values and all — as the loader's inbox. A
+   * warehouse login has no business in the shop correspondence of a distributorship, so it reads the
+   * rows addressed to the person signed in, which is what an inbox means. The crew is NOT narrowed:
+   * it sends the bill and the receipt at the door (`SHOP_MESSENGERS`) and must be able to see what
+   * went; the desk and the accountant keep the whole log.
    */
   private scope(): SQL | undefined {
     const ctx = currentTenant()
+    if (ctx.actorRole === 'warehouse') return eq(messages.recipientUserId, ctx.actorId)
     if (ctx.actorRole !== 'salesperson') return undefined
     return or(
       eq(messages.recipientUserId, ctx.actorId),

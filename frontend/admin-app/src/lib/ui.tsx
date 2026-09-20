@@ -352,31 +352,39 @@ export function subscriptionFamily(status: string | null): StatusFamily {
   }
 }
 
-/**
- * A `requested` grant that can never be opened any more.
- *
- * The window is counted from the moment it was ASKED for, not from the moment it is approved
- * (`support.service.ts`: `expiresAt = requestedAt + hours`, and an approval whose window already
- * ended is refused with `request_expired`). So a four-hour ask made yesterday still reads
- * `status: 'requested'` on the wire, and a console that printed "waiting for their owner" would be
- * telling its reader to wait for something that cannot happen. Measured on the pilot's own seeded
- * request, which answered 409 `request_expired` when its owner tried to approve it.
- */
-export function askLapsed(
-  grant: { status: string; requestedAt: string; requestedHours: number },
-  now: number = Date.now(),
-): boolean {
-  if (grant.status !== 'requested') return false
-  const asked = Date.parse(grant.requestedAt)
-  return !Number.isNaN(asked) && asked + grant.requestedHours * 3_600_000 <= now
-}
-
-/** A support grant: waiting on the owner, open, or shut (refused, handed back, lapsed). */
+/** A support grant: waiting on the owner, open, or shut (refused, handed back, lapsed, expired). */
 export function grantFamily(status: string, active: boolean): StatusFamily {
   if (active) return 'moss'
   if (status === 'requested') return 'clay'
   if (status === 'rejected') return 'brick'
   return 'neutral'
+}
+
+/** The words `grantChip` puts on a chip: this app's catalogue, never an English literal. */
+export interface GrantWords {
+  openNow: string
+  word: (value: string) => string
+}
+
+/**
+ * What one support grant looks like as a chip — FROM THE ROW ALONE (DOS-110).
+ *
+ * This console used to carry a clock of its own (`askLapsed`: `requestedAt + requestedHours` against
+ * `Date.now()`), because a request nobody answered inside its own hours still read `requested` on
+ * the wire even though its owner could no longer open it. Every register, panel and count had to
+ * remember to apply that rule, and the ones that forgot said "Waiting for their owner" about a
+ * hundred asks nobody was waiting on. The server derives `lapsed` itself now, in one place, for both
+ * services — so the only rule left here is which colour a word takes.
+ */
+export function grantChip(
+  grant: { status: string; active: boolean },
+  words: GrantWords,
+): { label: string; family: StatusFamily; solid: boolean } {
+  return {
+    label: grant.active ? words.openNow : words.word(grant.status),
+    family: grantFamily(grant.status, grant.active),
+    solid: grant.active,
+  }
 }
 
 // ---------------------------------------------------------------------------

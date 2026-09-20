@@ -151,6 +151,8 @@ export const strings = {
   'm2.approve': 'Approve',
   'm2.reject': 'Reject',
   'm2.decisionNote': 'Note for the person who asked',
+  'm2.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
+  'm2.orderConfirmed': '{order} confirmed — stock held',
   'm2.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'm2.confirmBody': 'Stock is reserved when this is confirmed. There is no undo.',
   'm2.subtotal': 'Subtotal',
@@ -162,6 +164,8 @@ export const strings = {
   'm2.askedRate': 'Asked rate',
   'm2.listRate': 'List rate',
   'm2.reservations': 'Held for this order',
+  'm2.reservationsLot': 'across 1 lot',
+  'm2.reservationsLots': 'across {count} lots',
   'm2.onlySubmitted': 'Only a submitted order can be confirmed',
   'm2.decideFirst':
     'Waiting on {what}. Approve or reject each one first; the last approval confirms the order.',

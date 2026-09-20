@@ -94,6 +94,8 @@ export const strings = {
   'o1.stopsDone': '{count} stops delivered',
   'o1.needsYou': 'Needs you',
   'o1.needsYouCount': 'Needs you ({count})',
+  /* A page of decisions left a cursor behind, so the count is a floor and is written as one. */
+  'o1.needsYouAtLeast': 'Needs you ({count}+)',
   'o1.openApprovals': 'Open approvals',
   'o1.noApprovals': 'Nothing waiting for you',
   'o1.week': 'Last 7 days',
@@ -117,6 +119,8 @@ export const strings = {
   'o3.reject': 'Reject',
   'o3.ask': 'Ask again',
   'o3.note': 'Note for the person who asked',
+  'o3.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
+  'o3.orderConfirmed': '{order} confirmed — stock held',
   'o3.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'o3.approved': 'Approved',
   'o3.rejected': 'Rejected',
@@ -153,7 +157,9 @@ export const strings = {
   'o4.speed': 'Speed',
   'o4.stops': 'Stops',
   'o4.noPositions': 'No vehicle has reported a position today',
-  'o4.mapNote': 'Map tiles arrive with the MapView component; positions are live.',
+  'o4.mapNote':
+    'Positions are live. Tiles are OpenStreetMap in a browser and Apple Maps on iPhone; on Android the vans are a labelled list until the maps key arrives.',
+  'o4.noFix': 'No vehicle has reported a position to put on the map',
   'o4.openInMaps': 'Open in maps',
   'o4.trace': 'Trip trace',
 
@@ -172,6 +178,8 @@ export const strings = {
   'o5.cancel': 'Cancel order',
   'o5.cancelReason': 'Why is it cancelled',
   'o5.reservations': 'Stock held',
+  'o5.reservationsLot': 'across 1 lot',
+  'o5.reservationsLots': 'across {count} lots',
   'o5.release': 'Release stock',
   'o5.bills': 'Bills',
   'o5.detail': 'Order {no}',
@@ -190,6 +198,7 @@ export const strings = {
   'o18.date': 'Date',
   'o18.vehicle': 'Vehicle',
   'o18.stops': 'Stops',
+  'o18.openingCash': 'Opening cash ₹',
   'o18.collected': 'Collected ₹',
   'o18.expenses': 'Expenses ₹',
   'o18.settle': 'Settle trip',
@@ -316,6 +325,7 @@ export const strings = {
   'o10.byShop': 'Shop by shop',
   'o10.history': 'Ageing over time',
   'o10.rebuild': 'Rebuild ageing',
+  'o10.rebuilt': 'Ageing rebuilt to {date} — {count} shops',
   'o10.writeOff': 'Write off',
   'o10.writeOffAmount': 'Amount to write off',
   'o10.writeOffReason': 'Reason',
@@ -375,7 +385,9 @@ export const strings = {
   'o13.due': 'Due ₹',
   'o13.state': 'State',
   'o13.pdf': 'Open bill',
-  'o13.pdfQueued': 'The bill is being prepared — press again in a moment',
+  'o13.pdfQueued': 'The bill is being prepared — it will be offered here in a moment',
+  'o13.pdfSlow': 'The bill is still being prepared; ask for it again',
+  'o13.pdfReady': 'The bill is ready — open it',
   'o13.printBill': 'Print bill',
   'o13.cancel': 'Cancel bill',
   'o13.eway': 'Record e-way bill',
@@ -659,6 +671,9 @@ export const strings = {
   'o25.device': 'Device',
   'o25.lastSeen': 'Last used',
   'o25.empty': 'Nothing recorded yet',
+  // DOS-111: what a Distribution OS support window read inside these books, under the window itself.
+  'o24.reads': 'What they have read under this window',
+  'o24.noReads': 'Nothing read under this window yet',
 
   // --- shared vocabulary ---------------------------------------------------------------------------------------------------
   'word.beat': 'Beat',
@@ -749,6 +764,12 @@ export const strings = {
   // people
   'word.salesperson': 'Salesperson',
   'word.platform_admin': 'Distribution OS staff',
+  // The audit trail's own words for a support window: the reads it wrote and the decisions this
+  // distributorship made about it (DOS-111).
+  'word.support.read': 'Read under a support window',
+  'word.support.approve': 'Support window opened',
+  'word.support.revoke': 'Support window closed',
+  'word.support_grant': 'Support window',
   'word.must_change_password': 'Temporary password',
 
   // imports and exports

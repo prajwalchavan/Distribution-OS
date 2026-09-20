@@ -1,6 +1,19 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNull,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import type {
   AdminAuditList,
   AdminAuditListInput,
@@ -94,10 +107,14 @@ export class PlatformConsoleService {
             input.status ? eq(users.status, input.status) : undefined,
             input.platformOnly ? isNull(platformAdmins.disabledAt) : undefined,
             input.platformOnly ? sql`${platformAdmins.id} is not null` : undefined,
-            input.cursor ? sql`${users.id} > ${input.cursor}` : undefined,
+            afterUser(input.cursor),
           ),
         )
-        .orderBy(asc(users.id))
+        // BY NAME (DOS-114). A directory is read by name: in id order the console listed 52 people as
+        // `sandeep.mane, pilot.owner, anita.sonawane…` — the order the rows happened to be written in
+        // — with no sort to reach for. `id` stays as the tie-break so two people of the same name have
+        // a stable order and the keyset below can never repeat or skip one of them.
+        .orderBy(asc(users.name), asc(users.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit).map((r) => r.user)
       const ids = page.map((u) => u.id)
@@ -117,7 +134,7 @@ export class PlatformConsoleService {
             lastLogins.get(user.id) ?? null,
           ),
         ),
-        nextCursor: rows.length > input.limit && last ? last.id : null,
+        nextCursor: rows.length > input.limit && last ? userCursor(last) : null,
       }
     })
   }
@@ -473,6 +490,32 @@ function pickId(payload: Record<string, unknown>): string | null {
     if (typeof value === 'string') return value
   }
   return null
+}
+
+/**
+ * The People page's cursor: `<id>|<name>`, the two columns the list is ordered by (DOS-114).
+ *
+ * One opaque string, which is all the contract declares (`cursor: z.string().optional()`), so the
+ * shape stays free to change. The id comes first because it is a uuid — 36 characters with no `|` in
+ * them — so a name containing a `|` still parses: everything after the FIRST separator is the name.
+ */
+function userCursor(row: typeof users.$inferSelect): string {
+  return `${row.id}|${row.name}`
+}
+
+/**
+ * The keyset: strictly after (name, id) of the last row of the previous page, compared as a PAIR so
+ * two people with the same name cannot be skipped or handed back twice. A cursor from an older build
+ * (a bare id, no separator) has no name to compare and is treated as the start of the list rather
+ * than silently returning everybody again.
+ */
+function afterUser(cursor: string | undefined): SQL | undefined {
+  if (!cursor) return undefined
+  const cut = cursor.indexOf('|')
+  if (cut <= 0) return undefined
+  const id = cursor.slice(0, cut)
+  const name = cursor.slice(cut + 1)
+  return sql`(${users.name}, ${users.id}) > (${name}, ${id})`
 }
 
 function toAdminUser(
