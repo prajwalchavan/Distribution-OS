@@ -94,6 +94,8 @@ export const strings = {
   'o1.stopsDone': '{count} stops delivered',
   'o1.needsYou': 'Needs you',
   'o1.needsYouCount': 'Needs you ({count})',
+  /* A page of decisions left a cursor behind, so the count is a floor and is written as one. */
+  'o1.needsYouAtLeast': 'Needs you ({count}+)',
   'o1.openApprovals': 'Open approvals',
   'o1.noApprovals': 'Nothing waiting for you',
   'o1.week': 'Last 7 days',
