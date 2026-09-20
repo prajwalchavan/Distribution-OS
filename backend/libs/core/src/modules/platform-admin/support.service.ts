@@ -1,18 +1,21 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, isNotNull, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, lt } from 'drizzle-orm'
 import type {
   AdminSupportGrant,
   AdminSupportList,
   AdminSupportListInput,
   AdminSupportRevokeIn,
-  SupportGrantStatus,
   SupportRequestIn,
 } from '@dos/contracts'
 import type { z } from 'zod'
 import { supportGrants, tenants, type Db } from '@dos/db'
 import { DB, platformIdempotent, requireDb } from '../../platform/index.js'
-import { statusOf, toSupportGrant } from './support-grants.js'
+// The ONE derivation of what a support grant is, shared with the owner's half (DOS-110). Module 13
+// already reaches into `../tenancy/index.js` for `PLATFORM_SCOPE`, `TenancyModule` and `TenantGuard`;
+// this is the same door, and it is what keeps the two services from disagreeing about a status.
+import { grantStatusPredicate, openGrants, statusOf } from '../tenancy/index.js'
+import { toSupportGrant } from './support-grants.js'
 import {
   platformActorId,
   platformAdminNames,
@@ -112,8 +115,8 @@ export class PlatformSupportService {
         .where(
           and(
             input.tenantId ? eq(supportGrants.tenantId, input.tenantId) : undefined,
-            input.openOnly ? openOnly() : undefined,
-            input.status ? statusPredicate(input.status) : undefined,
+            input.openOnly ? openGrants() : undefined,
+            input.status ? grantStatusPredicate(input.status) : undefined,
             input.cursor ? lt(supportGrants.id, input.cursor) : undefined,
           ),
         )
@@ -125,9 +128,15 @@ export class PlatformSupportService {
         page.map((r) => r.grant.adminUserId),
       )
       const last = page.at(-1)
+      // ONE instant for the whole page, not one per row.
+      const now = new Date()
       return {
         items: page.map((r) => ({
-          ...toSupportGrant(r.grant, names.get(r.grant.adminUserId) ?? 'Distribution OS support'),
+          ...toSupportGrant(
+            r.grant,
+            names.get(r.grant.adminUserId) ?? 'Distribution OS support',
+            now,
+          ),
           tenantId: r.tenant.id,
           tenantSlug: r.tenant.slug,
           tenantName: r.tenant.legalName,
@@ -174,6 +183,15 @@ export class PlatformSupportService {
           })
         }
         const now = new Date()
+        // An ask whose own hours ran out closed itself, so there is nothing to withdraw (DOS-110).
+        // Recording it as `rejected` would put "the owner said no" on a request the owner was never
+        // given the chance to answer; the owner's own service refuses the same thing the same way.
+        if (statusOf(grant, now) === 'lapsed') {
+          throw new ORPCError('CONFLICT', {
+            message: 'that request lapsed unanswered; nothing to withdraw — raise a new one',
+            data: { code: 'request_expired' },
+          })
+        }
         const [row] = await tx
           .update(supportGrants)
           .set({
@@ -209,36 +227,5 @@ export class PlatformSupportService {
       tenantSlug: tenant?.slug ?? '',
       tenantName: tenant?.legalName ?? '',
     }
-  }
-}
-
-/** Requested, or approved and not yet closed: everything still live on our side. */
-function openOnly(): SQL | undefined {
-  return and(
-    isNull(supportGrants.revokedAt),
-    sql`(${supportGrants.approvedAt} IS NULL OR ${supportGrants.expiresAt} > now())`,
-  )
-}
-
-function statusPredicate(status: SupportGrantStatus): SQL | undefined {
-  switch (status) {
-    case 'requested':
-      return and(isNull(supportGrants.revokedAt), isNull(supportGrants.approvedAt))
-    case 'approved':
-      return and(
-        isNull(supportGrants.revokedAt),
-        isNotNull(supportGrants.approvedAt),
-        sql`${supportGrants.expiresAt} > now()`,
-      )
-    case 'expired':
-      return and(
-        isNull(supportGrants.revokedAt),
-        isNotNull(supportGrants.approvedAt),
-        sql`${supportGrants.expiresAt} <= now()`,
-      )
-    case 'rejected':
-      return and(isNotNull(supportGrants.revokedAt), isNull(supportGrants.approvedAt))
-    case 'revoked':
-      return and(isNotNull(supportGrants.revokedAt), isNotNull(supportGrants.approvedAt))
   }
 }

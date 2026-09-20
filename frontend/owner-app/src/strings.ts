@@ -671,6 +671,9 @@ export const strings = {
   'o25.device': 'Device',
   'o25.lastSeen': 'Last used',
   'o25.empty': 'Nothing recorded yet',
+  // DOS-111: what a Distribution OS support window read inside these books, under the window itself.
+  'o24.reads': 'What they have read under this window',
+  'o24.noReads': 'Nothing read under this window yet',
 
   // --- shared vocabulary ---------------------------------------------------------------------------------------------------
   'word.beat': 'Beat',
@@ -761,6 +764,12 @@ export const strings = {
   // people
   'word.salesperson': 'Salesperson',
   'word.platform_admin': 'Distribution OS staff',
+  // The audit trail's own words for a support window: the reads it wrote and the decisions this
+  // distributorship made about it (DOS-111).
+  'word.support.read': 'Read under a support window',
+  'word.support.approve': 'Support window opened',
+  'word.support.revoke': 'Support window closed',
+  'word.support_grant': 'Support window',
   'word.must_change_password': 'Temporary password',
 
   // imports and exports
