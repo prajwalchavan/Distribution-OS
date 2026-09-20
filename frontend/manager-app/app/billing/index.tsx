@@ -101,11 +101,22 @@ export default function BillingDesk(): React.JSX.Element {
 
   const mayCancel = can('billing.invoices.cancel')
   const mayIssueForPack = can('billing.invoices.issueForPack')
-  const params = useLocalSearchParams<{ q?: string }>()
-  const [view, setView] = useState<'queue' | 'bills'>('queue')
+  /*
+   * DOS-145: someone arriving with a bill in the url is looking for a BILL. `view=bills` (the header
+   * search's own link) and a bare `?q=` both open the issued register rather than the order queue,
+   * and `bill=` opens that bill's panel — cancel, e-way bill — without a second search.
+   */
+  const params = useLocalSearchParams<{ q?: string; view?: string; bill?: string }>()
+  const [view, setView] = useState<'queue' | 'bills'>(
+    params.view === 'bills' || (typeof params.q === 'string' && params.q !== '')
+      ? 'bills'
+      : 'queue',
+  )
   const [range, setRange] = useState<RangeId>('d30')
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(
+    typeof params.bill === 'string' && params.bill !== '' ? params.bill : null,
+  )
   const [dialog, setDialog] = useState<'cancel' | 'eway' | 'billPack' | null>(null)
   const [reason, setReason] = useState('')
   const [ewayNo, setEwayNo] = useState('')
