@@ -467,7 +467,9 @@ The whole `delivery` contract is **planned** (docs/plans/delivery.md §2); calls
   `delivery.collections.record` (planned, wraps `receivables.receipts.create` ✓), `billing.invoices.upiQr` ✓,
   `receivables.receipts.get` ✓, `receivables.receipts.list` tripId ✓. MISSING: receipt document to share (see receivables gaps).
 - **D6 Van sale (order from vehicle stock, invoice at the door)** — Calls: `delivery.vanSales.create` (planned, one transaction),
-  `inventory.stock.balances` locationId=vehicle ✓, `inventory.stock.sellable` ✓, `pricing.quote` ✓, `receivables.creditCheck` ✓,
+  `inventory.stock.balances` locationId=vehicle ✓, `inventory.stock.sellable` locationId=vehicle ✓ (DOS-140: `sellable` answers the
+  godowns, and a VEHICLE only when that vehicle is the `locationId` asked for — this screen's read; the damaged / expiry bin, goods
+  in transit and a customer location are never sellable, named or not), `pricing.quote` ✓, `receivables.creditCheck` ✓,
   `billing.invoices.issueVanSale` ✓ (DOORSTEP), `delivery.stops.add` (planned). Plan correction: docs/plans/delivery.md §2 bills the
   van sale from a per-vehicle `VAN-<reg>` series with `allocation_mode = 'device'`; docs/17 §D5 removed that — it must call
   `BillingService` on the tenant's normal series exactly as `billing.invoices.issueVanSale` already does.
@@ -571,7 +573,8 @@ R3: `<AgeingBuckets>` from `outstanding.get.buckets` ✓. Nothing else (a shop n
 - Needs but cannot: `orders.submit` (STAFF), `pricing.schemes.list` (STAFF), `pricing.bargains.list` (STAFF), `retailers.upsert`
   (STAFF). Everything else the screens call is ANY_MEMBER / MONEY_READERS / SHOPKEEPER_ONLY ✓ with RLS narrowing.
 - Can but no screen: `catalog.manufacturers`, `inventory.stock.sellable` per-lot rows (batch, MRP, expiry to a shop — acceptable,
-  it is ATP), `orders.cancel` on own draft/submitted ✓ (R8 needs it).
+  it is ATP, and since DOS-140 it is godown rows only: no damaged-bin, in-transit or vehicle piece is ever offered to a shop or a
+  rep), `orders.cancel` on own draft/submitted ✓ (R8 needs it).
 - Directory opt-in (`directory_optins` table) has no procedure — post-pilot, not a pilot gap.
 
 ### 6.4 Offline

@@ -820,6 +820,104 @@ describeDb('inventory (DATABASE_URL)', () => {
     expect(await ledgerRows()).toBe(before + 4)
   })
 
+  it('DOS-140: sellable offers the godown only — never the damaged bin, goods in transit or a shop — and answers a vehicle just when that vehicle is asked for', async () => {
+    type Sellable = { lotId: string; locationId: string; available: number }
+    const vanId = uuidv7()
+    const shopFloorId = uuidv7()
+    for (const [id, kind, name] of [
+      [vanId, 'vehicle', `Van ${run}`],
+      [shopFloorId, 'customer', `Shop floor ${run}`],
+    ] as const) {
+      const made = await call(app, owner, 'POST', '/inventory/locations', {
+        idempotencyKey: `loc-${id}`,
+        id,
+        kind,
+        name,
+      })
+      expect(made.status).toBe(200)
+    }
+    const bin = (
+      await db
+        .select()
+        .from(locations)
+        .where(sql`${locations.tenantId} = ${tenantId} and ${locations.kind} = 'damaged'`)
+    )[0]?.id
+    expect(bin).toBeTruthy()
+
+    // One lot, spread over every kind of place stock can stand.
+    const lotId = uuidv7()
+    expect(
+      (
+        await call(app, owner, 'POST', '/inventory/lots', {
+          idempotencyKey: `lot-140-${run}`,
+          id: lotId,
+          variantId,
+          batchNo: `D140-${run}`,
+          mrpPaise: 1000,
+          expiryDate: '2028-01-01',
+        })
+      ).status,
+    ).toBe(200)
+    for (const [locationId, qty] of [
+      [godown, 9],
+      [bin ?? '', 7],
+      [transit, 5],
+      [vanId, 3],
+      [shopFloorId, 2],
+    ] as const) {
+      const posted = await call(app, owner, 'POST', '/inventory/adjustments', {
+        idempotencyKey: `open-140-${run}-${locationId}`,
+        lotId,
+        locationId,
+        qtyDelta: qty,
+        reason: 'opening',
+      })
+      expect(posted.status, JSON.stringify(posted.body)).toBe(200)
+    }
+
+    // What a rep or a shop may be offered: the godown, and nothing that cannot be sold from it.
+    const offered = await call<{ items: Sellable[] }>(app, rep, 'GET', '/inventory/sellable', {
+      variantId,
+      limit: 500,
+    })
+    expect(offered.status).toBe(200)
+    const places = offered.body.items.map((row) => row.locationId)
+    expect(places).toContain(godown)
+    expect(places).not.toContain(bin)
+    expect(places).not.toContain(transit)
+    expect(places).not.toContain(vanId)
+    expect(places).not.toContain(shopFloorId)
+    expect(offered.body.items.find((row) => row.lotId === lotId)?.available).toBe(9)
+
+    // The van sale still reads its own vehicle (D6 asks for exactly one location).
+    const onTheVan = await call<{ items: Sellable[] }>(app, owner, 'GET', '/inventory/sellable', {
+      variantId,
+      locationId: vanId,
+    })
+    expect(onTheVan.status).toBe(200)
+    expect(onTheVan.body.items.map((row) => [row.lotId, row.available])).toEqual([[lotId, 3]])
+
+    // Asking for the bin by name does not make damaged goods sellable.
+    const fromBin = await call<{ items: Sellable[] }>(app, owner, 'GET', '/inventory/sellable', {
+      variantId,
+      locationId: bin ?? '',
+    })
+    expect(fromBin.status).toBe(200)
+    expect(fromBin.body.items).toEqual([])
+
+    // The pieces are still on the books where they stand: this is a filter on what may be SOLD.
+    const balances = await call<{ items: Balance[] }>(app, owner, 'GET', '/inventory/balances', {
+      lotId,
+    })
+    expect(Object.fromEntries(balances.body.items.map((b) => [b.locationId, b.onHand]))).toEqual({
+      [godown]: 9,
+      [bin ?? '']: 7,
+      [transit]: 5,
+      [vanId]: 3,
+      [shopFloorId]: 2,
+    })
+  })
+
   it('keeps the ledger append-only even for the owner', async () => {
     await expect(
       withTenant(db, ownerCtx, (tx) =>
