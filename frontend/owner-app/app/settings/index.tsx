@@ -35,6 +35,11 @@ import { absoluteUrl } from '../../src/config'
 import { instantWithClock } from '../../src/lib/dates'
 import { Refusal, stayOpen } from '../../src/lib/refusal'
 import {
+  SUPPORT_GRANT_ENTITY,
+  SUPPORT_READ_ACTION,
+  supportReads,
+} from '../../src/lib/support-reads'
+import {
   SETTINGS_VIEWS,
   chosenHours,
   supportDecision,
@@ -74,6 +79,22 @@ export default function Settings(): React.JSX.Element {
   const grants = useQuery(['tenancy', 'support'], () => api.api.tenancy.support.list({}), {
     enabled: view === 'support',
   })
+  /*
+   * DOS-111: what Distribution OS has READ inside these books, from this distributorship's OWN audit
+   * trail — the rows `support-audit.interceptor.ts` writes, one per request made under a window this
+   * owner approved. One read for every window on the page, filtered per card by `supportReads()`:
+   * a query per card would be one round trip per grant for a panel that is usually a single row.
+   */
+  const supportAudit = useQuery(
+    ['tenancy', 'audit', SUPPORT_READ_ACTION],
+    () =>
+      api.api.tenancy.audit.list({
+        entityType: SUPPORT_GRANT_ENTITY,
+        action: SUPPORT_READ_ACTION,
+        limit: 200,
+      }),
+    { enabled: view === 'support' },
+  )
 
   const save = useMutation(
     (items: readonly { key: string; value: string }[], meta) =>
@@ -244,6 +265,8 @@ export default function Settings(): React.JSX.Element {
     const decision = supportDecision(row, now)
     return decision.kind === 'closed' ? [] : [{ row, decision }]
   })
+  /** The reads made under one window, newest first (DOS-111). */
+  const reads = (id: string) => supportReads(supportAudit.data?.items ?? [], id)
   const decide = (id: string, action: GrantAction) => () => {
     setGrantId(id)
     setGrantAction(action)
@@ -304,6 +327,34 @@ export default function Settings(): React.JSX.Element {
         {decision.kind === 'open' ? (
           <Stack gap={3}>
             <Field label={t('o24.openUntil')}>{instantWithClock(decision.closesAt)}</Field>
+            {/*
+              DOS-111: "audited" cuts both ways. Every call made under this window is a row in this
+              distributorship's own `audit_log`, so the owner who opened it can see what was read —
+              the route and the time — without asking us. The register on Settings › Audit carries
+              the same rows among everything else; this is them under the window they were made in.
+            */}
+            <Panel title={t('o24.reads')}>
+              {reads(row.id).length === 0 ? (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.text.secondary}
+                  testID={`support-reads-none-${row.id}`}
+                >
+                  {t('o24.noReads')}
+                </Txt>
+              ) : (
+                <Stack gap={2} testID={`support-reads-${row.id}`}>
+                  {reads(row.id)
+                    .slice(0, 10)
+                    .map((read) => (
+                      <Txt key={read.id} field="body" desk="cell" numberOfLines={1}>
+                        {`${instantWithClock(read.at)} · ${read.route ?? word(SUPPORT_READ_ACTION)}`}
+                      </Txt>
+                    ))}
+                </Stack>
+              )}
+            </Panel>
             <Button
               label={t('o24.revokeSupport')}
               variant="destructive"

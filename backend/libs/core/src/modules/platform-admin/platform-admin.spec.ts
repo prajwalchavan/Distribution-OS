@@ -3,6 +3,7 @@ import { PLATFORM_AUDIT_ACTIONS, allProcedures, contract } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   accounts,
+  auditLog,
   authSessions,
   createDb,
   createPool,
@@ -782,6 +783,92 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     })
     expect(res.statusCode).toBe(403)
     expect(res.json<{ message: string }>().message).toContain('console session')
+  })
+
+  /**
+   * DOS-111 — "audited" has to cut BOTH ways.
+   *
+   * Every call made under a window already writes a `platform_audit` row, which only Distribution OS
+   * can read. The distributor who OPENED the window could see nothing of it: its own `audit_log` —
+   * the table behind `tenancy.audit.list`, the owner's Settings › Audit — recorded the approval and
+   * the revocation and not one of the reads in between, so an owner could not check that support
+   * stayed on the ticket it named while it read purchase costs and every shop's dues.
+   *
+   * The same interceptor, a second insert, under `withSystem` (the request is running as the
+   * distributor's OWNER, and the trail must not depend on that borrowed role). The row hangs off the
+   * grant — `support_grant` / the grant id — so it sits beside the `support.approve` and
+   * `support.revoke` rows the owner's own decisions wrote, and it names the platform actor by role.
+   */
+  it('DOS-111: a read under a support window is written into the distributor’s OWN audit_log, under the grant', async () => {
+    const grantId = uuidv7()
+    await db.insert(supportGrants).values({
+      id: grantId,
+      tenantId,
+      adminUserId,
+      requestedAt: new Date(),
+      requestedHours: 4,
+      reason: 'Ticket #4207: the August GST register does not tie to the sales register.',
+      approvedBy: ownerId,
+      approvedAt: new Date(),
+      expiresAt: new Date(Date.now() + HOUR_MS),
+      scope: 'read',
+    })
+    const pass = await consoleCall<{ pass: string }>('POST', '/auth/platform/support-pass', {
+      grantId,
+    })
+    expect(pass.status).toBe(200)
+
+    const shops = await consoleCall<{ items: unknown[] }>(
+      'GET',
+      '/retailers',
+      undefined,
+      pass.body.pass,
+    )
+    expect(shops.status).toBe(200)
+
+    // The tenant's own trail carries the read: the platform actor, the route, the grant it was made
+    // under. It lands just after the reply, like its platform sibling, so this polls too.
+    const written = await waitFor(async () => {
+      const rows = await db
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), eq(auditLog.entityId, grantId)))
+      return rows.some((row) => row.action === 'support.read')
+    })
+    expect(written).toBe(true)
+    const [row] = (
+      await db
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), eq(auditLog.entityId, grantId)))
+    ).filter((r) => r.action === 'support.read')
+    expect({
+      actorId: row?.actorId,
+      actorRole: row?.actorRole,
+      entityType: row?.entityType,
+      route: (row?.after as Record<string, unknown> | null)?.['route'],
+      outcome: (row?.after as Record<string, unknown> | null)?.['outcome'],
+    }).toEqual({
+      actorId: adminUserId,
+      actorRole: 'platform_admin',
+      entityType: 'support_grant',
+      route: 'GET /retailers',
+      outcome: 'ok',
+    })
+
+    // …and the OWNER reads it back through their own audit list, under the grant.
+    const seen = await call<{ items: { action: string; entityId: string; actorRole: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/tenancy/audit',
+      { entityType: 'support_grant', entityId: grantId, action: 'support.read', limit: 20 },
+    )
+    expect(seen.status).toBe(200)
+    expect(
+      seen.body.items.filter((item) => item.action === 'support.read' && item.entityId === grantId)
+        .length,
+    ).toBeGreaterThan(0)
   })
 
   // ---------------------------------------------------------------- subscriptions, users, metrics
