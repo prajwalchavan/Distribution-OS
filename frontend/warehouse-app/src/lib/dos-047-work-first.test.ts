@@ -17,6 +17,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { atLeastPl } from './queue-depth'
 import { workFirst } from './work-first'
 
 interface NodeFs {
@@ -89,6 +90,79 @@ describe('DOS-047 the work comes first on the two lists the floor opens', () => 
     )
     expect(screen, 'W7 does not put the draft sheets above the confirmed page').toMatch(
       /workFirst\(/,
+    )
+  })
+})
+
+/**
+ * DOS-047, merge review — AND THEN THE PANEL PRINTED THE PAGE SIZE AS THE WORK.
+ *
+ * The two reads this finding added are pages of twenty (`limit: 20`), and the meta line that came with
+ * them summed their lengths and said "20 waves still to pick" / "20 sheets not sent out yet". That is
+ * the very lie `atLeast` exists to stop — its own docblock records "Waves open 40 against 315" and
+ * "Sheets waiting 20 against 166" on the pilot database — and W1 already prints these same two reads
+ * honestly, `['picklists', 'open']` included, so the floor would have had one app disagreeing with
+ * itself on one number. A sentence needs the noun as well as the figure, which is what `atLeastPl` is:
+ * `atLeast`'s rule about a capped page, said in words.
+ */
+describe('DOS-047 a page length is never printed as a total', () => {
+  const t = (key: string, params?: Readonly<Record<string, string | number>>): string => {
+    const catalogue: Readonly<Record<string, string>> = {
+      'w1.atLeast': '{count}+',
+      'w.unknown': '—',
+      'q.waves': '{count} waves still to pick',
+      'q.waves.one': '{count} wave still to pick',
+    }
+    const template = catalogue[key] ?? key
+    return template.replace(/\{(\w+)\}/g, (_whole, name: string) =>
+      String(params?.[name] ?? `{${name}}`),
+    )
+  }
+  const page = (
+    length: number,
+    nextCursor: string | null,
+  ): { items: readonly unknown[]; nextCursor: string | null } => ({
+    items: Array.from({ length }, (_, at) => at),
+    nextCursor,
+  })
+
+  it('DOS-047: a full page with more behind it is "at least", never a total', () => {
+    expect(atLeastPl(t, 'q.waves', page(20, 'cursor-20'))).toBe('20+ waves still to pick')
+  })
+
+  it('DOS-047: a page that reached the end IS the total', () => {
+    expect(atLeastPl(t, 'q.waves', page(7, null))).toBe('7 waves still to pick')
+    expect(atLeastPl(t, 'q.waves', page(1, null))).toBe('1 wave still to pick')
+  })
+
+  it('DOS-047: two reads are summed, and either one of them capped caps the sentence', () => {
+    expect(atLeastPl(t, 'q.waves', page(3, null), page(4, null))).toBe('7 waves still to pick')
+    expect(atLeastPl(t, 'q.waves', page(3, null), page(20, 'cursor-20'))).toBe(
+      '23+ waves still to pick',
+    )
+  })
+
+  it('DOS-047: no answer is not zero, and nothing to do says nothing', () => {
+    expect(atLeastPl(t, 'q.waves', undefined)).toBeUndefined()
+    expect(atLeastPl(t, 'q.waves', page(4, null), undefined)).toBeUndefined()
+    expect(atLeastPl(t, 'q.waves', page(0, null))).toBeUndefined()
+  })
+
+  it('DOS-047: W4 and W7 print their queue depth through it, not through a page length', async () => {
+    const pick = await read('../../app/pick/index.tsx')
+    const load = await read('../../app/load/index.tsx')
+
+    expect(pick, 'W4 still sums two page lengths into a total').not.toMatch(
+      /wavesToPick = \(picking\.data\?\.items\.length/,
+    )
+    expect(pick, 'W4 does not say how sure it is of the figure').toMatch(
+      /atLeastPl\(t, 'w4\.wavesToPick'/,
+    )
+    expect(load, 'W7 still prints a page length as a total').not.toMatch(
+      /sheetsWaiting = drafts\.data\?\.items\.length/,
+    )
+    expect(load, 'W7 does not say how sure it is of the figure').toMatch(
+      /atLeastPl\(t, 'w7\.sheetsWaiting'/,
     )
   })
 })

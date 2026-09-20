@@ -37,7 +37,8 @@ import { useState } from 'react'
 
 import { instantWithClock, shortDate } from '../../src/lib/dates'
 import { loadSheetInput, packOnTrip } from '../../src/lib/trip-plan'
-import { Async, atLeast, Panel, PageTabs, pl, useCan, workFamily } from '../../src/lib/ui'
+import { atLeastPl } from '../../src/lib/queue-depth'
+import { Async, atLeast, Panel, PageTabs, useCan, workFamily } from '../../src/lib/ui'
 import { workFirst } from '../../src/lib/work-first'
 
 /** W7 reads the newest 50 packed orders, then up to the contract's page cap — also create's cap per sheet. */
@@ -75,7 +76,14 @@ export default function LoadSheets(): React.JSX.Element {
     { enabled: signedIn },
   )
   const sheetsShown = workFirst(drafts.data?.items ?? [], sheets.data?.items ?? [])
-  const sheetsWaiting = drafts.data?.items.length ?? 0
+  /*
+   * A PAGE OF TWENTY IS NOT A TOTAL (DOS-047, merge review). `atLeast`'s own docblock measured
+   * "Sheets waiting 20 against 166" on the pilot database, and this read is that same page of twenty;
+   * W1 prints it through `atLeast` already. `atLeastPl` is that rule inside the sentence this panel
+   * says: "20+ sheets not sent out yet" while there is more behind the cursor, the true figure once
+   * the page reached the end, and no meta line at all while the answer is unread.
+   */
+  const sheetsWaiting = atLeastPl(t, 'w7.sheetsWaiting', drafts.data)
   /**
    * The trips a load can be built for (DOS-137): planned, or already loading. Its own key — W10 caches
    * `['trips', 'open']` with the active trips in it — and both refresh on the `[['trips']]` invalidation.
@@ -195,7 +203,7 @@ export default function LoadSheets(): React.JSX.Element {
 
         <Panel
           title={t('w7.sheets')}
-          {...(sheetsWaiting === 0 ? {} : { meta: pl(t, 'w7.sheetsWaiting', sheetsWaiting) })}
+          {...(sheetsWaiting === undefined ? {} : { meta: sheetsWaiting })}
           testID="w7-sheets"
         >
           <Async

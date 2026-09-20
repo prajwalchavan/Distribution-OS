@@ -31,7 +31,8 @@ import { useMemo, useState } from 'react'
 
 import { shortDate } from '../../src/lib/dates'
 import { pullAfterWrite } from '../../src/lib/pull-after-write'
-import { Async, Panel, pl, workFamily } from '../../src/lib/ui'
+import { atLeastPl } from '../../src/lib/queue-depth'
+import { Async, Panel, workFamily } from '../../src/lib/ui'
 import { workFirst } from '../../src/lib/work-first'
 
 export default function PickQueue(): React.JSX.Element {
@@ -94,7 +95,18 @@ export default function PickQueue(): React.JSX.Element {
     openWaves.data?.items ?? [],
     waves.data?.items ?? [],
   )
-  const wavesToPick = (picking.data?.items.length ?? 0) + (openWaves.data?.items.length ?? 0)
+  /*
+   * AND THE FIGURE THAT COUNTS THEM SAYS HOW SURE IT IS (DOS-047, merge review).
+   *
+   * Both reads above are pages of twenty, so their lengths added together are a page size, not a
+   * queue: "Waves open 40 against 315" is what `atLeast`'s own docblock measured on the pilot
+   * database. W1 already prints these two reads honestly — `['picklists', 'open']` is the same cache
+   * key this screen uses — so a raw sum here would have had two screens of one app disagreeing about
+   * one number, and the picker's screen holding the false half. `atLeastPl` is `atLeast`'s rule said
+   * in words: "20+ waves still to pick" while a page is capped, the true total once it is not, and
+   * nothing at all while the answer is still unread.
+   */
+  const wavesToPick = atLeastPl(t, 'w4.wavesToPick', picking.data, openWaves.data)
 
   const items = queue.data?.items ?? []
 
@@ -279,7 +291,7 @@ export default function PickQueue(): React.JSX.Element {
 
         <Panel
           title={t('w4.waves')}
-          {...(wavesToPick === 0 ? {} : { meta: pl(t, 'w4.wavesToPick', wavesToPick) })}
+          {...(wavesToPick === undefined ? {} : { meta: wavesToPick })}
           testID="w4-waves"
         >
           <Async
