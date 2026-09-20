@@ -105,6 +105,9 @@ type Shortage = {
   reservedPcs: number
   shortQtyPcs: number
 }
+/** The device side of the same aggregate: what `sync.manifest` publishes and what `sync.pull` sends. */
+type Manifest = { tables: { table: string; columns: { name: string }[] }[] }
+type Pull = { changes: { table: string; rows: Record<string, unknown>[] }[] }
 
 describeDb('orders (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
@@ -1267,6 +1270,55 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(cleanRes.status).toBe(200)
     expect(cleanRes.body.item.state).toBe('confirmed')
     expect(cleanRes.body.item.creditNotice).toBeNull()
+  })
+
+  it("DOS-078/DOS-081: the shop's DEVICE holds neither the shortage record nor the credit notice", async () => {
+    /*
+     * THE OTHER DOOR. `toOrder(row, office)` blanks both fields on the oRPC path, but `sales_orders`
+     * is ALSO a sync pull table and the retailer role holds it (its own bills and orders, docs/07 §0).
+     * `sync.pull` is `select *`, so a column nobody strips there is on the shopkeeper's phone however
+     * carefully `GET /orders/{id}` hides it — the exact shape of QA DOS-072, whose note stands: "no
+     * screen draws it" is not the same as "it is not on the phone". The manifest and the rows are one
+     * `omit`, so both halves are checked, and the rep keeps both: it warns against the limit offline
+     * (DOS-081) and tells the shopkeeper what the godown could not fill (DOS-078).
+     */
+    const OFFICE_ONLY = ['stock_shortages', 'credit_notice']
+    const deviceId = uuidv7()
+    const columnsOf = async (actor: Actor) => {
+      const manifest = await call<Manifest>(app, actor, 'GET', '/sync/manifest')
+      expect(manifest.status).toBe(200)
+      return manifest.body.tables
+        .find((t) => t.table === 'sales_orders')
+        ?.columns.map((c) => c.name)
+    }
+    const rowsOf = async (actor: Actor) => {
+      const pulled = await call<Pull>(app, actor, 'GET', '/sync/pull', {
+        deviceId,
+        limit: '500',
+        'tables[0]': 'sales_orders',
+      })
+      expect(pulled.status).toBe(200)
+      return pulled.body.changes.find((c) => c.table === 'sales_orders')?.rows ?? []
+    }
+
+    const shopColumns = await columnsOf(shop)
+    expect(shopColumns).toBeDefined()
+    expect(shopColumns).toContain('total_paise')
+    for (const key of OFFICE_ONLY) expect(shopColumns, key).not.toContain(key)
+
+    const shopRows = await rowsOf(shop)
+    // The two orders this block built for shop A: one short, one over a warn-mode limit.
+    expect(shopRows.map((r) => r.id)).toContain(shortOrder)
+    expect(shopRows.length).toBeGreaterThan(0)
+    for (const row of shopRows)
+      for (const key of OFFICE_ONLY) expect(Object.keys(row), key).not.toContain(key)
+
+    // The rep's copy is untouched: it is the office side of both facts.
+    const repColumns = await columnsOf(rep)
+    for (const key of OFFICE_ONLY) expect(repColumns, key).toContain(key)
+    const repRows = await rowsOf(rep)
+    expect(repRows.map((r) => r.id)).toContain(shortOrder)
+    for (const key of OFFICE_ONLY) expect(Object.keys(repRows[0] ?? {}), key).toContain(key)
   })
 
   // -----------------------------------------------------------------------------------------------------
