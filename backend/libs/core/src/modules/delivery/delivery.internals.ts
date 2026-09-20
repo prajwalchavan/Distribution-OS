@@ -12,6 +12,7 @@ import {
   type TripEvent,
 } from '@dos/domain'
 import {
+  DEFAULT_EXPENSE_PROOF_MIN_PAISE,
   DEFAULT_GEOFENCE_METRES,
   DEFAULT_GPS_RETENTION_DAYS,
   DEFAULT_POD_REQUIRED,
@@ -505,6 +506,7 @@ export async function loadTripPolicy(tx: Db): Promise<TripPolicy> {
     TENANT_SETTING_KEYS.deliverySettlementTolerancePaise,
     TENANT_SETTING_KEYS.deliveryPodRequired,
     TENANT_SETTING_KEYS.deliveryGeofenceMetres,
+    TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise,
     TENANT_SETTING_KEYS.dpdpGpsRetentionDays,
   ])
   const int = (value: unknown, fallback: number, min = 0): number => {
@@ -525,6 +527,11 @@ export async function loadTripPolicy(tx: Db): Promise<TripPolicy> {
     geofenceMetres: int(
       settings.get(TENANT_SETTING_KEYS.deliveryGeofenceMetres),
       DEFAULT_GEOFENCE_METRES,
+    ),
+    // QA DOS-071: 0 is a legal value — it asks for a photo on every expense — so the floor is 0.
+    expenseProofMinPaise: int(
+      settings.get(TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise),
+      DEFAULT_EXPENSE_PROOF_MIN_PAISE,
     ),
     gpsRetentionDays: int(
       settings.get(TENANT_SETTING_KEYS.dpdpGpsRetentionDays),
