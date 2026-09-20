@@ -40,8 +40,14 @@ export const orderMachine = defineMachine<OrderState, OrderEvent>({
     // authoritative stock check happens on `confirm`; the live ATP shown while ordering is only a hint
     confirmed: { start_picking: 'picking', cancel: 'cancelled' },
     picking: { pack: 'packed' },
-    // the GST invoice is issued at `pack` and never regenerated; shortfalls become credit notes
-    packed: { dispatch: 'dispatched' },
+    /*
+     * The GST invoice is issued at `pack` and never regenerated; shortfalls become credit notes. A
+     * packed order therefore carries a legal document, so it is never cancelled on its own: the BILL
+     * is cancelled — number kept, stock back, money reversed — and the order goes with it in the same
+     * transaction (QA DOS-139). `orders.cancel` refuses a packed order and names that route; the only
+     * caller of this edge is `InvoicesService.cancel` through `OrdersService.cancelInTx`.
+     */
+    packed: { dispatch: 'dispatched', cancel: 'cancelled' },
     dispatched: {
       deliver_all: 'delivered',
       deliver_partial: 'partially_delivered',

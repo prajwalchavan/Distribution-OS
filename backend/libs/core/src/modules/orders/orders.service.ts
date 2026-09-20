@@ -472,6 +472,17 @@ export class OrdersService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order, ['draft', 'submitted'])
+        /*
+         * QA DOS-139: `packed` has a cancel edge, but it belongs to ONE caller — `billing.invoices
+         * .cancel`, which takes it through `cancelInTx` after it has put the stock back and reversed
+         * the money. A packed order carries an issued GST bill, so cancelling the order alone would
+         * leave that bill standing. Say the route instead of taking it, for every role.
+         */
+        if (order.state === 'packed')
+          throw new ORPCError('CONFLICT', {
+            message: `order ${order.orderNo ?? order.id} is packed and billed; cancel the bill and the order goes with it`,
+            data: { code: 'cancel_the_bill' },
+          })
         return { item: await this.cancelInTx(tx, order, input.reason, input.deviceId ?? null) }
       }),
     )

@@ -462,7 +462,9 @@ export const strings = {
   'm6.print': 'Print the bill',
   'm6.pdfQueued': 'The bill is being printed. Try again in a moment.',
   'm6.cancelInvoice': 'Cancel the bill',
-  'm6.cancelBody': 'The number is kept. Stock and money come back. Only before dispatch.',
+  // DOS-139: the order is cancelled with its bill, in the same step — the desk must know before it presses.
+  'm6.cancelBody':
+    'The number is kept. Stock and money come back. The order is cancelled with it. Only before dispatch.',
   'm6.cancelReason': 'Why is it cancelled?',
   'm6.setEwb': 'Record the e-way bill',
   'm6.requestIrn': 'Get the IRN',

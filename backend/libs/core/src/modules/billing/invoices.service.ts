@@ -311,6 +311,17 @@ export class BillingService {
    */
   async issueForPack(tx: Db, input: IssueForPackInput): Promise<InvoiceRow> {
     const order = await this.orders.lockOrder(tx, input.orderId)
+    /*
+     * QA DOS-139: cancelling a pre-dispatch bill puts the pieces back on the rack AND cancels the
+     * order. `issueParkedPack` would otherwise happily write a second document for those pieces —
+     * a bill with no stock movement behind it. A cancelled order is never billed; the shop that
+     * still wants the goods gets a fresh order.
+     */
+    if (order.state === 'cancelled')
+      throw new ORPCError('CONFLICT', {
+        message: `order ${order.orderNo ?? order.id} is cancelled; a cancelled order is never billed`,
+        data: { code: 'order_cancelled' },
+      })
     await this.assertNoLiveInvoice(tx, order.id)
     const invoiceDate = invoiceDateOf(input.invoiceDate)
     const orderLines = await tx
@@ -829,6 +840,24 @@ export class BillingService {
         const to = invoiceTransition(invoice.state, 'cancel')
         await this.restock(tx, invoice, input.restockLocationId)
         await this.reverseInvoiceEntry(tx, invoice)
+        /*
+         * THE ORDER GOES WITH THE BILL (QA DOS-139), in this same transaction. It used to stay
+         * `packed`: the desk was then offered a bill for goods already back on the rack, W7 still
+         * offered the order for loading, and a confirmed load sheet would have sent the restocked
+         * pieces out against a cancelled bill. `packed` is the only pre-dispatch state an issued pack
+         * bill can have — a confirmed or picking order carries none, and a dispatched one was refused
+         * above — so a van-sale or brand-DMS bill whose order sits anywhere else is left alone.
+         */
+        if (invoice.orderId) {
+          const order = await this.orders.findOrder(tx, invoice.orderId)
+          if (order && order.state === 'packed')
+            await this.orders.cancelInTx(
+              tx,
+              order,
+              `bill ${invoice.invoiceNo ?? invoice.id} cancelled: ${input.reason}`.slice(0, 200),
+              input.deviceId ?? null,
+            )
+        }
         const [cancelled] = await tx
           .update(invoices)
           .set({

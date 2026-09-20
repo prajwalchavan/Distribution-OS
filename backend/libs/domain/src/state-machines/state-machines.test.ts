@@ -37,6 +37,19 @@ describe('state machines', () => {
     expect(orderMachine.can('submitted', 'cancel')).toBe(true)
   })
 
+  /**
+   * A packed order carries an issued GST bill, so it is never cancelled on its own: the BILL is
+   * cancelled — the number kept, the stock back on the rack, the money reversed — and the order is
+   * cancelled with it in the same transaction (`InvoicesService.cancel` → `OrdersService.cancelInTx`).
+   * The edge exists for that one caller; `orders.cancel` refuses a packed order and names the route.
+   */
+  it('DOS-139: a packed order may be cancelled — its bill takes it there; the happy path is unchanged', () => {
+    expect(orderMachine.can('packed', 'cancel')).toBe(true)
+    expect(orderMachine.next('packed', 'cancel')).toBe('cancelled')
+    expect(orderMachine.next('packed', 'dispatch')).toBe('dispatched')
+    expect(orderMachine.can('dispatched', 'cancel')).toBe(false)
+  })
+
   it('brings undelivered goods back to packed, not to the shop', () => {
     expect(orderMachine.next('dispatched', 'return_undelivered')).toBe('packed')
     expect(orderMachine.next('dispatched', 'deliver_partial')).toBe('partially_delivered')
