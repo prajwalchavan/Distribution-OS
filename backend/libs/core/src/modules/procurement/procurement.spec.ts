@@ -36,6 +36,14 @@ import { GrnService, ProcurementModule, SupplierInvoiceService } from './index.j
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
+/**
+ * "No money reached the shed": any JSON KEY naming a rate, a taxable value, a cost or paise. Anchored
+ * to keys so it cannot be satisfied — or tripped — by an English word in a value ("generated",
+ * "separate", "operate" all contain "rate"); the token must end the key or be followed by a new
+ * camelCase word, so `ratePaise`, `taxableValuePaise`, `costPaise`, `unitRate` all match.
+ */
+const MONEY_FIELD = /"[a-zA-Z]*(?:[Pp]aise|[Rr]ate|[Cc]ost|[Tt]axable)(?:[A-Z][a-zA-Z]*)?"\s*:/
+
 type GrnLine = {
   id: string
   variantId: string
@@ -324,7 +332,7 @@ describeDb('procurement (DATABASE_URL)', () => {
     )
     expect(expected).toEqual({ [variantA]: 180, [variantB]: 156 })
     const text = JSON.stringify(res.body)
-    expect(text).not.toMatch(/rate|taxable|paise|cost/i)
+    expect(text).not.toMatch(MONEY_FIELD)
     // posting before the count is refused
     const early = await call<{ message: string }>(
       app,
@@ -951,7 +959,7 @@ describeDb('procurement (DATABASE_URL)', () => {
       lineCount: 2,
     })
     // the gate row still carries pieces and identity only
-    expect(JSON.stringify(listed.body)).not.toMatch(/rate|taxable|paise|cost/i)
+    expect(JSON.stringify(listed.body)).not.toMatch(MONEY_FIELD)
   })
 
   it('DOS-050 guard: a grns row with null supplier columns (pre-backfill) still lists, with supplierName null', async () => {

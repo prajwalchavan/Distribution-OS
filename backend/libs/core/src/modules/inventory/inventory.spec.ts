@@ -1283,6 +1283,26 @@ describeDb('inventory (DATABASE_URL)', () => {
       [undated, 5],
       [shortDated, 2],
     ])
+
+    // DOS-054 blocker: an owner who CLEARS the field on Settings -> Business saves `""`, not a
+    // number. A blank is not "an integer >= 0", so it must read as the 30-day default the screen
+    // keeps showing — never as 0, which is the documented "rule off" value.
+    await db.execute(
+      sql`insert into tenant_settings (tenant_id, key, value) values (${tenantId}, 'inventory.min_shelf_life_days', '""'::jsonb)
+          on conflict (tenant_id, key) do update set value = excluded.value`,
+    )
+    expect(await asOwner((tx) => inventory.minShelfLifeDays(tx))).toBe(30)
+    // and the rule is still ON: a fresh 120-day lot is taken before the 16-day remainder
+    const afterBlank = await datedLot('dos054g-blank', 120, 5, shelfGuardVariantId)
+    const blankHeld = await asOwner((tx) =>
+      inventory.reserve(tx, {
+        orderLineId: uuidv7(),
+        variantId: shelfGuardVariantId,
+        locationId: godown,
+        qtyPcs: 4,
+      }),
+    )
+    expect(blankHeld.map((r) => [r.lotId, r.qty])).toEqual([[afterBlank, 4]])
     await setShelfLife(30)
   })
 

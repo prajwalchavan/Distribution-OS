@@ -226,12 +226,11 @@ export class GrnService {
             }),
           )
           .returning()
+        // blind unconditionally: `open` is management-only today, but the gate must not depend on
+        // which roles a contract happens to allow (merge review minor, 2026-09-20).
         return {
-          item: toGrnWithLines(
-            grn,
-            sortById(lines),
-            [],
-            await this.supplierName(tx, grn.supplierId),
+          item: blindGate(
+            toGrnWithLines(grn, sortById(lines), [], await this.supplierName(tx, grn.supplierId)),
           ),
         }
       }),

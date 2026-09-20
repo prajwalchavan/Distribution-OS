@@ -405,8 +405,11 @@ export class InventoryService {
   /**
    * The minimum shelf life a batch must have left to be offered first, in days (founder, 2026-09-13,
    * QA DOS-054). Read from `tenant_settings` — readable by every staff role — and NEVER hard-coded at
-   * the call site. An absent or malformed row is the 30-day default `bootstrapTenant` seeds; `0`
-   * switches the rule off, so every batch is compliant and the order is plain FEFO again.
+   * the call site. An absent or malformed row is the 30-day default `bootstrapTenant` seeds; only an
+   * integer >= 0 counts, so the empty string the owner's screen saves when the field is CLEARED reads
+   * as 30 — the number that screen keeps showing — and never as 0. `0` switches the rule off: every
+   * dated batch then sorts by expiry alone, and because `sellable_stock` does not filter expired lots
+   * an already-expired batch comes FIRST again, exactly as plain FEFO always did.
    */
   async minShelfLifeDays(tx: Db): Promise<number> {
     const { tenantId } = currentTenant()
@@ -421,7 +424,12 @@ export class InventoryService {
       )
       .limit(1)
     const raw = row?.value
-    const value = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
+    const value =
+      typeof raw === 'number'
+        ? raw
+        : typeof raw === 'string' && raw.trim() !== ''
+          ? Number(raw)
+          : NaN
     return Number.isSafeInteger(value) && value >= 0 ? value : DEFAULT_MIN_SHELF_LIFE_DAYS
   }
 
