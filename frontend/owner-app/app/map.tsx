@@ -130,6 +130,16 @@ export default function LiveMap(): React.JSX.Element {
             <Stack gap={4}>
               <MapView
                 testID="map-view"
+                /*
+                 * Android's engine is the Google Maps SDK and it needs a key of the distributor's
+                 * own — `android.config.googleMaps.apiKey` in app.json, the "maps key" docs/26 §2
+                 * lists as still to arrive. Without it the SDK draws a grey box, and because this
+                 * app installs `react-native-maps` the kit's missing-module fallback never fires.
+                 * So Android asks for the labelled list by name until the key lands; this line, the
+                 * guard line in dos-017-live-map.guard.test.ts and the app.json entry go together.
+                 * Web (MapLibre over OpenStreetMap) and iOS (Apple Maps, no key) are untouched.
+                 */
+                listOnly={process.env.EXPO_OS === 'android'}
                 markers={markers}
                 height={360}
                 emptyMessage={t('o4.noFix')}
