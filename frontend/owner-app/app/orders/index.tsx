@@ -376,7 +376,9 @@ export default function Orders(): React.JSX.Element {
                     })}
                   </Txt>
                   <Txt field="label" desk="meta" color={colors.text.secondary}>
-                    {t('o5.reservationsLots', { count: (reservations.data ?? []).length })}
+                    {(reservations.data ?? []).length === 1
+                      ? t('o5.reservationsLot')
+                      : t('o5.reservationsLots', { count: (reservations.data ?? []).length })}
                   </Txt>
                 </Stack>
               </Panel>

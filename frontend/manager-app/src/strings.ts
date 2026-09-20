@@ -164,6 +164,7 @@ export const strings = {
   'm2.askedRate': 'Asked rate',
   'm2.listRate': 'List rate',
   'm2.reservations': 'Held for this order',
+  'm2.reservationsLot': 'across 1 lot',
   'm2.reservationsLots': 'across {count} lots',
   'm2.onlySubmitted': 'Only a submitted order can be confirmed',
   'm2.decideFirst':

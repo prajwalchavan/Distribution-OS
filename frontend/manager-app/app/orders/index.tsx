@@ -717,7 +717,9 @@ export default function OrderQueue(): React.JSX.Element {
                       })}
                     </Txt>
                     <Txt field="label" desk="meta" color={colors.text.secondary}>
-                      {t('m2.reservationsLots', { count: (reservations.data ?? []).length })}
+                      {(reservations.data ?? []).length === 1
+                        ? t('m2.reservationsLot')
+                        : t('m2.reservationsLots', { count: (reservations.data ?? []).length })}
                     </Txt>
                   </Stack>
                 </Field>
