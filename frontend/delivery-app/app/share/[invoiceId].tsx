@@ -212,15 +212,24 @@ export default function ShareDocuments(): React.JSX.Element {
           )}
         </Async>
 
+        {/*
+            DOS-065 (review) — WITHOUT A TRIP THIS PANEL HAS NOT ASKED. The query is disabled
+            (`enabled: … && (older || tripId !== null)`), so "No money taken at this door yet" was an
+            answer to a question the screen never put: a bill opened from anywhere but a stop carries
+            no trip. It says what it did instead, and the fold below is the way to the shop's own
+            history — the same honesty `keep.ts` keeps about an unproven write (DOS-179).
+          */}
         <Panel
           title={t('d9.receipt')}
-          meta={older ? t('d9.olderShown') : t('d9.thisTrip')}
+          meta={
+            older ? t('d9.olderShown') : tripId === null ? t('d9.notAskedMeta') : t('d9.thisTrip')
+          }
           testID="d9-receipts"
         >
           <Async
             state={receipts}
             empty={(receipts.data?.items.length ?? 0) === 0}
-            emptyMessage={tripId === null && !older ? t('d9.noTrip') : t('d.nothingHere')}
+            emptyMessage={tripId === null && !older ? t('d9.notAsked') : t('d.nothingHere')}
           >
             <Group>
               {(receipts.data?.items ?? []).map((receipt) => (

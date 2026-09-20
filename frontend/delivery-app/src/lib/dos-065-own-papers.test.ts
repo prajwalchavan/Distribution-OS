@@ -72,3 +72,21 @@ describe('DOS-065 the crew reads its own post and this door’s papers', () => {
     expect(stop).toMatch(/\/share\/\$\{[^}]*\}\?tripId=/)
   })
 })
+
+/**
+ * THE REVIEW OF THIS FIX. Scoping the receipts to the trip left one sentence behind: reached without
+ * a trip (the bill opened from anywhere but a stop), the receipts query is DISABLED — `enabled: …
+ * && (older || tripId !== null)` — and the panel still printed "No money taken at this door yet".
+ * The screen had not asked. In an app that goes to some length elsewhere not to assert an unproven
+ * keep (`keep.ts`, DOS-179) that is the same class of lie the finding is about.
+ */
+describe('DOS-065 review — the papers panel does not answer a question it never asked', () => {
+  it('DOS-065 with no trip in hand the receipts panel says it did not look, not that nothing was taken', async () => {
+    const share = await read('../../app/share/[invoiceId].tsx')
+    // The old sentence is gone from the screen entirely.
+    expect(share).not.toMatch(/d9\.noTrip\b/)
+    expect(share).toMatch(/emptyMessage=\{tripId === null && !older \? t\('d9\.notAsked'\)/)
+    // And the panel's own heading stops claiming the trip it was never given.
+    expect(share).toMatch(/tripId === null \? t\('d9\.notAskedMeta'\) : t\('d9\.thisTrip'\)/)
+  })
+})
