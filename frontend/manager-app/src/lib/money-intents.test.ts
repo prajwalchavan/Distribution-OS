@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest'
 import {
   bounceBody,
   bounceIntent,
+  bounceProblem,
   depositBody,
   depositIntent,
   keepIds,
@@ -61,5 +62,18 @@ describe('DOS-136 — a write whose reply never arrived is read back before the 
     expect(outcomeUnknown({ kind: 'conflict' })).toBe(false)
     expect(outcomeUnknown({ kind: 'validation' })).toBe(false)
     expect(outcomeUnknown(undefined)).toBe(false)
+  })
+})
+
+/**
+ * DOS-141 — "Cheque returned" with an empty reason sent a POST and came back 400 "Input validation
+ * failed". The bank's own words are what the desk needs to type, and the dialog says so before it
+ * sends anything.
+ */
+describe('DOS-141 — a bounce with no reason is refused on the device, not by a 400', () => {
+  it('asks for the reason while the field is empty, and is satisfied by real words', () => {
+    expect(bounceProblem('')).toBe('needsReason')
+    expect(bounceProblem('   ')).toBe('needsReason')
+    expect(bounceProblem('Funds insufficient')).toBeNull()
   })
 })

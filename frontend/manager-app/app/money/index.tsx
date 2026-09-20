@@ -58,6 +58,7 @@ import {
 import {
   bounceBody,
   bounceIntent,
+  bounceProblem,
   depositBody,
   depositIntent,
   type BounceIntent,
@@ -100,6 +101,8 @@ export default function Receipts(): React.JSX.Element {
   const [depositRef, setDepositRef] = useState('')
   const [bouncing, setBouncing] = useState<Date | null>(null)
   const [bounceReason, setBounceReason] = useState('')
+  /** Set by a press with an empty reason: the field then says what to write (DOS-141). */
+  const [bounceAsked, setBounceAsked] = useState(false)
   const [charges, setCharges] = useState<number | null>(null)
 
   // --- recording a payment ----------------------------------------------------------------------
@@ -341,6 +344,7 @@ export default function Receipts(): React.JSX.Element {
                   disabledReason={t('m9.notBounceable')}
                   onPress={() => {
                     bounce.reset()
+                    setBounceAsked(false)
                     setBouncing(new Date())
                   }}
                   testID="receipt-bounce"
@@ -562,6 +566,11 @@ export default function Receipts(): React.JSX.Element {
               value={bounceReason}
               onChange={setBounceReason}
               capitalize="sentences"
+              error={
+                bounceAsked && bounceProblem(bounceReason) !== null
+                  ? t('m10.bounceNeedsReason')
+                  : undefined
+              }
               testID="receipt-bounce-reason"
             />
             <RupeeInput
@@ -578,6 +587,12 @@ export default function Receipts(): React.JSX.Element {
         busy={bounce.status === 'pending'}
         onConfirm={() => {
           if (selected === null || bouncing === null) return
+          /* The bank's own words are required by the server too; the dialog asks for them here
+             instead of sending an empty reason and printing "Input validation failed" (DOS-141). */
+          if (bounceProblem(bounceReason) !== null) {
+            setBounceAsked(true)
+            return
+          }
           void bounce
             .mutateAsync(bounceIntent(selected, bounceReason.trim(), charges, bouncing))
             .then(

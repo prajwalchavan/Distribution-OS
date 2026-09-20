@@ -122,7 +122,8 @@ describe('useRefusal — the rule a manager surface follows to show a refused wr
     // refused at once because another manager holds the review lock, then re-match comes back.
     const lock = refusal(
       'CONFLICT',
-      'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)',
+      // The service writes the lock time in IST since DOS-141; this is its sentence verbatim.
+      'Sunil Tarsun is reviewing this document (until 12 Oct, 12:00 am)',
     )
     const rerun = refusal('CONFLICT', 'a reviewed document cannot be re-matched')
 

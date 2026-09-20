@@ -135,3 +135,21 @@ export function keepIds(
 export function outcomeUnknown(error: { readonly kind?: string } | null | undefined): boolean {
   return error?.kind === 'network' || error?.kind === 'server'
 }
+
+// ---------------------------------------------------------------------------
+// What a bounce dialog will not send
+// ---------------------------------------------------------------------------
+
+/**
+ * Why "Mark bounced" may not be sent yet, or `null` (DOS-141).
+ *
+ * `receipts.bounce` requires a reason (`z.string().trim().min(1)`), and the dialog sent an empty one:
+ * the desk pressed a live button and read "Input validation failed", which names no field and no fix.
+ * The dialog asks for the bank's own words in the field itself instead, and sends nothing until they
+ * are there. The server's rule is unchanged — this is the same rule, said earlier.
+ */
+export type BounceProblem = 'needsReason'
+
+export function bounceProblem(reason: string): BounceProblem | null {
+  return reason.trim() === '' ? 'needsReason' : null
+}

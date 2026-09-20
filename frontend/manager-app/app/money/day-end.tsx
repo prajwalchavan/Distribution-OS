@@ -66,6 +66,7 @@ import {
 import {
   bounceBody,
   bounceIntent,
+  bounceProblem,
   depositBody,
   depositIntent,
   type BounceIntent,
@@ -94,6 +95,8 @@ export default function DayEnd(): React.JSX.Element {
   const [banking, setBanking] = useState<Date | null>(null)
   const [bouncing, setBouncing] = useState<{ receiptId: string; at: Date } | null>(null)
   const [bounceReason, setBounceReason] = useState('')
+  /** Set by a press with an empty reason: the field then says what to write (DOS-141). */
+  const [bounceAsked, setBounceAsked] = useState(false)
   const [charges, setCharges] = useState<number | null>(null)
   const [tripId, setTripId] = useState<string | null>(null)
   const [handedOver, setHandedOver] = useState<number | null>(null)
@@ -309,6 +312,7 @@ export default function DayEnd(): React.JSX.Element {
                         mayBank
                           ? () => {
                               bounce.reset()
+                              setBounceAsked(false)
                               setBouncing({ receiptId: row.id, at: new Date() })
                             }
                           : undefined
@@ -504,6 +508,11 @@ export default function DayEnd(): React.JSX.Element {
               value={bounceReason}
               onChange={setBounceReason}
               capitalize="sentences"
+              error={
+                bounceAsked && bounceProblem(bounceReason) !== null
+                  ? t('m10.bounceNeedsReason')
+                  : undefined
+              }
               testID="bounce-reason"
             />
             <RupeeInput
@@ -520,6 +529,12 @@ export default function DayEnd(): React.JSX.Element {
         busy={bounce.status === 'pending'}
         onConfirm={() => {
           if (bouncing === null) return
+          /* The bank's own words are required by the server too; the dialog asks for them here
+             instead of sending an empty reason and printing "Input validation failed" (DOS-141). */
+          if (bounceProblem(bounceReason) !== null) {
+            setBounceAsked(true)
+            return
+          }
           void bounce
             .mutateAsync(
               bounceIntent(bouncing.receiptId, bounceReason.trim(), charges, bouncing.at),

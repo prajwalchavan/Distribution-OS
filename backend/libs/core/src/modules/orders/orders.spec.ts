@@ -3142,4 +3142,65 @@ describeDb('orders (DATABASE_URL)', () => {
       }
     })
   })
+  /**
+   * DOS-141 — a refused decision has to say WHICH gate and WHOSE decision it is about.
+   *
+   * Two desks open the queue, both press Approve, and the second one was told "approval
+   * 01a09766-114f-73f5-b1fc-9d9cab81e82e was already approved": a row id, no order, no name, no time.
+   */
+  describe('DOS-141 a refused decision is written for the desk that pressed', () => {
+    it('DOS-141: a gate already decided names the order, the approver and the IST time, and carries no id', async () => {
+      const orderId = uuidv7()
+      const lineId = uuidv7()
+      const draft = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos141-create-${run}`,
+        id: orderId,
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: lineId, variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+      })
+      expect(draft.status).toBe(200)
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${orderId}/submit`,
+        { idempotencyKey: `dos141-submit-${run}` },
+      )
+      expect(submitted.status).toBe(200)
+      const orderNo = submitted.body.item.orderNo ?? ''
+      expect(orderNo).not.toBe('')
+
+      // The gate the first desk has already approved, decided at 4:20 pm IST on 13 September.
+      const approvalId = uuidv7()
+      await db.insert(approvals).values({
+        id: approvalId,
+        tenantId,
+        kind: 'credit_limit',
+        orderId,
+        entityType: 'sales_order',
+        entityId: orderId,
+        requestedBy: repId,
+        status: 'approved',
+        payload: {},
+        decidedBy: ownerId,
+        decidedAt: new Date('2026-09-13T10:50:00.000Z'),
+      })
+
+      const refused = await call<{ message: string }>(
+        app,
+        manager,
+        'POST',
+        `/approvals/${approvalId}/decide`,
+        { idempotencyKey: `dos141-decide-${run}`, decision: 'approve' },
+      )
+      expect(refused.status).toBe(409)
+      expect(refused.body.message).toBe(
+        `the credit limit gate on ${orderNo} was already approved by Owner on 13 Sep, 4:20 pm`,
+      )
+      expect(refused.body.message).not.toContain(approvalId)
+      expect(refused.body.message).not.toContain(ownerId)
+      expect(refused.body.message).not.toContain('T10:50')
+    })
+  })
 })

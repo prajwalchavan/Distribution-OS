@@ -571,6 +571,7 @@ export const strings = {
   'm10.bounce': 'Return a bounced cheque',
   'm10.bounceTitle': 'Cheque returned',
   'm10.bounceReason': 'What did the bank say?',
+  'm10.bounceNeedsReason': 'Write what the bank said',
   'm10.bankCharges': 'Bank charges',
   'm10.bounceBody': "The shop's outstanding comes back exactly as it was.",
   'm10.trips': 'Trips coming back',

@@ -20,8 +20,10 @@ import {
   requireRole,
   writeAudit,
 } from '../../platform/index.js'
+import { istMoment, personWord } from '../../platform/refusal-words.js'
 import { BargainsService } from '../pricing/index.js'
 import { retailerRefs } from '../retailers/index.js'
+import { userLabels } from '../tenancy/index.js'
 import { toApproval, toApprovalQueueItem, type ApprovalRow } from './orders.mappers.js'
 import { OrdersService } from './orders.service.js'
 
@@ -108,9 +110,7 @@ export class ApprovalsService {
         if (!approval)
           throw new ORPCError('NOT_FOUND', { message: `approval ${input.id} not found` })
         if (approval.status !== 'pending')
-          throw new ORPCError('CONFLICT', {
-            message: `approval ${approval.id} was already ${approval.status}`,
-          })
+          throw new ORPCError('CONFLICT', { message: await this.decidedWords(tx, approval) })
         const now = new Date()
 
         // The order this gate waits on may already be terminal — the shop cancelled it, or another gate on the
@@ -189,6 +189,31 @@ export class ApprovalsService {
         return { item, order: confirmed.item }
       }),
     )
+  }
+
+  /**
+   * WHAT A SECOND DESK IS TOLD when the gate in front of it has already been decided (DOS-141).
+   *
+   * Two managers open the queue, both press Approve, and the second one used to read "approval
+   * 01a09766-114f-73f5-b1fc-9d9cab81e82e was already approved" — a row id, no order, no name, no time,
+   * nothing to say to the rep waiting on the phone. This sentence names the gate, the order it holds,
+   * who decided it and when, in IST.
+   */
+  private async decidedWords(tx: Db, approval: ApprovalRow): Promise<string> {
+    const gate = approval.kind.replace(/_/g, ' ')
+    const [order] = approval.orderId
+      ? await tx
+          .select({ orderNo: salesOrders.orderNo })
+          .from(salesOrders)
+          .where(eq(salesOrders.id, approval.orderId))
+          .limit(1)
+      : []
+    const on = order?.orderNo ? ` on ${order.orderNo}` : ''
+    if (approval.decidedBy === null || approval.decidedAt === null)
+      return `the ${gate} gate${on} was already ${approval.status}`
+    const names = await userLabels(tx, [approval.decidedBy])
+    const by = personWord(names.get(approval.decidedBy))
+    return `the ${gate} gate${on} was already ${approval.status} by ${by} on ${istMoment(approval.decidedAt)}`
   }
 
   /** Any other gate on the same order still waiting; the order only confirms when they are all cleared. */
