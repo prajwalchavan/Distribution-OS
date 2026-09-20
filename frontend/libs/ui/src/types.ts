@@ -697,7 +697,41 @@ export interface TxtContract extends Testable {
   numberOfLines?: number | undefined
   /** Web semantics (`h1`, `label`); native maps `h1`–`h3` to the header accessibility role. */
   as?: ('span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'label') | undefined
+  /**
+   * DOS-125: break an unbreakable run of characters wherever it has to. A `upi://pay?pa=…&am=…&tr=…`
+   * intent is ONE word to a browser, so at 390 px its middle simply left the screen with no way to
+   * read or select it. React Native already breaks an over-long word at any character, so on native
+   * this is a documented no-op rather than a second behaviour to keep in step.
+   *
+   * For a machine string a person must read or copy — a UPI intent, a reference — never for prose,
+   * which reads worse broken mid-word.
+   */
+  wrap?: 'anywhere' | undefined
   children: ReactNode
+}
+
+// ---------------------------------------------------------------------------
+// 6.16 QrCode (DOS-125)
+// ---------------------------------------------------------------------------
+
+/**
+ * A payment intent as something a phone can actually scan.
+ *
+ * ALWAYS BLACK ON WHITE, in both themes. A scanner needs contrast, not a palette: a QR tinted to the
+ * page in dark mode is a QR nothing reads. So this is the one component in the kit that takes no
+ * colour token and offers no variant — the tile is `#fff`, the modules are `#000`, the quiet zone is
+ * four modules wide, and `shape-rendering: crispEdges` keeps the squares square at any size.
+ *
+ * `value` is encoded in byte mode at error-correction level M, up to 1 000 characters; an empty one
+ * throws rather than drawing a tile nothing can read. `label` is the accessible name a screen reader
+ * announces ("UPI QR for ₹4,561") — the image itself says nothing to someone who cannot see it.
+ */
+export interface QrCodeProps extends Testable {
+  value: string
+  /** Side in px, quiet zone included. Default 216: big enough to scan from a counter, small on a phone. */
+  size?: number | undefined
+  /** The accessible name, e.g. "UPI QR for ₹4,561". */
+  label?: string | undefined
 }
 
 /**

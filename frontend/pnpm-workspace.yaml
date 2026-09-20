@@ -102,3 +102,14 @@ catalog:
   # source, 0 tiled, 0 rendered, no console line. 5.24.0 renders all 18. Re-test with a real map
   # before moving to 6.x again — the failure is silent, so a version bump alone will not show it.
   maplibre-gl: 5.24.0
+
+  # --- QR (DOS-125) -----------------------------------------------------------
+  # `qrcode-generator` is a zero-dependency, pure-JS encoder (MIT). It bundles into Metro and Vite
+  # unchanged and is imported by ONE file, `libs/ui/src/qr.ts`, which hands both renderers a single
+  # SVG path — so swapping the encoder later is one file, not two components. There is no native
+  # half to keep in step, so the Expo SDK does not govern it.
+  qrcode-generator: 1.4.4
+  # The DECODER, a devDependency of the kit alone: `qr.test.ts` rasterises the grid it generated and
+  # reads it back with jsQR, so the test proves a real scanner would see the payload — not that our
+  # own encoder agrees with itself.
+  jsqr: 1.4.0

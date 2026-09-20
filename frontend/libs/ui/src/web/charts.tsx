@@ -11,10 +11,12 @@ import { useTheme } from '../theme.js'
 import { chart as chartTokens, space } from '../tokens.js'
 import type {
   CompareBarsProps,
+  QrCodeProps,
   SparklineProps,
   StackedMixProps,
   TrendChartProps,
 } from '../types.js'
+import { qrPath } from '../qr.js'
 import {
   axisTop,
   buildScales,
@@ -437,6 +439,31 @@ export function Sparkline({
         strokeLinejoin="round"
         strokeLinecap="round"
       />
+    </svg>
+  )
+}
+
+/**
+ * DOS-125 — a payment intent as something a phone camera can read, drawn as inline SVG.
+ *
+ * ALWAYS BLACK ON WHITE, in both themes and at any size. A scanner needs contrast, not a palette, so
+ * this is the one component here that takes no colour token: `#fff` tile, `#000` modules, four
+ * modules of quiet zone, `crispEdges` so the squares stay square.
+ */
+export function QrCode({ value, size = 216, label, testID }: QrCodeProps): React.JSX.Element {
+  const { modules, d } = qrPath(value)
+  return (
+    <svg
+      viewBox={`0 0 ${String(modules)} ${String(modules)}`}
+      width={size}
+      height={size}
+      role="img"
+      aria-label={label}
+      shapeRendering="crispEdges"
+      data-testid={testID}
+    >
+      <rect x={0} y={0} width={modules} height={modules} fill="#fff" />
+      <path d={d} fill="#000" />
     </svg>
   )
 }

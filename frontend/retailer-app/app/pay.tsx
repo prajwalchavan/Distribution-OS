@@ -18,6 +18,7 @@ import {
   Group,
   ListRow,
   Money,
+  QrCode,
   RupeeInput,
   Row,
   Screen,
@@ -28,7 +29,7 @@ import {
   useColors,
   useStrings,
 } from '@dos/ui'
-import { links } from '@dos/ui/platform'
+import { clipboard, links } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useEffect, useState } from 'react'
 
@@ -65,6 +66,8 @@ export default function Pay(): React.JSX.Element {
    * do nothing at all. A browser cannot tell, so on the web this never shows.
    */
   const [noUpiApp, setNoUpiApp] = useState(false)
+  /** DOS-125: the inline "Copied" word after a real clipboard write, never before one. */
+  const [copied, setCopied] = useState(false)
 
   const dues = useQuery(
     ['outstanding', retailerId, 'bills'],
@@ -94,6 +97,11 @@ export default function Pay(): React.JSX.Element {
       }),
   )
   const intent = initiate.data
+  /**
+   * DOS-125: what the QR carries and what Copy copies — the payload the server minted for a scanner,
+   * falling back to the intent URL when it minted only that. Null means there is nothing to show.
+   */
+  const payload = intent?.upiQrPayload ?? intent?.upiIntentUrl ?? null
 
   const toggle = (id: string): void => {
     setChosen((current) =>
@@ -219,6 +227,22 @@ export default function Pay(): React.JSX.Element {
                 testID="r5-intent"
               >
                 <Stack gap={4}>
+                  {/*
+                    DOS-125: a shop on a counter PC could not pay at all. The intent was a line of
+                    TEXT — nothing to scan, and at 390 px its middle ran off the screen — and "Open a
+                    UPI app" does nothing a desktop browser can honour. The QR is the answer on both:
+                    the person pays from the phone in their hand.
+                  */}
+                  {payload === null ? null : (
+                    <Row justify="center">
+                      <QrCode
+                        value={payload}
+                        size={216}
+                        label={t('r5.qrLabel', { amount: formatMoney(intent.amountPaise) })}
+                        testID="r5-qr"
+                      />
+                    </Row>
+                  )}
                   <Money value={intent.amountPaise} size="hero" />
                   {intent.upiIntentUrl === null ? (
                     <Txt field="body" desk="body" testID="r5-no-vpa">
@@ -246,9 +270,51 @@ export default function Pay(): React.JSX.Element {
                           {t('r5.noUpiApp', { vpa: intent.payeeVpa ?? '' })}
                         </Txt>
                       ) : null}
-                      <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
-                        {intent.upiQrPayload ?? ''}
+                      {/*
+                        DOS-125: the hint is STATIC, from `links.confirmsHandoff`, never from what
+                        `links.open` answered — a browser cannot tell whether anything took a
+                        `upi://` URL, so `open` reports success either way and `r5-no-upi-app` could
+                        never show on the web.
+                      */}
+                      {links.confirmsHandoff ? null : (
+                        <Txt
+                          field="body"
+                          desk="body"
+                          color={colors.text.secondary}
+                          testID="r5-web-hint"
+                        >
+                          {t('r5.webHint', { vpa: intent.payeeVpa ?? '' })}
+                        </Txt>
+                      )}
+                      <Txt
+                        field="label"
+                        desk="meta"
+                        color={colors.text.secondary}
+                        numeric
+                        wrap="anywhere"
+                        testID="r5-intent-string"
+                      >
+                        {payload ?? ''}
                       </Txt>
+                      {!clipboard.available || payload === null ? null : (
+                        <Row gap={3} align="center" wrap>
+                          <Button
+                            label={t('r5.copy')}
+                            variant="secondary"
+                            onPress={() => {
+                              void clipboard.copy(payload).then((ok) => {
+                                if (ok) setCopied(true)
+                              })
+                            }}
+                            testID="r5-copy"
+                          />
+                          {copied ? (
+                            <Txt field="label" desk="meta" color={colors.status.moss.fg}>
+                              {t('r5.copied')}
+                            </Txt>
+                          ) : null}
+                        </Row>
+                      )}
                     </Stack>
                   )}
                   <Txt field="bodyStrong" desk="body" numeric testID="r5-ref">

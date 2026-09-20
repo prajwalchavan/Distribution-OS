@@ -33,4 +33,12 @@ export const links: PlatformLinks = {
   },
 
   available: typeof window !== 'undefined',
+
+  /**
+   * DOS-125: FALSE, and that is the honest answer. `window.open` and a `location.href` assignment to
+   * `upi://…` both succeed whether or not the operating system hands the URL to anything, so `open`
+   * above answers `true` whatever the browser actually did. A screen must therefore show its "scan
+   * the QR instead" hint from this flag, not from a result that cannot know.
+   */
+  confirmsHandoff: false,
 }

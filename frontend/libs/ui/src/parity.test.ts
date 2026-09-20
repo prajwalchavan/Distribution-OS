@@ -126,6 +126,11 @@ describe('renderer parity: @dos/ui/web and @dos/ui/native', () => {
     }
   })
 
+  it('DOS-125: exports <QrCode> on both renderers — a shop scans the same tile on a counter PC and a phone', () => {
+    expect(web, 'web is missing <QrCode>').toContain('QrCode')
+    expect(native, 'native is missing <QrCode>').toContain('QrCode')
+  })
+
   it('exports the shell and the viewport hook on both renderers', () => {
     for (const name of ['AppShell', 'TenantSwitcher', 'useViewport']) {
       expect(web, `web is missing ${name}`).toContain(name)
@@ -144,6 +149,9 @@ describe('platform parity: @dos/ui/platform', () => {
     const capabilities = webFiles.map((f) => f.replace('.web.ts', '')).sort()
     expect(capabilities).toEqual([
       'camera',
+      // DOS-125: copying a UPI intent a person cannot retype. Web-only in practice (the native half
+      // is honestly `available: false`), but a PAIR all the same — a screen writes one file.
+      'clipboard',
       'crypto',
       'documents',
       'files',

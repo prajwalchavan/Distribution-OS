@@ -29,4 +29,10 @@ export const links: PlatformLinks = {
   },
 
   available: true,
+
+  /**
+   * DOS-125: TRUE. `Linking.openURL` rejects when no installed app answers the scheme, so the `false`
+   * above really does mean "there is no UPI app on this phone" and a screen may say so.
+   */
+  confirmsHandoff: true,
 }

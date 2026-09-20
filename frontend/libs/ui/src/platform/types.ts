@@ -244,6 +244,35 @@ export interface PlatformLinks {
   open: (url: string) => Promise<boolean>
   mapsUrl: (latitude: number, longitude: number, label?: string) => string
   readonly available: boolean
+  /**
+   * DOS-125: whether `open`'s answer means anything.
+   *
+   * On a phone `Linking.openURL` REJECTS when nothing handles the scheme, so `false` really is "no
+   * UPI app here" and a screen can say so. A browser cannot tell: `window.open` and a
+   * `location.href` assignment to `upi://…` both succeed whatever the OS then does with it, so the
+   * web half answers `true` always — as it is documented to. A screen therefore shows its "scan this
+   * instead" hint from THIS flag, statically, and never from the result of `open`.
+   */
+  readonly confirmsHandoff: boolean
+}
+
+// ---------------------------------------------------------------------------
+// clipboard
+// ---------------------------------------------------------------------------
+
+/**
+ * Copying a machine string a person cannot retype: a UPI intent, a payment reference.
+ *
+ * `available` is the honest half. In a browser the Clipboard API needs a secure context
+ * (`https:`, `localhost` or `127.0.0.1`) and may still be refused; on a phone this product ships no
+ * clipboard at all — the shop has "Open a UPI app" and a QR to scan, which is the real answer there
+ * — so `available` is `false` and a screen hides its Copy button rather than offering a dead one.
+ * Never faked with the share sheet: sharing is a different act with a different consequence.
+ */
+export interface PlatformClipboard {
+  /** True only when the text really reached the clipboard. */
+  copy: (text: string) => Promise<boolean>
+  readonly available: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -278,4 +307,5 @@ export interface Platform {
   readonly haptics: PlatformHaptics
   readonly share: PlatformShare
   readonly links: PlatformLinks
+  readonly clipboard: PlatformClipboard
 }

@@ -28,7 +28,8 @@
     "gallery": "vite --config gallery/vite.config.ts"
   },
   "dependencies": {
-    "@dos/domain": "link:../../../backend/libs/domain"
+    "@dos/domain": "link:../../../backend/libs/domain",
+    "qrcode-generator": "catalog:"
   },
   "peerDependencies": {
     "expo-camera": "*",
@@ -121,6 +122,7 @@
     "expo-print": "catalog:",
     "expo-secure-store": "catalog:",
     "expo-sharing": "catalog:",
+    "jsqr": "catalog:",
     "maplibre-gl": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",

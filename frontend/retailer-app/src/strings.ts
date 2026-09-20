@@ -212,6 +212,8 @@ export const strings = {
   'r3.qr': 'SCAN TO PAY',
   'r3.qrBody': 'Scan this in any UPI app. The money reaches {name}.',
   'r3.qrNone': '{name} has not set up UPI yet. Pay them the way you usually do.',
+  // DOS-125: the accessible name of the QR tile — the image itself says nothing to a reader.
+  'r3.qrLabel': 'UPI QR for {amount}',
 
   // --- R5 pay online --------------------------------------------------------------------------------
   'r5.title': 'Pay',
@@ -236,6 +238,12 @@ export const strings = {
   // DOS-154: the reason Start is disabled when dues are outstanding but the amount field reads 0 —
   // never "Nothing is pending", which is only true when there is nothing owed at all.
   'r5.enterAmount': 'Enter an amount',
+  // DOS-125: the shop had nothing to scan on a counter PC and no way to read or copy the intent.
+  'r5.qrLabel': 'UPI QR for {amount}',
+  'r5.copy': 'Copy',
+  'r5.copied': 'Copied',
+  'r5.webHint':
+    'On a computer, scan the QR with your phone’s UPI app, or pay {vpa} and quote the reference below.',
 
   // --- R4 bill detail -------------------------------------------------------------------------------
   'r4.title': 'My bills',
