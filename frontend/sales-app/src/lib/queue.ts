@@ -243,14 +243,27 @@ export function useSubmitAcceptedDrafts(): void {
     })
   }, [api, engine])
 
+  /*
+   * ASKED WITH `void`, SO IT NAMES ITS OWN FAILURE (merge review, minor 1; the same change the
+   * engine made for its own `void this.flush()` in this lane). The SUBMIT is already caught inside
+   * `submitLandedDrafts` — a refusal is the rep's screen to show, not a toast — but `engine.outbox()`
+   * and `engine.getRow()` read the STORE, and a store being torn down or wiped under a sign-out
+   * (DOS-167) throws. Unhandled, that is a red box on a phone over a call nobody asked for. The
+   * sweep is best-effort by design: "Submit order" in My orders is still there, so a failure here is
+   * named in the log and goes no further.
+   */
+  const run = useCallback((): void => {
+    void sweep().catch((error: unknown) => {
+      console.warn('[sales] landed-draft sweep', error)
+    })
+  }, [sweep])
+
   // The landing itself, and the batch after it: every acceptance asks the whole-order question again.
-  useAccepted(() => {
-    void sweep()
-  })
+  useAccepted(run)
 
   // The catch-up: what landed while no screen with this hook was mounted, or before the store opened.
   useEffect(() => {
     if (!ready) return
-    void sweep()
-  }, [ready, sweep])
+    run()
+  }, [ready, run])
 }
