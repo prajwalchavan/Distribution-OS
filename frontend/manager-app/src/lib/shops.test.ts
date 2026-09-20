@@ -7,7 +7,7 @@
 import type { RetailerLedgerRow } from '@dos/contracts'
 import { describe, expect, it } from 'vitest'
 
-import { overdueAmount, statementRows } from './shops'
+import { SHOP_COLUMNS, overdueAmount, phoneRow, statementRows } from './shops'
 
 describe('DOS-035 — the shop panel prints the overdue amount as money', () => {
   it('formats the paise figure like the line above it, not as raw paise', () => {
@@ -85,5 +85,30 @@ describe('DOS-036 — the statement of account opens with the carried balance an
   it('caps the documents shown and never drops the opening row', () => {
     const rows = statementRows(ACCOUNT, { from: '2026-05-22', limit: 2 })
     expect(rows.map((row) => row.refNo)).toEqual([null, 'INV/0037', 'INV/0105'])
+  })
+})
+
+describe('DOS-038 — on a phone a shop row carries the shop name', () => {
+  it('names the shop on the line, instead of only its code', () => {
+    expect(phoneRow(SHOP_COLUMNS).primary).toBe('name')
+  })
+
+  it('keeps the credit policy beside the name and leaves the limit to the panel', () => {
+    // "R-0046 · Blocked · 0.00" told a manager nothing: a code, a policy and a bare credit limit.
+    expect(phoneRow(SHOP_COLUMNS).secondary).toBe('mode')
+    expect(phoneRow(SHOP_COLUMNS).trailing).toBeUndefined()
+  })
+
+  it('still lists the code and the limit on a desk', () => {
+    expect(SHOP_COLUMNS.map((column) => column.key)).toEqual([
+      'code',
+      'name',
+      'beat',
+      'tier',
+      'terms',
+      'limit',
+      'mode',
+      'phone',
+    ])
   })
 })

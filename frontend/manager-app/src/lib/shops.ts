@@ -83,3 +83,59 @@ export function statementRows(
     })),
   ]
 }
+
+// ---------------------------------------------------------------------------
+// The shops register
+// ---------------------------------------------------------------------------
+
+export type ShopColumnKey = 'code' | 'name' | 'beat' | 'tier' | 'terms' | 'limit' | 'mode' | 'phone'
+
+/** A `<Register>` column of M14, as far as this file decides it: which column, and what it is FOR. */
+export interface ShopColumnSpec {
+  readonly key: ShopColumnKey
+  /** The kit's own word: `identity` names the row, `value` is its figure, `chip` its status. */
+  readonly priority: 'identity' | 'value' | 'chip' | 'detail'
+}
+
+/**
+ * The columns M14 lists, in order. The screen supplies each one's head and cell.
+ *
+ * WHICH COLUMN NAMES THE ROW (DOS-038). A desk sees all eight; a phone sees the `identity` column, the
+ * first `value` column and the `chip` one. With the CODE as the identity and the credit limit as the
+ * value, a phone row read "R-0046 · Blocked · 0.00" — the one column a manager recognises a shop by was
+ * the one the narrow layout dropped, on the list whose whole job is to find a shop. The name is the
+ * identity, the credit policy stays beside it, and the code and the limit are in the panel the row
+ * opens (they remain columns, so a desk still lists them).
+ */
+export const SHOP_COLUMNS: readonly ShopColumnSpec[] = [
+  { key: 'code', priority: 'detail' },
+  { key: 'name', priority: 'identity' },
+  { key: 'beat', priority: 'detail' },
+  { key: 'tier', priority: 'detail' },
+  { key: 'terms', priority: 'detail' },
+  { key: 'limit', priority: 'detail' },
+  { key: 'mode', priority: 'chip' },
+  { key: 'phone', priority: 'detail' },
+]
+
+/** What a phone shows of a row: the kit's rule (`@dos/ui` web/list.tsx and native/list.tsx). */
+export interface PhoneRow {
+  readonly primary: ShopColumnKey | undefined
+  readonly trailing: ShopColumnKey | undefined
+  readonly secondary: ShopColumnKey | undefined
+}
+
+/**
+ * Below desk width a `<Register>` is not a table: it is one `<ListRow>` per row, carrying the
+ * `identity` column as its line, the first `value` column as its trailing figure and the `chip`
+ * column beside it. Every other column is in the panel the row opens. This is that rule, so a vitest
+ * can read what a phone will actually show.
+ */
+export function phoneRow(columns: readonly ShopColumnSpec[]): PhoneRow {
+  const identity = columns.find((column) => column.priority === 'identity') ?? columns[0]
+  return {
+    primary: identity?.key,
+    trailing: columns.find((column) => column.priority === 'value')?.key,
+    secondary: columns.find((column) => column.priority === 'chip')?.key,
+  }
+}

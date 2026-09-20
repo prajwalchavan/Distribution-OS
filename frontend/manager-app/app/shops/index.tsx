@@ -50,7 +50,13 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, shiftDays, shortInstant, today } from '../../src/lib/dates'
-import { overdueAmount, statementRows } from '../../src/lib/shops'
+import {
+  SHOP_COLUMNS,
+  overdueAmount,
+  statementRows,
+  type ShopColumnKey,
+  type ShopColumnSpec,
+} from '../../src/lib/shops'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -180,26 +186,36 @@ export default function Shops(): React.JSX.Element {
     .filter((row): row is Retailer => row !== null)
   const current = shop.data === undefined ? null : staffRetailer(shop.data.item)
 
-  const columns: readonly RegisterColumn<Retailer>[] = [
-    textColumn('code', t('m14.code'), (row) => row.code, { priority: 'identity' }),
-    textColumn('name', t('m14.name'), (row) => row.name),
-    textColumn('beat', t('m14.beat'), (row) => names.beat(row.beatId)),
-    textColumn('tier', t('m14.tier'), (row) => row.tier),
-    textColumn('terms', t('m14.terms'), (row) => word(row.paymentTerms)),
-    moneyColumn('limit', t('m14.limit'), (row) => row.creditLimitPaise),
-    {
+  /*
+   * The column set — which columns, in what order, and which of them a phone keeps — is
+   * `SHOP_COLUMNS` in `src/lib/shops.ts`, where a vitest reads it (DOS-038). Here each key gets its
+   * head and its cell.
+   */
+  const cellOf: Readonly<
+    Record<ShopColumnKey, (at: Pick<ShopColumnSpec, 'priority'>) => RegisterColumn<Retailer>>
+  > = {
+    code: (at) => textColumn('code', t('m14.code'), (row) => row.code, at),
+    name: (at) => textColumn('name', t('m14.name'), (row) => row.name, at),
+    beat: (at) => textColumn('beat', t('m14.beat'), (row) => names.beat(row.beatId), at),
+    tier: (at) => textColumn('tier', t('m14.tier'), (row) => row.tier, at),
+    terms: (at) => textColumn('terms', t('m14.terms'), (row) => word(row.paymentTerms), at),
+    limit: (at) => moneyColumn('limit', t('m14.limit'), (row) => row.creditLimitPaise, at),
+    mode: (at) => ({
       key: 'mode',
       head: t('m14.creditMode'),
-      priority: 'chip',
+      priority: at.priority,
       cell: (row) => (
         <StatusChip
           label={word(row.creditMode)}
           family={row.creditMode === 'stop' ? 'brick' : 'neutral'}
         />
       ),
-    },
-    textColumn('phone', t('m14.phone'), (row) => row.phone),
-  ]
+    }),
+    phone: (at) => textColumn('phone', t('m14.phone'), (row) => row.phone, at),
+  }
+  const columns: readonly RegisterColumn<Retailer>[] = SHOP_COLUMNS.map((spec) =>
+    cellOf[spec.key]({ priority: spec.priority }),
+  )
 
   useRegisterKeys({
     rows,
@@ -281,6 +297,10 @@ export default function Shops(): React.JSX.Element {
             <Stack gap={4}>
               <Field label={t('m14.code')}>{current.code}</Field>
               <Field label={t('m14.beat')}>{names.beat(current.beatId)}</Field>
+              {/* The credit limit is a desk column and a panel field: a phone row keeps the name. */}
+              <Field label={t('m14.limit')}>
+                <Money value={current.creditLimitPaise} size="cell" symbol={false} />
+              </Field>
               <Field label={t('m14.phone')}>{current.phone ?? t('app.none')}</Field>
               <Field label={t('m14.gstin')}>{current.gstin ?? t('app.none')}</Field>
 
