@@ -39,9 +39,11 @@ describeDb('pricing (DATABASE_URL)', () => {
   const v1 = uuidv7() // ₹10 default, ₹9 tier A, case 12
   const v2 = uuidv7() // ₹20 default only, case 24
   const vUnrated = uuidv7() // its HSN has no GST rate on any date (DOS-096)
+  const vCess = uuidv7() // DOS-079: 28% GST + 12% compensation cess, ₹22.97 a piece
   // Per-run HSN codes so no other spec's rate row can answer for them (8 and 9 are orders' and ai's prefixes).
   const hsn = `7${Date.now().toString().slice(-6)}` // 18% from 2020-04-01
   const hsnNoRate = `6${Date.now().toString().slice(-6)}` // never given an hsn_rates row
+  const hsnCess = `5${Date.now().toString().slice(-6)}` // 28% + 12% cess from 2020-04-01 (DOS-079)
   const shopA = uuidv7() // tier A, has the final override
   const shopC = uuidv7() // tier C, gets the scheme; linked to the retailer-role user
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
@@ -101,11 +103,21 @@ describeDb('pricing (DATABASE_URL)', () => {
         defaultCaseSize: 12,
         hsnCode: hsnNoRate,
       },
+      {
+        id: vCess,
+        productId,
+        name: 'Campa Cola 750 ml',
+        netQty: 750,
+        netUnit: 'ml',
+        defaultCaseSize: 12,
+        hsnCode: hsnCess,
+      },
     ])
     // The quote carries GST (DOS-096), so every item it prices needs a dated rate for its HSN.
-    await db
-      .insert(hsnRates)
-      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1800, effectiveFrom: '2020-04-01' })
+    await db.insert(hsnRates).values([
+      { id: uuidv7(), hsnCode: hsn, gstBps: 1800, effectiveFrom: '2020-04-01' },
+      { id: uuidv7(), hsnCode: hsnCess, gstBps: 2800, cessBps: 1200, effectiveFrom: '2020-04-01' },
+    ])
     await db.insert(retailers).values([
       {
         id: shopA,
@@ -598,6 +610,34 @@ describeDb('pricing (DATABASE_URL)', () => {
       (await quoteFor(rep, shopA, [{ lineId: 'l2', variantId: v2, qtyPcs: 10 }])).body.lines[0]
         ?.gstBps,
     ).toBe(1800)
+  })
+
+  it('DOS-079: a quote for a cess item carries cessBps/cessPaise inside taxPaise and the rupee-rounded payable', async () => {
+    await db.insert(priceListItems).values({
+      id: uuidv7(),
+      tenantId,
+      priceListId: defaultListId,
+      variantId: vCess,
+      ratePaise: 2297,
+    })
+    // 48 pcs at ₹22.97 = ₹1,102.56; 28% GST ₹308.72 + 12% cess ₹132.31 = ₹441.03 of tax.
+    const q = await quoteFor(rep, shopA, [{ lineId: 'lc', variantId: vCess, qtyPcs: 48 }])
+    expect(q.status).toBe(200)
+    expect(q.body.lines[0]).toMatchObject({
+      lineNetPaise: 110_256,
+      gstBps: 2_800,
+      cessBps: 1_200,
+      cessPaise: 13_231,
+      taxPaise: 44_103,
+      lineTotalPaise: 154_359,
+    })
+    expect(q.body.totals).toMatchObject({
+      netPaise: 110_256,
+      taxPaise: 44_103,
+      cessPaise: 13_231,
+      roundOffPaise: 41,
+      totalPaise: 154_400,
+    })
   })
 
   it('DOS-096: a quote for an item whose HSN has no GST rate is a 400 naming the HSN, never a silent 0%', async () => {

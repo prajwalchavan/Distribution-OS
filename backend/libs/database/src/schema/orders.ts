@@ -90,7 +90,10 @@ export const salesOrders = pgTable(
     externalRef: text('external_ref'),
     subtotalPaise: paise('subtotal_paise').notNull().default(0),
     discountPaise: paise('discount_paise').notNull().default(0),
+    /** GST plus compensation cess, the invoice's cgst + sgst + igst + cess; `cess_paise` is the cess share. */
     taxPaise: paise('tax_paise').notNull().default(0),
+    /** The compensation-cess share of `tax_paise`, never an addition on top of it (DOS-079). */
+    cessPaise: paise('cess_paise').notNull().default(0),
     roundOffPaise: paise('round_off_paise').notNull().default(0),
     totalPaise: paise('total_paise').notNull().default(0),
     /** Approval-worthy conditions raised at submit (credit_limit, bargain, below_floor). */
@@ -166,7 +169,11 @@ export const salesOrderLines = pgTable(
     discountBps: bps('discount_bps').notNull().default(0),
     discountPaise: paise('discount_paise').notNull().default(0),
     gstBps: bps('gst_bps').notNull(),
+    /** Compensation-cess rate of the item's HSN on the pricing date (0 for everything but sin/luxury goods). */
+    cessBps: bps('cess_bps').notNull().default(0),
+    /** GST plus compensation cess; `cess_paise` is the cess share, so `line_total − tax` is still the taxable. */
     taxPaise: paise('tax_paise').notNull().default(0),
+    cessPaise: paise('cess_paise').notNull().default(0),
     lineTotalPaise: paise('line_total_paise').notNull().default(0),
     appliedRules: jsonb('applied_rules')
       .$type<AppliedRule[]>()

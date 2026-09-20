@@ -6146,7 +6146,9 @@ request.json
       ],
       "lineNetPaise": 2680000,
       "gstBps": 500,
+      "cessBps": 500,
       "taxPaise": 12000,
+      "cessPaise": 12000,
       "lineTotalPaise": 2680000
     }
   ],
@@ -6169,6 +6171,7 @@ request.json
     "bargainPaise": 4000,
     "netPaise": 2680000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000
   }
@@ -10517,6 +10520,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -10547,7 +10551,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -10719,6 +10725,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -10749,7 +10756,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -10928,6 +10937,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -10958,7 +10968,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -11121,6 +11133,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -11151,7 +11164,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -11324,6 +11339,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -11354,7 +11370,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -11538,6 +11556,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -11568,7 +11587,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -11728,6 +11749,7 @@ curl "http://localhost:3001/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -11758,7 +11780,9 @@ curl "http://localhost:3001/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -11898,6 +11922,7 @@ curl "http://localhost:3001/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -11928,7 +11953,9 @@ curl "http://localhost:3001/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -12088,6 +12115,7 @@ curl "http://localhost:3001/orders?state=draft&openOnly=true&retailerId=01a06dbc
       "subtotalPaise": 2680000,
       "discountPaise": 12000,
       "taxPaise": 12000,
+      "cessPaise": 12000,
       "roundOffPaise": 12000,
       "totalPaise": 2680000,
       "approvalFlags": [
@@ -12334,6 +12362,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -12364,7 +12393,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -26738,6 +26769,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -26768,7 +26800,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {
@@ -46365,6 +46399,7 @@ request.json
     "subtotalPaise": 2680000,
     "discountPaise": 12000,
     "taxPaise": 12000,
+    "cessPaise": 12000,
     "roundOffPaise": 12000,
     "totalPaise": 2680000,
     "approvalFlags": [
@@ -46395,7 +46430,9 @@ request.json
         "discountBps": 500,
         "discountPaise": 12000,
         "gstBps": 500,
+        "cessBps": 500,
         "taxPaise": 12000,
+        "cessPaise": 12000,
         "lineTotalPaise": 2680000,
         "appliedRules": [
           {

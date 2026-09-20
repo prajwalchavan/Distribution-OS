@@ -90,7 +90,12 @@ export const OrderLineSchema = z.object({
   discountBps: BpsSchema,
   discountPaise: PaiseSchema,
   gstBps: BpsSchema,
+  /** Compensation-cess rate of the item's HSN on the pricing date; 0 for everything but sin/luxury goods. */
+  cessBps: BpsSchema,
+  /** GST plus compensation cess (DOS-079); `lineTotalPaise − taxPaise` is still the taxable. */
   taxPaise: PaiseSchema,
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: PaiseSchema,
   lineTotalPaise: PaiseSchema,
   appliedRules: z.array(AppliedRuleSchema),
   priceLocked: z.boolean(),
@@ -112,7 +117,10 @@ export const OrderSchema = z.object({
   externalRef: z.string().nullable(),
   subtotalPaise: PaiseSchema,
   discountPaise: PaiseSchema,
+  /** GST plus compensation cess on the lines (DOS-079). */
   taxPaise: PaiseSchema,
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: PaiseSchema,
   roundOffPaise: PaiseSchema,
   totalPaise: PaiseSchema,
   approvalFlags: z.array(z.string()),

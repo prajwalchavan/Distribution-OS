@@ -52,6 +52,8 @@ type Line = {
   packSizeAtEntry: number
   qtyPcs: number
   gstBps: number
+  cessBps: number
+  cessPaise: number
   taxPaise: number
   lineTotalPaise: number
   listRatePaise: number
@@ -70,6 +72,7 @@ type Detail = {
   paymentTerms: string
   subtotalPaise: number
   discountPaise: number
+  cessPaise: number
   taxPaise: number
   roundOffPaise: number
   totalPaise: number
@@ -92,6 +95,8 @@ describeDb('orders (DATABASE_URL)', () => {
   const db = createDb(pool)
   const run = uuidv7().slice(-8)
   const hsn = `8${Date.now().toString().slice(-6)}`
+  /** DOS-079: aerated waters — 28% GST plus 12% compensation cess, the rate Campa Cola is billed at. */
+  const cessHsn = `9${Date.now().toString().slice(-6)}`
   const tenantId = uuidv7()
   const ownerId = uuidv7()
   const repId = uuidv7()
@@ -102,6 +107,7 @@ describeDb('orders (DATABASE_URL)', () => {
   const retailerC = uuidv7() // credit mode `stop` with a ₹10 limit (DOS-020)
   const variantA = uuidv7() // 100 pcs in the godown
   const variantB = uuidv7() // no stock at all
+  const variantCess = uuidv7() // DOS-079: on `cessHsn`, 28% GST + 12% cess, ₹22.97 a piece
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const shop: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
@@ -168,15 +174,27 @@ describeDb('orders (DATABASE_URL)', () => {
         hsnCode: hsn,
         mrpPaise: 2000,
       },
+      {
+        id: variantCess,
+        productId,
+        name: 'Campa Cola 750 ml (cess)',
+        netQty: 750,
+        netUnit: 'ml',
+        defaultCaseSize: 24,
+        hsnCode: cessHsn,
+        mrpPaise: 4000,
+      },
     ])
     // the tenant sells in 12s even though the manufacturer prints 24 (docs/17 B: sell-side pack wins)
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
     ])
-    await db
-      .insert(hsnRates)
-      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1200, effectiveFrom: '2020-04-01' })
+    await db.insert(hsnRates).values([
+      { id: uuidv7(), hsnCode: hsn, gstBps: 1200, effectiveFrom: '2020-04-01' },
+      { id: uuidv7(), hsnCode: cessHsn, gstBps: 2800, cessBps: 1200, effectiveFrom: '2020-04-01' },
+    ])
 
     const identityId = uuidv7()
     await db.insert(retailerIdentities).values({
@@ -238,6 +256,7 @@ describeDb('orders (DATABASE_URL)', () => {
     await db.insert(priceListItems).values([
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
     ])
 
     const locs = await db
@@ -1219,6 +1238,42 @@ describeDb('orders (DATABASE_URL)', () => {
       })
     expect(byId.get(la)).toMatchObject({ gstBps: 1_200, taxPaise: 2_880, lineTotalPaise: 26_880 })
     expect(byId.get(lb)).toMatchObject({ gstBps: 1_200, taxPaise: 2_100, lineTotalPaise: 19_600 })
+  })
+
+  it('DOS-079: an order line on a 28% + 12% cess HSN stores cess inside its tax and the header carries the cess share', async () => {
+    const line = uuidv7()
+    const placed = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos079-${run}`,
+      id: uuidv7(),
+      retailerId: retailerA,
+      source: 'salesperson',
+      // 4 cs of 12 = 48 pcs at ₹22.97 = ₹1,102.56 taxable; 28% GST ₹308.72 + 12% cess ₹132.31 = ₹441.03
+      lines: [{ id: line, variantId: variantCess, enteredQty: 4, enteredUnit: 'case' }],
+    })
+    expect(placed.status).toBe(200)
+    const order = placed.body.item
+    const [only] = order.lines
+    if (!only) throw new Error('DOS-079: the order lost its only line')
+    expect(only).toMatchObject({
+      qtyPcs: 48,
+      ratePaise: 2_297,
+      gstBps: 2_800,
+      cessBps: 1_200,
+      cessPaise: 13_231,
+      taxPaise: 44_103,
+      lineTotalPaise: 154_359,
+    })
+    // Amendment (a): `tax_paise` IS GST + cess, so every consumer that reads the taxable as
+    // `lineTotalPaise − taxPaise` (billing, repricing, the retailer app) still reads the net.
+    expect(only.lineTotalPaise - only.taxPaise).toBe(110_256)
+    expect(order).toMatchObject({
+      subtotalPaise: 110_256,
+      discountPaise: 0,
+      cessPaise: 13_231,
+      taxPaise: 44_103,
+      roundOffPaise: 41,
+      totalPaise: 154_400,
+    })
   })
 
   const countRows = async (orderId: string) => {

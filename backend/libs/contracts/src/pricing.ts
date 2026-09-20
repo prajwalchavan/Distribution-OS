@@ -328,8 +328,12 @@ export const QuotedLineSchema = z.object({
   lineNetPaise: PaiseSchema,
   /** GST rate of the item's HSN on `pricingDate`: the rate the order stores on this line. */
   gstBps: BpsSchema,
-  /** GST on `lineNetPaise` at `gstBps`. Cess is not included (DOS-079). */
+  /** Compensation-cess rate of the same HSN on `pricingDate`; 0 for everything but sin/luxury goods. */
+  cessBps: BpsSchema,
+  /** GST plus compensation cess on `lineNetPaise` at the dated HSN rates (DOS-079). */
   taxPaise: PaiseSchema,
+  /** The cess share of `taxPaise`, never an addition on top of it. */
+  cessPaise: PaiseSchema,
   /** `lineNetPaise + taxPaise`: the line as the placed order carries it. */
   lineTotalPaise: PaiseSchema,
 })
@@ -353,8 +357,10 @@ export const QuoteOutput = z.object({
     bargainPaise: PaiseSchema,
     /** Before GST. */
     netPaise: PaiseSchema,
-    /** Sum of the lines' `taxPaise`. */
+    /** Sum of the lines' `taxPaise` (GST plus cess). */
     taxPaise: PaiseSchema,
+    /** Sum of the lines' `cessPaise`, inside `taxPaise` (DOS-079). */
+    cessPaise: PaiseSchema,
     /** Signed residue of rounding `netPaise + taxPaise` to the rupee. */
     roundOffPaise: PaiseSchema,
     /** What the shop pays: `netPaise + taxPaise + roundOffPaise`, a whole number of rupees. */
