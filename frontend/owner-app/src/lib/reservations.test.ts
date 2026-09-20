@@ -13,6 +13,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { strings } from '../strings'
 import { readAllReservations, reservedPcs, type CursorPage } from './reservations'
 
 interface Hold {
@@ -130,5 +131,38 @@ describe('O5 order panel: Stock held', () => {
     expect(panel).toMatch(/reservedPcs\(/)
     // The count is still shown — said to be lots, which is what it is.
     expect(panel).toMatch(/o5\.reservationsLots/)
+    // ...and ONE hold is said to be one lot: the panel carries both lines and picks by the count.
+    expect(panel, 'the panel has no singular line to pick').toMatch(/o5\.reservationsLot['"]/)
+    expect(panel, 'nothing chooses between the two lines').toMatch(/===\s*1\s*\?/)
+  })
+})
+
+/**
+ * Merge-review blocker, 2026-09-20 — "across 1 lots".
+ *
+ * `interpolate` (`ui/src/strings.ts`) is a plain `{name}` substitution: there is no plural form
+ * anywhere in this repo, deliberately, because Hindi and Marathi do not share English's one-or-many
+ * rule. A count that can be 1 therefore needs two keys and a screen that picks between them — the
+ * shape `retailer-app/app/order.tsx` already uses for `r7.linesOne` / `r7.lines`.
+ *
+ * One lot is the COMMON case, not the edge: most confirmed orders are picked out of a single lot,
+ * so "across 1 lots" is the first thing a walker reads on the first panel they open.
+ */
+describe('O5 "Stock held": the lot line reads as English at any count', () => {
+  const catalog: Readonly<Record<string, string>> = strings
+
+  it('DOS-130: one hold is "across 1 lot", never "across 1 lots"', () => {
+    const singular = catalog['o5.reservationsLot']
+    expect(singular, 'there is no singular key').toBeDefined()
+    expect(singular).toBe('across 1 lot')
+    // It states the one itself, so nothing is substituted into it and no placeholder may survive.
+    expect(singular).not.toMatch(/\{/)
+    expect(singular).not.toMatch(/lots/)
+  })
+
+  it('DOS-130: the many-line still carries the count it is counting', () => {
+    const plural = catalog['o5.reservationsLots']
+    expect(plural).toMatch(/\{count\}/)
+    expect(plural).toMatch(/lots/)
   })
 })
