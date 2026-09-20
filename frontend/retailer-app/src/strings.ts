@@ -174,6 +174,15 @@ export const strings = {
   'r8.submit': 'Send this order',
   'r8.notes': 'Your note',
   'r8.lineGst': '+ GST {amount}',
+  // DOS-100: a submitted order the office still has to sign off. The shop is told it is waiting and,
+  // when the gate is its own overdue bills, the one thing that releases it. Never a credit limit or a
+  // credit-available figure: ADR 0006 keeps both off this app.
+  'r8.holdTitle': 'Waiting for {name} to confirm this order',
+  'r8.holdCredit':
+    'Your earlier bills: {overdue} overdue. Paying it is the quickest way to release this order.',
+  'r8.holdCreditNone': '{name} is checking your account before confirming.',
+  'r8.holdOther': '{name} is checking a rate on this order.',
+  'r8.holdPay': 'Pay the overdue bills',
 
   // --- R3 dues ------------------------------------------------------------------------------------
   'r3.title': 'Money you owe',
@@ -397,6 +406,9 @@ export const strings = {
   // --- words for machine values (wordFor falls back to a humanised form) --------------------------------
   'word.draft': 'Not sent',
   'word.submitted': 'With the distributor',
+  // DOS-100: `submitted` with approval flags is not the same waiting as `submitted` without them —
+  // the office has to decide before anything moves. Only the chip changes; the state does not.
+  'word.submittedHeld': 'Waiting for approval',
   'word.approval_pending': 'Waiting for approval',
   'word.confirmed': 'Accepted',
   'word.picking': 'Being packed',

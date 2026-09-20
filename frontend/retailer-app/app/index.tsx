@@ -354,7 +354,17 @@ export default function Home(): React.JSX.Element {
                         })}
                         trailingMoney={order.totalPaise}
                         trailing={
-                          <StatusChip label={word(order.state)} family={orderFamily(order.state)} />
+                          <StatusChip
+                            // DOS-100: `submitted` with approval flags is an order the office still
+                            // has to sign off, not one already on its way — "With the distributor"
+                            // told the shop nothing was wrong while it waited for a decision.
+                            label={
+                              order.state === 'submitted' && order.approvalFlags.length > 0
+                                ? t('word.submittedHeld')
+                                : word(order.state)
+                            }
+                            family={orderFamily(order.state)}
+                          />
                         }
                         onPress={() => {
                           router.push(`/orders/${order.id}`)
