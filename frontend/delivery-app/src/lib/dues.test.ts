@@ -22,6 +22,25 @@ import { doorDues, overdueLine } from './dues'
 import type { LocalOutstanding } from './local'
 import { strings } from '../strings'
 
+interface NodeFs {
+  readFileSync: (path: string, encoding: 'utf8') => string
+}
+interface NodeUrl {
+  fileURLToPath: (url: URL) => string
+}
+
+const NODE_FS: string = 'node:fs'
+const NODE_URL: string = 'node:url'
+
+/** Screen source with its comments taken out: a comment may quote the very line it explains. */
+async function readScreen(relative: string): Promise<string> {
+  const { readFileSync } = (await import(NODE_FS)) as NodeFs
+  const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+  return readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+}
+
 const t = createTranslator('en', strings)
 
 /** Vaibhav's row, exactly as `retailer_outstanding_summary` reached the phone (db-01, db-02). */
@@ -90,5 +109,39 @@ describe('DOS-066 the dues the door shows', () => {
   it('DOS-066 an oldest due date in the future is not days late, however the office pulled it', () => {
     const ahead: LocalOutstanding = { ...VAIBHAV, oldest_due_date: '2026-09-20' }
     expect(doorDues(ahead, 'indicate', '2026-09-13').daysLate).toBe(0)
+  })
+})
+
+/**
+ * AND THE STOP ACTUALLY SHOWS IT. The review of this fix found the rule above proved and its SCREEN
+ * proved by nothing: reverting the D3 hunk alone left every test in this app green, so the five lines
+ * the finding is about could have gone back to a single untinted chip without a word from the suite.
+ *
+ * So the screen is read here the way `dos-065-own-papers.test.ts` reads its screens — importing D3 in
+ * Node pulls in `react-native` and `expo-router`, which resolve only under Metro.
+ */
+describe('DOS-066 review — the stop itself carries the overdue lines', () => {
+  it('DOS-066 D3 draws its chips and its panel from this rule, not from outstanding alone', async () => {
+    const d3 = await readScreen('../../app/stop/[id]/index.tsx')
+    expect(d3).toMatch(/import \{ doorDues, overdueLine \} from '\.\.\/\.\.\/\.\.\/src\/lib\/dues'/)
+    expect(d3).toMatch(/const door = doorDues\(dues, shop\?\.credit_mode \?\? null\)/)
+    expect(d3).toMatch(/const overdue = overdueLine\(t, door,/)
+    for (const id of [
+      'd3-overdue',
+      'd3-credit-stopped',
+      'd3-overdue-amount',
+      'd3-days-late',
+      'd3-stopped-line',
+    ]) {
+      expect(d3).toContain(`testID="${id}"`)
+    }
+  })
+
+  it('DOS-066 nothing at the door is gated on what the shop owes — tell, never block', async () => {
+    const d3 = await readScreen('../../app/stop/[id]/index.tsx')
+    // docs/22 §8 (2026-09-13): the goods were invoiced and loaded; the credit gate was at submit.
+    expect(d3).not.toMatch(/disabled=\{[^}]*door\./)
+    expect(d3).not.toMatch(/disabled=\{[^}]*stopped/)
+    expect(d3).not.toMatch(/disabled=\{[^}]*overdue/)
   })
 })
