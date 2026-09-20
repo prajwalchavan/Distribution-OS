@@ -23,6 +23,7 @@ import {
 import { useState } from 'react'
 
 import { Async, Panel, moneyColumn, textColumn } from '../../src/lib/ui'
+import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { instantWithClock } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -256,6 +257,11 @@ export default function StaffScreen(): React.JSX.Element {
                 {selected?.status === 'active' ? t('o7.disable') : t('o7.enable')}
               </Txt>
             )}
+            <Refusal
+              of={[setPasswordFor, setStatus]}
+              scope={selected === null || dialog === null ? null : `${selected.userId}:${dialog}`}
+              testID="staff-dialog-refusal"
+            />
           </Stack>
         }
         confirmLabel={dialog === 'password' ? t('o7.resetPassword') : t('app.save')}
@@ -268,14 +274,16 @@ export default function StaffScreen(): React.JSX.Element {
             setPassword('')
           }
           if (dialog === 'password')
-            void setPasswordFor.mutateAsync({ userId: selected.userId, password }).then(done, done)
+            void setPasswordFor
+              .mutateAsync({ userId: selected.userId, password })
+              .then(done, stayOpen)
           else
             void setStatus
               .mutateAsync({
                 userId: selected.userId,
                 status: selected.status === 'active' ? 'disabled' : 'active',
               })
-              .then(done, done)
+              .then(done, stayOpen)
         }}
         testID="staff-dialog"
       />

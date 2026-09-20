@@ -28,7 +28,16 @@ import {
 } from '@dos/ui'
 import { useRouter } from 'expo-router'
 
-import { AsOf, Async, Columns, Half, PageTabs, Panel, useNames } from '../src/lib/ui'
+import {
+  AsOf,
+  Async,
+  Columns,
+  Half,
+  MIX_TOP_GROUPS,
+  PageTabs,
+  Panel,
+  useNames,
+} from '../src/lib/ui'
 import { instantWithClock, monthsBack, rangeOf, shortDate } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
@@ -57,7 +66,11 @@ export default function Today(): React.JSX.Element {
     }),
   )
   const mix = useQuery(['series', 'brandMix', month.from, month.to], () =>
-    api.api.reporting.series.brandMix({ from: month.from, to: month.to, topGroups: 5 }),
+    api.api.reporting.series.brandMix({
+      from: month.from,
+      to: month.to,
+      topGroups: MIX_TOP_GROUPS,
+    }),
   )
   const approvals = useQuery(['approvals', 'pending', 'top'], () =>
     api.api.orders.approvals.list({ status: 'pending', limit: 5 }),

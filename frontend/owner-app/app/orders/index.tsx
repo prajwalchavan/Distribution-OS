@@ -40,6 +40,7 @@ import {
   textColumn,
   useNames,
 } from '../../src/lib/ui'
+import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { rangeOf, shortInstant, longDate, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
@@ -185,11 +186,11 @@ export default function Orders(): React.JSX.Element {
       setConfirming(null)
       setReason('')
     }
-    if (confirming === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, done)
+    if (confirming === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, stayOpen)
     if (confirming === 'cancel')
-      void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, done)
+      void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, stayOpen)
     if (confirming === 'release')
-      void release.mutateAsync({ orderId: order.id, reason: reason.trim() }).then(done, done)
+      void release.mutateAsync({ orderId: order.id, reason: reason.trim() }).then(done, stayOpen)
   }
 
   return (
@@ -289,7 +290,7 @@ export default function Orders(): React.JSX.Element {
                   family={STATE_FAMILY[order.state] ?? 'neutral'}
                 />
               </Field>
-              <Field label={t('o5.terms')}>{order.paymentTerms}</Field>
+              <Field label={t('o5.terms')}>{word(order.paymentTerms)}</Field>
               <Field label={t('o5.expected')}>{longDate(order.expectedDeliveryDate)}</Field>
 
               <Panel title={t('o5.lines', { count: order.lines.length })}>
@@ -405,6 +406,13 @@ export default function Orders(): React.JSX.Element {
                 testID="order-reason"
               />
             )}
+            <Refusal
+              of={[confirmOrder, cancelOrder, release]}
+              scope={
+                order === undefined || confirming === null ? null : `${order.id}:${confirming}`
+              }
+              testID="order-dialog-refusal"
+            />
           </Stack>
         }
         confirmLabel={

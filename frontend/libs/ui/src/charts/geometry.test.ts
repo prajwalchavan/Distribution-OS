@@ -175,6 +175,37 @@ describe('mixSegments', () => {
     const segments = mixSegments([{ label: 'a', value: 0 }], 'Other')
     expect(segments[0]?.bps).toBe(0)
   })
+
+  /*
+   * DOS-002: the series the reporting API answers ALREADY carries its own fold — `topGroups` named
+   * groups plus one literally called "Other" (reporting.service.ts:888). Sorted by value that fold
+   * can outrank a real brand, so folding blindly at `maxMixSlices - 1` pushed a named brand into a
+   * SECOND segment with the same label and hid it. The API's "Other" is merged into this chart's,
+   * once, and it is the last segment whatever its size.
+   */
+  it('DOS-002: merges the "Other" the series already carries instead of drawing a second one', () => {
+    // GET /reporting/series/brand-mix?…&topGroups=4 over 1–12 Sep, in paise.
+    const segments = mixSegments(
+      [
+        { label: 'Campa', value: 50_000_000 },
+        { label: 'Sunbake', value: 29_000_000 },
+        { label: 'Godavari', value: 29_000_000 },
+        { label: 'Neelam', value: 27_689_912 },
+        { label: 'Other', value: 61_078_986 },
+      ],
+      'Other',
+    )
+    expect(segments.filter((s) => s.label === 'Other')).toHaveLength(1)
+    expect(segments.map((s) => s.label)).toEqual([
+      'Campa',
+      'Sunbake',
+      'Godavari',
+      'Neelam',
+      'Other',
+    ])
+    expect(segments[4]?.value).toBe(61_078_986)
+    expect(segments.reduce((sum, s) => sum + s.bps, 0)).toBe(10_000)
+  })
 })
 
 describe('compareBarRects', () => {

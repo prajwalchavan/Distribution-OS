@@ -100,7 +100,12 @@ export default function Trips(): React.JSX.Element {
         <StatusChip label={word(row.state)} family={TRIP_FAMILY[row.state] ?? 'neutral'} />
       ),
     },
-    moneyColumn('opening', t('o11.amount'), (row) => row.openingCashPaise),
+    /*
+      The float the crew left with, not what the trip brought back — it is 5 000.00 on every row, and
+      headed "Amount ₹" it read as the trip's collection (DOS-018). What came back is the panel's
+      "Collected ₹", from the settlement preview.
+    */
+    moneyColumn('opening', t('o18.openingCash'), (row) => row.openingCashPaise),
   ]
 
   return (
