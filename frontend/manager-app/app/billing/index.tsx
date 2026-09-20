@@ -45,7 +45,7 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
-import { documents } from '@dos/ui/platform'
+import { documents, platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -89,12 +89,15 @@ export default function BillingDesk(): React.JSX.Element {
   const names = useNames()
   const can = useCan()
   /*
-   * DOS-010: below 1024 px `<Register>` stops being a table and keeps three cells only — identity,
-   * chip, value — so the Shop / Buyer column is dropped and a Billing desk row read "bill no ·
-   * state · amount" with an empty shop cell on the Pixel 7. The shop rides in the identity cell for
-   * exactly that shell; on the desk it has its own column already.
+   * DOS-010: `<Register>` keeps three cells only — identity, chip, value — whenever it is not a real
+   * table, and a Billing desk row then read "bill no · state · amount" on the Pixel 7 because the
+   * Shop column is dropped. That is the web register below 1024 px AND the native register at EVERY
+   * width: `ui/src/native/list.tsx` is "the phone rendering of the one props contract" and has no
+   * table branch, so an Android tablet or an iPad at desk width is still cards with no Shop column to
+   * fall back on. The shop rides in the identity cell for exactly that shell; where a real table is
+   * drawn it has its own column and printing it twice would be the same defect the other way round.
    */
-  const phone = useViewport().kind === 'phone'
+  const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
   const mayCancel = can('billing.invoices.cancel')
   const mayIssueForPack = can('billing.invoices.issueForPack')

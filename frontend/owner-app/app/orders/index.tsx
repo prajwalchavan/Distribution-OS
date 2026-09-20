@@ -28,6 +28,7 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -79,12 +80,15 @@ export default function Orders(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
   /*
-   * DOS-010: below 1024 px `<Register>` stops being a table and keeps three cells only — identity,
-   * chip, value — so the Shop column is dropped and a row read "SO-0689 · Delivered · 6,376.00".
-   * The shop rides in the identity cell for exactly that shell; on the desk it has its own column
-   * and printing it twice would be the same defect the other way round.
+   * DOS-010: `<Register>` keeps three cells only — identity, chip, value — whenever it is not a real
+   * table, and a row then read "SO-0689 · Delivered · 6,376.00" with no shop because the
+   * Shop column is dropped. That is the web register below 1024 px AND the native register at EVERY
+   * width: `ui/src/native/list.tsx` is "the phone rendering of the one props contract" and has no
+   * table branch, so an Android tablet or an iPad at desk width is still cards with no Shop column to
+   * fall back on. The shop rides in the identity cell for exactly that shell; where a real table is
+   * drawn it has its own column and printing it twice would be the same defect the other way round.
    */
-  const phone = useViewport().kind === 'phone'
+  const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
   const params = useLocalSearchParams<{ q?: string }>()
   const [range, setRange] = useState<RangeId>('d30')

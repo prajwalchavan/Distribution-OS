@@ -8,10 +8,11 @@
  * Pixel 7 the Confirmed orders list and the Billing desk both read "order no · state · amount" with
  * an empty shop cell (`android/a-03-orders-confirmed.png`, `android/a-05-billing.png`).
  *
- * The cure is this app's, not the kit's: the identity cell itself carries the shop WHILE THE VIEWPORT
- * IS A PHONE. Teaching `<Register>` to render the `detail` priority would change every register in
- * every app, and on the desk the shop already has its own column — printing it twice there is the
- * other half of the same defect.
+ * The cure is this app's, not the kit's: the identity cell itself carries the shop WHENEVER THE
+ * REGISTER IS NOT A REAL TABLE — a narrow web viewport, and every native width, since the native
+ * renderer has no table branch at all. Teaching `<Register>` to render the `detail` priority would
+ * change every register in every app, and where a table IS drawn the shop already has its own column
+ * — printing it twice there is the other half of the same defect.
  *
  * Read as SOURCE, like `trips-held-bills.test.ts`: importing a screen in Node pulls in `react-native`
  * and `expo-router`, which resolve only under Metro, and `@types/node` is deliberately absent from an
@@ -104,4 +105,27 @@ describe('M2 order queue and M6 billing desk on a phone', () => {
     expect(code).toMatch(/textColumn\('shop', t\('m6\.shop'\)/)
     expect(code).toMatch(/textColumn\('shop', t\('m6\.buyer'\)/)
   })
+
+  /*
+   * The review's second reading of the same defect. `phone` was the VIEWPORT, but the shell that
+   * drops the Shop column is the RENDERER: `ui/src/native/list.tsx` is titled "the phone rendering of
+   * the one props contract" and has no table branch at any width, while the web Register does. On the
+   * web the two agree — `ThemeProvider` feeds `useViewport().kind` into the theme and `theme.tsx`
+   * forces density `field` on a phone — but on an Android tablet or an iPad at 1024 dp and wider the
+   * viewport is `desk`, the identity cell would drop the shop, and the native register has no Shop
+   * column to fall back on. That is DOS-010 again, on a target this repo ships (docs/08 §0: one
+   * codebase for web, Android and iOS).
+   */
+  it.each([['../../app/orders/index.tsx'], ['../../app/billing/index.tsx']])(
+    'DOS-010: %s names the shop on every native width, not only a narrow web one',
+    async (file) => {
+      const code = withoutComments(await read(file))
+      const flag = /const phone = [^\n]*/.exec(code)?.[0] ?? ''
+      expect(flag.length, 'the screen has no `phone` flag any more').toBeGreaterThan(0)
+      expect(flag, 'the flag is the viewport alone, so a native tablet loses the shop').toMatch(
+        /native/,
+      )
+      expect(code).toMatch(/from '@dos\/ui\/platform'/)
+    },
+  )
 })
