@@ -39,6 +39,8 @@ describeDb('retailers (DATABASE_URL)', () => {
   const repId = uuidv7()
   const shopUserId = uuidv7()
   const otherShopUserId = uuidv7()
+  const storeId = uuidv7()
+  const crewId = uuidv7()
   const shopPhone = `+919${run}3`
   const otherShopPhone = `+919${run}4`
   const foreignPhone = `+919${run}5`
@@ -46,6 +48,9 @@ describeDb('retailers (DATABASE_URL)', () => {
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const shop: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
   const otherShop: Actor = { tenantId, actorId: otherShopUserId, role: 'retailer' }
+  /** The two field roles that read a shop to pack for it or to find it (DOS-052, DOS-072). */
+  const store: Actor = { tenantId, actorId: storeId, role: 'warehouse' }
+  const crew: Actor = { tenantId, actorId: crewId, role: 'delivery' }
   const beatId = uuidv7()
   const retailerId = uuidv7()
   const otherRetailerId = uuidv7()
@@ -60,12 +65,16 @@ describeDb('retailers (DATABASE_URL)', () => {
       { id: repId, phone: `+919${run}2`, name: 'Rep' },
       { id: shopUserId, phone: shopPhone, name: 'Shop login' },
       { id: otherShopUserId, phone: otherShopPhone, name: 'Other shop login' },
+      { id: storeId, phone: `+919${run}6`, name: 'Loader' },
+      { id: crewId, phone: `+919${run}7`, name: 'Driver' },
     ])
     await db.insert(memberships).values([
       { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
       { id: uuidv7(), tenantId, userId: repId, role: 'salesperson' },
       { id: uuidv7(), tenantId, userId: shopUserId, role: 'retailer' },
       { id: uuidv7(), tenantId, userId: otherShopUserId, role: 'retailer' },
+      { id: uuidv7(), tenantId, userId: storeId, role: 'warehouse' },
+      { id: uuidv7(), tenantId, userId: crewId, role: 'delivery' },
     ])
     // an identity that belongs to another distributor's network and is not linked here
     await db
@@ -311,6 +320,55 @@ describeDb('retailers (DATABASE_URL)', () => {
       q: 'gupta',
     })
     expect(byName.body.items.map((i) => i.id)).toEqual([otherRetailerId])
+  })
+
+  it('DOS-052 + DOS-072: the godown and the crew read the public shop and never its credit terms, while the desk and the rep keep the full record', async () => {
+    for (const [label, actor] of [
+      ['warehouse', store],
+      ['delivery', crew],
+    ] as const) {
+      const one = await call<{ item: RetailerRow }>(
+        app,
+        actor,
+        'GET',
+        `/retailers/${retailerId}`,
+        {},
+      )
+      expect(one.status, label).toBe(200)
+      // What a packer and a driver came for: who the shop is and where it stands.
+      expect(one.body.item.name, label).toBe('Sharma Kirana')
+      expect(one.body.item.phone, label).toBeTruthy()
+      expect(one.body.item, label).toHaveProperty('address')
+      // What is none of their business: the tier, the limit, the days, the mode, the code.
+      for (const key of CREDIT_FIELDS)
+        expect(one.body.item, `${label} ${key}`).not.toHaveProperty(key)
+
+      const many = await call<{ items: RetailerRow[] }>(app, actor, 'GET', '/retailers', {})
+      expect(many.status, label).toBe(200)
+      expect(many.body.items.length, label).toBeGreaterThan(0)
+      for (const row of many.body.items)
+        for (const key of CREDIT_FIELDS) expect(row, `${label} list ${key}`).not.toHaveProperty(key)
+    }
+
+    // The desk and the rep are untouched: both decide money on this record.
+    const desk = await call<{ item: RetailerRow }>(
+      app,
+      owner,
+      'GET',
+      `/retailers/${retailerId}`,
+      {},
+    )
+    expect(desk.body.item.code).toBe('R-0001')
+    expect(desk.body.item).toHaveProperty('creditLimitPaise')
+    const onTheBeat = await call<{ item: RetailerRow }>(
+      app,
+      rep,
+      'GET',
+      `/retailers/${retailerId}`,
+      {},
+    )
+    expect(onTheBeat.body.item).toHaveProperty('creditMode')
+    expect(onTheBeat.body.item).toHaveProperty('creditLimitPaise')
   })
 
   it('assigns the beat to the rep and lists the visits the rep recorded', async () => {

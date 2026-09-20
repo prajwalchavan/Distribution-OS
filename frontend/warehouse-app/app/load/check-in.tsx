@@ -84,7 +84,12 @@ export default function VanCheckIn(): React.JSX.Element {
     },
   )
 
-  const rows = balances.data?.items ?? []
+  /*
+   * DOS-049: only what the vehicle still holds. `stock.balances` keeps a row at zero once a lot has
+   * ever stood in a location, and "EXPECTED ON THE VEHICLE" listed those too — a "0 pc" row with a
+   * count pad behind it, which is either noise or an invitation to a stray transfer.
+   */
+  const rows = (balances.data?.items ?? []).filter((row) => row.onHand > 0)
   /*
    * `StockBalanceRow` carries no case size (the balance is pieces), and this line used to be
    * `caseLine(row.onHand, 1, t)` — so 201 pieces of a 48-piece case printed "201 cs = 201 pc" to
