@@ -14,6 +14,7 @@
     "build": "node ./scripts/sync-fonts.mjs && expo export --platform web --output-dir dist",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "test": "vitest run --dir src",
     "clean": "rm -rf dist .expo",
     "sync:fonts": "node ./scripts/sync-fonts.mjs"
   },
@@ -65,6 +66,7 @@
     "@types/react": "catalog:",
     "babel-preset-expo": "catalog:",
     "eslint": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
