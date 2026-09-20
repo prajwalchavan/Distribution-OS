@@ -77,4 +77,33 @@ describe('DOS-145 the manager opens a bill from search', () => {
     expect(selected, 'the selected-bill state is gone').toBeDefined()
     expect(selected, 'a bill named in the url does not open its own panel').toMatch(/params\.bill/)
   })
+
+  /*
+   * REVIEW (DOS-145, second pass): a useState initialiser runs ONCE, at mount. The header search
+   * navigates with router.push, and a router may reuse an already-mounted /billing screen — so a
+   * manager who is already on the Billing desk when they search for a bill would have been left on
+   * the order queue, which is the finding's own step 3. The desk must therefore also re-apply the
+   * url when it changes, and only when it changes, so a tab picked by hand afterwards survives.
+   */
+  it('DOS-145: searching for a bill while already on the Billing desk re-opens the desk on that bill, not only on a cold mount', async () => {
+    const code = withoutComments(await read('../../app/billing/index.tsx'))
+
+    // anchored on the url dependency, so a later effect added above this one cannot satisfy it
+    const effect = /useEffect\(\(\) => \{([\s\S]*?)\n {2}\}, \[(urlIntent[^\]]*)\]\)/.exec(code)
+    expect(effect, 'the Billing desk reacts to the url only at mount').toBeDefined()
+    const body = effect?.[1] ?? ''
+    const deps = effect?.[2] ?? ''
+
+    expect(deps, 'the effect does not re-run when the url names a different bill').toMatch(
+      /params\.bill/,
+    )
+    expect(body, 'a re-entry does not move the desk to the issued register').toMatch(/setView\(/)
+    expect(body, "a re-entry does not open the bill's own panel").toMatch(/setSelected\(/)
+
+    // …and only on a CHANGE: an effect that re-applied on every render would fight the manager's
+    // own tab, snapping the desk back to Bills issued each time anything else re-rendered it.
+    expect(body, 'the effect re-applies the url on every render').toMatch(
+      /appliedIntent\.current === urlIntent[\s\S]*?return/,
+    )
+  })
 })
