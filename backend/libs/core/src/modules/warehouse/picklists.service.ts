@@ -84,6 +84,18 @@ const QUEUE_STATES = new Set<OrderState>(['confirmed', 'picking', 'packed'])
 /** A wave that is still someone's work: an order on one of these may not be waved again. */
 const LIVE_PICKLIST_STATUSES = ['open', 'picking', 'picked'] as const
 
+/**
+ * One order's live wave: the sheet it is on, where that sheet stands, and what is already on the
+ * pallet. `status` is the column's own type — the query only ever returns a LIVE one, and typing it
+ * as the narrow union would make the row's status claim something the database column does not.
+ */
+export interface LiveWave {
+  picklistId: string
+  picklistNo: string | null
+  status: PicklistRow['status']
+  pickedQtyPcs: number
+}
+
 /** One recorded pick, as `picklists.pick` and the offline handler both express it. */
 export interface RecordedPick {
   id: string
@@ -136,7 +148,9 @@ export class PicklistsService {
       })
       const page = rows.slice(0, input.limit)
       const last = page[page.length - 1]
-      const live = await this.livePicklistByOrder(
+      // QA DOS-050: "ready to pack" must mean picked, not waved. The wave's number, its status and the
+      // pieces actually picked come back with the row, from ONE grouped read for the whole page.
+      const live = await this.liveWaveByOrder(
         tx,
         page.map((o) => o.orderId),
       )
@@ -144,7 +158,16 @@ export class PicklistsService {
         // `fulfilmentQueue` narrows to the three godown states already; this keeps the wire shape
         // honest if a caller ever passes a state the contract does not sanction.
         .filter((o): o is typeof o & { state: FulfilmentQueueState } => QUEUE_STATES.has(o.state))
-        .map((o) => ({ ...o, picklistId: live.get(o.orderId) ?? null }))
+        .map((o) => {
+          const wave = live.get(o.orderId) ?? null
+          return {
+            ...o,
+            picklistId: wave?.picklistId ?? null,
+            picklistNo: wave?.picklistNo ?? null,
+            picklistStatus: wave?.status ?? null,
+            pickedQtyPcs: wave?.pickedQtyPcs ?? 0,
+          }
+        })
         .filter((o) => !input.unpicklistedOnly || o.picklistId === null)
       return {
         items,
@@ -454,12 +477,28 @@ export class PicklistsService {
         tx,
         page.map((r) => r.orderLineId),
       )
+      // QA DOS-050: a held row says WHO it is held for. The shop comes from OrdersService — warehouse
+      // never names `sales_orders` — and the page is at most `limit` rows, so at most `limit` orders,
+      // which is the same 200 `fulfilmentOrders` accepts.
+      const shops = new Map(
+        (
+          await this.orders.fulfilmentOrders(tx, [
+            ...new Set(
+              page
+                .map((r) => owners.get(r.orderLineId)?.orderId)
+                .filter((id): id is string => id !== undefined),
+            ),
+          ])
+        ).map((o) => [o.orderId, o]),
+      )
       const last = page[page.length - 1]
       return {
         items: page.map((r) => ({
           id: r.id,
           orderId: owners.get(r.orderLineId)?.orderId ?? null,
           orderNo: owners.get(r.orderLineId)?.orderNo ?? null,
+          retailerId: shops.get(owners.get(r.orderLineId)?.orderId ?? '')?.retailerId ?? null,
+          retailerName: shops.get(owners.get(r.orderLineId)?.orderId ?? '')?.retailerName ?? null,
           orderLineId: r.orderLineId,
           variantId: r.variantId,
           variantName: r.variantName,
@@ -682,12 +721,23 @@ export class PicklistsService {
     return row
   }
 
-  /** The live wave each of these orders is on, if any — the queue's `picklistId` and the wave guard. */
-  async livePicklistByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
+  /**
+   * The live wave each of these orders is on, with the number on its paper, where it stands and how
+   * many pieces of THIS order have actually been picked on it (QA DOS-050) — one grouped query for the
+   * whole page, never one per row. `open` / `picking` / `picked` are live; a packed or cancelled wave
+   * is not a wave any more.
+   */
+  async liveWaveByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, LiveWave>> {
     const ids = [...new Set(orderIds)]
     if (ids.length === 0) return new Map()
     const rows = await tx
-      .select({ orderId: pickLines.orderId, picklistId: pickLines.picklistId })
+      .select({
+        orderId: pickLines.orderId,
+        picklistId: pickLines.picklistId,
+        picklistNo: picklists.picklistNo,
+        status: picklists.status,
+        pickedQtyPcs: sql<number>`coalesce(sum(${pickLines.pickedQtyPcs}), 0)::int`,
+      })
       .from(pickLines)
       .innerJoin(picklists, eq(picklists.id, pickLines.picklistId))
       .where(
@@ -696,7 +746,28 @@ export class PicklistsService {
           inArray(picklists.status, [...LIVE_PICKLIST_STATUSES]),
         ),
       )
-    return new Map(rows.map((r) => [r.orderId, r.picklistId]))
+      .groupBy(pickLines.orderId, pickLines.picklistId, picklists.picklistNo, picklists.status)
+    return new Map(
+      rows.map((r) => [
+        r.orderId,
+        {
+          picklistId: r.picklistId,
+          picklistNo: r.picklistNo,
+          status: r.status,
+          pickedQtyPcs: Number(r.pickedQtyPcs),
+        },
+      ]),
+    )
+  }
+
+  /** The wave guard's half of the same read: order -> live picklist id. */
+  async livePicklistByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
+    return new Map(
+      [...(await this.liveWaveByOrder(tx, orderIds))].map(([orderId, wave]) => [
+        orderId,
+        wave.picklistId,
+      ]),
+    )
   }
 
   /** Every order on a wave ships from ONE location; a mixed wave is a 409, not a silent split. */

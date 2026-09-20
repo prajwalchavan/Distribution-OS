@@ -163,6 +163,19 @@ export const FulfilmentQueueItemSchema = z.object({
   totalQtyPcs: PiecesSchema,
   /** The live picklist this order is already on, or null when it is still free to be waved. */
   picklistId: IdSchema.nullable(),
+  /** That wave's PICK number, so the row names the sheet rather than an id (QA DOS-050). */
+  picklistNo: z.string().nullable(),
+  /**
+   * Where the wave stands: `open` / `picking` means the order is STILL BEING PICKED, `picked` means
+   * every line is walked and the order is genuinely ready to pack. Null when it is on no live wave.
+   */
+  picklistStatus: PicklistStatusSchema.nullable(),
+  /**
+   * Σ picked pieces on that live wave, 0 when there is none. `totalQtyPcs − pickedQtyPcs` is what the
+   * order is short of once `picklistStatus` is `picked` — the figure the packer must see before the
+   * cartons are taped shut (QA DOS-050).
+   */
+  pickedQtyPcs: PiecesSchema,
 })
 export type FulfilmentQueueItem = z.infer<typeof FulfilmentQueueItemSchema>
 
@@ -488,6 +501,9 @@ export const ReservationRowSchema = z.object({
   id: IdSchema,
   orderId: IdSchema.nullable(),
   orderNo: z.string().nullable(),
+  /** The shop the hold is for, read through `OrdersService.fulfilmentOrders` (QA DOS-050). */
+  retailerId: IdSchema.nullable(),
+  retailerName: z.string().nullable(),
   orderLineId: IdSchema,
   variantId: IdSchema,
   variantName: z.string(),

@@ -6,6 +6,10 @@
  * answer and it is this list. FREEING a hold is `warehouse.reservations.release`, which is
  * BACK_OFFICE by design — a live order stops being live when the desk says so, not when a loader
  * needs the space — so this screen shows the holds and names whose step that is.
+ *
+ * THE ORDER AND THE SHOP GO IN `secondary` (QA DOS-050). They used to be passed as `reason`, which
+ * `ListRow` prints only on a `needsAttention` row — so every row read "Sunbake Orange Cream 120 g ·
+ * 23 pc · Batch SB20260830" and never said whose 23 pieces those were. A hold is not an alarm.
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
 import { Group, ListRow, Screen, Stack, StatusChip, useStrings } from '@dos/ui'
@@ -41,13 +45,10 @@ export default function Reservations(): React.JSX.Element {
                   key={row.id}
                   testID={`w11-row-${row.id}`}
                   primary={row.variantName}
-                  secondary={`${t('w.pieces', { pieces: row.qtyPcs })} · ${
+                  secondary={`${forWhom(t, row)} · ${t('w.pieces', { pieces: row.qtyPcs })} · ${
                     row.batchNo === null ? t('w.noBatch') : t('w.batch', { batch: row.batchNo })
                   }`}
                   trailing={<StatusChip label={row.state} family={workFamily(row.state)} />}
-                  reason={t('w11.forOrder', {
-                    order: row.orderNo ?? row.orderId?.slice(0, 8) ?? '—',
-                  })}
                 />
               ))}
             </Group>
@@ -58,4 +59,15 @@ export default function Reservations(): React.JSX.Element {
       </Stack>
     </Screen>
   )
+}
+
+/** "For SO-0867 · Bhosale Traders" — the shop only once the reply names one (QA DOS-050). */
+function forWhom(
+  t: (key: string, params?: Readonly<Record<string, string | number>>) => string,
+  row: { orderNo: string | null; orderId: string | null; retailerName: string | null },
+): string {
+  const order = row.orderNo ?? row.orderId?.slice(0, 8) ?? '—'
+  return row.retailerName === null
+    ? t('w11.forOrder', { order })
+    : t('w11.forOrderShop', { order, shop: row.retailerName })
 }

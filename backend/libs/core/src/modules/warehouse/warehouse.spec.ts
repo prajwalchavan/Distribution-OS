@@ -2316,4 +2316,113 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(packed.length).toBeGreaterThanOrEqual(2)
     expect(packed.at(-1)?.id).toBe(olderId)
   })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-050 — a queue row says which wave it is on and how much of it is actually picked
+
+  it('DOS-050: a queue row with no wave carries picklistNo null, picklistStatus null, pickedQtyPcs 0; on a started wave with part of it picked it carries the PICK number, status picking and the picked pieces; once every line is picked, status picked', async () => {
+    type QueueRow = {
+      orderId: string
+      totalQtyPcs: number
+      picklistId: string | null
+      picklistNo: string | null
+      picklistStatus: string | null
+      pickedQtyPcs: number
+    }
+    const rowFor = async (orderId: string): Promise<QueueRow | undefined> => {
+      const res = await call<{ items: QueueRow[] }>(app, packer, 'GET', '/warehouse/queue', {
+        unpicklistedOnly: false,
+        limit: 100,
+      })
+      expect(res.status).toBe(200)
+      return res.body.items.find((i) => i.orderId === orderId)
+    }
+    const orderId = await placeOrder([{ variantId: variantA, cases: 2 }], 'dos050-queue')
+
+    const free = await rowFor(orderId)
+    expect(free?.totalQtyPcs).toBe(24)
+    expect(free?.picklistId).toBeNull()
+    expect(free?.picklistNo).toBeNull()
+    expect(free?.picklistStatus).toBeNull()
+    expect(free?.pickedQtyPcs).toBe(0)
+
+    const waved = await wave([orderId], 'dos050-queue')
+    expect(waved.res.status).toBe(200)
+    const sheet = waved.res.body.item
+    const row = sheet.lines[0]
+    const onWave = await rowFor(orderId)
+    expect(onWave?.picklistId).toBe(waved.id)
+    expect(onWave?.picklistNo).toBe(sheet.picklistNo)
+    expect(onWave?.picklistStatus).toBe('open')
+    expect(onWave?.pickedQtyPcs).toBe(0)
+
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos050-start-${run}`,
+          assignedTo: packerId,
+        })
+      ).status,
+    ).toBe(200)
+    // part of the ask on the rack: the wave is still being picked, and the row says how much
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+          idempotencyKey: `dos050-pick-part-${run}`,
+          lines: [
+            {
+              id: row?.id ?? '',
+              orderLineId: row?.orderLineId ?? '',
+              lotId: row?.lotId ?? '',
+              pickedQtyPcs: 18,
+            },
+          ],
+        })
+      ).status,
+    ).toBe(200)
+    const picking = await rowFor(orderId)
+    expect(picking?.picklistStatus).toBe('picking')
+    expect(picking?.picklistNo).toBe(sheet.picklistNo)
+    expect(picking?.pickedQtyPcs).toBe(18)
+    expect(picking?.totalQtyPcs).toBe(24)
+
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+          idempotencyKey: `dos050-pick-rest-${run}`,
+          lines: [
+            {
+              id: row?.id ?? '',
+              orderLineId: row?.orderLineId ?? '',
+              lotId: row?.lotId ?? '',
+              pickedQtyPcs: 24,
+            },
+          ],
+        })
+      ).status,
+    ).toBe(200)
+    const done = await rowFor(orderId)
+    expect(done?.picklistStatus).toBe('picked')
+    expect(done?.pickedQtyPcs).toBe(24)
+    // still no money on the picker's screen
+    expect(JSON.stringify(done)).not.toMatch(/ratePaise|costPaise|totalPaise|marginBps/)
+  })
+
+  it('DOS-050: reservations.list with a warehouse token carries retailerId and retailerName of the order holding each row, and still no money', async () => {
+    const res = await call<{
+      items: {
+        orderId: string | null
+        orderNo: string | null
+        retailerId: string | null
+        retailerName: string | null
+      }[]
+    }>(app, packer, 'GET', '/warehouse/reservations', { limit: 50 })
+    expect(res.status).toBe(200)
+    expect(res.body.items.length).toBeGreaterThan(0)
+    const held = res.body.items.filter((i) => i.orderId !== null)
+    expect(held.length).toBeGreaterThan(0)
+    expect(held.every((i) => i.retailerId === shopMh)).toBe(true)
+    expect(held.every((i) => i.retailerName === `Godown Shop ${run}`)).toBe(true)
+    expect(JSON.stringify(res.body)).not.toMatch(/ratePaise|costPaise|totalPaise|creditLimit/)
+  })
 })

@@ -266,6 +266,17 @@ export const GrnSchema = z.object({
   id: IdSchema,
   grnNo: z.string().nullable(),
   supplierInvoiceId: IdSchema,
+  /**
+   * Who the lorry is from and which bill it carries — denormalised onto `grns` at open, because
+   * `supplier_invoices` is back-office RLS and the gate's own token reads nothing there (QA DOS-050).
+   * Null on a receipt booked before those columns existed. NEVER a rate or a total: cost stays behind
+   * back-office RLS.
+   */
+  supplierId: IdSchema.nullable(),
+  supplierName: z.string().nullable(),
+  supplierInvoiceNo: z.string().nullable(),
+  /** How many lines are on the receipt — what the gate counts, not how many receipts are waiting. */
+  lineCount: z.number().int(),
   locationId: IdSchema,
   status: GrnStatusSchema,
   countedBy: z.string().nullable(),

@@ -26,6 +26,19 @@ import { useRouter } from 'expo-router'
 import { instantWithClock, shiftDays, shortDate, today } from '../src/lib/dates'
 import { Async, Panel, PageTabs, atLeast, count, pl, workFamily } from '../src/lib/ui'
 
+/** "GUR/26-27/00490 · Guru Kripa", the bill alone, or the receipt number when the row names neither. */
+function receiptName(grn: {
+  grnNo: string | null
+  supplierName: string | null
+  supplierInvoiceNo: string | null
+}): string | null {
+  if (grn.supplierInvoiceNo !== null)
+    return grn.supplierName === null
+      ? grn.supplierInvoiceNo
+      : `${grn.supplierInvoiceNo} · ${grn.supplierName}`
+  return grn.supplierName ?? grn.grnNo
+}
+
 export default function Home(): React.JSX.Element {
   const t = useStrings()
   const api = useApi()
@@ -144,10 +157,15 @@ export default function Home(): React.JSX.Element {
 
         <Panel
           title={t('w1.gateCounts')}
+          /*
+           * RECEIPTS, NOT LINES (QA DOS-050). This panel lists GRNs, so its meta counted receipts
+           * while printing the word "lines" — a four-line receipt read "1 line". The LINE count now
+           * lives on the row it belongs to.
+           */
           meta={
             grns.data === undefined
               ? undefined
-              : t(grns.data.items.length === 1 ? 'w.linesN.one' : 'w.linesN', {
+              : t(grns.data.items.length === 1 ? 'w1.receiptsN.one' : 'w1.receiptsN', {
                   count: atLeast(t, grns.data),
                 })
           }
@@ -163,10 +181,16 @@ export default function Home(): React.JSX.Element {
                 <ListRow
                   key={grn.id}
                   testID={`w1-grn-${grn.id}`}
+                  /*
+                   * The gate cannot tell which lorry a count is for from a location and a clock, so
+                   * the row names the bill and the supplier it came off (QA DOS-050) and falls back
+                   * to the receipt number, then the place, when a receipt names neither.
+                   */
                   primary={
-                    grn.grnNo ?? t('w1.receiptAt', { location: locationName(grn.locationId) })
+                    receiptName(grn) ??
+                    t('w1.receiptAt', { location: locationName(grn.locationId) })
                   }
-                  secondary={instantWithClock(grn.createdAt)}
+                  secondary={`${pl(t, 'w.linesN', grn.lineCount)} · ${instantWithClock(grn.createdAt)}`}
                   trailing={<StatusChip label={grn.status} family={workFamily(grn.status)} />}
                   onPress={() => {
                     router.push(`/inbound/${grn.id}`)
