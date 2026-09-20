@@ -873,6 +873,81 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(await ledgerFor(invoiceId)).toEqual([])
   })
 
+  /*
+   * DOS-139, the RESIDUAL (review). `loadSheets.create` refuses a cancelled order, so no NEW sheet can
+   * be built for restocked pieces — that is asserted above. This is the other order of events: the
+   * sheet was DRAFTED while the order was still packed, and the shop phones afterwards. The design's
+   * amendment (d) — approve and confirm re-reading the orders — belongs to `load-sheets.service.ts`,
+   * which this slice does not own, so the sheet is still approvable.
+   *
+   * The invariant that actually matters is pinned here rather than left to reasoning: whatever the
+   * approve step answers, NOT ONE PIECE reaches the vehicle. `orderMachine` has no edge out of
+   * `cancelled`, so `applyFulfilmentEvent`'s dispatch throws and rolls the whole confirm transaction
+   * back before the inventory post commits. The residual is therefore a sheet stuck in draft behind a
+   * raw machine message, not a double-move of stock — and if the follow-up slice ever makes confirm
+   * succeed on a cancelled order, this test fails loudly.
+   */
+  it('DOS-139 guard: a load sheet DRAFTED before its bill is cancelled never carries the restocked pieces out — confirm refuses and the sheet moves no stock', async () => {
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], 'dos139d')
+    const { invoiceId, res } = await issueFor(orderId, 'dos139d')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+
+    // the sheet is built while the order is still packed and the bill still live
+    const sheetId = uuidv7()
+    const drafted = await call<{ item: { status: string } }>(
+      app,
+      manager,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `dos139d-sheet-${run}`,
+        id: sheetId,
+        toLocationId: van,
+        orderIds: [orderId],
+      },
+    )
+    expect(drafted.status, JSON.stringify(drafted.body)).toBe(200)
+    expect(drafted.body.item.status).toBe('draft')
+    expect(await ledgerFor(sheetId)).toEqual([])
+
+    // …and only then does the shop phone, taking the order with the bill
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'POST',
+      `/invoices/${invoiceId}/cancel`,
+      { idempotencyKey: `dos139d-cancel-${run}`, reason: 'Shop phoned before the van left.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // approve is the amendment (d) gap: it is not asserted either way, only driven, so that confirm
+    // is reached the way a real desk would reach it.
+    await call(app, manager, 'POST', `/warehouse/load-sheets/${sheetId}/approve`, {
+      idempotencyKey: `dos139d-approve-${run}`,
+    })
+
+    const confirm = await call<{ message?: string }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/confirm`,
+      {
+        idempotencyKey: `dos139d-confirm-${run}`,
+        countedPackages: 1,
+        challanId: uuidv7(),
+      },
+    )
+    expect(confirm.status, JSON.stringify(confirm.body)).not.toBe(200)
+
+    // THE INVARIANT: the order stayed cancelled and the sheet moved nothing at all.
+    const state = (
+      await db.execute(sql`select state::text as state from sales_orders where id = ${orderId}`)
+    ).rows as { state: string }[]
+    expect(state[0]?.state).toBe('cancelled')
+    expect(await ledgerFor(sheetId)).toEqual([])
+  })
+
   it('DOS-022: the queue lists only packed orders with no live bill — a confirmed or a picking order is the picker’s problem, not the biller’s, and an order cancelled with its bill is nobody’s (DOS-139) — and the parked pack that needs a bill is billed via packs.list + issueForPack', async () => {
     // A: never touched by the godown. Still the picker's problem.
     const confirmedOrderId = await placeOrder(
