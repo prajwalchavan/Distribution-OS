@@ -185,6 +185,21 @@ export function startOfIstDay(isoDate: string = today()): string {
   return new Date(`${isoDate}T00:00:00+05:30`).toISOString()
 }
 
+/**
+ * The ISO weekday of an IST business date: Monday 1 … Sunday 7 (DOS-084).
+ *
+ * `beats.visit_days` is stored in exactly this numbering, so "is this beat walked today" is a
+ * membership test and nothing more. The arithmetic is on the date string's own UTC midnight — the
+ * same trick `shiftDays()` uses — because the IST calendar date has already been decided by
+ * `businessDate()`, and asking the device's local clock again would put a phone set to another
+ * timezone on the wrong beat.
+ */
+export function istWeekday(isoDate: string = today()): number {
+  const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number]
+  const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  return day === 0 ? 7 : day
+}
+
 /** An ISO instant → `4:45 pm` IST, with no date. The beat list has no room for one. */
 export function clockOnly(iso: string | null | undefined): string {
   if (!iso) return '—'

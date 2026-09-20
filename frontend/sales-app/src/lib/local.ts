@@ -23,7 +23,10 @@
  *   price_lists · price_list_items · schemes · retailer_price_overrides · bargain_requests → the price
  */
 import { useSyncStatus, useTable } from '@dos/offline/react'
-import { useMemo } from 'react'
+import { storage } from '@dos/ui/platform'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
+import { istWeekday, today } from './dates'
 
 // ---------------------------------------------------------------------------
 // The device rows (the manifest's own column names)
@@ -336,6 +339,108 @@ export function useMyBeatIds(userId: string | null, onDate: string): string[] {
     params: [userId ?? '', onDate, onDate],
   })
   return useMemo(() => [...new Set(rows.map((row) => row.beat_id))], [rows])
+}
+
+/**
+ * DOS-084 — WHICH of this rep's beats is walked TODAY.
+ *
+ * The home screen used to take `myBeatIds[0]`, which is whichever assignment row `beat_assignments`
+ * happened to return first: a rep on Station Road (Mon, Thu), Kalyan West Market (Tue, Fri) and
+ * Khadakpada (Wed, Sat) opened Station Road on all six of them, and the screen called it "Today's
+ * beat". `beats.visit_days` is ISO weekdays and is already on the phone beside the assignments, so
+ * the answer needs no service and no schema: the first assigned beat that names today's weekday.
+ *
+ * A day nobody walks — a Sunday, a beat list with no visit days set — keeps today's behaviour rather
+ * than an empty screen: the first assigned beat, which the rep can change with the chips.
+ */
+export function beatForDay(
+  beats: readonly Pick<LocalBeat, 'id' | 'visit_days'>[],
+  myBeatIds: readonly string[],
+  onDate: string = today(),
+): string | null {
+  const weekday = istWeekday(onDate)
+  const days = new Map(beats.map((beat) => [beat.id, beat.visit_days ?? []]))
+  return myBeatIds.find((id) => days.get(id)?.includes(weekday) === true) ?? myBeatIds[0] ?? null
+}
+
+/**
+ * The beat the rep chose by hand, kept for the IST day they chose it on (DOS-084).
+ *
+ * A round gets swapped and a rep taps another chip; losing that on the next screen change would make
+ * the chips useless, and keeping it for ever would put them back where this finding started. So the
+ * choice is stored WITH the business date it was made on and ignored the moment that date moves —
+ * and under this rep's own key, because a phone is shared and a colleague's round is not theirs
+ * (the same rule `src/lib/draft.ts` keeps for a typed order).
+ */
+const BEAT_CHOICE_PREFIX = 'dos.sales.beat.'
+
+function beatChoiceKey(userId: string): string {
+  return `${BEAT_CHOICE_PREFIX}${userId}`
+}
+
+export async function readBeatChoice(userId: string, onDate: string): Promise<string | null> {
+  const raw = await storage.getItem(beatChoiceKey(userId))
+  if (raw === null) return null
+  try {
+    const held = JSON.parse(raw) as { date?: unknown; beatId?: unknown }
+    if (held.date !== onDate || typeof held.beatId !== 'string') return null
+    return held.beatId
+  } catch {
+    return null
+  }
+}
+
+export async function rememberBeatChoice(
+  userId: string,
+  onDate: string,
+  beatId: string,
+): Promise<void> {
+  await storage.setItem(beatChoiceKey(userId), JSON.stringify({ date: onDate, beatId }))
+}
+
+export async function forgetBeatChoice(userId: string): Promise<void> {
+  await storage.removeItem(beatChoiceKey(userId))
+}
+
+export interface BeatChoice {
+  /** The beat to show: what the rep chose today, else the one today's weekday says. */
+  beatId: string | null
+  /** The rep tapped a chip. Kept for the rest of this IST day. */
+  choose: (beatId: string) => void
+}
+
+export function useBeatChoice(
+  userId: string | null,
+  beats: readonly Pick<LocalBeat, 'id' | 'visit_days'>[],
+  myBeatIds: readonly string[],
+  onDate: string,
+): BeatChoice {
+  const [chosen, setChosen] = useState<string | null>(null)
+
+  useEffect(() => {
+    let live = true
+    setChosen(null)
+    if (userId === null) return
+    void readBeatChoice(userId, onDate).then((held) => {
+      if (live) setChosen(held)
+    })
+    return () => {
+      live = false
+    }
+  }, [userId, onDate])
+
+  const choose = useCallback(
+    (beatId: string) => {
+      setChosen(beatId)
+      if (userId !== null) void rememberBeatChoice(userId, onDate, beatId)
+    },
+    [userId, onDate],
+  )
+
+  /* A stored choice for a beat this rep is no longer assigned to is not a beat: fall back to the day's. */
+  const forToday = useMemo(() => beatForDay(beats, myBeatIds, onDate), [beats, myBeatIds, onDate])
+  const beatId = chosen !== null && myBeatIds.includes(chosen) ? chosen : forToday
+  return { beatId, choose }
 }
 
 /** The shops of one beat, in the order the round is walked (`pjp.sequence`), then by name. */
