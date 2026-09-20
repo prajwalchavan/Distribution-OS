@@ -2812,6 +2812,30 @@ describeDb('orders (DATABASE_URL)', () => {
 
   it('DOS-138: the desk cancels an order mid-pick — the manager gets 200 cancelled with the reason, every held piece is released and an OrderCancelled event is written; the rep is 409 "only the desk", and a shop is still limited to draft and submitted', async () => {
     const orders = app.get(OrdersService)
+    /*
+     * This case's whole subject is the HOLD a mid-pick cancel releases, so the hold has to exist.
+     * Variant A's opening 100 pieces are spoken for long before this line of the file — the shortage
+     * case takes what is left of them — so the order below needs stock of its own, exactly as the
+     * DOS-073 and DOS-126 blocks above post theirs. Without it `submit` confirms SHORT (DOS-078) and
+     * the case would pass its cancel assertions over an order that was never holding anything.
+     */
+    const inventory = app.get(InventoryService)
+    await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantA,
+        batchNo: `DOS138-${run}`,
+        mrpPaise: 4000,
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 2,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-dos138`,
+        },
+      ])
+    })
     const orderId = uuidv7()
     const lineId = uuidv7()
     const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {

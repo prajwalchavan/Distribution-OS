@@ -2900,7 +2900,9 @@ describeDb('warehouse (DATABASE_URL)', () => {
       'start wrote picking over a sheet the reconcile had just cancelled — the sheet is a zombie',
     ).toBe('cancelled')
     expect(started.body.item.cancelledAt).not.toBeNull()
-    expect(started.body.item.cancelReason).toContain('the order was cancelled before picking started')
+    expect(started.body.item.cancelReason).toContain(
+      'the order was cancelled before picking started',
+    )
 
     // The put-back itself committed: every line carries cancelled_at, and the database agrees with
     // the reply about the closure.
