@@ -10,6 +10,7 @@
  * the selection is narrowed to one location before the ask rather than after the refusal.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
+import { useSyncEngine } from '@dos/offline/react'
 import {
   Button,
   Chips,
@@ -29,7 +30,10 @@ import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { shortDate } from '../../src/lib/dates'
+import { pullAfterWrite } from '../../src/lib/pull-after-write'
+import { atLeastPl } from '../../src/lib/queue-depth'
 import { Async, Panel, workFamily } from '../../src/lib/ui'
+import { workFirst } from '../../src/lib/work-first'
 
 export default function PickQueue(): React.JSX.Element {
   const t = useStrings()
@@ -38,6 +42,7 @@ export default function PickQueue(): React.JSX.Element {
   const router = useRouter()
   const { session } = useSession()
   const signedIn = session !== null
+  const engine = useSyncEngine()
 
   const [beatId, setBeatId] = useState<string | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
@@ -60,11 +65,48 @@ export default function PickQueue(): React.JSX.Element {
       }),
     { enabled: signedIn },
   )
+  /*
+   * THE WAVES THAT NEED A HAND ARE ASKED FOR BY NAME (DOS-047).
+   *
+   * One unfiltered page of 30 is what this panel used to be, and on the pilot's floor all 30 came
+   * back `packed` or `picked` while the wave being picked and the wave nobody had started were not on
+   * the page at all — so the only route to today's work was the Home queue. `PicklistsListInput.status`
+   * takes ONE status, so the two live ones are two reads; the unfiltered page still follows them, for
+   * the history. `workFirst` lists a wave that is on both pages once.
+   */
+  const picking = useQuery(
+    ['picklists', 'picking'],
+    () => api.api.warehouse.picklists.list({ status: 'picking', limit: 20 }),
+    { enabled: signedIn },
+  )
+  const openWaves = useQuery(
+    ['picklists', 'open'],
+    () => api.api.warehouse.picklists.list({ status: 'open', limit: 20 }),
+    { enabled: signedIn },
+  )
   const waves = useQuery(
     ['picklists', 'live-and-open'],
     () => api.api.warehouse.picklists.list({ limit: 30 }),
     { enabled: signedIn },
   )
+  /** Being picked, then not yet started, then the newest page whatever became of it. */
+  const wavesShown = workFirst(
+    picking.data?.items ?? [],
+    openWaves.data?.items ?? [],
+    waves.data?.items ?? [],
+  )
+  /*
+   * AND THE FIGURE THAT COUNTS THEM SAYS HOW SURE IT IS (DOS-047, merge review).
+   *
+   * Both reads above are pages of twenty, so their lengths added together are a page size, not a
+   * queue: "Waves open 40 against 315" is what `atLeast`'s own docblock measured on the pilot
+   * database. W1 already prints these two reads honestly — `['picklists', 'open']` is the same cache
+   * key this screen uses — so a raw sum here would have had two screens of one app disagreeing about
+   * one number, and the picker's screen holding the false half. `atLeastPl` is `atLeast`'s rule said
+   * in words: "20+ waves still to pick" while a page is capped, the true total once it is not, and
+   * nothing at all while the answer is still unread.
+   */
+  const wavesToPick = atLeastPl(t, 'w4.wavesToPick', picking.data, openWaves.data)
 
   const items = queue.data?.items ?? []
 
@@ -94,6 +136,17 @@ export default function PickQueue(): React.JSX.Element {
       onSuccess: (result) => {
         haptics.success()
         setChosen([])
+        /*
+         * THE PHONE IS TOLD THE WAVE EXISTS BEFORE THE PICKER IS SHOWN IT (DOS-119).
+         *
+         * W5 draws everything off this device's `picklists` and `pick_lines`, and a wave raised a
+         * second ago is in neither, so the sheet read "Nothing here yet · 0 of 0 picked" for 57 s on
+         * PICK-0083 and 33 s on PICK-0082 — with "Take it to packing" under it. The write itself is
+         * the server's; the device only has to go and read it. NOT a local insert from the create
+         * reply: a screen writing its own copy of what the office said is a second source of truth
+         * on the device. `pullAfterWrite` is the ask that survives a poll already being in flight.
+         */
+        void pullAfterWrite(engine, 'wave raised')
         router.push(`/pick/${result.item.id}`)
       },
       onError: () => {
@@ -236,14 +289,18 @@ export default function PickQueue(): React.JSX.Element {
           </Async>
         </Panel>
 
-        <Panel title={t('w4.waves')} testID="w4-waves">
+        <Panel
+          title={t('w4.waves')}
+          {...(wavesToPick === undefined ? {} : { meta: wavesToPick })}
+          testID="w4-waves"
+        >
           <Async
-            state={waves}
-            empty={(waves.data?.items.length ?? 0) === 0}
+            state={[picking, openWaves, waves]}
+            empty={wavesShown.length === 0}
             emptyMessage={t('w4.wavesEmpty')}
           >
             <Group>
-              {(waves.data?.items ?? []).map((sheet) => (
+              {wavesShown.map((sheet) => (
                 <ListRow
                   key={sheet.id}
                   testID={`w4-wave-${sheet.id}`}

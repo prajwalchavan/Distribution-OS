@@ -29,6 +29,8 @@ import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Box,
   Button,
+  Group,
+  ListRow,
   Money,
   NumberPad,
   Row,
@@ -50,6 +52,7 @@ import type { PickRow } from '../../src/lib/local'
 import { useHydrated, useLocalPickLines, useLocalPicklist } from '../../src/lib/local'
 import { keepKey } from '../../src/lib/keep'
 import { pickGate } from '../../src/lib/pick-gate'
+import { sheetStatus } from '../../src/lib/sheet-status'
 import { useRecordPick } from '../../src/lib/queue'
 import { DeskOnly, ExpiryChip, LocalAsync, Panel, pl, workFamily } from '../../src/lib/ui'
 
@@ -102,14 +105,29 @@ export default function PickingSheet(): React.JSX.Element {
     start.data !== undefined && start.data.item.id === picklistId
       ? start.data.item.status
       : undefined
-  const liveStatus = startedHere ?? sheet?.status
+  /*
+   * DOS-120: and the reply stops speaking the moment the row it stands in for does. This used to be
+   * `startedHere ?? sheet?.status`, which kept "picking" for as long as the screen stayed mounted —
+   * PICK-0083's chip said `picking` beside "7 of 7 picked" with the confirm enabled, and only said
+   * `picked` after navigating away and back. The rule is `sheetStatus`, beside `pickGate`.
+   */
+  const liveStatus = sheetStatus({ startedHere, deviceStatus: sheet?.status })
   const gate = pickGate({ startedHere, deviceStatus: sheet?.status ?? null })
   const notStarted = gate === 'not-started'
   const locked = gate !== 'pickable'
 
   const [shortFor, setShortFor] = useState<PickRow | null>(null)
   const [shortPieces, setShortPieces] = useState<number | null>(null)
-  const [shortReason, setShortReason] = useState<string>(REASON_KEYS[0])
+  /*
+   * NULL, AND IT STAYS NULL UNTIL THE PICKER SAYS OTHERWISE (DOS-051).
+   *
+   * This used to open on `REASON_KEYS[0]`, so Short pressed with nothing chosen saved "Not on the
+   * rack" — measured on PICK-0079: `picked_qty_pcs 0`, `short_reason 'Not on the rack'`, a reason
+   * nobody had touched. The desk rings the supplier and holds a batch on the strength of that word,
+   * so a default here writes fiction into the short report. `warehouse.sync.ts` refuses a short with
+   * no reason as well; a screen is not a guarantee, and the two halves say the same thing.
+   */
+  const [shortReason, setShortReason] = useState<string | null>(null)
   const [scanNote, setScanNote] = useState<string | null>(null)
   const [view, setView] = useState<'todo' | 'all'>('todo')
   /*
@@ -120,6 +138,13 @@ export default function PickingSheet(): React.JSX.Element {
    */
   const ask = shortFor?.line.requested_qty_pcs ?? 0
   const overAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) > ask
+  /*
+   * DOS-051: pieces left on the rack are explained, or they are not recorded. A pick that is NOT
+   * under the ask needs no reason — nothing was left behind — and a split row asks for nothing of its
+   * own (0), which is the same rule `applyPicks` and `warehouse.sync.ts` apply on the server.
+   */
+  const shortOfAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) < ask
+  const needsReason = shortOfAsk && shortReason === null
 
   const picked = rows.filter((row) => row.state !== 'todo').length
   const shown = useMemo(
@@ -142,7 +167,7 @@ export default function PickingSheet(): React.JSX.Element {
   const saveShort = (): void => {
     const row = shortFor
     if (row === null || locked) return
-    if (overAsk) {
+    if (overAsk || needsReason) {
       haptics.error()
       return
     }
@@ -150,10 +175,11 @@ export default function PickingSheet(): React.JSX.Element {
     void recordPick({
       line: row.line,
       pickedQtyPcs: shortPieces ?? 0,
-      shortReason: t(shortReason),
+      shortReason: shortReason === null ? null : t(shortReason),
     })
     setShortFor(null)
     setShortPieces(null)
+    setShortReason(null)
   }
 
   /** Scanning is a convenience, never the only way: every row is reachable by thumb (docs/23 §4.1). */
@@ -205,9 +231,25 @@ export default function PickingSheet(): React.JSX.Element {
          * the gutter width each.
          */
         <Stack gap={3}>
-          <Txt field="moneyM" desk="cell" numeric>
-            {t('w5.progress', { picked, total: rows.length })}
-          </Txt>
+          {/*
+           * "0 OF 0 PICKED" IS AN ANSWER, AND THIS SCREEN DOES NOT HAVE ONE YET (DOS-119).
+           *
+           * A wave raised a second ago is on the server and not on this phone, so the figure counted
+           * rows the device had not been given: PICK-0083 read "Nothing here yet · 0 of 0 picked" for
+           * 57 s after its 200 reply. The gate already knows the difference — `waiting` is the device
+           * not having answered — so while it says so the bar says that instead of counting. W4 asks
+           * for the pull the moment the wave exists (`pullAfterWrite`); this is what the picker reads
+           * for the second it takes.
+           */}
+          {gate === 'waiting' ? (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-waiting">
+              {t('w5.waiting')}
+            </Txt>
+          ) : (
+            <Txt field="moneyM" desk="cell" numeric>
+              {t('w5.progress', { picked, total: rows.length })}
+            </Txt>
+          )}
           {/*
            * NOTHING STANDS BETWEEN THE PICKER AND THE FIRST ROW (DOS-182, merge review 2026-09-20).
            *
@@ -310,7 +352,8 @@ export default function PickingSheet(): React.JSX.Element {
           loading={loading || sheetLoading}
           hydrated={hydrated}
           empty={rows.length === 0}
-          emptyMessage={t('state.empty')}
+          // A sheet this device has not read is not an empty sheet (DOS-119).
+          emptyMessage={gate === 'waiting' ? t('w5.waiting') : t('state.empty')}
           waitingMessage={t('w.filling')}
         >
           <Stack gap={4}>
@@ -325,7 +368,7 @@ export default function PickingSheet(): React.JSX.Element {
                 onShort={() => {
                   setShortFor(row)
                   setShortPieces(row.line.picked_qty_pcs)
-                  setShortReason(REASON_KEYS[0])
+                  setShortReason(null)
                 }}
               />
             ))}
@@ -360,12 +403,50 @@ export default function PickingSheet(): React.JSX.Element {
         testID="w5-short-sheet"
       >
         <Stack gap={4}>
-          <Segments
-            testID="w5-short-reason"
-            items={REASON_KEYS.slice(0, 3).map((key) => ({ id: key, label: t(key) }))}
-            value={shortReason}
-            onChange={setShortReason}
-          />
+          <Txt field="bodyStrong" desk="cell">
+            {t('w5.shortReason')}
+          </Txt>
+          {/*
+           * STACKED, NOT SHARED (DOS-165). Measured on an iPhone 16 Pro at 402 pt, the three reasons
+           * in one segmented row laid the third out at x 331-487 and printed it as "Batcl", half of
+           * it off the screen; a tap at its centre landed on nothing and the preselected first chip
+           * stayed selected. Three labels of the trade's own length do not fit one phone line, so
+           * they take a row each, exactly as D4's return reasons do (DOS-163). The words themselves
+           * are never shortened: the desk's short report prints them.
+           */}
+          <Group testID="w5-short-reason">
+            {REASON_KEYS.slice(0, 3).map((key) => (
+              <ListRow
+                key={key}
+                testID={`w5-short-reason-${key}`}
+                primary={t(key)}
+                state={shortReason === key ? 'selected' : 'default'}
+                onPress={() => {
+                  setShortReason(key)
+                }}
+              />
+            ))}
+          </Group>
+          {/*
+           * EVERY REASON A SHORT IS REFUSED PRINTS HERE, ABOVE THE PAD (DOS-118).
+           *
+           * Measured at 390 x 844: the over-ask sentence used to follow the keypad and was laid out
+           * at y 836-880 in an 844-px viewport, UNDER its own Short button at y 728-804 — a sliver of
+           * red at the screen edge, so a picker pressed Short, saw nothing happen, and pressed it
+           * again. `NumberPadProps` has no `disabled`, so the fix is the order of the sheet: a
+           * refusal belongs at the top, beside the reasons and the requested figure, where no keypad
+           * can push it off a phone. At 1280 x 800 nothing moves, which is why the desk never saw it.
+           */}
+          {needsReason ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-noreason">
+              {t('w5.chooseReason')}
+            </Txt>
+          ) : null}
+          {overAsk ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-over">
+              {t('w5.overAsk', { pieces: ask })}
+            </Txt>
+          ) : null}
           <NumberPad
             testID="w5-short-pad"
             mode="count"
@@ -374,14 +455,31 @@ export default function PickingSheet(): React.JSX.Element {
             expected={ask > 0 ? ask : null}
             expectedLabel={t('w5.bin', { pieces: ask })}
             onChange={setShortPieces}
-            doneLabel={t('w5.short')}
+            /*
+             * AND THE BUTTON THAT WAS PRESSED SAYS IT TOO (DOS-118, merge review).
+             *
+             * Above the pad is where a refusal belongs, and on a phone it is also a whole keypad
+             * away from the button that was pressed: this sheet's body scrolls on both renderers
+             * (`native/feedback.tsx` ScrollView at maxHeight 86%, `web/feedback.tsx` overflowY at
+             * 80vh) and DOS-152 measured this very sheet overflowing on a Pixel 7. A picker who has
+             * scrolled down far enough to reach Short is looking at the BOTTOM of the content, with
+             * the sentence a pad-height above the top of the viewport — DOS-118's own "press Short,
+             * nothing happens" all over again, one screenful higher.
+             *
+             * `NumberPadProps` renders exactly one thing at the bottom of the pad, and it is this
+             * label. So the button wears the refusal — the kit's own `disabledReason` idea said
+             * through the one prop the contract offers — and the full sentence stays where DOS-118
+             * put it. Whatever part of the sheet the picker can see, one of the two is in it.
+             */
+            doneLabel={
+              overAsk
+                ? t('w5.shortOverAsk')
+                : needsReason
+                  ? t('w5.shortNeedsReason')
+                  : t('w5.short')
+            }
             onDone={saveShort}
           />
-          {overAsk ? (
-            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-over">
-              {t('w5.overAsk', { pieces: ask })}
-            </Txt>
-          ) : null}
         </Stack>
       </Sheet>
     </Screen>

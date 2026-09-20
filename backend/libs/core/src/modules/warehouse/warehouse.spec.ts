@@ -44,6 +44,7 @@ interface PickLineBody {
   id: string
   orderId: string
   orderLineId: string
+  variantId: string
   lotId: string | null
   suggestedLotId: string | null
   batchNo: string | null
@@ -1431,6 +1432,132 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(res.body.accepted).toBe(0)
     expect(res.body.rejected.map((r) => r.code)).toEqual(['picklist_closed'])
     expect(res.body.rejected[0]?.messageEn).toMatch(/is cancelled; it is no longer being picked/)
+  })
+
+  it('DOS-051: a device pick under what the batch was asked for with no reason is refused as short_reason_required, and the same pick with a reason is accepted', async () => {
+    /*
+     * The desk reads a short report, rings the supplier and holds a batch on the strength of the
+     * reason beside each figure. The W5 sheet used to preselect the first chip, so a picker who
+     * pressed Short and chose nothing saved "Not on the rack" — measured on PICK-0079, one lot row
+     * asking 1 pc, `picked_qty_pcs 0` and a reason nobody had touched. The screen no longer offers a
+     * default; this is the half of that rule the SERVER owns, because a screen is not a guarantee.
+     *
+     * The ask is the STORED row's `requested_qty_pcs`, exactly as `applyPicks` reads it for the
+     * over-pick rule (DOS-041): a split row asks for nothing of its own and is never called short.
+     * And it is a REJECTION — 2xx plus a `sync_errors` row — never a 4xx, which would wedge the
+     * device's queue behind an op it could never get past (ADR 0007).
+     */
+    // TWO lines, so the wave is still `picking` after the first one is settled: the offline handler
+    // accepts picks on a `picking` sheet only, and a one-line wave closes the moment that line is done.
+    const target = await placeOrder(
+      [
+        { variantId: variantB, cases: 1 },
+        { variantId: variantA, cases: 1 },
+      ],
+      'dos051',
+    )
+    const waved = await wave([target], 'dos051')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines.find((l) => l.variantId === variantB)
+    const other = waved.res.body.item.lines.find((l) => l.variantId === variantA)
+    expect(row?.requestedQtyPcs).toBe(12)
+    expect(other?.requestedQtyPcs).toBe(12)
+    await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+      idempotencyKey: `start-dos051-${run}`,
+    })
+
+    const uploadOf = (
+      line: { id: string; orderLineId: string; lotId: string | null } | undefined,
+      opId: string,
+      data: Record<string, unknown>,
+    ) => ({
+      protocol: 1,
+      deviceId: `dev-dos051-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: line?.id ?? '',
+          data: {
+            picklist_id: waved.id,
+            order_line_id: line?.orderLineId ?? '',
+            lot_id: line?.lotId ?? '',
+            ...data,
+          },
+        },
+      ],
+    })
+    const upload = (opId: string, data: Record<string, unknown>) => uploadOf(row, opId, data)
+    type UploadBody = { accepted: number; rejected: { code: string; messageEn: string }[] }
+    const stored = async (): Promise<{ picked: number; reason: string | null }> => {
+      const rows = (
+        await db.execute(
+          sql`select picked_qty_pcs, short_reason from pick_lines where id = ${row?.id ?? ''}`,
+        )
+      ).rows as { picked_qty_pcs: number; short_reason: string | null }[]
+      return { picked: rows[0]?.picked_qty_pcs ?? -1, reason: rows[0]?.short_reason ?? null }
+    }
+
+    // 8 of the 12 pieces the batch was asked for, and not a word about the other 4.
+    const silentOpId = `op-dos051-silent-${run}`
+    const silent = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(silentOpId, { picked_qty_pcs: 8 }),
+    )
+    expect(silent.status).toBe(200)
+    expect(silent.body.accepted).toBe(0)
+    expect(silent.body.rejected.map((r) => r.code)).toEqual(['short_reason_required'])
+    expect(silent.body.rejected[0]?.messageEn).toMatch(/why/i)
+    const logged = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and op_id = ${silentOpId}`,
+      )
+    ).rows as { code: string }[]
+    expect(logged.map((r) => r.code)).toEqual(['short_reason_required'])
+    expect(await stored()).toEqual({ picked: 0, reason: null })
+
+    // A blank is not a reason either — the device may not send an empty string and call it an answer.
+    const blank = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos051-blank-${run}`, { picked_qty_pcs: 8, short_reason: '   ' }),
+    )
+    expect(blank.status).toBe(200)
+    expect(blank.body.rejected.map((r) => r.code)).toEqual(['short_reason_required'])
+
+    // The picker's own words, and the same pick goes through.
+    const answered = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos051-answered-${run}`, {
+        picked_qty_pcs: 8,
+        short_reason: 'Batch held back',
+      }),
+    )
+    expect(answered.status).toBe(200)
+    expect(answered.body.accepted).toBe(1)
+    expect(answered.body.rejected).toEqual([])
+    expect(await stored()).toEqual({ picked: 8, reason: 'Batch held back' })
+
+    // And a pick that is NOT short still needs no reason: the rule is about the pieces left behind.
+    const full = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      uploadOf(other, `op-dos051-full-${run}`, { picked_qty_pcs: 12 }),
+    )
+    expect(full.status).toBe(200)
+    expect(full.body.accepted).toBe(1)
+    expect(full.body.rejected).toEqual([])
   })
 
   // DOS-042: a wave closes only when every SHORT line has had every lot row it was asked on recorded.
