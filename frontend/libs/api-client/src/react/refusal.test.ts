@@ -201,3 +201,35 @@ describe('useRefusal — the rule a manager surface follows to show a refused wr
     expect(back.shown).toEqual([undefined, undefined])
   })
 })
+
+/**
+ * DOS-136 — the one refusal on these surfaces that is not written for a person.
+ *
+ * Every other sentence a service sends is business language the client passes straight through. The
+ * platform's own idempotency guard is the exception: "idempotencyKey was already used with a different
+ * request" is a developer's line, and it reached an accountant pressing "Bank it" a second time after
+ * the reply to the first press was dropped — over money that was already in the bank.
+ */
+describe('DOS-136 — a reused idempotency key reaches the desk as a sentence', () => {
+  const ALREADY_SAVED = 'This was already saved. Close this and open it again to see it.'
+
+  it('says the write was already saved instead of naming the idempotency key', () => {
+    const error = refusal('CONFLICT', 'idempotencyKey was already used with a different request')
+    expect(error.kind).toBe('conflict')
+    expect(error.message).toBe(ALREADY_SAVED)
+  })
+
+  it('reads the same when the service sends it in the body, as the transport really does', () => {
+    const error = toApiError(
+      new ORPCError('CONFLICT', {
+        message: 'Conflict',
+        data: { body: { message: 'idempotencyKey was already used with a different request' } },
+      }),
+    )
+    expect(error.message).toBe(ALREADY_SAVED)
+  })
+
+  it("leaves a business 409 in the service's own words", () => {
+    expect(refusal('CONFLICT', WAVE_409).message).toBe(WAVE_409)
+  })
+})

@@ -57,12 +57,20 @@ import {
   addCounts,
   moneyColumn,
   pagedCount,
-  stayOpen,
+  stayOpenAnd,
   textColumn,
   useCan,
   useNames,
   type PagedCount,
 } from '../../src/lib/ui'
+import {
+  bounceBody,
+  bounceIntent,
+  depositBody,
+  depositIntent,
+  type BounceIntent,
+  type DepositIntent,
+} from '../../src/lib/money-intents'
 import { shortInstant } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -78,8 +86,13 @@ export default function DayEnd(): React.JSX.Element {
   const maySettle = can('delivery.trips.settle')
   const [ticked, setTicked] = useState<readonly string[]>([])
   const [depositRef, setDepositRef] = useState('')
-  const [banking, setBanking] = useState(false)
-  const [bouncing, setBouncing] = useState<string | null>(null)
+  /*
+   * The instant the batch was banked and the instant a cheque came back are fixed when the dialog
+   * OPENS and travel in the mutation's input (DOS-136): made inside the call, a retry after a lost
+   * reply is a different request under the spent idempotency key and is refused.
+   */
+  const [banking, setBanking] = useState<Date | null>(null)
+  const [bouncing, setBouncing] = useState<{ receiptId: string; at: Date } | null>(null)
   const [bounceReason, setBounceReason] = useState('')
   const [charges, setCharges] = useState<number | null>(null)
   const [tripId, setTripId] = useState<string | null>(null)
@@ -131,26 +144,11 @@ export default function DayEnd(): React.JSX.Element {
   )
 
   const deposit = useMutation(
-    (input: { receiptIds: readonly string[]; ref: string }, meta) =>
-      api.api.receivables.receipts.deposit({
-        id: meta.id,
-        idempotencyKey: meta.idempotencyKey,
-        receiptIds: [...input.receiptIds],
-        depositedAt: new Date().toISOString(),
-        ...(input.ref === '' ? {} : { depositRef: input.ref }),
-      }),
+    (input: DepositIntent, meta) => api.api.receivables.receipts.deposit(depositBody(input, meta)),
     { invalidates: [['receipts'], ['receivables'], ['reporting']] },
   )
   const bounce = useMutation(
-    (input: { id: string; reason: string; chargesPaise: number | null }, meta) =>
-      api.api.receivables.receipts.bounce({
-        id: input.id,
-        reversalId: meta.id,
-        idempotencyKey: meta.idempotencyKey,
-        bouncedAt: new Date().toISOString(),
-        reason: input.reason,
-        ...(input.chargesPaise === null ? {} : { bankChargesPaise: input.chargesPaise }),
-      }),
+    (input: BounceIntent, meta) => api.api.receivables.receipts.bounce(bounceBody(input, meta)),
     { invalidates: [['receipts'], ['receivables'], ['outstanding'], ['reporting']] },
   )
   const settle = useMutation(
@@ -248,7 +246,8 @@ export default function DayEnd(): React.JSX.Element {
               label={t('m10.deposit')}
               variant="primary"
               onPress={() => {
-                setBanking(true)
+                deposit.reset()
+                setBanking(new Date())
               }}
               testID="bank-batch"
             />
@@ -309,7 +308,8 @@ export default function DayEnd(): React.JSX.Element {
                       onPress={
                         mayBank
                           ? () => {
-                              setBouncing(row.id)
+                              bounce.reset()
+                              setBouncing({ receiptId: row.id, at: new Date() })
                             }
                           : undefined
                       }
@@ -449,9 +449,9 @@ export default function DayEnd(): React.JSX.Element {
       </Stack>
 
       <Dialog
-        open={banking}
+        open={banking !== null}
         onClose={() => {
-          setBanking(false)
+          setBanking(null)
         }}
         title={t('m10.depositTitle')}
         body={
@@ -475,11 +475,15 @@ export default function DayEnd(): React.JSX.Element {
         confirmLabel={t('m10.deposit')}
         busy={deposit.status === 'pending'}
         onConfirm={() => {
-          void deposit.mutateAsync({ receiptIds: ticked, ref: depositRef.trim() }).then(() => {
-            setTicked([])
-            setDepositRef('')
-            setBanking(false)
-          }, stayOpen)
+          if (banking === null) return
+          void deposit.mutateAsync(depositIntent(ticked, depositRef.trim(), banking)).then(
+            () => {
+              setTicked([])
+              setDepositRef('')
+              setBanking(null)
+            },
+            stayOpenAnd(cashTotals.refetch, chequeTotals.refetch),
+          )
         }}
         testID="deposit-dialog"
       />
@@ -517,12 +521,17 @@ export default function DayEnd(): React.JSX.Element {
         onConfirm={() => {
           if (bouncing === null) return
           void bounce
-            .mutateAsync({ id: bouncing, reason: bounceReason.trim(), chargesPaise: charges })
-            .then(() => {
-              setBouncing(null)
-              setBounceReason('')
-              setCharges(null)
-            }, stayOpen)
+            .mutateAsync(
+              bounceIntent(bouncing.receiptId, bounceReason.trim(), charges, bouncing.at),
+            )
+            .then(
+              () => {
+                setBouncing(null)
+                setBounceReason('')
+                setCharges(null)
+              },
+              stayOpenAnd(cashTotals.refetch, chequeTotals.refetch),
+            )
         }}
         testID="bounce-dialog"
       />
@@ -560,12 +569,15 @@ export default function DayEnd(): React.JSX.Element {
               note: settleNote.trim(),
               accept: beyondTolerance,
             })
-            .then(() => {
-              setSettling(false)
-              setTripId(null)
-              setHandedOver(null)
-              setSettleNote('')
-            }, stayOpen)
+            .then(
+              () => {
+                setSettling(false)
+                setTripId(null)
+                setHandedOver(null)
+                setSettleNote('')
+              },
+              stayOpenAnd(trips.refetch, preview.refetch),
+            )
         }}
         testID="settle-dialog"
       />
