@@ -12,7 +12,7 @@ import { KpiStrip, ListRow } from './list.js'
 import { Money, NumberPad, QtyStepper, RupeeInput } from './money.js'
 import { StatusChip, BarLadder, AgeingBuckets } from './list.js'
 import { Chips, TextInput, Tabs, Segments } from './controls.js'
-import { Avatar, ConnectionStrip, Sheet, TenantLogo } from './feedback.js'
+import { Avatar, ConnectionStrip, Dialog, Sheet, TenantLogo } from './feedback.js'
 import { MapView } from './map.js'
 import { AppShell, MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
@@ -1006,5 +1006,52 @@ describe('<Segments> at the field floor', () => {
     )
     // "All" is 54 dp wide when it is sized by its own word; the floor is 69.
     expect(html).toContain('min-width:69px')
+  })
+})
+
+/**
+ * DOS-122. The W7 load-out confirm ("Check out MH-05-BQ-4471? … This cannot be undone.") measured
+ * 'Cancel' at 84x32 and 'Send the vehicle out' at 185x32, side by side, at 390x844 — both buttons were
+ * hard-coded `size="desk"` regardless of the app or the viewport, on a screen where every OTHER button
+ * is 76 dp. `<Button>` already defaults an unset `size` to `theme.touch` and already goes full-width
+ * once that is not 'desk' (`web/controls.tsx`); `<Dialog>` is keyed on `theme.touch` itself, not a
+ * second `useViewport()` call, because `ThemeProvider` already computes `touch` from that same hook —
+ * the renderer-agnostic `<ThemeContextProvider>` lets a test set `touch` and `viewport` independently,
+ * the way `web/ThemeProvider` itself never does for a live app (docs/08 §0).
+ */
+describe('<Dialog> below the desk touch floor (DOS-122)', () => {
+  function dialog(touch: 'phone' | 'field' | 'floor' | 'desk', viewport: 'desk' | 'phone'): string {
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={touch} viewport={viewport}>
+        <Dialog
+          open
+          onClose={() => undefined}
+          title="Check out MH-05-BQ-4471?"
+          body="This cannot be undone."
+          confirmLabel="Send the vehicle out"
+          onConfirm={() => undefined}
+        />
+      </ThemeContextProvider>,
+    )
+  }
+
+  it('keeps the 32 px pair side by side on a desk app’s own laptop viewport', () => {
+    const html = dialog('phone', 'desk')
+    expect(html).toContain('flex-direction:row')
+    expect(html).toContain('height:32px')
+  })
+
+  it("gives the WAREHOUSE app's irreversible confirm its own 76 dp floor, full width, stacked — never the 32 px measured on the W7 load-out dialog at 390x844", () => {
+    const html = dialog('floor', 'phone')
+    expect(html).toContain('flex-direction:column-reverse')
+    expect(html).toContain('height:76px')
+    expect(html).not.toContain('height:32px')
+  })
+
+  it('stacks a desk app’s own dialog too once ITS viewport is phone-width, at that app’s phone floor (63 dp) — the same theme.touch this component is keyed on', () => {
+    const html = dialog('phone', 'phone')
+    expect(html).toContain('flex-direction:column-reverse')
+    expect(html).toContain('height:63px')
+    expect(html).not.toContain('height:32px')
   })
 })
