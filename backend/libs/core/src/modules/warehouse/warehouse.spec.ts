@@ -28,14 +28,14 @@ import {
   type TenantContext,
 } from '@dos/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { tenantStorage } from '../../platform/index.js'
+import { PG_POOL, tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { OrdersModule, OrdersService } from '../orders/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
 import { SyncModule } from '../sync/index.js'
-import { WarehouseModule } from './index.js'
+import { PicklistsService, WarehouseModule } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -44,6 +44,7 @@ interface PickLineBody {
   id: string
   orderId: string
   orderLineId: string
+  variantId: string
   lotId: string | null
   suggestedLotId: string | null
   batchNo: string | null
@@ -983,6 +984,40 @@ describeDb('warehouse (DATABASE_URL)', () => {
     ).toHaveLength(1)
   })
 
+  /**
+   * DOS-141 — the second desk to press Approve is told which sheet and whose approval it ran into.
+   *
+   * The walk read "load sheet 01a0976e-bbaf-7dbe-9bb3-f6ed587bd574 was already approved by
+   * a1cbd424-d568-7ccb-b5cc-b049e8ac2063": two database ids and nothing a manager can act on.
+   */
+  it('DOS-141: approving a sheet twice names the vehicle, the sheet date and the approver, with no ids', async () => {
+    const refused = await call<{ message: string; data?: { code?: string } }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/approve`,
+      { idempotencyKey: `dos141-approve-again-${run}` },
+    )
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('already_approved')
+    const message = refused.body.message
+    expect(message).toContain(`MH-05-WH-${run.slice(-4)}`)
+    // "on 13 Sep, 4:20 pm", the same preposition the approvals gate uses before a date (merge minor 3).
+    expect(message).toContain('was already approved by Manager on ')
+    // the sheet's own IST date, as a desk says it: "4 Aug", never "2026-08-04"
+    const [sheetRow] = (
+      await db.execute(sql`select sheet_date::text as d from load_sheets where id = ${sheetId}`)
+    ).rows as { d: string }[]
+    const day = `${String(Number((sheetRow?.d ?? '').slice(8, 10)))} `
+    expect(message).toContain(day)
+    expect(message).not.toContain(sheetId)
+    expect(message).not.toContain(managerId)
+    expect(message).not.toContain(sheetRow?.d ?? 'no sheet date')
+    // an IST clock time, never a UTC ISO instant
+    expect(message).toMatch(/\d{1,2}:\d{2} (am|pm)$/)
+    expect(message).not.toMatch(/\dT\d/)
+  })
+
   it('refuses a count that differs from the expectation without a note', async () => {
     const res = await call<{ message: string; data?: { code: string } }>(
       app,
@@ -1411,6 +1446,132 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(res.body.accepted).toBe(0)
     expect(res.body.rejected.map((r) => r.code)).toEqual(['picklist_closed'])
     expect(res.body.rejected[0]?.messageEn).toMatch(/is cancelled; it is no longer being picked/)
+  })
+
+  it('DOS-051: a device pick under what the batch was asked for with no reason is refused as short_reason_required, and the same pick with a reason is accepted', async () => {
+    /*
+     * The desk reads a short report, rings the supplier and holds a batch on the strength of the
+     * reason beside each figure. The W5 sheet used to preselect the first chip, so a picker who
+     * pressed Short and chose nothing saved "Not on the rack" — measured on PICK-0079, one lot row
+     * asking 1 pc, `picked_qty_pcs 0` and a reason nobody had touched. The screen no longer offers a
+     * default; this is the half of that rule the SERVER owns, because a screen is not a guarantee.
+     *
+     * The ask is the STORED row's `requested_qty_pcs`, exactly as `applyPicks` reads it for the
+     * over-pick rule (DOS-041): a split row asks for nothing of its own and is never called short.
+     * And it is a REJECTION — 2xx plus a `sync_errors` row — never a 4xx, which would wedge the
+     * device's queue behind an op it could never get past (ADR 0007).
+     */
+    // TWO lines, so the wave is still `picking` after the first one is settled: the offline handler
+    // accepts picks on a `picking` sheet only, and a one-line wave closes the moment that line is done.
+    const target = await placeOrder(
+      [
+        { variantId: variantB, cases: 1 },
+        { variantId: variantA, cases: 1 },
+      ],
+      'dos051',
+    )
+    const waved = await wave([target], 'dos051')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines.find((l) => l.variantId === variantB)
+    const other = waved.res.body.item.lines.find((l) => l.variantId === variantA)
+    expect(row?.requestedQtyPcs).toBe(12)
+    expect(other?.requestedQtyPcs).toBe(12)
+    await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+      idempotencyKey: `start-dos051-${run}`,
+    })
+
+    const uploadOf = (
+      line: { id: string; orderLineId: string; lotId: string | null } | undefined,
+      opId: string,
+      data: Record<string, unknown>,
+    ) => ({
+      protocol: 1,
+      deviceId: `dev-dos051-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: line?.id ?? '',
+          data: {
+            picklist_id: waved.id,
+            order_line_id: line?.orderLineId ?? '',
+            lot_id: line?.lotId ?? '',
+            ...data,
+          },
+        },
+      ],
+    })
+    const upload = (opId: string, data: Record<string, unknown>) => uploadOf(row, opId, data)
+    type UploadBody = { accepted: number; rejected: { code: string; messageEn: string }[] }
+    const stored = async (): Promise<{ picked: number; reason: string | null }> => {
+      const rows = (
+        await db.execute(
+          sql`select picked_qty_pcs, short_reason from pick_lines where id = ${row?.id ?? ''}`,
+        )
+      ).rows as { picked_qty_pcs: number; short_reason: string | null }[]
+      return { picked: rows[0]?.picked_qty_pcs ?? -1, reason: rows[0]?.short_reason ?? null }
+    }
+
+    // 8 of the 12 pieces the batch was asked for, and not a word about the other 4.
+    const silentOpId = `op-dos051-silent-${run}`
+    const silent = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(silentOpId, { picked_qty_pcs: 8 }),
+    )
+    expect(silent.status).toBe(200)
+    expect(silent.body.accepted).toBe(0)
+    expect(silent.body.rejected.map((r) => r.code)).toEqual(['short_reason_required'])
+    expect(silent.body.rejected[0]?.messageEn).toMatch(/why/i)
+    const logged = (
+      await db.execute(
+        sql`select code from sync_errors where tenant_id = ${tenantId} and op_id = ${silentOpId}`,
+      )
+    ).rows as { code: string }[]
+    expect(logged.map((r) => r.code)).toEqual(['short_reason_required'])
+    expect(await stored()).toEqual({ picked: 0, reason: null })
+
+    // A blank is not a reason either — the device may not send an empty string and call it an answer.
+    const blank = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos051-blank-${run}`, { picked_qty_pcs: 8, short_reason: '   ' }),
+    )
+    expect(blank.status).toBe(200)
+    expect(blank.body.rejected.map((r) => r.code)).toEqual(['short_reason_required'])
+
+    // The picker's own words, and the same pick goes through.
+    const answered = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      upload(`op-dos051-answered-${run}`, {
+        picked_qty_pcs: 8,
+        short_reason: 'Batch held back',
+      }),
+    )
+    expect(answered.status).toBe(200)
+    expect(answered.body.accepted).toBe(1)
+    expect(answered.body.rejected).toEqual([])
+    expect(await stored()).toEqual({ picked: 8, reason: 'Batch held back' })
+
+    // And a pick that is NOT short still needs no reason: the rule is about the pieces left behind.
+    const full = await call<UploadBody>(
+      app,
+      packer,
+      'POST',
+      '/sync/upload',
+      uploadOf(other, `op-dos051-full-${run}`, { picked_qty_pcs: 12 }),
+    )
+    expect(full.status).toBe(200)
+    expect(full.body.accepted).toBe(1)
+    expect(full.body.rejected).toEqual([])
   })
 
   // DOS-042: a wave closes only when every SHORT line has had every lot row it was asked on recorded.
@@ -2586,5 +2747,559 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(picked.body.item.minShelfLifeDays).toBe(0)
     expect(picked.body.item.lines.every((l) => !l.shortShelfLife)).toBe(true)
     await setShelfLife(30)
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // QA DOS-138 (founder): the desk may cancel an order the floor is already picking. The hold goes, the
+  // picker's lines are marked put-back in the SAME transaction (PicklistsService registers the hook with
+  // OrdersService at start-up), and the wave carries on with the orders that are still live.
+
+  /**
+   * The pick_lines rows of one order on one sheet, as the picker's device would pull them.
+   *
+   * `updated_ms` is the delta cursor in the form the assertions can ORDER: the device learns about a
+   * put-back only because `updated_at` moved, so a test that means to guard the bump has to compare
+   * the number, not merely notice the row changed.
+   */
+  const pickLineRows = async (
+    picklistId: string,
+    orderId: string,
+  ): Promise<
+    { id: string; cancelled_at: string | null; updated_at: string; updated_ms: string }[]
+  > =>
+    (
+      await db.execute(
+        sql`select id, cancelled_at::text as cancelled_at, updated_at::text as updated_at,
+                   (extract(epoch from updated_at) * 1000)::bigint::text as updated_ms
+              from pick_lines where picklist_id = ${picklistId} and order_id = ${orderId} order by id`,
+      )
+    ).rows as {
+      id: string
+      cancelled_at: string | null
+      updated_at: string
+      updated_ms: string
+    }[]
+
+  it('DOS-138: the desk cancels one order of a two-order wave mid-pick — its pick lines carry cancelled_at with updated_at bumped, the other order is untouched, a pick on a put-back line is refused online and from the offline queue, the remaining order still packs, and cancelling the last order closes the sheet', async () => {
+    const orderA = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-a')
+    const orderB = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-b')
+    const waved = await wave([orderA, orderB], 'dos138')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    expect(await orderState(orderA)).toBe('picking')
+
+    // one line of A is already off the rack when the shop phones
+    const sheet = started.body.item
+    const rowA = sheet.lines.find((l) => l.orderId === orderA)
+    const rowB = sheet.lines.find((l) => l.orderId === orderB)
+    expect(rowA, 'no pick line for order A').toBeDefined()
+    expect(rowB, 'no pick line for order B').toBeDefined()
+    const partly = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-pick-a-${run}`,
+        lines: [
+          {
+            id: rowA?.id ?? '',
+            orderLineId: rowA?.orderLineId ?? '',
+            lotId: rowA?.lotId ?? lotB,
+            pickedQtyPcs: 6,
+          },
+        ],
+      },
+    )
+    expect(partly.status, JSON.stringify(partly.body)).toBe(200)
+
+    const beforeA = await pickLineRows(waved.id, orderA)
+    const beforeB = await pickLineRows(waved.id, orderB)
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'POST',
+      `/orders/${orderA}/cancel`,
+      { idempotencyKey: `dos138-cancel-a-${run}`, reason: 'Shop shut for a wedding.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // A's lines are put back…
+    const afterA = await pickLineRows(waved.id, orderA)
+    expect(afterA.length).toBeGreaterThan(0)
+    expect(afterA.every((r) => r.cancelled_at !== null)).toBe(true)
+    /*
+     * …EVERY one of them with updated_at strictly bumped, which is the whole mechanism: the picker's
+     * phone is told about the put-back only because the row's delta cursor moved. Asserting the same
+     * rows came back and then comparing each cursor strictly pins the bump itself — without this the
+     * test passed unchanged if the hook stopped writing `updatedAt`, and the phone would have kept
+     * showing a line whose pieces the floor had already put back (review, DOS-138).
+     */
+    expect(afterA.map((r) => r.id)).toEqual(beforeA.map((r) => r.id))
+    afterA.forEach((row, i) => {
+      expect(
+        Number(row.updated_ms),
+        `pick line ${row.id} was put back without bumping updated_at — the picker's delta pull will never carry it`,
+      ).toBeGreaterThan(Number(beforeA[i]?.updated_ms ?? '0'))
+    })
+    // …and B's are untouched, to the microsecond
+    expect(await pickLineRows(waved.id, orderB)).toEqual(beforeB)
+
+    // the sheet is still the picker's work, because B is still on it
+    const midway = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/picklists/${waved.id}`,
+    )
+    expect(midway.body.item.status).toBe('picking')
+
+    // a pick against a put-back line is refused online…
+    const refused = await call<{ message?: string }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-pick-putback-${run}`,
+        lines: [
+          {
+            id: rowA?.id ?? '',
+            orderLineId: rowA?.orderLineId ?? '',
+            lotId: rowA?.lotId ?? lotB,
+            pickedQtyPcs: 12,
+          },
+        ],
+      },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toMatch(/was cancelled; put the pieces back/)
+
+    // …and from the offline queue it is a 2xx sync_errors row, never a 4xx that would wedge the device
+    const queued = await call<{
+      accepted: number
+      rejected: { code: string; messageEn: string }[]
+    }>(app, packer, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `dos138-device-${run}`,
+      ops: [
+        {
+          opId: `dos138-op-${run}`,
+          op: 'PUT',
+          table: 'pick_lines',
+          id: rowA?.id ?? '',
+          data: {
+            picklist_id: waved.id,
+            order_line_id: rowA?.orderLineId ?? '',
+            lot_id: rowA?.lotId ?? lotB,
+            picked_qty_pcs: 12,
+          },
+        },
+      ],
+    })
+    expect(queued.status, JSON.stringify(queued.body)).toBe(200)
+    expect(queued.body.rejected).toHaveLength(1)
+    expect(queued.body.rejected[0]?.code).toBe('pick_rejected')
+    expect(queued.body.rejected[0]?.messageEn).toMatch(/was cancelled; put the pieces back/)
+
+    // B is picked in full and packs; the sheet does not hang on the order that went away
+    const finished = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-pick-b-${run}`,
+        lines: [
+          {
+            id: rowB?.id ?? '',
+            orderLineId: rowB?.orderLineId ?? '',
+            lotId: rowB?.lotId ?? lotB,
+            pickedQtyPcs: rowB?.requestedQtyPcs ?? 12,
+          },
+        ],
+      },
+    )
+    expect(finished.status, JSON.stringify(finished.body)).toBe(200)
+    expect(finished.body.item.status).toBe('picked')
+    const packedB = await packOrder(orderB, 'dos138-b', packer, 1)
+    expect(packedB.res.status, JSON.stringify(packedB.res.body)).toBe(200)
+    const afterPack = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/picklists/${waved.id}`,
+    )
+    expect(afterPack.body.item.status).toBe('packed')
+  })
+
+  it('DOS-138: cancelling every order of a live wave closes the sheet, naming the reason', async () => {
+    const only = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-only')
+    const waved = await wave([only], 'dos138-only')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos138-only-start-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      owner,
+      'POST',
+      `/orders/${only}/cancel`,
+      { idempotencyKey: `dos138-only-cancel-${run}`, reason: 'Shop refused the load.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+
+    const sheet = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/picklists/${waved.id}`,
+    )
+    expect(sheet.body.item.status).toBe('cancelled')
+    const [row] = (
+      await db.execute(sql`select cancel_reason from picklists where id = ${waved.id}`)
+    ).rows as { cancel_reason: string | null }[]
+    expect(row?.cancel_reason).toMatch(/every order on it was cancelled: Shop refused the load\./)
+  })
+
+  /**
+   * The other half of the pair, and the half the old version of the case below actually proved: on a
+   * service that mounts BOTH modules (owner, manager — `src/service/definitions.ts`), the registered
+   * hook reaches an OPEN sheet too, because `LIVE_PICKLIST_STATUSES` includes 'open'. Pinned here on
+   * its own, with the assertion taken BEFORE `start`, so the two mechanisms are told apart by name.
+   */
+  it('DOS-138: the desk cancels an order sitting on an OPEN wave — the registered hook marks its lines put-back there and then, before any picker starts the sheet', async () => {
+    const dead = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-desk-open')
+    const live = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-desk-live')
+    const waved = await wave([dead, live], 'dos138-desk-open')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'POST',
+      `/orders/${dead}/cancel`,
+      {
+        idempotencyKey: `dos138-desk-open-cancel-${run}`,
+        reason: 'Shop cancelled before picking.',
+      },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // no `start` has run: whatever marked these rows was the hook
+    const marked = await pickLineRows(waved.id, dead)
+    expect(marked.length).toBeGreaterThan(0)
+    expect(
+      marked.every((r) => r.cancelled_at !== null),
+      'the hook skipped an OPEN sheet — the picker would be handed the dead order the moment it starts',
+    ).toBe(true)
+    expect((await pickLineRows(waved.id, live)).every((r) => r.cancelled_at === null)).toBe(true)
+  })
+
+  /**
+   * The design's amendment (c): a service that mounts orders WITHOUT warehouse — sales-service and
+   * retailer-service (`src/service/definitions.ts`) — registers no `registerCancelled` hook, so
+   * NOTHING marks the put-back when the rep cancels from the van. `picklists.start` has to reconcile
+   * the sheet itself before the godown starts the wave.
+   *
+   * This case used to cancel through `app`, which mounts orders AND warehouse: the hook had already
+   * written `cancelled_at` before `start` ran (`LIVE_PICKLIST_STATUSES` includes 'open'), so it proved
+   * the hook a second time and the reconcile could be deleted from `picklists.service.ts` with all 46
+   * cases of this file still green (verifier, DOS-138). A SECOND Nest app shaped like sales-service is
+   * what makes the named mechanism the test's own — its `OrdersService` is a different instance with no
+   * hook on it — and the assertion taken BETWEEN the cancel and the start is what pins the reconcile:
+   * the lines are still unmarked there, so only `start` can be what marks them.
+   */
+  it('DOS-138: an order cancelled from the SALES app — a service that mounts orders without warehouse, so no put-back hook is registered — no longer breaks the wave: start marks its lines put-back itself, starts the others and answers 200', async () => {
+    const dead = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-dead')
+    const live = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-live')
+    const waved = await wave([dead, live], 'dos138-open')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+
+    // sales-service's shape for this call: OrdersModule and the modules it imports itself, and no
+    // WarehouseModule — so `PicklistsService.onModuleInit` never runs in this container.
+    const salesApp = await bootTestApp([OrdersModule])
+    try {
+      expect(
+        () => salesApp.get(PicklistsService, { strict: false }),
+        'the sales-shaped app resolved PicklistsService — it mounted warehouse, and this case would prove the hook again',
+      ).toThrow()
+      const cancelled = await call<{ item: { state: string } }>(
+        salesApp,
+        rep,
+        'POST',
+        `/orders/${dead}/cancel`,
+        { idempotencyKey: `dos138-open-cancel-${run}`, reason: 'Shop cancelled before picking.' },
+      )
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      expect(cancelled.body.item.state).toBe('cancelled')
+    } finally {
+      await salesApp.get<{ end: () => Promise<void> } | null>(PG_POOL)?.end()
+      await salesApp.close()
+    }
+
+    // Nothing has touched the sheet: no hook existed to touch it. This is the state `start` inherits.
+    const beforeStart = await pickLineRows(waved.id, dead)
+    expect(beforeStart.length).toBeGreaterThan(0)
+    expect(
+      beforeStart.every((r) => r.cancelled_at === null),
+      'the cancel marked the lines, so a hook WAS registered — this case is proving the wrong mechanism again',
+    ).toBe(true)
+
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-open-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    expect(started.body.item.status).toBe('picking')
+    expect(await orderState(live)).toBe('picking')
+    expect(await orderState(dead)).toBe('cancelled')
+
+    // `start` itself did the put-back, on the very rows that were unmarked a moment ago, bumping the
+    // delta cursor so the picker's phone carries it.
+    const afterStart = await pickLineRows(waved.id, dead)
+    expect(afterStart.map((r) => r.id)).toEqual(beforeStart.map((r) => r.id))
+    expect(
+      afterStart.every((r) => r.cancelled_at !== null),
+      'start left the dead order on the sheet: the picker is asked for goods no one ordered',
+    ).toBe(true)
+    afterStart.forEach((row, i) => {
+      expect(
+        Number(row.updated_ms),
+        `pick line ${row.id} was put back without bumping updated_at`,
+      ).toBeGreaterThan(Number(beforeStart[i]?.updated_ms ?? '0'))
+    })
+    expect((await pickLineRows(waved.id, live)).every((r) => r.cancelled_at === null)).toBe(true)
+
+    // …and the sheet is not hung on the order that went away: the live one picks in full and completes.
+    const rowLive = started.body.item.lines.find((l) => l.orderId === live)
+    expect(rowLive, 'no pick line for the live order').toBeDefined()
+    const finished = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/pick`,
+      {
+        idempotencyKey: `dos138-open-pick-${run}`,
+        lines: [
+          {
+            id: rowLive?.id ?? '',
+            orderLineId: rowLive?.orderLineId ?? '',
+            lotId: rowLive?.lotId ?? lotB,
+            pickedQtyPcs: rowLive?.requestedQtyPcs ?? 12,
+          },
+        ],
+      },
+    )
+    expect(finished.status, JSON.stringify(finished.body)).toBe(200)
+    expect(finished.body.item.status).toBe('picked')
+  })
+
+  /**
+   * The same reconcile, but the wave carried ONE order — the common case, and the one that turned a
+   * sheet into a zombie (merge review, blocker 1).
+   *
+   * `putBackOrder` marks the lines and, finding no live line left, closes the sheet as `cancelled`
+   * with the reason. `start` used to carry on from its own pre-read `status === 'open'` row and write
+   * `picking` over that closure through `updatePicklist`, which has no machine: the sheet then read
+   * `picking` AND carried `cancelled_at`, with zero live lines. `cancel` refuses it (open only) and
+   * `refreshCompletion` can never mark it (no totals), so nothing could ever close it again and W5
+   * showed "0 of 0" with Confirm live. The decisive readings here are the sheet's own status after
+   * `start` and the ABSENCE of a `PicklistStarted` row: a sheet nobody can pick was never started.
+   */
+  it('DOS-138 (review blocker 1): the only order on an OPEN wave is cancelled from the sales app — start closes the sheet instead of reviving it, writes no PicklistStarted, and a second start is a 409', async () => {
+    type ClosedPicklist = PicklistBody & { cancelledAt: string | null; cancelReason: string | null }
+    const only = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-solo')
+    const waved = await wave([only], 'dos138-solo')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    expect(waved.res.body.item.status).toBe('open')
+
+    // Cancelled from a container with no put-back hook, exactly as the rep's own service would.
+    const salesApp = await bootTestApp([OrdersModule])
+    try {
+      expect(
+        () => salesApp.get(PicklistsService, { strict: false }),
+        'the sales-shaped app resolved PicklistsService — it mounted warehouse, and the hook would do the marking',
+      ).toThrow()
+      const cancelled = await call<{ item: { state: string } }>(
+        salesApp,
+        rep,
+        'POST',
+        `/orders/${only}/cancel`,
+        { idempotencyKey: `dos138-solo-cancel-${run}`, reason: 'Shop closed for the festival.' },
+      )
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      expect(cancelled.body.item.state).toBe('cancelled')
+    } finally {
+      await salesApp.get<{ end: () => Promise<void> } | null>(PG_POOL)?.end()
+      await salesApp.close()
+    }
+
+    const beforeStart = await pickLineRows(waved.id, only)
+    expect(beforeStart.length).toBeGreaterThan(0)
+    expect(
+      beforeStart.every((r) => r.cancelled_at === null),
+      'a hook marked the lines — this case is proving the wrong mechanism',
+    ).toBe(true)
+
+    const started = await call<{ item: ClosedPicklist }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-solo-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    expect(
+      started.body.item.status,
+      'start wrote picking over a sheet the reconcile had just cancelled — the sheet is a zombie',
+    ).toBe('cancelled')
+    expect(started.body.item.cancelledAt).not.toBeNull()
+    expect(started.body.item.cancelReason).toContain(
+      'the order was cancelled before picking started',
+    )
+
+    // The put-back itself committed: every line carries cancelled_at, and the database agrees with
+    // the reply about the closure.
+    const afterStart = await pickLineRows(waved.id, only)
+    expect(afterStart.map((r) => r.id)).toEqual(beforeStart.map((r) => r.id))
+    expect(
+      afterStart.every((r) => r.cancelled_at !== null),
+      'the reconcile was rolled back: the lines are still asking for goods nobody ordered',
+    ).toBe(true)
+    const [row] = (
+      await db.execute(
+        sql`select status, cancelled_at::text as cancelled_at, cancel_reason
+              from picklists where id = ${waved.id}`,
+      )
+    ).rows as { status: string; cancelled_at: string | null; cancel_reason: string | null }[]
+    expect(row?.status).toBe('cancelled')
+    expect(row?.cancelled_at).not.toBeNull()
+
+    // Nothing was started, so no picker and no downstream consumer was ever told one was.
+    expect(
+      await outboxTypes(waved.id),
+      'PicklistStarted was written for a sheet that is cancelled',
+    ).toEqual([])
+
+    // And the sheet stays closed: a second tap of Start is the ordinary refusal, not a revival.
+    const again = await call<{ message?: string }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos138-solo-start2-${run}` },
+    )
+    expect(again.status, JSON.stringify(again.body)).toBe(409)
+    expect(again.body.message).toContain('is cancelled')
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-050 x DOS-138 (merge guard): the queue row and the put-back column have to agree
+
+  /*
+   * DOS-050 gave the godown queue the wave each order is on and how much of it is really picked;
+   * DOS-138 (merged from main) gave `pick_lines` a `cancelled_at` for a line the desk put back. The
+   * two meet in `liveWaveByOrder`, which is the single grouped read behind both `picklistId/
+   * pickedQtyPcs` on the queue and `livePicklistByOrder` (the wave stamped on a pack). This pins what
+   * the floor must see after a mid-pick cancellation of one order on a shared wave.
+   */
+  it('DOS-050 x DOS-138: after the desk cancels one order of a two-order wave mid-pick, the surviving order keeps the wave and ONLY its own picked pieces on the godown queue, and the cancelled order is off the queue altogether', async () => {
+    type QueueRow = {
+      orderId: string
+      picklistId: string | null
+      picklistNo: string | null
+      picklistStatus: string | null
+      pickedQtyPcs: number
+    }
+    const queue = async (): Promise<QueueRow[]> => {
+      const res = await call<{ items: QueueRow[] }>(app, packer, 'GET', '/warehouse/queue', {
+        unpicklistedOnly: false,
+        limit: 100,
+      })
+      expect(res.status).toBe(200)
+      return res.body.items
+    }
+    const orderA = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos050x138-a')
+    const orderB = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos050x138-b')
+    const waved = await wave([orderA, orderB], 'dos050x138')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos050x138-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    const sheet = started.body.item
+    const rowA = sheet.lines.find((l) => l.orderId === orderA)
+    const rowB = sheet.lines.find((l) => l.orderId === orderB)
+    expect(rowA, 'no pick line for order A').toBeDefined()
+    expect(rowB, 'no pick line for order B').toBeDefined()
+
+    // six pieces of each order are off the rack when the shop behind A phones
+    for (const [tag, row] of [
+      ['a', rowA],
+      ['b', rowB],
+    ] as const) {
+      const picked = await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+        idempotencyKey: `dos050x138-pick-${tag}-${run}`,
+        lines: [
+          {
+            id: row?.id ?? '',
+            orderLineId: row?.orderLineId ?? '',
+            lotId: row?.lotId ?? lotB,
+            pickedQtyPcs: 6,
+          },
+        ],
+      })
+      expect(picked.status).toBe(200)
+    }
+    const beforeA = (await queue()).find((i) => i.orderId === orderA)
+    const beforeB = (await queue()).find((i) => i.orderId === orderB)
+    expect(beforeA?.picklistId).toBe(waved.id)
+    expect(beforeA?.pickedQtyPcs).toBe(6)
+    expect(beforeB?.picklistId).toBe(waved.id)
+    expect(beforeB?.pickedQtyPcs).toBe(6)
+
+    const cancelled = await call(app, manager, 'POST', `/orders/${orderA}/cancel`, {
+      idempotencyKey: `dos050x138-cancel-a-${run}`,
+      reason: 'Shop shut for a wedding.',
+    })
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(await orderState(orderA)).toBe('cancelled')
+
+    const after = await queue()
+    // A is gone from the godown's work entirely — a cancelled order is not one of the three queue states
+    expect(after.find((i) => i.orderId === orderA)).toBeUndefined()
+    // and B still reads exactly as it did: its own wave, its own six pieces, nothing of A's
+    const afterB = after.find((i) => i.orderId === orderB)
+    expect(afterB?.picklistId).toBe(waved.id)
+    expect(afterB?.picklistNo).toBe(sheet.picklistNo)
+    expect(afterB?.picklistStatus).toBe('picking')
+    expect(afterB?.pickedQtyPcs).toBe(6)
+
+    // the put-back pieces are counted nowhere: the whole live wave now totals B's six and no more
+    expect(
+      after.filter((i) => i.picklistId === waved.id).reduce((n, i) => n + i.pickedQtyPcs, 0),
+    ).toBe(6)
   })
 })

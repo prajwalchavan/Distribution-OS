@@ -118,23 +118,28 @@ export class QuoteService {
       if (e instanceof PricingError) throw new ORPCError('BAD_REQUEST', { message: e.message })
       throw e
     }
-    // GST per line at the item's HSN rate dated to the pricing date (DOS-096). After the engine, so an unknown
-    // variant still reads as unknown and an unpriced one as unpriced before a missing rate is reported.
-    const gst = await loadGstBps(
+    // GST and compensation cess per line at the item's HSN rates dated to the pricing date (DOS-096, DOS-079).
+    // After the engine, so an unknown variant still reads as unknown and an unpriced one as unpriced before a
+    // missing rate is reported. This is the one place an order's cess is computed.
+    const rates = await loadHsnRates(
       tx,
       [...new Set([...variants.values()].map((v) => v.hsnCode))],
       result.pricingDate,
     )
     let taxPaise = 0
+    let cessPaise = 0
     const lines = result.lines.map((l) => {
       const variant = variants.get(l.variantId)
-      const gstBps = variant === undefined ? undefined : gst.get(variant.hsnCode)
-      if (variant === undefined || gstBps === undefined)
+      const rate = variant === undefined ? undefined : rates.get(variant.hsnCode)
+      if (variant === undefined || rate === undefined)
         throw new ORPCError('INTERNAL_SERVER_ERROR', {
           message: `quote lost the GST rate for ${l.variantId}`,
         })
-      const lineTax = percentOf(paise(l.lineNetPaise), gstBps)
+      const { gstBps, cessBps } = rate
+      const lineCess = percentOf(paise(l.lineNetPaise), cessBps)
+      const lineTax = percentOf(paise(l.lineNetPaise), gstBps) + lineCess
       taxPaise += lineTax
+      cessPaise += lineCess
       return {
         lineId: l.lineId,
         variantId: l.variantId,
@@ -150,7 +155,9 @@ export class QuoteService {
         appliedRules: l.appliedRules,
         lineNetPaise: l.lineNetPaise,
         gstBps,
+        cessBps,
         taxPaise: lineTax,
+        cessPaise: lineCess,
         lineTotalPaise: l.lineNetPaise + lineTax,
       }
     })
@@ -163,7 +170,13 @@ export class QuoteService {
       orderRules: result.orderRules,
       cashDiscountBps: result.cashDiscountBps,
       cashDiscountPaise: result.cashDiscountPaise,
-      totals: { ...result.totals, taxPaise, roundOffPaise: roundOff, totalPaise: rounded },
+      totals: {
+        ...result.totals,
+        taxPaise,
+        cessPaise,
+        roundOffPaise: roundOff,
+        totalPaise: rounded,
+      },
     }
   }
 
@@ -402,22 +415,30 @@ export function toSchemeRule(row: typeof schemes.$inferSelect): SchemeRule {
   }
 }
 
+/** The dated tax rates of one HSN: GST and the compensation cess that rides with it (DOS-079). */
+interface QuotedHsnRate {
+  gstBps: number
+  cessBps: number
+}
+
 /**
- * Dated GST rate per HSN, so a re-print uses the rate that applied on the order's pricing date.
+ * Dated GST and cess rates per HSN, so a re-print uses the rates that applied on the order's pricing date.
  *
- * Moved here verbatim from `orders/pricing-lines.ts` (DOS-096): the quote carries GST and the order takes it
- * from the quote, so this is the one lookup both use. `hsn_rates` is global and readable by every role.
+ * Moved here from `orders/pricing-lines.ts` (DOS-096): the quote carries the tax and the order takes it from
+ * the quote, so this is the one lookup both use. `hsn_rates` is global and readable by every role. Billing
+ * keeps its own copy (`billing.internals.ts`) by design: modules never read each other's helpers.
  */
-async function loadGstBps(
+async function loadHsnRates(
   tx: Db,
   hsnCodes: readonly string[],
   on: string,
-): Promise<Map<string, number>> {
+): Promise<Map<string, QuotedHsnRate>> {
   if (hsnCodes.length === 0) return new Map()
   const rows = await tx
     .select({
       hsnCode: hsnRates.hsnCode,
       gstBps: hsnRates.gstBps,
+      cessBps: hsnRates.cessBps,
       effectiveFrom: hsnRates.effectiveFrom,
     })
     .from(hsnRates)
@@ -429,8 +450,9 @@ async function loadGstBps(
       ),
     )
     .orderBy(desc(hsnRates.effectiveFrom))
-  const map = new Map<string, number>()
-  for (const row of rows) if (!map.has(row.hsnCode)) map.set(row.hsnCode, row.gstBps)
+  const map = new Map<string, QuotedHsnRate>()
+  for (const row of rows)
+    if (!map.has(row.hsnCode)) map.set(row.hsnCode, { gstBps: row.gstBps, cessBps: row.cessBps })
   const missing = hsnCodes.filter((code) => !map.has(code))
   if (missing.length > 0)
     throw new ORPCError('BAD_REQUEST', {

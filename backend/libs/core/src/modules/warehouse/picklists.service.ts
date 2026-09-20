@@ -1,6 +1,6 @@
-import { Inject, Injectable, Optional } from '@nestjs/common'
+import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CancelPicklistInput,
@@ -117,12 +117,75 @@ export interface RecordedPick {
  * `sales_orders`, `sales_order_lines` and `reservations` are never selected from here (coordination §4).
  */
 @Injectable()
-export class PicklistsService {
+export class PicklistsService implements OnModuleInit {
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
     private readonly inventory: InventoryService,
   ) {}
+
+  /**
+   * The desk cancelling an order mid-pick must reach the picker's sheet IN THE SAME TRANSACTION (QA
+   * DOS-138), and orders may not name a picking sheet (coordination §4). So warehouse registers with
+   * orders at start-up, the `registerRoadHold` pattern of DOS-172. A service that mounts orders
+   * without warehouse registers nothing; `start` reconciles such an order before it starts a wave.
+   */
+  onModuleInit(): void {
+    this.orders.registerCancelled((tx, order, reason) => this.putBackOrder(tx, order.id, reason))
+  }
+
+  /**
+   * Every line of `orderId` on a LIVE sheet is marked put-back: the pieces already off the rack go
+   * back, and the row leaves the sheet's to-do count, its totals and its completion. `updated_at` is
+   * bumped so the picker's phone carries the change on its next delta pull. Idempotent by the
+   * `cancelled_at is null` filter, so a replayed cancel touches nothing. A sheet left with no live
+   * line at all is closed as cancelled, naming the reason.
+   */
+  async putBackOrder(tx: Db, orderId: string, reason: string): Promise<void> {
+    const { tenantId } = currentTenant()
+    const now = new Date()
+    const live = tx
+      .select({ id: picklists.id })
+      .from(picklists)
+      .where(
+        and(
+          eq(picklists.tenantId, tenantId),
+          inArray(picklists.status, [...LIVE_PICKLIST_STATUSES]),
+        ),
+      )
+    const touched = await tx
+      .update(pickLines)
+      .set({ cancelledAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(pickLines.tenantId, tenantId),
+          eq(pickLines.orderId, orderId),
+          isNull(pickLines.cancelledAt),
+          inArray(pickLines.picklistId, live),
+        ),
+      )
+      .returning({ picklistId: pickLines.picklistId })
+    for (const picklistId of new Set(touched.map((r) => r.picklistId))) {
+      const [remaining] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(pickLines)
+        .where(
+          and(
+            eq(pickLines.tenantId, tenantId),
+            eq(pickLines.picklistId, picklistId),
+            isNull(pickLines.cancelledAt),
+          ),
+        )
+      if ((remaining?.n ?? 0) > 0) continue
+      const sheet = await this.findPicklist(tx, picklistId)
+      if (sheet.status === 'cancelled') continue
+      await this.updatePicklist(tx, picklistId, {
+        status: 'cancelled',
+        cancelledAt: now,
+        cancelReason: `every order on it was cancelled: ${reason}`.slice(0, 200),
+      })
+    }
+  }
 
   // -------------------------------------------------------------------------------------------------------------
   // the queue
@@ -394,8 +457,43 @@ export class PicklistsService {
           })
         if (input.assignedTo !== undefined) await assertTenantMember(tx, input.assignedTo)
         const deviceId = input.deviceId ?? null
-        for (const orderId of sheet.orderIds)
+        /*
+         * QA DOS-138: an order cancelled from `confirmed` while it already sat on this open wave used
+         * to break the wave — `start_picking` on a cancelled order is a 409 from the machine and the
+         * whole sheet refused to start. Its lines are marked put-back first, and only the orders that
+         * are still live are started. A cancel that came through the registered hook has already done
+         * the marking; this is the same work for the orders that never went through it.
+         */
+        const onSheet = await this.orders.fulfilmentOrders(tx, sheet.orderIds)
+        const cancelled = new Set(
+          onSheet.filter((o) => o.state === 'cancelled').map((o) => o.orderId),
+        )
+        for (const orderId of cancelled)
+          await this.putBackOrder(tx, orderId, 'the order was cancelled before picking started')
+        /*
+         * …and if that left the sheet with nothing live on it, `putBackOrder` has just CLOSED the
+         * sheet (:161-167). `sheet` is the row read before the loop, so carrying on from its `open`
+         * would write `picking` over the closure through `updatePicklist`, which has no machine: the
+         * sheet would read `picking` while carrying `cancelled_at`, with no line left to pick, no
+         * `cancel` (open only) and no `refreshCompletion` (no totals) able to close it again — a
+         * permanent zombie showing "0 of 0" with Confirm live (merge review, blocker 1). A 409 here
+         * would roll the put-back marking back with it, so the answer is the sheet as it now is: the
+         * closure commits, nothing is started, and the picker's screen reads Cancelled with the reason.
+         */
+        const afterPutBack = await this.findPicklist(tx, sheet.id)
+        if (afterPutBack.status === 'cancelled')
+          return {
+            item: await picklistDetail(
+              tx,
+              afterPutBack,
+              this.orders,
+              await this.inventory.shelfLifeRule(tx),
+            ),
+          }
+        for (const orderId of sheet.orderIds) {
+          if (cancelled.has(orderId)) continue
           await this.orders.applyFulfilmentEvent(tx, orderId, 'start_picking', deviceId, null)
+        }
         const started =
           sheet.status === 'picking' && input.assignedTo === undefined
             ? sheet
@@ -662,6 +760,16 @@ export class PicklistsService {
         throw new ORPCError('BAD_REQUEST', {
           message: `pick row ${pick.id} belongs to line ${template.orderLineId}, not ${pick.orderLineId}`,
         })
+      /*
+       * QA DOS-138: the desk cancelled this order while the sheet was live. The pieces are going back
+       * on the rack, so the pick is refused rather than recorded against an order that no longer
+       * exists — online a 409, and from the offline queue a `line_put_back` sync rejection.
+       */
+      if (template.cancelledAt !== null)
+        throw new ORPCError('CONFLICT', {
+          message: `line ${pick.orderLineId} was cancelled; put the pieces back`,
+          data: { code: 'line_put_back' },
+        })
       const lot = lots.get(pick.lotId)
       if (!lot) throw new ORPCError('NOT_FOUND', { message: `lot ${pick.lotId} not found` })
       if (lot.variantId !== template.variantId)
@@ -779,6 +887,12 @@ export class PicklistsService {
    * many pieces of THIS order have actually been picked on it (QA DOS-050) — one grouped query for the
    * whole page, never one per row. `open` / `picking` / `picked` are live; a packed or cancelled wave
    * is not a wave any more.
+   *
+   * A line the desk put back (QA DOS-138, `cancelled_at`) is off the sheet, so it neither keeps its
+   * order on a live wave nor adds its pieces to `pickedQtyPcs`. `putBackOrder` only ever runs for an
+   * order the desk has cancelled, which no longer reaches the queue or the waveable set, so this is
+   * the read agreeing with the column rather than a behaviour change — and it is what keeps the two
+   * agreeing if a put-back ever arrives for a live order.
    */
   async liveWaveByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, LiveWave>> {
     const ids = [...new Set(orderIds)]
@@ -796,6 +910,7 @@ export class PicklistsService {
       .where(
         and(
           inArray(pickLines.orderId, ids),
+          isNull(pickLines.cancelledAt),
           inArray(picklists.status, [...LIVE_PICKLIST_STATUSES]),
         ),
       )
@@ -907,6 +1022,9 @@ export class PicklistsService {
       { rowId: string; requested: number; picked: number; shortReason: string | null }
     >()
     for (const row of working.values()) {
+      // A put-back row is not the picker's work any more (QA DOS-138): it asks for nothing and
+      // explains nothing, so the sheet can finish on the orders that are still live.
+      if (row.cancelledAt !== null) continue
       const current = totals.get(row.orderLineId) ?? {
         rowId: row.id,
         requested: 0,
@@ -948,7 +1066,8 @@ export class PicklistsService {
   ): Promise<void> {
     const unrecorded = new Set<string>()
     for (const row of working.values())
-      if (row.requestedQtyPcs > 0 && row.pickedAt === null) unrecorded.add(row.orderLineId)
+      if (row.cancelledAt === null && row.requestedQtyPcs > 0 && row.pickedAt === null)
+        unrecorded.add(row.orderLineId)
     const totals = [...this.perLineTotals(working)]
     const done =
       totals.length > 0 &&
@@ -1022,7 +1141,17 @@ export class PicklistsService {
       .from(packConfirmations)
       .where(inArray(packConfirmations.orderId, sheet.orderIds))
     const done = new Set(packed.map((p) => p.orderId))
-    if (!sheet.orderIds.every((id) => done.has(id))) return
+    /*
+     * QA DOS-138: an order the desk cancelled mid-pick will never be packed, and the wave must not
+     * hang on it. Every line of it on THIS sheet carries `cancelled_at`, so the sheet is done when
+     * each of its orders is either packed or entirely put back.
+     */
+    const stillLive = await tx
+      .select({ orderId: pickLines.orderId })
+      .from(pickLines)
+      .where(and(eq(pickLines.picklistId, sheet.id), isNull(pickLines.cancelledAt)))
+    const live = new Set(stillLive.map((r) => r.orderId))
+    if (!sheet.orderIds.every((id) => done.has(id) || !live.has(id))) return
     await this.updatePicklist(tx, picklistId, {
       status: 'packed',
       completedAt: sheet.completedAt ?? new Date(),

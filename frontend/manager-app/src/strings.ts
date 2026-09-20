@@ -157,11 +157,29 @@ export const strings = {
   'm2.confirmBody': 'Stock is reserved when this is confirmed. There is no undo.',
   'm2.subtotal': 'Subtotal',
   'm2.discount': 'Discount',
-  'm2.tax': 'GST',
+  /* DOS-079: the figure is GST plus compensation cess, so the head is not "GST". */
+  'm2.tax': 'Tax',
+  'm2.cessInside': 'includes cess {amount}',
+  /* DOS-081: the credit position recorded on the order at submit, in every mode. */
+  'm2.creditNotice': 'Credit',
+  'm2.overLimitHeld': 'Over limit · held',
+  'm2.overLimitWarn': 'Over limit · warn only',
+  'm2.creditNoticeLine': 'Owed {owed} against a limit of {limit} · {mode}',
+  /* DOS-078: what the godown could not hold when the order confirmed. */
+  'm2.short': 'Stock',
+  'm2.shortCount': 'Short {count}',
+  'm2.shortAtGodown': 'Short at the godown',
+  'm2.shortPieces': '{short} pcs short of {requested}',
   'm2.total': 'Total',
   'm2.terms': 'Terms',
   'm2.expected': 'Wanted by',
   'm2.askedRate': 'Asked rate',
+  /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
+  'm2.rateAsked': 'asked {when}',
+  'm2.rateOrderAny': 'Any order of this shop',
+  'm2.rateOrderMissing': "Not placed yet — on the rep's phone",
+  'm2.rateOrderFound': '{no} · {state}',
+  'm2.rateOrderDraft': 'Draft',
   'm2.listRate': 'List rate',
   'm2.reservations': 'Held for this order',
   'm2.reservationsLot': 'across 1 lot',
@@ -170,7 +188,11 @@ export const strings = {
   'm2.decideFirst':
     'Waiting on {what}. Approve or reject each one first; the last approval confirms the order.',
   'm2.nothingHeld': 'Nothing is held for this order',
-  'm2.alreadyClosed': 'This order is already cancelled or delivered',
+  'm2.alreadyClosed': 'This order is already cancelled or closed',
+  // DOS-138 / DOS-139: why Cancel is off, and what to do instead.
+  'm2.cancelViaBill': 'Cancel its bill; the order is cancelled with it',
+  'm2.afterDispatch': 'After dispatch the only correction is a credit note',
+  'm2.cancelPicking': 'The picker will be told which lines to put back.',
   'm2.schemeApplied': 'Scheme applied',
 
   // --- AI drafts ----------------------------------------------------------------------------------
@@ -462,7 +484,9 @@ export const strings = {
   'm6.print': 'Print the bill',
   'm6.pdfQueued': 'The bill is being printed. Try again in a moment.',
   'm6.cancelInvoice': 'Cancel the bill',
-  'm6.cancelBody': 'The number is kept. Stock and money come back. Only before dispatch.',
+  // DOS-139: the order is cancelled with its bill, in the same step — the desk must know before it presses.
+  'm6.cancelBody':
+    'The number is kept. Stock and money come back. The order is cancelled with it. Only before dispatch.',
   'm6.cancelReason': 'Why is it cancelled?',
   'm6.setEwb': 'Record the e-way bill',
   'm6.requestIrn': 'Get the IRN',
@@ -575,6 +599,7 @@ export const strings = {
   'm10.bounce': 'Return a bounced cheque',
   'm10.bounceTitle': 'Cheque returned',
   'm10.bounceReason': 'What did the bank say?',
+  'm10.bounceNeedsReason': 'Write what the bank said',
   'm10.bankCharges': 'Bank charges',
   'm10.bounceBody': "The shop's outstanding comes back exactly as it was.",
   'm10.trips': 'Trips coming back',
@@ -745,6 +770,8 @@ export const strings = {
   'm14.empty': 'No shop matches',
   'm14.detail': '{shop}',
   'm14.balance': 'Balance ₹',
+  'm14.debit': 'Debit ₹',
+  'm14.credit': 'Credit ₹',
   'm14.entry': 'What',
   'm14.oldest': 'Oldest bill',
   'm14.behaviour': 'How they buy',
@@ -905,6 +932,10 @@ export const strings = {
   'word.PRE': 'Pays in advance',
   'word.ON': 'Pays on delivery',
   'word.POST_FULFILLMENT': 'Credit',
+  /* DOS-081: the credit check's own reasons, as the desk would say them. */
+  'word.limit_exceeded': 'Over the credit limit',
+  'word.bill_count_exceeded': 'Too many open bills',
+  'word.overdue_days_exceeded': 'Bills past the agreed days',
   'word.indicate': 'Warn only',
   'word.strict': 'Needs approval',
   'word.stop': 'Blocked',
@@ -1016,6 +1047,8 @@ export const strings = {
   'word.order_pct': 'Off the bill',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Flat scheme amount',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.company': 'The brand',
   'word.distributor': 'Us',
 

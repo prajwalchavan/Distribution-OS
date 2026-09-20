@@ -1,18 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import {
-  and,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  lt,
-  lte,
-  notInArray,
-  or,
-  sql,
-  type SQL,
-} from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lte, notInArray, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -28,7 +15,14 @@ import {
   type OrderState,
 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
-import { orderStateTransitions, outboxEvents, salesOrders, type ActorRole, type Db } from '@dos/db'
+import {
+  orderStateTransitions,
+  outboxEvents,
+  salesOrders,
+  type ActorRole,
+  type CreditNotice,
+  type Db,
+} from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
@@ -135,10 +129,28 @@ export async function approvalFlags(
   tx: Db,
   order: OrderRow,
   lines: OrderLineRow[],
-): Promise<{ flags: ApprovalKind[]; bargainIds: string[] }> {
+): Promise<{ flags: ApprovalKind[]; bargainIds: string[]; creditNotice: CreditNotice | null }> {
   const flags: ApprovalKind[] = []
   const credit = await checkCredit(tx, order.retailerId, order.totalPaise)
   if (credit.breached) flags.push('credit_limit')
+  /*
+   * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit goes through and
+   * the desk sees a NOTICE on it; strict and stop are still held by the gate above and carry the same
+   * notice. The flag list keeps meaning gates — an indicate breach adds none, so submit's
+   * `flags.length === 0` auto-confirm is untouched.
+   */
+  const creditNotice: CreditNotice | null =
+    credit.reasons.length === 0
+      ? null
+      : {
+          creditMode: credit.creditMode,
+          reasons: [...credit.reasons],
+          outstandingPaise: credit.outstandingPaise,
+          creditLimitPaise: credit.creditLimitPaise,
+          headroomPaise: credit.headroomPaise,
+          overdueDays: credit.overdueDays,
+          orderTotalPaise: credit.orderTotalPaise,
+        }
   const bargainIds = await pendingBargainsForOrder(tx, {
     retailerId: order.retailerId,
     orderId: order.id,
@@ -151,7 +163,7 @@ export async function approvalFlags(
       !l.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
   )
   if (below) flags.push('below_floor')
-  return { flags, bargainIds }
+  return { flags, bargainIds, creditNotice }
 }
 
 /** Pieces a location can still promise, from the ATP view (on hand − reserved) that reps also see. */
@@ -312,6 +324,11 @@ export async function listOrders(
   const ctx = currentTenant()
   const salespersonId = ctx.actorRole === 'salesperson' ? ctx.actorId : input.salespersonId
   const filters: (SQL | undefined)[] = [
+    /*
+     * RLS is the guarantee; the literal is what lets the planner start from the tenant-led
+     * `sales_orders_created_idx (tenant_id, created_at, id)` instead of scanning the table (docs/20 rule 8).
+     */
+    eq(salesOrders.tenantId, ctx.tenantId),
     input.state ? eq(salesOrders.state, input.state) : undefined,
     input.states && input.states.length > 0 ? inArray(salesOrders.state, input.states) : undefined,
     // "pending undelivered" on the shop card (docs/23 §8.15): still travelling.
@@ -325,15 +342,29 @@ export async function listOrders(
     input.q
       ? or(ilike(salesOrders.orderNo, `%${input.q}%`), ilike(salesOrders.note, `%${input.q}%`))
       : undefined,
-    input.cursor ? lt(salesOrders.id, input.cursor) : undefined,
+    /*
+     * Keyset on the cursor order's own (created_at, id), read inside this tenant's transaction with its
+     * own tenant fence, so the comparison keeps Postgres's microseconds and no other distributor's row
+     * can anchor a page. An unknown cursor matches nothing (DOS-009, the DOS-023/DOS-133 convention).
+     */
+    input.cursor
+      ? sql`(${salesOrders.createdAt}, ${salesOrders.id}) < (select c.created_at, c.id from sales_orders c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+      : undefined,
   ]
   const rows = await tx
     .select()
     .from(salesOrders)
     .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-    .orderBy(desc(salesOrders.id))
+    /*
+     * Newest first by SERVER time (DOS-009), the same column `from`/`to` filters on, so the window and
+     * the order never disagree. Ids are minted on the device and the demo seed's are hashes, so id order
+     * is not age: a back-dated import sorted above every order placed today.
+     */
+    .orderBy(desc(salesOrders.createdAt), desc(salesOrders.id))
     .limit(input.limit + 1)
-  const items = rows.slice(0, input.limit).map(toOrder)
+  // DOS-078: the shortage record is office-only, exactly as on `get`.
+  const office = ctx.actorRole !== 'retailer'
+  const items = rows.slice(0, input.limit).map((row) => toOrder(row, office))
   const last = items[items.length - 1]
   return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
 }

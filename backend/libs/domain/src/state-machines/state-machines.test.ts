@@ -33,8 +33,26 @@ describe('state machines', () => {
 
   it('refuses illegal transitions with a typed error', () => {
     expect(() => orderMachine.next('draft', 'dispatch')).toThrow(TransitionError)
-    expect(orderMachine.can('picking', 'cancel')).toBe(false)
     expect(orderMachine.can('submitted', 'cancel')).toBe(true)
+  })
+
+  /**
+   * A packed order carries an issued GST bill, so it is never cancelled on its own: the BILL is
+   * cancelled — the number kept, the stock back on the rack, the money reversed — and the order is
+   * cancelled with it in the same transaction (`InvoicesService.cancel` → `OrdersService.cancelInTx`).
+   * The edge exists for that one caller; `orders.cancel` refuses a packed order and names the route.
+   */
+  it('DOS-138/139: picking and packed may cancel; the happy path is unchanged', () => {
+    // DOS-138 (founder): the desk cancels mid-pick; the handler keeps reps and shops to their reach.
+    expect(orderMachine.can('picking', 'cancel')).toBe(true)
+    expect(orderMachine.next('picking', 'cancel')).toBe('cancelled')
+    expect(orderMachine.next('picking', 'pack')).toBe('packed')
+    // DOS-139: only `InvoicesService.cancel` takes this one, when it cancels the order's bill.
+    expect(orderMachine.can('packed', 'cancel')).toBe(true)
+    expect(orderMachine.next('packed', 'cancel')).toBe('cancelled')
+    expect(orderMachine.next('packed', 'dispatch')).toBe('dispatched')
+    // after dispatch the only correction is a credit note
+    expect(orderMachine.can('dispatched', 'cancel')).toBe(false)
   })
 
   it('brings undelivered goods back to packed, not to the shop', () => {

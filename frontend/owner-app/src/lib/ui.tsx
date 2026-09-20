@@ -17,6 +17,7 @@ import {
   Skeleton,
   Stack,
   Tabs,
+  Toast,
   Txt,
   useColors,
   useStrings,
@@ -27,7 +28,7 @@ import { documents } from '@dos/ui/platform'
 import { REGISTER_WINDOW_DAYS, isAllowed, permissionFor } from '@dos/contracts'
 import type { PermissionRole, Retailer, ReportExportFormat, ReportRegister } from '@dos/contracts'
 import { useRouter } from 'expo-router'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { PAGE_TABS } from '../nav'
 import { absoluteUrl } from '../config'
@@ -43,6 +44,10 @@ import { clampWindow, instantWithClock, type DateRange } from './dates'
  * chart shows is one the API named.
  */
 export const MIX_TOP_GROUPS = 4
+
+/** DOS-014: how often a queued export is re-read, and how long the button waits before it says so. */
+const EXPORT_POLL_MS = 2_000
+const EXPORT_POLL_TIMEOUT_MS = 60_000
 
 // ---------------------------------------------------------------------------
 // Panels and section furniture
@@ -430,6 +435,7 @@ export function ExportButton({
   const t = useStrings()
   const api = useApi()
   const [url, setUrl] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   const request = useMutation(
     (_input: null, meta) =>
@@ -453,34 +459,82 @@ export function ExportButton({
     { enabled: request.data !== undefined && url === null, staleTime: 1000 },
   )
 
-  const ready = url ?? job.data?.item.url ?? null
+  const item = job.data?.item ?? request.data?.item
+  const ready = url ?? item?.url ?? null
+  const failed = item?.status === 'failed'
 
-  if (ready !== null) {
-    return (
-      <Button
-        testID={testID}
-        label={t('app.exportReady')}
-        variant="secondary"
-        onPress={() => {
-          const absolute = absoluteUrl(ready)
-          if (absolute !== null) void documents.open(absolute)
-        }}
-      />
-    )
-  }
+  /*
+   * DOS-014: the worker renders off-process, so a request answers `url: null` with the job still
+   * queued. `useQuery` has no refetch interval and nothing re-read it, so the label fell back to
+   * "Export CSV" and the file never arrived. The component owns the timer: every two seconds it
+   * re-reads the job until the file is there, the render failed, or a minute has passed — and it
+   * clears the timer on unmount and whenever it stops being needed.
+   */
+  const [slow, setSlow] = useState(false)
+  const started = useRef<number | null>(null)
+  const waiting = request.data !== undefined && ready === null && !failed && !slow
+  const refetch = job.refetch
+  useEffect(() => {
+    if (!waiting) {
+      started.current = null
+      return
+    }
+    started.current ??= Date.now()
+    const timer = setInterval(() => {
+      if (Date.now() - (started.current ?? Date.now()) > EXPORT_POLL_TIMEOUT_MS) {
+        setSlow(true)
+        return
+      }
+      void refetch()
+    }, EXPORT_POLL_MS)
+    return () => {
+      clearInterval(timer)
+    }
+  }, [waiting, refetch])
+
+  useEffect(() => {
+    if (ready !== null) setToast(t('app.exportReadyToast'))
+    else if (failed) setToast(item?.error ?? t('app.exportFailed'))
+    else if (slow) setToast(t('app.exportSlow'))
+  }, [ready, failed, slow, item?.error, t])
+
+  const label =
+    ready !== null
+      ? t('app.exportReady')
+      : waiting || request.status === 'pending'
+        ? t('app.exportPreparing')
+        : t('app.export')
 
   return (
-    <Button
-      testID={testID}
-      label={request.status === 'pending' ? t('app.exportQueued') : t('app.export')}
-      variant="secondary"
-      loading={request.status === 'pending' || job.isFetching}
-      onPress={() => {
-        request.reset()
-        setUrl(null)
-        request.mutate(null)
-      }}
-    />
+    <>
+      <Button
+        testID={testID}
+        label={label}
+        variant="secondary"
+        loading={request.status === 'pending'}
+        onPress={() => {
+          if (ready !== null) {
+            // Never opened without a tap: a popup blocker eats a download the page starts by itself.
+            const absolute = absoluteUrl(ready)
+            if (absolute !== null) void documents.open(absolute)
+            return
+          }
+          request.reset()
+          setUrl(null)
+          setSlow(false)
+          started.current = null
+          request.mutate(null)
+        }}
+      />
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID={testID === undefined ? undefined : `${testID}-toast`}
+      />
+    </>
   )
 }
 

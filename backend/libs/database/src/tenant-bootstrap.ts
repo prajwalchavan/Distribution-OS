@@ -92,6 +92,7 @@ export const NUMBERING_SERIES = [
  * | `delivery.settlement_tolerance_paise` | number | cash short/over a crew may hand in without the owner. |
  * | `delivery.pod_required`    | string   | `always` / `credit_only` / `never`: when a photo/signature is a must. |
  * | `delivery.geofence_metres` | number   | distance from the shop pin that turns the arrival amber (evidence). |
+ * | `delivery.expense_proof_min_paise` | number | a trip expense at or above it must carry a photo of its bill; 0 = every expense. |
  * | `dpdp.gps_retention_days`  | number   | days raw `trip_points` are kept; stop coordinates and POD stay. |
  * | `inventory.min_shelf_life_days` | number | days of life a batch must have left before it is offered first. |
  * | `notifications.default_locale` | string | `LocaleSchema` value a message falls back to when the shop has no `preferred_lang`. |
@@ -130,6 +131,7 @@ export const TENANT_SETTING_KEYS = {
   deliverySettlementTolerancePaise: 'delivery.settlement_tolerance_paise',
   deliveryPodRequired: 'delivery.pod_required',
   deliveryGeofenceMetres: 'delivery.geofence_metres',
+  deliveryExpenseProofMinPaise: 'delivery.expense_proof_min_paise',
   dpdpGpsRetentionDays: 'dpdp.gps_retention_days',
   inventoryMinShelfLifeDays: 'inventory.min_shelf_life_days',
   notificationsDefaultLocale: 'notifications.default_locale',
@@ -178,6 +180,12 @@ export const POD_REQUIRED_MODES = ['always', 'credit_only', 'never'] as const
 export type PodRequiredMode = (typeof POD_REQUIRED_MODES)[number]
 export const DEFAULT_POD_REQUIRED: PodRequiredMode = 'credit_only'
 export const DEFAULT_GEOFENCE_METRES = 150
+/**
+ * A trip expense at or above ₹200 must carry a photograph of its bill (founder, 2026-09-13, QA
+ * DOS-071): diesel always has a pump bill, a ₹30 parking slip often does not. The owner may change it
+ * — 0 asks for a photo on every expense — and the server applies it to the crew and the desk alike.
+ */
+export const DEFAULT_EXPENSE_PROOF_MIN_PAISE = 20_000
 export const DEFAULT_GPS_RETENTION_DAYS = 90
 
 export const DEFAULT_FLAGS = [
@@ -252,6 +260,11 @@ export async function bootstrapTenant(
       },
       { tenantId, key: TENANT_SETTING_KEYS.deliveryPodRequired, value: DEFAULT_POD_REQUIRED },
       { tenantId, key: TENANT_SETTING_KEYS.deliveryGeofenceMetres, value: DEFAULT_GEOFENCE_METRES },
+      {
+        tenantId,
+        key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise,
+        value: DEFAULT_EXPENSE_PROOF_MIN_PAISE,
+      },
       {
         tenantId,
         key: TENANT_SETTING_KEYS.dpdpGpsRetentionDays,

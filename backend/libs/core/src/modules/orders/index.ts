@@ -40,3 +40,8 @@ export type {
   FulfilmentQueueFilter,
   PickedLine,
 } from './fulfilment.js'
+/**
+ * The orders REGISTER (DOS-014): the orders list flattened one row per order, for reporting's CSV export.
+ * A plain read, like `fillRateLines` above, so the worker's renderer reaches it without Nest DI.
+ */
+export { orderRegisterRows, type OrderRegisterRow } from './register-reads.js'

@@ -1,5 +1,5 @@
 {
-  "id": "94f96006-79b4-405c-844e-357ce5b1de6e",
+  "id": "260ae785-b19e-414b-a9c2-5d3d7069e16e",
   "prevId": "4a245907-9cc6-4c55-a140-7f06dc23edec",
   "version": "7",
   "dialect": "postgresql",
@@ -11413,8 +11413,22 @@
           "primaryKey": false,
           "notNull": true
         },
+        "cess_bps": {
+          "name": "cess_bps",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "tax_paise": {
           "name": "tax_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cess_paise": {
+          "name": "cess_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -11720,6 +11734,13 @@
         },
         "tax_paise": {
           "name": "tax_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cess_paise": {
+          "name": "cess_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,
@@ -12294,18 +12315,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "supplier_id": {
-          "name": "supplier_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "supplier_invoice_no": {
-          "name": "supplier_invoice_no",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "location_id": {
           "name": "location_id",
           "type": "text",
@@ -12429,19 +12438,6 @@
           "tableTo": "supplier_invoices",
           "columnsFrom": [
             "supplier_invoice_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "grns_supplier_id_suppliers_id_fk": {
-          "name": "grns_supplier_id_suppliers_id_fk",
-          "tableFrom": "grns",
-          "tableTo": "suppliers",
-          "columnsFrom": [
-            "supplier_id"
           ],
           "columnsTo": [
             "id"

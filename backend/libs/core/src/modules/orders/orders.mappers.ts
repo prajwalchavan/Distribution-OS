@@ -13,7 +13,11 @@ export type ApprovalRow = typeof approvals.$inferSelect
 
 const iso = (d: Date | null): string | null => (d ? d.toISOString() : null)
 
-export function toOrder(row: OrderRow): Order {
+/**
+ * `office` is false for a retailer-role caller: `stockShortages` is what the GODOWN could not hold
+ * (DOS-078), an internal fact like an approval payload, and it never reaches the retailer app.
+ */
+export function toOrder(row: OrderRow, office: boolean): Order {
   return {
     id: row.id,
     orderNo: row.orderNo,
@@ -29,9 +33,12 @@ export function toOrder(row: OrderRow): Order {
     subtotalPaise: row.subtotalPaise,
     discountPaise: row.discountPaise,
     taxPaise: row.taxPaise,
+    cessPaise: row.cessPaise,
     roundOffPaise: row.roundOffPaise,
     totalPaise: row.totalPaise,
     approvalFlags: row.approvalFlags,
+    stockShortages: office ? row.stockShortages : [],
+    creditNotice: office ? row.creditNotice : null,
     expectedDeliveryDate: row.expectedDeliveryDate,
     note: row.note,
     submittedAt: iso(row.submittedAt),
@@ -60,7 +67,9 @@ export function toOrderLine(row: OrderLineRow, variantName: string): OrderLine {
     discountBps: row.discountBps,
     discountPaise: row.discountPaise,
     gstBps: row.gstBps,
+    cessBps: row.cessBps,
     taxPaise: row.taxPaise,
+    cessPaise: row.cessPaise,
     lineTotalPaise: row.lineTotalPaise,
     appliedRules: row.appliedRules,
     priceLocked: row.priceLocked,
@@ -149,7 +158,7 @@ export async function loadDetail(
         .orderBy(asc(approvals.id))
     : []
   return {
-    ...toOrder(order),
+    ...toOrder(order, withApprovals),
     lines: lines.map((l) => toOrderLine(l, names.get(l.variantId) ?? l.variantId)),
     transitions: transitions.map(toTransition),
     approvals: pending.map(toApproval),

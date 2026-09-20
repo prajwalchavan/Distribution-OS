@@ -131,6 +131,12 @@ export const pickLines = pgTable(
     shortReason: text('short_reason'),
     pickedBy: text('picked_by'),
     pickedAt: tz('picked_at'),
+    /**
+     * Set when the order was cancelled while this line was on a LIVE sheet (QA DOS-138): the picked
+     * pieces go back on the rack and the line leaves the picker's to-do count. The sheet's completion
+     * and its per-line totals ignore a cancelled row, and a pick against one is refused.
+     */
+    cancelledAt: tz('cancelled_at'),
     ...timestamps,
   },
   (t) => [

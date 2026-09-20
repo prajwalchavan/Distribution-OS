@@ -1,5 +1,6 @@
 import type { SyncOp } from '@dos/contracts'
-import type { Db } from '@dos/db'
+import { pickLines, type Db } from '@dos/db'
+import { eq } from 'drizzle-orm'
 import { SyncRejection } from '../sync/index.js'
 import type { PicklistsService, RecordedPick } from './picklists.service.js'
 
@@ -74,12 +75,39 @@ export async function applyPickLineSync(
       `पिकलिस्ट ${sheet.picklistNo ?? sheet.id} अब ${sheet.status} है`,
     )
 
+  /*
+   * DOS-051 — PIECES LEFT ON THE RACK ARE EXPLAINED, OR THEY ARE NOT RECORDED.
+   *
+   * The desk reads the short report, rings the supplier and holds a batch on the strength of the
+   * reason beside each figure, so a short with no reason is worse than no short at all. W5 used to
+   * preselect the first chip and save it for a picker who chose nothing; the screen no longer offers
+   * a default, and this is the half of that rule the SERVER owns, because a screen is not a guarantee.
+   *
+   * The ask is the STORED row's, read the same way `applyPicks` reads it for the over-pick rule
+   * (DOS-041): a split row (a new id, recording a second lot for the same line) asks for nothing of
+   * its own and is therefore never short. A full pick needs no reason; nothing was left behind.
+   */
+  const shortReason = str(data.short_reason)
+  if (shortReason === null) {
+    const [asking] = await tx
+      .select({ requestedQtyPcs: pickLines.requestedQtyPcs })
+      .from(pickLines)
+      .where(eq(pickLines.id, op.id))
+    const asked = asking?.requestedQtyPcs ?? 0
+    if (asked > 0 && pickedQtyPcs < asked)
+      throw new SyncRejection(
+        'short_reason_required',
+        `${asked - pickedQtyPcs} of ${asked} pcs were left on the rack; say why before saving`,
+        `${asked} में से ${asked - pickedQtyPcs} पीस रह गए; कारण बताए बिना सेव नहीं होगा`,
+      )
+  }
+
   const pick: RecordedPick = {
     id: op.id,
     orderLineId,
     lotId,
     pickedQtyPcs,
-    ...(str(data.short_reason) ? { shortReason: str(data.short_reason) as string } : {}),
+    ...(shortReason === null ? {} : { shortReason }),
   }
   try {
     await picklists.applyPicks(tx, sheet, [pick])

@@ -40,6 +40,7 @@ import {
   requireRole,
   STAFF,
 } from '../../platform/index.js'
+import { variantNames } from '../tenant-catalog/index.js'
 import { todayIst } from './quote.service.js'
 
 type PriceListsIn = z.infer<typeof PriceListsListInput>
@@ -95,11 +96,17 @@ export class PricingService {
               )
               .orderBy(asc(priceListItems.variantId))
           : []
+      // One name lookup for the whole reply, over the union of every list's items (never per list).
+      const names = await variantNames(
+        tx,
+        items.map((i) => i.variantId),
+      )
       return {
         items: lists.map((l) =>
           toPriceList(
             l,
             items.filter((i) => i.priceListId === l.id),
+            names,
           ),
         ),
       }
@@ -144,7 +151,16 @@ export class PricingService {
           .select()
           .from(priceListItems)
           .where(eq(priceListItems.priceListId, row.id))
-        return { item: toPriceList(row, items) }
+        return {
+          item: toPriceList(
+            row,
+            items,
+            await variantNames(
+              tx,
+              items.map((i) => i.variantId),
+            ),
+          ),
+        }
       }),
     )
   }
@@ -192,7 +208,16 @@ export class PricingService {
           .from(priceListItems)
           .where(eq(priceListItems.priceListId, list.id))
           .orderBy(asc(priceListItems.variantId))
-        return { item: toPriceList(list, items) }
+        return {
+          item: toPriceList(
+            list,
+            items,
+            await variantNames(
+              tx,
+              items.map((i) => i.variantId),
+            ),
+          ),
+        }
       }),
     )
   }
@@ -337,11 +362,19 @@ export class PricingService {
 
 /** Drops undefined keys so zod-optional inputs fit the exact jsonb column types. */
 
-function toPriceListItem(row: typeof priceListItems.$inferSelect): PriceListItem {
+/**
+ * DOS-013: the row names what it prices. `names` is the tenant-catalog's one-query answer for every item of
+ * every list in the reply; the `?? row.variantId` is defensive only — the FK makes the map complete.
+ */
+function toPriceListItem(
+  row: typeof priceListItems.$inferSelect,
+  names: ReadonlyMap<string, string>,
+): PriceListItem {
   return {
     id: row.id,
     priceListId: row.priceListId,
     variantId: row.variantId,
+    variantName: names.get(row.variantId) ?? row.variantId,
     ratePaise: row.ratePaise,
     inclusiveOfGst: row.inclusiveOfGst,
   }
@@ -350,6 +383,7 @@ function toPriceListItem(row: typeof priceListItems.$inferSelect): PriceListItem
 function toPriceList(
   row: typeof priceLists.$inferSelect,
   items: (typeof priceListItems.$inferSelect)[],
+  names: ReadonlyMap<string, string>,
 ): PriceList {
   return {
     id: row.id,
@@ -359,7 +393,7 @@ function toPriceList(
     validFrom: row.validFrom,
     validTo: row.validTo,
     active: row.active,
-    items: items.map(toPriceListItem),
+    items: items.map((i) => toPriceListItem(i, names)),
   }
 }
 

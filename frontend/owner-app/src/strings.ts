@@ -51,6 +51,11 @@ export const strings = {
   'app.export': 'Export CSV',
   'app.exportQueued': 'Export queued',
   'app.exportReady': 'Download export',
+  // DOS-014: a queued export is polled, so the button says where it has got to.
+  'app.exportPreparing': 'Preparing…',
+  'app.exportReadyToast': 'Export ready',
+  'app.exportFailed': 'The export could not be prepared',
+  'app.exportSlow': 'Still preparing — see Reports → Exports',
   'app.print': 'Print',
   'app.open': 'Open',
   'app.save': 'Save changes',
@@ -89,6 +94,8 @@ export const strings = {
   'o1.orders': 'Orders today',
   'o1.stops': 'Stops delivered',
   'o1.overdue': '{amount} overdue',
+  // DOS-016: the headline is gross; money already in the till is named beside it (founder, docs/22 §8).
+  'o1.overdueLessOnAccount': '{amount} overdue · less {onAccount} on account',
   'o1.trips': '{count} trips active',
   'o1.failedStops': '{count} failed',
   'o1.stopsDone': '{count} stops delivered',
@@ -129,6 +136,11 @@ export const strings = {
   'o3.grnExceptions': 'GRN exceptions',
   'o3.listRate': 'List rate',
   'o3.askedRate': 'Asked rate',
+  /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
+  'o3.rateOrderAny': 'Any order of this shop',
+  'o3.rateOrderMissing': "Not placed yet — on the rep's phone",
+  'o3.rateOrderFound': '{no} · {state}',
+  'o3.rateOrderDraft': 'Draft',
   'o3.gap': 'Gap',
   'o3.empty': 'Nothing waiting for a decision',
   'o3.keys': 'j / k move · 1 approve · 2 reject',
@@ -146,6 +158,10 @@ export const strings = {
   'o3.creditBills': '{count} bills open · limit {limit}',
   'o3.creditClear': 'Within terms',
   'o3.creditUnknown': 'Credit not checked',
+  // DOS-006: approving a credit gate releases the order, never the limit (founder, docs/22 §8).
+  'o3.creditRelease':
+    'Approving lets {order} through for {total}. The limit stays {limit} — change it under Shops.',
+  'o3.changeLimit': "Change the shop's limit",
 
   // --- O4 Live map ---------------------------------------------------------------------------------
   'o4.tab': 'Live map',
@@ -177,6 +193,11 @@ export const strings = {
     'Waiting on {what}. Decide it on Approvals; the last approval confirms the order.',
   'o5.cancel': 'Cancel order',
   'o5.cancelReason': 'Why is it cancelled',
+  // DOS-138 / DOS-139: why Cancel is off, and what to do instead.
+  'o5.alreadyClosed': 'This order is already cancelled or closed',
+  'o5.cancelViaBill': 'Cancel its bill; the order is cancelled with it',
+  'o5.afterDispatch': 'After dispatch the only correction is a credit note',
+  'o5.cancelPicking': 'The picker will be told which lines to put back.',
   'o5.reservations': 'Stock held',
   'o5.reservationsLot': 'across 1 lot',
   'o5.reservationsLots': 'across {count} lots',
@@ -322,6 +343,8 @@ export const strings = {
   'o10.oldest': 'Oldest due',
   'o10.mode': 'On the limit',
   'o10.buckets': 'Money owed, by age',
+  // DOS-016: the ladder is gross; this names the money already in the till and the net the books carry.
+  'o10.onAccountLine': 'On account {onAccount} · Net dues {net} (matches Books → Trial balance)',
   'o10.byShop': 'Shop by shop',
   'o10.history': 'Ageing over time',
   'o10.rebuild': 'Rebuild ageing',
@@ -354,6 +377,12 @@ export const strings = {
   'o11.document': 'Receipt document',
   'o11.counted': 'Counted',
   'o11.onAccount': 'On account',
+  // DOS-011: the receipt says which bills it closed and what the cash discount cost.
+  'o11.settles': 'Settles',
+  'o11.billUnknown': 'Bill not named',
+  'o11.billOpen': 'open {amount}',
+  'o11.cashDiscount': 'Cash discount',
+  'o11.settledLine': '{received} received + {discount} cash discount = {total} settled',
   'o11.empty': 'No receipts in this window',
 
   // --- O12 Books ------------------------------------------------------------------------------------------
@@ -583,6 +612,12 @@ export const strings = {
   'o22.tallyLedger': 'Tally ledger',
   'o22.syncLedger': 'Tally sync log',
   'o22.empty': 'No export requested yet',
+  // DOS-014: Request export asks what and when before it queues anything.
+  'o22.period': 'Period',
+  'o22.requestBody': '{register} · {format} · {from} to {to}',
+  'o22.requestBodyWhole': '{register} · {format} · whole register',
+  'o22.queue': 'Queue export',
+  'o22.queuedToast': 'Export queued',
 
   // --- O23 Notifications ------------------------------------------------------------------------------------------------
   'o23.tab': 'Messages',
@@ -838,6 +873,8 @@ export const strings = {
   'word.order_pct': 'Off the bill',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Flat scheme amount',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.company': 'The brand',
   'word.distributor': 'Us',
 

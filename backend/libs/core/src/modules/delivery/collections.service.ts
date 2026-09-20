@@ -13,6 +13,7 @@ import type {
   RecordExpenseInput,
   RecordExpenseOutput,
 } from '@dos/contracts'
+import { formatINR, paise } from '@dos/domain'
 import { collections, tripExpenses, withTenant, type Db } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
 import { ReceivablesService, type RecordReceiptResult } from '../receivables/index.js'
@@ -23,6 +24,7 @@ import {
   defined,
   emitDeliveryEvent,
   findRetailer,
+  loadTripPolicy,
   lockStop,
   lockTrip,
   MONEY_COLLECTORS,
@@ -238,6 +240,28 @@ export class CollectionsService {
           .where(eq(tripExpenses.id, input.id))
           .limit(1)
         if (existing) return { item: toExpense(existing) }
+        /*
+         * DOS-071 — THE OFFICE WANTS THE BILL. A ₹500 diesel was recorded with no photograph and no
+         * policy behind the optional "Photograph the bill" button. The founder's rule (2026-09-13):
+         * at or above a per-distributor amount, ₹200 by default and 0 for every expense. It lives
+         * HERE, below the replay short-circuit above — a replay of a stored expense is never turned
+         * into a refusal — so HTTP and `/sync/upload` agree and the desk booking a driver's paper
+         * bill at settlement photographs it too. `sync.service.ts` turns this 400 into a 2xx
+         * rejection for the offline op.
+         */
+        const policy = await loadTripPolicy(tx)
+        if (
+          input.amountPaise >= policy.expenseProofMinPaise &&
+          !input.inline &&
+          !input.proofObjectKey
+        )
+          throw new ORPCError('BAD_REQUEST', {
+            message: `this distributor wants a photo of the bill for an expense of ${formatINR(paise(policy.expenseProofMinPaise))} or more`,
+            data: {
+              code: 'expense_proof_required',
+              expenseProofMinPaise: policy.expenseProofMinPaise,
+            },
+          })
         let proofObjectKey: string | null = null
         if (input.inline)
           proofObjectKey = await storeInline(tx, {

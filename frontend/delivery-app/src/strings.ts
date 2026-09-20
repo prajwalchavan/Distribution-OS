@@ -213,6 +213,20 @@ export const strings = {
   'd3.arrivedLabel': 'Arrived',
   'd3.openBills': '{count} bills still open at this shop',
   'd3.openBills.one': '1 bill still open at this shop',
+  /*
+   * DOS-066 — what the person holding the goods knows before they go in. Tell, never block (founder,
+   * 2026-09-13): the bill on the van already passed the credit gate at order submit. Only credit mode
+   * `stop` earns the chip and the sentence; `strict` and `indicate` look exactly as they did.
+   */
+  'd3.overdue': 'Overdue {amount} · oldest due {date}',
+  'd3.overdueNoDate': 'Overdue {amount}',
+  'd3.overdueLabel': 'Overdue',
+  'd3.daysLate': '{count} days late on the oldest bill',
+  'd3.daysLate.one': '1 day late on the oldest bill',
+  'd3.oldestDue': 'due {date}',
+  'd3.creditStopped': 'Credit stopped',
+  'd3.stoppedLine':
+    'The office has stopped credit for this shop — take the money before the goods go in.',
 
   // --- D4 at the door ----------------------------------------------------------------------------
   'd4.title': 'At the door',
@@ -235,7 +249,10 @@ export const strings = {
   'd4.podPhoto': 'Photograph the signed bill',
   'd4.podRetake': 'Take it again',
   'd4.podAttached': 'Photo attached',
-  'd4.podRequired': 'This shop is on credit — a photo is required before you can record it',
+  // DOS-071: two policies, two sentences — a cash shop under `always` was being told it was on credit.
+  'd4.podRequiredCredit': 'This shop is on credit — a photo is required before you can record it',
+  'd4.podRequiredAlways': 'The office wants a photo on every delivery',
+  'd4.podAttachedMeta': 'Photo attached — it goes with the delivery',
   'd4.podNotRequired': 'A photo is not required here, but it settles arguments later',
   'd4.podNoCamera': 'No camera on this device — attach a file instead',
   'd4.podFailed': 'That photo could not be read. Take it again.',
@@ -277,6 +294,12 @@ export const strings = {
   'd5.expected': 'The shop owes',
   'd5.expectedHere': 'Owed on the bills here',
   'd5.expectedLabel': 'Owed on the bills here',
+  /*
+   * DOS-062 (review): offline, and until `receivables.outstanding.get` answers, the same figure is
+   * a sum of FACE values — a part-paid bill makes it an overstatement. The label says which it is.
+   */
+  'd5.expectedHereAsBilled': 'Owed on the bills here, as billed',
+  'd5.expectedLabelAsBilled': 'Owed on the bills here, as billed',
   'd5.amount': 'Amount taken',
   'd5.mode': 'How it was paid',
   'd5.cash': 'Cash',
@@ -308,6 +331,24 @@ export const strings = {
   'd5.share': 'Send the receipt',
   'd5.offlineNoNumber':
     'The office numbers the receipt when this reaches them. Write your book number above so the two can be matched.',
+  // DOS-062: where the money goes, said before it changes hands and again after the office answers.
+  'd5.oldestFirst':
+    'Untagged, the office puts this on the oldest of the {count} bills this shop still owes — not always the bill in your hand. Tap a bill to send it there instead.',
+  'd5.oldestFirstOne':
+    'Untagged, the office puts this on the oldest bill this shop still owes — not always the bill in your hand. Tap a bill to send it there instead.',
+  'd5.oldestFirstUntaggable':
+    'Untagged, the office puts this on the oldest bill this shop still owes — not always the bill in your hand. What each bill still owes has not come from the office, so a bill cannot be tagged here.',
+  'd5.goesTo': 'This money goes to {bills}.',
+  'd5.tagRefused':
+    'The office says a bill you tagged does not owe that much any more. Untag it and record again — untagged, this money goes to the oldest bill the shop owes.',
+  'd5.partPaid': 'part paid',
+  'd5.tagged': 'Tagged',
+  'd5.paidOff': 'Paid',
+  'd5.applied': 'What this money paid',
+  'd5.appliedTo': 'This paid {no} {amount}',
+  'd5.leftOpen': '{no} is still open — {amount}',
+  'd5.appliedOffline':
+    'The office allocates this receipt when it reaches them — oldest bill first: a tag needs a signal.',
 
   // --- D6 van sale ---------------------------------------------------------------------------------
   'd6.title': 'Sell from the van',
@@ -346,6 +387,8 @@ export const strings = {
   'd7.needsNote': 'Say what it was for',
   'd7.failed': 'Could not record the expense',
   'd7.online': 'An expense needs a signal — the office books it against the trip.',
+  // DOS-071: the office wants the bill above its own amount; the server is the rule, this is the why.
+  'd7.proofRequired': 'Photograph the bill — the office wants one for {amount} or more',
 
   // --- D8 day summary ----------------------------------------------------------------------------
   'd8.title': 'End of day',
@@ -410,6 +453,14 @@ export const strings = {
   'd9.notShared': 'Nothing was sent',
   'd9.alreadySent': 'What the office already sent',
   'd9.noMessages': 'The office has sent nothing for this shop yet',
+  // DOS-065: today's papers first; the shop's history is one tap away, never the opening screen.
+  'd9.thisTrip': 'Taken on this trip',
+  'd9.thisBill': 'About this bill',
+  'd9.older': 'Older papers for this shop',
+  'd9.olderShown': 'Everything for this shop',
+  'd9.notAskedMeta': 'Not looked up',
+  'd9.notAsked':
+    'This bill was not opened from a stop, so this trip’s receipts were not looked up. Older papers for this shop shows what it has paid.',
   'd9.needsSignal': 'The papers are made by the office — this needs a signal.',
   'd9.pdfPending': 'The office is still making this PDF',
 
@@ -473,8 +524,9 @@ export const strings = {
   // --- D11 trip history ----------------------------------------------------------------------------
   'd11.title': 'Your trips',
   'd11.empty': 'No trips yet',
-  'd11.onTime': 'Delivered on the first attempt',
-  'd11.window': 'Last 30 days',
+  // DOS-067: the register measures ON TIME against the stop's ETA — never a first-attempt rate.
+  'd11.onTime': 'On time',
+  'd11.window': 'Last 30 days and what is planned',
   'd11.stops': '{done} of {total} done',
   'd11.thisTrip': 'The trip you are on',
   'd11.notThisPhone': 'Not on this phone — read from the office',

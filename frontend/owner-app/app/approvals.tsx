@@ -36,6 +36,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
+import { orderLabel, resolutionOf, type OrderResolution } from '../src/lib/bargain-order'
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
@@ -93,6 +94,36 @@ export default function Approvals(): React.JSX.Element {
     api.api.pricing.bargains.list({ status: 'requested', limit: 100 }),
   )
 
+  /*
+   * DOS-090: a rate request names the order id the REP'S PHONE minted, and the draft is placed under
+   * that same id later — which is how the request gates that one order and no other. Until it is
+   * placed `orders.get` answers 404, so this row used to show no order at all. One settled read per
+   * distinct id on the page (at most the 100 above), cached for a minute; a 404 is an ANSWER here.
+   */
+  const rateOrderIds = [
+    ...new Set(
+      (bargains.data?.items ?? [])
+        .map((row) => row.orderId)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
+  const rateOrders = useQuery(
+    ['orders', 'rate-requests', rateOrderIds.join(',')],
+    async (): Promise<[string, OrderResolution][]> => {
+      const settled = await Promise.allSettled(rateOrderIds.map((id) => api.api.orders.get({ id })))
+      return rateOrderIds.map((id, i) => {
+        const answer = settled[i]
+        if (answer === undefined || answer.status === 'rejected') return [id, { kind: 'missing' }]
+        return [
+          id,
+          { kind: 'found', orderNo: answer.value.item.orderNo, state: answer.value.item.state },
+        ]
+      })
+    },
+    { enabled: rateOrderIds.length > 0, staleTime: 60_000 },
+  )
+  const resolvedRateOrders = new Map<string, OrderResolution>(rateOrders.data ?? [])
+
   const pending = [
     ...new Map(
       [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
@@ -146,13 +177,21 @@ export default function Approvals(): React.JSX.Element {
         id: row.id,
         stream: 'bargain',
         kind: 'bargain',
-        what: names.retailer(row.retailerId),
+        // DOS-090: the shop, and which order this rate is for — "not placed yet" while it is on the phone.
+        what: [
+          names.retailer(row.retailerId),
+          orderLabel(resolutionOf(row.orderId, resolvedRateOrders), t),
+        ]
+          .filter((part): part is string => part !== null && part !== '')
+          .join(' · '),
         who: names.staff(row.requestedBy),
         askedAt: row.createdAt,
         amountPaise: row.askedRatePaise,
         listRatePaise: row.listRatePaise,
         askedRatePaise: row.askedRatePaise,
-        orderId: null,
+        // The id the request names, even when the server has no such order yet: the label says so and
+        // nothing links to it.
+        orderId: row.orderId,
         orderNo: null,
         orderTotalPaise: null,
         retailerId: null,
@@ -499,6 +538,39 @@ export default function Approvals(): React.JSX.Element {
                 <Txt field="bodyStrong" desk="body" testID="approval-last-gate">
                   {t('o3.lastGate', { order: current?.orderNo ?? '' })}
                 </Txt>
+              ) : null}
+              {/*
+                DOS-006: what approving an over-limit gate actually does, said before it happens.
+                The founder's answer (docs/22 §8, 2026-09-13): it releases THIS order and leaves the
+                shop's limit where it is — the limit is a setting on the shop's page. The owner used
+                to read a "requested limit" the server never honoured, so the sentence names the
+                order, its total and the limit that stays, and the button goes where it is changed.
+                Only on approve: rejecting a gate releases nothing.
+              */}
+              {current?.kind === 'credit_limit' && confirm === 'approve' ? (
+                <Stack gap={2}>
+                  <Txt field="bodyStrong" desk="body" testID="approval-credit-release">
+                    {t('o3.creditRelease', {
+                      order: current.orderNo ?? '',
+                      total: formatINR(paise(current.orderTotalPaise ?? 0)),
+                      limit:
+                        credit.data === undefined
+                          ? t('o3.creditUnknown')
+                          : formatINR(paise(credit.data.creditLimitPaise)),
+                    })}
+                  </Txt>
+                  <Button
+                    label={t('o3.changeLimit')}
+                    variant="secondary"
+                    onPress={() => {
+                      const href = `/shops?q=${encodeURIComponent(current.what)}`
+                      setConfirm(null)
+                      setSelected(null)
+                      router.push(href)
+                    }}
+                    testID="approval-change-limit"
+                  />
+                </Stack>
               ) : null}
             </Stack>
           </Panel>

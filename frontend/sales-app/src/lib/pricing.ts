@@ -314,3 +314,73 @@ export function formatCaseSummary(summary: CaseSummary): string {
   if (summary.pieces > 0 || summary.cases === 0) parts.push(`${String(summary.pieces)} pcs`)
   return parts.join(' + ')
 }
+
+/** What the shop will owe, as S3's turn-around summary reads it out (DOS-083). */
+export interface PayableSummary {
+  /** Before GST, from the device engine — always known, with or without a signal. */
+  netPaise: number
+  discountPaise: number
+  /** GST plus compensation cess, or null when only the before-GST net is known. */
+  taxPaise: number | null
+  /** The cess share of `taxPaise` (DOS-079), null when there is no server quote. */
+  cessPaise: number | null
+  roundOffPaise: number | null
+  /** What the shop pays, GST and cess in: the figure the placed order and the bill carry. */
+  payablePaise: number | null
+  /** True only when `payablePaise` came from the server's own quote. */
+  withGst: boolean
+}
+
+/** The device half of the summary: the totals `quoteOnDevice` answers with. */
+export interface DeviceTotals {
+  netPaise: number
+  discountPaise: number
+}
+
+/** The server half: `pricing.quote`'s totals, the same arithmetic the order will store. */
+export interface ServerTotals extends DeviceTotals {
+  taxPaise: number
+  cessPaise: number
+  roundOffPaise: number
+  totalPaise: number
+}
+
+/**
+ * DOS-083: the amount the shop will owe, BEFORE the rep commits.
+ *
+ * The order screen used to print the device engine's net ("₹28,739.70 before GST") and the order,
+ * one tap later, printed ₹32,030.00 — the same goods, two figures, and the rep had already read the
+ * first one out. The phone cannot fix that alone: `hsn_rates` is not in a salesperson's device
+ * manifest (docs/22 §9), so GST and cess genuinely cannot be computed here. `pricing.quote` can, and
+ * since DOS-079 its tax carries compensation cess too, so the quote's `totalPaise` is exactly what
+ * the placed order and the bill will say.
+ *
+ * With no signal — or before the quote comes back — the summary stays what it honestly is: the net,
+ * marked "before GST". It NEVER invents a rate, and it refuses a quote whose net does not match the
+ * basket on screen: a stale payable read across the counter is worse than an honest "before GST".
+ */
+export function payableSummary(
+  device: DeviceTotals,
+  server: ServerTotals | null | undefined,
+): PayableSummary {
+  const fits = server != null && server.netPaise === device.netPaise
+  if (!fits)
+    return {
+      netPaise: device.netPaise,
+      discountPaise: device.discountPaise,
+      taxPaise: null,
+      cessPaise: null,
+      roundOffPaise: null,
+      payablePaise: null,
+      withGst: false,
+    }
+  return {
+    netPaise: server.netPaise,
+    discountPaise: server.discountPaise,
+    taxPaise: server.taxPaise,
+    cessPaise: server.cessPaise,
+    roundOffPaise: server.roundOffPaise,
+    payablePaise: server.totalPaise,
+    withGst: true,
+  }
+}

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
-import { uuidv7 } from '@dos/domain'
+import { businessDate, uuidv7 } from '@dos/domain'
 import {
   bootstrapTenant,
   createDb,
@@ -110,6 +110,8 @@ describeDb('billing (DATABASE_URL)', () => {
   const db = createDb(pool)
   const run = String(Date.now()).slice(-8)
   const hsn = `9${run.slice(-6)}`
+  /** DOS-079: aerated waters — 28% GST plus 12% compensation cess. */
+  const cessHsn = `7${run.slice(-6)}`
 
   const tenantId = uuidv7()
   const otherTenantId = uuidv7()
@@ -128,6 +130,7 @@ describeDb('billing (DATABASE_URL)', () => {
   const shopB2c = uuidv7()
   const variantA = uuidv7()
   const variantB = uuidv7()
+  const variantCess = uuidv7() // DOS-079: on `cessHsn`, ₹22.97 a piece
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -318,15 +321,27 @@ describeDb('billing (DATABASE_URL)', () => {
         hsnCode: hsn,
         mrpPaise: 2000,
       },
+      {
+        id: variantCess,
+        productId,
+        name: 'Campa Cola 750 ml',
+        netQty: 750,
+        netUnit: 'ml',
+        defaultCaseSize: 24,
+        hsnCode: cessHsn,
+        mrpPaise: 4000,
+      },
     ])
     // the tenant sells in 12s even though the maker prints 24 (docs/17 B: sell-side pack wins)
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
     ])
-    await db
-      .insert(hsnRates)
-      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1200, cessBps: 0, effectiveFrom: '2020-04-01' })
+    await db.insert(hsnRates).values([
+      { id: uuidv7(), hsnCode: hsn, gstBps: 1200, cessBps: 0, effectiveFrom: '2020-04-01' },
+      { id: uuidv7(), hsnCode: cessHsn, gstBps: 2800, cessBps: 1200, effectiveFrom: '2020-04-01' },
+    ])
 
     const identityId = uuidv7()
     await db.insert(retailerIdentities).values({
@@ -390,6 +405,7 @@ describeDb('billing (DATABASE_URL)', () => {
     await db.insert(priceListItems).values([
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
     ])
 
     const locs = await db
@@ -428,6 +444,11 @@ describeDb('billing (DATABASE_URL)', () => {
         batchNo: `B2-${run}`,
         mrpPaise: 2000,
       })
+      const c = await inventory.findOrCreateLot(tx, {
+        variantId: variantCess,
+        batchNo: `B3-${run}`,
+        mrpPaise: 4000,
+      })
       await inventory.post(tx, [
         {
           lotId: a.lot.id,
@@ -442,6 +463,13 @@ describeDb('billing (DATABASE_URL)', () => {
           qtyDelta: 5_000,
           reason: 'opening',
           idempotencyKey: `open-${run}-b`,
+        },
+        {
+          lotId: c.lot.id,
+          locationId: godown,
+          qtyDelta: 5_000,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-c`,
         },
         {
           lotId: a.lot.id,
@@ -731,7 +759,8 @@ describeDb('billing (DATABASE_URL)', () => {
     expect([...out, ...back].reduce((s, r) => s + r.qty_delta, 0)).toBe(0)
     expect(await journalSum('invoice_cancel', invoiceId)).toBe(0)
 
-    // The order is back in the billing queue…
+    // The order went WITH the bill (QA DOS-139), so there is nothing left to bill: it used to stay
+    // `packed` and sit in the queue offering a bill for goods already back on the rack.
     const queue = await call<{ items: { orderId: string }[] }>(
       app,
       manager,
@@ -741,15 +770,213 @@ describeDb('billing (DATABASE_URL)', () => {
         limit: 50,
       },
     )
-    expect(queue.body.items.map((i) => i.orderId)).toContain(orderId)
-    // …but the cartons were taped shut once and for all: `pack_confirmations` is UNIQUE per order, so
-    // re-billing is NOT a second pack. Raising the shop a fresh order is the pilot's correction, and a
-    // dedicated warehouse re-pack path is an open item (see the slice report).
+    expect(queue.body.items.map((i) => i.orderId)).not.toContain(orderId)
+    // And the cartons were taped shut once and for all: `pack_confirmations` is UNIQUE per order, so
+    // re-billing is NOT a second pack. Raising the shop a fresh order is the pilot's correction.
     const again = await issueFor(orderId, 'cancel-again')
     expect(again.res.status).toBe(409)
   })
 
-  it('DOS-022: the queue lists only packed orders with no live bill — a confirmed or a picking order is the picker’s problem, not the biller’s — and the one row that needs a bill can be re-billed via packs.list + issueForPack', async () => {
+  it('DOS-139: cancelling a pre-dispatch pack bill cancels its order in the same transaction — the order is cancelled naming the bill, a packed→cancelled transition and an OrderCancelled event are written, and it is gone from the billing queue, from awaiting_load and from loadSheets.create', async () => {
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], 'dos139')
+    const { invoiceId, res } = await issueFor(orderId, 'dos139')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const number = res.body.item.invoiceNo ?? ''
+    expect(number).not.toBe('')
+
+    const orderRow = async (): Promise<{ state: string; reason: string | null }> => {
+      const rows = (
+        await db.execute(
+          sql`select state::text as state, cancel_reason as reason from sales_orders where id = ${orderId}`,
+        )
+      ).rows as { state: string; reason: string | null }[]
+      return rows[0] ?? { state: 'missing', reason: null }
+    }
+    expect((await orderRow()).state).toBe('packed')
+
+    const cancelled = await call<{ item: Detail }>(
+      app,
+      manager,
+      'POST',
+      `/invoices/${invoiceId}/cancel`,
+      { idempotencyKey: `dos139-cancel-${run}`, reason: 'Shop phoned before the van left.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // (a) the order went with the bill, and its reason says which bill and why
+    const after = await orderRow()
+    expect(after.state).toBe('cancelled')
+    expect(after.reason).toBe(`bill ${number} cancelled: Shop phoned before the van left.`)
+
+    // (b) the audit spine and the event the shop's notification hangs off
+    const transitions = (
+      await db.execute(
+        sql`select from_state::text as f, to_state::text as t, event from order_state_transitions
+             where tenant_id = ${tenantId} and order_id = ${orderId} and event = 'cancel'`,
+      )
+    ).rows as { f: string; t: string; event: string }[]
+    expect(transitions).toEqual([{ f: 'packed', t: 'cancelled', event: 'cancel' }])
+    const events = (
+      await db.execute(
+        sql`select event_type from outbox_events
+             where tenant_id = ${tenantId} and aggregate_id = ${orderId} and event_type = 'OrderCancelled'`,
+      )
+    ).rows as { event_type: string }[]
+    expect(events).toHaveLength(1)
+
+    // (c) nothing offers the goods again: not the billing queue, not W7's packed-orders panel…
+    const queue = await call<{ items: { orderId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/billing/queue',
+      { limit: 200 },
+    )
+    expect(queue.body.items.map((i) => i.orderId)).not.toContain(orderId)
+    const offered = await call<{ items: { orderId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/warehouse/packs',
+      { status: 'awaiting_load', limit: 200 },
+    )
+    expect(offered.status, JSON.stringify(offered.body)).toBe(200)
+    expect(offered.body.items.map((i) => i.orderId)).not.toContain(orderId)
+
+    // …and a load sheet cannot be built for it, so the restocked pieces can never ride out (the P1
+    // path: before this fix `create` answered 200 and a confirmed sheet would have moved them).
+    const sheet = await call<{ message?: string }>(app, manager, 'POST', '/warehouse/load-sheets', {
+      idempotencyKey: `dos139-sheet-${run}`,
+      id: uuidv7(),
+      toLocationId: van,
+      orderIds: [orderId],
+    })
+    expect(sheet.status, JSON.stringify(sheet.body)).toBe(409)
+    expect(sheet.body.message).toMatch(/only a packed order can be loaded/)
+
+    // (d) and no second bill: the pack is unique per order
+    expect((await issueFor(orderId, 'dos139-again')).res.status).toBe(409)
+
+    // (e) stock and money still net to zero, exactly as the cancel alone did
+    const out = await ledgerFor(orderId)
+    const back = await ledgerFor(invoiceId)
+    expect([...out, ...back].reduce((s, r) => s + r.qty_delta, 0)).toBe(0)
+    expect(await journalSum('invoice_cancel', invoiceId)).toBe(0)
+  })
+
+  it('DOS-139 guard: a bill cancel refused after the money landed leaves the order packed — nothing partial', async () => {
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], 'dos139g')
+    const { invoiceId, res } = await issueFor(orderId, 'dos139g')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+
+    const paid = await call(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos139g-receipt-${run}`,
+      id: uuidv7(),
+      retailerId: shopMh,
+      mode: 'cash',
+      amountPaise: 100,
+      strategy: 'explicit',
+      allocations: [{ id: uuidv7(), invoiceId, amountPaise: 100 }],
+    })
+    expect(paid.status, JSON.stringify(paid.body)).toBe(200)
+
+    const refused = await call<{ message?: string }>(
+      app,
+      manager,
+      'POST',
+      `/invoices/${invoiceId}/cancel`,
+      { idempotencyKey: `dos139g-cancel-${run}`, reason: 'too late' },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toMatch(/money allocated against it; raise a credit note/)
+
+    // the order did not move an inch, and neither did the stock
+    const rows = (
+      await db.execute(
+        sql`select state::text as state, cancel_reason as reason from sales_orders where id = ${orderId}`,
+      )
+    ).rows as { state: string; reason: string | null }[]
+    expect(rows[0]).toEqual({ state: 'packed', reason: null })
+    expect(await ledgerFor(invoiceId)).toEqual([])
+  })
+
+  /*
+   * DOS-139, the RESIDUAL (review). `loadSheets.create` refuses a cancelled order, so no NEW sheet can
+   * be built for restocked pieces — that is asserted above. This is the other order of events: the
+   * sheet was DRAFTED while the order was still packed, and the shop phones afterwards. The design's
+   * amendment (d) — approve and confirm re-reading the orders — belongs to `load-sheets.service.ts`,
+   * which this slice does not own, so the sheet is still approvable.
+   *
+   * The invariant that actually matters is pinned here rather than left to reasoning: whatever the
+   * approve step answers, NOT ONE PIECE reaches the vehicle. `orderMachine` has no edge out of
+   * `cancelled`, so `applyFulfilmentEvent`'s dispatch throws and rolls the whole confirm transaction
+   * back before the inventory post commits. The residual is therefore a sheet stuck in draft behind a
+   * raw machine message, not a double-move of stock — and if the follow-up slice ever makes confirm
+   * succeed on a cancelled order, this test fails loudly.
+   */
+  it('DOS-139 guard: a load sheet DRAFTED before its bill is cancelled never carries the restocked pieces out — confirm refuses and the sheet moves no stock', async () => {
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], 'dos139d')
+    const { invoiceId, res } = await issueFor(orderId, 'dos139d')
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+
+    // the sheet is built while the order is still packed and the bill still live
+    const sheetId = uuidv7()
+    const drafted = await call<{ item: { status: string } }>(
+      app,
+      manager,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `dos139d-sheet-${run}`,
+        id: sheetId,
+        toLocationId: van,
+        orderIds: [orderId],
+      },
+    )
+    expect(drafted.status, JSON.stringify(drafted.body)).toBe(200)
+    expect(drafted.body.item.status).toBe('draft')
+    expect(await ledgerFor(sheetId)).toEqual([])
+
+    // …and only then does the shop phone, taking the order with the bill
+    const cancelled = await call<{ item: { state: string } }>(
+      app,
+      manager,
+      'POST',
+      `/invoices/${invoiceId}/cancel`,
+      { idempotencyKey: `dos139d-cancel-${run}`, reason: 'Shop phoned before the van left.' },
+    )
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(cancelled.body.item.state).toBe('cancelled')
+
+    // approve is the amendment (d) gap: it is not asserted either way, only driven, so that confirm
+    // is reached the way a real desk would reach it.
+    await call(app, manager, 'POST', `/warehouse/load-sheets/${sheetId}/approve`, {
+      idempotencyKey: `dos139d-approve-${run}`,
+    })
+
+    const confirm = await call<{ message?: string }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/confirm`,
+      {
+        idempotencyKey: `dos139d-confirm-${run}`,
+        countedPackages: 1,
+        challanId: uuidv7(),
+      },
+    )
+    expect(confirm.status, JSON.stringify(confirm.body)).not.toBe(200)
+
+    // THE INVARIANT: the order stayed cancelled and the sheet moved nothing at all.
+    const state = (
+      await db.execute(sql`select state::text as state from sales_orders where id = ${orderId}`)
+    ).rows as { state: string }[]
+    expect(state[0]?.state).toBe('cancelled')
+    expect(await ledgerFor(sheetId)).toEqual([])
+  })
+
+  it('DOS-022: the queue lists only packed orders with no live bill — a confirmed or a picking order is the picker’s problem, not the biller’s, and an order cancelled with its bill is nobody’s (DOS-139) — and the parked pack that needs a bill is billed via packs.list + issueForPack', async () => {
     // A: never touched by the godown. Still the picker's problem.
     const confirmedOrderId = await placeOrder(
       rep,
@@ -784,21 +1011,40 @@ describeDb('billing (DATABASE_URL)', () => {
     )
     expect(pickingState.body.item.state).toBe('picking')
 
-    // C: SO-9001's shape — packed, billed once, that bill then cancelled. This is the one row billing
-    // must be able to act on.
+    // C: packed with the bill deliberately PARKED (`issueInvoice: false`, docs/23 §8.2) — the stock
+    // has left and no document exists. This is the one row billing must be able to act on.
     const packedOrderId = await placeOrder(
       rep,
       shopMh,
       [{ variantId: variantA, cases: 1 }],
       'q-packed',
     )
-    const {
-      invoiceId: firstInvoiceId2,
-      packId,
-      res: firstIssue,
-    } = await issueFor(packedOrderId, 'q-packed')
-    expect(firstIssue.status).toBe(200)
-    const firstNumber = firstIssue.body.item.invoiceNo
+    const packId = uuidv7()
+    const parked = await call<PackBody>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/orders/${packedOrderId}/pack`,
+      { idempotencyKey: `q-park-${run}`, id: packId, packages: 1, issueInvoice: false },
+    )
+    expect(parked.status, JSON.stringify(parked.body)).toBe(200)
+    expect(parked.body.invoice).toBeNull()
+
+    /*
+     * D: packed, billed once, that bill then cancelled. Until QA DOS-139 this order stayed `packed`
+     * and the queue offered it a bill for goods already back on the rack. The order is now cancelled
+     * WITH its bill, so it is not the biller's work any more and its pack can never be re-billed.
+     */
+    const cancelledOrderId = await placeOrder(
+      rep,
+      shopMh,
+      [{ variantId: variantA, cases: 1 }],
+      'q-cancelled',
+    )
+    const { invoiceId: firstInvoiceId2, packId: cancelledPackId } = await issueFor(
+      cancelledOrderId,
+      'q-cancelled',
+    )
     const packCancelled = await call<{ item: { state: string } }>(
       app,
       owner,
@@ -820,11 +1066,12 @@ describeDb('billing (DATABASE_URL)', () => {
     // Confirmed and picking orders belong to the picker, not the biller — narrowed OUT of the queue.
     expect(queuedIds).not.toContain(confirmedOrderId)
     expect(queuedIds).not.toContain(pickingOrderId)
-    // The packed order with no live bill IS the queue's real work.
+    // The parked pack with no bill IS the queue's real work.
     expect(queuedIds).toContain(packedOrderId)
+    // The order cancelled with its bill is not (QA DOS-139).
+    expect(queuedIds).not.toContain(cancelledOrderId)
 
-    // The pack survives its cancelled invoice — `packs.list({orderId})` finds it regardless of the
-    // cancelled `invoiceId` it still carries — and `issueForPack` re-bills it with a fresh number.
+    // `packs.list({orderId})` finds the parked pack, and `issueForPack` bills it with a real number.
     const packs = await call<{ items: { id: string; orderId: string }[] }>(
       app,
       manager,
@@ -834,18 +1081,29 @@ describeDb('billing (DATABASE_URL)', () => {
     )
     expect(packs.body.items.map((p) => p.id)).toContain(packId)
 
-    const rebilled = await call<{ item: Detail }>(
+    const billed = await call<{ item: Detail }>(
       app,
       manager,
       'POST',
       `/warehouse/packs/${packId}/invoice`,
-      { idempotencyKey: `q-rebill-${run}`, id: uuidv7() },
+      { idempotencyKey: `q-bill-parked-${run}`, id: uuidv7() },
     )
-    expect(rebilled.status).toBe(200)
-    expect(rebilled.body.item.state).toBe('issued')
-    expect(rebilled.body.item.invoiceNo).not.toBe(firstNumber)
+    expect(billed.status, JSON.stringify(billed.body)).toBe(200)
+    expect(billed.body.item.state).toBe('issued')
+    expect(billed.body.item.invoiceNo).not.toBeNull()
 
-    // Once re-billed, the order leaves the queue again.
+    // The pack of the CANCELLED order survives as history but is never billed again (QA DOS-139).
+    const refused = await call<{ message?: string }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/packs/${cancelledPackId}/invoice`,
+      { idempotencyKey: `q-rebill-cancelled-${run}`, id: uuidv7() },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.message).toMatch(/is cancelled; a cancelled order is never billed/)
+
+    // Once billed, the parked order leaves the queue too.
     const queueAfter = await call<{ items: { orderId: string }[] }>(
       app,
       manager,
@@ -1553,6 +1811,152 @@ describeDb('billing (DATABASE_URL)', () => {
     })
     expect(bill).toMatchObject({ discountPaise: 0, taxablePaise: 21_600, totalPaise: 24_200 })
     expect(bill.totalPaise).toBe(submitted.body.item.totalPaise)
+  })
+
+  it('DOS-009: invoices.list is newest first by invoice_date then id — a bill dated yesterday whose id sorts higher lands below today’s bills; two bills on one date come back higher id first; the cursor walks each once with limit=1; from/to still filter on invoice_date; openOnly and q are unchanged', async () => {
+    interface BillPage {
+      items: { id: string; invoiceDate: string; state: string; invoiceNo: string | null }[]
+      nextCursor: string | null
+    }
+    const today = businessDate().date
+    const yesterday = businessDate(new Date(Date.now() - 86_400_000)).date
+
+    /** A brand bill carries its own date and its own number, so the register can be dated by hand. */
+    const importBill = async (id: string, tag: string, invoiceDate: string) => {
+      const res = await call<{ item: Detail }>(app, accountant, 'POST', '/invoices/brand-dms', {
+        idempotencyKey: `dos009-${tag}-${run}`,
+        id,
+        retailerId: shopMh,
+        externalInvoiceNo: `D9/${tag}/${run}`,
+        invoiceDate,
+        placeOfSupplyState: '27',
+        roundOffPaise: 0,
+        lines: [
+          {
+            id: uuidv7(),
+            variantId: variantA,
+            description: 'Wafers 45 g',
+            hsnCode: hsn,
+            qtyPcs: 24,
+            ratePaise: 900,
+            gstBps: 1_200,
+          },
+        ],
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+      return id
+    }
+
+    // A bill shaped like the demo seed's and like a FieldAssist import: its id sorts above every real
+    // UUIDv7, but it is yesterday's bill. Version 7 and variant b keep it a valid uuid.
+    const olderId = await importBill(`ffffffff-ffff-7fff-bfff-0009${run}`, 'older', yesterday)
+    // two bills on ONE date: the second is minted later, so its id is the higher of the two
+    const todayFirst = await importBill(uuidv7(), 'today-a', today)
+    const todayLast = await importBill(uuidv7(), 'today-b', today)
+    expect(todayLast > todayFirst).toBe(true)
+
+    const page = (query: Record<string, unknown>) =>
+      call<BillPage>(app, manager, 'GET', '/invoices', query)
+
+    // (a) the top row is today's later bill, not the higher-id bill from yesterday
+    const top = await page({ limit: 1 })
+    expect(top.status, JSON.stringify(top.body)).toBe(200)
+    expect(top.body.items[0]?.id).toBe(todayLast)
+
+    /** Follows `nextCursor` to the end and returns every bill in the order the pages gave them. */
+    const walk = async (
+      query: Record<string, unknown>,
+      limit: number,
+    ): Promise<BillPage['items']> => {
+      const seen: BillPage['items'] = []
+      let cursor: string | undefined
+      for (let pages = 0; pages < 2000; pages += 1) {
+        const got = await page({ ...query, limit, cursor })
+        expect(got.status, JSON.stringify(got.body)).toBe(200)
+        seen.push(...got.body.items)
+        if (got.body.nextCursor === null) return seen
+        cursor = got.body.nextCursor
+      }
+      throw new Error('invoices.list never ended its cursor walk')
+    }
+    const expectEachOnceNewestFirst = (items: BillPage['items']): void => {
+      const ids = items.map((i) => i.id)
+      expect(new Set(ids).size, 'no bill comes back twice').toBe(ids.length)
+      items.forEach((item, i) => {
+        const before = items[i - 1]
+        if (before !== undefined)
+          expect(
+            item.invoiceDate <= before.invoiceDate,
+            `${item.invoiceNo ?? item.id} (${item.invoiceDate}) after ${before.invoiceNo ?? before.id} (${before.invoiceDate})`,
+          ).toBe(true)
+      })
+    }
+    const countOf = async (): Promise<number> =>
+      (
+        (
+          await db.execute(
+            sql`select count(*)::int as n from invoices where tenant_id = ${tenantId}`,
+          )
+        ).rows as { n: number }[]
+      )[0]?.n ?? 0
+
+    const all = await walk({}, 1)
+    expectEachOnceNewestFirst(all)
+    expect(all).toHaveLength(await countOf())
+    // on one date the higher id comes first, and yesterday's bill sits below both of today's
+    const at = (id: string) => all.findIndex((i) => i.id === id)
+    expect(at(todayLast)).toBeLessThan(at(todayFirst))
+    expect(at(todayFirst)).toBeLessThan(at(olderId))
+
+    // (b) the window still filters on invoice_date, and the order inside it is the same
+    const todayOnly = await walk({ from: today, to: today }, 2)
+    expectEachOnceNewestFirst(todayOnly)
+    expect(todayOnly.every((i) => i.invoiceDate === today)).toBe(true)
+    expect(todayOnly.some((i) => i.id === olderId)).toBe(false)
+
+    // (c) openOnly and q are untouched by the new order
+    const open = await walk({ openOnly: true }, 2)
+    expectEachOnceNewestFirst(open)
+    expect(open.every((i) => i.state === 'issued' || i.state === 'partially_paid')).toBe(true)
+    const searched = await page({ q: `D9/older/${run}`, limit: 50 })
+    expect(searched.status).toBe(200)
+    expect(searched.body.items.map((i) => i.id)).toEqual([olderId])
+  })
+
+  it('DOS-079: a fully packed invoice for a cess item equals the order total', async () => {
+    type OrderBody = {
+      state: string
+      taxPaise: number
+      cessPaise: number
+      totalPaise: number
+      lines: { id: string; taxPaise: number; cessPaise: number; lineTotalPaise: number }[]
+    }
+    // 4 cs of 12 = 48 pcs at ₹22.97 = ₹1,102.56 taxable; 28% GST ₹308.72 + 12% cess ₹132.31.
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantCess, cases: 4 }], 'dos079')
+    const order = await call<{ item: OrderBody }>(app, manager, 'GET', `/orders/${orderId}`)
+    expect(order.status).toBe(200)
+    expect(order.body.item).toMatchObject({
+      taxPaise: 44_103,
+      cessPaise: 13_231,
+      totalPaise: 154_400,
+    })
+
+    const { res } = await issueFor(orderId, 'dos079')
+    expect(res.status).toBe(200)
+    const bill = res.body.item
+    expect(bill.lines).toHaveLength(1)
+    expect(bill.lines[0]).toMatchObject({
+      qtyPcs: 48,
+      taxablePaise: 110_256,
+      cgstPaise: 15_436,
+      sgstPaise: 15_436,
+      igstPaise: 0,
+      cessPaise: 13_231,
+      lineTotalPaise: 154_359,
+    })
+    expect(bill).toMatchObject({ taxablePaise: 110_256, cessPaise: 13_231, totalPaise: 154_400 })
+    // The point of DOS-079: the rep's total and the bill's are the same number, not two stored constants.
+    expect(bill.totalPaise).toBe(order.body.item.totalPaise)
   })
 
   // ---------------------------------------------------------------------------------------------------------------

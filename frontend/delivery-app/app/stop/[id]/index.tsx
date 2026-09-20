@@ -9,8 +9,12 @@
  *
  * Two things are deliberately absent. There is no cost, margin or landed price anywhere on this
  * screen or in this bundle — the crew sees the SELLING rate on the bill, which is what the shopkeeper
- * is charged. And there is no credit LIMIT: docs/23 §5.3 says the crew needs the payment mode and the
- * dues, never the limit, so `retailers.credit_limit_paise` is on the device and is never drawn.
+ * is charged. And there is no credit LIMIT and no credit DAYS: docs/23 §5.3 says the crew needs the
+ * payment mode and the dues, never the terms, and DOS-072 took both off the crew's device entirely.
+ *
+ * What IS here, since DOS-066: how much of the dues is PAST DUE, how late the oldest bill is, and
+ * whether the office has stopped this shop's credit. The founder's rule is tell, never block — the
+ * bill on the van passed the credit gate at order submit — so nothing on this screen is gated by it.
  */
 import {
   Button,
@@ -38,7 +42,9 @@ import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
 import { DOOR_DONE_CLEARED, doorDoneMessage } from '../../../src/lib/at-the-door'
-import { instantWithClock, longDate } from '../../../src/lib/dates'
+import { instantWithClock, longDate, shortDate } from '../../../src/lib/dates'
+import { takeApplied } from '../../../src/lib/door-money'
+import { doorDues, overdueLine } from '../../../src/lib/dues'
 import { keepKey } from '../../../src/lib/keep'
 import {
   addressLine,
@@ -105,8 +111,18 @@ export default function StopScreen(): React.JSX.Element {
   const [handoffSeen, setHandoffSeen] = useState(false)
   const handoff = handoffSeen ? null : doorDoneMessage(t, sync.persistent, params)
   const saying = toast ?? handoff
+  /*
+   * DOS-062 — WHICH BILLS THE MONEY WENT TO. The office allocates oldest bill first unless the crew
+   * tagged one (docs/22 §6), and it was doing exactly that in silence: ₹7,856 taken "for INV/0825"
+   * paid INV/0099 of 26 June and the bill in the shopkeeper's hand stayed open. `collections.record`
+   * names the bills in its reply and D5 leaves them here on its way out; read ONCE, on this mount.
+   */
+  const [applied] = useState<readonly string[] | null>(() => takeApplied())
 
   const shop = stop === null ? undefined : shops.get(stop.retailer_id)
+  /** DOS-066: one rule for the chips and the panel — how late this shop is, and whether it is stopped. */
+  const door = doorDues(dues, shop?.credit_mode ?? null)
+  const overdue = overdueLine(t, door, (value) => formatINR(paise(value)))
   const open = deliveries.rows.filter((row) => row.outcome === null)
   const terminal = stop !== null && isStopTerminal(stop.state)
   const arrived = stop?.state === 'arrived'
@@ -194,6 +210,17 @@ export default function StopScreen(): React.JSX.Element {
               figure
             />
           )}
+          {overdue === null ? null : (
+            <StatusChip testID="d3-overdue" label={overdue} family="brick" solid figure />
+          )}
+          {door.stopped ? (
+            <StatusChip
+              testID="d3-credit-stopped"
+              label={t('d3.creditStopped')}
+              family="brick"
+              solid
+            />
+          ) : null}
           {shop?.payment_terms === undefined ? null : (
             <StatusChip testID="d3-terms" label={wordFor(t, shop.payment_terms)} family="neutral" />
           )}
@@ -268,6 +295,23 @@ export default function StopScreen(): React.JSX.Element {
       testID="d3-screen"
     >
       <Stack gap={6}>
+        {applied === null ? null : (
+          <Panel title={t('d5.applied')} testID="d3-applied">
+            <Stack gap={2}>
+              {applied.map((line, index) => (
+                <Txt
+                  key={`${String(index)}-${line}`}
+                  field="body"
+                  desk="body"
+                  testID={`d3-applied-${String(index)}`}
+                >
+                  {line}
+                </Txt>
+              ))}
+            </Stack>
+          </Panel>
+        )}
+
         <Panel testID="d3-shop">
           <Stack gap={4}>
             {address === null ? null : (
@@ -316,7 +360,24 @@ export default function StopScreen(): React.JSX.Element {
                   <Money value={dues.outstanding_paise} size="moneyM" />
                 </Field>
               )}
+              {door.overduePaise === 0 ? null : (
+                <Field label={t('d3.overdueLabel')}>
+                  <Money value={door.overduePaise} size="moneyM" testID="d3-overdue-amount" />
+                </Field>
+              )}
             </Row>
+            {door.daysLate === 0 || door.oldestDueDate === null ? null : (
+              <Txt field="label" desk="meta" color={colors.status.brick.fg} testID="d3-days-late">
+                {`${pl(t, 'd3.daysLate', door.daysLate)} · ${t('d3.oldestDue', {
+                  date: shortDate(door.oldestDueDate),
+                })}`}
+              </Txt>
+            )}
+            {door.stopped ? (
+              <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d3-stopped-line">
+                {t('d3.stoppedLine')}
+              </Txt>
+            ) : null}
             {dues === null || dues.open_bills === 0 ? null : (
               <Txt field="label" desk="meta" color={colors.text.secondary} testID="d3-open-bills">
                 {pl(t, 'd3.openBills', dues.open_bills)}
@@ -365,7 +426,9 @@ export default function StopScreen(): React.JSX.Element {
                       router.push(
                         row.outcome === null
                           ? `/stop/${stop.id}/deliver?deliveryId=${row.id}`
-                          : `/share/${row.invoice_id}`,
+                          : // DOS-065: the trip travels with the bill, so D9 can open on THIS
+                            // trip's papers instead of the shop's whole receipt history.
+                            `/share/${row.invoice_id}?tripId=${stop.trip_id}`,
                       )
                     }}
                   />
