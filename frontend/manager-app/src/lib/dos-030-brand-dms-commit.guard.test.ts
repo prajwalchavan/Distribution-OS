@@ -9,7 +9,14 @@
  *
  * Until the commit path is built (the architect's design touches the docint pipeline's validators and
  * module wiring, which this slice does not own), the button that can only ever fail is not offered and
- * the panel names the route instead. A screen must never offer an action the server will refuse.
+ * the panel says why. A screen must never offer an action the server will refuse.
+ *
+ * REVIEW (DOS-030, second pass): the replacement copy must also promise no DESTINATION. It first read
+ * "It is recorded under the brand's number in Billing → Brand DMS" — present tense, as if the desk
+ * could go there and finish the job. It cannot: `app/billing/brand-dms.tsx` is a read-only register
+ * plus an imports list, and its one button photographs a bill and `router.push('/inbound/documents')`
+ * back to this screen. So this test pins both halves — the rule, and the admission that nothing here
+ * finishes the document — and forbids naming a screen that cannot.
  *
  * Read as SOURCE, like `dos-153-note-scope.guard.test.ts`: importing a screen in Node pulls in
  * `react-native` and `expo-router`, which resolve only under Metro.
@@ -40,7 +47,7 @@ function withoutComments(code: string): string {
 }
 
 describe('M3 review desk: a brand-DMS bill is not booked as a supplier bill', () => {
-  it('DOS-030: the supplier-bill button is withheld from a brand_dms_invoice document, and the panel names the route', async () => {
+  it('DOS-030: the supplier-bill button is withheld from a brand_dms_invoice document, and the panel states the rule and admits the document cannot be finished here, naming no screen that cannot do it', async () => {
     const code = withoutComments(await read('../../app/inbound/documents.tsx'))
 
     // the supplier-bill commit is gated on the document's kind, not only on the caller's permission
@@ -50,8 +57,29 @@ describe('M3 review desk: a brand-DMS bill is not booked as a supplier bill', ()
       /brand_dms_invoice/,
     )
 
-    // and it says where a brand bill actually goes, rather than leaving the reviewer with nothing
-    expect(code, 'the brand-DMS route is not stated on the panel').toMatch(/m3\.brandDmsRoute/)
-    expect(strings['m3.brandDmsRoute']).toMatch(/Brand DMS/)
+    // and it says, on the panel, why the button is gone
+    expect(code, 'the reviewer is left with nothing where the button was').toMatch(
+      /m3\.brandDmsRoute/,
+    )
+
+    // …stating the rule that makes the button wrong…
+    expect(strings['m3.brandDmsRoute'], 'the copy does not state the rule').toMatch(
+      /never raise a second bill/,
+    )
+
+    // …and the plain truth that nothing here can finish the document. This is a STOPGAP: the commit
+    // path is the rest of DOS-030 and belongs to the slice that owns the docint pipeline.
+    expect(
+      strings['m3.brandDmsRoute'],
+      'the copy does not admit the job cannot be finished',
+    ).toMatch(/not built yet/)
+
+    // It must promise NO destination. "Billing → Brand DMS" is a read-only register whose only
+    // button photographs a bill and pushes straight back to this very screen, so naming it walked
+    // the manager round a circle while the document sat at "Needs review" for ever.
+    expect(
+      strings['m3.brandDmsRoute'],
+      'the copy sends the desk to a screen that cannot book the bill',
+    ).not.toMatch(/Brand DMS\b|Billing|→/)
   })
 })
