@@ -128,7 +128,8 @@ describe('D4 at the door: the footer never takes a press it will not act on', ()
     expect(
       footer.disabledReason,
       'the kit prints disabledReason under the button — this is the only place the driver is looking',
-    ).toBe(t('d4.podRequired'))
+      // DOS-071 renamed this key: two policies, two sentences. The credit sentence is unchanged.
+    ).toBe(t('d4.podRequiredCredit'))
   })
 
   it('DOS-181: the press REACHES the doorstep write — with the photo the shop is owed, pressing d4-record records the delivery', () => {
@@ -185,7 +186,7 @@ describe('D4 at the door: the footer never takes a press it will not act on', ()
     // plain function anyone can hold, and a refusal it swallowed would be the original defect again.
     const outcome = press(creditShopNoPhoto)
     expect(outcome.recorded, 'a delivery was written while the shop was owed a photo').toBe(0)
-    expect(outcome.said).toEqual([t('d4.podRequired')])
+    expect(outcome.said).toEqual([t('d4.podRequiredCredit')])
   })
 
   it('DOS-181: every refusal is named in the order the driver must fix it — recorded, then retake, then photo, then mismatch', () => {

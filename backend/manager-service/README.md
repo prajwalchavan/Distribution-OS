@@ -22845,7 +22845,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -23272,7 +23273,8 @@ curl "http://localhost:3002/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b"
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -23488,7 +23490,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -23720,7 +23723,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -23950,7 +23954,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -24176,7 +24181,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -24949,7 +24955,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }
@@ -25182,7 +25189,8 @@ request.json
       "settlementTolerancePaise": 4000,
       "podRequired": "always",
       "geofenceMetres": 1,
-      "gpsRetentionDays": 7
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
     }
   }
 }

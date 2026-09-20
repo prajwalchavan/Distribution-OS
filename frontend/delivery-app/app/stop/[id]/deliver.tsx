@@ -67,6 +67,7 @@ import {
   useLocalTrip,
   type LocalInvoiceLine,
 } from '../../../src/lib/local'
+import { podState, type PodFooter } from '../../../src/lib/pod'
 import {
   doorstepBlock,
   doorstepFooter,
@@ -111,6 +112,19 @@ interface LineEntry {
   returnedQtyPcs: number
   returnedSaleable: boolean
   reason: DeliveryLineReason | null
+}
+
+/**
+ * DOS-071 — the line under the proof panel, one key per state `pod.ts` can be in. The stale one was
+ * computed from the policy alone, so it went on saying "a photo is required" after the photo was
+ * attached, and said "this shop is on credit" at a cash shop under a policy of `always`.
+ */
+const POD_META: Record<PodFooter, string> = {
+  attached: 'd4.podAttachedMeta',
+  retake: 'd4.podRetake',
+  required_credit: 'd4.podRequiredCredit',
+  required_always: 'd4.podRequiredAlways',
+  optional: 'd4.podNotRequired',
 }
 
 /** Free pieces are delivered and returned like any other piece (`RecordDeliveryInput`'s own rule). */
@@ -399,9 +413,21 @@ export default function AtTheDoor(): React.JSX.Element {
 
   /** `credit_only` means a shop on credit terms; `ON_DELIVERY` and `ADVANCE` pay at the door. */
   const onCredit = shop?.payment_terms === 'POST_FULFILLMENT'
-  const podRequired =
-    podPolicy === 'always' || (podPolicy === 'credit_only' && onCredit && outcome !== 'failed')
   const proofTooBig = proof !== null && proof.contentBase64.length > MAX_INLINE_BASE64
+  /*
+   * DOS-071 — ONE RULE FOR THE PROOF, asked by the panel and by the button alike. It also mirrors the
+   * server's own first line (`assertPodPolicy` returns early for a FAILED stop whatever the policy
+   * is): `always` used to be treated as unconditional here, so the app demanded a photograph of goods
+   * that never left the van.
+   */
+  const pod = podState({
+    policy: podPolicy,
+    onCredit,
+    outcome,
+    hasProof: proof !== null,
+    proofTooBig,
+  })
+  const podRequired = pod.required
   /** DOS-070: what may honestly be said about the geo proof, or null when none is travelling. */
   const geoProof = geoProofLine(t, stop)
   /** DOS-148: null unless the office has answered AND would refuse this very outcome on this bill. */
@@ -453,6 +479,8 @@ export default function AtTheDoor(): React.JSX.Element {
     alreadyRecorded: row.outcome !== null,
     proofTooBig,
     photoRequired: podRequired,
+    // DOS-071: which sentence the refusal carries — the office's rule, or this shop's credit terms.
+    photoOnEveryDelivery: podPolicy === 'always',
     hasPhoto: proof !== null,
     balanced: totals.balanced,
   }
@@ -846,11 +874,7 @@ export default function AtTheDoor(): React.JSX.Element {
           </LocalAsync>
         </Panel>
 
-        <Panel
-          title={t('d4.pod')}
-          meta={podRequired ? t('d4.podRequired') : t('d4.podNotRequired')}
-          testID="d4-pod"
-        >
+        <Panel title={t('d4.pod')} meta={t(POD_META[pod.footer])} testID="d4-pod">
           <Stack gap={3}>
             <Row gap={8} wrap align="center">
               <Button

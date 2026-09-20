@@ -249,7 +249,10 @@ export const strings = {
   'd4.podPhoto': 'Photograph the signed bill',
   'd4.podRetake': 'Take it again',
   'd4.podAttached': 'Photo attached',
-  'd4.podRequired': 'This shop is on credit — a photo is required before you can record it',
+  // DOS-071: two policies, two sentences — a cash shop under `always` was being told it was on credit.
+  'd4.podRequiredCredit': 'This shop is on credit — a photo is required before you can record it',
+  'd4.podRequiredAlways': 'The office wants a photo on every delivery',
+  'd4.podAttachedMeta': 'Photo attached — it goes with the delivery',
   'd4.podNotRequired': 'A photo is not required here, but it settles arguments later',
   'd4.podNoCamera': 'No camera on this device — attach a file instead',
   'd4.podFailed': 'That photo could not be read. Take it again.',
@@ -373,6 +376,8 @@ export const strings = {
   'd7.needsNote': 'Say what it was for',
   'd7.failed': 'Could not record the expense',
   'd7.online': 'An expense needs a signal — the office books it against the trip.',
+  // DOS-071: the office wants the bill above its own amount; the server is the rule, this is the why.
+  'd7.proofRequired': 'Photograph the bill — the office wants one for {amount} or more',
 
   // --- D8 day summary ----------------------------------------------------------------------------
   'd8.title': 'End of day',
