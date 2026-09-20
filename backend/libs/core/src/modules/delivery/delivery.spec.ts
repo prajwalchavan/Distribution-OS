@@ -1342,76 +1342,89 @@ describeDb('delivery (DATABASE_URL)', () => {
     // The two expenses this case DOES record are removed again at the end: the trip's cash story is
     // read by the settlement cases below, and this one is about the rule, not about the money.
     const recorded: string[] = []
-    const noProof = await call(app, driver, 'POST', '/delivery/expenses', {
-      idempotencyKey: `expense-dos071-a-${run}`,
-      id: uuidv7(),
-      tripId,
-      kind: 'diesel',
-      amountPaise: 50_000,
-    })
-    expect(noProof.status).toBe(400)
-    expect((noProof.body as { data?: { code?: string } }).data?.code).toBe('expense_proof_required')
-
-    const proofId = uuidv7()
-    recorded.push(proofId)
-    const withProof = await call(app, driver, 'POST', '/delivery/expenses', {
-      idempotencyKey: `expense-dos071-b-${run}`,
-      id: proofId,
-      tripId,
-      kind: 'diesel',
-      amountPaise: 50_000,
-      inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
-    })
-    expect(withProof.status).toBe(200)
-
-    // A ₹150 parking slip is under the amount: nothing is asked for.
-    const smallId = uuidv7()
-    recorded.push(smallId)
-    const small = await call(app, driver, 'POST', '/delivery/expenses', {
-      idempotencyKey: `expense-dos071-c-${run}`,
-      id: smallId,
-      tripId,
-      kind: 'parking',
-      amountPaise: 15_000,
-    })
-    expect(small.status).toBe(200)
-
-    // The owner may ask for one on every rupee: 0 refuses the same ₹150.
-    await db
-      .insert(tenantSettings)
-      .values({ tenantId, key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise, value: 0 })
-      .onConflictDoUpdate({
-        target: [tenantSettings.tenantId, tenantSettings.key],
-        set: { value: 0 },
+    /*
+     * The threshold is a TENANT setting: every case after this one reads it. An assertion that
+     * fails inside the block below used to leave it at 0, which turns every later expense in
+     * this file into `expense_proof_required` and hides the real failure behind a cascade.
+     */
+    try {
+      const noProof = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-a-${run}`,
+        id: uuidv7(),
+        tripId,
+        kind: 'diesel',
+        amountPaise: 50_000,
       })
-    const everyRupee = await call(app, driver, 'POST', '/delivery/expenses', {
-      idempotencyKey: `expense-dos071-d-${run}`,
-      id: uuidv7(),
-      tripId,
-      kind: 'parking',
-      amountPaise: 15_000,
-    })
-    expect(everyRupee.status).toBe(400)
-    expect((everyRupee.body as { data?: { code?: string } }).data?.code).toBe(
-      'expense_proof_required',
-    )
-    await db
-      .insert(tenantSettings)
-      .values({
-        tenantId,
-        key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise,
-        value: 20_000,
+      expect(noProof.status).toBe(400)
+      expect((noProof.body as { data?: { code?: string } }).data?.code).toBe(
+        'expense_proof_required',
+      )
+
+      const proofId = uuidv7()
+      recorded.push(proofId)
+      const withProof = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-b-${run}`,
+        id: proofId,
+        tripId,
+        kind: 'diesel',
+        amountPaise: 50_000,
+        inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
       })
-      .onConflictDoUpdate({
-        target: [tenantSettings.tenantId, tenantSettings.key],
-        set: { value: 20_000 },
+      expect(withProof.status).toBe(200)
+
+      // A ₹150 parking slip is under the amount: nothing is asked for.
+      const smallId = uuidv7()
+      recorded.push(smallId)
+      const small = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-c-${run}`,
+        id: smallId,
+        tripId,
+        kind: 'parking',
+        amountPaise: 15_000,
       })
-    await db.execute(
-      sql`delete from trip_expenses where tenant_id = ${tenantId} and id in (${sql.join(
-        recorded.map((id) => sql`${id}`),
-        sql`, `,
-      )})`,
-    )
+      expect(small.status).toBe(200)
+
+      // The owner may ask for one on every rupee: 0 refuses the same ₹150.
+      await db
+        .insert(tenantSettings)
+        .values({ tenantId, key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise, value: 0 })
+        .onConflictDoUpdate({
+          target: [tenantSettings.tenantId, tenantSettings.key],
+          set: { value: 0 },
+        })
+      const everyRupee = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-d-${run}`,
+        id: uuidv7(),
+        tripId,
+        kind: 'parking',
+        amountPaise: 15_000,
+      })
+      expect(everyRupee.status).toBe(400)
+      expect((everyRupee.body as { data?: { code?: string } }).data?.code).toBe(
+        'expense_proof_required',
+      )
+    } finally {
+      await db
+        .insert(tenantSettings)
+        .values({
+          tenantId,
+          key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise,
+          value: 20_000,
+        })
+        .onConflictDoUpdate({
+          target: [tenantSettings.tenantId, tenantSettings.key],
+          set: { value: 20_000 },
+        })
+      // Nothing recorded (an assertion failed before the first one landed) is nothing to delete:
+      // `sql.join` of an empty list is not valid SQL.
+      if (recorded.length > 0)
+        await db.execute(
+          sql`delete from trip_expenses where tenant_id = ${tenantId} and id in (${sql.join(
+            recorded.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )
+    }
   })
 
   it('DOS-071: the same rule reaches the offline queue as a 2xx rejection, and writes no expense row', async () => {

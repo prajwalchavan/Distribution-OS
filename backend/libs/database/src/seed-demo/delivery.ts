@@ -404,9 +404,12 @@ export async function seedDelivery(
     taken(tripId, door.mode, door.amountPaise)
   }
 
-  /** The time the office promised a stop: 9:00 IST, then one every half hour down the beat. */
+  /**
+   * The time the office promised a stop: the van is on the road at 9:00 IST, the first door is
+   * promised for 9:30, and one every half hour down the beat after that.
+   */
   function stopEta(day: Date, sequence: number): Date {
-    return atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30)
+    return atIstTime(day, 9 + Math.floor(sequence / 2), (sequence % 2) * 30)
   }
 
   /**
@@ -416,10 +419,30 @@ export async function seedDelivery(
    * one performance figure the crew sees — the on-time rate — read 0% on a driver with 104 of 125
    * stops delivered. A demo day is now mostly inside the promise with every fourth stop running late,
    * which is both believable and enough to prove the register divides by the right thing.
+   *
+   * Merge review: THE SLIP DECAYS, IT DOES NOT VANISH. A stop that ran well past its promise cannot
+   * be followed by one finished eight minutes early — the van would have had to leave the first shop
+   * before the crew was done in it, which is the contradiction the review caught. The door after a
+   * late one lands a minute inside its own promise instead, so three doors in four are still on time
+   * and every clock on the day runs forwards.
    */
   function stopCompleted(day: Date, sequence: number): Date {
-    const eta = stopEta(day, sequence)
-    return new Date(eta.getTime() + (sequence % 4 === 0 ? 25 : -8) * 60_000)
+    const slip = sequence % 4 === 0 ? 18 : sequence % 4 === 1 ? -1 : -8
+    return new Date(stopEta(day, sequence).getTime() + slip * 60_000)
+  }
+
+  /**
+   * When the crew left the shop before this one — twenty-five minutes before this door was promised,
+   * and NEVER before the door before it was finished. A late stop pushes the next departure out; the
+   * crew are in one van.
+   */
+  function stopStarted(day: Date, sequence: number): Date {
+    const leave = new Date(stopEta(day, sequence).getTime() - 25 * 60_000)
+    if (sequence <= 1) return leave
+    const previousDone = stopCompleted(day, sequence - 1)
+    return leave.getTime() >= previousDone.getTime()
+      ? leave
+      : new Date(previousDone.getTime() + 2 * 60_000)
   }
 
   function addStop(
@@ -464,9 +487,9 @@ export async function seedDelivery(
       createdAt: occurred(atIstTime(day, 8, 30)),
       plannedCollectionPaise: inv.totalPaise,
       etaAt: stopEta(day, sequence),
-      // Left the last shop twenty-five minutes before this one was promised; at the door seven
-      // minutes before it was finished, so arriving never comes after the delivery it precedes.
-      startedAt: occurred(new Date(stopEta(day, sequence).getTime() - 25 * 60_000)),
+      // Left the last shop once it was done there; at the door seven minutes before this one was
+      // finished, so arriving never comes after the delivery it precedes.
+      startedAt: occurred(stopStarted(day, sequence)),
       arrivedAt:
         state === 'pending'
           ? null

@@ -49,9 +49,12 @@ import {
   appliedLines,
   billsThatCanBeTagged,
   billsThatTakeMoney,
+  liveTags,
+  owedHereIsAsBilled,
   owedHerePaise,
   owedOn,
   recordRefusal,
+  settledBillChip,
   tagAllocations,
   whereTheMoneyGoes,
   type DoorBill,
@@ -192,6 +195,19 @@ export default function Collect(): React.JSX.Element {
    */
   const taggable = new Set(billsThatCanBeTagged(doorBills).map((bill) => bill.invoiceId))
   const canTag = status.online && openByInvoice !== null
+  /*
+   * DOS-062 (review) — A TAG THE OFFICE'S NEWER ANSWER HAS DROPPED IS NOT A TAG. The open balances
+   * are re-read at every door and can land between the tap and the press; `tagAllocations` already
+   * leaves such a bill out of the split, silently, so the row went on saying "Tagged" while the money
+   * went oldest-bill-first. Every reader of a tag on this screen goes through the same rule.
+   */
+  const liveTagged = useMemo(() => liveTags(doorBills, tagged), [doorBills, tagged])
+  /*
+   * DOS-062 (review) — offline, and until the office answers, the figure below is a sum of FACE
+   * values, and a part-paid bill makes it an overstatement. The figure is the only one the device
+   * has; the LABEL stops calling it what the bills still ask for.
+   */
+  const asBilled = owedHereIsAsBilled(doorBills)
   /** Did the press that is in flight carry an explicit split? Read by `recordRefusal` on a 409. */
   const splitSent = useRef(false)
 
@@ -298,7 +314,12 @@ export default function Collect(): React.JSX.Element {
     }
     if (stop === null) return
     if (status.online) {
-      const allocations = tagAllocations({ bills: doorBills, tagged, amountPaise, newId: uuidv7 })
+      const allocations = tagAllocations({
+        bills: doorBills,
+        tagged: liveTagged,
+        amountPaise,
+        newId: uuidv7,
+      })
       splitSent.current = allocations !== null && allocations.length > 0
       collect.mutate({ mode, amountPaise, allocations })
       return
@@ -370,7 +391,11 @@ export default function Collect(): React.JSX.Element {
             */}
           <Row justify="between" align="center" gap={3}>
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {expectedHere ? t('d5.expectedHere') : t('d5.expected')}
+              {expectedHere
+                ? asBilled
+                  ? t('d5.expectedHereAsBilled')
+                  : t('d5.expectedHere')
+                : t('d5.expected')}
             </Txt>
             <Money value={expectedPaise} size="moneyM" testID="d5-expected" />
           </Row>
@@ -415,6 +440,12 @@ export default function Collect(): React.JSX.Element {
                     bill.openPaise !== null &&
                     bill.openPaise < bill.totalPaise
                   const when = invoice === undefined ? undefined : longDate(invoice.invoice_date)
+                  /*
+                    DOS-062 (review) — THE OFFICE'S OWN WORD FOR A BILL THAT CANNOT TAKE MONEY. This
+                    chip said "Paid" for every state that is not open, so a cancelled or written-off
+                    bill read "Paid" at the door — the one word a shopkeeper acts on.
+                  */
+                  const settled = bill !== undefined && !open ? settledBillChip(t, bill) : null
                   return (
                     <ListRow
                       key={row.id}
@@ -428,19 +459,19 @@ export default function Collect(): React.JSX.Element {
                       }
                       trailingSize="moneyM"
                       /*
-                        A BILL THE OFFICE HAS MARKED PAID IS NOT OFFERED AGAIN. It stays on the list —
-                        the driver is holding the paper — but it says "Paid", it cannot be tagged, and
-                        it is out of the figure above the pad. Offering it as owed is how one shop
-                        pays the same bill twice at one door.
+                        A BILL THE OFFICE HAS SETTLED IS NOT OFFERED AGAIN. It stays on the list —
+                        the driver is holding the paper — but it carries the office's word for it, it
+                        cannot be tagged, and it is out of the figure above the pad. Offering it as
+                        owed is how one shop pays the same bill twice at one door.
                       */
                       trailing={
-                        invoiceId !== null && !open ? (
+                        settled !== null ? (
                           <StatusChip
                             testID={`d5-paid-${row.id}`}
-                            label={t('d5.paidOff')}
-                            family="moss"
+                            label={settled.label}
+                            family={settled.family}
                           />
-                        ) : tagged.has(invoiceId ?? '') ? (
+                        ) : liveTagged.has(invoiceId ?? '') ? (
                           <StatusChip
                             testID={`d5-tagged-${row.id}`}
                             label={t('d5.tagged')}
@@ -449,7 +480,7 @@ export default function Collect(): React.JSX.Element {
                           />
                         ) : undefined
                       }
-                      state={tagged.has(invoiceId ?? '') ? 'selected' : 'default'}
+                      state={liveTagged.has(invoiceId ?? '') ? 'selected' : 'default'}
                       {...(open && invoiceId !== null && canTag && taggable.has(invoiceId)
                         ? {
                             onPress: () => {
@@ -474,7 +505,7 @@ export default function Collect(): React.JSX.Element {
                 {status.online
                   ? whereTheMoneyGoes(t, {
                       bills: doorBills,
-                      tagged,
+                      tagged: liveTagged,
                       openBills: officeBills.data?.openBills ?? dues?.open_bills ?? takesMoney.size,
                       canTag,
                     })
@@ -507,7 +538,7 @@ export default function Collect(): React.JSX.Element {
               value={amountPaise}
               onChange={setAmountPaise}
               expected={expectedPaise}
-              expectedLabel={t('d5.expectedLabel')}
+              expectedLabel={asBilled ? t('d5.expectedLabelAsBilled') : t('d5.expectedLabel')}
               bound={dues?.outstanding_paise ?? null}
               boundMessage={t('d5.onAccount', { amount: t('d.unknown') })}
               autoFocus

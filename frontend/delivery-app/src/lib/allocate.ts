@@ -24,7 +24,7 @@
  * else — no component, no platform module — so it runs under vitest with no Metro. Money arrives as
  * integer paise and is printed by a formatter the screen passes in.
  */
-import type { Translator } from '@dos/ui'
+import { wordFor, type Translator } from '@dos/ui'
 
 /** One bill riding on this door, as the device's own tables hold it. */
 export interface DoorBill {
@@ -102,6 +102,59 @@ export function billsThatCanBeTagged(bills: readonly DoorBill[]): DoorBill[] {
  */
 export function owedHerePaise(bills: readonly DoorBill[]): number {
   return billsThatTakeMoney(bills).reduce((sum, bill) => sum + owedOn(bill), 0)
+}
+
+/**
+ * IS THAT FIGURE WHAT THE BILLS STILL ASK FOR, OR WHAT THEY WERE BILLED AT?
+ *
+ * `owedHerePaise` falls back to the face value for a bill the office has not answered for — offline
+ * it always does — and a part-paid bill then makes the total an OVERSTATEMENT under a label reading
+ * "Owed on the bills here". That is the finding's own third bullet, surviving in the one place the
+ * office cannot be asked. The figure stays (it is the only one the device has); the label stops
+ * claiming to be something it is not, and says "as billed" instead.
+ */
+export function owedHereIsAsBilled(bills: readonly DoorBill[]): boolean {
+  return billsThatTakeMoney(bills).some((bill) => bill.openPaise === null)
+}
+
+/**
+ * THE CHIP ON A BILL THAT CAN NO LONGER TAKE MONEY — in the office's own word for it.
+ *
+ * It said "Paid" for every state that is not open, so a bill the office had CANCELLED or WRITTEN OFF
+ * read "Paid" at the door. "Paid" is the one word a shopkeeper acts on and the one the crew cannot
+ * walk back an hour later.
+ *
+ * Two different things end up here and both are true: a bill whose state has left the money states
+ * (`paid`, `cancelled`, `written_off`, `draft`), and a bill this phone still calls `issued` that the
+ * office says has nothing left on it — that one IS paid off, and the office's figure is the newer
+ * fact of the two. Called only for a bill `billsThatTakeMoney` has dropped.
+ */
+export function settledBillChip(
+  t: Translator,
+  bill: DoorBill,
+): { label: string; family: 'moss' | 'neutral' } {
+  return bill.state === 'paid' || TAKES_MONEY.has(bill.state)
+    ? { label: t('d5.paidOff'), family: 'moss' }
+    : { label: wordFor(t, bill.state), family: 'neutral' }
+}
+
+/**
+ * THE TAGS THAT STILL MEAN SOMETHING.
+ *
+ * The office's answer is re-read at every door and can land BETWEEN the tap and the press: another
+ * crew, the desk or the shop's own UPI settles a bill the driver has already tagged. `tagAllocations`
+ * drops such a bill from the split — correctly, the office would refuse the line — but silently, so
+ * the row went on reading "Tagged" and looking selected while the money went oldest-bill-first.
+ *
+ * So the screen reads its tags through the same rule it sends them through. Derived, not cleared: the
+ * driver's tap is kept, and if the bill comes back as taggable the tag is still his.
+ */
+export function liveTags(
+  bills: readonly DoorBill[],
+  tagged: ReadonlySet<string>,
+): ReadonlySet<string> {
+  const taggable = new Set(billsThatCanBeTagged(bills).map((bill) => bill.invoiceId))
+  return new Set([...tagged].filter((id) => taggable.has(id)))
 }
 
 /**

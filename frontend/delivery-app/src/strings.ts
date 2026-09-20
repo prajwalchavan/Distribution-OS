@@ -294,6 +294,12 @@ export const strings = {
   'd5.expected': 'The shop owes',
   'd5.expectedHere': 'Owed on the bills here',
   'd5.expectedLabel': 'Owed on the bills here',
+  /*
+   * DOS-062 (review): offline, and until `receivables.outstanding.get` answers, the same figure is
+   * a sum of FACE values — a part-paid bill makes it an overstatement. The label says which it is.
+   */
+  'd5.expectedHereAsBilled': 'Owed on the bills here, as billed',
+  'd5.expectedLabelAsBilled': 'Owed on the bills here, as billed',
   'd5.amount': 'Amount taken',
   'd5.mode': 'How it was paid',
   'd5.cash': 'Cash',
