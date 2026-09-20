@@ -2321,17 +2321,31 @@ describeDb('warehouse (DATABASE_URL)', () => {
   // picker's lines are marked put-back in the SAME transaction (PicklistsService registers the hook with
   // OrdersService at start-up), and the wave carries on with the orders that are still live.
 
-  /** The pick_lines rows of one order on one sheet, as the picker's device would pull them. */
+  /**
+   * The pick_lines rows of one order on one sheet, as the picker's device would pull them.
+   *
+   * `updated_ms` is the delta cursor in the form the assertions can ORDER: the device learns about a
+   * put-back only because `updated_at` moved, so a test that means to guard the bump has to compare
+   * the number, not merely notice the row changed.
+   */
   const pickLineRows = async (
     picklistId: string,
     orderId: string,
-  ): Promise<{ id: string; cancelled_at: string | null; updated_at: string }[]> =>
+  ): Promise<
+    { id: string; cancelled_at: string | null; updated_at: string; updated_ms: string }[]
+  > =>
     (
       await db.execute(
-        sql`select id, cancelled_at::text as cancelled_at, updated_at::text as updated_at
+        sql`select id, cancelled_at::text as cancelled_at, updated_at::text as updated_at,
+                   (extract(epoch from updated_at) * 1000)::bigint::text as updated_ms
               from pick_lines where picklist_id = ${picklistId} and order_id = ${orderId} order by id`,
       )
-    ).rows as { id: string; cancelled_at: string | null; updated_at: string }[]
+    ).rows as {
+      id: string
+      cancelled_at: string | null
+      updated_at: string
+      updated_ms: string
+    }[]
 
   it('DOS-138: the desk cancels one order of a two-order wave mid-pick — its pick lines carry cancelled_at with updated_at bumped, the other order is untouched, a pick on a put-back line is refused online and from the offline queue, the remaining order still packs, and cancelling the last order closes the sheet', async () => {
     const orderA = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos138-a')
@@ -2373,6 +2387,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
     )
     expect(partly.status, JSON.stringify(partly.body)).toBe(200)
 
+    const beforeA = await pickLineRows(waved.id, orderA)
     const beforeB = await pickLineRows(waved.id, orderB)
     const cancelled = await call<{ item: { state: string } }>(
       app,
@@ -2384,10 +2399,24 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
     expect(cancelled.body.item.state).toBe('cancelled')
 
-    // A's lines are put back, with updated_at bumped so the picker's delta pull carries them…
+    // A's lines are put back…
     const afterA = await pickLineRows(waved.id, orderA)
     expect(afterA.length).toBeGreaterThan(0)
     expect(afterA.every((r) => r.cancelled_at !== null)).toBe(true)
+    /*
+     * …EVERY one of them with updated_at strictly bumped, which is the whole mechanism: the picker's
+     * phone is told about the put-back only because the row's delta cursor moved. Asserting the same
+     * rows came back and then comparing each cursor strictly pins the bump itself — without this the
+     * test passed unchanged if the hook stopped writing `updatedAt`, and the phone would have kept
+     * showing a line whose pieces the floor had already put back (review, DOS-138).
+     */
+    expect(afterA.map((r) => r.id)).toEqual(beforeA.map((r) => r.id))
+    afterA.forEach((row, i) => {
+      expect(
+        Number(row.updated_ms),
+        `pick line ${row.id} was put back without bumping updated_at — the picker's delta pull will never carry it`,
+      ).toBeGreaterThan(Number(beforeA[i]?.updated_ms ?? '0'))
+    })
     // …and B's are untouched, to the microsecond
     expect(await pickLineRows(waved.id, orderB)).toEqual(beforeB)
 
