@@ -78,6 +78,8 @@ export default function OrderDetail(): React.JSX.Element {
   const bargains = useBargains(localOrder?.retailer_id ?? null)
   const [cancelling, setCancelling] = useState(false)
   const [reason, setReason] = useState('')
+  /* DOS-092: the confirm was a silent no-op on an empty reason. Now the field says what is missing. */
+  const [sayWhy, setSayWhy] = useState(false)
   /* DOS-086: this order's own draft submits itself the moment the office takes it. */
   useSubmitAcceptedDrafts()
 
@@ -384,6 +386,7 @@ export default function OrderDetail(): React.JSX.Element {
         open={cancelling}
         onClose={() => {
           setCancelling(false)
+          setSayWhy(false)
         }}
         title={t('s5.cancelTitle')}
         testID="cancel-dialog"
@@ -398,8 +401,12 @@ export default function OrderDetail(): React.JSX.Element {
             <TextInput
               label={t('s5.cancelReason')}
               value={reason}
-              onChange={setReason}
+              onChange={(next) => {
+                setReason(next)
+                if (next.trim() !== '') setSayWhy(false)
+              }}
               capitalize="sentences"
+              error={sayWhy ? t('s5.cancelSayWhy') : undefined}
             />
             {cancel.error === undefined ? null : (
               <Txt field="label" desk="meta" color={colors.status.brick.fg}>
@@ -409,10 +416,26 @@ export default function OrderDetail(): React.JSX.Element {
           </Stack>
         }
         confirmLabel={t('s5.cancelConfirm')}
+        /*
+         * DOS-092: "Keep it" beside "Cancel the order". The kit's default dismiss label is the word
+         * "Cancel", which on THIS dialog is the opposite of what it does — `DialogProps.cancelLabel`
+         * exists for exactly that, so no kit change is needed.
+         */
+        cancelLabel={t('s5.cancelKeep')}
         destructive
         busy={cancel.status === 'pending'}
         onConfirm={() => {
-          if (reason.trim().length > 0) cancel.mutate({ reason: reason.trim() })
+          /*
+           * The contract requires a reason (`CancelOrderInput.reason.min(1)`) and that is right: a
+           * cancellation with no reason is the defect DOS-142 was about, on the other side. What was
+           * wrong was doing nothing about it — the tap on a destructive button vanished. Nothing is
+           * sent, and the field says why not.
+           */
+          if (reason.trim() === '') {
+            setSayWhy(true)
+            return
+          }
+          cancel.mutate({ reason: reason.trim() })
         }}
       />
     </Screen>

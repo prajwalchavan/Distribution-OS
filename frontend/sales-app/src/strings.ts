@@ -297,7 +297,14 @@ export const strings = {
   's5.cancelTitle': 'Cancel this order',
   's5.cancelBody': 'Order {order} for {shop} will be cancelled and its stock released.',
   's5.cancelReason': 'Why',
-  's5.cancelConfirm': 'Cancel order',
+  /*
+   * DOS-092 — the two buttons used to read "Cancel" and "Cancel order", one word apart, with the
+   * destructive one on the right where a dismiss usually sits. UX-00 §12: the real verb on the
+   * confirm, and a dismiss that names what it keeps. Both are at or under 20 characters.
+   */
+  's5.cancelConfirm': 'Cancel the order',
+  's5.cancelKeep': 'Keep it',
+  's5.cancelSayWhy': 'Type why, so the office and the shop know',
   's5.cancelNeedsSignal': 'Cancelling needs a signal',
   /*
    * DOS-142 — the office's own words, on the rep's screen. The row carries `cancel_reason` and
