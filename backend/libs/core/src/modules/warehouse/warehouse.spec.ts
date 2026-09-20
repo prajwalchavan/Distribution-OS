@@ -164,6 +164,8 @@ describeDb('warehouse (DATABASE_URL)', () => {
   const shopMh = uuidv7()
   const variantA = uuidv7()
   const variantB = uuidv7()
+  /** DOS-054 works on a variant of its own, so no FEFO expectation above it moves. */
+  const variantShelf = uuidv7()
   let godown = ''
   let van = ''
   let lotEarly = ''
@@ -311,10 +313,21 @@ describeDb('warehouse (DATABASE_URL)', () => {
         hsnCode: hsn,
         mrpPaise: 2000,
       },
+      {
+        id: variantShelf,
+        productId,
+        name: 'Chips 150 g',
+        netQty: 150,
+        netUnit: 'g',
+        defaultCaseSize: 24,
+        hsnCode: hsn,
+        mrpPaise: 3000,
+      },
     ])
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantShelf, caseSizeOverride: 12 },
     ])
     await db
       .insert(hsnRates)
@@ -356,6 +369,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
     await db.insert(priceListItems).values([
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantShelf, ratePaise: 3500 },
     ])
 
     const locs = await db
@@ -2477,6 +2491,264 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(packed.length).toBeGreaterThanOrEqual(2)
     expect(packed.at(-1)?.id).toBe(olderId)
   })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-050 — a queue row says which wave it is on and how much of it is actually picked
+
+  it('DOS-050: a queue row with no wave carries picklistNo null, picklistStatus null, pickedQtyPcs 0; on a started wave with part of it picked it carries the PICK number, status picking and the picked pieces; once every line is picked, status picked', async () => {
+    type QueueRow = {
+      orderId: string
+      totalQtyPcs: number
+      picklistId: string | null
+      picklistNo: string | null
+      picklistStatus: string | null
+      pickedQtyPcs: number
+    }
+    const rowFor = async (orderId: string): Promise<QueueRow | undefined> => {
+      const res = await call<{ items: QueueRow[] }>(app, packer, 'GET', '/warehouse/queue', {
+        unpicklistedOnly: false,
+        limit: 100,
+      })
+      expect(res.status).toBe(200)
+      return res.body.items.find((i) => i.orderId === orderId)
+    }
+    const orderId = await placeOrder([{ variantId: variantA, cases: 2 }], 'dos050-queue')
+
+    const free = await rowFor(orderId)
+    expect(free?.totalQtyPcs).toBe(24)
+    expect(free?.picklistId).toBeNull()
+    expect(free?.picklistNo).toBeNull()
+    expect(free?.picklistStatus).toBeNull()
+    expect(free?.pickedQtyPcs).toBe(0)
+
+    const waved = await wave([orderId], 'dos050-queue')
+    expect(waved.res.status).toBe(200)
+    const sheet = waved.res.body.item
+    const row = sheet.lines[0]
+    const onWave = await rowFor(orderId)
+    expect(onWave?.picklistId).toBe(waved.id)
+    expect(onWave?.picklistNo).toBe(sheet.picklistNo)
+    expect(onWave?.picklistStatus).toBe('open')
+    expect(onWave?.pickedQtyPcs).toBe(0)
+
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos050-start-${run}`,
+          assignedTo: packerId,
+        })
+      ).status,
+    ).toBe(200)
+    // part of the ask on the rack: the wave is still being picked, and the row says how much
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+          idempotencyKey: `dos050-pick-part-${run}`,
+          lines: [
+            {
+              id: row?.id ?? '',
+              orderLineId: row?.orderLineId ?? '',
+              lotId: row?.lotId ?? '',
+              pickedQtyPcs: 18,
+            },
+          ],
+        })
+      ).status,
+    ).toBe(200)
+    const picking = await rowFor(orderId)
+    expect(picking?.picklistStatus).toBe('picking')
+    expect(picking?.picklistNo).toBe(sheet.picklistNo)
+    expect(picking?.pickedQtyPcs).toBe(18)
+    expect(picking?.totalQtyPcs).toBe(24)
+
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+          idempotencyKey: `dos050-pick-rest-${run}`,
+          lines: [
+            {
+              id: row?.id ?? '',
+              orderLineId: row?.orderLineId ?? '',
+              lotId: row?.lotId ?? '',
+              pickedQtyPcs: 24,
+            },
+          ],
+        })
+      ).status,
+    ).toBe(200)
+    const done = await rowFor(orderId)
+    expect(done?.picklistStatus).toBe('picked')
+    expect(done?.pickedQtyPcs).toBe(24)
+    // still no money on the picker's screen
+    expect(JSON.stringify(done)).not.toMatch(/ratePaise|costPaise|totalPaise|marginBps/)
+  })
+
+  it('DOS-050: reservations.list with a warehouse token carries retailerId and retailerName of the order holding each row, and still no money', async () => {
+    const res = await call<{
+      items: {
+        orderId: string | null
+        orderNo: string | null
+        retailerId: string | null
+        retailerName: string | null
+      }[]
+    }>(app, packer, 'GET', '/warehouse/reservations', { limit: 50 })
+    expect(res.status).toBe(200)
+    expect(res.body.items.length).toBeGreaterThan(0)
+    const held = res.body.items.filter((i) => i.orderId !== null)
+    expect(held.length).toBeGreaterThan(0)
+    expect(held.every((i) => i.retailerId === shopMh)).toBe(true)
+    expect(held.every((i) => i.retailerName === `Godown Shop ${run}`)).toBe(true)
+    expect(JSON.stringify(res.body)).not.toMatch(/ratePaise|costPaise|totalPaise|creditLimit/)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-054 — a batch under the minimum shelf life is offered last and warns when it is taken anyway
+
+  const setShelfLife = async (days: number): Promise<void> => {
+    await db.execute(
+      sql`insert into tenant_settings (tenant_id, key, value) values (${tenantId}, 'inventory.min_shelf_life_days', ${String(days)}::jsonb)
+          on conflict (tenant_id, key) do update set value = excluded.value`,
+    )
+  }
+
+  /** Two batches of the shelf-life variant: one 16 days out, one 90, both in the godown. */
+  async function shelfLots(tag: string): Promise<{ shortDated: string; compliant: string }> {
+    const inventory = app.get(InventoryService)
+    const iso = (days: number) =>
+      new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+    return asOwner(async (tx) => {
+      const short = await inventory.findOrCreateLot(tx, {
+        variantId: variantShelf,
+        batchNo: `SHELF-${tag}-SHORT-${run}`,
+        mrpPaise: 3000,
+        expiryDate: iso(16),
+      })
+      const long = await inventory.findOrCreateLot(tx, {
+        variantId: variantShelf,
+        batchNo: `SHELF-${tag}-LONG-${run}`,
+        mrpPaise: 3000,
+        expiryDate: iso(90),
+      })
+      await inventory.post(tx, [
+        {
+          lotId: short.lot.id,
+          locationId: godown,
+          qtyDelta: 24,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-shelf-${tag}-short`,
+        },
+        {
+          lotId: long.lot.id,
+          locationId: godown,
+          qtyDelta: 24,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-shelf-${tag}-long`,
+        },
+      ])
+      return { shortDated: short.lot.id, compliant: long.lot.id }
+    })
+  }
+
+  it('DOS-054: a wave suggests the compliant lot; a pick of the short-dated lot answers short_shelf_life together with fefo_override, writes no ledger row, and picklists.get carries minShelfLifeDays 30 and shortShelfLife true on that line and its consolidated lot, false on the compliant one', async () => {
+    await setShelfLife(30)
+    const { shortDated, compliant } = await shelfLots('A')
+    const orderId = await placeOrder([{ variantId: variantShelf, cases: 1 }], 'dos054')
+    const waved = await wave([orderId], 'dos054')
+    expect(waved.res.status).toBe(200)
+    const sheet = waved.res.body.item
+    const row = sheet.lines[0]
+    // FEFO WITHIN THE RULE: the 90-day batch is proposed although the 16-day one expires sooner
+    expect(row?.suggestedLotId).toBe(compliant)
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos054-start-${run}`,
+          assignedTo: packerId,
+        })
+      ).status,
+    ).toBe(200)
+    const before = await ledgerFor(orderId)
+    const picked = await call<{
+      item: PicklistBody & {
+        minShelfLifeDays: number
+        lines: (PickLineBody & { shortShelfLife: boolean })[]
+        consolidated: { lots: { lotId: string; shortShelfLife: boolean }[] }[]
+      }
+      warnings: { code: string; message: string }[]
+    }>(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+      idempotencyKey: `dos054-pick-${run}`,
+      lines: [
+        {
+          id: row?.id ?? '',
+          orderLineId: row?.orderLineId ?? '',
+          lotId: shortDated,
+          pickedQtyPcs: 12,
+        },
+      ],
+    })
+    expect(picked.status).toBe(200)
+    // FEFO WARNS, IT NEVER BLOCKS (docs/design R03): both warnings, and the pieces are recorded
+    expect(picked.body.warnings.map((w) => w.code).sort()).toEqual([
+      'fefo_override',
+      'short_shelf_life',
+    ])
+    expect(picked.body.warnings.find((w) => w.code === 'short_shelf_life')?.message).toMatch(
+      /30-day rule|under the 30/i,
+    )
+    expect(await ledgerFor(orderId)).toEqual(before)
+
+    const got = await call<{
+      item: {
+        minShelfLifeDays: number
+        lines: { id: string; lotId: string | null; shortShelfLife: boolean }[]
+        consolidated: { lots: { lotId: string; shortShelfLife: boolean }[] }[]
+      }
+    }>(app, packer, 'GET', `/warehouse/picklists/${waved.id}`)
+    expect(got.status).toBe(200)
+    expect(got.body.item.minShelfLifeDays).toBe(30)
+    const taken = got.body.item.lines.find((l) => l.lotId === shortDated)
+    expect(taken?.shortShelfLife).toBe(true)
+    const lots = got.body.item.consolidated.flatMap((c) => c.lots)
+    expect(lots.find((l) => l.lotId === shortDated)?.shortShelfLife).toBe(true)
+    expect(lots.every((l) => l.lotId !== compliant || !l.shortShelfLife)).toBe(true)
+  })
+
+  it('DOS-054: with the setting 0 the same pick answers no short_shelf_life warning', async () => {
+    await setShelfLife(0)
+    const { shortDated } = await shelfLots('B')
+    const orderId = await placeOrder([{ variantId: variantShelf, cases: 1 }], 'dos054-off')
+    const waved = await wave([orderId], 'dos054-off')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines[0]
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos054-off-start-${run}`,
+          assignedTo: packerId,
+        })
+      ).status,
+    ).toBe(200)
+    const picked = await call<{
+      item: { minShelfLifeDays: number; lines: { lotId: string | null; shortShelfLife: boolean }[] }
+      warnings: { code: string }[]
+    }>(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+      idempotencyKey: `dos054-off-pick-${run}`,
+      lines: [
+        {
+          id: row?.id ?? '',
+          orderLineId: row?.orderLineId ?? '',
+          lotId: shortDated,
+          pickedQtyPcs: 12,
+        },
+      ],
+    })
+    expect(picked.status).toBe(200)
+    expect(picked.body.warnings.map((w) => w.code)).not.toContain('short_shelf_life')
+    expect(picked.body.item.minShelfLifeDays).toBe(0)
+    expect(picked.body.item.lines.every((l) => !l.shortShelfLife)).toBe(true)
+    await setShelfLife(30)
+  })
+
   // -----------------------------------------------------------------------------------------------------
   // QA DOS-138 (founder): the desk may cancel an order the floor is already picking. The hold goes, the
   // picker's lines are marked put-back in the SAME transaction (PicklistsService registers the hook with
@@ -2937,5 +3209,97 @@ describeDb('warehouse (DATABASE_URL)', () => {
     )
     expect(again.status, JSON.stringify(again.body)).toBe(409)
     expect(again.body.message).toContain('is cancelled')
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-050 x DOS-138 (merge guard): the queue row and the put-back column have to agree
+
+  /*
+   * DOS-050 gave the godown queue the wave each order is on and how much of it is really picked;
+   * DOS-138 (merged from main) gave `pick_lines` a `cancelled_at` for a line the desk put back. The
+   * two meet in `liveWaveByOrder`, which is the single grouped read behind both `picklistId/
+   * pickedQtyPcs` on the queue and `livePicklistByOrder` (the wave stamped on a pack). This pins what
+   * the floor must see after a mid-pick cancellation of one order on a shared wave.
+   */
+  it('DOS-050 x DOS-138: after the desk cancels one order of a two-order wave mid-pick, the surviving order keeps the wave and ONLY its own picked pieces on the godown queue, and the cancelled order is off the queue altogether', async () => {
+    type QueueRow = {
+      orderId: string
+      picklistId: string | null
+      picklistNo: string | null
+      picklistStatus: string | null
+      pickedQtyPcs: number
+    }
+    const queue = async (): Promise<QueueRow[]> => {
+      const res = await call<{ items: QueueRow[] }>(app, packer, 'GET', '/warehouse/queue', {
+        unpicklistedOnly: false,
+        limit: 100,
+      })
+      expect(res.status).toBe(200)
+      return res.body.items
+    }
+    const orderA = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos050x138-a')
+    const orderB = await placeOrder([{ variantId: variantB, cases: 1 }], 'dos050x138-b')
+    const waved = await wave([orderA, orderB], 'dos050x138')
+    expect(waved.res.status, JSON.stringify(waved.res.body)).toBe(200)
+    const started = await call<{ item: PicklistBody }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/picklists/${waved.id}/start`,
+      { idempotencyKey: `dos050x138-start-${run}` },
+    )
+    expect(started.status, JSON.stringify(started.body)).toBe(200)
+    const sheet = started.body.item
+    const rowA = sheet.lines.find((l) => l.orderId === orderA)
+    const rowB = sheet.lines.find((l) => l.orderId === orderB)
+    expect(rowA, 'no pick line for order A').toBeDefined()
+    expect(rowB, 'no pick line for order B').toBeDefined()
+
+    // six pieces of each order are off the rack when the shop behind A phones
+    for (const [tag, row] of [
+      ['a', rowA],
+      ['b', rowB],
+    ] as const) {
+      const picked = await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+        idempotencyKey: `dos050x138-pick-${tag}-${run}`,
+        lines: [
+          {
+            id: row?.id ?? '',
+            orderLineId: row?.orderLineId ?? '',
+            lotId: row?.lotId ?? lotB,
+            pickedQtyPcs: 6,
+          },
+        ],
+      })
+      expect(picked.status).toBe(200)
+    }
+    const beforeA = (await queue()).find((i) => i.orderId === orderA)
+    const beforeB = (await queue()).find((i) => i.orderId === orderB)
+    expect(beforeA?.picklistId).toBe(waved.id)
+    expect(beforeA?.pickedQtyPcs).toBe(6)
+    expect(beforeB?.picklistId).toBe(waved.id)
+    expect(beforeB?.pickedQtyPcs).toBe(6)
+
+    const cancelled = await call(app, manager, 'POST', `/orders/${orderA}/cancel`, {
+      idempotencyKey: `dos050x138-cancel-a-${run}`,
+      reason: 'Shop shut for a wedding.',
+    })
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    expect(await orderState(orderA)).toBe('cancelled')
+
+    const after = await queue()
+    // A is gone from the godown's work entirely — a cancelled order is not one of the three queue states
+    expect(after.find((i) => i.orderId === orderA)).toBeUndefined()
+    // and B still reads exactly as it did: its own wave, its own six pieces, nothing of A's
+    const afterB = after.find((i) => i.orderId === orderB)
+    expect(afterB?.picklistId).toBe(waved.id)
+    expect(afterB?.picklistNo).toBe(sheet.picklistNo)
+    expect(afterB?.picklistStatus).toBe('picking')
+    expect(afterB?.pickedQtyPcs).toBe(6)
+
+    // the put-back pieces are counted nowhere: the whole live wave now totals B's six and no more
+    expect(
+      after.filter((i) => i.picklistId === waved.id).reduce((n, i) => n + i.pickedQtyPcs, 0),
+    ).toBe(6)
   })
 })

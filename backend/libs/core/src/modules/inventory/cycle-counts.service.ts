@@ -29,6 +29,7 @@ import {
   type Db,
 } from '@dos/db'
 import {
+  BACK_OFFICE,
   currentTenant,
   DB,
   idempotent,
@@ -170,17 +171,29 @@ export class CycleCountsService {
         const lines = await this.lines(tx, row.id)
         const byLot = new Map(lines.map((l) => [l.lotId, l]))
         const now = new Date()
+        // QA DOS-045: the difference is measured against the stock the counter actually walked past,
+        // not against what the ledger said when the count was raised hours earlier. ONE query for the
+        // lots in this call; a lot the location has no balance row for counts as 0 (the unrecorded lot
+        // `open` already allows). Lines counted in an earlier call keep the figure they were measured
+        // against — only the lots named here are refreshed.
+        const onHand = await this.onHandAt(
+          tx,
+          row.locationId,
+          input.lines.map((l) => l.lotId),
+        )
         for (const entry of input.lines) {
           const line = byLot.get(entry.lotId)
           if (!line)
             throw new ORPCError('BAD_REQUEST', {
               message: `lot ${entry.lotId} is not on cycle count ${row.id}`,
             })
+          const expectedQty = onHand.get(entry.lotId) ?? 0
           await tx
             .update(cycleCountLines)
-            .set({ countedQty: entry.countedPcs, updatedAt: now })
+            .set({ countedQty: entry.countedPcs, expectedQty, updatedAt: now })
             .where(eq(cycleCountLines.id, line.id))
           line.countedQty = entry.countedPcs
+          line.expectedQty = expectedQty
         }
         const complete = lines.every((l) => l.countedQty !== null)
         const [updated] = await tx
@@ -202,6 +215,10 @@ export class CycleCountsService {
    * Posts the differences: one `cycle_count` ledger row per line whose variance is not zero, keyed
    * `cycle_count:<countId>:<lotId>` so a replay writes nothing twice. The owner or a manager only
    * (MANAGEMENT; the accountant reads, QA DOS-037): this is the step that changes the books' quantity.
+   *
+   * The delta posted is `counted − expected AT COUNT TIME` (QA DOS-045), so a movement made between the
+   * count and the posting keeps its own ledger row and is not swallowed: on-hand lands on the counted
+   * figure plus whatever moved afterwards, which is what the rack actually holds.
    */
   async post(input: PostIn): Promise<PostOut> {
     requireRole(MANAGEMENT)
@@ -306,6 +323,27 @@ export class CycleCountsService {
       .orderBy(asc(cycleCountLines.lotId))
   }
 
+  /** On-hand per lot at one location right now, for the lots named — one query, never per line. */
+  private async onHandAt(
+    tx: Db,
+    locationId: string,
+    lotIds: readonly string[],
+  ): Promise<Map<string, number>> {
+    const ids = [...new Set(lotIds)]
+    if (ids.length === 0) return new Map()
+    const rows = await tx
+      .select({ lotId: stockBalances.lotId, onHand: stockBalances.onHand })
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.tenantId, currentTenant().tenantId),
+          eq(stockBalances.locationId, locationId),
+          inArray(stockBalances.lotId, ids),
+        ),
+      )
+    return new Map(rows.map((r) => [r.lotId, r.onHand]))
+  }
+
   private async lineCounts(tx: Db, ids: readonly string[]): Promise<Map<string, number>> {
     if (ids.length === 0) return new Map()
     const rows = await tx
@@ -337,6 +375,10 @@ export class CycleCountsService {
           )
       ).map((l) => [l.id, l]),
     )
+    // QA DOS-045: a blind count means the counter is not told the target. The desk (owner, manager,
+    // accountant, system) reads both figures; the godown and the crew read neither — one predicate,
+    // decided by the actor's role, never by which service mounted the module.
+    const blind = !BACK_OFFICE.includes(currentTenant().actorRole)
     const items: CycleCountLine[] = lines.map((l) => {
       const lot = lots.get(l.lotId)
       return {
@@ -345,9 +387,9 @@ export class CycleCountsService {
         variantId: lot?.variantId ?? '',
         batchNo: lot?.batchNo ?? '',
         expiryDate: lot?.expiryDate ?? null,
-        expectedPcs: l.expectedQty,
+        expectedPcs: blind ? null : l.expectedQty,
         countedPcs: l.countedQty,
-        variancePcs: l.countedQty === null ? null : l.countedQty - l.expectedQty,
+        variancePcs: blind || l.countedQty === null ? null : l.countedQty - l.expectedQty,
       }
     })
     return { ...toCount(row, items.length), lines: items }

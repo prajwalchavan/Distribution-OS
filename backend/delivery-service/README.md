@@ -94,7 +94,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
@@ -7666,7 +7666,7 @@ request.json
 
 ### POST `/inventory/cycle-counts`
 
-Open a physical count of a location (expected pieces frozen per lot) · contract `inventory.cycleCounts.open`
+Open a physical count of a location (expected pieces taken at count time; blind for the godown) · contract `inventory.cycleCounts.open`
 
 **Roles:** owner, manager, warehouse
 
@@ -16288,7 +16288,10 @@ curl "http://localhost:3005/warehouse/queue?locationId=01a06d18-e60a-7abc-87f8-9
       "confirmedAt": "2026-09-04T10:30:00.000Z",
       "lineCount": 1,
       "totalQtyPcs": 24,
-      "picklistId": "01a06dc3-1560-766a-8975-e547c8c480a4"
+      "picklistId": "01a06dc3-1560-766a-8975-e547c8c480a4",
+      "picklistNo": "SO-0042",
+      "picklistStatus": "open",
+      "pickedQtyPcs": 24
     }
   ],
   "nextCursor": null
@@ -16441,6 +16444,7 @@ request.json
         "freeQtyPcs": 24,
         "shortReason": null,
         "fefoOverride": true,
+        "shortShelfLife": true,
         "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
         "pickedAt": "2026-09-04T10:30:00.000Z"
       }
@@ -16464,11 +16468,13 @@ request.json
             "caseSize": 24,
             "cases": 1,
             "loosePcs": 24,
-            "fefoWarning": true
+            "fefoWarning": true,
+            "shortShelfLife": true
           }
         ]
       }
-    ]
+    ],
+    "minShelfLifeDays": 7
   }
 }
 ```
@@ -16710,6 +16716,7 @@ curl "http://localhost:3005/warehouse/picklists/01a06d17-0be7-794a-8dab-9b14cf78
         "freeQtyPcs": 24,
         "shortReason": null,
         "fefoOverride": true,
+        "shortShelfLife": true,
         "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
         "pickedAt": "2026-09-04T10:30:00.000Z"
       }
@@ -16733,11 +16740,13 @@ curl "http://localhost:3005/warehouse/picklists/01a06d17-0be7-794a-8dab-9b14cf78
             "caseSize": 24,
             "cases": 1,
             "loosePcs": 24,
-            "fefoWarning": true
+            "fefoWarning": true,
+            "shortShelfLife": true
           }
         ]
       }
-    ]
+    ],
+    "minShelfLifeDays": 7
   }
 }
 ```
@@ -16888,6 +16897,7 @@ request.json
         "freeQtyPcs": 24,
         "shortReason": null,
         "fefoOverride": true,
+        "shortShelfLife": true,
         "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
         "pickedAt": "2026-09-04T10:30:00.000Z"
       }
@@ -16911,11 +16921,13 @@ request.json
             "caseSize": 24,
             "cases": 1,
             "loosePcs": 24,
-            "fefoWarning": true
+            "fefoWarning": true,
+            "shortShelfLife": true
           }
         ]
       }
-    ]
+    ],
+    "minShelfLifeDays": 7
   }
 }
 ```
@@ -17084,6 +17096,7 @@ request.json
         "freeQtyPcs": 24,
         "shortReason": null,
         "fefoOverride": true,
+        "shortShelfLife": true,
         "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
         "pickedAt": "2026-09-04T10:30:00.000Z"
       }
@@ -17107,11 +17120,13 @@ request.json
             "caseSize": 24,
             "cases": 1,
             "loosePcs": 24,
-            "fefoWarning": true
+            "fefoWarning": true,
+            "shortShelfLife": true
           }
         ]
       }
-    ]
+    ],
+    "minShelfLifeDays": 7
   },
   "warnings": [
     {
@@ -17277,6 +17292,7 @@ request.json
         "freeQtyPcs": 24,
         "shortReason": null,
         "fefoOverride": true,
+        "shortShelfLife": true,
         "pickedBy": "01a06d2b-f4f9-76f0-8785-8e37a440f31c",
         "pickedAt": "2026-09-04T10:30:00.000Z"
       }
@@ -17300,11 +17316,13 @@ request.json
             "caseSize": 24,
             "cases": 1,
             "loosePcs": 24,
-            "fefoWarning": true
+            "fefoWarning": true,
+            "shortShelfLife": true
           }
         ]
       }
-    ]
+    ],
+    "minShelfLifeDays": 7
   }
 }
 ```
@@ -19473,6 +19491,8 @@ curl "http://localhost:3005/warehouse/reservations?orderId=01a06d67-52a6-70c4-8d
       "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
       "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
       "orderNo": "SO-0042",
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
       "orderLineId": "01a06d04-497b-75f5-8601-b8b29e16dc4a",
       "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
       "variantName": "Campa Cola 750 ml",

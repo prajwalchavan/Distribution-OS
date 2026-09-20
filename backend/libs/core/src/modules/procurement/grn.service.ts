@@ -28,6 +28,7 @@ import {
   productVariants,
   supplierInvoiceLines,
   supplierInvoices,
+  suppliers,
   tenantProductCosts,
   withTenant,
   type ActorRole,
@@ -131,7 +132,13 @@ export class GrnService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const [invoice] = await tx
-          .select({ id: supplierInvoices.id, status: supplierInvoices.status })
+          .select({
+            id: supplierInvoices.id,
+            status: supplierInvoices.status,
+            // QA DOS-050: denormalised onto the GRN so the gate's own token can name the lorry.
+            supplierId: supplierInvoices.supplierId,
+            invoiceNo: supplierInvoices.invoiceNo,
+          })
           .from(supplierInvoices)
           .where(eq(supplierInvoices.id, input.supplierInvoiceId))
         if (!invoice)
@@ -180,6 +187,8 @@ export class GrnService {
                 id: input.id,
                 tenantId: ctx.tenantId,
                 supplierInvoiceId: invoice.id,
+                supplierId: invoice.supplierId,
+                supplierInvoiceNo: invoice.invoiceNo,
                 locationId: location.id,
                 status: 'counting',
                 note: input.note ?? null,
@@ -217,7 +226,13 @@ export class GrnService {
             }),
           )
           .returning()
-        return { item: toGrnWithLines(grn, sortById(lines), []) }
+        // blind unconditionally: `open` is management-only today, but the gate must not depend on
+        // which roles a contract happens to allow (merge review minor, 2026-09-20).
+        return {
+          item: blindGate(
+            toGrnWithLines(grn, sortById(lines), [], await this.supplierName(tx, grn.supplierId)),
+          ),
+        }
       }),
     )
   }
@@ -427,7 +442,25 @@ export class GrnService {
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
         .orderBy(desc(grns.id))
         .limit(input.limit + 1)
-      const items = rows.slice(0, input.limit).map(toGrn)
+      const page = rows.slice(0, input.limit)
+      // QA DOS-050: the row names the lorry and says how many lines are on it. Two grouped reads for
+      // the whole page, never one per row.
+      const [names, counts] = await Promise.all([
+        this.supplierNames(
+          tx,
+          page.map((r) => r.supplierId),
+        ),
+        this.lineCounts(
+          tx,
+          page.map((r) => r.id),
+        ),
+      ])
+      const items = page.map((r) =>
+        toGrn(r, {
+          supplierName: r.supplierId === null ? null : (names.get(r.supplierId) ?? null),
+          lineCount: counts.get(r.id) ?? 0,
+        }),
+      )
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
@@ -447,10 +480,14 @@ export class GrnService {
     requireRole(GRN_VIEWERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
+      // QA DOS-045: a blind role reads the damage it recorded itself and nothing else — a short or
+      // excess row names the expected pieces (counted + short = expected). Narrowed in SQL, not after
+      // the page, so a page never comes back mysteriously short of its limit.
       const filters: (SQL | undefined)[] = [
         input.grnId ? eq(inboundDiscrepancies.grnId, input.grnId) : undefined,
         input.status ? eq(inboundDiscrepancies.status, input.status) : undefined,
         input.kind ? eq(inboundDiscrepancies.kind, input.kind) : undefined,
+        blindActor() ? eq(inboundDiscrepancies.kind, 'damaged') : undefined,
         input.cursor ? lt(inboundDiscrepancies.id, input.cursor) : undefined,
       ]
       const rows = await tx
@@ -693,7 +730,63 @@ export class GrnService {
       .from(inboundDiscrepancies)
       .where(eq(inboundDiscrepancies.grnId, grn.id))
       .orderBy(asc(inboundDiscrepancies.id))
-    return toGrnWithLines(grn, lines, findings)
+    return blindGate(
+      toGrnWithLines(grn, lines, findings, await this.supplierName(tx, grn.supplierId)),
+    )
+  }
+
+  /** The supplier's display name for one receipt — `suppliers` is staff-readable, the bill is not. */
+  private async supplierName(tx: Db, supplierId: string | null): Promise<string | null> {
+    if (supplierId === null) return null
+    return (await this.supplierNames(tx, [supplierId])).get(supplierId) ?? null
+  }
+
+  /** One read for a whole page of receipts: supplier id -> name, missing ids simply absent. */
+  private async supplierNames(
+    tx: Db,
+    supplierIds: readonly (string | null)[],
+  ): Promise<Map<string, string>> {
+    const ids = [...new Set(supplierIds.filter((id): id is string => id !== null))]
+    if (ids.length === 0) return new Map()
+    const rows = await tx
+      .select({ id: suppliers.id, name: suppliers.name })
+      .from(suppliers)
+      .where(inArray(suppliers.id, ids))
+    return new Map(rows.map((r) => [r.id, r.name]))
+  }
+
+  /** How many lines each receipt carries — one grouped read for the page. */
+  private async lineCounts(tx: Db, grnIds: readonly string[]): Promise<Map<string, number>> {
+    const ids = [...new Set(grnIds)]
+    if (ids.length === 0) return new Map()
+    const rows = await tx
+      .select({ grnId: grnLines.grnId, n: sql<number>`count(*)::int` })
+      .from(grnLines)
+      .where(inArray(grnLines.grnId, ids))
+      .groupBy(grnLines.grnId)
+    return new Map(rows.map((r) => [r.grnId, Number(r.n)]))
+  }
+}
+
+/**
+ * True when the reader is at the gate rather than at the desk: the owner, a manager, the accountant and
+ * the system read the bill's figures; everyone else is counting and must not be told them (QA DOS-045).
+ */
+function blindActor(): boolean {
+  return !BACK_OFFICE.includes(currentTenant().actorRole)
+}
+
+/**
+ * The blind gate count (docs/23 §8.18): a counter who can read the target is not counting. For a blind
+ * role the reply drops `expectedQtyPcs` on every line AND every short/excess finding — those are the
+ * target in disguise, since counted + short = expected. `damaged` stays: the counter typed it.
+ */
+function blindGate(item: GrnWithLines): GrnWithLines {
+  if (!blindActor()) return item
+  return {
+    ...item,
+    lines: item.lines.map((l) => ({ ...l, expectedQtyPcs: null })),
+    discrepancies: item.discrepancies.filter((d) => d.kind === 'damaged'),
   }
 }
 

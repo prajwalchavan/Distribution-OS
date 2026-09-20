@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common'
 import { and, asc, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { StockReason } from '@dos/contracts'
-import { uuidv7 } from '@dos/domain'
+import { businessDate, uuidv7 } from '@dos/domain'
 import {
+  DEFAULT_MIN_SHELF_LIFE_DAYS,
   locations,
   productVariants,
   products,
@@ -12,6 +13,8 @@ import {
   stockBalances,
   stockLedger,
   stockLots,
+  tenantSettings,
+  TENANT_SETTING_KEYS,
   type Db,
 } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
@@ -400,9 +403,61 @@ export class InventoryService {
   }
 
   /**
-   * Hold pieces for a confirmed order line, FEFO across the lots of `sellable_stock` at the location (earliest
-   * expiry first, then the oldest lot). All-or-nothing: if the location cannot cover the line nothing is held.
-   * Calling again for a line that already has pending reservations returns them (idempotent).
+   * The minimum shelf life a batch must have left to be offered first, in days (founder, 2026-09-13,
+   * QA DOS-054). Read from `tenant_settings` — readable by every staff role — and NEVER hard-coded at
+   * the call site. An absent or malformed row is the 30-day default `bootstrapTenant` seeds; only an
+   * integer >= 0 counts, so the empty string the owner's screen saves when the field is CLEARED reads
+   * as 30 — the number that screen keeps showing — and never as 0. `0` switches the rule off, so every
+   * batch is compliant and the order is plain FEFO again — with ONE deliberate difference: the cutoff
+   * is then today, and `sellable_stock` does not filter expired lots, so a batch that is ALREADY past
+   * its expiry sorts LAST rather than first. Safer than the plain FEFO it replaces, and still
+   * available: the rule only ever changes the ORDER, never what can be taken.
+   */
+  async minShelfLifeDays(tx: Db): Promise<number> {
+    const { tenantId } = currentTenant()
+    const [row] = await tx
+      .select({ value: tenantSettings.value })
+      .from(tenantSettings)
+      .where(
+        and(
+          eq(tenantSettings.tenantId, tenantId),
+          eq(tenantSettings.key, TENANT_SETTING_KEYS.inventoryMinShelfLifeDays),
+        ),
+      )
+      .limit(1)
+    const raw = row?.value
+    const value =
+      typeof raw === 'number'
+        ? raw
+        : typeof raw === 'string' && raw.trim() !== ''
+          ? Number(raw)
+          : NaN
+    return Number.isSafeInteger(value) && value >= 0 ? value : DEFAULT_MIN_SHELF_LIFE_DAYS
+  }
+
+  /**
+   * The rule and the date it comes to: today in IST plus the days, as an ISO day. Computed in
+   * TypeScript and bound as a parameter — never `now()` or `current_date` in SQL, which are UTC and
+   * would flip the rule for five and a half hours every night. One read: callers that need both the
+   * number (to name the rule in words) and the cutoff (to order by it) ask once.
+   */
+  async shelfLifeRule(tx: Db): Promise<{ days: number; cutoff: string }> {
+    const days = await this.minShelfLifeDays(tx)
+    return { days, cutoff: shelfLifeCutoffFrom(days) }
+  }
+
+  /** Just the cutoff, for the readers that only order by it. */
+  async shelfLifeCutoff(tx: Db): Promise<string> {
+    return (await this.shelfLifeRule(tx)).cutoff
+  }
+
+  /**
+   * Hold pieces for a confirmed order line, FEFO WITHIN THE SHELF-LIFE RULE across the lots of
+   * `sellable_stock` at the location: batches with at least `inventory.min_shelf_life_days` left (or
+   * no expiry at all) come first, earliest expiry first inside each group, then the oldest lot. A
+   * short-dated batch is still taken when nothing else covers the line — the rule changes the ORDER,
+   * never what is available (QA DOS-054). All-or-nothing: if the location cannot cover the line
+   * nothing is held. Calling again for a line that already has pending reservations returns them.
    */
   async reserve(tx: Db, input: ReserveInput): Promise<ReservationRow[]> {
     const { tenantId } = currentTenant()
@@ -410,11 +465,12 @@ export class InventoryService {
       throw new ORPCError('BAD_REQUEST', { message: 'qtyPcs must be a positive integer' })
     const pending = await this.pendingReservations(tx, input.orderLineId)
     if (pending.length > 0) return pending
+    const cutoff = await this.shelfLifeCutoff(tx)
     const candidates = (
       await tx.execute(sql`
         select lot_id, available from sellable_stock
         where tenant_id = ${tenantId} and variant_id = ${input.variantId} and location_id = ${input.locationId}
-        order by expiry_date asc nulls last, lot_id asc`)
+        order by (expiry_date is null or expiry_date >= ${cutoff}) desc, expiry_date asc nulls last, lot_id asc`)
     ).rows as { lot_id: string; available: number }[]
     let remaining = input.qtyPcs
     const picked: { lotId: string; qty: number }[] = []
@@ -865,4 +921,15 @@ async function assertLotIdFree(tx: Db, lotId: string): Promise<void> {
     .from(stockLots)
     .where(eq(stockLots.id, lotId))
   if (clash) throw lotIdTaken(lotId)
+}
+
+/**
+ * Today in IST plus `days`, as an ISO date (QA DOS-054). `Date.UTC` normalises a day overflow, so
+ * "30 days from 20 September" is 20 October without a calendar library.
+ */
+function shelfLifeCutoffFrom(days: number): string {
+  const today = businessDate()
+  return new Date(Date.UTC(today.year, today.month - 1, today.day + days))
+    .toISOString()
+    .slice(0, 10)
 }

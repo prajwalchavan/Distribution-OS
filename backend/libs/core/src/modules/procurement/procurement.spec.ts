@@ -36,11 +36,73 @@ import { GrnService, ProcurementModule, SupplierInvoiceService } from './index.j
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
-type GrnLine = { id: string; variantId: string; lotId: string | null; expectedQtyPcs: number }
+/**
+ * "No money reached the shed": any JSON KEY naming a rate, a taxable value, a cost or paise. Anchored
+ * to keys so it cannot be satisfied — or tripped — by an English word in a value, and anchored to the
+ * camelCase WORD so it cannot be tripped by one spelled inside a key either: the token must begin the
+ * key in lowercase or appear capitalised, so `ratePaise`, `taxableValuePaise`, `costPaise` and
+ * `unitRate` all match while `generatedAt`, `operatedBy`, `separateFlag` and `corporateName` — each
+ * of which merely contains "rate" mid-word — do not.
+ */
+const MONEY_FIELD =
+  /"(?:(?:paise|rate|cost|taxable)|[a-zA-Z0-9]*[a-z0-9](?:Paise|Rate|Cost|Taxable))[a-zA-Z0-9]*"\s*:/
+
+/**
+ * The guard's own guard (merge review, 2026-09-20): a money token counts only when it STARTS a
+ * camelCase word — it begins the key in lowercase, or it appears capitalised. An English word that
+ * merely spells one inside itself ("generated", "operated", "separate", "corporate") must neither
+ * satisfy the guard nor trip it, in a key or in a value.
+ */
+describe('the money guard itself', () => {
+  it('matches every money key and no key that merely spells one', () => {
+    for (const key of [
+      'paise',
+      'rate',
+      'cost',
+      'taxable',
+      'ratePaise',
+      'unitRate',
+      'costPaise',
+      'mrpPaise',
+      'cgstPaise',
+      'landedCostPaise',
+      'totalCostPaise',
+      'taxableValuePaise',
+    ]) {
+      expect(`{"${key}": 1}`).toMatch(MONEY_FIELD)
+    }
+    for (const key of [
+      'generatedAt',
+      'operatedBy',
+      'separateFlag',
+      'separateLine',
+      'corporateName',
+      'lineCount',
+      'expectedQtyPcs',
+      'createdAt',
+    ]) {
+      expect(`{"${key}": 1}`).not.toMatch(MONEY_FIELD)
+    }
+    expect('{"note": "generated and separate, operated by the rate desk"}').not.toMatch(MONEY_FIELD)
+  })
+})
+
+type GrnLine = {
+  id: string
+  variantId: string
+  lotId: string | null
+  /** Null for a blind counter: the gate is never told the target (QA DOS-045). */
+  expectedQtyPcs: number | null
+}
 type Grn = {
   id: string
   grnNo: string | null
   status: string
+  /** QA DOS-050: the gate row names the lorry — supplier, bill number and how many lines, never a rate. */
+  supplierId: string | null
+  supplierName: string | null
+  supplierInvoiceNo: string | null
+  lineCount: number
   lines: GrnLine[]
   discrepancies: { kind: string; qtyPcs: number; grnLineId: string }[]
 }
@@ -313,7 +375,7 @@ describeDb('procurement (DATABASE_URL)', () => {
     )
     expect(expected).toEqual({ [variantA]: 180, [variantB]: 156 })
     const text = JSON.stringify(res.body)
-    expect(text).not.toMatch(/rate|taxable|paise|cost/i)
+    expect(text).not.toMatch(MONEY_FIELD)
     // posting before the count is refused
     const early = await call<{ message: string }>(
       app,
@@ -797,6 +859,175 @@ describeDb('procurement (DATABASE_URL)', () => {
       ...order,
     })
     expect(raised.status).toBe(200)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-045 — a blind gate count: the counter is told neither the expected pieces nor the short/excess findings
+
+  /** A second approved bill with both lines matched, so a fresh GRN can be opened and counted. */
+  const approvedInvoice = async (label: string): Promise<string> => {
+    const id = uuidv7()
+    const res = await call<{ item: { status: string } }>(
+      app,
+      owner,
+      'POST',
+      '/procurement/supplier-invoices',
+      {
+        ...invoice,
+        idempotencyKey: `inv-${label}-${run}`,
+        id,
+        invoiceNo: `GK/${run}/${label}`,
+        irn: undefined,
+        lines: invoice.lines.map((l) => ({ ...l, id: uuidv7() })),
+      },
+    )
+    expect(res.status).toBe(200)
+    expect(res.body.item.status).toBe('approved')
+    return id
+  }
+
+  it("DOS-045: a warehouse token's grns.count and grns.get replies carry expectedQtyPcs null and no short or excess finding; the manager's carry the figure and all findings", async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const supplierInvoiceId = await approvedInvoice('D45A')
+    const id = uuidv7()
+    const opened = await call<{ item: Grn }>(app, owner, 'POST', '/procurement/grns', {
+      idempotencyKey: `dos045-grn-${run}`,
+      id,
+      supplierInvoiceId,
+      locationId: godown,
+    })
+    expect(opened.status).toBe(200)
+    const lineOf = (variantId: string) =>
+      opened.body.item.lines.find((l) => l.variantId === variantId)?.id ?? ''
+
+    // the gate counts 178 of 180 (2 short) and 154 good + 2 damaged of 156
+    const counted = await call<{ item: Grn }>(app, store, 'POST', `/procurement/grns/${id}/count`, {
+      idempotencyKey: `dos045-count-${run}`,
+      lines: [
+        { grnLineId: lineOf(variantA), countedQtyPcs: 178 },
+        { grnLineId: lineOf(variantB), countedQtyPcs: 154, damagedQtyPcs: 2 },
+      ],
+    })
+    expect(counted.status).toBe(200)
+    expect(counted.body.item.lines.map((l) => l.expectedQtyPcs)).toEqual([null, null])
+    expect(counted.body.item.discrepancies.map((d) => d.kind)).toEqual(['damaged'])
+
+    const blindGet = await call<{ item: Grn }>(app, store, 'GET', `/procurement/grns/${id}`)
+    expect(blindGet.status).toBe(200)
+    expect(blindGet.body.item.lines.map((l) => l.expectedQtyPcs)).toEqual([null, null])
+    expect(blindGet.body.item.discrepancies.map((d) => d.kind)).toEqual(['damaged'])
+
+    // the desk reads the bill and the whole reconciliation
+    const deskGet = await call<{ item: Grn }>(app, manager, 'GET', `/procurement/grns/${id}`)
+    expect(deskGet.status).toBe(200)
+    expect(
+      Object.fromEntries(deskGet.body.item.lines.map((l) => [l.variantId, l.expectedQtyPcs])),
+    ).toEqual({ [variantA]: 180, [variantB]: 156 })
+    expect(deskGet.body.item.discrepancies.map((d) => d.kind).sort()).toEqual(['damaged', 'short'])
+  })
+
+  it('DOS-045: grns.discrepancies for the warehouse role lists damaged findings only; for the owner all kinds', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const blind = await call<{ items: { kind: string }[] }>(
+      app,
+      store,
+      'GET',
+      '/procurement/discrepancies',
+      {},
+    )
+    expect(blind.status).toBe(200)
+    expect(blind.body.items.length).toBeGreaterThan(0)
+    expect([...new Set(blind.body.items.map((d) => d.kind))]).toEqual(['damaged'])
+    // asking for the withheld kind by name answers nothing, never the figures
+    const asking = await call<{ items: { kind: string }[] }>(
+      app,
+      store,
+      'GET',
+      '/procurement/discrepancies',
+      { kind: 'short' },
+    )
+    expect(asking.status).toBe(200)
+    expect(asking.body.items).toEqual([])
+    const desk = await call<{ items: { kind: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/procurement/discrepancies',
+      {},
+    )
+    expect(desk.status).toBe(200)
+    expect([...new Set(desk.body.items.map((d) => d.kind))].sort()).toEqual(['damaged', 'short'])
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-050 — the gate row names the lorry: supplier, bill number and how many lines, never a rate
+
+  it('DOS-050: grns.open stores supplier_id and supplier_invoice_no from the invoice; grns.list and grns.get with a WAREHOUSE token carry supplierName, supplierInvoiceNo and lineCount, and the row has no rate or total field', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const supplierInvoiceId = await approvedInvoice('D50A')
+    const id = uuidv7()
+    const opened = await call<{ item: Grn }>(app, owner, 'POST', '/procurement/grns', {
+      idempotencyKey: `dos050-grn-${run}`,
+      id,
+      supplierInvoiceId,
+      locationId: godown,
+    })
+    expect(opened.status).toBe(200)
+
+    // the two denormalised columns are written at open, from the bill the desk already loaded
+    const stored = (
+      await db.execute(
+        sql`select supplier_id, supplier_invoice_no from grns where tenant_id = ${tenantId} and id = ${id}`,
+      )
+    ).rows[0] as { supplier_id: string | null; supplier_invoice_no: string | null }
+    expect(stored.supplier_id).toBe(supplierId)
+    expect(stored.supplier_invoice_no).toBe(`GK/${run}/D50A`)
+
+    const got = await call<{ item: Grn }>(app, store, 'GET', `/procurement/grns/${id}`)
+    expect(got.status).toBe(200)
+    expect(got.body.item.supplierId).toBe(supplierId)
+    expect(got.body.item.supplierName).toBe(`Guru Kripa ${run}`)
+    expect(got.body.item.supplierInvoiceNo).toBe(`GK/${run}/D50A`)
+    expect(got.body.item.lineCount).toBe(2)
+
+    const listed = await call<{ items: Grn[] }>(app, store, 'GET', '/procurement/grns', {
+      limit: 50,
+    })
+    expect(listed.status).toBe(200)
+    const mine = listed.body.items.find((g) => g.id === id)
+    expect(mine).toMatchObject({
+      supplierId,
+      supplierName: `Guru Kripa ${run}`,
+      supplierInvoiceNo: `GK/${run}/D50A`,
+      lineCount: 2,
+    })
+    // the gate row still carries pieces and identity only
+    expect(JSON.stringify(listed.body)).not.toMatch(MONEY_FIELD)
+  })
+
+  it('DOS-050 guard: a grns row with null supplier columns (pre-backfill) still lists, with supplierName null', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const supplierInvoiceId = await approvedInvoice('D50B')
+    const id = uuidv7()
+    expect(
+      (
+        await call(app, owner, 'POST', '/procurement/grns', {
+          idempotencyKey: `dos050-guard-${run}`,
+          id,
+          supplierInvoiceId,
+          locationId: godown,
+        })
+      ).status,
+    ).toBe(200)
+    await db.execute(
+      sql`update grns set supplier_id = null, supplier_invoice_no = null where id = ${id}`,
+    )
+    const got = await call<{ item: Grn }>(app, store, 'GET', `/procurement/grns/${id}`)
+    expect(got.status).toBe(200)
+    expect(got.body.item.supplierId).toBeNull()
+    expect(got.body.item.supplierName).toBeNull()
+    expect(got.body.item.supplierInvoiceNo).toBeNull()
+    expect(got.body.item.lineCount).toBe(2)
   })
 
   it('refuses requests without tenant context', async () => {

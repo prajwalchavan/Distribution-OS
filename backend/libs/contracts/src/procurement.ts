@@ -238,7 +238,11 @@ export const GrnLineSchema = z.object({
   supplierInvoiceLineId: IdSchema.nullable(),
   variantId: IdSchema,
   lotId: IdSchema.nullable(),
-  expectedQtyPcs: PiecesSchema,
+  /**
+   * Billed + free pieces off the supplier bill. NULL for a blind role (the godown): a gate hand who can
+   * read the target is not counting (QA DOS-045), and short/excess findings are withheld with it.
+   */
+  expectedQtyPcs: PiecesSchema.nullable(),
   countedQtyPcs: PiecesSchema.nullable(),
   damagedQtyPcs: PiecesSchema,
 })
@@ -262,6 +266,17 @@ export const GrnSchema = z.object({
   id: IdSchema,
   grnNo: z.string().nullable(),
   supplierInvoiceId: IdSchema,
+  /**
+   * Who the lorry is from and which bill it carries — denormalised onto `grns` at open, because
+   * `supplier_invoices` is back-office RLS and the gate's own token reads nothing there (QA DOS-050).
+   * Null on a receipt booked before those columns existed. NEVER a rate or a total: cost stays behind
+   * back-office RLS.
+   */
+  supplierId: IdSchema.nullable(),
+  supplierName: z.string().nullable(),
+  supplierInvoiceNo: z.string().nullable(),
+  /** How many lines are on the receipt — what the gate counts, not how many receipts are waiting. */
+  lineCount: z.number().int(),
   locationId: IdSchema,
   status: GrnStatusSchema,
   countedBy: z.string().nullable(),
@@ -450,7 +465,8 @@ export const procurementContract = {
       .route({
         method: 'POST',
         path: '/procurement/grns/{id}/count',
-        summary: 'Blind gate count: pieces received and damaged per line',
+        summary:
+          'Blind gate count: pieces received and damaged per line (no expected figure, no short or excess finding)',
       })
       .input(CountGrnInput)
       .output(CountGrnOutput),

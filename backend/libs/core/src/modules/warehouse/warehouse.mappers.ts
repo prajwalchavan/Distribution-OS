@@ -132,6 +132,12 @@ export async function picklistDetail(
   tx: Db,
   row: PicklistRow,
   orders: OrdersService,
+  /**
+   * The distributor's shelf-life rule and the ISO day it comes to (QA DOS-054). `shortShelfLife` is
+   * DERIVED on every read from each lot's expiry against this cutoff — there is no column — so an
+   * owner who changes the rule re-judges every sheet on the floor.
+   */
+  shelfLife: { days: number; cutoff: string },
 ): Promise<PicklistDetail> {
   const lines = await pickLinesOf(tx, row.id)
   const variants = await loadVariantInfo(
@@ -151,10 +157,17 @@ export async function picklistDetail(
       pickedQtyPcs: lines.reduce((n, l) => n + l.pickedQtyPcs, 0),
     }),
     orders: orderRows.map(toPicklistOrder),
-    lines: lines.map((l) => toPickLine(l, variants, lots)),
-    consolidated: consolidate(lines, variants, lots),
+    lines: lines.map((l) => toPickLine(l, variants, lots, shelfLife)),
+    consolidated: consolidate(lines, variants, lots, shelfLife),
+    minShelfLifeDays: shelfLife.days,
   }
 }
+
+/** A dated batch that runs out before the cutoff. No expiry means nothing to judge (amendment c). */
+const isShortDated = (
+  lot: LotRow | undefined,
+  shelfLife: { days: number; cutoff: string },
+): boolean => shelfLife.days > 0 && lot?.expiryDate != null && lot.expiryDate < shelfLife.cutoff
 
 const toPicklistOrder = (o: FulfilmentOrder): PicklistOrder => ({
   orderId: o.orderId,
@@ -169,6 +182,7 @@ function toPickLine(
   row: PickLineRow,
   variants: Map<string, VariantInfo>,
   lots: Map<string, LotRow>,
+  shelfLife: { days: number; cutoff: string },
 ): PickLine {
   const variant = variants.get(row.variantId)
   const lot = row.lotId === null ? undefined : lots.get(row.lotId)
@@ -190,6 +204,7 @@ function toPickLine(
     freeQtyPcs: row.freeQtyPcs,
     shortReason: row.shortReason,
     fefoOverride: row.fefoOverride,
+    shortShelfLife: isShortDated(lot, shelfLife),
     pickedBy: row.pickedBy,
     pickedAt: iso(row.pickedAt),
   }
@@ -199,6 +214,7 @@ function consolidate(
   lines: readonly PickLineRow[],
   variants: Map<string, VariantInfo>,
   lots: Map<string, LotRow>,
+  shelfLife: { days: number; cutoff: string },
 ): ConsolidatedPickRow[] {
   const bySku = new Map<string, PickLineRow[]>()
   for (const line of lines) {
@@ -231,6 +247,7 @@ function consolidate(
         caseSize,
         ...casesAndLoose(total, caseSize),
         fefoWarning: (existing?.fefoWarning ?? false) || line.fefoOverride,
+        shortShelfLife: isShortDated(lot, shelfLife),
       })
     }
     out.push({

@@ -84,6 +84,18 @@ const QUEUE_STATES = new Set<OrderState>(['confirmed', 'picking', 'packed'])
 /** A wave that is still someone's work: an order on one of these may not be waved again. */
 const LIVE_PICKLIST_STATUSES = ['open', 'picking', 'picked'] as const
 
+/**
+ * One order's live wave: the sheet it is on, where that sheet stands, and what is already on the
+ * pallet. `status` is the column's own type — the query only ever returns a LIVE one, and typing it
+ * as the narrow union would make the row's status claim something the database column does not.
+ */
+export interface LiveWave {
+  picklistId: string
+  picklistNo: string | null
+  status: PicklistRow['status']
+  pickedQtyPcs: number
+}
+
 /** One recorded pick, as `picklists.pick` and the offline handler both express it. */
 export interface RecordedPick {
   id: string
@@ -199,7 +211,9 @@ export class PicklistsService implements OnModuleInit {
       })
       const page = rows.slice(0, input.limit)
       const last = page[page.length - 1]
-      const live = await this.livePicklistByOrder(
+      // QA DOS-050: "ready to pack" must mean picked, not waved. The wave's number, its status and the
+      // pieces actually picked come back with the row, from ONE grouped read for the whole page.
+      const live = await this.liveWaveByOrder(
         tx,
         page.map((o) => o.orderId),
       )
@@ -207,7 +221,16 @@ export class PicklistsService implements OnModuleInit {
         // `fulfilmentQueue` narrows to the three godown states already; this keeps the wire shape
         // honest if a caller ever passes a state the contract does not sanction.
         .filter((o): o is typeof o & { state: FulfilmentQueueState } => QUEUE_STATES.has(o.state))
-        .map((o) => ({ ...o, picklistId: live.get(o.orderId) ?? null }))
+        .map((o) => {
+          const wave = live.get(o.orderId) ?? null
+          return {
+            ...o,
+            picklistId: wave?.picklistId ?? null,
+            picklistNo: wave?.picklistNo ?? null,
+            picklistStatus: wave?.status ?? null,
+            pickedQtyPcs: wave?.pickedQtyPcs ?? 0,
+          }
+        })
         .filter((o) => !input.unpicklistedOnly || o.picklistId === null)
       return {
         items,
@@ -274,6 +297,9 @@ export class PicklistsService implements OnModuleInit {
         }
 
         const now = new Date()
+        // QA DOS-054: one cutoff for the whole wave, computed in TypeScript from the IST business
+        // date, so every line of this sheet is judged against the same day.
+        const cutoff = await this.inventory.shelfLifeCutoff(tx)
         const rows: (typeof pickLines.$inferInsert)[] = []
         for (const line of lines) {
           const requested = line.qtyPcs + line.freeQtyPcs
@@ -284,6 +310,7 @@ export class PicklistsService implements OnModuleInit {
             locationId,
             requested,
             heldByLine.get(line.orderLineId) ?? [],
+            cutoff,
           )
           const lots = await loadLots(
             tx,
@@ -330,7 +357,14 @@ export class PicklistsService implements OnModuleInit {
           picklistNo: await nextDocumentNumber(tx, PICK_SERIES, now),
         })
         if (rows.length > 0) await tx.insert(pickLines).values(rows)
-        return { item: await picklistDetail(tx, picklist, this.orders) }
+        return {
+          item: await picklistDetail(
+            tx,
+            picklist,
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
+        }
       }),
     )
   }
@@ -393,7 +427,12 @@ export class PicklistsService implements OnModuleInit {
     requireRole(WAREHOUSE_DESK)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => ({
-      item: await picklistDetail(tx, await this.findPicklist(tx, input.id), this.orders),
+      item: await picklistDetail(
+        tx,
+        await this.findPicklist(tx, input.id),
+        this.orders,
+        await this.inventory.shelfLifeRule(tx),
+      ),
     }))
   }
 
@@ -443,7 +482,14 @@ export class PicklistsService implements OnModuleInit {
          */
         const afterPutBack = await this.findPicklist(tx, sheet.id)
         if (afterPutBack.status === 'cancelled')
-          return { item: await picklistDetail(tx, afterPutBack, this.orders) }
+          return {
+            item: await picklistDetail(
+              tx,
+              afterPutBack,
+              this.orders,
+              await this.inventory.shelfLifeRule(tx),
+            ),
+          }
         for (const orderId of sheet.orderIds) {
           if (cancelled.has(orderId)) continue
           await this.orders.applyFulfilmentEvent(tx, orderId, 'start_picking', deviceId, null)
@@ -463,7 +509,14 @@ export class PicklistsService implements OnModuleInit {
           orderIds: started.orderIds,
           assignedTo: started.assignedTo,
         })
-        return { item: await picklistDetail(tx, started, this.orders) }
+        return {
+          item: await picklistDetail(
+            tx,
+            started,
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
+        }
       }),
     )
   }
@@ -477,7 +530,12 @@ export class PicklistsService implements OnModuleInit {
         const sheet = await this.lockPicklist(tx, input.id)
         const warnings = await this.applyPicks(tx, sheet, input.lines)
         return {
-          item: await picklistDetail(tx, await this.findPicklist(tx, sheet.id), this.orders),
+          item: await picklistDetail(
+            tx,
+            await this.findPicklist(tx, sheet.id),
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
           warnings,
         }
       }),
@@ -502,7 +560,14 @@ export class PicklistsService implements OnModuleInit {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const sheet = await this.lockPicklist(tx, input.id)
         if (sheet.status === 'cancelled')
-          return { item: await picklistDetail(tx, sheet, this.orders) }
+          return {
+            item: await picklistDetail(
+              tx,
+              sheet,
+              this.orders,
+              await this.inventory.shelfLifeRule(tx),
+            ),
+          }
         if (sheet.status !== 'open')
           throw new ORPCError('CONFLICT', {
             message: `picklist ${sheet.picklistNo ?? sheet.id} is ${sheet.status}; only a sheet nobody has started can be cancelled`,
@@ -515,7 +580,14 @@ export class PicklistsService implements OnModuleInit {
           cancelledAt: new Date(),
           cancelReason: input.reason,
         })
-        return { item: await picklistDetail(tx, cancelled, this.orders) }
+        return {
+          item: await picklistDetail(
+            tx,
+            cancelled,
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
+        }
       }),
     )
   }
@@ -545,12 +617,28 @@ export class PicklistsService implements OnModuleInit {
         tx,
         page.map((r) => r.orderLineId),
       )
+      // QA DOS-050: a held row says WHO it is held for. The shop comes from OrdersService — warehouse
+      // never names `sales_orders` — and the page is at most `limit` rows, so at most `limit` orders,
+      // which is the same 200 `fulfilmentOrders` accepts.
+      const shops = new Map(
+        (
+          await this.orders.fulfilmentOrders(tx, [
+            ...new Set(
+              page
+                .map((r) => owners.get(r.orderLineId)?.orderId)
+                .filter((id): id is string => id !== undefined),
+            ),
+          ])
+        ).map((o) => [o.orderId, o]),
+      )
       const last = page[page.length - 1]
       return {
         items: page.map((r) => ({
           id: r.id,
           orderId: owners.get(r.orderLineId)?.orderId ?? null,
           orderNo: owners.get(r.orderLineId)?.orderNo ?? null,
+          retailerId: shops.get(owners.get(r.orderLineId)?.orderId ?? '')?.retailerId ?? null,
+          retailerName: shops.get(owners.get(r.orderLineId)?.orderId ?? '')?.retailerName ?? null,
           orderLineId: r.orderLineId,
           variantId: r.variantId,
           variantName: r.variantName,
@@ -659,6 +747,8 @@ export class PicklistsService implements OnModuleInit {
     const updates: { id: string; values: Partial<typeof pickLines.$inferInsert> }[] = []
     const working = new Map(existing.map((r) => [r.id, { ...r }]))
     const fefoCache = new Map<string, string | null>()
+    // QA DOS-054: the distributor's shelf-life rule, read once for this call.
+    const { days: minShelfLifeDays, cutoff } = await this.inventory.shelfLifeRule(tx)
 
     for (const pick of input) {
       const template = byId.get(pick.id) ?? byOrderLine.get(pick.orderLineId)?.[0]
@@ -702,6 +792,7 @@ export class PicklistsService implements OnModuleInit {
         pick.lotId,
         sheet.locationId,
         fefoCache,
+        cutoff,
       )
       const values = {
         lotId: pick.lotId,
@@ -741,6 +832,14 @@ export class PicklistsService implements OnModuleInit {
           pickLineId: pick.id,
           code: 'fefo_override',
           message: `lot ${lot.batchNo || pick.lotId} was taken while an earlier-expiry batch still had stock`,
+        })
+      // QA DOS-054: the rule WARNS, it never blocks. The pieces are recorded either way; the desk sees
+      // the flag on the sheet and the picker sees it on the phone. A lot with no expiry is never short.
+      if (minShelfLifeDays > 0 && lot.expiryDate !== null && lot.expiryDate < cutoff)
+        warnings.push({
+          pickLineId: pick.id,
+          code: 'short_shelf_life',
+          message: `batch ${lot.batchNo || pick.lotId} expires on ${lot.expiryDate}, under the ${minShelfLifeDays}-day rule`,
         })
     }
 
@@ -783,21 +882,60 @@ export class PicklistsService implements OnModuleInit {
     return row
   }
 
-  /** The live wave each of these orders is on, if any — the queue's `picklistId` and the wave guard. */
-  async livePicklistByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
+  /**
+   * The live wave each of these orders is on, with the number on its paper, where it stands and how
+   * many pieces of THIS order have actually been picked on it (QA DOS-050) — one grouped query for the
+   * whole page, never one per row. `open` / `picking` / `picked` are live; a packed or cancelled wave
+   * is not a wave any more.
+   *
+   * A line the desk put back (QA DOS-138, `cancelled_at`) is off the sheet, so it neither keeps its
+   * order on a live wave nor adds its pieces to `pickedQtyPcs`. `putBackOrder` only ever runs for an
+   * order the desk has cancelled, which no longer reaches the queue or the waveable set, so this is
+   * the read agreeing with the column rather than a behaviour change — and it is what keeps the two
+   * agreeing if a put-back ever arrives for a live order.
+   */
+  async liveWaveByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, LiveWave>> {
     const ids = [...new Set(orderIds)]
     if (ids.length === 0) return new Map()
     const rows = await tx
-      .select({ orderId: pickLines.orderId, picklistId: pickLines.picklistId })
+      .select({
+        orderId: pickLines.orderId,
+        picklistId: pickLines.picklistId,
+        picklistNo: picklists.picklistNo,
+        status: picklists.status,
+        pickedQtyPcs: sql<number>`coalesce(sum(${pickLines.pickedQtyPcs}), 0)::int`,
+      })
       .from(pickLines)
       .innerJoin(picklists, eq(picklists.id, pickLines.picklistId))
       .where(
         and(
           inArray(pickLines.orderId, ids),
+          isNull(pickLines.cancelledAt),
           inArray(picklists.status, [...LIVE_PICKLIST_STATUSES]),
         ),
       )
-    return new Map(rows.map((r) => [r.orderId, r.picklistId]))
+      .groupBy(pickLines.orderId, pickLines.picklistId, picklists.picklistNo, picklists.status)
+    return new Map(
+      rows.map((r) => [
+        r.orderId,
+        {
+          picklistId: r.picklistId,
+          picklistNo: r.picklistNo,
+          status: r.status,
+          pickedQtyPcs: Number(r.pickedQtyPcs),
+        },
+      ]),
+    )
+  }
+
+  /** The wave guard's half of the same read: order -> live picklist id. */
+  async livePicklistByOrder(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
+    return new Map(
+      [...(await this.liveWaveByOrder(tx, orderIds))].map(([orderId, wave]) => [
+        orderId,
+        wave.picklistId,
+      ]),
+    )
   }
 
   /** Every order on a wave ships from ONE location; a mixed wave is a 409, not a silent split. */
@@ -831,6 +969,7 @@ export class PicklistsService implements OnModuleInit {
     locationId: string,
     requested: number,
     held: readonly { lotId: string; qtyPcs: number }[],
+    cutoff: string,
   ): Promise<{ lotId: string | null; qtyPcs: number }[]> {
     const out: { lotId: string | null; qtyPcs: number }[] = []
     let remaining = requested
@@ -842,7 +981,7 @@ export class PicklistsService implements OnModuleInit {
       remaining -= take
     }
     if (remaining > 0) {
-      for (const candidate of await fefoLots(tx, variantId, locationId)) {
+      for (const candidate of await fefoLots(tx, variantId, locationId, cutoff)) {
         if (remaining <= 0) break
         const take = Math.min(remaining, candidate.available)
         if (take <= 0) continue
@@ -864,10 +1003,11 @@ export class PicklistsService implements OnModuleInit {
     lotId: string,
     locationId: string,
     cache: Map<string, string | null>,
+    cutoff: string,
   ): Promise<boolean> {
     if (row.suggestedLotId !== null) return row.suggestedLotId !== lotId
     if (!cache.has(row.variantId)) {
-      const candidates = await fefoLots(tx, row.variantId, locationId)
+      const candidates = await fefoLots(tx, row.variantId, locationId, cutoff)
       cache.set(row.variantId, candidates[0]?.lotId ?? null)
     }
     const earliest = cache.get(row.variantId) ?? null

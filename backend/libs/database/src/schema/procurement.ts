@@ -226,6 +226,12 @@ export const grns = pgTable(
     supplierInvoiceId: text('supplier_invoice_id')
       .notNull()
       .references(() => supplierInvoices.id),
+    // QA DOS-050: denormalised from `supplier_invoices`, which is BACK_OFFICE RLS — the gate's own
+    // token reads nothing there, so the receipt row could name neither the lorry nor its bill. Written
+    // at `grns.open` by the desk, which has the invoice in hand; nullable, so rows booked before this
+    // column existed still read (the guarantees migration backfills them once).
+    supplierId: text('supplier_id').references(() => suppliers.id),
+    supplierInvoiceNo: text('supplier_invoice_no'),
     locationId: text('location_id')
       .notNull()
       .references(() => locations.id),

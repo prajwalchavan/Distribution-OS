@@ -170,8 +170,9 @@ export type BrandingGet = z.infer<typeof BrandingGetOutput>
 
 /**
  * A setting key: dotted lowercase, e.g. `branding.display_name`, `delivery.pod_required`,
- * `secret.whatsapp_token`. `secret.*` keys are owner-only at the database and never leave
- * `settings.get` for any other role.
+ * `inventory.min_shelf_life_days` (the days of life a batch must have left before the godown offers
+ * it first — founder, 2026-09-13, QA DOS-054; `0` switches the rule off), `secret.whatsapp_token`.
+ * `secret.*` keys are owner-only at the database and never leave `settings.get` for any other role.
  */
 export const SettingKeySchema = z
   .string()

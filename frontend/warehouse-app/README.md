@@ -85,7 +85,7 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
-| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces frozen per lot) | owner, manager, warehouse |
+| POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
 | GET | `/inventory/cycle-counts` | Cycle counts by location and status | owner, manager, accountant, warehouse, delivery |
@@ -97,7 +97,7 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | POST | `/procurement/supplier-invoices/{id}/dispute` | Mark a supplier invoice disputed before any GRN posts against it | owner, manager |
 | POST | `/procurement/supplier-invoices/{id}/cancel` | Cancel a supplier invoice that never became stock | owner, manager |
 | POST | `/procurement/grns` | Open a GRN for an approved supplier invoice (expected pieces, no rates) | owner, manager |
-| POST | `/procurement/grns/{id}/count` | Blind gate count: pieces received and damaged per line | owner, manager, warehouse |
+| POST | `/procurement/grns/{id}/count` | Blind gate count: pieces received and damaged per line (no expected figure, no short or excess finding) | owner, manager, warehouse |
 | POST | `/procurement/grns/{id}/post` | Post the GRN: lots, stock ledger, purchase cost, invoice received | owner, manager |
 | GET | `/procurement/grns` | Goods receipts | owner, manager, accountant, warehouse |
 | GET | `/procurement/grns/{id}` | One GRN with lines and discrepancies | owner, manager, accountant, warehouse |

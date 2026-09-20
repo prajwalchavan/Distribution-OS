@@ -673,6 +673,9 @@ export const strings = {
   'o24.tolerance': 'Settlement tolerance ₹',
   'o24.pod': 'Proof of delivery',
   'o24.gpsRetention': 'GPS kept for (days)',
+  'o24.minShelfLife': 'Minimum shelf life to ship (days)',
+  'o24.minShelfLifeHint':
+    'A batch with fewer days left is offered last, never first. The picker is warned, not stopped. 0 turns the rule off.',
   'o24.ewbThreshold': 'E-way bill threshold ₹',
   'o24.supportWindow': 'Support window',
   'o24.approveSupport': 'Approve access',
