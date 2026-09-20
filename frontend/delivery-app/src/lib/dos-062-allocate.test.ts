@@ -44,8 +44,11 @@ import {
   appliedLines,
   billsThatTakeMoney,
   billsThatCanBeTagged,
+  liveTags,
+  owedHereIsAsBilled,
   owedHerePaise,
   recordRefusal,
+  settledBillChip,
   tagAllocations,
   whereTheMoneyGoes,
   type DoorBill,
@@ -95,9 +98,11 @@ const PAID: DoorBill = {
   openPaise: 0,
 }
 /**
- * REVIEW OF DOS-062 — the bill this fix was refused on. `Tc803a3a5/1` rides on the ACTIVE trip in
- * the seed: total ₹1,180.00, state `issued` (NOT `partially_paid` — the office's own row), and
- * ₹1,020.00 of it already allocated, so ₹160.00 is what it still asks for.
+ * REVIEW OF DOS-062 — the SHAPE the fix was refused on, and the shape is the point: a bill whose
+ * `state` column still reads `issued` while the office has money against it already, so its face
+ * value and what it still asks for are two different figures. It was measured on `Tc803a3a5/1` of
+ * the seed's ACTIVE trip on 2026-09-19 (₹1,180.00 billed, ₹1,020.00 against it, `issued`); the
+ * seed moves, and the figures below are this test's own, not a row anyone should look up today.
  */
 const PART_PAID: DoorBill = {
   id: 'del-4',
@@ -306,6 +311,60 @@ describe('DOS-062 review — a tag is capped at what the office says the bill st
     ).toEqual(['This paid Tc803a3a5/1 ₹60.00', 'Tc803a3a5/1 is still open — ₹100.00'])
   })
 
+  it('DOS-062 (review) a bill that can no longer take money is chipped with the office’s own word', () => {
+    // The chip said "Paid" for ANY state that is not open. A bill the office cancelled, or wrote
+    // off, would have read "Paid" at the door — the one word a shopkeeper acts on, and the one the
+    // crew cannot walk back. The word comes from the bill's own state now.
+    expect(settledBillChip(t, PAID)).toEqual({ label: 'Paid', family: 'moss' })
+    expect(settledBillChip(t, { ...PAID, state: 'cancelled' })).toEqual({
+      label: 'Cancelled',
+      family: 'neutral',
+    })
+    expect(settledBillChip(t, { ...PAID, state: 'written_off' })).toEqual({
+      label: 'Written off',
+      family: 'neutral',
+    })
+    // Still `issued` on this phone, nothing left on it at the office: the office's figure is the
+    // newer fact of the two, and "Paid" is the true word for it.
+    expect(settledBillChip(t, { ...PART_PAID, openPaise: 0 })).toEqual({
+      label: 'Paid',
+      family: 'moss',
+    })
+  })
+
+  it('DOS-062 (review) the figure over the pad says "as billed" while the office has not answered', () => {
+    // The third bullet of the finding survives offline: with no answer from the office the total is
+    // a sum of FACE values, and a part-paid bill makes it an overstatement under a label that reads
+    // "Owed on the bills here". The screen keeps the figure — it is the only one the device has —
+    // and stops claiming it is what the bills still ask for.
+    expect(owedHereIsAsBilled([PART_PAID])).toBe(false)
+    expect(owedHereIsAsBilled([UNKNOWN])).toBe(true)
+    expect(owedHereIsAsBilled([JUNE, UNKNOWN])).toBe(true)
+    // A bill that cannot take money is not in the figure, so it cannot make it a face value either.
+    expect(owedHereIsAsBilled([PAID, { ...UNKNOWN, state: 'paid' }])).toBe(false)
+  })
+
+  it('DOS-062 (review) a tag the office’s newer answer drops stops being a tag', () => {
+    const tagged = new Set(['inv-0099', 'inv-0825'])
+    expect([...liveTags([JUNE, TODAY], tagged)]).toEqual(['inv-0099', 'inv-0825'])
+    // A refreshed answer settles June's bill between the tap and the press. `tagAllocations`
+    // already drops it from the split — silently — so the row went on reading "Tagged" while the
+    // money went oldest-bill-first. The screen reads its tags through the same rule now.
+    const settledJune: DoorBill = { ...JUNE, state: 'paid', openPaise: 0 }
+    expect([...liveTags([settledJune, TODAY], tagged)]).toEqual(['inv-0825'])
+    // With every tag gone the sentence under the bills is the office's rule again, not "goes to".
+    expect(
+      whereTheMoneyGoes(t, {
+        bills: [settledJune],
+        tagged: liveTags([settledJune], tagged),
+        openBills: 1,
+        canTag: true,
+      }),
+    ).toBe(
+      'Untagged, the office puts this on the oldest bill this shop still owes — not always the bill in your hand. Tap a bill to send it there instead.',
+    )
+  })
+
   it('DOS-062 an office that refuses the split tells the driver what to do, not raw paise', () => {
     const refused = {
       kind: 'conflict',
@@ -337,6 +396,19 @@ describe('DOS-062 review — D5 asks the office before it lets a bill be tagged'
     // Not a value from before the last receipt at this same door.
     expect(d5).toMatch(/staleTime:\s*0/)
     expect(d5).toMatch(/invalidates:[^\n]*\['outstanding'\]/)
+  })
+
+  it('DOS-062 (review) D5 reads its tags, its label and its chips through the rule', async () => {
+    const d5 = await read('../../app/stop/[id]/collect.tsx')
+    // One source for "is this bill still tagged": the rule, not the raw held set.
+    expect(d5).toMatch(/const liveTagged = useMemo/)
+    expect(d5).toMatch(/tagged: liveTagged/)
+    expect(d5).not.toMatch(/tagged\.has\(invoiceId \?\? ''\)/)
+    // The chip on a settled bill is the office's word for it, not "Paid" for everything.
+    expect(d5).toMatch(/settledBillChip\(t, bill\)/)
+    // And the label over the pad admits a face value when the office has not answered.
+    expect(d5).toMatch(/owedHereIsAsBilled\(doorBills\)/)
+    expect(d5).toMatch(/d5\.expectedHereAsBilled/)
   })
 
   it('DOS-062 a row is tappable only when the office has said what that bill still owes', async () => {
