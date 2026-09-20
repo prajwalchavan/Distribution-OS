@@ -94,6 +94,8 @@ export const strings = {
   'o1.orders': 'Orders today',
   'o1.stops': 'Stops delivered',
   'o1.overdue': '{amount} overdue',
+  // DOS-016: the headline is gross; money already in the till is named beside it (founder, docs/22 §8).
+  'o1.overdueLessOnAccount': '{amount} overdue · less {onAccount} on account',
   'o1.trips': '{count} trips active',
   'o1.failedStops': '{count} failed',
   'o1.stopsDone': '{count} stops delivered',
@@ -331,6 +333,8 @@ export const strings = {
   'o10.oldest': 'Oldest due',
   'o10.mode': 'On the limit',
   'o10.buckets': 'Money owed, by age',
+  // DOS-016: the ladder is gross; this names the money already in the till and the net the books carry.
+  'o10.onAccountLine': 'On account {onAccount} · Net dues {net} (matches Books → Trial balance)',
   'o10.byShop': 'Shop by shop',
   'o10.history': 'Ageing over time',
   'o10.rebuild': 'Rebuild ageing',

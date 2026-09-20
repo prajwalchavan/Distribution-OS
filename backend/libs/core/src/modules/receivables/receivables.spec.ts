@@ -894,6 +894,59 @@ describeDb('receivables (DATABASE_URL)', () => {
     }
   })
 
+  /*
+   * DOS-016: the owner chased ₹35,080 that was already in the till. "Outstanding" is the GROSS open
+   * value of bills; money received on account and not yet applied to a bill is netted off in the books
+   * but was rolled up nowhere, so Today and Books → Trial balance disagreed by exactly that sum. The
+   * founder (docs/22 §8, 2026-09-13) keeps every "outstanding" figure gross and puts the on-account
+   * money beside it, so the register must carry it over every row the filter matches.
+   */
+  it('DOS-016: outstanding.list totals carry unallocatedCreditPaise over every matching row, and it follows the filters like outstandingPaise does', async () => {
+    type Totals = {
+      totals: {
+        outstandingPaise: number
+        overduePaise: number
+        unallocatedCreditPaise: number
+        retailers: number
+      }
+    }
+    const all = await call<Totals>(app, owner, 'GET', '/receivables/outstanding', { limit: 3 })
+    expect(all.status).toBe(200)
+    expect(all.body.totals.unallocatedCreditPaise).toBeGreaterThan(0)
+
+    // the books: gross dues less the money on account IS the AR balance the trial balance shows
+    const ar = await db.execute(sql`
+      select coalesce(sum(jl.amount_paise), 0) as ar
+        from journal_lines jl join accounts a on a.id = jl.account_id
+       where jl.tenant_id = ${tenantId} and a.code = 'AR'`)
+    expect(all.body.totals.outstandingPaise - all.body.totals.unallocatedCreditPaise).toBe(
+      Number((ar.rows[0] as { ar: string }).ar),
+    )
+
+    // the shop that holds an over-payment and no bills at all
+    const g = await call<Totals>(app, owner, 'GET', '/receivables/outstanding', {
+      limit: 5,
+      q: `Shop 7 ${run}`,
+    })
+    expect(g.body.totals).toMatchObject({
+      retailers: 1,
+      outstandingPaise: 0,
+      unallocatedCreditPaise: 7_000,
+    })
+
+    // and it narrows with the filter, exactly as the gross figure does: that shop owes nothing overdue
+    const overdue = await call<Totals>(app, owner, 'GET', '/receivables/outstanding', {
+      limit: 5,
+      q: `Shop 7 ${run}`,
+      overdueOnly: true,
+    })
+    expect(overdue.body.totals).toMatchObject({
+      retailers: 0,
+      outstandingPaise: 0,
+      unallocatedCreditPaise: 0,
+    })
+  })
+
   it('serves the same closing balance to the desk and to the shop', async () => {
     const desk = await call<LedgerReply>(app, accountant, 'GET', `/receivables/ledger/${shop.a}`, {
       from: day(-200),

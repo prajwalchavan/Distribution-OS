@@ -539,6 +539,12 @@ export const OwnerDashboardOutput = z.object({
   cashInTransitPaise: PaiseSchema,
   totalOutstandingPaise: PaiseSchema,
   overduePaise: PaiseSchema,
+  /**
+   * Money shops have paid that no bill has claimed yet (DOS-016). `totalOutstandingPaise` is the GROSS
+   * open value of bills, which the ageing ladder, the snapshots and the shop register all sum to; the
+   * books net this off, so `totalOutstandingPaise − onAccountPaise` is Sundry Debtors in the trial balance.
+   */
+  onAccountPaise: PaiseSchema,
   /** Open dues by ageing bucket over the whole tenant (the `<AgeingBuckets>` tile). */
   ageing: AgeingBucketsSchema,
   mtdSalesPaise: PaiseSchema,

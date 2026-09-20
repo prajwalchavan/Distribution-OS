@@ -602,6 +602,11 @@ export const OutstandingListOutput = z.object({
   totals: z.object({
     outstandingPaise: PaiseSchema,
     overduePaise: PaiseSchema,
+    /**
+     * Money the matching shops have paid that no bill has claimed yet (DOS-016). `outstandingPaise`
+     * stays GROSS; the books net this off, so the difference is what the trial balance calls AR.
+     */
+    unallocatedCreditPaise: PaiseSchema,
     retailers: z.number().int(),
     buckets: AgeingBucketsSchema,
   }),

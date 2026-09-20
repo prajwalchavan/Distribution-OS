@@ -248,6 +248,7 @@ export class ReportingService {
         cashInTransitPaise: fromDetail('cashInTransitPaise'),
         totalOutstandingPaise: summary?.totalOutstandingPaise ?? 0,
         overduePaise: summary?.overduePaise ?? 0,
+        onAccountPaise: fromDetail('onAccountPaise'),
         ageing,
         mtdSalesPaise: summary?.mtdSalesPaise ?? 0,
         mtdGrossMarginPaise: summary?.mtdGrossMarginPaise ?? 0,

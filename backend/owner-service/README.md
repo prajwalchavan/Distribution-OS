@@ -14190,6 +14190,7 @@ curl "http://localhost:3001/receivables/outstanding?beatId=01a06d3e-cfdb-7635-85
   "totals": {
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "unallocatedCreditPaise": 4000,
     "retailers": 1,
     "buckets": {
       "b0_7": 1,
@@ -40634,6 +40635,7 @@ curl "http://localhost:3001/reporting/dashboard/owner" \
   "cashInTransitPaise": 4000,
   "totalOutstandingPaise": 2680000,
   "overduePaise": 4000,
+  "onAccountPaise": 4000,
   "ageing": {
     "b0_7": 1,
     "b8_15": 1,

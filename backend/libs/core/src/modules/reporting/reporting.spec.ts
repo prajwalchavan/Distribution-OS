@@ -1624,6 +1624,94 @@ describeDb('reporting (DATABASE_URL)', () => {
     ])
   })
 
+  /*
+   * DOS-016: money a shop has paid but that no bill has claimed yet. It is netted off in the books
+   * (`outstanding − unallocated = AR`), so the owner's gross "Outstanding" and Books → Trial balance
+   * disagreed by exactly that sum and nobody could say why. The founder keeps the headline gross and
+   * puts this figure beside it (docs/22 §8), so the rollup must carry it: live, like the ageing rungs.
+   */
+  it('DOS-016: after a rollup the owner dashboard carries onAccountPaise = Σ unallocated_credit_paise, and the net of the two is what the books call AR', async () => {
+    const onAccountTenantId = uuidv7()
+    const onAccountOwnerId = uuidv7()
+    const shopOne = uuidv7()
+    const shopTwo = uuidv7()
+    await db.insert(tenants).values({
+      id: onAccountTenantId,
+      slug: `oa-${run}`,
+      legalName: 'On account',
+      stateCode: '27',
+    })
+    await db.insert(retailers).values([
+      {
+        id: shopOne,
+        tenantId: onAccountTenantId,
+        code: `OA1-${run}`,
+        name: `Shop OA1 ${run}`,
+        phone: `+91918${run}1`,
+        stateCode: '27',
+      },
+      {
+        id: shopTwo,
+        tenantId: onAccountTenantId,
+        code: `OA2-${run}`,
+        name: `Shop OA2 ${run}`,
+        phone: `+91918${run}2`,
+        stateCode: '27',
+      },
+    ])
+    await db.insert(retailerOutstandingSummary).values([
+      {
+        tenantId: onAccountTenantId,
+        retailerId: shopOne,
+        outstandingPaise: 70_000,
+        overduePaise: 20_000,
+        unallocatedCreditPaise: 5_000,
+        asOf: today,
+      },
+      {
+        tenantId: onAccountTenantId,
+        retailerId: shopTwo,
+        outstandingPaise: 30_000,
+        overduePaise: 0,
+        unallocatedCreditPaise: 2_500,
+        asOf: today,
+      },
+    ])
+    await rollupTenantDay(db, onAccountTenantId, today)
+
+    const dash = await call<OwnerDashboard>(
+      app,
+      { tenantId: onAccountTenantId, actorId: onAccountOwnerId, role: 'owner' },
+      'GET',
+      '/reporting/dashboard/owner',
+    )
+    expect(dash.status).toBe(200)
+    // the headline stays GROSS — the ageing ladder, the snapshots and the shop register all sum to it
+    expect(dash.body.totalOutstandingPaise).toBe(100_000)
+    expect(dash.body.onAccountPaise).toBe(7_500)
+    // and the net, which is the figure the books carry as Sundry Debtors
+    expect(dash.body.totalOutstandingPaise - dash.body.onAccountPaise).toBe(92_500)
+
+    // it is LIVE, like the ageing rungs: a receipt taken on account moves it on the next rollup
+    await db
+      .update(retailerOutstandingSummary)
+      .set({ unallocatedCreditPaise: 9_000 })
+      .where(
+        and(
+          eq(retailerOutstandingSummary.tenantId, onAccountTenantId),
+          eq(retailerOutstandingSummary.retailerId, shopOne),
+        ),
+      )
+    await rollupTenantDay(db, onAccountTenantId, today)
+    const again = await call<OwnerDashboard>(
+      app,
+      { tenantId: onAccountTenantId, actorId: onAccountOwnerId, role: 'owner' },
+      'GET',
+      '/reporting/dashboard/owner',
+    )
+    expect(again.body.onAccountPaise).toBe(11_500)
+  })
+
   // ===============================================================================================
   // roles, RLS and tenant isolation
   // ===============================================================================================

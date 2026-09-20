@@ -922,6 +922,7 @@ export async function seedReportingClose(
     await db.execute(sql`
       select coalesce(sum(outstanding_paise), 0)::bigint as outstanding,
              coalesce(sum(overdue_paise), 0)::bigint as overdue,
+             coalesce(sum(unallocated_credit_paise), 0)::bigint as unallocated,
              coalesce(sum(bucket_0_7_paise), 0)::bigint as b0_7,
              coalesce(sum(bucket_8_15_paise), 0)::bigint as b8_15,
              coalesce(sum(bucket_16_30_paise), 0)::bigint as b16_30,
@@ -963,6 +964,8 @@ export async function seedReportingClose(
       activeTrips: n(active?.active),
       detail: {
         cashInTransitPaise: n(inTransit?.paise),
+        // DOS-016: the same sum the rollup writes, so the demo tile and the demo books agree.
+        onAccountPaise: n(dues?.unallocated),
         ageingB0_7: n(dues?.b0_7),
         ageingB8_15: n(dues?.b8_15),
         ageingB16_30: n(dues?.b16_30),
