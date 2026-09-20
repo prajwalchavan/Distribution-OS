@@ -6,9 +6,14 @@
  * platform (`ramesh.gupta` buys from three in the pilot data), and every read below — catalog,
  * prices, orders, bills, ledger — is scoped to the distributor that is OPEN. So the cards sit at the
  * top, the open one names itself in words rather than by colour alone, and switching goes through
- * `auth.switchTenant`, which mints a token for the other tenant. The dues on a card that is not open
- * are deliberately NOT fetched: reading them would mean switching the session behind the reader's
- * back, three times, on the screen that opens the app.
+ * `auth.switchTenant`, which mints a token for the other tenant.
+ *
+ * WHAT EVERY CARD SHOWS (DOS-102). Each distributor's dues, its last bill and any van on the way, plus
+ * the total owed across all of them — from ONE call, `auth.memberships.summary`. That read lives on
+ * auth-service because it is cross-tenant by nature; it reads each tenant under this login's own
+ * membership role inside `withTenant`, so nothing appears that a switch would not have shown, and the
+ * session is never switched behind the reader's back. It carries no credit limit and no credit
+ * available: ADR 0006 keeps both off this app.
  *
  * "REORDER IN 2 TAPS" (docs/23 §6). Tap one is "Order again", which opens the order screen on the basket
  * of the shop's most recently PLACED order — whoever placed it, never a draft — RE-PRICED today, so the
@@ -40,6 +45,7 @@ import { useState } from 'react'
 
 import { absoluteUrl } from '../src/config'
 import { instantWithClock, longInstant, shortDate } from '../src/lib/dates'
+import { rememberDistributor } from '../src/lib/last-distributor'
 import { useMyShop } from '../src/lib/shop'
 import { Async, Panel, duesFamily, orderFamily } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
@@ -116,6 +122,16 @@ export default function Home(): React.JSX.Element {
     { enabled: signedIn && retailerId !== null },
   )
 
+  /**
+   * DOS-102: every distributor's dues, last bill and van, in one call. `auth.*` is routed to the auth
+   * service by the client, so this does not need the open tenant's own service.
+   */
+  const across = useQuery(['memberships', 'summary'], () => api.api.auth.memberships.summary(), {
+    enabled: signedIn,
+    staleTime: 60_000,
+  })
+  const acrossBy = new Map((across.data?.items ?? []).map((item) => [item.tenantId, item]))
+
   const [switching, setSwitching] = useState<string | null>(null)
 
   const summary = dues.data
@@ -175,12 +191,21 @@ export default function Home(): React.JSX.Element {
         {/* --- the distributor cards ------------------------------------------------------- */}
         <Panel
           title={t('r2.distributors')}
-          meta={memberships.length > 1 ? t('r2.duesElsewhere') : t('r2.oneOnly')}
+          meta={memberships.length > 1 ? undefined : t('r2.oneOnly')}
           testID="r2-distributors"
         >
           <Stack gap={3}>
+            {memberships.length > 1 ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="r2-total">
+                {t('r2.owedAcross', {
+                  total: formatMoney(across.data?.totalOutstandingPaise ?? 0),
+                  count: String(memberships.length),
+                })}
+              </Txt>
+            ) : null}
             {memberships.map((membership) => {
               const open = membership.tenantId === openTenantId
+              const card = acrossBy.get(membership.tenantId)
               return (
                 <Box
                   key={membership.tenantId}
@@ -201,27 +226,67 @@ export default function Home(): React.JSX.Element {
                         open ? t('r2.openHere', { name: membership.displayName }) : undefined
                       }
                     />
-                    {open ? (
-                      <Row gap={3} wrap>
-                        <StatusChip
-                          label={t('r2.owes')}
-                          family={duesFamily(
-                            summary?.overduePaise ?? 0,
-                            summary?.outstandingPaise ?? 0,
-                          )}
-                        />
-                        <Money value={summary?.outstandingPaise ?? null} size="moneyM" />
-                      </Row>
-                    ) : (
+                    {/*
+                      DOS-102: the dues line is on EVERY card now, open or not — that is the whole
+                      point of one home for a shop that buys from three distributors. The open card
+                      prefers its own `receivables.outstanding.get` (the same figure the KPI strip and
+                      the bottom bar show, refreshed with them); the others read the summary.
+                    */}
+                    <Row gap={3} wrap>
+                      <StatusChip
+                        label={t('r2.owes')}
+                        family={duesFamily(
+                          (open ? summary?.overduePaise : card?.overduePaise) ?? 0,
+                          (open ? summary?.outstandingPaise : card?.outstandingPaise) ?? 0,
+                        )}
+                      />
+                      <Money
+                        value={(open ? summary?.outstandingPaise : card?.outstandingPaise) ?? null}
+                        size="moneyM"
+                      />
+                    </Row>
+                    <Txt
+                      field="label"
+                      desk="meta"
+                      color={colors.text.secondary}
+                      testID={`r2-card-${membership.tenantSlug}-bills`}
+                    >
+                      {card?.lastBill === undefined || card.lastBill === null
+                        ? t('r2.noBillsYet')
+                        : t('r2.cardLastBill', {
+                            no: card.lastBill.invoiceNo ?? t('app.none'),
+                            date: shortDate(card.lastBill.invoiceDate),
+                            amount: formatMoney(card.lastBill.totalPaise),
+                          })}
+                    </Txt>
+                    {card?.onTheWay === undefined || card.onTheWay === null ? null : (
+                      <Txt
+                        field="label"
+                        desk="meta"
+                        color={colors.text.primary}
+                        testID={`r2-card-${membership.tenantSlug}-coming`}
+                      >
+                        {card.onTheWay.state === 'arrived'
+                          ? t('r2.vanHere')
+                          : card.onTheWay.etaAt !== null
+                            ? t('r2.vanEta', { when: instantWithClock(card.onTheWay.etaAt) })
+                            : t('r2.vanComing', { count: String(card.onTheWay.stops) })}
+                      </Txt>
+                    )}
+                    {open ? null : (
                       <Button
                         label={t('r2.switch', { name: membership.displayName })}
                         variant="secondary"
                         loading={switching === membership.tenantId}
                         onPress={() => {
                           setSwitching(membership.tenantId)
-                          void switchDistributor(membership.tenantId).finally(() => {
-                            setSwitching(null)
-                          })
+                          void switchDistributor(membership.tenantId)
+                            .then((next) => {
+                              rememberDistributor(next.tenant.id)
+                            })
+                            .finally(() => {
+                              setSwitching(null)
+                            })
                         }}
                         testID={`r2-switch-${membership.tenantSlug}`}
                       />

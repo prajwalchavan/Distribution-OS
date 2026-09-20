@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq, notInArray } from 'drizzle-orm'
 import type { CreditNoteDetail, InvoiceDetail } from '@dos/contracts'
 import { creditNotes, invoices, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
@@ -50,4 +50,40 @@ export async function loadCreditNoteDocument(
     { invoiceNo: invoice?.invoiceNo ?? null, isInterState: invoice?.isInterState ?? false },
     await sellerBranding(tx),
   )
+}
+
+/** The caller's most recent real bill in this distributor, as the shop's home card prints it (DOS-102). */
+export interface LastBillForCaller {
+  invoiceNo: string | null
+  invoiceDate: string
+  totalPaise: number
+}
+
+/**
+ * The newest bill the CALLER can see here — no ids, because RLS supplies the scope: `invoices_read`
+ * (`tenantOrOwnRetailerPolicy`) narrows a `retailer` actor to its own shops' bills. A draft is not a
+ * bill the shop has and a cancelled one is not a bill any more, so neither can be answered as "your
+ * last bill"; the order is by invoice DATE (a bill entered late is still the newest by date), with the
+ * id as the tie-break.
+ *
+ * Used by `auth.memberships.summary`; auth may not read `invoices` itself (module boundary).
+ */
+export async function lastBillForCaller(tx: Db): Promise<LastBillForCaller | null> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({
+      invoiceNo: invoices.invoiceNo,
+      invoiceDate: invoices.invoiceDate,
+      totalPaise: invoices.totalPaise,
+    })
+    .from(invoices)
+    .where(
+      and(
+        eq(invoices.tenantId, tenantId),
+        notInArray(invoices.state, ['draft', 'cancelled'] as const),
+      ),
+    )
+    .orderBy(desc(invoices.invoiceDate), desc(invoices.id))
+    .limit(1)
+  return row ?? null
 }

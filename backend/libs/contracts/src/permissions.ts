@@ -391,6 +391,10 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'auth.switchTenant': 'public',
   'auth.jwks': 'public',
   'auth.me': 'authenticated',
+  // DOS-102: the cross-tenant read behind the shop's home. Authenticated, not role-gated: the caller
+  // is a USER, not a member of one distributor, and each row is read under that user's own membership
+  // role inside withTenant, so RLS decides what it may see in every tenant.
+  'auth.memberships.summary': 'authenticated',
   'auth.sessions': 'authenticated',
   'auth.revokeSession': 'authenticated',
   'auth.changePassword': 'authenticated',

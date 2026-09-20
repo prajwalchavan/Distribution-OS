@@ -16,11 +16,12 @@ import { Button, ErrorState, Screen, Stack, TextInput, Txt, useColors, useString
 import { useState } from 'react'
 
 import { APP } from '../src/config'
+import { distributorToOpen, rememberDistributor } from '../src/lib/last-distributor'
 
 export default function SignIn(): React.JSX.Element {
   const t = useStrings()
   const colors = useColors()
-  const { signIn } = useSession()
+  const { signIn, switchDistributor } = useSession()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -31,6 +32,20 @@ export default function SignIn(): React.JSX.Element {
     setBusy(true)
     setError(null)
     void signIn({ username: username.trim(), password })
+      .then(async (session) => {
+        /*
+         * DOS-102: land where this DEVICE was last used, not in whichever membership happens to be
+         * first. The server has already chosen one (`tenantId` is not asked for at sign-in, by
+         * design); this opens the remembered one instead when it is still an active membership.
+         */
+        const open = distributorToOpen(session.tenant.id, session.memberships)
+        if (open === null) {
+          rememberDistributor(session.tenant.id)
+          return
+        }
+        const next = await switchDistributor(open)
+        rememberDistributor(next.tenant.id)
+      })
       .catch((raw: unknown) => {
         setError(raw instanceof Error ? raw.message : t('app.signInFailed'))
       })

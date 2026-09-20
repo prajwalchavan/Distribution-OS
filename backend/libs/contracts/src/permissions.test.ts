@@ -1602,6 +1602,9 @@ describe('permission matrix', () => {
       'auth.forgotPassword',
       'auth.resetPassword',
       'auth.me',
+      // DOS-102: 'authenticated' like `auth.me`, and it answers about the CALLER'S own memberships —
+      // a console account holds none anywhere, so it reads an empty list and no distributor's dues.
+      'auth.memberships.summary',
       'auth.sessions',
       'auth.revokeSession',
       'auth.changePassword',
@@ -1904,6 +1907,7 @@ describe('listProcedures', () => {
       'auth.logout',
       'auth.switchTenant',
       'auth.me',
+      'auth.memberships.summary',
       'auth.platformLogin',
       'auth.platformRefresh',
       'auth.platformMe',

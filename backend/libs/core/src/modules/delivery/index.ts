@@ -30,3 +30,8 @@ export {
   type DeliveryPerformanceFilter,
   type DeliveryPerformanceRow,
 } from './performance.js'
+/**
+ * DOS-102: the caller's own open stops in this tenant, scoped by RLS and not by an id, for the shop's
+ * cross-distributor home (`auth.memberships.summary`). Auth may not read `trip_stops` itself.
+ */
+export { openStopsForCaller, type OpenStopsForCaller } from './open-stops.js'

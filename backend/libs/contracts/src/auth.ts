@@ -4,6 +4,7 @@ import {
   IdSchema,
   LocaleSchema,
   MembershipRoleSchema,
+  PaiseSchema,
   PasswordSchema,
   PlatformAdminLevelSchema,
   PlatformRoleSchema,
@@ -103,6 +104,59 @@ export const MembershipSummarySchema = z.object({
   status: z.enum(['invited', 'active', 'disabled']),
 })
 export type MembershipSummary = z.infer<typeof MembershipSummarySchema>
+
+/**
+ * DOS-102 — what ONE of this login's distributors is owed, last billed and sending.
+ *
+ * The shop's home is one screen for every distributor it buys from, and every other read in the
+ * product is scoped by the access token's `tid`: reading another distributor's dues would have meant
+ * switching the session behind the reader's back. This one read is cross-tenant BY DESIGN and lives
+ * on auth-service, where the caller is a USER rather than a member of one tenant. Each row is read
+ * under that user's OWN membership role inside `withTenant`, so RLS narrows it to exactly what the
+ * user would see after switching — never more.
+ *
+ * A membership that is not a shop's (a manager who also works at a distributor) answers zeros and
+ * nulls: a staff member does not "owe" the tenant it works for, and this screen is the shop's.
+ * No credit limit and no credit-available figure appears here or anywhere the retailer app can read
+ * (ADR 0006).
+ */
+export const MembershipLastBillSchema = z.object({
+  invoiceNo: z.string().nullable(),
+  invoiceDate: z.string(),
+  totalPaise: PaiseSchema,
+})
+export type MembershipLastBill = z.infer<typeof MembershipLastBillSchema>
+
+/** The van still to come: how many stops are open, the most advanced of them, and the earliest ETA. */
+export const MembershipOnTheWaySchema = z.object({
+  stops: z.number().int().nonnegative(),
+  state: z.enum(['pending', 'started', 'arrived']),
+  etaAt: z.iso.datetime().nullable(),
+})
+export type MembershipOnTheWay = z.infer<typeof MembershipOnTheWaySchema>
+
+export const MembershipDuesSchema = z.object({
+  tenantId: IdSchema,
+  tenantSlug: z.string().min(2).max(40),
+  displayName: z.string().min(1).max(200),
+  logoUrl: z.string().nullable(),
+  role: MembershipRoleSchema,
+  outstandingPaise: PaiseSchema,
+  overduePaise: PaiseSchema,
+  openBills: z.number().int().nonnegative(),
+  lastReceiptAt: z.iso.datetime().nullable(),
+  lastReceiptPaise: PaiseSchema.nullable(),
+  lastBill: MembershipLastBillSchema.nullable(),
+  onTheWay: MembershipOnTheWaySchema.nullable(),
+})
+export type MembershipDues = z.infer<typeof MembershipDuesSchema>
+
+export const MembershipsSummaryOutput = z.object({
+  items: z.array(MembershipDuesSchema),
+  totalOutstandingPaise: PaiseSchema,
+  totalOverduePaise: PaiseSchema,
+})
+export type MembershipsSummary = z.infer<typeof MembershipsSummaryOutput>
 
 export const AuthSessionSchema = z.object({
   id: IdSchema,
@@ -355,6 +409,17 @@ export const authContract = {
     })
     .output(AuthMeOutput)
     .errors(TOKEN_ERRORS),
+  memberships: {
+    summary: oc
+      .route({
+        method: 'GET',
+        path: '/auth/memberships/summary',
+        summary:
+          'What each of this login’s distributors is owed, its last bill and any van on the way',
+      })
+      .output(MembershipsSummaryOutput)
+      .errors(TOKEN_ERRORS),
+  },
   // Distribution OS staff: a session with a role and no tenant, accepted by admin-service alone.
   platformLogin: oc
     .route({

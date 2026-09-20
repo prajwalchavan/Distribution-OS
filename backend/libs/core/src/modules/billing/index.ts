@@ -59,6 +59,11 @@ export {
  */
 export { loadCreditNoteDocument, loadInvoiceDocument } from './documents.js'
 /**
+ * DOS-102: the caller's newest bill in this tenant, scoped by RLS and not by an id, for the shop's
+ * cross-distributor home (`auth.memberships.summary`). Auth may not read `invoices` itself.
+ */
+export { lastBillForCaller, type LastBillForCaller } from './documents.js'
+/**
  * The billing stack for the worker (no Nest DI): integrations' commit run and export renderers call
  * `BillingService` / `RegistersService` methods from a pg-boss process (coordination §3.9).
  */

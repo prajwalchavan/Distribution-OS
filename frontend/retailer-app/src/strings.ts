@@ -68,6 +68,14 @@ export const strings = {
   'r2.switching': 'Opening',
   'r2.oneOnly': 'You buy from one distributor on this app.',
   'r2.duesElsewhere': 'Open a distributor to see what is owed there.',
+  // DOS-102: one home for a shop that buys from several distributors — every card carries its own
+  // dues, its last bill and any van on the way, and this is the total across all of them.
+  'r2.owedAcross': 'You owe {total} across {count} distributors',
+  'r2.cardLastBill': 'Last bill {no} · {date} · {amount}',
+  'r2.noBillsYet': 'No bills yet',
+  'r2.vanHere': 'A van is at your shop',
+  'r2.vanEta': 'On the way, expected {when}',
+  'r2.vanComing': '{count} deliveries coming',
   'r2.shop': 'Your shop',
   'r2.owes': 'You owe',
   'r2.overdue': 'Past its date',

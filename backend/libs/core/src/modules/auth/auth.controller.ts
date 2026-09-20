@@ -82,6 +82,15 @@ export class AuthController {
     return implement(contract.auth.me).handler(() => this.auth.me(auth))
   }
 
+  /** DOS-102: the cross-tenant read behind the shop's home; every figure is read under RLS per membership. */
+  @UseGuards(AccessTokenGuard)
+  @Implement(contract.auth.memberships.summary)
+  membershipsSummary(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
+    return implement(contract.auth.memberships.summary).handler(() =>
+      this.auth.membershipsSummary(auth),
+    )
+  }
+
   @UseGuards(AccessTokenGuard)
   @Implement(contract.auth.sessions)
   sessions(@OwnsReply() _reply: unknown, @CurrentAuth() auth: AuthClaims) {
