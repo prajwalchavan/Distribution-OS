@@ -69,6 +69,7 @@ import {
   describePriceChange,
   diffQuoteVsOrder,
   formatCaseSummary,
+  payableSummary,
   quoteOnDevice,
   summarizeCases,
   type DraftLine,
@@ -134,6 +135,33 @@ export default function OrderEntry(): React.JSX.Element {
   const pricedById = useMemo(
     () => new Map((quote.result?.lines ?? []).map((line) => [line.lineId, line])),
     [quote.result],
+  )
+
+  /*
+   * DOS-083: WHAT THE SHOP WILL OWE, before the rep commits.
+   *
+   * The device engine answers the net; `hsn_rates` is not in a salesperson's manifest, so the phone
+   * cannot add GST (or, since DOS-079, cess) by itself. `pricing.quote` can, and its `totalPaise` is
+   * the very figure the placed order and the bill carry. The key is the BASKET, not a keystroke: the
+   * same items and pieces read the same cached answer, a changed one asks again. With no signal the
+   * query does not run and the summary stays honestly "before GST".
+   */
+  const basket = useMemo(
+    () =>
+      draft.lines
+        .filter((line) => line.qtyPcs > 0)
+        .map((line) => ({ lineId: line.id, variantId: line.variantId, qtyPcs: line.qtyPcs }))
+        .sort((a, b) => a.variantId.localeCompare(b.variantId)),
+    [draft.lines],
+  )
+  const basketKey = useMemo(
+    () => basket.map((line) => `${line.variantId}:${String(line.qtyPcs)}`).join(','),
+    [basket],
+  )
+  const payableQuote = useQuery(
+    ['pricing', 'quote', retailerId, basketKey],
+    () => api.api.pricing.quote({ retailerId, orderId: draft.id, lines: basket }),
+    { enabled: local.online && basket.length > 0, staleTime: 30_000 },
   )
 
   /** The shop's own last basket, ready to be the whole order in one tap. */
@@ -292,6 +320,11 @@ export default function OrderEntry(): React.JSX.Element {
   )
   const netPaise = quote.result?.totals.netPaise ?? 0
   const discountPaise = quote.result?.totals.discountPaise ?? 0
+  /*
+   * The quote is refused unless its net matches the basket on screen (`payableSummary`), so a reply
+   * for a basket the rep has already changed never becomes the figure read across the counter.
+   */
+  const payable = payableSummary({ netPaise, discountPaise }, payableQuote.data?.totals ?? null)
 
   /** The header's status row (DOS-161): pinned above the scroll at desk width, scrolled with the body off it. */
   const orderChips = (
@@ -368,10 +401,16 @@ export default function OrderEntry(): React.JSX.Element {
             */}
             <Box grow>
               <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={1}>
-                {t('s3.summaryCompact', {
-                  lines: draft.lines.length,
-                  amount: formatINR(paise(netPaise)),
-                })}
+                {/* DOS-083: with a signal this is the payable the bill will carry, not the net. */}
+                {payable.withGst
+                  ? t('s3.summaryCompactPayable', {
+                      lines: draft.lines.length,
+                      amount: formatINR(paise(payable.payablePaise ?? netPaise)),
+                    })
+                  : t('s3.summaryCompact', {
+                      lines: draft.lines.length,
+                      amount: formatINR(paise(netPaise)),
+                    })}
               </Txt>
             </Box>
             {renderPlaceButton(false)}
@@ -385,18 +424,24 @@ export default function OrderEntry(): React.JSX.Element {
                   qty: formatCaseSummary(caseSummary),
                 })}
               </Txt>
-              <Money value={netPaise} size="moneyL" />
+              <Money value={payable.payablePaise ?? netPaise} size="moneyL" />
               {/*
-                BEFORE GST, AND IT SAYS SO.
+                WHAT THE SHOP PAYS, AND IT SAYS WHICH FIGURE IT IS.
 
-                `priceOrder()` answers the net of the lines; the bill this becomes adds GST on top —
-                SO-1113 was ₹19,495.89 net and ₹21,781.00 on the invoice. The rate comes from the dated
-                HSN table, which is NOT in this role's device manifest, so the phone genuinely cannot
-                compute the tax. Printing the net as if it were the total is what a rep would read out
-                across the counter, and it would be ₹2,285 short of the bill.
+                `priceOrder()` answers the net of the lines; the bill adds GST, and on an aerated
+                drink compensation cess too. The rates come from the dated HSN table, which is NOT in
+                this role's device manifest, so the phone cannot compute the tax by itself — but
+                `pricing.quote` can, and its total is exactly what the placed order and the bill say
+                (DOS-083, DOS-079). With a signal the big figure is that payable and the line below
+                breaks it down; with none it is the net, still marked "before GST", never a guess.
               */}
               <Txt field="label" desk="meta" color={colors.text.secondary}>
-                {t('s3.beforeGst')}
+                {payable.withGst
+                  ? t((payable.cessPaise ?? 0) > 0 ? 's3.withGstCess' : 's3.withGst', {
+                      net: formatINR(paise(payable.netPaise)),
+                      tax: formatINR(paise(payable.taxPaise ?? 0)),
+                    })
+                  : t('s3.beforeGst')}
               </Txt>
             </Stack>
             {renderPlaceButton(true)}

@@ -194,6 +194,10 @@ export const strings = {
   /* DOS-161: the phone footer's one line — the desk stack's "Items · qty · money · before GST" said as one sentence. */
   's3.summaryCompact': 'Items {lines} · {amount} before GST',
   's3.beforeGst': 'before GST',
+  /* DOS-083: with a signal the footer's big figure is the payable `pricing.quote` answers, not the net. */
+  's3.withGst': 'the shop pays · {net} + {tax} GST',
+  's3.withGstCess': 'the shop pays · {net} + {tax} GST and cess',
+  's3.summaryCompactPayable': 'Items {lines} · {amount} the shop pays',
   's3.place': 'Place order',
   's3.placed': 'Order placed',
   's3.queue': 'Save on this phone',
