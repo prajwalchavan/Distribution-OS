@@ -178,3 +178,92 @@ export function geoProofLine(
     ? t('d4.podGeoArrival')
     : t('d4.podGeoArrivalAt', { when: instantWithClock(at) })
 }
+
+// ---------------------------------------------------------------------------
+// DOS-063 — the pull that has to follow a doorstep write
+// ---------------------------------------------------------------------------
+
+/**
+ * The little of the sync engine a doorstep screen needs, narrowed to three calls off `useSyncEngine()`
+ * so the rule below can be run against a stand-in under vitest. A screen never reaches past these.
+ */
+export interface DoorstepSync {
+  readonly sync: (reason: string) => Promise<void>
+  readonly status: () => { readonly pulling: boolean }
+  readonly onStatus: (listener: (status: { readonly pulling: boolean }) => void) => () => void
+}
+
+/** How long the doorstep pull waits behind a pull already running before it gives up. */
+export const DOORSTEP_PULL_WAIT_MS = 20_000
+
+/** What the pull actually managed to do — the word a test reads instead of a promise that says nothing. */
+export type DoorstepPull = 'no-engine' | 'pulled' | 'pulled-after-wait' | 'gave-up'
+
+/** Neither doorstep screen is still mounted to catch this; a failed pull is the next poll's problem. */
+async function swallow(pull: Promise<void>): Promise<void> {
+  try {
+    await pull
+  } catch {
+    // The engine has already kept the error for the strip (`lastError`); a torn-down screen cannot say it.
+  }
+}
+
+/** Resolves true when the engine is not pulling, false when the wait ran out. Leaves no listener behind. */
+function waitForIdle(engine: DoorstepSync, waitMs: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    let settled = false
+    let off: (() => void) | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const finish = (idle: boolean): void => {
+      if (settled) return
+      settled = true
+      if (timer !== null) clearTimeout(timer)
+      if (off !== null) off()
+      resolve(idle)
+    }
+    timer = setTimeout(() => {
+      finish(false)
+    }, waitMs)
+    const unsubscribe = engine.onStatus((status) => {
+      if (!status.pulling) finish(true)
+    })
+    if (settled) unsubscribe()
+    else off = unsubscribe
+    // The pull may have ended between the caller's reading and this subscription.
+    if (!engine.status().pulling) finish(true)
+  })
+}
+
+/**
+ * DOS-063 — THE STOP A DRIVER IS PUT BACK ON SHOWS THE WRITE HE HAS JUST MADE.
+ *
+ * D4 and D5 record at the office and `router.replace` back to D3, which draws everything off this
+ * phone's SQLite. Asking the engine to pull is the whole fix — but `SyncEngine.sync()` opens with
+ * `if (this.pulling || this.ended || !this.started) return` (`@dos/offline` engine.ts), so a pull
+ * asked for while the 60-second poll or an upload tail is already pulling is DROPPED, silently and at
+ * random. That is DOS-063's own symptom coming straight back: the stop goes on saying "Not started"
+ * and "Owes" keeps the figure the driver has just been paid against, until the next poll comes round.
+ *
+ * So the engine is asked ONCE if it was idle, and otherwise asked again as soon as the pull that was
+ * in flight finishes — the driver's write was not in that one, which started before it. The wait is
+ * bounded and drops its listener on every exit: this runs on after `router.replace` has torn the
+ * screen down, and the engine outlives the screen (the provider is in `app/_layout.tsx`).
+ *
+ * The engine keeping a `pullAgain` flag of its own is the proper home for this and belongs to
+ * `@dos/offline` (merge review, "Defects outside the group"); when it lands, this costs one extra
+ * pull in the rare mid-flight case and the driver still sees his own write either way.
+ */
+export async function pullAfterDoorstepWrite(
+  engine: DoorstepSync | null,
+  reason: string,
+  waitMs: number = DOORSTEP_PULL_WAIT_MS,
+): Promise<DoorstepPull> {
+  if (engine === null) return 'no-engine'
+  // Read BEFORE the call: if a pull is already running, ours is the one that gets dropped.
+  const busy = engine.status().pulling
+  await swallow(engine.sync(reason))
+  if (!busy) return 'pulled'
+  if (!(await waitForIdle(engine, waitMs))) return 'gave-up'
+  await swallow(engine.sync(reason))
+  return 'pulled-after-wait'
+}

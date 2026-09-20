@@ -45,7 +45,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
-import { doorDoneHref } from '../../../src/lib/at-the-door'
+import { doorDoneHref, pullAfterDoorstepWrite } from '../../../src/lib/at-the-door'
 import { longDate, today } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -135,7 +135,7 @@ export default function Collect(): React.JSX.Element {
       invalidates: [['trip'], ['settlement'], ['collections']],
       onSuccess: (result) => {
         haptics.success()
-        void engine?.sync('payment recorded')
+        void pullAfterDoorstepWrite(engine, 'payment recorded')
         // DOS-149: the receipt number is read on the stop, not on a screen already being replaced.
         router.replace(
           doorDoneHref(stopId ?? '', {

@@ -53,6 +53,7 @@ import {
   doorstepOrderRefusal,
   droppedPieces,
   geoProofLine,
+  pullAfterDoorstepWrite,
 } from '../../../src/lib/at-the-door'
 import { longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
@@ -336,7 +337,7 @@ export default function AtTheDoor(): React.JSX.Element {
       invalidates: [['trip'], ['stops']],
       onSuccess: (result) => {
         haptics.success()
-        void engine?.sync('delivery recorded')
+        void pullAfterDoorstepWrite(engine, 'delivery recorded')
         /*
          * DOS-149: the outcome travels to the stop, which is the screen that is still there a second
          * later. The credit note is named by its NUMBER — what the shopkeeper is holding — and only

@@ -13,13 +13,22 @@
  * own writes. NOT a new engine method that writes server rows into the local tables — a screen that
  * writes its own copy of what the office said is a second source of truth on the device.
  *
+ * BUT ASKING IS NOT PULLING. `SyncEngine.sync()` opens with `if (this.pulling || this.ended ||
+ * !this.started) return`, so the ask is DROPPED whenever the 60 s poll or an upload tail is already
+ * pulling — the symptom comes back at random, on the same screen, for the same reason (integration
+ * review, 2026-09-20: the first version of this test was a source grep and proved only the wiring).
+ * So `pullAfterDoorstepWrite` is run here against a stand-in that reproduces that rule line for line,
+ * and the first test below is the trap itself: what the plain call does mid-flight.
+ *
  * Only the ONLINE path pulls: the offline path has no signal by definition, and `queueDelivery` /
  * `queueReceipt` have already written the device's own row.
  *
- * Read as SOURCE, in the style of `dos-179-trip-close.guard.test.ts`: importing a screen in Node pulls
- * in `react-native`, which resolves only under Metro.
+ * The screens themselves are still read as SOURCE, in the style of `dos-179-trip-close.guard.test.ts`:
+ * importing a screen in Node pulls in `react-native`, which resolves only under Metro.
  */
 import { describe, expect, it } from 'vitest'
+
+import { type DoorstepSync, pullAfterDoorstepWrite } from './at-the-door'
 
 interface NodeFs {
   readFileSync: (path: string, encoding: 'utf8') => string
@@ -49,7 +58,110 @@ function between(source: string, from: string, to: string): string {
   return source.slice(start, end < 0 ? source.length : end)
 }
 
+/** Let every microtask settle, the way a real frame would. */
+const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
+
+interface FakeEngine extends DoorstepSync {
+  /** The reasons of the pulls that actually RAN — a dropped ask leaves nothing here. */
+  readonly pulls: string[]
+  /** Something else starts pulling: the 60 s poll, or the tail of an upload. */
+  readonly begin: () => void
+  /** …and finishes. */
+  readonly finish: () => void
+  readonly listeners: () => number
+}
+
+/**
+ * The engine's own pull rule, copied from `@dos/offline` `engine.ts` `sync()`: a pull asked for while
+ * one is running returns immediately and is never run. Everything else here is bookkeeping.
+ */
+function fakeEngine(options: { failing?: boolean } = {}): FakeEngine {
+  let pulling = false
+  const pulls: string[] = []
+  const listeners = new Set<(status: { readonly pulling: boolean }) => void>()
+  const emit = (): void => {
+    for (const listener of [...listeners]) listener({ pulling })
+  }
+  return {
+    pulls,
+    listeners: () => listeners.size,
+    begin: () => {
+      pulling = true
+      emit()
+    },
+    finish: () => {
+      pulling = false
+      emit()
+    },
+    status: () => ({ pulling }),
+    onStatus: (listener) => {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    sync: async (reason) => {
+      if (pulling) return
+      pulling = true
+      emit()
+      await Promise.resolve()
+      if (options.failing === true) {
+        pulling = false
+        emit()
+        throw new Error('the office did not answer')
+      }
+      pulls.push(reason)
+      pulling = false
+      emit()
+    },
+  }
+}
+
 describe('DOS-063 the stop is pulled again after a doorstep write', () => {
+  it('DOS-063 the trap: a bare sync() asked for mid-pull is dropped and the driver’s write is never read back', async () => {
+    const engine = fakeEngine()
+    // The 60 s poll is already in flight when the driver presses Record.
+    engine.begin()
+    await engine.sync('delivery recorded')
+    engine.finish()
+    expect(engine.pulls).toEqual([])
+  })
+
+  it('DOS-063 an idle engine pulls once, with the screen’s own reason', async () => {
+    const engine = fakeEngine()
+    expect(await pullAfterDoorstepWrite(engine, 'delivery recorded')).toBe('pulled')
+    expect(engine.pulls).toEqual(['delivery recorded'])
+    expect(engine.listeners()).toBe(0)
+  })
+
+  it('DOS-063 a pull asked for mid-flight is made again as soon as the running one ends', async () => {
+    const engine = fakeEngine()
+    engine.begin()
+    const pulled = pullAfterDoorstepWrite(engine, 'payment recorded', 1_000)
+    await tick()
+    // Nothing yet: the write is not in the pull that was already running.
+    expect(engine.pulls).toEqual([])
+    engine.finish()
+    expect(await pulled).toBe('pulled-after-wait')
+    expect(engine.pulls).toEqual(['payment recorded'])
+    expect(engine.listeners()).toBe(0)
+  })
+
+  it('DOS-063 a pull that never ends is waited for once and then let go, with no listener left behind', async () => {
+    const engine = fakeEngine()
+    engine.begin()
+    expect(await pullAfterDoorstepWrite(engine, 'delivery recorded', 10)).toBe('gave-up')
+    expect(engine.pulls).toEqual([])
+    expect(engine.listeners()).toBe(0)
+  })
+
+  it('DOS-063 no engine and a refused pull are both silent: the screen is already being replaced', async () => {
+    expect(await pullAfterDoorstepWrite(null, 'delivery recorded')).toBe('no-engine')
+    const engine = fakeEngine({ failing: true })
+    await expect(pullAfterDoorstepWrite(engine, 'delivery recorded')).resolves.toBe('pulled')
+    expect(engine.listeners()).toBe(0)
+  })
+
   it('DOS-063 D4 and D5 hold the public sync engine and pull with it before they leave the screen', async () => {
     const screens = [
       { name: 'deliver', source: await read('../../app/stop/[id]/deliver.tsx') },
@@ -58,7 +170,7 @@ describe('DOS-063 the stop is pulled again after a doorstep write', () => {
 
     const seen = screens.map(({ name, source }) => {
       const success = between(source, 'onSuccess:', 'onError:')
-      const sync = success.indexOf('engine?.sync(')
+      const pull = success.indexOf('pullAfterDoorstepWrite(engine,')
       const replace = success.indexOf('router.replace(')
       return {
         name,
@@ -68,8 +180,10 @@ describe('DOS-063 the stop is pulled again after a doorstep write', () => {
           source,
         ),
         // The office answered: go and read back what it wrote, then go to the stop.
-        pullsOnSuccess: sync >= 0,
-        pullsBeforeLeaving: sync >= 0 && replace >= 0 && sync < replace,
+        pullsOnSuccess: pull >= 0,
+        pullsBeforeLeaving: pull >= 0 && replace >= 0 && pull < replace,
+        // Never the bare call the first test above shows being dropped.
+        noBareSync: !/engine\?\.sync\(/.test(source),
       }
     })
 
@@ -80,6 +194,7 @@ describe('DOS-063 the stop is pulled again after a doorstep write', () => {
         importsHook: true,
         pullsOnSuccess: true,
         pullsBeforeLeaving: true,
+        noBareSync: true,
       },
       {
         name: 'collect',
@@ -87,6 +202,7 @@ describe('DOS-063 the stop is pulled again after a doorstep write', () => {
         importsHook: true,
         pullsOnSuccess: true,
         pullsBeforeLeaving: true,
+        noBareSync: true,
       },
     ])
   })
