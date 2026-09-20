@@ -232,7 +232,10 @@ describeDb('inventory (DATABASE_URL)', () => {
   })
 
   it('refuses to take stock below zero with a clear error', async () => {
-    const res = await call<{ message: string }>(app, owner, 'POST', '/inventory/adjustments', {
+    const res = await call<{
+      message: string
+      data?: { lotId?: string; locationId?: string }
+    }>(app, owner, 'POST', '/inventory/adjustments', {
       idempotencyKey: `neg-${run}`,
       lotId: lotLate,
       locationId: godown,
@@ -240,13 +243,39 @@ describeDb('inventory (DATABASE_URL)', () => {
       reason: 'damage',
     })
     expect(res.status).toBe(400)
-    expect(res.body.message).toContain(lotLate)
-    expect(res.body.message).toContain(godown)
+    // The lot and the place the refusal is about (DOS-048 moved them out of the sentence into `data`).
+    expect(res.body.data?.lotId).toBe(lotLate)
+    expect(res.body.data?.locationId).toBe(godown)
     const balances = await call<{ items: Balance[] }>(app, owner, 'GET', '/inventory/balances', {
       lotId: lotLate,
       locationId: godown,
     })
     expect(balances.body.items[0]?.onHand).toBe(15)
+  })
+
+  it('DOS-048: the refusal names the item, its batch and the place in words, never a UUID, and keeps the ids in data', async () => {
+    const res = await call<{
+      message: string
+      data?: { lotId?: string; locationId?: string; qtyDelta?: number }
+    }>(app, owner, 'POST', '/inventory/adjustments', {
+      idempotencyKey: `neg-words-${run}`,
+      lotId: lotLate,
+      locationId: godown,
+      qtyDelta: -100,
+      reason: 'damage',
+    })
+    expect(res.status).toBe(400)
+    // What the man at the bench reads: how many are really there, of what, in which batch, where.
+    expect(res.body.message).toContain('15 pc')
+    expect(res.body.message).toContain('Makhana 12 g')
+    expect(res.body.message).toContain('L2')
+    expect(res.body.message).toContain('Godown')
+    // ...and never an id he cannot act on.
+    expect(res.body.message).not.toContain(lotLate)
+    expect(res.body.message).not.toContain(godown)
+    expect(res.body.message).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/)
+    // The ids stay where a screen, a log or a support desk can still use them.
+    expect(res.body.data).toMatchObject({ lotId: lotLate, locationId: godown, qtyDelta: -100 })
   })
 
   const orderLineId = uuidv7()
