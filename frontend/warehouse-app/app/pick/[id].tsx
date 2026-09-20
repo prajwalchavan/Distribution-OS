@@ -224,9 +224,25 @@ export default function PickingSheet(): React.JSX.Element {
          * the gutter width each.
          */
         <Stack gap={3}>
-          <Txt field="moneyM" desk="cell" numeric>
-            {t('w5.progress', { picked, total: rows.length })}
-          </Txt>
+          {/*
+           * "0 OF 0 PICKED" IS AN ANSWER, AND THIS SCREEN DOES NOT HAVE ONE YET (DOS-119).
+           *
+           * A wave raised a second ago is on the server and not on this phone, so the figure counted
+           * rows the device had not been given: PICK-0083 read "Nothing here yet · 0 of 0 picked" for
+           * 57 s after its 200 reply. The gate already knows the difference — `waiting` is the device
+           * not having answered — so while it says so the bar says that instead of counting. W4 asks
+           * for the pull the moment the wave exists (`pullAfterWrite`); this is what the picker reads
+           * for the second it takes.
+           */}
+          {gate === 'waiting' ? (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w5-waiting">
+              {t('w5.waiting')}
+            </Txt>
+          ) : (
+            <Txt field="moneyM" desk="cell" numeric>
+              {t('w5.progress', { picked, total: rows.length })}
+            </Txt>
+          )}
           {/*
            * NOTHING STANDS BETWEEN THE PICKER AND THE FIRST ROW (DOS-182, merge review 2026-09-20).
            *
@@ -329,7 +345,8 @@ export default function PickingSheet(): React.JSX.Element {
           loading={loading || sheetLoading}
           hydrated={hydrated}
           empty={rows.length === 0}
-          emptyMessage={t('state.empty')}
+          // A sheet this device has not read is not an empty sheet (DOS-119).
+          emptyMessage={gate === 'waiting' ? t('w5.waiting') : t('state.empty')}
           waitingMessage={t('w.filling')}
         >
           <Stack gap={4}>

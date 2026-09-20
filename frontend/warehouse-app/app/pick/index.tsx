@@ -10,6 +10,7 @@
  * the selection is narrowed to one location before the ask rather than after the refusal.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
+import { useSyncEngine } from '@dos/offline/react'
 import {
   Button,
   Chips,
@@ -29,6 +30,7 @@ import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { shortDate } from '../../src/lib/dates'
+import { pullAfterWrite } from '../../src/lib/pull-after-write'
 import { Async, Panel, pl, workFamily } from '../../src/lib/ui'
 import { workFirst } from '../../src/lib/work-first'
 
@@ -39,6 +41,7 @@ export default function PickQueue(): React.JSX.Element {
   const router = useRouter()
   const { session } = useSession()
   const signedIn = session !== null
+  const engine = useSyncEngine()
 
   const [beatId, setBeatId] = useState<string | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
@@ -121,6 +124,17 @@ export default function PickQueue(): React.JSX.Element {
       onSuccess: (result) => {
         haptics.success()
         setChosen([])
+        /*
+         * THE PHONE IS TOLD THE WAVE EXISTS BEFORE THE PICKER IS SHOWN IT (DOS-119).
+         *
+         * W5 draws everything off this device's `picklists` and `pick_lines`, and a wave raised a
+         * second ago is in neither, so the sheet read "Nothing here yet · 0 of 0 picked" for 57 s on
+         * PICK-0083 and 33 s on PICK-0082 — with "Take it to packing" under it. The write itself is
+         * the server's; the device only has to go and read it. NOT a local insert from the create
+         * reply: a screen writing its own copy of what the office said is a second source of truth
+         * on the device. `pullAfterWrite` is the ask that survives a poll already being in flight.
+         */
+        void pullAfterWrite(engine, 'wave raised')
         router.push(`/pick/${result.item.id}`)
       },
       onError: () => {
