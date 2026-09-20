@@ -1,11 +1,10 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, isNotNull, isNull, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, lt, sql } from 'drizzle-orm'
 import type {
   SupportApproveIn,
   SupportGrant,
   SupportGrantItem,
-  SupportGrantStatus,
   SupportList,
   SupportListInput,
   SupportRevokeIn,
@@ -21,6 +20,7 @@ import {
   requireRole,
   writeAudit,
 } from '../../platform/index.js'
+import { grantStatusPredicate, openGrants, statusOf } from './support-status.js'
 
 type ListIn = z.infer<typeof SupportListInput>
 type GrantRow = typeof supportGrants.$inferSelect
@@ -70,8 +70,8 @@ export class SupportAccessService {
     return withTenant(db, ctx, async (tx) => {
       const where = and(
         eq(supportGrants.tenantId, ctx.tenantId),
-        input.openOnly ? openOnly() : undefined,
-        input.status ? statusPredicate(input.status) : undefined,
+        input.openOnly ? openGrants() : undefined,
+        input.status ? grantStatusPredicate(input.status) : undefined,
         input.cursor ? lt(supportGrants.id, input.cursor) : undefined,
       )
       const rows = await tx
@@ -83,8 +83,11 @@ export class SupportAccessService {
       const page = rows.slice(0, input.limit)
       const names = await this.requesterNames(tx, page)
       const last = page.at(-1)
+      // ONE instant for the whole page: two rows an hour apart must not be judged against two
+      // different `now`s, and a page of two hundred should not read the clock two hundred times.
+      const now = new Date()
       return {
-        items: page.map((row) => toGrant(row, names)),
+        items: page.map((row) => toGrant(row, names, now)),
         nextCursor: rows.length > input.limit && last ? last.id : null,
       }
     })
@@ -177,8 +180,17 @@ export class SupportAccessService {
             message: 'this support request is already closed',
             data: { code: 'grant_closed' },
           })
-
         const now = new Date()
+        // An ask that ran out of its own hours is already finished, and refusing it would record
+        // `rejected` — "the owner said no" — for something the owner was never given the chance to
+        // answer (DOS-110). The same 409 `approve` has always answered, from the same clock.
+        if (statusOf(grant, now) === 'lapsed')
+          throw new ORPCError('CONFLICT', {
+            message:
+              'that request lapsed unanswered; there is nothing to refuse — the console raises a new one',
+            data: { code: 'request_expired' },
+          })
+
         const [row] = await tx
           .update(supportGrants)
           .set({
@@ -194,7 +206,7 @@ export class SupportAccessService {
           action: 'support.revoke',
           entityType: 'support_grant',
           entityId: saved.id,
-          before: { status: grant.approvedAt ? 'approved' : 'requested' },
+          before: { status: statusOf(grant, now) },
           after: { status: statusOf(saved, now), reason: saved.revokeReason },
         })
         return { item: toGrant(saved, await this.requesterNames(tx, [saved])) }
@@ -237,50 +249,12 @@ export class SupportAccessService {
   }
 }
 
-/** Requested, or approved and not yet closed: the grants an owner still has to think about. */
-function openOnly(): SQL | undefined {
-  return and(
-    isNull(supportGrants.revokedAt),
-    sql`(${supportGrants.approvedAt} IS NULL OR ${supportGrants.expiresAt} > now())`,
-  )
-}
-
-function statusPredicate(status: SupportGrantStatus): SQL | undefined {
-  switch (status) {
-    case 'requested':
-      return and(isNull(supportGrants.revokedAt), isNull(supportGrants.approvedAt))
-    case 'approved':
-      return and(
-        isNull(supportGrants.revokedAt),
-        isNotNull(supportGrants.approvedAt),
-        sql`${supportGrants.expiresAt} > now()`,
-      )
-    case 'expired':
-      return and(
-        isNull(supportGrants.revokedAt),
-        isNotNull(supportGrants.approvedAt),
-        sql`${supportGrants.expiresAt} <= now()`,
-      )
-    case 'rejected':
-      return and(isNotNull(supportGrants.revokedAt), isNull(supportGrants.approvedAt))
-    case 'revoked':
-      return and(isNotNull(supportGrants.revokedAt), isNotNull(supportGrants.approvedAt))
-  }
-}
-
-/**
- * `status` is DERIVED, never stored, exactly like an invoice's "overdue": a window that nobody
- * revoked closes on its own when the clock passes `expires_at`, and no sweep has to run for the owner
- * to be told the truth. `rejected` is a grant shut before it ever opened; `revoked` is one shut after.
- */
-function statusOf(row: GrantRow, now: Date): SupportGrantStatus {
-  if (row.revokedAt) return row.approvedAt ? 'revoked' : 'rejected'
-  if (!row.approvedAt) return 'requested'
-  return row.expiresAt.getTime() > now.getTime() ? 'approved' : 'expired'
-}
-
-function toGrant(row: GrantRow, names: ReadonlyMap<string, string>): SupportGrant {
-  const status = statusOf(row, new Date())
+function toGrant(
+  row: GrantRow,
+  names: ReadonlyMap<string, string>,
+  now: Date = new Date(),
+): SupportGrant {
+  const status = statusOf(row, now)
   return {
     id: row.id,
     status,

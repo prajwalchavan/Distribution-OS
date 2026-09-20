@@ -179,7 +179,20 @@ export class StockService {
     )
   }
 
-  /** ATP through the `sellable_stock` view (ADR 0003). Open to every role, including retailers; no on-hand split, no cost. */
+  /**
+   * ATP through the `sellable_stock` view (ADR 0003). Open to every role, including retailers; no
+   * on-hand split, no cost.
+   *
+   * SELLABLE MEANS SELLABLE (QA DOS-140). The view is `on_hand - reserved` over EVERY location, so a
+   * rep and a shop were offered the damaged / expiry bin as stock they could order — 32 pieces of
+   * Marie Light in the bin read as available, and the bin grows with every doorstep return. Goods in
+   * transit and a customer's own floor are the same kind of lie. So the read is narrowed here rather
+   * than in the view (nothing else uses it and no migration is needed): the godowns always, a VEHICLE
+   * only when that vehicle is the location asked for — which is how the crew's van sale reads its own
+   * van (D6) without a van's stock ever being promised to someone else's order. The damaged bin and
+   * goods in transit are never sellable, not even when named. Nothing is hidden from the books:
+   * `stock.balances` still shows every piece wherever it stands.
+   */
   async sellable(input: SellableIn): Promise<SellableOut> {
     const db = requireDb(this.db)
     const ctx = currentTenant()
@@ -193,8 +206,10 @@ export class StockService {
           from sellable_stock s
           join product_variants v on v.id = s.variant_id
           join products p on p.id = v.product_id
+          join locations l on l.id = s.location_id
           left join brands b on b.id = p.brand_id
           where s.tenant_id = ${ctx.tenantId}
+            ${input.locationId ? sql`and l.kind in ('warehouse', 'vehicle')` : sql`and l.kind = 'warehouse'`}
             ${input.variantId ? sql`and s.variant_id = ${input.variantId}` : sql``}
             ${input.locationId ? sql`and s.location_id = ${input.locationId}` : sql``}
             ${pattern ? sql`and (v.name ilike ${pattern} or p.name ilike ${pattern} or b.name ilike ${pattern})` : sql``}

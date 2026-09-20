@@ -21,11 +21,14 @@ import {
   StatusChip,
   TextInput,
   Txt,
+  formatCount,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -42,6 +45,8 @@ import {
 } from '../../src/lib/ui'
 import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { rangeOf, shortInstant, longDate, type RangeId } from '../../src/lib/dates'
+import { waitingOnKinds } from '../../src/lib/waiting-on'
+import { readAllReservations, reservedPcs } from '../../src/lib/reservations'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -74,6 +79,16 @@ export default function Orders(): React.JSX.Element {
   const colors = useColors()
   const api = useApi()
   const names = useNames()
+  /*
+   * DOS-010: `<Register>` keeps three cells only — identity, chip, value — whenever it is not a real
+   * table, and a row then read "SO-0689 · Delivered · 6,376.00" with no shop because the
+   * Shop column is dropped. That is the web register below 1024 px AND the native register at EVERY
+   * width: `ui/src/native/list.tsx` is "the phone rendering of the one props contract" and has no
+   * table branch, so an Android tablet or an iPad at desk width is still cards with no Shop column to
+   * fall back on. The shop rides in the identity cell for exactly that shell; where a real table is
+   * drawn it has its own column and printing it twice would be the same defect the other way round.
+   */
+  const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
   const params = useLocalSearchParams<{ q?: string }>()
   const [range, setRange] = useState<RangeId>('d30')
@@ -106,15 +121,36 @@ export default function Orders(): React.JSX.Element {
     () => api.api.orders.get({ id: selected ?? '' }),
     { enabled: selected !== null },
   )
+  /*
+   * DOS-130: every hold, not the first page of them. Holds are per LOT, so the pieces an order has
+   * taken out of stock are the sum of `qtyPcs` over all of them, and a page cut off mid-way would
+   * under-report the one figure the owner reads as a quantity.
+   */
   const reservations = useQuery(
     ['warehouse', 'reservations', selected ?? 'none'],
-    () => api.api.warehouse.reservations.list({ orderId: selected ?? '', state: 'pending' }),
+    () =>
+      readAllReservations((cursor) =>
+        api.api.warehouse.reservations.list({
+          orderId: selected ?? '',
+          state: 'pending',
+          limit: 200,
+          ...(cursor === null ? {} : { cursor }),
+        }),
+      ),
     { enabled: selected !== null },
   )
   const bills = useQuery(
     ['invoices', 'byOrder', selected ?? 'none'],
     () => api.api.billing.invoices.list({ orderId: selected ?? '', limit: 20 }),
     { enabled: selected !== null },
+  )
+  /*
+   * DOS-027: what each listed order is still held by. One page of the pending approvals queue, on
+   * the key the Approvals screen opens with, so the two share a cached read; the stored
+   * `approvalFlags` are the copy raised at submit and nothing keeps them in step with the decisions.
+   */
+  const gates = useQuery(['approvals', 'pending'], () =>
+    api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
   )
 
   const confirmOrder = useMutation(
@@ -142,6 +178,7 @@ export default function Orders(): React.JSX.Element {
 
   const rows = list.data?.items ?? []
   const order = detail.data?.item
+  const pending = gates.data?.items ?? []
   /*
    * DOS-020: confirm never decides an approval, so an order still waiting on one is released on Approvals,
    * where the last approval confirms it — the button says so instead of answering a silent 409.
@@ -149,7 +186,13 @@ export default function Orders(): React.JSX.Element {
   const waitingOn = (order?.approvals ?? []).filter((a) => a.status === 'pending')
 
   const columns: readonly RegisterColumn<Order>[] = [
-    textColumn('orderNo', t('o5.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
+    textColumn(
+      'orderNo',
+      t('o5.orderNo'),
+      (row) =>
+        phone ? `${row.orderNo ?? t('app.none')} · ${names.retailer(row.retailerId)}` : row.orderNo,
+      { priority: 'identity' },
+    ),
     textColumn('shop', t('o5.shop'), (row) => names.retailer(row.retailerId)),
     {
       key: 'state',
@@ -160,7 +203,10 @@ export default function Orders(): React.JSX.Element {
       ),
     },
     moneyColumn('total', t('o5.value'), (row) => row.totalPaise),
-    textColumn('flags', t('o5.flags'), (row) => row.approvalFlags.map(word).join(', ')),
+    textColumn('flags', t('o5.flags'), (row) => {
+      const kinds = waitingOnKinds(row, pending)
+      return kinds.length === 0 ? null : kinds.map(word).join(' · ')
+    }),
     textColumn('placed', t('o5.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
@@ -323,9 +369,18 @@ export default function Orders(): React.JSX.Element {
               </Field>
 
               <Panel title={t('o5.reservations')}>
-                <Txt field="body" desk="cell" numeric>
-                  {String(reservations.data?.items.length ?? 0)}
-                </Txt>
+                <Stack gap={1}>
+                  <Txt field="body" desk="cell" numeric>
+                    {t('qty.piecesOnly', {
+                      pieces: formatCount(reservedPcs(reservations.data ?? [])),
+                    })}
+                  </Txt>
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {(reservations.data ?? []).length === 1
+                      ? t('o5.reservationsLot')
+                      : t('o5.reservationsLots', { count: (reservations.data ?? []).length })}
+                  </Txt>
+                </Stack>
               </Panel>
 
               <Panel title={t('o5.bills')}>
@@ -355,7 +410,7 @@ export default function Orders(): React.JSX.Element {
               <Button
                 label={t('o5.release')}
                 variant="secondary"
-                disabled={(reservations.data?.items.length ?? 0) === 0}
+                disabled={(reservations.data ?? []).length === 0}
                 disabledReason={t('o5.reservations')}
                 onPress={() => {
                   setConfirming('release')

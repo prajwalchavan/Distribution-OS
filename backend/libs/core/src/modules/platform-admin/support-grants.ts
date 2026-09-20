@@ -1,5 +1,6 @@
-import type { SupportGrant, SupportGrantStatus } from '@dos/contracts'
+import type { SupportGrant } from '@dos/contracts'
 import type { supportGrants } from '@dos/db'
+import { statusOf } from '../tenancy/index.js'
 
 type GrantRow = typeof supportGrants.$inferSelect
 
@@ -9,19 +10,15 @@ type GrantRow = typeof supportGrants.$inferSelect
  * two readers, so a distributor and Distribution OS can never be looking at two different accounts of
  * what was asked for and what was agreed.
  *
- * `status` is DERIVED, never stored — exactly like an invoice's "overdue". A window nobody revoked
- * closes on its own when the clock passes `expires_at`, and no sweep has to run for either side to be
- * told the truth. `rejected` is a request shut before it ever opened; `revoked` is one shut after.
+ * `status` is DERIVED, never stored — exactly like an invoice's "overdue" — and it is derived by
+ * `statusOf` in `modules/tenancy/support-status.ts`, which the OWNER's half reads too (DOS-110).
+ * There is deliberately no second copy here: while there were two, an ask nobody answered inside its
+ * own hours read `requested` on both services for ever, and the console counted asks their owners
+ * could no longer open.
  *
  * The scope is `read` in the column and `read_only` on the wire: "read only" is what the owner is
  * being asked to agree to, and the word has to say so on the button they press.
  */
-export function statusOf(row: GrantRow, now: Date = new Date()): SupportGrantStatus {
-  if (row.revokedAt) return row.approvedAt ? 'revoked' : 'rejected'
-  if (!row.approvedAt) return 'requested'
-  return row.expiresAt.getTime() > now.getTime() ? 'approved' : 'expired'
-}
-
 export function toSupportGrant(
   row: GrantRow,
   requesterName = 'Distribution OS support',

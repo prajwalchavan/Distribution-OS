@@ -35,7 +35,7 @@ import { uuidv7 } from '@dos/domain'
 import type { AdminSupportGrant, SupportScope } from '@dos/contracts'
 import { useEffect, useState } from 'react'
 
-import { Field, Note, Panel, askLapsed, grantFamily, useCan } from './ui'
+import { Field, Note, Panel, grantChip, useCan } from './ui'
 import { instantWithClock, untilInstant } from './dates'
 import { useWord } from './words'
 
@@ -224,9 +224,10 @@ export function InsidePanel({
   const [handBack, setHandBack] = useState(false)
 
   const live = grants.find((grant) => grant.active) ?? null
-  const waiting = grants.find((grant) => grant.status === 'requested' && !askLapsed(grant)) ?? null
+  /** Waiting means waiting: an ask whose own hours ran out is `lapsed` on the wire (DOS-110). */
+  const waiting = grants.find((grant) => grant.status === 'requested') ?? null
   /** An ask nobody answered inside the hours it asked for: it is shut, and the panel says why. */
-  const lapsed = grants.find((grant) => askLapsed(grant)) ?? null
+  const lapsed = grants.find((grant) => grant.status === 'lapsed') ?? null
 
   /**
    * Open the window: mint the five-minute pass on auth-service (the only process holding the signing
@@ -299,8 +300,17 @@ export function InsidePanel({
    * would never fire at all.
    */
   const refetchReads = reads.refetch
+  /*
+   * AND ONLY WHILE THERE IS A WINDOW TO ASK ABOUT (DOS-114). `refetch()` is a FORCED read: it does
+   * not consult the query's own `enabled`. So handing the window back inside these four seconds —
+   * which is a successful press — changed `live` to null, re-armed the timers on the new key and
+   * fired `GET /admin/audit?…&entityId=&limit=20`, a 400 in the console right after an action that
+   * worked. Measured on the pilot's page. The id, not the object: `live` is a fresh object each
+   * render, and depending on it would clear and re-arm the timers for ever.
+   */
+  const liveId = live?.id ?? null
   useEffect(() => {
-    if (openedAt === undefined) return
+    if (openedAt === undefined || liveId === null) return
     const timers = [
       setTimeout(() => void refetchReads(), 1_200),
       setTimeout(() => void refetchReads(), 4_000),
@@ -308,7 +318,7 @@ export function InsidePanel({
     return () => {
       for (const timer of timers) clearTimeout(timer)
     }
-  }, [openedAt, refetchReads])
+  }, [openedAt, liveId, refetchReads])
 
   const revoke = useMutation(
     (grantId: string) =>
@@ -468,8 +478,7 @@ export function InsidePanel({
             <Row wrap>
               <StatusChip
                 testID="window-state"
-                label={word(waiting.status)}
-                family={grantFamily(waiting.status, false)}
+                {...grantChip(waiting, { openNow: t('p6.openNow'), word })}
               />
             </Row>
             <Txt field="body" desk="body" color={colors.text.secondary}>
@@ -485,7 +494,7 @@ export function InsidePanel({
             <Row wrap>
               <StatusChip
                 testID="window-state"
-                label={lapsed === null ? t('word.closed') : t('p6.lapsed')}
+                label={lapsed === null ? t('word.closed') : word(lapsed.status)}
                 family="neutral"
               />
             </Row>

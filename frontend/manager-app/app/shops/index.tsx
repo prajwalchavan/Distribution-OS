@@ -20,6 +20,7 @@ import {
   Dialog,
   Money,
   Register,
+  Row,
   RupeeInput,
   Screen,
   Search,
@@ -49,6 +50,13 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, shiftDays, shortInstant, today } from '../../src/lib/dates'
+import {
+  SHOP_COLUMNS,
+  overdueAmount,
+  statementRows,
+  type ShopColumnKey,
+  type ShopColumnSpec,
+} from '../../src/lib/shops'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -92,9 +100,21 @@ export default function Shops(): React.JSX.Element {
     () => api.api.receivables.outstanding.get({ retailerId: selected ?? '', includeBills: true }),
     { enabled: selected !== null },
   )
+  /*
+   * The statement window is the SAME ninety days "Send the statement" queues below, so the panel and
+   * the message the shopkeeper receives cover one period, and the opening row can say which day the
+   * balance is carried from.
+   */
+  const statementFrom = shiftDays(today(), -90)
   const ledger = useQuery(
-    ['receivables', 'ledger', selected ?? 'none'],
-    () => api.api.receivables.ledger.get({ retailerId: selected ?? '', limit: 30 }),
+    ['receivables', 'ledger', selected ?? 'none', statementFrom],
+    () =>
+      api.api.receivables.ledger.get({
+        retailerId: selected ?? '',
+        from: statementFrom,
+        to: today(),
+        limit: 30,
+      }),
     { enabled: selected !== null },
   )
   const series = useQuery(
@@ -166,26 +186,36 @@ export default function Shops(): React.JSX.Element {
     .filter((row): row is Retailer => row !== null)
   const current = shop.data === undefined ? null : staffRetailer(shop.data.item)
 
-  const columns: readonly RegisterColumn<Retailer>[] = [
-    textColumn('code', t('m14.code'), (row) => row.code, { priority: 'identity' }),
-    textColumn('name', t('m14.name'), (row) => row.name),
-    textColumn('beat', t('m14.beat'), (row) => names.beat(row.beatId)),
-    textColumn('tier', t('m14.tier'), (row) => row.tier),
-    textColumn('terms', t('m14.terms'), (row) => word(row.paymentTerms)),
-    moneyColumn('limit', t('m14.limit'), (row) => row.creditLimitPaise),
-    {
+  /*
+   * The column set — which columns, in what order, and which of them a phone keeps — is
+   * `SHOP_COLUMNS` in `src/lib/shops.ts`, where a vitest reads it (DOS-038). Here each key gets its
+   * head and its cell.
+   */
+  const cellOf: Readonly<
+    Record<ShopColumnKey, (at: Pick<ShopColumnSpec, 'priority'>) => RegisterColumn<Retailer>>
+  > = {
+    code: (at) => textColumn('code', t('m14.code'), (row) => row.code, at),
+    name: (at) => textColumn('name', t('m14.name'), (row) => row.name, at),
+    beat: (at) => textColumn('beat', t('m14.beat'), (row) => names.beat(row.beatId), at),
+    tier: (at) => textColumn('tier', t('m14.tier'), (row) => row.tier, at),
+    terms: (at) => textColumn('terms', t('m14.terms'), (row) => word(row.paymentTerms), at),
+    limit: (at) => moneyColumn('limit', t('m14.limit'), (row) => row.creditLimitPaise, at),
+    mode: (at) => ({
       key: 'mode',
       head: t('m14.creditMode'),
-      priority: 'chip',
+      priority: at.priority,
       cell: (row) => (
         <StatusChip
           label={word(row.creditMode)}
           family={row.creditMode === 'stop' ? 'brick' : 'neutral'}
         />
       ),
-    },
-    textColumn('phone', t('m14.phone'), (row) => row.phone),
-  ]
+    }),
+    phone: (at) => textColumn('phone', t('m14.phone'), (row) => row.phone, at),
+  }
+  const columns: readonly RegisterColumn<Retailer>[] = SHOP_COLUMNS.map((spec) =>
+    cellOf[spec.key]({ priority: spec.priority }),
+  )
 
   useRegisterKeys({
     rows,
@@ -267,6 +297,10 @@ export default function Shops(): React.JSX.Element {
             <Stack gap={4}>
               <Field label={t('m14.code')}>{current.code}</Field>
               <Field label={t('m14.beat')}>{names.beat(current.beatId)}</Field>
+              {/* The credit limit is a desk column and a panel field: a phone row keeps the name. */}
+              <Field label={t('m14.limit')}>
+                <Money value={current.creditLimitPaise} size="cell" symbol={false} />
+              </Field>
               <Field label={t('m14.phone')}>{current.phone ?? t('app.none')}</Field>
               <Field label={t('m14.gstin')}>{current.gstin ?? t('app.none')}</Field>
 
@@ -274,7 +308,7 @@ export default function Shops(): React.JSX.Element {
                 <Stack gap={2}>
                   <Money value={dues.data?.outstandingPaise ?? null} size="moneyM" />
                   <Txt field="label" desk="meta" color={colors.text.secondary}>
-                    {t('m1.overdue', { amount: String(dues.data?.overduePaise ?? 0) })}
+                    {t('m1.overdue', { amount: overdueAmount(dues.data?.overduePaise) })}
                   </Txt>
                   <Field label={t('m14.oldest')}>{longDate(dues.data?.oldestDueDate)}</Field>
                   {series.data === undefined ? null : (
@@ -302,23 +336,44 @@ export default function Shops(): React.JSX.Element {
                 </Panel>
               )}
 
+              {/*
+                Three figures per row, under one head: what the document added, what it took off, and
+                the balance it left. Without them the single balance column read as the document's own
+                amount (DOS-036).
+              */}
               <Panel title={t('m14.ledger')}>
                 <Stack gap={2}>
-                  {(ledger.data?.items ?? []).slice(0, 12).map((row) => (
-                    <Stack
-                      key={`${row.kind}-${row.refId}-${row.date}`}
-                      gap={1}
-                      border="bottom"
-                      borderTone="faint"
-                      padY={2}
-                    >
+                  <Row gap={3} border="bottom" borderTone="hairline" padY={1}>
+                    {[t('m14.debit'), t('m14.credit'), t('m14.balance')].map((head) => (
+                      <Stack key={head} grow align="end">
+                        <Txt field="label" desk="meta" color={colors.text.secondary}>
+                          {head}
+                        </Txt>
+                      </Stack>
+                    ))}
+                  </Row>
+                  {statementRows(ledger.data ?? { openingPaise: 0, items: [] }, {
+                    from: statementFrom,
+                    limit: 12,
+                  }).map((row) => (
+                    <Stack key={row.key} gap={1} border="bottom" borderTone="faint" padY={2}>
                       <Txt field="body" desk="cell" numberOfLines={1}>
-                        {`${word(row.kind)} · ${row.refNo ?? ''}`}
+                        {row.refNo === null ? word(row.kind) : `${word(row.kind)} · ${row.refNo}`}
                       </Txt>
                       <Txt field="label" desk="meta" color={colors.text.secondary}>
                         {longDate(row.date)}
                       </Txt>
-                      <Money value={row.balancePaise} size="cell" />
+                      <Row gap={3}>
+                        <Stack grow align="end">
+                          <Money value={row.debitPaise} size="cell" symbol={false} />
+                        </Stack>
+                        <Stack grow align="end">
+                          <Money value={row.creditPaise} size="cell" symbol={false} />
+                        </Stack>
+                        <Stack grow align="end">
+                          <Money value={row.balancePaise} size="cell" symbol={false} />
+                        </Stack>
+                      </Row>
                     </Stack>
                   ))}
                 </Stack>

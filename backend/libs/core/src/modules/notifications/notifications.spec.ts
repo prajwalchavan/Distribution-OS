@@ -825,6 +825,55 @@ describeDb('notifications (DATABASE_URL)', () => {
     expect((await call(app, accountant, 'GET', '/notifications/broadcasts')).status).toBe(200)
   })
 
+  it("DOS-052: the godown's inbox holds the notices addressed to the loader, never the distributor's messages to its shops", async () => {
+    const mine = uuidv7()
+    await db.insert(messages).values({
+      id: mine,
+      tenantId,
+      channel: 'in_app',
+      to: godownId,
+      recipientUserId: godownId,
+      locale: 'en-IN',
+      payload: { body: 'Wave W-12 is ready to pick', senderName: 'Notify Traders' },
+      idempotencyKey: `godown-notice-${run}`,
+    })
+
+    // W12 called `messages.list` with no filter and printed "Order SO-0459 of ₹8,044.00 confirmed…"
+    // — SMS the distributor sent to a SHOP, with the order value, as the loader's inbox.
+    const inbox = await call<{ items: MessageOut[] }>(app, godown, 'GET', '/notifications/messages')
+    expect(inbox.status).toBe(200)
+    expect(inbox.body.items.map((m) => m.id)).toEqual([mine])
+    expect(inbox.body.items.every((m) => m.recipientRetailerId === null)).toBe(true)
+
+    // Naming a shop does not open its log either, and one of its rows is simply not found.
+    const askedForShop = await call<{ items: MessageOut[] }>(
+      app,
+      godown,
+      'GET',
+      '/notifications/messages',
+      { retailerId: shopA },
+    )
+    expect(askedForShop.status).toBe(200)
+    expect(askedForShop.body.items).toHaveLength(0)
+    const [aRow] = await messagesByKey(`InvoiceIssued:${invoiceId}`)
+    expect(
+      (await call(app, godown, 'GET', `/notifications/messages/${aRow?.id ?? ''}`)).status,
+    ).toBe(404)
+
+    // The desk's own log is untouched, and so is the crew's (it sends bills to the door).
+    expect(
+      (await call(app, owner, 'GET', `/notifications/messages/${aRow?.id ?? ''}`)).status,
+    ).toBe(200)
+    const crewView = await call<{ items: MessageOut[] }>(
+      app,
+      driver,
+      'GET',
+      '/notifications/messages',
+      { retailerId: shopA },
+    )
+    expect(crewView.body.items.length).toBeGreaterThanOrEqual(1)
+  })
+
   it('another tenant never sees or resends this tenant’s message', async () => {
     const [row] = await messagesByKey(`InvoiceIssued:${invoiceId}`)
     expect(

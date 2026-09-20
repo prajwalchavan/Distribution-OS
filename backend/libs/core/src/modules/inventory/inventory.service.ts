@@ -170,16 +170,80 @@ export class InventoryService {
     return new Map(rows.map((r) => [r.id, r.name]))
   }
 
+  /**
+   * Lot id → what a person calls it: the item and, when the lot has one, its batch. One query over
+   * `stock_lots` and the global catalog; `null` for a lot the caller cannot see (the refusal then
+   * falls back to the id rather than losing the reason).
+   */
+  private async lotLabels(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+    const unique = [...new Set(ids)]
+    if (unique.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({
+        id: stockLots.id,
+        batchNo: stockLots.batchNo,
+        variantName: productVariants.name,
+        productName: products.name,
+      })
+      .from(stockLots)
+      .innerJoin(productVariants, eq(productVariants.id, stockLots.variantId))
+      .innerJoin(products, eq(products.id, productVariants.productId))
+      .where(and(eq(stockLots.tenantId, tenantId), inArray(stockLots.id, unique)))
+    return new Map(
+      rows.map((r) => [
+        r.id,
+        r.batchNo === '' ? r.variantName : `${r.variantName} (batch ${r.batchNo})`,
+      ]),
+    )
+  }
+
+  /** What each (lot, location) of this post really holds right now, for the refusal that may follow. */
+  private async onHandOf(
+    tx: Db,
+    lotIds: readonly string[],
+    locationIds: readonly string[],
+  ): Promise<Map<string, number>> {
+    if (lotIds.length === 0 || locationIds.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({
+        lotId: stockBalances.lotId,
+        locationId: stockBalances.locationId,
+        onHand: stockBalances.onHand,
+      })
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.tenantId, tenantId),
+          inArray(stockBalances.lotId, [...new Set(lotIds)]),
+          inArray(stockBalances.locationId, [...new Set(locationIds)]),
+        ),
+      )
+    return new Map(rows.map((r) => [balanceKey(r.lotId, r.locationId), r.onHand]))
+  }
+
   /** Append ledger rows and move the balances in the caller's transaction. All-or-nothing with the caller. */
   async post(tx: Db, entries: LedgerEntryInput[]): Promise<PostResult> {
     const { tenantId, actorId } = currentTenant()
     if (entries.length === 0) return { entries: [], balances: [] }
     const locationIds = [...new Set(entries.map((e) => e.locationId))]
+    const lotIds = [...new Set(entries.map((e) => e.lotId))]
     const locs = await tx
-      .select({ id: locations.id, negativeAllowed: locations.negativeAllowed })
+      .select({
+        id: locations.id,
+        name: locations.name,
+        negativeAllowed: locations.negativeAllowed,
+      })
       .from(locations)
       .where(and(eq(locations.tenantId, tenantId), inArray(locations.id, locationIds)))
     const byLocation = new Map(locs.map((l) => [l.id, l]))
+    // DOS-048: the words a refusal needs, READ BEFORE THE WRITE. The CHECK constraint that refuses a
+    // below-zero move aborts the whole transaction, so once it has fired nothing can be looked up any
+    // more — "insufficient stock: lot <uuid> at location <uuid>" was all a loader ever got. Two bounded
+    // reads per post() (never per entry) buy a sentence he can act on; the ids stay in `data`.
+    const lotLabels = await this.lotLabels(tx, lotIds)
+    const onHand = await this.onHandOf(tx, lotIds, locationIds)
     const written: LedgerRow[] = []
     const balances = new Map<string, BalanceRow>()
     for (const e of entries) {
@@ -210,14 +274,22 @@ export class InventoryService {
         .returning()
       if (!row) continue // already posted under this key; its balance moved then
       written.push(row)
+      const key = balanceKey(e.lotId, e.locationId)
       const balance = await this.applyBalance(tx, {
         lotId: e.lotId,
         locationId: e.locationId,
         onHandDelta: e.qtyDelta,
         reservedDelta: 0,
         negativeAllowed: loc.negativeAllowed,
+        label: {
+          item: lotLabels.get(e.lotId) ?? null,
+          location: loc.name,
+          // What is really there when this entry is posted: an earlier entry of the same call may
+          // already have moved this very balance.
+          onHand: balances.get(key)?.onHand ?? onHand.get(key) ?? 0,
+        },
       })
-      balances.set(balanceKey(e.lotId, e.locationId), balance)
+      balances.set(key, balance)
     }
     return { entries: written, balances: [...balances.values()] }
   }
@@ -696,6 +768,8 @@ export class InventoryService {
       onHandDelta: number
       reservedDelta: number
       negativeAllowed: boolean
+      /** DOS-048: the words for a refusal, read before the write (`post`); ids only when absent. */
+      label?: { item: string | null; location: string; onHand: number } | undefined
     },
   ): Promise<BalanceRow> {
     const { tenantId } = currentTenant()
@@ -738,15 +812,22 @@ export class InventoryService {
       return row
     } catch (err) {
       const constraint = pgConstraint(err)
+      const named = b.label?.item ?? null
       if (constraint === 'stock_balances_on_hand_nonneg') {
         throw new ORPCError('BAD_REQUEST', {
-          message: `insufficient stock: lot ${b.lotId} at location ${b.locationId} would go below zero (delta ${b.onHandDelta})`,
+          message:
+            named === null || b.label === undefined
+              ? `insufficient stock: lot ${b.lotId} at location ${b.locationId} would go below zero (delta ${b.onHandDelta})`
+              : `Only ${b.label.onHand} pc of ${named} are in ${b.label.location}; ${Math.abs(b.onHandDelta)} pc cannot go out.`,
           data: { lotId: b.lotId, locationId: b.locationId, qtyDelta: b.onHandDelta },
         })
       }
       if (constraint === 'stock_balances_reserved_nonneg') {
         throw new ORPCError('BAD_REQUEST', {
-          message: `reserved pieces of lot ${b.lotId} at location ${b.locationId} would go below zero`,
+          message:
+            named === null || b.label === undefined
+              ? `reserved pieces of lot ${b.lotId} at location ${b.locationId} would go below zero`
+              : `More of ${named} would be released in ${b.label.location} than is held there.`,
           data: { lotId: b.lotId, locationId: b.locationId },
         })
       }

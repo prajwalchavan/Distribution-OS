@@ -297,6 +297,19 @@ export function Dialog({
     if (open) confirmRef.current?.querySelector('button')?.focus()
   }, [open])
   if (!open) return <></>
+  /*
+   * DOS-122: both buttons were hard-coded `size="desk"` (32 px) on EVERY viewport and app — measured
+   * on the W7 load-out confirm at 390x844: 'Cancel' 84x32 and 'Send the vehicle out' 185x32, side by
+   * side, on a warehouse screen where every OTHER button is 76 dp. `<Button>` already defaults an
+   * unset `size` to `theme.touch` and already goes full-width once that is not 'desk'
+   * (`web/controls.tsx`), so the fix is to stop overriding it below the desk floor — keyed on
+   * `theme.touch` itself, not a second `useViewport()` call here: `ThemeProvider` already computes
+   * `touch` from that same hook, whose SSR snapshot is 'desk', so this dialog renders exactly what it
+   * already did on the server and only becomes touch-sized once the client's real theme is in.
+   * `column-reverse` puts the confirming action ABOVE Cancel, as the native Dialog already does,
+   * without moving Cancel out of its existing DOM/tab position.
+   */
+  const stacked = theme.touch !== 'desk'
   return (
     <div
       className="dos-backdrop"
@@ -318,18 +331,25 @@ export function Dialog({
             {body}
           </Txt>
         </div>
-        <div style={{ display: 'flex', gap: space[3], justifyContent: 'flex-end' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: stacked ? 'column-reverse' : 'row',
+            gap: space[3],
+            justifyContent: 'flex-end',
+          }}
+        >
           <Button
             label={cancelLabel ?? theme.t('action.cancel')}
             variant="secondary"
-            size="desk"
+            size={stacked ? undefined : 'desk'}
             onPress={onClose}
           />
           <div ref={confirmRef}>
             <Button
               label={confirmLabel}
               variant={destructive === true ? 'destructive' : 'primary'}
-              size="desk"
+              size={stacked ? undefined : 'desk'}
               loading={busy === true}
               onPress={onConfirm}
             />

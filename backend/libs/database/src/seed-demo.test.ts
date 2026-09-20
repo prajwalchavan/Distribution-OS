@@ -623,6 +623,8 @@ describeDb('demo seed on an empty database', () => {
     expect(admin).toEqual({ role: 'super', active: true, memberships: 0 })
 
     // One subscription per distributor: the pilot pays, the other two are inside their free window.
+    // The plan is the DISTRIBUTOR'S OWN (`tenants.plan`, `pilot` for the pilot) and not a second one
+    // beside it — DOS-113, asserted on its own below.
     const subs = (
       await db.execute(sql`
         SELECT t.slug AS slug, s.plan::text AS plan, s.status::text AS status,
@@ -632,7 +634,7 @@ describeDb('demo seed on an empty database', () => {
     expect(subs.map((s) => s.slug)).toEqual(['kalyan-agencies', 'sai-distributors', 'tarsun'])
     expect(subs.find((s) => s.slug === 'tarsun')).toEqual({
       slug: 'tarsun',
-      plan: 'pro',
+      plan: 'pilot',
       status: 'active',
       price: 499_900,
     })
@@ -669,6 +671,28 @@ describeDb('demo seed on an empty database', () => {
       .filter((table) => before[table] !== after[table])
       .map((table) => `${table}: ${before[table] ?? 0} -> ${after[table] ?? 0}`)
     expect(drift).toEqual([])
+  }, 60_000)
+
+  /**
+   * DOS-113 — one plan per distributor, not two.
+   *
+   * `tenants.plan` and `subscriptions.plan` are two columns on purpose (the tenant row is what every
+   * service reads, the subscription row is what the console edits), and the product keeps them equal
+   * wherever it writes either: `admin.tenants.create` writes one `plan` into both, and
+   * `admin.subscriptions.upsert` updates the tenant row whenever the plan changes. The SEED did not:
+   * it wrote `pilot`/`starter`/`growth` on the tenants and `pro`/`standard` on their subscriptions,
+   * so the console showed Tarsun as "Pilot" on the Distributors list and "Pro" on Subscriptions, and
+   * the two ladders on its home screen counted the same three distributorships under different words.
+   */
+  it('DOS-113: every seeded distributor is on ONE plan — the subscription’s plan is the tenant’s plan', async () => {
+    await seedPlatformConsole(db, passwordHash)
+    const rows = (
+      await db.execute(sql`
+        SELECT t.slug AS slug, t.plan::text AS tenant_plan, s.plan::text AS subscription_plan
+          FROM tenants t JOIN subscriptions s ON s.tenant_id = t.id ORDER BY t.slug`)
+    ).rows as { slug: string; tenant_plan: string; subscription_plan: string }[]
+    expect(rows.length).toBeGreaterThan(0)
+    expect(rows.filter((r) => r.tenant_plan !== r.subscription_plan)).toEqual([])
   }, 60_000)
 
   /**

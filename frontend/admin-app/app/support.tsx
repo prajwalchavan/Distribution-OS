@@ -37,9 +37,8 @@ import {
   Note,
   Panel,
   ReloadButton,
-  askLapsed,
   chipColumn,
-  grantFamily,
+  grantChip,
   showingCount,
   textColumn,
   useCan,
@@ -48,25 +47,24 @@ import { instantWithClock, untilInstant } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
 
 /**
- * The four faces this register has, and why three of them are read HERE and not on the wire.
+ * The three faces this register has, and why each one is now a SERVER filter.
  *
- * `admin.support.list` offers `openOnly` and `status`, and neither means what a console reader
- * means. `openOnly()` on the server is "not revoked AND (not yet approved OR not yet expired)" —
- * which is every ask nobody ever answered, for ever. Measured on the founder's database, the default
- * view headed **"Open now" listed 100 rows of which exactly one was open**; the other 99 were asks
- * that ran out of their own hours days ago. `status: 'requested'` has the same hole from the other
- * side: a lapsed ask still reads `requested` on the wire and can never be opened again (the owner
- * gets 409 `request_expired`), so a segment labelled "Waiting for their owner" showed 100 rows with
- * nobody waiting on any of them.
+ * It used to filter on the device, and it had to: `openOnly` on the server was "not revoked AND (not
+ * yet approved OR not yet expired)", which kept every ask nobody ever answered for ever, and
+ * `status: 'requested'` had the same hole from the other side — a lapsed ask read `requested` on the
+ * wire though its owner could no longer open it (409 `request_expired`). Measured on the founder's
+ * database, the view headed **"Open now" listed 100 rows of which exactly one was open**. DOS-110
+ * gave the server a `lapsed` status derived in one place for both services, so:
  *
- * `active` (the server's own field: approved, unexpired, unrevoked) and `askLapsed()` (the window
- * counted from `requestedAt`, the same rule the distributorship panel uses) are the two facts that
- * decide it, so the page is fetched by the nearest wire filter and read by these. A filtered page is
- * honest about itself: the header counts what is on screen.
+ *   open    → `status: 'approved'`, which IS "approved, unexpired, unrevoked" — exactly `active`.
+ *   waiting → `status: 'requested'`, which now excludes an ask whose own hours ran out.
+ *   all     → no filter, where a lapsed ask reads "Lapsed, no answer" and its panel says why.
+ *
+ * Nothing is dropped from a page after it arrives, so the header's count is the server's count and
+ * the page size means what it says.
  *
  * THREE views, not four: `<Segments>` renders `items.slice(0, 3)` in both renderers, because UX-00
- * §6.10 draws a segmented control with two or three options. A lapsed ask is therefore read under
- * "All", where its own chip says "Lapsed, no answer" and its panel says why.
+ * §6.10 draws a segmented control with two or three options.
  */
 type View = 'open' | 'waiting' | 'all'
 
@@ -78,6 +76,8 @@ export default function Support(): React.JSX.Element {
   const router = useRouter()
   const can = useCan()
 
+  /** One set of words for every chip on this screen (DOS-110): the row's own status, coloured. */
+  const chipWords = { openNow: t('p6.openNow'), word }
   const [view, setView] = useState<View>('open')
   const [selected, setSelected] = useState<string | null>(null)
   const [closing, setClosing] = useState(false)
@@ -85,18 +85,12 @@ export default function Support(): React.JSX.Element {
   const grants = useQuery(['admin', 'support', view], () =>
     api.api.admin.support.list({
       limit: 100,
-      ...(view === 'open' ? { openOnly: true } : {}),
-      ...(view === 'waiting' ? { status: 'requested' } : {}),
+      ...(view === 'open' ? { status: 'approved' as const } : {}),
+      ...(view === 'waiting' ? { status: 'requested' as const } : {}),
     }),
   )
 
-  const page = grants.data?.items ?? []
-  const rows =
-    view === 'open'
-      ? page.filter((row) => row.active)
-      : view === 'waiting'
-        ? page.filter((row) => row.status === 'requested' && !askLapsed(row))
-        : page
+  const rows = grants.data?.items ?? []
   const current = rows.find((row) => row.id === selected) ?? null
 
   const revoke = useMutation(
@@ -142,11 +136,7 @@ export default function Support(): React.JSX.Element {
         </Stack>
       ),
     },
-    chipColumn('state', t('p6.state'), (row) => ({
-      label: row.active ? t('p6.openNow') : askLapsed(row) ? t('p6.lapsed') : word(row.status),
-      family: askLapsed(row) ? 'neutral' : grantFamily(row.status, row.active),
-      solid: row.active,
-    })),
+    chipColumn('state', t('p6.state'), (row) => grantChip(row, chipWords)),
     textColumn('scope', t('p6.scope'), (row) => word(row.scope)),
     textColumn('askedBy', t('p6.askedBy'), (row) => row.requestedByName),
     textColumn('asked', t('p6.asked'), (row) => instantWithClock(row.requestedAt)),
@@ -235,19 +225,7 @@ export default function Support(): React.JSX.Element {
         {current === null ? null : (
           <Stack gap={4}>
             <Row gap={2} wrap>
-              <StatusChip
-                label={
-                  current.active
-                    ? t('p6.openNow')
-                    : askLapsed(current)
-                      ? t('p6.lapsed')
-                      : word(current.status)
-                }
-                family={
-                  askLapsed(current) ? 'neutral' : grantFamily(current.status, current.active)
-                }
-                solid={current.active}
-              />
+              <StatusChip {...grantChip(current, chipWords)} />
               <StatusChip label={word(current.scope)} family="neutral" />
             </Row>
             <Field label={t('p6.reason')}>{current.reason}</Field>
@@ -272,7 +250,7 @@ export default function Support(): React.JSX.Element {
                   {t('p6.deniedByOwner')}
                 </Txt>
               </Panel>
-            ) : askLapsed(current) ? (
+            ) : current.status === 'lapsed' ? (
               <Note testID="lapsed-note">{t('p6.lapsedNote')}</Note>
             ) : null}
             <Row gap={3} wrap>

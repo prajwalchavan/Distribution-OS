@@ -969,6 +969,40 @@ describeDb('warehouse (DATABASE_URL)', () => {
     ).toHaveLength(1)
   })
 
+  /**
+   * DOS-141 — the second desk to press Approve is told which sheet and whose approval it ran into.
+   *
+   * The walk read "load sheet 01a0976e-bbaf-7dbe-9bb3-f6ed587bd574 was already approved by
+   * a1cbd424-d568-7ccb-b5cc-b049e8ac2063": two database ids and nothing a manager can act on.
+   */
+  it('DOS-141: approving a sheet twice names the vehicle, the sheet date and the approver, with no ids', async () => {
+    const refused = await call<{ message: string; data?: { code?: string } }>(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/approve`,
+      { idempotencyKey: `dos141-approve-again-${run}` },
+    )
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('already_approved')
+    const message = refused.body.message
+    expect(message).toContain(`MH-05-WH-${run.slice(-4)}`)
+    // "on 13 Sep, 4:20 pm", the same preposition the approvals gate uses before a date (merge minor 3).
+    expect(message).toContain('was already approved by Manager on ')
+    // the sheet's own IST date, as a desk says it: "4 Aug", never "2026-08-04"
+    const [sheetRow] = (
+      await db.execute(sql`select sheet_date::text as d from load_sheets where id = ${sheetId}`)
+    ).rows as { d: string }[]
+    const day = `${String(Number((sheetRow?.d ?? '').slice(8, 10)))} `
+    expect(message).toContain(day)
+    expect(message).not.toContain(sheetId)
+    expect(message).not.toContain(managerId)
+    expect(message).not.toContain(sheetRow?.d ?? 'no sheet date')
+    // an IST clock time, never a UTC ISO instant
+    expect(message).toMatch(/\d{1,2}:\d{2} (am|pm)$/)
+    expect(message).not.toMatch(/\dT\d/)
+  })
+
   it('refuses a count that differs from the expectation without a note', async () => {
     const res = await call<{ message: string; data?: { code: string } }>(
       app,
