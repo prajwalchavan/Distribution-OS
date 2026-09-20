@@ -866,6 +866,15 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(submitted.body.item.state).toBe('confirmed')
     expect(submitted.body.item.orderNo).toMatch(/^SO-\d{4}$/)
     expect(submitted.body.item.approvalFlags).toEqual([])
+    /*
+     * The THIRD door for the two office-only fields, beside `GET /orders/{id}` and `sync.pull`:
+     * the shop's own submit reply. `confirmInTx` runs under `asSystem`, which flips the DATABASE
+     * setting `app.actor_role` and not `currentTenant()`, so `detail()` inside it still maps for a
+     * retailer — but only a test says so. Shop A is `indicate` with a limit of 0 (fixture :250), so
+     * the very same submit made by the rep carries a `limit_exceeded` notice (DOS-081 below).
+     */
+    expect(submitted.body.item.creditNotice).toBeNull()
+    expect(submitted.body.item.stockShortages).toEqual([])
     // the audit rows name the shopkeeper, not "system"
     expect(submitted.body.item.transitions.map((t) => t.event)).toEqual(['submit', 'confirm'])
     expect(submitted.body.item.transitions.every((t) => t.actorId === shopUserId)).toBe(true)

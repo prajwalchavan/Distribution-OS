@@ -750,9 +750,7 @@ describeDb('demo seed on an empty database', () => {
 
     // The demo really does ship such an order, in every distributorship that sells the item.
     const [withCess] = (
-      await db.execute(
-        sql`SELECT count(*)::int AS n FROM sales_orders WHERE cess_paise > 0`,
-      )
+      await db.execute(sql`SELECT count(*)::int AS n FROM sales_orders WHERE cess_paise > 0`)
     ).rows as { n: number }[]
     expect(withCess?.n).toBeGreaterThan(0)
   }, 180_000)
