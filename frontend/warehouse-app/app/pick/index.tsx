@@ -29,7 +29,8 @@ import { useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { shortDate } from '../../src/lib/dates'
-import { Async, Panel, workFamily } from '../../src/lib/ui'
+import { Async, Panel, pl, workFamily } from '../../src/lib/ui'
+import { workFirst } from '../../src/lib/work-first'
 
 export default function PickQueue(): React.JSX.Element {
   const t = useStrings()
@@ -60,11 +61,37 @@ export default function PickQueue(): React.JSX.Element {
       }),
     { enabled: signedIn },
   )
+  /*
+   * THE WAVES THAT NEED A HAND ARE ASKED FOR BY NAME (DOS-047).
+   *
+   * One unfiltered page of 30 is what this panel used to be, and on the pilot's floor all 30 came
+   * back `packed` or `picked` while the wave being picked and the wave nobody had started were not on
+   * the page at all — so the only route to today's work was the Home queue. `PicklistsListInput.status`
+   * takes ONE status, so the two live ones are two reads; the unfiltered page still follows them, for
+   * the history. `workFirst` lists a wave that is on both pages once.
+   */
+  const picking = useQuery(
+    ['picklists', 'picking'],
+    () => api.api.warehouse.picklists.list({ status: 'picking', limit: 20 }),
+    { enabled: signedIn },
+  )
+  const openWaves = useQuery(
+    ['picklists', 'open'],
+    () => api.api.warehouse.picklists.list({ status: 'open', limit: 20 }),
+    { enabled: signedIn },
+  )
   const waves = useQuery(
     ['picklists', 'live-and-open'],
     () => api.api.warehouse.picklists.list({ limit: 30 }),
     { enabled: signedIn },
   )
+  /** Being picked, then not yet started, then the newest page whatever became of it. */
+  const wavesShown = workFirst(
+    picking.data?.items ?? [],
+    openWaves.data?.items ?? [],
+    waves.data?.items ?? [],
+  )
+  const wavesToPick = (picking.data?.items.length ?? 0) + (openWaves.data?.items.length ?? 0)
 
   const items = queue.data?.items ?? []
 
@@ -236,14 +263,18 @@ export default function PickQueue(): React.JSX.Element {
           </Async>
         </Panel>
 
-        <Panel title={t('w4.waves')} testID="w4-waves">
+        <Panel
+          title={t('w4.waves')}
+          {...(wavesToPick === 0 ? {} : { meta: pl(t, 'w4.wavesToPick', wavesToPick) })}
+          testID="w4-waves"
+        >
           <Async
-            state={waves}
-            empty={(waves.data?.items.length ?? 0) === 0}
+            state={[picking, openWaves, waves]}
+            empty={wavesShown.length === 0}
             emptyMessage={t('w4.wavesEmpty')}
           >
             <Group>
-              {(waves.data?.items ?? []).map((sheet) => (
+              {wavesShown.map((sheet) => (
                 <ListRow
                   key={sheet.id}
                   testID={`w4-wave-${sheet.id}`}
