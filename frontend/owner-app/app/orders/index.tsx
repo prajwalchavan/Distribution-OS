@@ -21,6 +21,7 @@ import {
   StatusChip,
   TextInput,
   Txt,
+  formatCount,
   useColors,
   useStrings,
   useViewport,
@@ -44,6 +45,7 @@ import {
 import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { rangeOf, shortInstant, longDate, type RangeId } from '../../src/lib/dates'
 import { waitingOnKinds } from '../../src/lib/waiting-on'
+import { readAllReservations, reservedPcs } from '../../src/lib/reservations'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -115,9 +117,22 @@ export default function Orders(): React.JSX.Element {
     () => api.api.orders.get({ id: selected ?? '' }),
     { enabled: selected !== null },
   )
+  /*
+   * DOS-130: every hold, not the first page of them. Holds are per LOT, so the pieces an order has
+   * taken out of stock are the sum of `qtyPcs` over all of them, and a page cut off mid-way would
+   * under-report the one figure the owner reads as a quantity.
+   */
   const reservations = useQuery(
     ['warehouse', 'reservations', selected ?? 'none'],
-    () => api.api.warehouse.reservations.list({ orderId: selected ?? '', state: 'pending' }),
+    () =>
+      readAllReservations((cursor) =>
+        api.api.warehouse.reservations.list({
+          orderId: selected ?? '',
+          state: 'pending',
+          limit: 200,
+          ...(cursor === null ? {} : { cursor }),
+        }),
+      ),
     { enabled: selected !== null },
   )
   const bills = useQuery(
@@ -350,9 +365,16 @@ export default function Orders(): React.JSX.Element {
               </Field>
 
               <Panel title={t('o5.reservations')}>
-                <Txt field="body" desk="cell" numeric>
-                  {String(reservations.data?.items.length ?? 0)}
-                </Txt>
+                <Stack gap={1}>
+                  <Txt field="body" desk="cell" numeric>
+                    {t('qty.piecesOnly', {
+                      pieces: formatCount(reservedPcs(reservations.data ?? [])),
+                    })}
+                  </Txt>
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('o5.reservationsLots', { count: (reservations.data ?? []).length })}
+                  </Txt>
+                </Stack>
               </Panel>
 
               <Panel title={t('o5.bills')}>
@@ -382,7 +404,7 @@ export default function Orders(): React.JSX.Element {
               <Button
                 label={t('o5.release')}
                 variant="secondary"
-                disabled={(reservations.data?.items.length ?? 0) === 0}
+                disabled={(reservations.data ?? []).length === 0}
                 disabledReason={t('o5.reservations')}
                 onPress={() => {
                   setConfirming('release')

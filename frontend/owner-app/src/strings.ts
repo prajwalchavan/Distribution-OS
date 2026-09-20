@@ -174,6 +174,7 @@ export const strings = {
   'o5.cancel': 'Cancel order',
   'o5.cancelReason': 'Why is it cancelled',
   'o5.reservations': 'Stock held',
+  'o5.reservationsLots': 'across {count} lots',
   'o5.release': 'Release stock',
   'o5.bills': 'Bills',
   'o5.detail': 'Order {no}',
