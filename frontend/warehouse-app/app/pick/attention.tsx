@@ -121,14 +121,22 @@ export default function NeedsAttention(): React.JSX.Element {
                     )}`}
                   </Txt>
                   <Row gap={8} wrap>
-                    <Button
-                      label={t('tray.retry')}
-                      variant="primary"
-                      onPress={() => {
-                        void outbox.retry(entry.error.opId)
-                      }}
-                      testID={`tray-retry-${entry.error.opId}`}
-                    />
+                    {/*
+                     * Only where there is something to send again (DOS-046). A row the errors pull brought back
+                     * from the server — a refusal this install no longer holds the op for, after a reinstall or
+                     * a cleared browser — has nothing to re-queue, so the button would do nothing when pressed.
+                     * Throwing it away still works, and is what clears such a row from this device's tray.
+                     */}
+                    {entry.op === null ? null : (
+                      <Button
+                        label={t('tray.retry')}
+                        variant="primary"
+                        onPress={() => {
+                          void outbox.retry(entry.error.opId)
+                        }}
+                        testID={`tray-retry-${entry.error.opId}`}
+                      />
+                    )}
                     <Button
                       label={t('tray.discard')}
                       variant="destructive"

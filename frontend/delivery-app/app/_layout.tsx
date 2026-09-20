@@ -31,6 +31,7 @@ import {
   useStrings,
 } from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
+import NetInfo from '@react-native-community/netinfo'
 import type { ApiClient, Session } from '@dos/api-client'
 import type { SyncIdentity } from '@dos/offline'
 import type { NavItem, TenantChoice } from '@dos/ui'
@@ -313,12 +314,34 @@ function Offline({
       storePrefix={STORE_PREFIX}
       enabled={enabled}
       storeFactory={openStore}
+      watchRadio={watchRadio}
       /* S-139 (ruling 3 (dd)): the `offline:` lines go where a support call and a QA gate can read them. */
       onLog={consoleSink}
     >
       {children}
     </OfflineProvider>
   )
+}
+
+/**
+ * THE VAN'S RADIO (DOS-068). A browser fires `online` / `offline` events and the provider listens to them by
+ * itself; a phone fires neither, and React Native's `navigator` carries no `onLine`, so the engine fell back on
+ * "nothing says otherwise" and a driver in airplane mode kept a green strip and "Updated just now" over a phone
+ * that was reaching nothing (measured on the Pixel 7, ping "Network is unreachable").
+ *
+ * NetInfo is the platform's own answer, and it is the whole of what is asked of it here: one boolean, handed to
+ * the engine, which decides what to do with it — a radio that comes back clears the backoff and drains the queue
+ * rather than waiting out the poll. It is a HINT and never the verdict: the strip still needs the last call to
+ * have reached a service, because the office can be unreachable with four bars. The package resolves per platform
+ * on its own (`.web` internals in a browser), so this one line serves the website, Android and iOS.
+ *
+ * Module scope, not a new closure per render: the provider holds the subscription for the life of the engine.
+ */
+function watchRadio(onChange: (online: boolean) => void): () => void {
+  return NetInfo.addEventListener((state) => {
+    // `isInternetReachable` is null until NetInfo has probed; the radio itself is what this reports.
+    onChange(state.isConnected !== false)
+  })
 }
 
 const TrackingContext = createContext<TripTracking | null>(null)

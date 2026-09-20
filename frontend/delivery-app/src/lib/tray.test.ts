@@ -58,6 +58,8 @@ function item(input: {
       createdAt: '2026-09-19T06:30:00.000Z',
       discardedAt: null,
       handedOverAt: input.handedOverAt ?? null,
+      // DOS-046: an entry the tray still draws has not been sent again under another opId.
+      retriedAs: null,
     },
     op: withOp
       ? {

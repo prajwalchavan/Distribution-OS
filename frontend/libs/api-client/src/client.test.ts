@@ -11,11 +11,11 @@ import { memoryTokenStorage } from './storage.js'
 const DEVICE = '01924f9a-0000-7000-8000-000000000001'
 const TENANT = '01924f9a-0000-7000-8000-0000000000aa'
 
-function tokenPair(accessToken: string, refreshToken: string): unknown {
+function tokenPair(accessToken: string, refreshToken: string, accessExpiresIn = 900): unknown {
   return {
     accessToken,
     tokenType: 'Bearer',
-    accessExpiresIn: 900,
+    accessExpiresIn,
     refreshToken,
     refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     user: {
@@ -553,5 +553,78 @@ describe('DOS-112 the wire request of a Day-end settle', () => {
       },
     ])
     expect(sent[0]?.url).not.toContain(meta.id)
+  })
+})
+
+/**
+ * DOS-089 — the token is refreshed BEFORE it dies, not after a 401.
+ *
+ * The access token lives 15 minutes and nothing watched the clock, so every first call after it expired was a
+ * 401 that the interceptor then healed: 31 of them on `/sync/manifest` alone in one sales afternoon, one per
+ * navigation, each costing a round trip and a line in every service log. The pair the server hands back has
+ * always carried `accessExpiresIn`; it was simply never read. Now a call that is about to go out under a token
+ * with less than a minute left refreshes first — single-flight, so a burst pays for one — and the 401 path stays
+ * exactly where it was, for a token revoked early or a clock that disagrees.
+ */
+describe('DOS-089 the access token is refreshed before it expires', () => {
+  it('DOS-089 a call under an almost-expired token refreshes first and goes out with the new one', async () => {
+    const calls = stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('access-1', 'refresh-1', 20))
+      if (call.path === '/auth/refresh') return json(tokenPair('access-2', 'refresh-2'))
+      return json({ ok: true, database: 'up' })
+    })
+    const c = client()
+    await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
+    const result = await c.api.health.ping()
+
+    expect(result).toEqual({ ok: true, database: 'up' })
+    // No 401 anywhere: the refresh happens before the call, not because of it.
+    expect(calls.map((x) => x.path)).toEqual(['/auth/login', '/auth/refresh', '/health/ping'])
+    expect(calls.at(-1)?.authorization).toBe('Bearer access-2')
+    expect(c.session.accessToken).toBe('access-2')
+  })
+
+  it('DOS-089 a burst under an almost-expired token still pays for ONE refresh', async () => {
+    const calls = stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('access-1', 'refresh-1', 20))
+      if (call.path === '/auth/refresh') return json(tokenPair('access-2', 'refresh-2'))
+      return json({ ok: true, database: 'up' })
+    })
+    const c = client()
+    await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
+    await Promise.all([c.api.health.ping(), c.api.health.ping(), c.api.health.ping()])
+
+    expect(calls.filter((x) => x.path === '/auth/refresh')).toHaveLength(1)
+    expect(calls.filter((x) => x.path === '/health/ping')).toHaveLength(3)
+  })
+
+  it('DOS-089 a token with its whole life ahead of it is not refreshed on every call', async () => {
+    const calls = stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('access-1', 'refresh-1'))
+      if (call.path === '/auth/refresh') return json(tokenPair('access-2', 'refresh-2'))
+      return json({ ok: true, database: 'up' })
+    })
+    const c = client()
+    await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
+    await c.api.health.ping()
+
+    expect(calls.map((x) => x.path)).toEqual(['/auth/login', '/health/ping'])
+    expect(calls.at(-1)?.authorization).toBe('Bearer access-1')
+  })
+
+  it('DOS-089 a refresh that cannot reach the office does not stop the call it was meant to help', async () => {
+    const calls = stubFetch((call) => {
+      if (call.path === '/auth/login') return json(tokenPair('access-1', 'refresh-1', 20))
+      if (call.path === '/auth/refresh') throw new TypeError('Failed to fetch')
+      return json({ ok: true, database: 'up' })
+    })
+    const c = client()
+    await c.signIn({ username: 'sunil.tarsun', password: 'Dos@1234' })
+    const result = await c.api.health.ping()
+
+    // The token it has is the only one there is, and the session is still this person's.
+    expect(result).toEqual({ ok: true, database: 'up' })
+    expect(calls.at(-1)?.authorization).toBe('Bearer access-1')
+    expect(c.session.getSnapshot().session).not.toBeNull()
   })
 })
