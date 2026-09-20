@@ -1163,6 +1163,62 @@ describe('6b. a refused payment is kept and handed to the cashier', () => {
     )
     expect(Number(left[0]?.n ?? 0)).toBe(1)
   })
+
+  /*
+   * MONEY IS NEVER SENT AGAIN FROM THE PHONE, AND THE ENGINE IS WHERE THAT IS DECIDED (merge review blocker 1,
+   * DOS-046 against DOS-178). `discard` refuses a money refusal here rather than in whichever screen draws the
+   * tray; "Try it again" is the same door with the same rupees behind it. A doorstep receipt the cashier has
+   * already recorded at the office under the same paper-book number must not go out a second time under a fresh
+   * opId — the server would have no way to know it is the same money, because a new opId IS a new request.
+   */
+  it('DOS-046 blocker: money the cashier already has is refused by "Try it again", refused or handed over', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer([...TABLES, RECEIPTS], 'delivery')
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({
+      table: 'receipts',
+      id: 'rc9',
+      op: 'PUT',
+      data: { retailer_id: 'r1', mode: 'cash', amount_paise: 180000, client_receipt_no: '77' },
+    })
+    server.rejections.set(opId, {
+      code: 'trip_settled',
+      messageEn: 'Trip TRIP-0031 is settled; money is collected while the trip is out',
+    })
+    await engine.flush()
+    server.uploadCalls.length = 0
+
+    // 1. While it still sits in the tray refused, it is money: there is no retry, only the cashier.
+    await expect(engine.retry(opId)).rejects.toBeInstanceOf(KeptMoneyError)
+    expect((await engine.outbox()).find((op) => op.opId === opId)?.status).toBe('rejected')
+
+    // 2. And once it HAS gone to the cashier, a second press cannot post it again behind their back.
+    clock += 60_000
+    await engine.handOver(opId)
+    await expect(engine.retry(opId)).rejects.toBeInstanceOf(KeptMoneyError)
+
+    const kept = (await engine.outbox()).find((op) => op.opId === opId)
+    expect(kept?.status).toBe('kept')
+    expect(kept?.opId).toBe(opId)
+    expect(kept?.idempotencyKey).toBe(opId)
+    const marks = await store.query<{ handed_over_at: string | null; retried_as: string | null }>(
+      `SELECT handed_over_at, retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    expect(marks[0]?.handed_over_at).toBe('2026-09-06T06:01:00.000Z')
+    expect(marks[0]?.retried_as).toBeNull()
+    expect(await engine.getRow<{ _pending: string | null }>('receipts', 'rc9')).toMatchObject({
+      _pending: 'kept',
+    })
+
+    // 3. Nothing was sent by either press, and nothing is waiting to be.
+    await engine.flush()
+    expect(server.uploadCalls).toEqual([])
+    await engine.stop()
+  })
 })
 
 // 6c -------------------------------------------------------------------------------------------------------------
@@ -1484,6 +1540,45 @@ describe('6d. a user’s retry is a new operation', () => {
       ['op-from-yesterday'],
     )
     expect(untouched[0]?.retried_as).toBeNull()
+    await engine.stop()
+  })
+
+  /*
+   * "TRY IT AGAIN" IS THE ANSWER TO A REFUSAL, AND ONLY TO A REFUSAL (merge review blocker 1). A write still
+   * waiting its turn in a dead spot is already on its way under an opId the server can recognise as a replay;
+   * minting it a NEW one would turn a queued op into a second request for the same intent — the one thing the
+   * opId exists to prevent. So a retry of anything that is not `rejected` (queued, sending, acked, kept, gone)
+   * answers null and leaves the queue exactly as it found it.
+   */
+  it('DOS-046 blocker: a retry of an op that was never refused returns null and leaves its opId alone', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    server.offline = true
+    const opId = await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o7',
+      op: 'PUT',
+      data: { retailer_id: 'r1', state: 'draft' },
+    })
+    await engine.flush().catch(() => undefined)
+    expect((await engine.outbox()).find((op) => op.opId === opId)?.status).toBe('queued')
+
+    expect(await engine.retry(opId)).toBeNull()
+
+    const after = (await engine.outbox()).find((op) => op.opId === opId)
+    expect(after?.status).toBe('queued')
+    expect(after?.idempotencyKey).toBe(opId)
+    expect(await engine.needsAttention()).toEqual([])
+
+    // The radio comes back and the op goes out as itself — one request, the opId the server can replay.
+    server.offline = false
+    server.uploadCalls.length = 0
+    await engine.flush()
+    expect(server.uploadCalls.flatMap((call) => call.ops.map((op) => op.opId))).toEqual([opId])
     await engine.stop()
   })
 
