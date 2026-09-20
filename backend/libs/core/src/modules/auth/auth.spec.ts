@@ -530,6 +530,7 @@ describeDb('auth (DATABASE_URL)', () => {
   const tS = uuidv7()
   const tX = uuidv7()
   const rP = uuidv7()
+  const rP2 = uuidv7()
   const rQ = uuidv7()
   const rX = uuidv7()
 
@@ -537,6 +538,11 @@ describeDb('auth (DATABASE_URL)', () => {
    * DOS-102 fixtures: one shopkeeper login that buys from two distributors (P and Q), works at a
    * third (R, as a manager), was cut off by a fourth (S, membership disabled) and has nothing at all
    * to do with a fifth (X, which carries its own dues for its own shop).
+   *
+   * Inside P there is also a SECOND shop (rP2) this login is not linked to — the neighbour on the
+   * same street, on the same distributor's book and even on the same van. Everything about it is
+   * bigger and newer than this shop's, so any read that forgot to scope WITHIN the tenant shows up
+   * as a wrong number rather than as nothing at all.
    */
   async function seedMembershipsSummaryFixtures(): Promise<void> {
     const passwordHash = await hashPassword(password)
@@ -596,6 +602,14 @@ describeDb('auth (DATABASE_URL)', () => {
         stateCode: '27',
       },
       {
+        id: rP2,
+        tenantId: tP,
+        code: `MS${run}P2`,
+        name: 'Neighbour Stores',
+        phone: `+919${run}9`,
+        stateCode: '27',
+      },
+      {
         id: rQ,
         tenantId: tQ,
         code: `MS${run}Q`,
@@ -649,6 +663,17 @@ describeDb('auth (DATABASE_URL)', () => {
         lastReceiptPaise: 500_000,
         asOf: '2026-09-13',
       },
+      // The neighbour's book, inside the SAME distributor. Nothing of it may reach this login.
+      {
+        tenantId: tP,
+        retailerId: rP2,
+        outstandingPaise: 7_777_700,
+        overduePaise: 7_777_700,
+        openBills: 9,
+        lastReceiptAt: new Date('2026-09-12T06:30:00.000Z'),
+        lastReceiptPaise: 900_000,
+        asOf: '2026-09-13',
+      },
       {
         tenantId: tQ,
         retailerId: rQ,
@@ -693,6 +718,19 @@ describeDb('auth (DATABASE_URL)', () => {
         placeOfSupplyState: '27',
         totalPaise: 777_700,
       },
+      // The neighbour's bill: issued, newer and larger, so an unscoped "latest bill" answers IT.
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        invoiceNo: `MS/${run}/2`,
+        fy: '2026-27',
+        invoiceDate: '2026-09-11',
+        retailerId: rP2,
+        state: 'issued',
+        buyerName: 'Neighbour Stores',
+        placeOfSupplyState: '27',
+        totalPaise: 4_560_000,
+      },
     ])
     const locationId = uuidv7()
     const vehicleId = uuidv7()
@@ -724,6 +762,17 @@ describeDb('auth (DATABASE_URL)', () => {
         sequence: 2,
         retailerId: rP,
         state: 'delivered',
+      },
+      // The neighbour is on the SAME van and further along ('arrived' beats 'started'), so an
+      // unscoped read would tell this shop a van is at its door.
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        tripId,
+        sequence: 3,
+        retailerId: rP2,
+        state: 'arrived',
+        etaAt: new Date('2026-09-13T08:00:00.000Z'),
       },
     ])
   }
@@ -774,6 +823,52 @@ describeDb('auth (DATABASE_URL)', () => {
     expect(res.body.totalOverduePaise).toBe(2_000_000)
     expect(res.body.items.some((i) => i.tenantId === tX)).toBe(false)
     expect(res.body.items.some((i) => i.tenantId === tS)).toBe(false)
+  })
+
+  it("DOS-102: inside one distributor the summary reads only this login's own shop — the neighbour's dues, bill and van never leak", async () => {
+    /*
+     * THE GUARANTEE THE WHOLE READ RESTS ON.
+     *
+     * `membershipsSummary` runs each tenant's three reads under the caller's own actor id and the
+     * role of THAT membership, so RLS (tenantOrOwnRetailerPolicy via retailer_links.user_id) narrows
+     * them to the shops this login is actually linked to. Tenant isolation is not enough here: the
+     * neighbour shop lives in the SAME tenant, on the same book and the same van. If the composer
+     * ever passed a back-office role, or a helper took the tenant's totals instead of the caller's,
+     * every assertion below moves — the shop would be shown someone else's money.
+     */
+    const pair = await login(shopUser, password, { deviceId: deviceTwo })
+    expect(pair.status).toBe(200)
+    const res = await bearer<SummaryBody>(pair.body.accessToken, 'GET', '/auth/memberships/summary')
+    expect(res.status).toBe(200)
+
+    // The neighbour's rows really are there to be leaked — otherwise this test passes on nothing.
+    const neighbour = await db
+      .select()
+      .from(retailerOutstandingSummary)
+      .where(
+        and(
+          eq(retailerOutstandingSummary.tenantId, tP),
+          eq(retailerOutstandingSummary.retailerId, rP2),
+        ),
+      )
+    expect(neighbour).toHaveLength(1)
+    expect(neighbour[0]?.outstandingPaise).toBe(7_777_700)
+
+    const p = res.body.items.find((i) => i.tenantId === tP)
+    // Money: this shop's own book, not the two shops summed (which would read 1,13,620.00).
+    expect(p?.outstandingPaise).toBe(3_584_300)
+    expect(p?.overduePaise).toBe(2_000_000)
+    expect(p?.openBills).toBe(4)
+    expect(p?.lastReceiptPaise).toBe(500_000)
+    // The last bill is this shop's, not the neighbour's newer, larger one.
+    expect(p?.lastBill?.invoiceNo).toBe(`MS/${run}/1`)
+    expect(p?.lastBill?.totalPaise).toBe(123_400)
+    // The van: one stop, still on its way — not the neighbour's 'arrived'.
+    expect(p?.onTheWay?.stops).toBe(1)
+    expect(p?.onTheWay?.state).toBe('started')
+    // And the totals carry the same narrowed figures.
+    expect(res.body.totalOutstandingPaise).toBe(3_584_300 + 2_647_000)
+    expect(res.body.totalOverduePaise).toBe(2_000_000)
   })
 
   it('DOS-102: the summary needs a Bearer access token (401 without) and writes no session or auth event', async () => {
