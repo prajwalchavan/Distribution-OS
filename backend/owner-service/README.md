@@ -5873,7 +5873,7 @@ Create or update a scheme; a change to its economics bumps the version · contra
 | `triggerMin` | integer | yes |
 | `triggerUnit` | pcs | case | inr | yes |
 | `slabs` | object[] | no |
-| `rewardKind` | free_qty | line_pct | order_pct | cash_discount_pct | net_scheme_amount | yes |
+| `rewardKind` | free_qty | line_pct | order_pct | cash_discount_pct | net_scheme_amount | per_unit_amount | yes |
 | `rewardValue` | integer | yes |
 | `freeVariantId` | uuid | no |
 | `applicability` | object | no |

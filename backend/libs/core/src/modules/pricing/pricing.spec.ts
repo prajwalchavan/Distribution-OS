@@ -722,6 +722,55 @@ describeDb('pricing (DATABASE_URL)', () => {
     expect(below.body.totals.discountPaise).toBe(0)
   })
 
+  it('DOS-087: a per-unit amount saved through the contract takes ₹15 off every case from 2 cases on', async () => {
+    // Founder, 2026-09-13: "₹15 off per case on 2+" is ₹15 on EVERY case once two are bought. v2 is a
+    // case of 24 at ₹20 and this scheme's window is its own, so nothing else prices these quotes.
+    const perCaseId = uuidv7()
+    const saved = await call<{ item: Scheme }>(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-dos087-${run}`,
+      id: perCaseId,
+      name: '₹15 off per case on 2+',
+      scope: { all: true },
+      triggerKind: 'qty',
+      triggerMin: 2,
+      triggerUnit: 'case',
+      rewardKind: 'per_unit_amount',
+      rewardValue: 1_500,
+      validFrom: '2032-03-01',
+      validTo: '2032-03-31',
+    })
+    expect(saved.status).toBe(200)
+    expect(saved.body.item.rewardKind).toBe('per_unit_amount')
+
+    const quoteIn2032 = (qtyPcs: number) =>
+      call<Quote>(app, rep, 'POST', '/pricing/quote', {
+        retailerId: shopA,
+        pricingDate: '2032-03-15',
+        lines: [{ lineId: 'l1', variantId: v2, qtyPcs }],
+      })
+    expect((await quoteIn2032(24)).body.totals.discountPaise).toBe(0) // one case: under the trigger
+    expect((await quoteIn2032(48)).body.totals.discountPaise).toBe(3_000) // ₹15 × 2
+    expect((await quoteIn2032(72)).body.totals.discountPaise).toBe(4_500) // ₹15 × 3
+    // 2 cs + 6 loose pieces is two cases: loose pieces never round up.
+    expect((await quoteIn2032(54)).body.totals.discountPaise).toBe(3_000)
+
+    // And the contract refuses one with no unit to pay per.
+    const refused = await call(app, owner, 'POST', '/pricing/schemes', {
+      idempotencyKey: `scheme-dos087-inr-${run}`,
+      id: uuidv7(),
+      name: '₹15 off per rupee',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerMin: 50_000,
+      triggerUnit: 'inr',
+      rewardKind: 'per_unit_amount',
+      rewardValue: 1_500,
+      validFrom: '2032-03-01',
+      validTo: '2032-03-31',
+    })
+    expect(refused.status).toBe(400)
+  })
+
   it("DOS-076: pricing.quote reports a brand-scoped cash discount on that brand's lines only", async () => {
     // A second brand under this run's manufacturer: Too Yumm Karare 60 g, case of 48, ₹14.75 on the default list.
     const tooYummBrandId = uuidv7()

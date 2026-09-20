@@ -129,7 +129,10 @@ export const schemeRewardKind = pgEnum('scheme_reward_kind', [
   'line_pct',
   'order_pct',
   'cash_discount_pct',
+  /** Paise off once per MULTIPLE of the trigger ("₹15 for every 2 cases"). */
   'net_scheme_amount',
+  /** Paise off EVERY whole trigger unit once the trigger is met ("₹15 a case on 2+", DOS-087). */
+  'per_unit_amount',
 ])
 export const fundingSource = pgEnum('funding_source', ['company', 'distributor'])
 export const pricingDateMode = pgEnum('pricing_date_mode', ['order', 'delivery'])

@@ -1032,6 +1032,8 @@ export const strings = {
   'word.order_pct': 'Off the bill',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Flat scheme amount',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.company': 'The brand',
   'word.distributor': 'Us',
 

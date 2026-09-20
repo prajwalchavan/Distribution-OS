@@ -543,6 +543,8 @@ export const strings = {
   'word.order_pct': 'Order discount',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Off the net',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.pcs': 'pieces',
   'word.case': 'cases',
   'word.inr': 'rupees',

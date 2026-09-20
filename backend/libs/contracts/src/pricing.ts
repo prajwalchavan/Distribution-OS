@@ -137,7 +137,10 @@ export const SchemeRewardKindSchema = z.enum([
   'line_pct',
   'order_pct',
   'cash_discount_pct',
+  /** Paise off once per MULTIPLE of the trigger ("₹15 for every 2 cases"). */
   'net_scheme_amount',
+  /** Paise off EVERY whole trigger unit once the trigger is met ("₹15 a case on 2+", DOS-087). */
+  'per_unit_amount',
 ])
 export const SchemeFundingSourceSchema = z.enum(['company', 'distributor'])
 export const PricingDateModeSchema = z.enum(['order', 'delivery'])
@@ -177,7 +180,7 @@ const schemeEconomics = {
   triggerUnit: SchemeTriggerUnitSchema,
   slabs: z.array(SchemeSlabSchema).max(20).nullable(),
   rewardKind: SchemeRewardKindSchema,
-  /** free pieces, bps for the pct kinds, paise for net_scheme_amount. */
+  /** free pieces, bps for the pct kinds, paise for net_scheme_amount and per_unit_amount. */
   rewardValue: z.number().int().nonnegative(),
   freeVariantId: IdSchema.nullable(),
   applicability: SchemeApplicabilitySchema,
@@ -273,6 +276,12 @@ export const UpsertSchemeInput = MutationBase.extend({
       !['line_pct', 'order_pct', 'cash_discount_pct'].includes(s.rewardKind) ||
       BpsSchema.safeParse(s.rewardValue).success,
     'percentage rewards are basis points 0..10000',
+  )
+  // DOS-087: `per_unit_amount` is paise per unit, so it needs a unit — a rupee trigger has none.
+  .refine(
+    (s) =>
+      s.rewardKind !== 'per_unit_amount' || s.triggerUnit === 'pcs' || s.triggerUnit === 'case',
+    'a per-unit amount needs a pcs or case trigger',
   )
 export const UpsertSchemeOutput = z.object({ item: SchemeSchema })
 

@@ -471,7 +471,9 @@ export async function seedPricing(
       triggerKind: 'qty' as const,
       triggerMin: 2,
       triggerUnit: 'case',
-      rewardKind: 'net_scheme_amount' as const,
+      // DOS-087 (founder, 2026-09-13): ₹15 on EVERY case once two are bought — ₹30 on 2, ₹45 on 3 —
+      // which is what the name and the shop card have always promised.
+      rewardKind: 'per_unit_amount' as const,
       rewardValue: 1_500,
       validFrom: isoDate(daysAgo(90)),
       validTo: isoDate(daysAhead(25)),
