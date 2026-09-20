@@ -81,28 +81,6 @@ export default function OrderDetail(): React.JSX.Element {
     row.deliveries.some((delivery) => delivery.orderId === orderId),
   )
 
-  /*
-   * DOS-100: A SUBMITTED ORDER THE OFFICE HAS TO SIGN OFF LOOKED EXACTLY LIKE ONE THAT WENT THROUGH.
-   *
-   * `orders.get` already carries `approvalFlags` to the shop (only the `approvals` themselves are
-   * stripped), so the screen can say WHY nothing is moving. What it may never say is how much credit
-   * the shop has or what its limit is: ADR 0006 keeps both off this app (CREDIT_CHECKERS excludes
-   * `retailer`). The only figure shown is the shop's OWN overdue amount, which it can already read on
-   * Money you owe — and which is the one thing it can act on.
-   */
-  const heldFlags = detail?.state === 'submitted' ? detail.approvalFlags : []
-  const held = heldFlags.length > 0
-  const holdDues = useQuery(
-    ['outstanding', my.retailerId],
-    () =>
-      api.api.receivables.outstanding.get({
-        retailerId: my.retailerId ?? '',
-        includeBills: false,
-      }),
-    { enabled: signedIn && held && my.retailerId !== null },
-  )
-  const holdOverduePaise = holdDues.data?.overduePaise ?? 0
-
   const cancel = useMutation(
     (input: { orderId: string; reason: string }, meta) =>
       api.api.orders.cancel({
@@ -138,10 +116,7 @@ export default function OrderDetail(): React.JSX.Element {
       chips={
         detail === undefined ? undefined : (
           <Row gap={2} wrap>
-            <StatusChip
-              label={held ? t('word.submittedHeld') : word(detail.state)}
-              family={orderFamily(detail.state)}
-            />
+            <StatusChip label={word(detail.state)} family={orderFamily(detail.state)} />
             <StatusChip label={word(detail.paymentTerms)} family="neutral" />
           </Row>
         )
@@ -220,36 +195,6 @@ export default function OrderDetail(): React.JSX.Element {
                 <Txt field="body" desk="body" color={colors.status.brick.fg} testID="r8-failure">
                   {failure}
                 </Txt>
-              )}
-
-              {/* --- why nothing is moving yet (DOS-100) --------------------------------------- */}
-              {!held ? null : (
-                <Panel
-                  title={t('r8.holdTitle', { name: session?.tenant.displayName ?? '' })}
-                  testID="r8-hold"
-                >
-                  <Stack gap={3}>
-                    <Txt field="body" desk="body" color={colors.text.secondary}>
-                      {!heldFlags.includes('credit_limit')
-                        ? t('r8.holdOther', { name: session?.tenant.displayName ?? '' })
-                        : holdOverduePaise > 0
-                          ? t('r8.holdCredit', { overdue: formatMoney(holdOverduePaise) })
-                          : t('r8.holdCreditNone', { name: session?.tenant.displayName ?? '' })}
-                    </Txt>
-                    {heldFlags.includes('credit_limit') && holdOverduePaise > 0 ? (
-                      <Row gap={3} wrap>
-                        <Button
-                          label={t('r8.holdPay')}
-                          variant="primary"
-                          onPress={() => {
-                            router.push('/pay')
-                          }}
-                          testID="r8-hold-pay"
-                        />
-                      </Row>
-                    ) : null}
-                  </Stack>
-                </Panel>
               )}
 
               {/* --- what was ordered --------------------------------------------------------- */}
