@@ -3,6 +3,8 @@ import { ORPCError } from '@orpc/server'
 import { and, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
+  InboundCreateInput,
+  InboundCreateOutput,
   InboundListInput,
   InboundListOutput,
   InboundMarkHandledInput,
@@ -11,10 +13,13 @@ import type {
 import { businessDate } from '@dos/domain'
 import { inboundMessages, retailers, withTenant, type ActorRole, type Db } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
+import { contactPreferences } from '../retailers/index.js'
 import { signedObjectUrl } from '../tenancy/index.js'
 import { dayWindow, repShopIds } from './notifications.internals.js'
 import { toInbound } from './notifications.mappers.js'
 
+type CreateIn = z.infer<typeof InboundCreateInput>
+type CreateOut = z.infer<typeof InboundCreateOutput>
 type ListIn = z.infer<typeof InboundListInput>
 type ListOut = z.infer<typeof InboundListOutput>
 type MarkIn = z.infer<typeof InboundMarkHandledInput>
@@ -24,6 +29,12 @@ type InboundRow = typeof inboundMessages.$inferSelect
 
 /** Support triage: the desk plus the beat-owning rep (permissions.ts TRIAGE + the worker). */
 const TRIAGE: readonly ActorRole[] = ['owner', 'manager', 'accountant', 'salesperson', 'system']
+/**
+ * DOS-103: who READS the queue. The shop is here because it reads back the reports it filed itself;
+ * RLS narrows it to the rows attributed to its own shop, and it triages nothing (`markHandled` stays
+ * TRIAGE, and no shop UPDATE policy exists under it either).
+ */
+const INBOUND_READERS: readonly ActorRole[] = [...TRIAGE, 'retailer']
 /** How long a "payment done" photo link stays good on the triage screen. */
 const MEDIA_URL_TTL_SECONDS = 15 * 60
 
@@ -37,8 +48,57 @@ const MEDIA_URL_TTL_SECONDS = 15 * 60
 export class InboundService {
   constructor(@Optional() @Inject(DB) private readonly db: Db | null) {}
 
+  /**
+   * DOS-103 — a shop reports a problem or asks for a return, from its own app.
+   *
+   * It lands in the SAME office queue as the WhatsApp texts, because the desk's job is the same either
+   * way; `kind` and the reference are the structure the desk needs to tell one from the other and to
+   * open the bill it names. The words are stored exactly as typed and never edited.
+   *
+   * The shop's own shop only. `contactPreferences` answers the link that speaks for the shop: when its
+   * login is not the caller, this is someone else's shop and the answer is 403 — RLS would refuse the
+   * insert anyway (`inbound_messages_shop_insert`), but a 403 says which of the two things is wrong.
+   */
+  async create(input: CreateIn): Promise<CreateOut> {
+    requireRole(['retailer'])
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const contact = await contactPreferences(tx, input.retailerId)
+        if (!contact || contact.userId !== ctx.actorId)
+          throw new ORPCError('FORBIDDEN', { message: 'that is not your shop' })
+        const [row] = await tx
+          .insert(inboundMessages)
+          .values({
+            id: input.id,
+            tenantId: ctx.tenantId,
+            channel: 'in_app',
+            // The shop's own number as the distributor knows it; 'app' when it holds none, so the
+            // desk still sees where the report came from.
+            from: contact.phone ?? 'app',
+            retailerId: input.retailerId,
+            body: input.body,
+            kind: input.kind,
+            refType: input.refType ?? null,
+            refId: input.refId ?? null,
+            createdBy: ctx.actorId,
+            receivedAt: new Date(),
+            handled: false,
+          })
+          .returning()
+        if (!row)
+          throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'the report was not stored' })
+        const [item] = await this.items(tx, [row])
+        if (!item)
+          throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'inbound mapping failed' })
+        return { item }
+      }),
+    )
+  }
+
   async list(input: ListIn): Promise<ListOut> {
-    requireRole(TRIAGE)
+    requireRole(INBOUND_READERS)
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, async (tx) => {
@@ -115,6 +175,11 @@ export class InboundService {
     )
   }
 
+  /**
+   * The extra predicate beyond RLS. A salesperson is scoped to the shops on its own beats (an unknown
+   * number is the desk's alone); a shop needs none — `inbound_messages_read` already narrows it to the
+   * rows of its own shop, and adding a predicate here would only be a second, drifting copy of it.
+   */
   private scope(): SQL | undefined {
     const ctx = currentTenant()
     if (ctx.actorRole !== 'salesperson') return undefined

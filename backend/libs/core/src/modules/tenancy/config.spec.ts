@@ -201,6 +201,24 @@ describeDb('tenancy config + files (DATABASE_URL)', () => {
     expect(trail.body.items.filter((i) => i.action === 'setting.set')).toHaveLength(3)
   })
 
+  it('DOS-103: branding.get answers phone null until the owner sets branding.phone, then the number, for the retailer role too', async () => {
+    // Absent means "no number configured", so the shop's app shows no Call button at all — a dead
+    // button is worse than none.
+    for (const actor of [owner, shop]) {
+      const before = await call<{ phone: string | null }>(app, actor, 'GET', '/tenancy/branding')
+      expect(before.body.phone, actor.role).toBeNull()
+    }
+    const set = await call(app, owner, 'POST', '/tenancy/settings', {
+      idempotencyKey: `phone-${run}`,
+      items: [{ key: 'branding.phone', value: '+912345678901' }],
+    })
+    expect(set.status).toBe(200)
+    for (const actor of [owner, manager, accountant, rep, shop]) {
+      const after = await call<{ phone: string | null }>(app, actor, 'GET', '/tenancy/branding')
+      expect(after.body.phone, actor.role).toBe('+912345678901')
+    }
+  })
+
   // -------------------------------------------------------------------------------------------------------------
   // numbering
 

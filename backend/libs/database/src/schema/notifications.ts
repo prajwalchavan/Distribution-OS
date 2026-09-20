@@ -195,7 +195,12 @@ export const whatsappWindows = pgTable(
   ],
 ).enableRLS()
 
-/** Inbound WhatsApp/SMS (order text, "payment done" photos) captured for the retailer's timeline and support. */
+/**
+ * Inbound WhatsApp/SMS (order text, "payment done" photos) captured for the retailer's timeline and
+ * support — and, since DOS-103, the shop's OWN reports filed from the app ("this bill is wrong", "take
+ * these two cases back"). Both land in the same office queue because the desk's job is the same either
+ * way; `kind`, `ref_type` and `ref_id` are what a report carries and a text does not.
+ */
 export const inboundMessages = pgTable(
   'inbound_messages',
   {
@@ -205,6 +210,13 @@ export const inboundMessages = pgTable(
     from: text('from').notNull(),
     retailerId: text('retailer_id'),
     body: text('body'),
+    /** DOS-103: `return_request` / `complaint` / `question` on a shop's report; null on a captured text. */
+    kind: text('kind'),
+    /** What the report is about: `invoice`, `delivery` or `order`, with its id. Both or neither. */
+    refType: text('ref_type'),
+    refId: text('ref_id'),
+    /** The shopkeeper login that filed it; null for anything the provider webhook captured. */
+    createdBy: text('created_by').references(() => users.id),
     mediaObjectKey: text('media_object_key'),
     providerMessageId: text('provider_message_id'),
     receivedAt: tz('received_at').notNull().defaultNow(),
@@ -212,12 +224,37 @@ export const inboundMessages = pgTable(
   },
   (t) => [
     index('inbound_messages_idx').on(t.tenantId, t.receivedAt),
+    index('inbound_messages_retailer_idx').on(t.tenantId, t.retailerId, t.receivedAt),
     uniqueIndex('inbound_messages_provider_idx')
       .on(t.tenantId, t.providerMessageId)
       .where(sql`provider_message_id IS NOT NULL`),
-    // Staff-only (notifications §3.3): a rep's triage queue and the desk's support view; the shop's
-    // own texts reach it through its timeline, never by reading this table.
-    tenantRolePolicy('inbound_messages_staff', STAFF_ROLES),
+    /*
+     * DOS-103 replaced the staff-only FOR ALL policy. Staff still read and triage the whole queue; a
+     * shop reads ONLY the rows attributed to its own shop — what it filed, and the texts it sent the
+     * distributor's number — through the denormalised `retailer_links.user_id` (never a join to
+     * `retailer_identities`: 42P17). Triage stays the desk's: there is no shop UPDATE or DELETE.
+     */
+    tenantOrOwnRetailerPolicy('inbound_messages_read', 'retailer_id'),
+    ...staffWritePolicy('inbound_messages_write'),
+    /**
+     * The one write a shop may make: an `in_app` report, about its own linked shop, signed with its own
+     * id. It can never insert a `whatsapp`/`sms` row (those are the provider webhook's), a row for
+     * another shop, or one attributed to another login.
+     */
+    pgPolicy('inbound_messages_shop_insert', {
+      for: 'insert',
+      to: appRw,
+      withCheck: sql.raw(`tenant_id = (SELECT current_setting('app.tenant_id', true))
+        AND (SELECT current_setting('app.actor_role', true)) = 'retailer'
+        AND channel = 'in_app'
+        AND created_by = (SELECT current_setting('app.actor_id', true))
+        AND retailer_id IN (
+          SELECT l.retailer_id FROM retailer_links l
+          WHERE l.tenant_id = (SELECT current_setting('app.tenant_id', true))
+            AND l.user_id = (SELECT current_setting('app.actor_id', true))
+            AND l.status = 'active'
+        )`),
+    }),
   ],
 ).enableRLS()
 

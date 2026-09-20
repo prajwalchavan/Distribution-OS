@@ -572,6 +572,17 @@ export const PushTokenUnregisterOutput = z.object({ ok: z.literal(true) })
  * intake module does, always human-confirmed). `mediaUrl` is a short-lived signed read URL for
  * `mediaObjectKey`, built by the service; the wire never carries bytes.
  */
+/**
+ * DOS-103: what a shop is asking for when it reports something from its own app. A text the WhatsApp
+ * webhook captured has no kind — the desk reads the words.
+ */
+export const InboundKindSchema = z.enum(['return_request', 'complaint', 'question'])
+export type InboundKind = z.infer<typeof InboundKindSchema>
+
+/** What a report points at, so the desk opens the right document. Both fields travel together. */
+export const InboundRefTypeSchema = z.enum(['invoice', 'delivery', 'order'])
+export type InboundRefType = z.infer<typeof InboundRefTypeSchema>
+
 export const InboundMessageSchema = z.object({
   id: IdSchema,
   channel: NotificationChannelSchema,
@@ -580,6 +591,10 @@ export const InboundMessageSchema = z.object({
   retailerId: IdSchema.nullable(),
   retailerName: z.string().nullable(),
   body: z.string().nullable(),
+  /** DOS-103: set on a report a shop filed from the app; null on a captured text. */
+  kind: InboundKindSchema.nullable(),
+  refType: InboundRefTypeSchema.nullable(),
+  refId: IdSchema.nullable(),
   mediaObjectKey: z.string().nullable(),
   mediaUrl: z.string().nullable(),
   receivedAt: z.string(),
@@ -613,6 +628,32 @@ export type InboundList = z.infer<typeof InboundListOutput>
 /** Sets `handled = true` and nothing else: the raw text is never edited. Idempotent. */
 export const InboundMarkHandledInput = MutationBase.extend({ id: IdSchema })
 export const InboundMarkHandledOutput = z.object({ item: InboundMessageSchema })
+
+/**
+ * DOS-103 — the shop's own "something is wrong with this" from the app.
+ *
+ * It is stored exactly as the shopkeeper typed it and never edited; `kind` and the reference are the
+ * structure around those words, so the desk can recognise a return request among the day's WhatsApp
+ * texts and open the bill it names. The shop triages nothing: `markHandled` stays the desk's, and the
+ * credit note is raised as it is today.
+ *
+ * The caller's own shop only — `retailerId` must be a shop linked to this login, or 403 (RLS refuses
+ * it too; the 403 is the clear answer). The channel is always `in_app`: a shop cannot make a row look
+ * like a WhatsApp message.
+ */
+export const InboundCreateInput = MutationBase.extend({
+  id: IdSchema,
+  retailerId: IdSchema,
+  kind: InboundKindSchema,
+  body: z.string().trim().min(1).max(1000),
+  refType: InboundRefTypeSchema.optional(),
+  refId: IdSchema.optional(),
+}).refine(
+  (v) => (v.refType === undefined) === (v.refId === undefined),
+  'send refType and refId together, or neither',
+)
+export type InboundCreateIn = z.infer<typeof InboundCreateInput>
+export const InboundCreateOutput = z.object({ item: InboundMessageSchema })
 
 // ---------------------------------------------------------------------------------------------------------------
 // the router: mount as `notifications: notificationsContract` in contract.ts
@@ -725,11 +766,20 @@ export const notificationsContract = {
       .output(PushTokenUnregisterOutput),
   },
   inbound: {
+    create: oc
+      .route({
+        method: 'POST',
+        path: '/notifications/inbound',
+        summary: 'A shop reports a problem or asks for a return; it lands in the office queue',
+      })
+      .input(InboundCreateInput)
+      .output(InboundCreateOutput),
     list: oc
       .route({
         method: 'GET',
         path: '/notifications/inbound',
-        summary: 'Texts and photos shops sent us, for triage (a rep sees its own beats’ shops)',
+        summary:
+          'Texts and reports shops sent us, for triage (a rep sees its own beats’ shops; a shop sees only what it sent)',
       })
       .input(InboundListInput)
       .output(InboundListOutput),

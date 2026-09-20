@@ -104,6 +104,14 @@ export class NotificationsController {
     )
   }
 
+  /** DOS-103: the shop's own report, into the office queue. */
+  @Implement(contract.notifications.inbound.create)
+  createInbound(@OwnsReply() _reply: unknown) {
+    return implement(contract.notifications.inbound.create).handler(({ input }) =>
+      this.inbound.create(input),
+    )
+  }
+
   @Implement(contract.notifications.inbound.list)
   listInbound(@OwnsReply() _reply: unknown) {
     return implement(contract.notifications.inbound.list).handler(({ input }) =>

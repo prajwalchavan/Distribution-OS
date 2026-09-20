@@ -40,6 +40,7 @@ import {
   useStrings,
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
+import { links } from '@dos/ui/platform'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
@@ -131,6 +132,17 @@ export default function Home(): React.JSX.Element {
     staleTime: 60_000,
   })
   const acrossBy = new Map((across.data?.items ?? []).map((item) => [item.tenantId, item]))
+
+  /**
+   * DOS-103: the office number, so the shop can call or WhatsApp the distributor it is looking at.
+   * ABSENT means the owner has set none, and then there is no button at all — a Call button that
+   * dials nothing is worse than no button.
+   */
+  const branding = useQuery(['tenancy', 'branding'], () => api.api.tenancy.branding.get(), {
+    enabled: signedIn,
+    staleTime: 300_000,
+  })
+  const officePhone = branding.data?.phone ?? null
 
   const [switching, setSwitching] = useState<string | null>(null)
 
@@ -273,6 +285,28 @@ export default function Home(): React.JSX.Element {
                             : t('r2.vanComing', { count: String(card.onTheWay.stops) })}
                       </Txt>
                     )}
+                    {/* DOS-103: only on the distributor that is OPEN — `tenancy.branding.get` is
+                        scoped by the token, so the other cards' numbers are simply not known here. */}
+                    {open && officePhone !== null ? (
+                      <Row gap={3} wrap>
+                        <Button
+                          label={t('rt.call', { name: membership.displayName })}
+                          variant="secondary"
+                          onPress={() => {
+                            void links.open(`tel:${dialable(officePhone)}`)
+                          }}
+                          testID={`r2-card-${membership.tenantSlug}-call`}
+                        />
+                        <Button
+                          label={t('rt.whatsapp')}
+                          variant="secondary"
+                          onPress={() => {
+                            void links.open(`https://wa.me/${digitsOnly(officePhone)}`)
+                          }}
+                          testID={`r2-card-${membership.tenantSlug}-whatsapp`}
+                        />
+                      </Row>
+                    ) : null}
                     {open ? null : (
                       <Button
                         label={t('r2.switch', { name: membership.displayName })}
@@ -455,4 +489,21 @@ export default function Home(): React.JSX.Element {
       </Stack>
     </Screen>
   )
+}
+
+/**
+ * DOS-103: the office number as a phone will accept it. The owner types whatever they like in
+ * Settings ("0251 234 5678", "+91 251 234 5678"); a `tel:` URI wants digits and at most a leading
+ * plus, and `wa.me` wants digits alone with the country code. A bare ten-digit Indian number gets
+ * `91` in front — the shop and the distributor are in the same country, and a number that is already
+ * international is left exactly as it is.
+ */
+function digitsOnly(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  return digits.length === 10 ? `91${digits}` : digits
+}
+
+function dialable(phone: string): string {
+  const digits = digitsOnly(phone)
+  return `+${digits}`
 }

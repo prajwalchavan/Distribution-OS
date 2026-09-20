@@ -1,7 +1,7 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { createDb, createPool, withTenant, type Db } from './client.js'
+import { createDb, createPool, withSystem, withTenant, type Db } from './client.js'
 import {
   accounts,
   achievements,
@@ -5193,9 +5193,12 @@ describeDb('row level security and ledger guarantees', () => {
     expect(notice?.status).toBe('delivered')
     expect(notice?.attempts).toBe(0)
     // the staff-only operational tables, the device list and the broadcast desk: not a row, not a write
-    for (const table of [inboundMessages, whatsappWindows, pushTokens, broadcasts]) {
+    // (DOS-103 moved `inbound_messages` off this list: a shop now reads back what it sent, and only
+    // that — the case below is its own test)
+    for (const table of [whatsappWindows, pushTokens, broadcasts]) {
       expect(await asShop((tx) => tx.select().from(table))).toHaveLength(0)
     }
+    // DOS-103: a shop may file an in_app report, never a WhatsApp or SMS row — those are the webhook's
     await rejectsWith(
       asShop((tx) =>
         tx.insert(inboundMessages).values({
@@ -5203,6 +5206,8 @@ describeDb('row level security and ledger guarantees', () => {
           tenantId: tenantA,
           channel: 'whatsapp',
           from: `+91900${run}3`,
+          retailerId: retailerA,
+          createdBy: shopUser,
           body: 'sneaky',
         }),
       ),
@@ -5290,6 +5295,126 @@ describeDb('row level security and ledger guarantees', () => {
     expect(row?.to).toBe(`+91900${run}3`)
     expect(row?.recipientRetailerId).toBe(retailerA)
     expect(row?.locale).toBe('en-IN')
+  })
+
+  it('DOS-103: a shop inserts an in_app report for its own shop only; it reads its own reports and never another shop’s texts; it cannot flip handled; every staff role still reads the whole queue and the worker still inserts', async () => {
+    const asShop = as('retailer')
+    const asOtherShop = as('retailer', otherShopUser)
+    // Another shop's text, captured from the distributor's WhatsApp number.
+    const foreignText = uuidv7()
+    await db.insert(inboundMessages).values({
+      id: foreignText,
+      tenantId: tenantA,
+      channel: 'whatsapp',
+      from: `+91900${run}4`,
+      retailerId: retailerB,
+      body: 'other shop business',
+    })
+
+    // The one write a shop may make here: an in_app report about its OWN shop, signed with its own id.
+    const report = uuidv7()
+    await asShop((tx) =>
+      tx.insert(inboundMessages).values({
+        id: report,
+        tenantId: tenantA,
+        channel: 'in_app',
+        from: `+91900${run}3`,
+        retailerId: retailerA,
+        createdBy: shopUser,
+        kind: 'return_request',
+        refType: 'invoice',
+        refId: invoiceA,
+        body: 'two cases came crushed',
+      }),
+    )
+    // Never for another shop, never signed with someone else's id.
+    await rejectsWith(
+      asShop((tx) =>
+        tx.insert(inboundMessages).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'in_app',
+          from: `+91900${run}3`,
+          retailerId: retailerB,
+          createdBy: shopUser,
+          body: 'not my shop',
+        }),
+      ),
+      /row-level security/,
+    )
+    await rejectsWith(
+      asShop((tx) =>
+        tx.insert(inboundMessages).values({
+          id: uuidv7(),
+          tenantId: tenantA,
+          channel: 'in_app',
+          from: `+91900${run}3`,
+          retailerId: retailerA,
+          createdBy: otherShopUser,
+          body: 'signed as someone else',
+        }),
+      ),
+      /row-level security/,
+    )
+
+    // It reads its own rows — the report it filed and the WhatsApp text attributed to its own shop —
+    // and nothing of the other shop's.
+    const seen = (await asShop((tx) => tx.select({ id: inboundMessages.id }).from(inboundMessages)))
+      .map((r) => r.id)
+      .sort()
+    expect(seen).toEqual([inboundA, report].sort())
+    expect(
+      (await asOtherShop((tx) => tx.select({ id: inboundMessages.id }).from(inboundMessages))).map(
+        (r) => r.id,
+      ),
+    ).toEqual([foreignText])
+
+    // It triages nothing: `handled` stays the desk's, on its own row as much as on anyone else's.
+    expect(
+      await asShop((tx) =>
+        tx
+          .update(inboundMessages)
+          .set({ handled: true })
+          .where(eq(inboundMessages.id, report))
+          .returning({ id: inboundMessages.id }),
+      ),
+    ).toHaveLength(0)
+    expect(
+      await asShop((tx) =>
+        tx.delete(inboundMessages).where(eq(inboundMessages.id, report)).returning({
+          id: inboundMessages.id,
+        }),
+      ),
+    ).toHaveLength(0)
+
+    // The desk still reads and triages the whole queue, the shop's report included.
+    for (const role of ['owner', 'manager', 'accountant'] as const) {
+      const queue = (
+        await as(role)((tx) => tx.select({ id: inboundMessages.id }).from(inboundMessages))
+      ).map((r) => r.id)
+      expect(queue, `${role} reads the shop's report`).toEqual(
+        expect.arrayContaining([report, foreignText, inboundA]),
+      )
+    }
+    const flipped = await as('manager')((tx) =>
+      tx
+        .update(inboundMessages)
+        .set({ handled: true })
+        .where(eq(inboundMessages.id, report))
+        .returning({ handled: inboundMessages.handled, body: inboundMessages.body }),
+    )
+    expect(flipped[0]).toEqual({ handled: true, body: 'two cases came crushed' })
+    // and the WhatsApp webhook (the worker) still writes its own rows
+    await withSystem(db, (tx) =>
+      tx.insert(inboundMessages).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        channel: 'whatsapp',
+        from: `+91900${run}3`,
+        retailerId: retailerA,
+        body: 'from the webhook',
+      }),
+    )
   })
 
   it('keeps inbound texts and the 24-hour windows to staff, and the message log to staff plus the shop it names', async () => {

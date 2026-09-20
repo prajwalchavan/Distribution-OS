@@ -1,14 +1,22 @@
 import type {
   Broadcast,
   BroadcastRecipient,
+  InboundKind,
   InboundMessage,
+  InboundRefType,
   Message,
   MessageDetail,
   MessageRefType,
   PushToken,
   Template,
 } from '@dos/contracts'
-import { LocaleSchema, MessageRefTypeSchema, PushPlatformSchema } from '@dos/contracts'
+import {
+  InboundKindSchema,
+  InboundRefTypeSchema,
+  LocaleSchema,
+  MessageRefTypeSchema,
+  PushPlatformSchema,
+} from '@dos/contracts'
 import type { broadcasts, inboundMessages, pushTokens, templates } from '@dos/db'
 import { PAYLOAD_KEYS, type MessageRow } from './notifications.internals.js'
 
@@ -169,9 +177,20 @@ export function toInbound(
     retailerId: row.retailerId,
     retailerName: extra.retailerName,
     body: row.body,
+    // DOS-103: set on a report a shop filed from the app, null on a text the webhook captured. The
+    // column is plain text with a CHECK (migration 0049), so the mapper narrows it to the contract's
+    // enum and answers null for anything else rather than putting an unknown word on the wire.
+    kind: INBOUND_KINDS.includes(row.kind as InboundKind) ? (row.kind as InboundKind) : null,
+    refType: INBOUND_REF_TYPES.includes(row.refType as InboundRefType)
+      ? (row.refType as InboundRefType)
+      : null,
+    refId: row.refId,
     mediaObjectKey: row.mediaObjectKey,
     mediaUrl: extra.mediaUrl,
     receivedAt: row.receivedAt.toISOString(),
     handled: row.handled,
   }
 }
+
+const INBOUND_KINDS: readonly InboundKind[] = InboundKindSchema.options
+const INBOUND_REF_TYPES: readonly InboundRefType[] = InboundRefTypeSchema.options

@@ -337,6 +337,20 @@
       "when": 1789293246405,
       "tag": "0047_pack_confirmations_created_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1789915099506,
+      "tag": "0048_inbound_reports_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789915099507,
+      "tag": "0049_inbound_reports_guarantees",
+      "breakpoints": true
     }
   ]
 }

@@ -620,6 +620,9 @@ export const strings = {
   'o24.address': 'Address on the bill',
   'o24.invoiceFooter': 'Bill footer',
   'o24.upi': 'UPI address',
+  // DOS-103: the office number a shop taps in its own app. Empty means no Call button there at all.
+  'o24.phone': 'Phone number shops call',
+  'o24.phoneHelp': 'Shown in the shops’ app as Call and WhatsApp. Leave empty to show neither.',
   'o24.logo': 'Logo',
   'o24.uploadLogo': 'Upload logo',
   'o24.logoHint': 'PNG or JPG, square, at least 256 px',

@@ -170,7 +170,8 @@ Full request/response samples for each are in `backend-services/sales-service/RE
 | GET | `/notifications/broadcasts/{id}` | One broadcast with counts and every recipient’s outcome | owner, manager, accountant |
 | POST | `/notifications/push-tokens` | Register or refresh this device’s push token for the signed-in staff member | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
-| GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
+| POST | `/notifications/inbound` | A shop reports a problem or asks for a return; it lands in the office queue | retailer |
+| GET | `/notifications/inbound` | Texts and reports shops sent us, for triage (a rep sees its own beats’ shops; a shop sees only what it sent) | owner, manager, accountant, salesperson, retailer |
 | POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
 | GET | `/reporting/dashboard/owner` | The owner's home: today, dues by ageing, MTD margin, stock at cost, sparklines | owner, manager, accountant |
 | GET | `/reporting/dashboard/rep` | A rep's day: visits, orders, strike rate (a salesperson: its own) | owner, manager, accountant, salesperson |

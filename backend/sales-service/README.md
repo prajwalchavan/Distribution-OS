@@ -165,7 +165,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/notifications/broadcasts/{id}` | One broadcast with counts and every recipient’s outcome | owner, manager, accountant |
 | POST | `/notifications/push-tokens` | Register or refresh this device’s push token for the signed-in staff member | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
-| GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
+| POST | `/notifications/inbound` | A shop reports a problem or asks for a return; it lands in the office queue | retailer |
+| GET | `/notifications/inbound` | Texts and reports shops sent us, for triage (a rep sees its own beats’ shops; a shop sees only what it sent) | owner, manager, accountant, salesperson, retailer |
 | POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
 | GET | `/reporting/dashboard/owner` | The owner's home: today, dues by ageing, MTD margin, stock at cost, sparklines | owner, manager, accountant |
 | GET | `/reporting/dashboard/rep` | A rep's day: visits, orders, strike rate (a salesperson: its own) | owner, manager, accountant, salesperson |
@@ -846,7 +847,8 @@ curl "http://localhost:3003/tenancy/branding" \
   "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
   "logoUrl": "docs/2026/09/invoice-0042.jpg",
   "invoiceFooter": "text",
-  "upiVpa": "text"
+  "upiVpa": "text",
+  "phone": "+919876543210"
 }
 ```
 
@@ -10703,7 +10705,8 @@ curl "http://localhost:3003/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
     "logoUrl": "docs/2026/09/invoice-0042.jpg",
     "invoiceFooter": "text",
-    "upiVpa": "text"
+    "upiVpa": "text",
+    "phone": "+919876543210"
   },
   "withCrew": true
 }
@@ -13241,7 +13244,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -13483,7 +13487,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -13744,7 +13749,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -13974,7 +13980,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -14197,7 +14204,8 @@ curl "http://localhost:3003/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -14726,7 +14734,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -15032,7 +15041,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -15193,7 +15203,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -15364,7 +15375,8 @@ request.json
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -15522,7 +15534,8 @@ curl "http://localhost:3003/credit-notes/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "logoObjectKey": "docs/2026/09/invoice-0042.jpg",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "invoiceFooter": "text",
-      "upiVpa": "text"
+      "upiVpa": "text",
+      "phone": "+919876543210"
     }
   }
 }
@@ -17823,11 +17836,133 @@ request.json
 }
 ```
 
+### POST `/notifications/inbound`
+
+A shop reports a problem or asks for a return; it lands in the office queue · contract `notifications.inbound.create`
+
+**Roles:** retailer
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `retailerId` | uuid | yes |
+| `kind` | return_request | complaint | question | yes |
+| `body` | string | yes |
+| `refType` | invoice | delivery | order | no |
+| `refId` | uuid | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3003/notifications/inbound" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+  "kind": "return_request",
+  "body": "text",
+  "refType": "invoice",
+  "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "channel": "whatsapp",
+    "fromPhone": "+919876543210",
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "body": "text",
+    "kind": "return_request",
+    "refType": "invoice",
+    "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+    "mediaObjectKey": "docs/2026/09/invoice-0042.jpg",
+    "mediaUrl": "docs/2026/09/invoice-0042.jpg",
+    "receivedAt": "2026-09-04T10:30:00.000Z",
+    "handled": true
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the salesperson role may not call POST /notifications/inbound",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/notifications/inbound`
 
-Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) · contract `notifications.inbound.list`
+Texts and reports shops sent us, for triage (a rep sees its own beats’ shops; a shop sees only what it sent) · contract `notifications.inbound.list`
 
-**Roles:** owner, manager, accountant, salesperson
+**Roles:** owner, manager, accountant, salesperson, retailer
 
 **Query / path parameters**
 
@@ -17860,6 +17995,9 @@ curl "http://localhost:3003/notifications/inbound?retailerId=01a06dbc-35ed-7760-
       "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
       "retailerName": "text",
       "body": "text",
+      "kind": "return_request",
+      "refType": "invoice",
+      "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
       "mediaObjectKey": "docs/2026/09/invoice-0042.jpg",
       "mediaUrl": "docs/2026/09/invoice-0042.jpg",
       "receivedAt": "2026-09-04T10:30:00.000Z",
@@ -17962,6 +18100,9 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "retailerName": "text",
     "body": "text",
+    "kind": "return_request",
+    "refType": "invoice",
+    "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
     "mediaObjectKey": "docs/2026/09/invoice-0042.jpg",
     "mediaUrl": "docs/2026/09/invoice-0042.jpg",
     "receivedAt": "2026-09-04T10:30:00.000Z",
@@ -24906,6 +25047,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `notifications.broadcasts.get` | – | – | – | – | – | – | – |
 | `notifications.pushTokens.register` | – | – | – | ✓ | – | – | – |
 | `notifications.pushTokens.unregister` | – | – | – | ✓ | – | – | – |
+| `notifications.inbound.create` | – | – | – | – | – | – | – |
 | `notifications.inbound.list` | – | – | – | ✓ | – | – | – |
 | `notifications.inbound.markHandled` | – | – | – | ✓ | – | – | – |
 | `reporting.dashboard.owner` | – | – | – | – | – | – | – |

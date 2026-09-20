@@ -256,6 +256,14 @@ const TRIAGE = [
 ] as const satisfies readonly MembershipRole[]
 
 /**
+ * DOS-103: who READS the inbound queue. TRIAGE decides what happens to a row; the shop is added here
+ * because it must be able to read back the reports it filed itself ("did they see it?"), and RLS on
+ * `inbound_messages` narrows a retailer actor to the rows attributed to its own shop. It triages
+ * nothing: `markHandled` stays TRIAGE, and there is no shop UPDATE policy under it either.
+ */
+const INBOUND_READERS = [...TRIAGE, 'retailer'] as const satisfies readonly MembershipRole[]
+
+/**
  * Who may push a document to a shop's phone ON DEMAND (`notifications.messages.send`, docs/23 §8.8:
  * "send this bill / receipt / statement to the shop now" — D9, M9, O6): the desk from the office and
  * the crew at the door. The same four people as MONEY_COLLECTORS and CREDIT_NOTE_RAISERS, declared
@@ -908,7 +916,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'notifications.broadcasts.get': BACK_OFFICE,
   'notifications.pushTokens.register': STAFF,
   'notifications.pushTokens.unregister': STAFF,
-  'notifications.inbound.list': TRIAGE,
+  // DOS-103: the shop files a report from its own app; the desk triages it.
+  'notifications.inbound.create': SHOPKEEPER_ONLY,
+  'notifications.inbound.list': INBOUND_READERS,
   'notifications.inbound.markHandled': TRIAGE,
 
   // Reporting — the tiles, the owner's GRAPHS and the registers (coordination §6; the founder's graphs

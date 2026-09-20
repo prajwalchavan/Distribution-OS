@@ -1131,7 +1131,7 @@ describe('permission matrix', () => {
 
   it('keeps the wording and the audience with the desk, the inbox with everyone (notifications)', () => {
     const notificationPaths = paths.filter((p) => p.startsWith('notifications.'))
-    expect(notificationPaths).toHaveLength(14)
+    expect(notificationPaths).toHaveLength(15)
     // The log / inbox and "mark my notice read" reach every member, the shop included: RLS scopes the
     // shop to rows addressed to its own shop, the handler scopes the rep to its beats' shops.
     const inbox = [
@@ -1142,14 +1142,25 @@ describe('permission matrix', () => {
     for (const path of inbox) {
       expect(permissionFor(path), path).toEqual(ROLE_GROUPS.ANY_MEMBER)
     }
-    // The shop reads its inbox and nothing else: no template, no broadcast, no resend, no send, no
-    // triage, no push token (the retailer app is WhatsApp / in-app first, brief §8.7).
-    for (const path of notificationPaths.filter((p) => !inbox.includes(p))) {
+    // DOS-103: the shop also FILES a report ("take these two cases back") and reads back what it
+    // filed. Both are scoped to its own shop by RLS on `inbound_messages`, and it triages nothing.
+    const shopMay = [...inbox, 'notifications.inbound.create', 'notifications.inbound.list']
+    expect(permissionFor('notifications.inbound.create')).toEqual(['retailer'])
+    expect(isAllowed(permissionFor('notifications.inbound.list'), 'retailer')).toBe(true)
+    expect(isAllowed(permissionFor('notifications.inbound.markHandled'), 'retailer')).toBe(false)
+    // The shop reads its inbox and its own reports and nothing else: no template, no broadcast, no
+    // resend, no send, no triage, no push token (the retailer app is WhatsApp / in-app first, §8.7).
+    for (const path of notificationPaths.filter((p) => !shopMay.includes(p))) {
       expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
     }
-    // Every write in the block is a POST that refuses the shop, except marking its own notice read.
+    // Every write in the block is a POST that refuses the shop, except marking its own notice read
+    // and filing its own report.
     for (const row of allProcedures().filter((r) => r.path.startsWith('notifications.'))) {
-      if (row.method === 'POST' && row.path !== 'notifications.messages.markRead')
+      if (
+        row.method === 'POST' &&
+        row.path !== 'notifications.messages.markRead' &&
+        row.path !== 'notifications.inbound.create'
+      )
         expect(isAllowed(row.permission, 'retailer'), `${row.path} must refuse retailer`).toBe(
           false,
         )
@@ -1213,15 +1224,30 @@ describe('permission matrix', () => {
     )
     expect(isAllowed(permissionFor('notifications.messages.send'), 'warehouse')).toBe(false)
     // Triage is the desk plus the beat-owning rep; the godown and the crew are not in the room.
+    // DOS-103 added the shop to the READ of that queue — it must be able to see the report it filed —
+    // and to nothing else: deciding what happens to a row is still the desk's alone.
+    expect(permissionFor('notifications.inbound.markHandled')).toEqual([
+      'owner',
+      'manager',
+      'accountant',
+      'salesperson',
+    ])
+    expect(permissionFor('notifications.inbound.list')).toEqual([
+      'owner',
+      'manager',
+      'accountant',
+      'salesperson',
+      'retailer',
+    ])
     for (const path of [
       'notifications.inbound.list',
       'notifications.inbound.markHandled',
     ] as const) {
-      expect(permissionFor(path), path).toEqual(['owner', 'manager', 'accountant', 'salesperson'])
-      for (const role of ['warehouse', 'delivery', 'retailer'] as const) {
+      for (const role of ['warehouse', 'delivery'] as const) {
         expect(isAllowed(permissionFor(path), role), `${path} must refuse ${role}`).toBe(false)
       }
     }
+    expect(isAllowed(permissionFor('notifications.inbound.markHandled'), 'retailer')).toBe(false)
     // Every staff member registers its own device; the godown and the crew otherwise only read their inbox.
     for (const path of [
       'notifications.pushTokens.register',

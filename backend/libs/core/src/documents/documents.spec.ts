@@ -31,6 +31,8 @@ const seller: SellerBranding = {
   logoUrl: null,
   invoiceFooter: 'Goods once sold will not be taken back. Subject to Kalyan jurisdiction.',
   upiVpa: 'tarsun@upi',
+  // DOS-103: the office number a shop may call; the printed documents do not use it.
+  phone: '+912512345678',
 }
 
 const invoice: InvoiceDetail = {

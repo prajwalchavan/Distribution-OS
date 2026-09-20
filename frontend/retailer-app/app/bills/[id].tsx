@@ -324,6 +324,27 @@ export default function BillDetail(): React.JSX.Element {
                   )}
                 </Async>
               </Panel>
+
+              {/*
+                DOS-103: the shop had no way to say "this bill is wrong" from the app — the screen
+                told it to ring a number it was never shown. This carries the bill's id to Returns
+                and help, which files the report into the office's own queue against this bill.
+              */}
+              <Panel title={t('r4.problem')} testID="r4-problem">
+                <Stack gap={3}>
+                  <Txt field="body" desk="body" color={colors.text.secondary}>
+                    {t('r4.problemBody', { name: distributor })}
+                  </Txt>
+                  <Button
+                    label={t('rt.reportBill')}
+                    variant="secondary"
+                    onPress={() => {
+                      router.push(`/returns?invoiceId=${billId ?? ''}`)
+                    }}
+                    testID="r4-report"
+                  />
+                </Stack>
+              </Panel>
             </Stack>
           )}
         </Async>

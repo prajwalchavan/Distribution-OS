@@ -819,8 +819,11 @@ describeDb('notifications (DATABASE_URL)', () => {
       })
       expect(res.status, label).toBe(403)
     }
-    expect((await call(app, shop, 'GET', '/notifications/inbound')).status).toBe(403)
+    // DOS-103: the shop reads the inbound queue now — but only its OWN rows (RLS), and it triages
+    // nothing; the crew and the godown still have no business there at all.
+    expect((await call(app, shop, 'GET', '/notifications/inbound')).status).toBe(200)
     expect((await call(app, driver, 'GET', '/notifications/inbound')).status).toBe(403)
+    expect((await call(app, godown, 'GET', '/notifications/inbound')).status).toBe(403)
     expect((await call(app, accountant, 'GET', '/notifications/templates')).status).toBe(200)
     expect((await call(app, accountant, 'GET', '/notifications/broadcasts')).status).toBe(200)
   })
@@ -1278,6 +1281,115 @@ describeDb('notifications (DATABASE_URL)', () => {
       body: 'bhai 2 case campa kal',
       fromPhone: shopPhoneA,
     })
+  })
+
+  it('DOS-103: a shop files a return request against its own bill through inbound.create; it lands in the desk’s queue with kind, reference and the shop’s phone as sender; the shop lists only its own reports and cannot mark one handled; a report naming another shop is 403; a replay adds nothing', async () => {
+    interface InboundOut {
+      id: string
+      channel: string
+      fromPhone: string
+      retailerId: string | null
+      retailerName: string | null
+      body: string | null
+      kind: string | null
+      refType: string | null
+      refId: string | null
+      handled: boolean
+    }
+    // A text the desk captured from ANOTHER shop: the reporting shop must never read it.
+    const elsewhere = uuidv7()
+    await db.insert(inboundMessages).values({
+      id: elsewhere,
+      tenantId,
+      channel: 'whatsapp',
+      from: shopPhoneE,
+      retailerId: shopE,
+      body: 'not your business',
+    })
+
+    const id = uuidv7()
+    const invoiceRef = uuidv7()
+    const key = `dos103-create-${run}`
+    const payload = {
+      id,
+      idempotencyKey: key,
+      retailerId: shopA,
+      kind: 'return_request',
+      body: 'Two cases of biscuits came crushed. Please take them back.',
+      refType: 'invoice',
+      refId: invoiceRef,
+    }
+    const created = await call<{ item: InboundOut }>(
+      app,
+      shop,
+      'POST',
+      '/notifications/inbound',
+      payload,
+    )
+    expect(created.status).toBe(200)
+    expect(created.body.item).toMatchObject({
+      id,
+      channel: 'in_app',
+      retailerId: shopA,
+      kind: 'return_request',
+      refType: 'invoice',
+      refId: invoiceRef,
+      handled: false,
+      fromPhone: shopPhoneA,
+    })
+
+    // The desk sees it with its kind and the bill it names.
+    const desk = await call<{ items: InboundOut[] }>(
+      app,
+      manager,
+      'GET',
+      '/notifications/inbound',
+      {
+        handled: false,
+      },
+    )
+    const mine = desk.body.items.find((i) => i.id === id)
+    expect(mine?.retailerName).toBe('Alpha Kirana')
+    expect(mine?.kind).toBe('return_request')
+    expect(mine?.refId).toBe(invoiceRef)
+
+    // The shop reads back what it sent, and NOTHING else in the queue.
+    const own = await call<{ items: InboundOut[] }>(app, shop, 'GET', '/notifications/inbound')
+    expect(own.status).toBe(200)
+    expect(own.body.items.map((i) => i.id)).toContain(id)
+    expect(own.body.items.map((i) => i.id)).not.toContain(elsewhere)
+
+    // It triages nothing: marking handled stays the desk's.
+    const flip = await call(app, shop, 'POST', `/notifications/inbound/${id}/handled`, {
+      idempotencyKey: `dos103-flip-${run}`,
+    })
+    expect(flip.status).toBe(403)
+
+    // A report naming someone else's shop is refused outright.
+    const foreign = await call(app, shop, 'POST', '/notifications/inbound', {
+      id: uuidv7(),
+      idempotencyKey: `dos103-foreign-${run}`,
+      retailerId: shopE,
+      kind: 'complaint',
+      body: 'not my shop',
+    })
+    expect(foreign.status).toBe(403)
+
+    // A replay of the same intent is the same row, not a second report.
+    const replay = await call<{ item: InboundOut }>(
+      app,
+      shop,
+      'POST',
+      '/notifications/inbound',
+      payload,
+    )
+    expect(replay.status).toBe(200)
+    expect(replay.body.item.id).toBe(id)
+    const rows = await db
+      .select()
+      .from(inboundMessages)
+      .where(and(eq(inboundMessages.tenantId, tenantId), eq(inboundMessages.retailerId, shopA)))
+    expect(rows.filter((r) => r.channel === 'in_app')).toHaveLength(1)
   })
 
   it('dues reminders go once per shop per seven days', async () => {

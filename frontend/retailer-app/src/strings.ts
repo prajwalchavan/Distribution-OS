@@ -267,6 +267,9 @@ export const strings = {
   'r4.seeReceipts': 'See your receipts',
   'r4.pod': 'PROOF OF DELIVERY',
   'r4.noPod': 'No delivery record yet',
+  // DOS-103: the one thing this screen never had — a way to say "this is wrong" to the office.
+  'r4.problem': 'SOMETHING WRONG WITH THIS BILL?',
+  'r4.problemBody': 'Tell {name}. Your message reaches their office with this bill attached.',
   'r4.podPhoto': 'Photograph taken at your shop',
   'r4.podSigned': 'Signed for by {name}',
   'r4.deliveredOn': 'Delivered {when}',
@@ -345,7 +348,7 @@ export const strings = {
   'r9.expired': 'That rate has run out',
 
   // --- returns ------------------------------------------------------------------------------------------
-  'rt.title': 'Returns and credits',
+  'rt.title': 'Returns and help',
   'rt.notes': 'CREDIT NOTES IN YOUR NAME',
   'rt.none': 'Nothing has been returned',
   'rt.no': 'Credit note {no}',
@@ -357,6 +360,26 @@ export const strings = {
   'rt.credited': 'Credited',
   'rt.notIssued': 'Not yet issued',
   'rt.cancelled': 'Cancelled',
+  // DOS-103: the shop asks the office for a return, reports a problem or asks a question, and reads
+  // its own requests back. It never decides anything — the desk does, and the credit note follows.
+  'rt.ask': 'ASK {name}',
+  'rt.askBody': 'Tell {name} what is wrong. It goes to their office.',
+  'rt.askAboutBill': 'This is about the bill you came from. It goes to {name}’s office.',
+  'rt.askWhat': 'What would you like to say',
+  'rt.askSend': 'Send to the office',
+  'rt.askSent': 'Sent to {name}',
+  'rt.askFailed': 'That was not sent. Try again.',
+  'rt.askWaiting': 'Waiting',
+  'rt.askSeen': 'Seen by {name}',
+  'rt.mine': 'YOUR REQUESTS',
+  'rt.mineNone': 'You have not asked for anything yet',
+  'rt.kind.return_request': 'Take goods back',
+  'rt.kind.complaint': 'Something is wrong',
+  'rt.kind.question': 'A question',
+  'rt.reportBill': 'Report a problem with this bill',
+  // The distributor's own number, from Settings. Absent = no button at all, never a dead one.
+  'rt.call': 'Call {name}',
+  'rt.whatsapp': 'WhatsApp',
 
   // --- R12 messages ---------------------------------------------------------------------------------------
   'r12.title': 'Messages from {name}',
