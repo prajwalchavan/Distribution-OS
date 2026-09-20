@@ -172,11 +172,18 @@ export default function OrderQueue(): React.JSX.Element {
     { enabled: selected !== null && can('warehouse.reservations.list') },
   )
 
+  /*
+   * The pending gates: the panel's cards, and the set the "Waiting on" column is derived from
+   * (DOS-027). The page bounds the column — an order whose gate falls past it shows a blank cell,
+   * which is the finding's own symptom — so it asks for the same 100 the owner's register asks off
+   * this list rather than the narrower 20 it used to. `gates` below already brings up to 200 bargain
+   * gates into the same panel, so this widens the column's reach without changing what the panel shows.
+   */
   const approvals = useQuery(['approvals', 'pending'], () =>
-    api.api.orders.approvals.list({ status: 'pending', limit: 20 }),
+    api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
   )
   /*
-   * Every pending bargain gate, past the 20-row page (DOS-005). A gate names the rate request it waits on and its
+   * Every pending bargain gate, past the page above (DOS-005). A gate names the rate request it waits on and its
    * decision decides that request, so the pair is one card, decided through the gate. The requests list is oldest
    * first and the approvals list newest first; without every gate, a request could show alone and deciding it
    * there would leave its order waiting on the gate.

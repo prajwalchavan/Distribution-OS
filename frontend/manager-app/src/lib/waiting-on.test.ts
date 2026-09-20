@@ -113,4 +113,24 @@ describe('M2 order queue: the "Waiting on" column', () => {
     // The gates come from the list this screen already reads, not from a second read of its own.
     expect(code).toMatch(/import \{ waitingOnKinds \} from '\.\.\/\.\.\/src\/lib\/waiting-on'/)
   })
+
+  /*
+   * The review's bound on the fix. The column is derived from the pending-approvals page this screen
+   * already reads, so an order whose gate falls PAST that page shows a blank "Waiting on" — the
+   * finding's own symptom, for that order. The read asked for 20 rows while the owner's register asks
+   * for 100 off the same list, which made the manager's reach the narrower of the two for no reason.
+   * The panel below already renders up to 200 bargain gates from `gates`, so widening this read does
+   * not change how much the panel shows; it only stops the column going blank sooner than the owner's.
+   */
+  it('DOS-027: the pending-approvals read is no narrower than the owner register that shares the list', async () => {
+    const code = withoutComments(await readScreen('../../app/orders/index.tsx'))
+    const read = /api\.api\.orders\.approvals\.list\(\{ status: 'pending', limit: (\d+) \}\)/.exec(
+      code,
+    )
+    expect(read, 'the screen no longer reads the pending approvals').not.toBeNull()
+    expect(
+      Number(read?.[1] ?? 0),
+      'the column goes blank sooner than the owner register does',
+    ).toBeGreaterThanOrEqual(100)
+  })
 })
