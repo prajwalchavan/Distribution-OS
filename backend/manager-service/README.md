@@ -5182,6 +5182,7 @@ curl "http://localhost:3002/pricing/price-lists?activeOnly=false&withItems=true"
           "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
           "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
           "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
           "ratePaise": 4000,
           "inclusiveOfGst": true
         }
@@ -5300,6 +5301,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "ratePaise": 4000,
         "inclusiveOfGst": true
       }
@@ -5424,6 +5426,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "ratePaise": 4000,
         "inclusiveOfGst": true
       }
