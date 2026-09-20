@@ -58,6 +58,7 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
+import { waitingOnKinds } from '../../src/lib/waiting-on'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -225,6 +226,17 @@ export default function OrderQueue(): React.JSX.Element {
   /* A capped page's footer states the page, not the register: "100+ rows" and the page's own sum. */
   const page = pagedCount(list)
 
+  /*
+   * Every gate still waiting, from the two reads above — the approvals page and every pending bargain
+   * gate — each row once. It feeds the "Waiting on" column (DOS-027) as well as the decision panel
+   * below, so the column and the cards can never disagree about what an order is held by.
+   */
+  const pending = [
+    ...new Map(
+      [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
+    ).values(),
+  ]
+
   const columns: readonly RegisterColumn<Order>[] = [
     textColumn(
       'orderNo',
@@ -250,9 +262,16 @@ export default function OrderQueue(): React.JSX.Element {
         <StatusChip label={word(row.state)} family={STATE_FAMILY[row.state] ?? 'neutral'} />
       ),
     },
-    textColumn('flags', t('m2.flags'), (row) =>
-      row.approvalFlags.length === 0 ? null : row.approvalFlags.map(word).join(', '),
-    ),
+    /*
+     * DOS-027: the gates this order is still held by, read from the approvals themselves.
+     * `row.approvalFlags` is the stored copy raised at submit — nothing keeps it in step with the
+     * decisions, and it was empty for an order with two gates pending, which is precisely when this
+     * column matters.
+     */
+    textColumn('flags', t('m2.flags'), (row) => {
+      const kinds = waitingOnKinds(row, pending)
+      return kinds.length === 0 ? null : kinds.map(word).join(' · ')
+    }),
     textColumn('placed', t('m2.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
@@ -309,11 +328,6 @@ export default function OrderQueue(): React.JSX.Element {
     return `${head} · ${t('m2.creditOver', { over: formatINR(paise(over)) })}`
   }
 
-  const pending = [
-    ...new Map(
-      [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
-    ).values(),
-  ]
   const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
   const gated = new Set(
     pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),

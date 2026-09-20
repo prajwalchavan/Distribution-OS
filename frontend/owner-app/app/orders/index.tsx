@@ -43,6 +43,7 @@ import {
 } from '../../src/lib/ui'
 import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { rangeOf, shortInstant, longDate, type RangeId } from '../../src/lib/dates'
+import { waitingOnKinds } from '../../src/lib/waiting-on'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -124,6 +125,14 @@ export default function Orders(): React.JSX.Element {
     () => api.api.billing.invoices.list({ orderId: selected ?? '', limit: 20 }),
     { enabled: selected !== null },
   )
+  /*
+   * DOS-027: what each listed order is still held by. One page of the pending approvals queue, on
+   * the key the Approvals screen opens with, so the two share a cached read; the stored
+   * `approvalFlags` are the copy raised at submit and nothing keeps them in step with the decisions.
+   */
+  const gates = useQuery(['approvals', 'pending'], () =>
+    api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
+  )
 
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
@@ -150,6 +159,7 @@ export default function Orders(): React.JSX.Element {
 
   const rows = list.data?.items ?? []
   const order = detail.data?.item
+  const pending = gates.data?.items ?? []
   /*
    * DOS-020: confirm never decides an approval, so an order still waiting on one is released on Approvals,
    * where the last approval confirms it — the button says so instead of answering a silent 409.
@@ -174,7 +184,10 @@ export default function Orders(): React.JSX.Element {
       ),
     },
     moneyColumn('total', t('o5.value'), (row) => row.totalPaise),
-    textColumn('flags', t('o5.flags'), (row) => row.approvalFlags.map(word).join(', ')),
+    textColumn('flags', t('o5.flags'), (row) => {
+      const kinds = waitingOnKinds(row, pending)
+      return kinds.length === 0 ? null : kinds.map(word).join(' · ')
+    }),
     textColumn('placed', t('o5.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
