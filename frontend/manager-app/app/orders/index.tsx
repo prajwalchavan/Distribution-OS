@@ -34,6 +34,7 @@ import {
   paise,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
@@ -82,6 +83,14 @@ export default function OrderQueue(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
   const can = useCan()
+  /*
+   * DOS-010: below 1024 px `<Register>` stops being a table and keeps three cells only — identity,
+   * chip, value — so the Shop column is dropped and a row read "order no · state · amount" with an
+   * empty shop cell on the Pixel 7. The shop rides in the identity cell for exactly that shell; on
+   * the desk it has its own column and printing it twice would be the same defect the other way
+   * round.
+   */
+  const phone = useViewport().kind === 'phone'
 
   const mayDecide = can('orders.confirm')
   const params = useLocalSearchParams<{ q?: string }>()
@@ -217,7 +226,13 @@ export default function OrderQueue(): React.JSX.Element {
   const page = pagedCount(list)
 
   const columns: readonly RegisterColumn<Order>[] = [
-    textColumn('orderNo', t('m2.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
+    textColumn(
+      'orderNo',
+      t('m2.orderNo'),
+      (row) =>
+        phone ? `${row.orderNo ?? t('app.none')} · ${names.retailer(row.retailerId)}` : row.orderNo,
+      { priority: 'identity' },
+    ),
     textColumn('shop', t('m2.shop'), (row) => names.retailer(row.retailerId)),
     /*
      * A line COUNT is what UX-00 §9.2 draws here and `orders.list` does not carry one (only

@@ -41,6 +41,7 @@ import {
   Txt,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
@@ -87,6 +88,13 @@ export default function BillingDesk(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
   const can = useCan()
+  /*
+   * DOS-010: below 1024 px `<Register>` stops being a table and keeps three cells only — identity,
+   * chip, value — so the Shop / Buyer column is dropped and a Billing desk row read "bill no ·
+   * state · amount" with an empty shop cell on the Pixel 7. The shop rides in the identity cell for
+   * exactly that shell; on the desk it has its own column already.
+   */
+  const phone = useViewport().kind === 'phone'
 
   const mayCancel = can('billing.invoices.cancel')
   const mayIssueForPack = can('billing.invoices.issueForPack')
@@ -182,7 +190,15 @@ export default function BillingDesk(): React.JSX.Element {
   const remaining = addCounts(pagedCount(queue), pagedCount(unbilledPacks))
 
   const queueColumns: readonly RegisterColumn<BillingQueueItem>[] = [
-    textColumn('orderNo', t('m6.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
+    textColumn(
+      'orderNo',
+      t('m6.orderNo'),
+      (row) =>
+        phone
+          ? `${row.orderNo ?? t('app.none')} · ${row.retailerName || names.retailer(row.retailerId)}`
+          : row.orderNo,
+      { priority: 'identity' },
+    ),
     textColumn('shop', t('m6.shop'), (row) => row.retailerName || names.retailer(row.retailerId)),
     textColumn('lines', t('m6.linesCount'), (row) => row.lineCount, { align: 'right' }),
     moneyColumn('total', t('m6.value'), (row) => row.orderTotalPaise),
@@ -196,7 +212,15 @@ export default function BillingDesk(): React.JSX.Element {
   ]
 
   const billColumns: readonly RegisterColumn<InvoiceListItem>[] = [
-    textColumn('invoiceNo', t('m6.invoiceNo'), (row) => row.invoiceNo, { priority: 'identity' }),
+    textColumn(
+      'invoiceNo',
+      t('m6.invoiceNo'),
+      (row) =>
+        phone
+          ? `${row.invoiceNo ?? row.externalInvoiceNo ?? t('app.none')} · ${row.buyerName || names.retailer(row.retailerId)}`
+          : row.invoiceNo,
+      { priority: 'identity' },
+    ),
     textColumn('date', t('m12.date'), (row) => longDate(row.invoiceDate)),
     textColumn('shop', t('m6.buyer'), (row) => row.buyerName || names.retailer(row.retailerId)),
     moneyColumn('taxable', t('m6.taxable'), (row) => row.taxablePaise),

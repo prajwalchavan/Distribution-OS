@@ -23,6 +23,7 @@ import {
   Txt,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
@@ -74,6 +75,13 @@ export default function Orders(): React.JSX.Element {
   const colors = useColors()
   const api = useApi()
   const names = useNames()
+  /*
+   * DOS-010: below 1024 px `<Register>` stops being a table and keeps three cells only — identity,
+   * chip, value — so the Shop column is dropped and a row read "SO-0689 · Delivered · 6,376.00".
+   * The shop rides in the identity cell for exactly that shell; on the desk it has its own column
+   * and printing it twice would be the same defect the other way round.
+   */
+  const phone = useViewport().kind === 'phone'
 
   const params = useLocalSearchParams<{ q?: string }>()
   const [range, setRange] = useState<RangeId>('d30')
@@ -149,7 +157,13 @@ export default function Orders(): React.JSX.Element {
   const waitingOn = (order?.approvals ?? []).filter((a) => a.status === 'pending')
 
   const columns: readonly RegisterColumn<Order>[] = [
-    textColumn('orderNo', t('o5.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
+    textColumn(
+      'orderNo',
+      t('o5.orderNo'),
+      (row) =>
+        phone ? `${row.orderNo ?? t('app.none')} · ${names.retailer(row.retailerId)}` : row.orderNo,
+      { priority: 'identity' },
+    ),
     textColumn('shop', t('o5.shop'), (row) => names.retailer(row.retailerId)),
     {
       key: 'state',
