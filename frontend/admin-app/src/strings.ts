@@ -96,6 +96,11 @@ export const strings = {
   'p1.pastDue': '{count} past due',
   'p1.trialEnding': '{count} trials ending in 30 days',
   'p1.waitingOwners': '{count} support requests waiting for an owner',
+  // One of a thing is not "{count} things" (DOS-114). No plural FORM exists in this product — Hindi
+  // and Marathi do not share English's one-or-many rule — so the sentence that can be about one
+  // gets its own key and the screen picks between them.
+  'p1.trialEndingOne': '1 trial ending in 30 days',
+  'p1.waitingOwner': '1 support request waiting for an owner',
   'p1.allClear': 'Nothing waiting',
 
   // --- P2 distributors -----------------------------------------------------

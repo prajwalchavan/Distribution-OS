@@ -946,6 +946,51 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     expect(everyone.body.items.some((u) => u.id === ownerId)).toBe(true)
   })
 
+  /**
+   * DOS-114 — People came back in database order.
+   *
+   * The console's directory listed 52 rows as `sandeep.mane, pilot.owner, anita.sonawane…` — the
+   * order the ids happened to be written in — and offered no sort, so finding a person meant reading
+   * every row or knowing enough of their name to search. A directory is read by NAME.
+   *
+   * The cursor stays one opaque string, as the contract already declares it: `<id>|<name>`, compared
+   * as the pair Postgres orders by, so paging cannot drop a row or hand the same person back twice
+   * when two people share a name.
+   */
+  it('DOS-114: the People directory comes back in NAME order, and pages by name without dropping or repeating anybody', async () => {
+    const ours = { q: `p${run}.` }
+    const all = await consoleCall<{ items: { id: string; name: string }[] }>(
+      'GET',
+      '/admin/users',
+      { ...ours, limit: 50 },
+    )
+    expect(all.status, JSON.stringify(all.body)).toBe(200)
+    expect(all.body.items.map((u) => u.name)).toEqual([
+      'Console colleague',
+      'Console super',
+      'Distributor manager',
+      'Distributor owner',
+    ])
+
+    // Two at a time, through the cursor the previous page returned: the same four, in the same
+    // order, and the pages do not overlap.
+    const first = await consoleCall<{
+      items: { id: string; name: string }[]
+      nextCursor: string | null
+    }>('GET', '/admin/users', { ...ours, limit: 2 })
+    expect(first.body.items.map((u) => u.name)).toEqual(['Console colleague', 'Console super'])
+    expect(first.body.nextCursor).not.toBeNull()
+    const second = await consoleCall<{
+      items: { id: string; name: string }[]
+      nextCursor: string | null
+    }>('GET', '/admin/users', { ...ours, limit: 2, cursor: first.body.nextCursor ?? '' })
+    expect(second.body.items.map((u) => u.name)).toEqual([
+      'Distributor manager',
+      'Distributor owner',
+    ])
+    expect(second.body.items.filter((u) => first.body.items.some((f) => f.id === u.id))).toEqual([])
+  })
+
   it('answers counts that match the tables, and never a rupee of anybody’s trade', async () => {
     // `tenants` is the ONE table in this repo that every other spec file writes to as well —
     // `describeDb` bootstraps a fresh tenant per file and vitest runs the files in parallel — so a

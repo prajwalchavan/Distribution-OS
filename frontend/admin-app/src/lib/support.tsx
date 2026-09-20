@@ -299,8 +299,17 @@ export function InsidePanel({
    * would never fire at all.
    */
   const refetchReads = reads.refetch
+  /*
+   * AND ONLY WHILE THERE IS A WINDOW TO ASK ABOUT (DOS-114). `refetch()` is a FORCED read: it does
+   * not consult the query's own `enabled`. So handing the window back inside these four seconds —
+   * which is a successful press — changed `live` to null, re-armed the timers on the new key and
+   * fired `GET /admin/audit?…&entityId=&limit=20`, a 400 in the console right after an action that
+   * worked. Measured on the pilot's page. The id, not the object: `live` is a fresh object each
+   * render, and depending on it would clear and re-arm the timers for ever.
+   */
+  const liveId = live?.id ?? null
   useEffect(() => {
-    if (openedAt === undefined) return
+    if (openedAt === undefined || liveId === null) return
     const timers = [
       setTimeout(() => void refetchReads(), 1_200),
       setTimeout(() => void refetchReads(), 4_000),
@@ -308,7 +317,7 @@ export function InsidePanel({
     return () => {
       for (const timer of timers) clearTimeout(timer)
     }
-  }, [openedAt, refetchReads])
+  }, [openedAt, liveId, refetchReads])
 
   const revoke = useMutation(
     (grantId: string) =>
