@@ -436,15 +436,23 @@ export async function seedReporting(
   //     requests the sales and pricing seeds wrote for exactly this purpose. ---
   const approvalRows: (typeof approvals.$inferInsert)[] = []
   const decidedAt = (ageDays: number) => occurred(atIstTime(daysAgo(ageDays), 12, 30))
+  const orderForApproval = new Map(sales.orders.map((o) => [o.id, o]))
   for (const c of sales.approvalCases) {
-    const retailer = retailerById.get(c.retailerId)
     const decided = c.status !== 'pending'
+    /*
+     * DOS-006: a credit gate asks for the ORDER to be released, not for a bigger limit. Submit writes
+     * `{ orderNo, totalPaise, flag }` on the order it holds (`orders.service.ts`), and approving it
+     * confirms that order and touches nothing on the shop — the limit is changed on the shop's page.
+     * The seed used to invent `requestedLimitPaise`, a shape production never writes, so the owner read
+     * a figure approving could not honour. The demo now carries exactly what production carries.
+     */
+    const gatedOrder = orderForApproval.get(c.orderId)
     const payload =
       c.kind === 'credit_limit'
         ? {
-            currentLimitPaise: retailer?.creditLimitPaise ?? 0,
-            requestedLimitPaise: (retailer?.creditLimitPaise ?? 0) + 2_000_000,
-            reason: 'Festive season stocking, retailer asked for a temporary bump.',
+            orderNo: gatedOrder?.orderNo ?? null,
+            totalPaise: gatedOrder?.totalPaise ?? 0,
+            flag: 'credit_limit',
           }
         : c.kind === 'below_floor'
           ? { note: 'Rep sold below the tier floor; owner to decide.', floorBasis: 'tier_price' }
@@ -455,13 +463,12 @@ export async function seedReporting(
       kind: c.kind,
       orderId: c.orderId,
       entityType:
-        c.kind === 'bargain' ? 'bargain_request' : c.kind === 'credit_limit' ? 'retailer' : 'order',
-      entityId:
         c.kind === 'bargain'
-          ? (c.bargainId ?? c.orderId)
+          ? 'bargain_request'
           : c.kind === 'credit_limit'
-            ? c.retailerId
-            : c.orderId,
+            ? 'sales_order'
+            : 'order',
+      entityId: c.kind === 'bargain' ? (c.bargainId ?? c.orderId) : c.orderId,
       requestedBy: people.salespeople.rahul.id,
       status: c.status,
       payload,

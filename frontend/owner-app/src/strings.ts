@@ -146,6 +146,10 @@ export const strings = {
   'o3.creditBills': '{count} bills open · limit {limit}',
   'o3.creditClear': 'Within terms',
   'o3.creditUnknown': 'Credit not checked',
+  // DOS-006: approving a credit gate releases the order, never the limit (founder, docs/22 §8).
+  'o3.creditRelease':
+    'Approving lets {order} through for {total}. The limit stays {limit} — change it under Shops.',
+  'o3.changeLimit': "Change the shop's limit",
 
   // --- O4 Live map ---------------------------------------------------------------------------------
   'o4.tab': 'Live map',

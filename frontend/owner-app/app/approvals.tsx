@@ -500,6 +500,39 @@ export default function Approvals(): React.JSX.Element {
                   {t('o3.lastGate', { order: current?.orderNo ?? '' })}
                 </Txt>
               ) : null}
+              {/*
+                DOS-006: what approving an over-limit gate actually does, said before it happens.
+                The founder's answer (docs/22 §8, 2026-09-13): it releases THIS order and leaves the
+                shop's limit where it is — the limit is a setting on the shop's page. The owner used
+                to read a "requested limit" the server never honoured, so the sentence names the
+                order, its total and the limit that stays, and the button goes where it is changed.
+                Only on approve: rejecting a gate releases nothing.
+              */}
+              {current?.kind === 'credit_limit' && confirm === 'approve' ? (
+                <Stack gap={2}>
+                  <Txt field="bodyStrong" desk="body" testID="approval-credit-release">
+                    {t('o3.creditRelease', {
+                      order: current.orderNo ?? '',
+                      total: formatINR(paise(current.orderTotalPaise ?? 0)),
+                      limit:
+                        credit.data === undefined
+                          ? t('o3.creditUnknown')
+                          : formatINR(paise(credit.data.creditLimitPaise)),
+                    })}
+                  </Txt>
+                  <Button
+                    label={t('o3.changeLimit')}
+                    variant="secondary"
+                    onPress={() => {
+                      const href = `/shops?q=${encodeURIComponent(current.what)}`
+                      setConfirm(null)
+                      setSelected(null)
+                      router.push(href)
+                    }}
+                    testID="approval-change-limit"
+                  />
+                </Stack>
+              ) : null}
             </Stack>
           </Panel>
         }
