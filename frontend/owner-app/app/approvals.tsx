@@ -36,6 +36,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
+import { orderLabel, resolutionOf, type OrderResolution } from '../src/lib/bargain-order'
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
@@ -93,6 +94,36 @@ export default function Approvals(): React.JSX.Element {
     api.api.pricing.bargains.list({ status: 'requested', limit: 100 }),
   )
 
+  /*
+   * DOS-090: a rate request names the order id the REP'S PHONE minted, and the draft is placed under
+   * that same id later — which is how the request gates that one order and no other. Until it is
+   * placed `orders.get` answers 404, so this row used to show no order at all. One settled read per
+   * distinct id on the page (at most the 100 above), cached for a minute; a 404 is an ANSWER here.
+   */
+  const rateOrderIds = [
+    ...new Set(
+      (bargains.data?.items ?? [])
+        .map((row) => row.orderId)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
+  const rateOrders = useQuery(
+    ['orders', 'rate-requests', rateOrderIds.join(',')],
+    async (): Promise<[string, OrderResolution][]> => {
+      const settled = await Promise.allSettled(rateOrderIds.map((id) => api.api.orders.get({ id })))
+      return rateOrderIds.map((id, i) => {
+        const answer = settled[i]
+        if (answer === undefined || answer.status === 'rejected') return [id, { kind: 'missing' }]
+        return [
+          id,
+          { kind: 'found', orderNo: answer.value.item.orderNo, state: answer.value.item.state },
+        ]
+      })
+    },
+    { enabled: rateOrderIds.length > 0, staleTime: 60_000 },
+  )
+  const resolvedRateOrders = new Map<string, OrderResolution>(rateOrders.data ?? [])
+
   const pending = [
     ...new Map(
       [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
@@ -146,13 +177,21 @@ export default function Approvals(): React.JSX.Element {
         id: row.id,
         stream: 'bargain',
         kind: 'bargain',
-        what: names.retailer(row.retailerId),
+        // DOS-090: the shop, and which order this rate is for — "not placed yet" while it is on the phone.
+        what: [
+          names.retailer(row.retailerId),
+          orderLabel(resolutionOf(row.orderId, resolvedRateOrders), t),
+        ]
+          .filter((part): part is string => part !== null && part !== '')
+          .join(' · '),
         who: names.staff(row.requestedBy),
         askedAt: row.createdAt,
         amountPaise: row.askedRatePaise,
         listRatePaise: row.listRatePaise,
         askedRatePaise: row.askedRatePaise,
-        orderId: null,
+        // The id the request names, even when the server has no such order yet: the label says so and
+        // nothing links to it.
+        orderId: row.orderId,
         orderNo: null,
         orderTotalPaise: null,
         retailerId: null,

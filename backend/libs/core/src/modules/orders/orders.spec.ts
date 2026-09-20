@@ -1914,6 +1914,83 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(again.status).toBe(409)
   })
 
+  it('DOS-090: a rate asked on a draft still on the phone waits for that draft and gates exactly one order', async () => {
+    /*
+     * The rep asks for a rate while the order is still a DRAFT ON THE PHONE, so `bargain_requests.order_id`
+     * names an order the server has never seen — by design (`orders.create` later writes that very id).
+     * What must hold: the request waits for THAT order and prices no other order of the shop, and when the
+     * draft is finally placed it raises exactly one gate. No FK, no nullable-until-submit, no timed lapse.
+     */
+    const phoneDraftId = uuidv7()
+    const bargainId = uuidv7()
+    const asked = await call<{ item: { status: string; orderId: string | null } }>(
+      app,
+      rep,
+      'POST',
+      '/pricing/bargains',
+      {
+        idempotencyKey: `dos090-ask-${run}`,
+        id: bargainId,
+        retailerId: retailerA,
+        variantId: variantA,
+        askedRatePaise: 900,
+        qtyPcs: 12,
+        orderId: phoneDraftId,
+      },
+    )
+    expect(asked.status).toBe(200)
+    expect(asked.body.item.status).toBe('requested')
+    expect(asked.body.item.orderId).toBe(phoneDraftId)
+    // The office cannot open it: there is no such order yet. This is what the screens must say.
+    expect((await call(app, manager, 'GET', `/orders/${phoneDraftId}`)).status).toBe(404)
+
+    // Another order of the SAME shop and item, with its own id, is untouched by that request.
+    const otherId = uuidv7()
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos090-other-${run}`,
+      id: otherId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const other = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${otherId}/submit`, {
+      idempotencyKey: `dos090-other-submit-${run}`,
+    })
+    expect(other.status).toBe(200)
+    expect(other.body.item.approvalFlags).toEqual([])
+    expect(other.body.item.lines[0]).toMatchObject({ ratePaise: 1_000 })
+
+    // And when the draft is placed under its own id, it raises exactly one gate, naming that request.
+    await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `dos090-place-${run}`,
+      id: phoneDraftId,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const placed = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${phoneDraftId}/submit`,
+      {
+        idempotencyKey: `dos090-place-submit-${run}`,
+      },
+    )
+    expect(placed.status).toBe(200)
+    expect(placed.body.item.approvalFlags).toEqual(['bargain'])
+    const gates = await call<{ items: Gate[] }>(app, owner, 'GET', '/approvals', {
+      status: 'pending',
+      orderId: phoneDraftId,
+    })
+    expect(gates.body.items).toHaveLength(1)
+    expect(gates.body.items[0]).toMatchObject({
+      kind: 'bargain',
+      entityType: 'bargain_request',
+      entityId: bargainId,
+    })
+  })
+
   it('DOS-005: approving an approval that names a bargain request approves the request at the asked rate and closes its other copy', async () => {
     // The demo seed's standalone gate: it names the request and has no order behind it. The request's order id
     // points at no order, so it gates nothing else in this spec.

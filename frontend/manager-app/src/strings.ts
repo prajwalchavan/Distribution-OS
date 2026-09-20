@@ -174,6 +174,12 @@ export const strings = {
   'm2.terms': 'Terms',
   'm2.expected': 'Wanted by',
   'm2.askedRate': 'Asked rate',
+  /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
+  'm2.rateAsked': 'asked {when}',
+  'm2.rateOrderAny': 'Any order of this shop',
+  'm2.rateOrderMissing': "Not placed yet — on the rep's phone",
+  'm2.rateOrderFound': '{no} · {state}',
+  'm2.rateOrderDraft': 'Draft',
   'm2.listRate': 'List rate',
   'm2.reservations': 'Held for this order',
   'm2.reservationsLot': 'across 1 lot',

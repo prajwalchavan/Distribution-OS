@@ -129,6 +129,11 @@ export const strings = {
   'o3.grnExceptions': 'GRN exceptions',
   'o3.listRate': 'List rate',
   'o3.askedRate': 'Asked rate',
+  /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
+  'o3.rateOrderAny': 'Any order of this shop',
+  'o3.rateOrderMissing': "Not placed yet — on the rep's phone",
+  'o3.rateOrderFound': '{no} · {state}',
+  'o3.rateOrderDraft': 'Draft',
   'o3.gap': 'Gap',
   'o3.empty': 'Nothing waiting for a decision',
   'o3.keys': 'j / k move · 1 approve · 2 reject',

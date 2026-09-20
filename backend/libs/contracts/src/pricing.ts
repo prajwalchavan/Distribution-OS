@@ -392,6 +392,11 @@ export const BargainSchema = z.object({
   id: IdSchema,
   retailerId: IdSchema,
   variantId: IdSchema,
+  /**
+   * The order this rate was asked for, as the client numbered it. It may not exist on the server: a
+   * rate asked on a draft still on the rep's phone names the id that draft will be placed under
+   * (DOS-090), so `orders.get` answers 404 until it is. Null = any order of this shop.
+   */
   orderId: IdSchema.nullable(),
   requestedBy: IdSchema,
   listRatePaise: PaiseSchema,
@@ -413,6 +418,11 @@ export const RequestBargainInput = MutationBase.extend({
   askedRatePaise: PaiseSchema.nonnegative(),
   /** Lets the rep's per-order cap (`maxOrderDiscountPaise`) be checked; without it that cap needs a decision. */
   qtyPcs: PiecesSchema.optional(),
+  /**
+   * The client's order id. It MAY NOT BE ON THE SERVER YET — a rep asks for a rate while the order is
+   * still a draft on the phone, and `orders.create` writes that same id later (DOS-090). The request
+   * waits for that order and prices nothing else; omit it and the rate applies to any order of the shop.
+   */
   orderId: IdSchema.optional(),
   note: z.string().trim().max(200).optional(),
 })

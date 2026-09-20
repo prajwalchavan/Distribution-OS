@@ -922,6 +922,12 @@ function BargainSheet({
         variantId: item?.variantId ?? '',
         askedRatePaise: input.askedRatePaise,
         qtyPcs: qtyPcs > 0 ? qtyPcs : undefined,
+        /*
+         * DOS-090: the DRAFT's id, which is not on the server yet — `place()` creates the order under
+         * this very id, which is how this request ends up gating that one order and no other. Sending
+         * it unattached instead would make an auto-approved ask a standing rate on every future order
+         * of the shop. The office screens say "not placed yet" until the draft is placed.
+         */
         orderId,
       }),
     {

@@ -62,6 +62,7 @@ import {
 } from '../../src/lib/ui'
 import { longDate, rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
 import { readAllReservations, reservedPcs } from '../../src/lib/reservations'
+import { orderLabel, resolutionOf, type OrderResolution } from '../../src/lib/bargain-order'
 import { waitingOnKinds } from '../../src/lib/waiting-on'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
@@ -194,6 +195,41 @@ export default function OrderQueue(): React.JSX.Element {
   const bargains = useQuery(['bargains', 'requested'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 20 }),
   )
+
+  /*
+   * DOS-090: a rate request carries the order id the REP'S PHONE minted. That is deliberate — the draft
+   * is placed under the same id later, which is how the request gates that order and no other — but it
+   * means `orders.get` answers 404 until it is placed, and the row used to name an order nobody could
+   * open. One read per distinct id on this page (at most the 20 above), settled so a 404 is an answer
+   * rather than a failed query, cached for a minute.
+   */
+  const rateOrderIds = [
+    ...new Set(
+      (bargains.data?.items ?? [])
+        .map((row) => row.orderId)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
+  const rateOrders = useQuery(
+    ['orders', 'rate-requests', rateOrderIds.join(',')],
+    async (): Promise<[string, OrderResolution][]> => {
+      const settled = await Promise.allSettled(rateOrderIds.map((id) => api.api.orders.get({ id })))
+      return rateOrderIds.map((id, i) => {
+        const answer = settled[i]
+        if (answer === undefined || answer.status === 'rejected') return [id, { kind: 'missing' }]
+        return [
+          id,
+          {
+            kind: 'found',
+            orderNo: answer.value.item.orderNo,
+            state: answer.value.item.state,
+          },
+        ]
+      })
+    },
+    { enabled: rateOrderIds.length > 0, staleTime: 60_000 },
+  )
+  const resolvedRateOrders = new Map<string, OrderResolution>(rateOrders.data ?? [])
 
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
@@ -424,8 +460,14 @@ export default function OrderQueue(): React.JSX.Element {
       .map((row) => ({
         id: row.id,
         kind: 'bargain' as const,
-        what: names.retailer(row.retailerId),
-        why: t('m2.askedRate'),
+        // DOS-090: which order this rate is for — and "not placed yet" when it is still on the phone.
+        what: [
+          names.retailer(row.retailerId),
+          orderLabel(resolutionOf(row.orderId, resolvedRateOrders), t),
+        ]
+          .filter((part): part is string => part !== null && part !== '')
+          .join(' · '),
+        why: `${t('m2.askedRate')} · ${t('m2.rateAsked', { when: shortInstant(row.createdAt) })}`,
         amount: row.askedRatePaise,
       })),
   ]
