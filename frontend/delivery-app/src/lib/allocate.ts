@@ -11,8 +11,12 @@
  *   - a bill the office has marked `paid` is not money owed at this door and cannot be tagged
  *     (`invoices.state` is the PAYMENT state on the device: issued / partially_paid / paid / …);
  *   - tagging sends an explicit split (`RecordCollectionInput.allocations` -> `strategy: 'explicit'`
- *     on the server), oldest tagged bill first, each line capped at what that bill is worth and the
- *     whole split never over the money taken — the office refuses a split bigger than its receipt;
+ *     on the server), oldest tagged bill first, each line capped at what that bill STILL OWES and the
+ *     whole split never over the money taken — the office refuses a line bigger than the bill's open
+ *     balance and a split bigger than its receipt, both with a 409 at the door;
+ *   - that open balance is the OFFICE'S figure, not one this device can work out: the screen asks
+ *     `receivables.outstanding.get({ includeBills: true })`, and until the answer is in, a bill is
+ *     listed and counted at its face value but cannot be tagged, and the screen says so;
  *   - the office's own answer is read back as sentences NAMING the bills, so the driver can say
  *     "this paid INV/0099 of June; the bill in your hand is still open" while the shopkeeper is there.
  *
@@ -32,6 +36,19 @@ export interface DoorBill {
   totalPaise: number
   /** The bill's payment state as the last pull left it: `issued`, `partially_paid`, `paid`, … */
   state: string
+  /**
+   * WHAT THIS BILL STILL ASKS FOR, as the office answered a moment ago — `null` when it has not been
+   * asked (no signal, or the answer has not arrived yet).
+   *
+   * THIS IS NOT ON THE DEVICE AND CANNOT BE DERIVED FROM WHAT IS. `LocalInvoice` carries
+   * `total_paise` and `state`, and `state` is not proof of an untouched bill: on the seed's own
+   * ACTIVE trip `Tc803a3a5/1` is `issued`, ₹1,180.00, with ₹1,020.00 already against it. The office
+   * refuses an explicit line bigger than the open balance (`planExplicit` -> 409 CONFLICT), so a
+   * split built from `totalPaise` is a refusal at a shop door with the cash already counted. The
+   * screen asks `receivables.outstanding.get({ includeBills: true })` — one read, the crew's own
+   * permission (DUES_READERS) — and a bill can be tagged only once that answer is in.
+   */
+  openPaise: number | null
 }
 
 /** One line of the explicit split, exactly as `CollectionAllocationInput` takes it. */
@@ -53,14 +70,29 @@ function oldestFirst(a: DoorBill, b: DoorBill): number {
   return (a.invoiceNo ?? a.invoiceId).localeCompare(b.invoiceNo ?? b.invoiceId)
 }
 
+/** What this bill still asks for: the office's figure when it has one, its face value otherwise. */
+export function owedOn(bill: DoorBill): number {
+  return bill.openPaise ?? bill.totalPaise
+}
+
 /**
  * The bills at this door that can still take money, oldest first.
  *
  * A bill the office has already marked `paid` is dropped: offering it again as owed is how the same
- * money gets taken twice at one door.
+ * money gets taken twice at one door. So is a bill the office says has nothing left on it, whatever
+ * the state this phone last pulled still says — the open balance is the newer fact of the two.
  */
 export function billsThatTakeMoney(bills: readonly DoorBill[]): DoorBill[] {
-  return bills.filter((bill) => TAKES_MONEY.has(bill.state)).sort(oldestFirst)
+  return bills.filter((bill) => TAKES_MONEY.has(bill.state) && owedOn(bill) > 0).sort(oldestFirst)
+}
+
+/**
+ * The bills the driver may TAG — the ones that can take money AND whose open balance the office has
+ * given. Tagging a bill whose balance is unknown is the refusal this fix exists to prevent: the
+ * split would be built from the face value and the office would answer 409 at the door.
+ */
+export function billsThatCanBeTagged(bills: readonly DoorBill[]): DoorBill[] {
+  return billsThatTakeMoney(bills).filter((bill) => bill.openPaise !== null)
 }
 
 /**
@@ -69,17 +101,20 @@ export function billsThatTakeMoney(bills: readonly DoorBill[]): DoorBill[] {
  * that can still take money.
  */
 export function owedHerePaise(bills: readonly DoorBill[]): number {
-  return billsThatTakeMoney(bills).reduce((sum, bill) => sum + bill.totalPaise, 0)
+  return billsThatTakeMoney(bills).reduce((sum, bill) => sum + owedOn(bill), 0)
 }
 
 /**
  * The explicit split for the bills the driver tagged, or `null` when nothing is tagged — and `null`
  * is what sends no `allocations` at all, which is the office's oldest-bill-first rule.
  *
- * The money fills the tagged bills oldest first, each capped at what that bill is worth; a bill that
- * would get nothing is dropped, and a surplus over the tagged bills is simply not allocated (the
- * office places it, or it stays on account). The split can never come to more than the receipt: the
- * server answers 409 for that, at a shop door, after the cash is in the driver's hand.
+ * The money fills the tagged bills oldest first, each capped at WHAT THAT BILL STILL OWES — never at
+ * its face value, which is the refusal this rule was reviewed for: `planExplicit` answers 409
+ * CONFLICT ("bill X owes 16000 paise; 118000 was offered") at a shop door, after the cash is in the
+ * driver's hand. A bill whose open balance the office has not given is skipped for the same reason,
+ * and a bill that would get nothing is dropped; a surplus over the tagged bills is simply not
+ * allocated (the office places it, or it stays on account). The split can never come to more than the
+ * receipt either — the server answers 409 for that too.
  */
 export function tagAllocations(input: {
   bills: readonly DoorBill[]
@@ -88,12 +123,15 @@ export function tagAllocations(input: {
   newId: () => string
 }): TaggedAllocation[] | null {
   if (input.tagged.size === 0) return null
-  const wanted = billsThatTakeMoney(input.bills).filter((bill) => input.tagged.has(bill.invoiceId))
+  const wanted = billsThatCanBeTagged(input.bills).filter((bill) =>
+    input.tagged.has(bill.invoiceId),
+  )
   const lines: TaggedAllocation[] = []
   let left = Math.max(0, input.amountPaise)
   for (const bill of wanted) {
     if (left <= 0 || lines.length >= MAX_SPLIT_LINES) break
-    const amountPaise = Math.min(bill.totalPaise, left)
+    if (bill.openPaise === null) continue
+    const amountPaise = Math.min(bill.openPaise, left)
     if (amountPaise <= 0) continue
     lines.push({ id: input.newId(), invoiceId: bill.invoiceId, amountPaise })
     left -= amountPaise
@@ -103,7 +141,7 @@ export function tagAllocations(input: {
 
 /** The bill numbers the driver has tagged, in the order the money will reach them. */
 function taggedNumbers(bills: readonly DoorBill[], tagged: ReadonlySet<string>): string[] {
-  return billsThatTakeMoney(bills)
+  return billsThatCanBeTagged(bills)
     .filter((bill) => tagged.has(bill.invoiceId))
     .map((bill) => bill.invoiceNo ?? bill.invoiceId.slice(0, 8))
 }
@@ -114,13 +152,38 @@ function taggedNumbers(bills: readonly DoorBill[], tagged: ReadonlySet<string>):
  */
 export function whereTheMoneyGoes(
   t: Translator,
-  input: { bills: readonly DoorBill[]; tagged: ReadonlySet<string>; openBills: number },
+  input: {
+    bills: readonly DoorBill[]
+    tagged: ReadonlySet<string>
+    openBills: number
+    /** False while the office's open balances are not in hand: the rows are not tappable either. */
+    canTag: boolean
+  },
 ): string {
   const numbers = taggedNumbers(input.bills, input.tagged)
   if (numbers.length > 0) return t('d5.goesTo', { bills: numbers.join(', ') })
+  // Never invite a tap the screen will not take: the rows are inert until the office answers.
+  if (!input.canTag) return t('d5.oldestFirstUntaggable')
   return input.openBills > 1
     ? t('d5.oldestFirst', { count: input.openBills })
     : t('d5.oldestFirstOne')
+}
+
+/**
+ * WHAT THE DRIVER READS WHEN THE OFFICE REFUSES THE SPLIT.
+ *
+ * The split is capped at the office's own figure, so this is the narrow race: the bill was settled
+ * between the answer and the tap (another crew, the desk, the shop's own UPI). The server's sentence
+ * is exact and unreadable at a door — "bill Tc803a3a5/1 owes 16000 paise; 118000 was offered" — and
+ * it does not say the one thing that gets the money in: untag and record again. Every other refusal
+ * keeps the office's own words, which are already in business language (`ApiError`).
+ */
+export function recordRefusal(
+  t: Translator,
+  failed: { kind: string; message: string },
+  sentSplit: boolean,
+): string {
+  return sentSplit && failed.kind === 'conflict' ? t('d5.tagRefused') : failed.message
 }
 
 /** The bills a receipt touched, exactly as `RecordCollectionOutput` reports them. */

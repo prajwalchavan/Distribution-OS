@@ -20,7 +20,7 @@
  * number is what carries identity in the meantime, which is why it is offered here and why it is the
  * server's own offline dedupe key.
  */
-import { useApi, useMutation, useSession } from '@dos/api-client/react'
+import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
@@ -42,13 +42,16 @@ import {
 import { haptics, share } from '@dos/ui/platform'
 import { paise, uuidv7 } from '@dos/domain'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
 import {
   appliedLines,
+  billsThatCanBeTagged,
   billsThatTakeMoney,
   owedHerePaise,
+  owedOn,
+  recordRefusal,
   tagAllocations,
   whereTheMoneyGoes,
   type DoorBill,
@@ -115,6 +118,45 @@ export default function Collect(): React.JSX.Element {
   /* DOS-062: the bills the driver has tagged, by invoice id — empty means the office's own rule. */
   const [tagged, setTagged] = useState<ReadonlySet<string>>(() => new Set<string>())
 
+  /*
+   * DOS-062 (review) — WHAT EACH BILL STILL OWES, ASKED OF THE OFFICE.
+   *
+   * The device cannot work this out: `LocalInvoice` is `total_paise` + `state`, and `state` is not
+   * proof of an untouched bill — on the seed's own ACTIVE trip `Tc803a3a5/1` is `issued`, ₹1,180.00,
+   * with ₹1,020.00 already against it. A tag built from the face value is refused by the office
+   * (`planExplicit`: 409 "bill X owes 16000 paise; 118000 was offered") at the door, with the cash
+   * already counted. So the open balances come from `receivables.outstanding.get` — one read the crew
+   * already has (DUES_READERS), the same source the stop behind this one shows dues from — and until
+   * the answer is in, a bill is listed at its face value and simply cannot be tagged.
+   *
+   * A bill MISSING from that answer is not unknown: `getOutstanding` returns every open bill of the
+   * shop, so absence means nothing is left on it — which is the a-22 double-offer, caught even when
+   * this phone's own `state` column has not caught up.
+   */
+  const officeBills = useQuery(
+    ['outstanding', stop?.retailer_id ?? null],
+    () =>
+      api.api.receivables.outstanding.get({
+        retailerId: stop?.retailer_id ?? '',
+        includeBills: true,
+      }),
+    {
+      enabled: session !== null && status.online && stop !== null,
+      /*
+       * FRESH ON EVERY DOOR, NOT WITHIN THIRTY SECONDS OF THE LAST ONE. The default `staleTime` is
+       * 30 s and a second receipt at the same door (a shop paying cash then UPI) mounts this screen
+       * well inside it — on balances taken BEFORE the first receipt, which is the same stale split
+       * the office would refuse. One read per door entry is the price of tagging money correctly.
+       */
+      staleTime: 0,
+    },
+  )
+  const openByInvoice = useMemo<ReadonlyMap<string, number> | null>(() => {
+    const bills = officeBills.data?.bills
+    if (bills === undefined) return null
+    return new Map(bills.map((bill) => [bill.id, bill.openPaise]))
+  }, [officeBills.data])
+
   /**
    * The bills riding on this door, as `allocate.ts` reads them. A bill the office has already marked
    * paid is still LISTED — the driver is holding it — but it is not owed here and cannot be tagged.
@@ -133,19 +175,25 @@ export default function Collect(): React.JSX.Element {
                 invoiceDate: invoice.invoice_date,
                 totalPaise: invoice.total_paise,
                 state: invoice.state,
+                openPaise: openByInvoice === null ? null : (openByInvoice.get(invoice.id) ?? 0),
               },
             ]
       }),
-    [deliveries.rows, invoices],
+    [deliveries.rows, invoices, openByInvoice],
   )
   const owedHere = owedHerePaise(doorBills)
   const takesMoney = new Set(billsThatTakeMoney(doorBills).map((bill) => bill.invoiceId))
+  const billByRow = useMemo(() => new Map(doorBills.map((bill) => [bill.id, bill])), [doorBills])
   /*
-   * A TAG ONLY TRAVELS WITH A SIGNAL. The offline `receipts` op carries no allocations (queue.ts), so
-   * an offline receipt is allocated oldest bill first when it lands. Offering a tag the phone cannot
-   * send would be the same lie DOS-062 is about, one screen further on.
+   * A TAG ONLY TRAVELS WITH A SIGNAL, AND ONLY WITH THE OFFICE'S FIGURE. The offline `receipts` op
+   * carries no allocations (queue.ts), so an offline receipt is allocated oldest bill first when it
+   * lands; and without an open balance the split would be refused at the door (the review above).
+   * Offering a tag either way would be the same lie DOS-062 is about, one screen further on.
    */
-  const canTag = status.online
+  const taggable = new Set(billsThatCanBeTagged(doorBills).map((bill) => bill.invoiceId))
+  const canTag = status.online && openByInvoice !== null
+  /** Did the press that is in flight carry an explicit split? Read by `recordRefusal` on a 409. */
+  const splitSent = useRef(false)
 
   /**
    * What this door is meant to yield.
@@ -194,7 +242,7 @@ export default function Collect(): React.JSX.Element {
         deviceId: deviceId(),
       }),
     {
-      invalidates: [['trip'], ['settlement'], ['collections']],
+      invalidates: [['trip'], ['settlement'], ['collections'], ['outstanding']],
       onSuccess: (result) => {
         haptics.success()
         void pullAfterDoorstepWrite(engine, 'payment recorded')
@@ -222,7 +270,12 @@ export default function Collect(): React.JSX.Element {
       },
       onError: (failed) => {
         haptics.error()
-        setError(failed.message)
+        /*
+         * DOS-062 (review) — the office's 409 for a tagged bill is exact and unreadable at a door
+         * ("bill Tc803a3a5/1 owes 16000 paise; 118000 was offered") and does not say the one thing
+         * that gets the money in: untag and record again. Every other refusal keeps its own words.
+         */
+        setError(recordRefusal(t, failed, splitSent.current))
       },
     },
   )
@@ -239,11 +292,9 @@ export default function Collect(): React.JSX.Element {
     }
     if (stop === null) return
     if (status.online) {
-      collect.mutate({
-        mode,
-        amountPaise,
-        allocations: tagAllocations({ bills: doorBills, tagged, amountPaise, newId: uuidv7 }),
-      })
+      const allocations = tagAllocations({ bills: doorBills, tagged, amountPaise, newId: uuidv7 })
+      splitSent.current = allocations !== null && allocations.length > 0
+      collect.mutate({ mode, amountPaise, allocations })
       return
     }
     setBusy(true)
@@ -346,14 +397,29 @@ export default function Collect(): React.JSX.Element {
                 {deliveries.rows.map((row) => {
                   const invoice = invoices.get(row.invoice_id)
                   const invoiceId = invoice?.id ?? null
+                  const bill = billByRow.get(row.id)
                   const open = invoiceId !== null && takesMoney.has(invoiceId)
+                  /*
+                    DOS-062 (review) — THE ROW SAYS WHAT THE BILL STILL ASKS FOR. Its face value over a
+                    bill half settled is the same overstatement as "Owed on the bills here", one line
+                    down; and it is the figure a driver reads out to a shopkeeper.
+                  */
+                  const part =
+                    bill !== undefined &&
+                    bill.openPaise !== null &&
+                    bill.openPaise < bill.totalPaise
+                  const when = invoice === undefined ? undefined : longDate(invoice.invoice_date)
                   return (
                     <ListRow
                       key={row.id}
                       testID={`d5-bill-${row.id}`}
                       primary={invoice?.invoice_no ?? t('d.billNotHere')}
-                      secondary={invoice === undefined ? undefined : longDate(invoice.invoice_date)}
-                      trailingMoney={invoice?.total_paise ?? null}
+                      secondary={
+                        part && when !== undefined ? `${when} · ${t('d5.partPaid')}` : when
+                      }
+                      trailingMoney={
+                        bill === undefined ? (invoice?.total_paise ?? null) : owedOn(bill)
+                      }
                       trailingSize="moneyM"
                       /*
                         A BILL THE OFFICE HAS MARKED PAID IS NOT OFFERED AGAIN. It stays on the list —
@@ -378,7 +444,7 @@ export default function Collect(): React.JSX.Element {
                         ) : undefined
                       }
                       state={tagged.has(invoiceId ?? '') ? 'selected' : 'default'}
-                      {...(open && invoiceId !== null && canTag
+                      {...(open && invoiceId !== null && canTag && taggable.has(invoiceId)
                         ? {
                             onPress: () => {
                               setTagged((held) => {
@@ -404,6 +470,7 @@ export default function Collect(): React.JSX.Element {
                       bills: doorBills,
                       tagged,
                       openBills: dues?.open_bills ?? takesMoney.size,
+                      canTag,
                     })
                   : t('d5.appliedOffline')}
               </Txt>

@@ -21,10 +21,31 @@
 import { createTranslator } from '@dos/ui'
 import { describe, expect, it } from 'vitest'
 
+interface NodeFs {
+  readFileSync: (path: string, encoding: 'utf8') => string
+}
+interface NodeUrl {
+  fileURLToPath: (url: URL) => string
+}
+
+const NODE_FS: string = 'node:fs'
+const NODE_URL: string = 'node:url'
+
+/** Source with its comments taken out: a comment may quote the very call it explains. */
+async function read(relative: string): Promise<string> {
+  const { readFileSync } = (await import(NODE_FS)) as NodeFs
+  const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+  return readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+}
+
 import {
   appliedLines,
   billsThatTakeMoney,
+  billsThatCanBeTagged,
   owedHerePaise,
+  recordRefusal,
   tagAllocations,
   whereTheMoneyGoes,
   type DoorBill,
@@ -53,6 +74,7 @@ const JUNE: DoorBill = {
   invoiceDate: '2026-06-26',
   totalPaise: 785_600,
   state: 'issued',
+  openPaise: 785_600,
 }
 const TODAY: DoorBill = {
   id: 'del-2',
@@ -61,6 +83,7 @@ const TODAY: DoorBill = {
   invoiceDate: '2026-09-12',
   totalPaise: 785_600,
   state: 'issued',
+  openPaise: 785_600,
 }
 const PAID: DoorBill = {
   id: 'del-3',
@@ -69,7 +92,24 @@ const PAID: DoorBill = {
   invoiceDate: '2026-08-04',
   totalPaise: 475_600,
   state: 'paid',
+  openPaise: 0,
 }
+/**
+ * REVIEW OF DOS-062 — the bill this fix was refused on. `Tc803a3a5/1` rides on the ACTIVE trip in
+ * the seed: total ₹1,180.00, state `issued` (NOT `partially_paid` — the office's own row), and
+ * ₹1,020.00 of it already allocated, so ₹160.00 is what it still asks for.
+ */
+const PART_PAID: DoorBill = {
+  id: 'del-4',
+  invoiceId: 'inv-part',
+  invoiceNo: 'Tc803a3a5/1',
+  invoiceDate: '2026-09-10',
+  totalPaise: 118_000,
+  state: 'issued',
+  openPaise: 16_000,
+}
+/** The same bill before the office has answered: the device holds its face value and nothing else. */
+const UNKNOWN: DoorBill = { ...PART_PAID, openPaise: null }
 
 describe('DOS-062 where the money at this door goes', () => {
   it('DOS-062 a bill the office has marked paid is not owed here and cannot be tagged', () => {
@@ -99,7 +139,9 @@ describe('DOS-062 where the money at this door goes', () => {
         newId: ids(),
       }),
     ).toBeNull()
-    expect(whereTheMoneyGoes(t, { bills: [JUNE, TODAY], tagged: new Set(), openBills: 7 })).toBe(
+    expect(
+      whereTheMoneyGoes(t, { bills: [JUNE, TODAY], tagged: new Set(), openBills: 7, canTag: true }),
+    ).toBe(
       'Untagged, the office puts this on the oldest of the 7 bills this shop still owes — not always the bill in your hand. Tap a bill to send it there instead.',
     )
   })
@@ -113,7 +155,12 @@ describe('DOS-062 where the money at this door goes', () => {
     })
     expect(split).toEqual([{ id: 'id-1', invoiceId: 'inv-0825', amountPaise: 785_600 }])
     expect(
-      whereTheMoneyGoes(t, { bills: [TODAY, JUNE], tagged: new Set(['inv-0825']), openBills: 7 }),
+      whereTheMoneyGoes(t, {
+        bills: [TODAY, JUNE],
+        tagged: new Set(['inv-0825']),
+        openBills: 7,
+        canTag: true,
+      }),
     ).toBe('This money goes to INV/0825.')
     // Two tagged bills and not enough money: the older one is filled first and the rest is dropped.
     expect(
@@ -170,5 +217,105 @@ describe('DOS-062 where the money at this door goes', () => {
     // Nothing to say is no panel at all, never an empty one.
     keepApplied([])
     expect(takeApplied()).toBeNull()
+  })
+})
+
+/**
+ * THE REVIEW OF THIS FIX. Tagging sent `allocations: [{ invoiceId, amountPaise: bill.totalPaise }]`,
+ * and the office refuses an explicit line bigger than what the bill still owes
+ * (`planExplicit`, receivables/allocation.ts: 409 CONFLICT "bill X owes 16000 paise; 118000 was
+ * offered"). On the seed's own ACTIVE trip two bills ride at a door with money already against them,
+ * so the driver could take the printed figure, tag the bill in his hand and be refused — with the
+ * cash already counted, and the raw paise of the server's sentence on the screen. The device does not
+ * carry an open balance (`LocalInvoice` is total + state), so the office is ASKED for one
+ * (`receivables.outstanding.get`, `includeBills`) and a bill can only be tagged once that answer is in.
+ */
+describe('DOS-062 review — a tag is capped at what the office says the bill still owes', () => {
+  it('DOS-062 a part-paid bill is tagged at its open balance, never at its face value', () => {
+    expect(
+      tagAllocations({
+        bills: [PART_PAID],
+        tagged: new Set(['inv-part']),
+        amountPaise: 118_000,
+        newId: ids(),
+      }),
+    ).toEqual([{ id: 'id-1', invoiceId: 'inv-part', amountPaise: 16_000 }])
+  })
+
+  it('DOS-062 a bill whose open balance the office has not given cannot be tagged, and sends no line', () => {
+    expect(billsThatCanBeTagged([JUNE, UNKNOWN]).map((b) => b.invoiceId)).toEqual(['inv-0099'])
+    expect(
+      tagAllocations({
+        bills: [UNKNOWN],
+        tagged: new Set(['inv-part']),
+        amountPaise: 118_000,
+        newId: ids(),
+      }),
+    ).toEqual([])
+    // And the sentence under the bills does not invite a tap that does nothing.
+    expect(
+      whereTheMoneyGoes(t, {
+        bills: [UNKNOWN],
+        tagged: new Set(),
+        openBills: 7,
+        canTag: false,
+      }),
+    ).toBe(
+      'Untagged, the office puts this on the oldest bill this shop still owes — not always the bill in your hand. What each bill still owes has not come from the office, so a bill cannot be tagged here.',
+    )
+  })
+
+  it('DOS-062 "Owed on the bills here" is what the bills still ask for, not their face value', () => {
+    expect(owedHerePaise([PART_PAID])).toBe(16_000)
+    expect(owedHerePaise([PART_PAID, PAID, JUNE])).toBe(801_600)
+    // Nothing left on it is nothing owed here, whatever the state on this phone still says.
+    expect(billsThatTakeMoney([{ ...PART_PAID, openPaise: 0 }])).toEqual([])
+    // Before the office answers, its face value is the only figure the device has.
+    expect(owedHerePaise([UNKNOWN])).toBe(118_000)
+  })
+
+  it('DOS-062 an office that refuses the split tells the driver what to do, not raw paise', () => {
+    const refused = {
+      kind: 'conflict',
+      message: 'bill Tc803a3a5/1 owes 16000 paise; 118000 was offered',
+    }
+    expect(recordRefusal(t, refused, true)).toBe(
+      'The office says a bill you tagged does not owe that much any more. Untag it and record again — untagged, this money goes to the oldest bill the shop owes.',
+    )
+    // Nothing tagged: the office's own sentence is the honest one.
+    expect(recordRefusal(t, refused, false)).toBe(refused.message)
+    // Any other refusal is the office's own sentence too.
+    expect(recordRefusal(t, { kind: 'business', message: 'This trip is closed.' }, true)).toBe(
+      'This trip is closed.',
+    )
+  })
+})
+
+/**
+ * AND THE SCREEN ACTUALLY ASKS. The rule above is only as true as its wiring, and the wiring is what
+ * the review found broken — so it is read here the way `dos-065-own-papers.test.ts` reads its
+ * screens: importing D5 in Node pulls in `react-native` and `expo-router`, which resolve only under
+ * Metro.
+ */
+describe('DOS-062 review — D5 asks the office before it lets a bill be tagged', () => {
+  it('DOS-062 D5 asks for the shop’s open bills, and re-asks after money is taken', async () => {
+    const d5 = await read('../../app/stop/[id]/collect.tsx')
+    expect(d5).toMatch(/receivables\.outstanding\.get\(/)
+    expect(d5).toMatch(/includeBills:\s*true/)
+    // Not a value from before the last receipt at this same door.
+    expect(d5).toMatch(/staleTime:\s*0/)
+    expect(d5).toMatch(/invalidates:[^\n]*\['outstanding'\]/)
+  })
+
+  it('DOS-062 a row is tappable only when the office has said what that bill still owes', async () => {
+    const d5 = await read('../../app/stop/[id]/collect.tsx')
+    expect(d5).toMatch(/const canTag = status\.online && openByInvoice !== null/)
+    expect(d5).toMatch(/canTag && taggable\.has\(invoiceId\)/)
+    // The figure on the row is what the bill still asks for, not its face value.
+    expect(d5).toMatch(
+      /trailingMoney=\{\s*bill === undefined \? \(invoice\?\.total_paise \?\? null\) : owedOn\(bill\)\s*\}/,
+    )
+    // And a refusal is read through the rule, never printed raw.
+    expect(d5).toMatch(/setError\(recordRefusal\(t, failed, splitSent\.current\)\)/)
   })
 })
