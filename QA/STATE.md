@@ -8,9 +8,13 @@ Last updated: 2026-09-20, 20:15 IST
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_2c3fe029-0c9` | `w0iuf074c` | **Lean wave 3** — 20 groups, runner `QA/tools/batch2/workflows/lean-wave3.js`, Fable in every architect seat, three lanes at a time, merges in dependency order. **11 of 20 groups merged** (60 findings). Nine lanes left: five reviewed by Fable (`lean-kit-polish` and `lean-manager-money` = MERGE, no blockers; `lean-delivery-collect`, `lean-owner-money-approvals`, `lean-sales-rep` = MERGE AFTER FIXES, in repair), four still building (`lean-manager-order-lifecycle`, `lean-retailer-platform`, `lean-sales-orders-pricing`, `lean-warehouse-pick`). |
+| `wf_f5cf1873-fd0` | `wd6lkguoc` | **Finish wave 3** — runner `QA/tools/batch2/workflows/finish-wave3.js`, the ten lanes `lean-wave3.js` left unmerged, three at a time, merges serialized. |
 
-`lean-retailer-platform` hit drizzle-kit's interactive rename prompt (`inbound_messages_staff` → `inbound_messages_read`) and its `db:generate` exited 144; that lane must answer "create column" non-interactively or hand-write the migration (CLAUDE.md warns of this).
+**Wave 3 (`wf_2c3fe029-0c9`) ended 2026-09-20 23:34: 118 agents, 0 errors, 6 of its 16 groups merged.** Reading its journal, the other ten stopped for three different reasons and only one of them was a defect:
+
+- **FOUR were stopped by my own gate, not by a fault** — `lean-kit-polish`, `lean-manager-money`, `lean-sales-rep`, `lean-owner-money-approvals`. Each has an integration verdict of **pass** whose only major is "the platform walks are still owed" — one of them says so in those words ("OWED, NOT A MERGE BLOCKER"). `serious()`/`ivBad()` in that runner stopped a lane on ANY problem above minor, so it held work its own architect had cleared. That is the same over-strict stop condition already corrected once on the DOS-167 amendments lane, and it cost this wave four lanes. `finish-wave3.js` carries the corrected rule: a lane stops on a failed verdict or a **blocker**; a major is carried, logged and owed.
+- **FOUR carry real defects their verifier proved** — `lean-sales-orders-pricing` (a shop's credit limit and outstanding reach the shop's own device through `sync.pull`: `credit_notice` and `stock_shortages` were added to `sales_orders`), `lean-manager-order-lifecycle` (a deferred item built against an explicit prohibition; a production line that survives deletion with the whole warehouse suite green), `lean-retailer-platform` (DOS-102's app half calls the wrong service and can never work; its "lands where it left off" half does not survive a restart on Android or iOS), `lean-delivery-collect` (a regression introduced by its own repair round: one clock in `seed-demo/delivery.ts:522` left on the pre-fix base). Each gets a repair round, an adversarial re-verify and a fresh Fable review before anything merges.
+- **TWO owe a measurement nobody was allowed to take** — `lean-warehouse-pick` (DOS-118's residual is mitigated but never measured) and `lean-warehouse-rules` (its lane smoke). Every lane environment in wave 3 was forbidden to start a server, so that proof could not exist. `finish-wave3.js` lifts that for the walk stage only, under the port rule: if :3000–:3007 are held, use :3100 and never kill what you did not start.
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
 
@@ -48,7 +52,7 @@ The founder hands over a **real data extract** ("okk share real data extract wit
 
 `c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · `ed3e1b7` DOS-178+179+180 honesty · `f144e29` DOS-175+176+177 money-delivery · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
 
-**Coverage: 135 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
+**Coverage: 135 of 158 batch-2 findings merged** (the ten lanes above carry the remaining 23). P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
 
 ## Databases
 
