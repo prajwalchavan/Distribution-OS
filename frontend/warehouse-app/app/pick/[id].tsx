@@ -24,7 +24,7 @@
  * rows show what to pick but carry no Picked / Short, and the bottom bar holds only "Start picking":
  * a tap that could only ever be refused is never queued.
  */
-import { useApi, useMutation } from '@dos/api-client/react'
+import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Box,
@@ -74,6 +74,23 @@ export default function PickingSheet(): React.JSX.Element {
   const { sheet, loading: sheetLoading } = useLocalPicklist(picklistId)
   const { rows, loading } = useLocalPickLines(picklistId)
   const recordPick = useRecordPick()
+
+  /*
+   * QA DOS-054: the distributor's minimum shelf life is a SERVER judgement — `shortShelfLife` is
+   * derived on every read from the lot's expiry against `inventory.min_shelf_life_days`, so it is not
+   * a column the device syncs. The sheet is asked for it; with no answer yet (a shed, a cold start)
+   * the amber expiry badge stands alone, exactly as it did before, and nothing is invented here.
+   */
+  const rule = useQuery(
+    ['picklists', 'detail', picklistId],
+    () => api.api.warehouse.picklists.get({ id: picklistId }),
+    { enabled: picklistId !== '' },
+  )
+  const minShelfLifeDays = rule.data?.item.minShelfLifeDays ?? 0
+  const shortDatedLines = useMemo(
+    () => new Set((rule.data?.item.lines ?? []).filter((l) => l.shortShelfLife).map((l) => l.id)),
+    [rule.data],
+  )
 
   const start = useMutation(
     (id: string, meta) =>
@@ -319,6 +336,8 @@ export default function PickingSheet(): React.JSX.Element {
                 key={row.line.id}
                 row={row}
                 locked={locked}
+                shortShelfLife={shortDatedLines.has(row.line.id)}
+                minShelfLifeDays={minShelfLifeDays}
                 onPicked={() => {
                   pickInFull(row)
                 }}
@@ -402,12 +421,17 @@ export default function PickingSheet(): React.JSX.Element {
 function PickLineCard({
   row,
   locked,
+  shortShelfLife,
+  minShelfLifeDays,
   onPicked,
   onShort,
 }: {
   row: PickRow
   /** The sheet is not known to be started: show what to pick, offer no Picked / Short (DOS-040). */
   locked: boolean
+  /** The server's judgement on this lot against the distributor's rule (QA DOS-054). */
+  shortShelfLife: boolean
+  minShelfLifeDays: number
   onPicked: () => void
   onShort: () => void
 }): React.JSX.Element {
@@ -434,6 +458,13 @@ function PickLineCard({
           {row.batchNo === null ? t('w.noBatch') : t('w.batch', { batch: row.batchNo })}
         </Txt>
         <ExpiryChip expiryDate={row.expiryDate} testID={`w5-exp-${row.line.id}`} />
+        {shortShelfLife ? (
+          <StatusChip
+            label={t('w5.shortShelfLife', { days: minShelfLifeDays })}
+            family="brick"
+            testID={`w5-shelf-${row.line.id}`}
+          />
+        ) : null}
         {row.mrpPaise === null ? null : (
           <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
             <Money value={row.mrpPaise} size="cell" />

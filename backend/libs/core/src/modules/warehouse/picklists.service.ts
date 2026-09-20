@@ -234,6 +234,9 @@ export class PicklistsService {
         }
 
         const now = new Date()
+        // QA DOS-054: one cutoff for the whole wave, computed in TypeScript from the IST business
+        // date, so every line of this sheet is judged against the same day.
+        const cutoff = await this.inventory.shelfLifeCutoff(tx)
         const rows: (typeof pickLines.$inferInsert)[] = []
         for (const line of lines) {
           const requested = line.qtyPcs + line.freeQtyPcs
@@ -244,6 +247,7 @@ export class PicklistsService {
             locationId,
             requested,
             heldByLine.get(line.orderLineId) ?? [],
+            cutoff,
           )
           const lots = await loadLots(
             tx,
@@ -290,7 +294,14 @@ export class PicklistsService {
           picklistNo: await nextDocumentNumber(tx, PICK_SERIES, now),
         })
         if (rows.length > 0) await tx.insert(pickLines).values(rows)
-        return { item: await picklistDetail(tx, picklist, this.orders) }
+        return {
+          item: await picklistDetail(
+            tx,
+            picklist,
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
+        }
       }),
     )
   }
@@ -353,7 +364,12 @@ export class PicklistsService {
     requireRole(WAREHOUSE_DESK)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => ({
-      item: await picklistDetail(tx, await this.findPicklist(tx, input.id), this.orders),
+      item: await picklistDetail(
+        tx,
+        await this.findPicklist(tx, input.id),
+        this.orders,
+        await this.inventory.shelfLifeRule(tx),
+      ),
     }))
   }
 
@@ -395,7 +411,14 @@ export class PicklistsService {
           orderIds: started.orderIds,
           assignedTo: started.assignedTo,
         })
-        return { item: await picklistDetail(tx, started, this.orders) }
+        return {
+          item: await picklistDetail(
+            tx,
+            started,
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
+        }
       }),
     )
   }
@@ -409,7 +432,12 @@ export class PicklistsService {
         const sheet = await this.lockPicklist(tx, input.id)
         const warnings = await this.applyPicks(tx, sheet, input.lines)
         return {
-          item: await picklistDetail(tx, await this.findPicklist(tx, sheet.id), this.orders),
+          item: await picklistDetail(
+            tx,
+            await this.findPicklist(tx, sheet.id),
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
           warnings,
         }
       }),
@@ -434,7 +462,14 @@ export class PicklistsService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const sheet = await this.lockPicklist(tx, input.id)
         if (sheet.status === 'cancelled')
-          return { item: await picklistDetail(tx, sheet, this.orders) }
+          return {
+            item: await picklistDetail(
+              tx,
+              sheet,
+              this.orders,
+              await this.inventory.shelfLifeRule(tx),
+            ),
+          }
         if (sheet.status !== 'open')
           throw new ORPCError('CONFLICT', {
             message: `picklist ${sheet.picklistNo ?? sheet.id} is ${sheet.status}; only a sheet nobody has started can be cancelled`,
@@ -447,7 +482,14 @@ export class PicklistsService {
           cancelledAt: new Date(),
           cancelReason: input.reason,
         })
-        return { item: await picklistDetail(tx, cancelled, this.orders) }
+        return {
+          item: await picklistDetail(
+            tx,
+            cancelled,
+            this.orders,
+            await this.inventory.shelfLifeRule(tx),
+          ),
+        }
       }),
     )
   }
@@ -607,6 +649,8 @@ export class PicklistsService {
     const updates: { id: string; values: Partial<typeof pickLines.$inferInsert> }[] = []
     const working = new Map(existing.map((r) => [r.id, { ...r }]))
     const fefoCache = new Map<string, string | null>()
+    // QA DOS-054: the distributor's shelf-life rule, read once for this call.
+    const { days: minShelfLifeDays, cutoff } = await this.inventory.shelfLifeRule(tx)
 
     for (const pick of input) {
       const template = byId.get(pick.id) ?? byOrderLine.get(pick.orderLineId)?.[0]
@@ -640,6 +684,7 @@ export class PicklistsService {
         pick.lotId,
         sheet.locationId,
         fefoCache,
+        cutoff,
       )
       const values = {
         lotId: pick.lotId,
@@ -679,6 +724,14 @@ export class PicklistsService {
           pickLineId: pick.id,
           code: 'fefo_override',
           message: `lot ${lot.batchNo || pick.lotId} was taken while an earlier-expiry batch still had stock`,
+        })
+      // QA DOS-054: the rule WARNS, it never blocks. The pieces are recorded either way; the desk sees
+      // the flag on the sheet and the picker sees it on the phone. A lot with no expiry is never short.
+      if (minShelfLifeDays > 0 && lot.expiryDate !== null && lot.expiryDate < cutoff)
+        warnings.push({
+          pickLineId: pick.id,
+          code: 'short_shelf_life',
+          message: `batch ${lot.batchNo || pick.lotId} expires on ${lot.expiryDate}, under the ${minShelfLifeDays}-day rule`,
         })
     }
 
@@ -801,6 +854,7 @@ export class PicklistsService {
     locationId: string,
     requested: number,
     held: readonly { lotId: string; qtyPcs: number }[],
+    cutoff: string,
   ): Promise<{ lotId: string | null; qtyPcs: number }[]> {
     const out: { lotId: string | null; qtyPcs: number }[] = []
     let remaining = requested
@@ -812,7 +866,7 @@ export class PicklistsService {
       remaining -= take
     }
     if (remaining > 0) {
-      for (const candidate of await fefoLots(tx, variantId, locationId)) {
+      for (const candidate of await fefoLots(tx, variantId, locationId, cutoff)) {
         if (remaining <= 0) break
         const take = Math.min(remaining, candidate.available)
         if (take <= 0) continue
@@ -834,10 +888,11 @@ export class PicklistsService {
     lotId: string,
     locationId: string,
     cache: Map<string, string | null>,
+    cutoff: string,
   ): Promise<boolean> {
     if (row.suggestedLotId !== null) return row.suggestedLotId !== lotId
     if (!cache.has(row.variantId)) {
-      const candidates = await fefoLots(tx, row.variantId, locationId)
+      const candidates = await fefoLots(tx, row.variantId, locationId, cutoff)
       cache.set(row.variantId, candidates[0]?.lotId ?? null)
     }
     const earliest = cache.get(row.variantId) ?? null

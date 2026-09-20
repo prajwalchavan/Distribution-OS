@@ -184,25 +184,29 @@ export interface FefoCandidate {
 }
 
 /**
- * Sellable lots of one variant at one location, EARLIEST EXPIRY FIRST then oldest lot (a UUIDv7 lot id
- * orders by the moment the batch was created, which is its received date). Read through the
- * `sellable_stock` view, so it is `on_hand - reserved` — pieces already held for someone else are not
- * offered to this picker.
+ * Sellable lots of one variant at one location, FEFO WITHIN THE SHELF-LIFE RULE: batches that still
+ * have at least `inventory.min_shelf_life_days` left (or no expiry at all) come first, earliest expiry
+ * first inside each group, then the oldest lot (a UUIDv7 lot id orders by the moment the batch was
+ * created, which is its received date). `cutoff` is the ISO day a batch must last to — the SAME figure
+ * `InventoryService.reserve` ordered by, so the wave's suggestion and the hold agree (QA DOS-054).
+ * Read through the `sellable_stock` view, so it is `on_hand - reserved` — pieces already held for
+ * someone else are not offered to this picker.
  *
- * FEFO WARNS, IT NEVER BLOCKS (warehouse §4.3, docs/design R03): this list is a suggestion. What the
- * picker actually took is recorded either way, with `fefo_override` and a warning when it is not the
- * batch the server proposed.
+ * FEFO WARNS, IT NEVER BLOCKS (warehouse §4.3, docs/design R03): this list is a suggestion, and so is
+ * the shelf-life rule on top of it. What the picker actually took is recorded either way, with
+ * `fefo_override` and `short_shelf_life` warnings when it is not the batch the server proposed.
  */
 export async function fefoLots(
   tx: Db,
   variantId: string,
   locationId: string,
+  cutoff: string,
 ): Promise<FefoCandidate[]> {
   const { tenantId } = currentTenant()
   const rows = await tx.execute(sql`
     select lot_id, expiry_date, available from sellable_stock
      where tenant_id = ${tenantId} and variant_id = ${variantId} and location_id = ${locationId}
-     order by expiry_date asc nulls last, lot_id asc`)
+     order by (expiry_date is null or expiry_date >= ${cutoff}) desc, expiry_date asc nulls last, lot_id asc`)
   return (rows.rows as { lot_id: string; expiry_date: string | null; available: number | string }[])
     .map((r) => ({
       lotId: r.lot_id,

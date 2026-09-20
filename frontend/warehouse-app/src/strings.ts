@@ -289,6 +289,7 @@ export const strings = {
   'w5.reasonHeld': 'Batch held back',
   'w5.reasonOther': 'Something else',
   'w5.fefo': 'Older lot first · {batch}',
+  'w5.shortShelfLife': 'Under the {days}-day rule',
   'w5.linesLeft': '{count} lines not yet picked',
   'w5.linesLeft.one': '{count} line not yet picked',
   'w5.allPicked': 'Every line picked or short',

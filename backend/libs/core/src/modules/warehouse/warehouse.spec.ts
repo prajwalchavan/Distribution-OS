@@ -163,6 +163,8 @@ describeDb('warehouse (DATABASE_URL)', () => {
   const shopMh = uuidv7()
   const variantA = uuidv7()
   const variantB = uuidv7()
+  /** DOS-054 works on a variant of its own, so no FEFO expectation above it moves. */
+  const variantShelf = uuidv7()
   let godown = ''
   let van = ''
   let lotEarly = ''
@@ -310,10 +312,21 @@ describeDb('warehouse (DATABASE_URL)', () => {
         hsnCode: hsn,
         mrpPaise: 2000,
       },
+      {
+        id: variantShelf,
+        productId,
+        name: 'Chips 150 g',
+        netQty: 150,
+        netUnit: 'g',
+        defaultCaseSize: 24,
+        hsnCode: hsn,
+        mrpPaise: 3000,
+      },
     ])
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantShelf, caseSizeOverride: 12 },
     ])
     await db
       .insert(hsnRates)
@@ -355,6 +368,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
     await db.insert(priceListItems).values([
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantShelf, ratePaise: 3500 },
     ])
 
     const locs = await db
@@ -2424,5 +2438,153 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(held.every((i) => i.retailerId === shopMh)).toBe(true)
     expect(held.every((i) => i.retailerName === `Godown Shop ${run}`)).toBe(true)
     expect(JSON.stringify(res.body)).not.toMatch(/ratePaise|costPaise|totalPaise|creditLimit/)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-054 — a batch under the minimum shelf life is offered last and warns when it is taken anyway
+
+  const setShelfLife = async (days: number): Promise<void> => {
+    await db.execute(
+      sql`insert into tenant_settings (tenant_id, key, value) values (${tenantId}, 'inventory.min_shelf_life_days', ${String(days)}::jsonb)
+          on conflict (tenant_id, key) do update set value = excluded.value`,
+    )
+  }
+
+  /** Two batches of the shelf-life variant: one 16 days out, one 90, both in the godown. */
+  async function shelfLots(tag: string): Promise<{ shortDated: string; compliant: string }> {
+    const inventory = app.get(InventoryService)
+    const iso = (days: number) =>
+      new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+    return asOwner(async (tx) => {
+      const short = await inventory.findOrCreateLot(tx, {
+        variantId: variantShelf,
+        batchNo: `SHELF-${tag}-SHORT-${run}`,
+        mrpPaise: 3000,
+        expiryDate: iso(16),
+      })
+      const long = await inventory.findOrCreateLot(tx, {
+        variantId: variantShelf,
+        batchNo: `SHELF-${tag}-LONG-${run}`,
+        mrpPaise: 3000,
+        expiryDate: iso(90),
+      })
+      await inventory.post(tx, [
+        {
+          lotId: short.lot.id,
+          locationId: godown,
+          qtyDelta: 24,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-shelf-${tag}-short`,
+        },
+        {
+          lotId: long.lot.id,
+          locationId: godown,
+          qtyDelta: 24,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-shelf-${tag}-long`,
+        },
+      ])
+      return { shortDated: short.lot.id, compliant: long.lot.id }
+    })
+  }
+
+  it('DOS-054: a wave suggests the compliant lot; a pick of the short-dated lot answers short_shelf_life together with fefo_override, writes no ledger row, and picklists.get carries minShelfLifeDays 30 and shortShelfLife true on that line and its consolidated lot, false on the compliant one', async () => {
+    await setShelfLife(30)
+    const { shortDated, compliant } = await shelfLots('A')
+    const orderId = await placeOrder([{ variantId: variantShelf, cases: 1 }], 'dos054')
+    const waved = await wave([orderId], 'dos054')
+    expect(waved.res.status).toBe(200)
+    const sheet = waved.res.body.item
+    const row = sheet.lines[0]
+    // FEFO WITHIN THE RULE: the 90-day batch is proposed although the 16-day one expires sooner
+    expect(row?.suggestedLotId).toBe(compliant)
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos054-start-${run}`,
+          assignedTo: packerId,
+        })
+      ).status,
+    ).toBe(200)
+    const before = await ledgerFor(orderId)
+    const picked = await call<{
+      item: PicklistBody & {
+        minShelfLifeDays: number
+        lines: (PickLineBody & { shortShelfLife: boolean })[]
+        consolidated: { lots: { lotId: string; shortShelfLife: boolean }[] }[]
+      }
+      warnings: { code: string; message: string }[]
+    }>(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+      idempotencyKey: `dos054-pick-${run}`,
+      lines: [
+        {
+          id: row?.id ?? '',
+          orderLineId: row?.orderLineId ?? '',
+          lotId: shortDated,
+          pickedQtyPcs: 12,
+        },
+      ],
+    })
+    expect(picked.status).toBe(200)
+    // FEFO WARNS, IT NEVER BLOCKS (docs/design R03): both warnings, and the pieces are recorded
+    expect(picked.body.warnings.map((w) => w.code).sort()).toEqual([
+      'fefo_override',
+      'short_shelf_life',
+    ])
+    expect(picked.body.warnings.find((w) => w.code === 'short_shelf_life')?.message).toMatch(
+      /30-day rule|under the 30/i,
+    )
+    expect(await ledgerFor(orderId)).toEqual(before)
+
+    const got = await call<{
+      item: {
+        minShelfLifeDays: number
+        lines: { id: string; lotId: string | null; shortShelfLife: boolean }[]
+        consolidated: { lots: { lotId: string; shortShelfLife: boolean }[] }[]
+      }
+    }>(app, packer, 'GET', `/warehouse/picklists/${waved.id}`)
+    expect(got.status).toBe(200)
+    expect(got.body.item.minShelfLifeDays).toBe(30)
+    const taken = got.body.item.lines.find((l) => l.lotId === shortDated)
+    expect(taken?.shortShelfLife).toBe(true)
+    const lots = got.body.item.consolidated.flatMap((c) => c.lots)
+    expect(lots.find((l) => l.lotId === shortDated)?.shortShelfLife).toBe(true)
+    expect(lots.every((l) => l.lotId !== compliant || !l.shortShelfLife)).toBe(true)
+  })
+
+  it('DOS-054: with the setting 0 the same pick answers no short_shelf_life warning', async () => {
+    await setShelfLife(0)
+    const { shortDated } = await shelfLots('B')
+    const orderId = await placeOrder([{ variantId: variantShelf, cases: 1 }], 'dos054-off')
+    const waved = await wave([orderId], 'dos054-off')
+    expect(waved.res.status).toBe(200)
+    const row = waved.res.body.item.lines[0]
+    expect(
+      (
+        await call(app, packer, 'POST', `/warehouse/picklists/${waved.id}/start`, {
+          idempotencyKey: `dos054-off-start-${run}`,
+          assignedTo: packerId,
+        })
+      ).status,
+    ).toBe(200)
+    const picked = await call<{
+      item: { minShelfLifeDays: number; lines: { lotId: string | null; shortShelfLife: boolean }[] }
+      warnings: { code: string }[]
+    }>(app, packer, 'POST', `/warehouse/picklists/${waved.id}/pick`, {
+      idempotencyKey: `dos054-off-pick-${run}`,
+      lines: [
+        {
+          id: row?.id ?? '',
+          orderLineId: row?.orderLineId ?? '',
+          lotId: shortDated,
+          pickedQtyPcs: 12,
+        },
+      ],
+    })
+    expect(picked.status).toBe(200)
+    expect(picked.body.warnings.map((w) => w.code)).not.toContain('short_shelf_life')
+    expect(picked.body.item.minShelfLifeDays).toBe(0)
+    expect(picked.body.item.lines.every((l) => !l.shortShelfLife)).toBe(true)
+    await setShelfLife(30)
   })
 })

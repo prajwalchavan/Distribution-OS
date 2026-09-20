@@ -51,6 +51,9 @@ describeDb('inventory (DATABASE_URL)', () => {
   const ownerCtx: TenantContext = { tenantId, actorId: ownerId, actorRole: 'owner' }
   const lotLate = uuidv7() // expires later
   const lotEarly = uuidv7() // expires earlier -> FEFO picks it first
+  /** DOS-054 works on its own variants, so no FEFO expectation above it moves. */
+  const shelfVariantId = uuidv7()
+  const shelfGuardVariantId = uuidv7()
   let godown = ''
   let transit = ''
   let app: NestFastifyApplication
@@ -77,16 +80,38 @@ describeDb('inventory (DATABASE_URL)', () => {
     const productId = uuidv7()
     await db.insert(manufacturers).values({ id: manufacturerId, name: `Maker inv ${run}` })
     await db.insert(products).values({ id: productId, manufacturerId, name: 'Makhana' })
-    await db.insert(productVariants).values({
-      id: variantId,
-      productId,
-      name: 'Makhana 12 g',
-      netQty: 12,
-      netUnit: 'g',
-      defaultCaseSize: 90,
-      hsnCode: '2008',
-      mrpPaise: 1000,
-    })
+    await db.insert(productVariants).values([
+      {
+        id: variantId,
+        productId,
+        name: 'Makhana 12 g',
+        netQty: 12,
+        netUnit: 'g',
+        defaultCaseSize: 90,
+        hsnCode: '2008',
+        mrpPaise: 1000,
+      },
+      {
+        id: shelfVariantId,
+        productId,
+        name: 'Makhana 24 g',
+        netQty: 24,
+        netUnit: 'g',
+        defaultCaseSize: 45,
+        hsnCode: '2008',
+        mrpPaise: 2000,
+      },
+      {
+        id: shelfGuardVariantId,
+        productId,
+        name: 'Makhana 36 g',
+        netQty: 36,
+        netUnit: 'g',
+        defaultCaseSize: 30,
+        hsnCode: '2008',
+        mrpPaise: 3000,
+      },
+    ])
     const locs = await db
       .select()
       .from(locations)
@@ -1126,6 +1151,139 @@ describeDb('inventory (DATABASE_URL)', () => {
     expect(byLot.get(first)?.variancePcs).toBe(0)
     expect(byLot.get(second)?.expectedPcs).toBe(4)
     expect(byLot.get(second)?.variancePcs).toBe(0)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-054 — a batch under the distributor's minimum shelf life goes LAST, and taking it warns
+
+  /** A lot of its own expiring in `days`, with `pcs` pieces in the godown. */
+  const datedLot = async (
+    label: string,
+    days: number | null,
+    pcs: number,
+    variant: string = shelfVariantId,
+  ): Promise<string> => {
+    const lotId = uuidv7()
+    const expiryDate =
+      days === null
+        ? undefined
+        : new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+    expect(
+      (
+        await call(app, owner, 'POST', '/inventory/lots', {
+          idempotencyKey: `lot-${label}-${run}`,
+          id: lotId,
+          variantId: variant,
+          batchNo: `${label}-${run}`.toUpperCase(),
+          mrpPaise: 1000,
+          ...(expiryDate === undefined ? {} : { expiryDate }),
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (
+        await call(app, owner, 'POST', '/inventory/adjustments', {
+          idempotencyKey: `open-${label}-${run}`,
+          lotId,
+          locationId: godown,
+          qtyDelta: pcs,
+          reason: 'opening',
+        })
+      ).status,
+    ).toBe(200)
+    return lotId
+  }
+
+  const setShelfLife = async (days: number | null): Promise<void> => {
+    if (days === null) {
+      await db.execute(
+        sql`delete from tenant_settings where tenant_id = ${tenantId} and key = 'inventory.min_shelf_life_days'`,
+      )
+      return
+    }
+    await db.execute(
+      sql`insert into tenant_settings (tenant_id, key, value) values (${tenantId}, 'inventory.min_shelf_life_days', ${String(days)}::jsonb)
+          on conflict (tenant_id, key) do update set value = excluded.value`,
+    )
+  }
+
+  it('DOS-054: with inventory.min_shelf_life_days = 30, reserve on a variant holding a 16-day lot and a 90-day lot takes the 90-day lot first; with the setting 0 it takes the 16-day lot first (plain FEFO); when only the 16-day lot can cover the line it is taken and the line is fully reserved', async () => {
+    const shortDated = await datedLot('dos054-short', 16, 10)
+    const compliant = await datedLot('dos054-long', 90, 10)
+
+    await setShelfLife(30)
+    const underRule = await asOwner((tx) =>
+      inventory.reserve(tx, {
+        orderLineId: uuidv7(),
+        variantId: shelfVariantId,
+        locationId: godown,
+        qtyPcs: 4,
+      }),
+    )
+    expect(underRule.map((r) => [r.lotId, r.qty])).toEqual([[compliant, 4]])
+
+    // the rule changes ORDER, never availability: the line is still covered in full, short-dated last
+    const spanning = await asOwner((tx) =>
+      inventory.reserve(tx, {
+        orderLineId: uuidv7(),
+        variantId: shelfVariantId,
+        locationId: godown,
+        qtyPcs: 8,
+      }),
+    )
+    expect(spanning.map((r) => [r.lotId, r.qty])).toEqual([
+      [compliant, 6],
+      [shortDated, 2],
+    ])
+
+    // switched off, it is plain FEFO again: the 16-day batch comes first
+    await setShelfLife(0)
+    const plainFefo = await asOwner((tx) =>
+      inventory.reserve(tx, {
+        orderLineId: uuidv7(),
+        variantId: shelfVariantId,
+        locationId: godown,
+        qtyPcs: 3,
+      }),
+    )
+    expect(plainFefo.map((r) => [r.lotId, r.qty])).toEqual([[shortDated, 3]])
+    await setShelfLife(30)
+  })
+
+  it('DOS-054: an absent setting row reads as 30; a lot with no expiry sorts after dated compliant lots and before short-dated ones', async () => {
+    // bootstrapTenant seeds the row, so a distributor never reads "absent" by accident. A tenant of
+    // its own: this file's own tenant has had the row written by the test above.
+    const freshTenant = uuidv7()
+    await db
+      .insert(tenants)
+      .values({ id: freshTenant, slug: `inv-054-${run}`, legalName: 'Shelf life', stateCode: '27' })
+    await bootstrapTenant(db, freshTenant)
+    const seeded = (
+      await db.execute(
+        sql`select value from tenant_settings where tenant_id = ${freshTenant} and key = 'inventory.min_shelf_life_days'`,
+      )
+    ).rows as { value: unknown }[]
+    expect(seeded).toHaveLength(1)
+    expect(Number(seeded[0]?.value)).toBe(30)
+
+    const shortDated = await datedLot('dos054g-short', 16, 5, shelfGuardVariantId)
+    const undated = await datedLot('dos054g-none', null, 5, shelfGuardVariantId)
+    const compliant = await datedLot('dos054g-long', 120, 5, shelfGuardVariantId)
+    await setShelfLife(null) // absent reads as the 30-day default
+    const held = await asOwner((tx) =>
+      inventory.reserve(tx, {
+        orderLineId: uuidv7(),
+        variantId: shelfGuardVariantId,
+        locationId: godown,
+        qtyPcs: 12,
+      }),
+    )
+    expect(held.map((r) => [r.lotId, r.qty])).toEqual([
+      [compliant, 5],
+      [undated, 5],
+      [shortDated, 2],
+    ])
+    await setShelfLife(30)
   })
 
   it('keeps the ledger append-only even for the owner', async () => {

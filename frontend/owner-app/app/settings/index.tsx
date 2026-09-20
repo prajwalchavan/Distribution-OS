@@ -557,6 +557,22 @@ export default function Settings(): React.JSX.Element {
                     onChange={edit('dpdp.gps_retention_days')}
                     keyboard="decimal"
                   />
+                  {/*
+                   * QA DOS-054 (founder, 2026-09-13): one number for the whole business. Stock
+                   * reservation and the pick sheet pass over a batch with fewer days left whenever
+                   * another batch can cover the line; a picker who still takes one is warned, never
+                   * stopped. `0` switches the rule off. Shown as 30 while the row is absent, which is
+                   * what the server reads it as.
+                   */}
+                  <TextInput
+                    label={t('o24.minShelfLife')}
+                    value={valueOf('inventory.min_shelf_life_days') || '30'}
+                    onChange={edit('inventory.min_shelf_life_days')}
+                    keyboard="decimal"
+                  />
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('o24.minShelfLifeHint')}
+                  </Txt>
                   <Field label={t('o24.tolerance')}>
                     <Money
                       value={Number(valueOf('delivery.settlement_tolerance_paise')) || 0}
