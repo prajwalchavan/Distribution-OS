@@ -3492,4 +3492,121 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(done.status, JSON.stringify(done.body)).toBe(200)
     expect(done.body.item.outcome).toBe('delivered')
   })
+
+  /**
+   * DOS-148 (merge review minor 3) — "NOTHING DELIVERED" ON A BILL THAT NEVER LEFT THE GODOWN IS
+   * TAKEN, NOT REFUSED.
+   *
+   * The gate above lets exactly one case through on purpose. `return_undelivered` takes a DISPATCHED
+   * order back to `packed` (`orderMachine.transitions.dispatched`), so an order that is still `packed`
+   * is already where that move would put it, and `applyFulfilmentEvent` has always answered such a
+   * retry with the order untouched (`FULFILMENT_TARGET`, orders.service.ts). That is deliberate: a crew
+   * that cannot record "Nothing delivered" cannot clear the stop, and a stop that will not clear holds
+   * up the whole van — a worse day than the one DOS-148 was filed about. The crew hands nothing over
+   * and the office gets its bill back.
+   *
+   * Until now it was pinned only by the app-side test (`dos-148-not-on-the-van.test.ts`), so a later
+   * tightening of `assertOnTheVan` could take it away with every backend spec still green. This is
+   * that case: accepted, the stop cleared, and nothing moved — no transition, no credit note, no stock.
+   */
+  it('DOS-148 “Nothing delivered” on a bill still in the godown is accepted, clears the stop and moves nothing', async () => {
+    const stranded = await billedOrder(retailerA, variantA, 'dos148b')
+    expect(await orderState(stranded.orderId)).toBe('packed')
+
+    const vehicle = uuidv7()
+    expect(
+      (
+        await call(app, owner, 'POST', '/delivery/vehicles', {
+          idempotencyKey: `dos148b-vehicle-${run}`,
+          id: vehicle,
+          regNo: `MH-05-NE-${run.slice(-4)}`,
+          name: 'Tempo NE',
+        })
+      ).status,
+    ).toBe(200)
+    expect(
+      (
+        await call(app, otherDriver, 'POST', '/delivery/consents', {
+          idempotencyKey: `dos148b-consent-${run}`,
+          id: uuidv7(),
+          granted: true,
+          noticeVersion: 'gps-2026-09',
+        })
+      ).status,
+    ).toBe(200)
+    const trip = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos148b-trip-${run}`,
+      id: trip,
+      tripDate: new Date(Date.parse(today) + 56 * 86_400_000).toISOString().slice(0, 10),
+      vehicleId: vehicle,
+      driverId: otherDriverId,
+      vanSalesEnabled: true,
+      openingCashPaise: 0,
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    for (const step of ['start-loading', 'depart']) {
+      const moved = await call(app, otherDriver, 'POST', `/delivery/trips/${trip}/${step}`, {
+        idempotencyKey: `dos148b-${step}-${run}`,
+      })
+      expect(moved.status, `${step} → ${JSON.stringify(moved.body)}`).toBe(200)
+    }
+
+    // The same late bill as above: added to a trip already on the road, so the load-out gate never saw it.
+    const stopId = uuidv7()
+    const added = await call(app, manager, 'POST', `/delivery/trips/${trip}/stops`, {
+      idempotencyKey: `dos148b-stop-${run}`,
+      id: trip,
+      stop: { id: stopId, retailerId: retailerA, invoiceIds: [stranded.invoiceId] },
+    })
+    expect(added.status, JSON.stringify(added.body)).toBe(200)
+    const onTheRoad = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
+    const plannedId =
+      onTheRoad.body.item.stops.find((s) => s.id === stopId)?.deliveries[0]?.id ?? ''
+    expect(plannedId).not.toBe('')
+
+    // Every piece comes back and none goes in: `outcomeOf` reads that as `failed`, the event as
+    // `return_undelivered`, and the gate as "the order is already where that would leave it".
+    const recorded = await call<{
+      item: DeliveryDetailBody
+      stop: { state: string }
+      creditNoteId: string | null
+    }>(app, otherDriver, 'POST', '/delivery/deliveries', {
+      idempotencyKey: `dos148b-deliver-${run}`,
+      id: plannedId,
+      tripId: trip,
+      stopId,
+      invoiceId: stranded.invoiceId,
+      lines: [
+        { id: uuidv7(), invoiceLineId: stranded.lineId, deliveredQtyPcs: 0, returnedQtyPcs: 12 },
+      ],
+      pod: [],
+    })
+    expect(recorded.status, JSON.stringify(recorded.body)).toBe(200)
+    expect(recorded.body.item.outcome).toBe('failed')
+    expect(recorded.body.creditNoteId).toBeNull()
+    // The stop is cleared, so the van moves on.
+    expect(recorded.body.stop.state).toBe('failed')
+
+    // And nothing moved. The order stands exactly where the godown left it, with no transition row…
+    expect(await orderState(stranded.orderId)).toBe('packed')
+    expect(await outboxTypes(stranded.orderId)).not.toContain('OrderReturnedUndelivered')
+    const [moves] = (
+      await db.execute(
+        sql`select count(*)::int as n from order_state_transitions
+             where tenant_id = ${tenantId} and order_id = ${stranded.orderId} and event = 'return_undelivered'`,
+      )
+    ).rows as { n: number }[]
+    expect(moves?.n).toBe(0)
+    // …nothing is credited for goods that were never handed over…
+    const [notes] = (
+      await db.execute(
+        sql`select count(*)::int as n from credit_notes where tenant_id = ${tenantId} and invoice_id = ${stranded.invoiceId}`,
+      )
+    ).rows as { n: number }[]
+    expect(notes?.n).toBe(0)
+    // …and no stock was restocked from a van it was never on.
+    expect(await ledgerFor(plannedId)).toEqual([])
+    expect(await outboxTypes(plannedId)).toEqual(['DeliveryRecorded'])
+  })
 })
