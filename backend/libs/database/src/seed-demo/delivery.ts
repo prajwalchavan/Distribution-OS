@@ -475,6 +475,17 @@ export async function seedDelivery(
       state === 'partial' ? nth(PARTIAL_REASONS, partialSeq++ % PARTIAL_REASONS.length) : null
     const partialNote =
       partial && shortLine ? `${shortPcs} pcs ${partial.note}` : (partial?.note ?? null)
+    /**
+     * When the crew were done at this door. A FAILED stop keeps `completed_at` null on the stop row
+     * — nothing was delivered — but the crew still stood there and still stamped the failure, so it
+     * runs on the same beat clock as every other door (`stopCompleted`). A stop that is merely
+     * `arrived` has no such moment: the crew are inside it right now.
+     *
+     * QA verification: this is the clock the ETA move of DOS-067 missed. The failed row's stamp was
+     * still written against the OLD half-hour grid, which put every failed delivery fifteen minutes
+     * BEFORE the arrival it follows (64 rows on a fresh seed, gap exactly 15.0 min).
+     */
+    const doorFinishedAt = completedAt ?? (state === 'failed' ? stopCompleted(day, sequence) : null)
     stopRows.push({
       id: stopId,
       tenantId,
@@ -494,9 +505,9 @@ export async function seedDelivery(
         state === 'pending'
           ? null
           : occurred(
-              completedAt === null
+              doorFinishedAt === null
                 ? new Date(stopEta(day, sequence).getTime() + 10 * 60_000)
-                : new Date(completedAt.getTime() - 7 * 60_000),
+                : new Date(doorFinishedAt.getTime() - 7 * 60_000),
             ),
       completedAt: completedAt ? occurred(completedAt) : null,
       arrivedLat: retailer ? jitter(rng, retailer.lat, 0.0005) : null,
@@ -518,9 +529,9 @@ export async function seedDelivery(
         invoiceId: inv.id,
         outcome: 'failed',
         deliveredBy: driverId,
-        deliveredAt: occurred(
-          atIstTime(day, 9 + Math.floor((sequence - 1) / 2), ((sequence - 1) % 2) * 30 + 25),
-        ),
+        // The moment the crew gave up, seven minutes after they reached the door — the same clock
+        // the stop's own `arrived_at` is derived from, so a failure is never stamped before it.
+        deliveredAt: occurred(stopCompleted(day, sequence)),
         deviceId,
         idempotencyKey: `delivery:${tripId}:${inv.id}`,
         note: failureReason ? FAILURE_NOTES[failureReason] : null,
