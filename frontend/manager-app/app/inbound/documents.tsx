@@ -538,7 +538,16 @@ export default function Documents(): React.JSX.Element {
                       testID="docint-rematch"
                     />
                   )}
-                  {mayApprove ? (
+                  {/*
+                   * DOS-030: "Book it as a supplier bill" is for a SUPPLIER bill. On a brand-DMS
+                   * document — a Too Yumm bill the brand's own field force already raised in
+                   * FieldAssist — the server answers 501, silently, and the document sits at "Needs
+                   * review" for ever. A brand bill is a receivable under the BRAND's own number and
+                   * never a second legal invoice of ours (docs/22 §5, never-list 5), so the button
+                   * that can only fail is withheld and the panel names the route instead. The commit
+                   * path itself is the rest of DOS-030.
+                   */}
+                  {mayApprove && doc.kind !== 'brand_dms_invoice' ? (
                     <Button
                       label={t('m3.approve')}
                       variant="primary"
@@ -549,6 +558,16 @@ export default function Documents(): React.JSX.Element {
                       }}
                       testID="docint-approve"
                     />
+                  ) : null}
+                  {doc.kind === 'brand_dms_invoice' ? (
+                    <Txt
+                      field="body"
+                      desk="body"
+                      color={colors.text.secondary}
+                      testID="docint-brand-route"
+                    >
+                      {t('m3.brandDmsRoute')}
+                    </Txt>
                   ) : null}
                   <Button
                     label={t('m3.reject')}

@@ -277,6 +277,9 @@ export const strings = {
   'm3.checks': 'Checks',
   'm3.reading': 'What we read',
   'm3.noLines': 'The reading has no lines to book',
+  // DOS-030: a brand's own bill is a receivable under the brand's number, never a second invoice of ours.
+  'm3.brandDmsRoute':
+    "This is the brand's own bill. It is recorded under the brand's number in Billing → Brand DMS, not as a supplier bill.",
   'm3.candidates': 'What we think each line is',
   'm3.printed': 'On the bill',
   'm3.ourItem': 'Our item',
