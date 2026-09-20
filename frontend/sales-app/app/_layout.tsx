@@ -178,9 +178,23 @@ function Shell(): React.JSX.Element {
   const navigationState = useRootNavigationState()
   const navigatorReady = navigationState?.key !== undefined
 
+  /*
+   * AND MOVE OUT OF THE COMMIT (DOS-055). `navigatorReady` says the navigator EXISTS; it does not say React has
+   * finished committing the tree it belongs to, and on a phone `router.replace` inside that commit still answers
+   * "Can't perform a React state update on a component that hasn't mounted yet", naming expo-router's own
+   * `<ContextNavigator/>` — LogBox over the whole app on the first tap, measured on the Pixel 7 in the warehouse
+   * gate. A zero timer is exactly what the message asks for: do the work after the mount. The route this app is
+   * already on is not a move at all, and the timer is cancelled when the answer changes before it fires.
+   */
   useEffect(() => {
-    if (navigatorReady && redirectTo !== null) router.replace(redirectTo)
-  }, [navigatorReady, redirectTo, router])
+    if (!navigatorReady || redirectTo === null || redirectTo === pathname) return
+    const move = setTimeout(() => {
+      router.replace(redirectTo)
+    }, 0)
+    return () => {
+      clearTimeout(move)
+    }
+  }, [navigatorReady, redirectTo, router, pathname])
 
   /**
    * ONE `<OfflineProvider>`, ABOVE the gate — not inside it.
