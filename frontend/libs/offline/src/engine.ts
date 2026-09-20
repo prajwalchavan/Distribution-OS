@@ -1678,16 +1678,28 @@ export class SyncEngine {
    *
    * The AUTOMATIC re-sends are untouched (`start()`, the backoff, the `upgradeRequired` re-queue): they keep
    * their opId, which is exactly what makes a lost answer safe.
+   *
+   * ONLY A REFUSAL IS RETRIED, AND NEVER MONEY — both decided here rather than by whichever screen draws the
+   * tray, the same way `discard` refuses money at the engine (DOS-178). A queued or `sending` op is already on
+   * its way under an opId the server can recognise as a replay, so giving it a new one would make a second
+   * request out of one intent; an `acked` op is done; and a `kept` one is rupees a person counted at a door
+   * that the cashier has already recorded at the office — sending those again under a fresh opId is money out
+   * of the door twice, with nothing on either side able to tell. So anything but `rejected` changes nothing,
+   * and a money table throws `KeptMoneyError` whether the op is still refused, kept, or gone with only its
+   * tray row left.
    */
   async retry(opId: string): Promise<string | null> {
     // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
     return this.inHand(async () => {
       const rows = await store.query<Record<string, SqlValue>>(
-        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ? AND status = 'rejected'`,
         [opId],
       )
       const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
+      // As in `discard`: the table is read from whichever of the two halves this device still has.
+      const table = op?.table ?? (await this.errorTable(store, opId))
+      if (table !== null && isMoneyTable(table)) throw new KeptMoneyError(table)
       if (op === null) return null
       const next = uuidv7()
       await store.transaction(async (tx) => {
@@ -1756,8 +1768,8 @@ export class SyncEngine {
    * THE WAY OUT FOR A REFUSED PAYMENT (DOS-178): the crew handed the money and the slip to the cashier, who
    * records it at the office against the same paper-book number.
    *
-   * Nothing is deleted. The op moves to `kept`, which is not a status `claim()` will ever pick up — sending
-   * it again would only replay the server's stored refusal (S-73) — the row's `_pending` says `kept` so D8
+   * Nothing is deleted. The op moves to `kept`, which is not a status `claim()` or `retry()` will ever pick
+   * up — the automatic send skips it, and "Try it again" refuses money outright — the row's `_pending` says `kept` so D8
    * stops asking the driver to hand the same rupee over twice, and `_sync_errors.handed_over_at` records
    * when. It leaves the "need attention" count and never leaves the phone.
    */
@@ -2021,14 +2033,15 @@ export class SyncEngine {
      * with `needsAttention()` the moment a refusal had no outbox row behind it — one the server still holds,
      * brought back by `pullErrors` after a reinstall or a reload of the web fallback: a real tray item, counted
      * nowhere, so X4 read "Refused 0" over a tray holding two. Same table, same predicate as `needsAttention`,
-     * minus the rows a person has already dealt with.
-     *
-     * DOS-178: a payment handed to the cashier is nobody's work any more, so it leaves `rejected` — but it
-     * is still the only record that the shop paid, so it is counted here and a sign-out keeps the file.
+     * minus the rows a person has already dealt with — thrown away, handed to the cashier, or sent again.
      */
     const [rejected] = await store.query<{ n: number }>(
       `SELECT COUNT(*) AS n FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND handed_over_at IS NULL AND retried_as IS NULL`,
     )
+    /*
+     * DOS-178: a payment handed to the cashier is nobody's work any more, so it leaves `rejected` — but it
+     * is still the only record that the shop paid, so it is counted here and a sign-out keeps the file.
+     */
     const [held] = await store.query<{ n: number }>(
       `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'kept'`,
     )

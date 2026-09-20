@@ -180,9 +180,10 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
 - On 2xx: for each op, `applied` → `acked` and `_pending=NULL`; `rejected` → `rejected`, `_pending='rejected'`, the rejection mirrored
   into `_sync_errors`, and the row kept (never silently dropped). `stale` (LWW veto) additionally re-pulls that row and offers the
   user the server version next to their edit.
-- MONEY IS NEVER THROWN AWAY (DOS-178; never-list #13, founder 2026-09-19). A refused op on a money table — decided by the TABLE,
-  never by the rejection code, so it cannot drift as codes are added — is refused by `engine.discard()` with `KeptMoneyError` and
-  offers no retry either. The way out is `engine.handOver(opId)`: status `kept`, `_pending='kept'`, `handed_over_at` stamped. The
+- MONEY IS NEVER THROWN AWAY, AND NEVER SENT AGAIN (DOS-178; never-list #13, founder 2026-09-19). A refused op on a money table —
+  decided by the TABLE, never by the rejection code, so it cannot drift as codes are added — is refused by BOTH `engine.discard()`
+  and `engine.retry()` with `KeptMoneyError`, at the engine and not merely in whichever screen draws the tray, whether the op is
+  still `rejected`, already `kept`, or gone with only its `_sync_errors` row left. The way out is `engine.handOver(opId)`: status `kept`, `_pending='kept'`, `handed_over_at` stamped. The
   crew hands the money and the slip to the cashier, who records an office receipt (no trip) under the same paper-book number as
   `clientReceiptNo`; the card leaves the "needs attention" count and stays on the phone for ever.
 - On a network failure or 5xx: leave the batch `queued`, back off 1 s → 2 s → 4 s … 60 s, retry forever while online. The upload
@@ -193,7 +194,9 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   against `PERMISSIONS` before any handler runs), `not_permitted` (a database policy refused this actor) and `row_too_large` (one
   op over 1 MiB of JSON, §15) → mark rejected with the server's sentence in the tray; keep the row, never retry it (DOS-166,
   DOS-056).
-- "Try it again" re-queues the row under a NEW opId (DOS-046, §4); the old `_sync_errors` row is kept, marked `retried_as`, and
+- "Try it again" re-queues the row under a NEW opId (DOS-046, §4) — and ONLY a `rejected` op: a `queued` or `sending` one is
+  already on its way under an opId the server can replay, so a fresh one there would make two requests of one intent, and
+  `acked`, `kept` or missing answer null as well. The old `_sync_errors` row is kept, marked `retried_as`, and
   never resurrected by the errors pull — which matters because on a reconnect that pull can run beside a queue that has not
   drained yet. A retry refused again is a fresh row under the new opId, so the chain reads old → new → newer. `retry()` on a tray
   row this install no longer holds the op for (one the errors pull brought back) answers null and changes nothing; those rows
@@ -394,7 +397,9 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     `_sync_errors` row stays, marked `retried_as`, and the errors pull does not bring it back even while the retry is still
     queued; a retry refused again is ONE tray item under the new opId; a retry of a rejection this install no longer holds the
     op for answers null and touches nothing; and `retried_as` is in the `CREATE` for a new file and in the `ALTER` list for one
-    that already exists.
+    that already exists. The same block proves what "Try it again" REFUSES: a retry of an op that is not `rejected` answers null
+    and leaves its opId and its place in the queue alone, and a retry on a money table throws `KeptMoneyError` both while the
+    refusal is still in the tray and after `handOver()`, sending nothing either time.
 
 ## 14. Failure modes
 
