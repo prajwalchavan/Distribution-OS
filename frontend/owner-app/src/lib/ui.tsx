@@ -33,6 +33,17 @@ import { PAGE_TABS } from '../nav'
 import { absoluteUrl } from '../config'
 import { clampWindow, instantWithClock, type DateRange } from './dates'
 
+/**
+ * How many NAMED groups a brand-mix chart asks the reporting API for (DOS-002).
+ *
+ * `<StackedMix>` draws at most five segments (`chart.maxMixSlices`) and the API answers `topGroups`
+ * named groups PLUS its own "Other". Asking for five therefore handed the chart six slices, it folded
+ * the sixth into a second "Other", and the fourth-biggest brand of the month disappeared behind a
+ * duplicate label. Four named groups and the API's fold are exactly five segments, so every group the
+ * chart shows is one the API named.
+ */
+export const MIX_TOP_GROUPS = 4
+
 // ---------------------------------------------------------------------------
 // Panels and section furniture
 // ---------------------------------------------------------------------------

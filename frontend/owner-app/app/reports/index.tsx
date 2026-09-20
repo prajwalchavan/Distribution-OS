@@ -29,6 +29,7 @@ import {
   Columns,
   ExportButton,
   Half,
+  MIX_TOP_GROUPS,
   PageTabs,
   Panel,
   moneyColumn,
@@ -81,7 +82,7 @@ export default function Growth(): React.JSX.Element {
     }),
   )
   const mix = useQuery(['series', 'brandMix', year.from, year.to], () =>
-    api.api.reporting.series.brandMix({ from: year.from, to: year.to, topGroups: 5 }),
+    api.api.reporting.series.brandMix({ from: year.from, to: year.to, topGroups: MIX_TOP_GROUPS }),
   )
   const beats = useQuery(['series', 'topBeats', span.from, span.to], () =>
     api.api.reporting.series.topBeats({ from: span.from, to: span.to, top: 10 }),
