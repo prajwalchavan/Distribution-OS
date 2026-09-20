@@ -57,11 +57,21 @@ export default function ShareDocuments(): React.JSX.Element {
   const router = useRouter()
   const { session } = useSession()
   const signedIn = session !== null
-  const params = useLocalSearchParams<{ invoiceId: string }>()
+  const params = useLocalSearchParams<{ invoiceId: string; tripId?: string }>()
   const invoiceId = typeof params.invoiceId === 'string' ? params.invoiceId : null
+  /** DOS-065: the trip the stop came from, so "the receipt" means the one taken at THIS door. */
+  const tripId = typeof params.tripId === 'string' && params.tripId !== '' ? params.tripId : null
 
   const [toast, setToast] = useState<string | null>(null)
   const [selected, setSelected] = useState<SelectedPaper | null>(null)
+  /*
+   * DOS-065 — TODAY'S PAPERS FIRST, THE HISTORY BEHIND A FOLD. This screen opened on ten receipts
+   * back to July and a dozen order confirmations before anything from today: a driver at a shop door,
+   * on a one-hand screen, reading the shop's whole payment history. The history is not secret from
+   * the crew — they are standing in front of the shopkeeper — but it is not what the door needs, and
+   * it is not opened unless someone asks for it.
+   */
+  const [older, setOlder] = useState(false)
 
   const invoice = useQuery(
     ['invoice', invoiceId],
@@ -77,16 +87,31 @@ export default function ShareDocuments(): React.JSX.Element {
     { enabled: signedIn && invoiceId !== null },
   )
 
+  /*
+   * The money taken at this door: `receipts.list` narrowed to the trip the stop handed over. Without
+   * a trip (this screen reached by a link of its own) the fold is the only way to the shop's history.
+   */
   const receipts = useQuery(
-    ['receipts', retailerId],
-    () => api.api.receivables.receipts.list({ retailerId: retailerId ?? '', limit: 10 }),
-    { enabled: signedIn && retailerId !== null },
+    ['receipts', retailerId, tripId, older],
+    () =>
+      api.api.receivables.receipts.list({
+        retailerId: retailerId ?? '',
+        ...(older || tripId === null ? {} : { tripId }),
+        limit: older ? 10 : 5,
+      }),
+    { enabled: signedIn && retailerId !== null && (older || tripId !== null) },
   )
 
+  /** What the office has already sent ABOUT THIS BILL; the shop's whole timeline is behind the fold. */
   const messages = useQuery(
-    ['messages', retailerId],
-    () => api.api.notifications.messages.list({ retailerId: retailerId ?? '', limit: 20 }),
-    { enabled: signedIn && retailerId !== null },
+    ['messages', retailerId, invoiceId, older],
+    () =>
+      api.api.notifications.messages.list({
+        retailerId: retailerId ?? '',
+        ...(older ? {} : { refType: 'invoice' as const, refId: invoiceId ?? '' }),
+        limit: 20,
+      }),
+    { enabled: signedIn && retailerId !== null && invoiceId !== null },
   )
 
   // The receipt's paper: rendered on first ask when it was not queued at issue (R13's pattern).
@@ -187,11 +212,15 @@ export default function ShareDocuments(): React.JSX.Element {
           )}
         </Async>
 
-        <Panel title={t('d9.receipt')} testID="d9-receipts">
+        <Panel
+          title={t('d9.receipt')}
+          meta={older ? t('d9.olderShown') : t('d9.thisTrip')}
+          testID="d9-receipts"
+        >
           <Async
             state={receipts}
             empty={(receipts.data?.items.length ?? 0) === 0}
-            emptyMessage={t('d.nothingHere')}
+            emptyMessage={tripId === null && !older ? t('d9.noTrip') : t('d.nothingHere')}
           >
             <Group>
               {(receipts.data?.items ?? []).map((receipt) => (
@@ -215,7 +244,11 @@ export default function ShareDocuments(): React.JSX.Element {
           </Async>
         </Panel>
 
-        <Panel title={t('d9.alreadySent')} testID="d9-messages">
+        <Panel
+          title={t('d9.alreadySent')}
+          meta={older ? t('d9.olderShown') : t('d9.thisBill')}
+          testID="d9-messages"
+        >
           <Async
             state={messages}
             empty={(messages.data?.items.length ?? 0) === 0}
@@ -234,6 +267,17 @@ export default function ShareDocuments(): React.JSX.Element {
             </Group>
           </Async>
         </Panel>
+
+        {older ? null : (
+          <Button
+            testID="d9-older"
+            label={t('d9.older')}
+            variant="secondary"
+            onPress={() => {
+              setOlder(true)
+            }}
+          />
+        )}
 
         <Button
           testID="d9-back"

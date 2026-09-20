@@ -385,7 +385,9 @@ export default function StopScreen(): React.JSX.Element {
                       router.push(
                         row.outcome === null
                           ? `/stop/${stop.id}/deliver?deliveryId=${row.id}`
-                          : `/share/${row.invoice_id}`,
+                          : // DOS-065: the trip travels with the bill, so D9 can open on THIS
+                            // trip's papers instead of the shop's whole receipt history.
+                            `/share/${row.invoice_id}?tripId=${stop.trip_id}`,
                       )
                     }}
                   />

@@ -423,6 +423,12 @@ export const strings = {
   'd9.notShared': 'Nothing was sent',
   'd9.alreadySent': 'What the office already sent',
   'd9.noMessages': 'The office has sent nothing for this shop yet',
+  // DOS-065: today's papers first; the shop's history is one tap away, never the opening screen.
+  'd9.thisTrip': 'Taken on this trip',
+  'd9.thisBill': 'About this bill',
+  'd9.older': 'Older papers for this shop',
+  'd9.olderShown': 'Everything for this shop',
+  'd9.noTrip': 'No money taken at this door yet',
   'd9.needsSignal': 'The papers are made by the office — this needs a signal.',
   'd9.pdfPending': 'The office is still making this PDF',
 
