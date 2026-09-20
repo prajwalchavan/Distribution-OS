@@ -308,6 +308,19 @@ export const strings = {
   'd5.share': 'Send the receipt',
   'd5.offlineNoNumber':
     'The office numbers the receipt when this reaches them. Write your book number above so the two can be matched.',
+  // DOS-062: where the money goes, said before it changes hands and again after the office answers.
+  'd5.oldestFirst':
+    'Untagged, the office puts this on the oldest of the {count} bills this shop still owes — not always the bill in your hand. Tap a bill to send it there instead.',
+  'd5.oldestFirstOne':
+    'Untagged, the office puts this on the oldest bill this shop still owes — not always the bill in your hand. Tap a bill to send it there instead.',
+  'd5.goesTo': 'This money goes to {bills}.',
+  'd5.tagged': 'Tagged',
+  'd5.paidOff': 'Paid',
+  'd5.applied': 'What this money paid',
+  'd5.appliedTo': 'This paid {no} {amount}',
+  'd5.leftOpen': '{no} is still open — {amount}',
+  'd5.appliedOffline':
+    'The office allocates this receipt when it reaches them — oldest bill first: a tag needs a signal.',
 
   // --- D6 van sale ---------------------------------------------------------------------------------
   'd6.title': 'Sell from the van',

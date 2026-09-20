@@ -39,6 +39,7 @@ import { useMemo, useState } from 'react'
 import { deviceId } from '../../../src/api'
 import { DOOR_DONE_CLEARED, doorDoneMessage } from '../../../src/lib/at-the-door'
 import { instantWithClock, longDate } from '../../../src/lib/dates'
+import { takeApplied } from '../../../src/lib/door-money'
 import { keepKey } from '../../../src/lib/keep'
 import {
   addressLine,
@@ -105,6 +106,13 @@ export default function StopScreen(): React.JSX.Element {
   const [handoffSeen, setHandoffSeen] = useState(false)
   const handoff = handoffSeen ? null : doorDoneMessage(t, sync.persistent, params)
   const saying = toast ?? handoff
+  /*
+   * DOS-062 — WHICH BILLS THE MONEY WENT TO. The office allocates oldest bill first unless the crew
+   * tagged one (docs/22 §6), and it was doing exactly that in silence: ₹7,856 taken "for INV/0825"
+   * paid INV/0099 of 26 June and the bill in the shopkeeper's hand stayed open. `collections.record`
+   * names the bills in its reply and D5 leaves them here on its way out; read ONCE, on this mount.
+   */
+  const [applied] = useState<readonly string[] | null>(() => takeApplied())
 
   const shop = stop === null ? undefined : shops.get(stop.retailer_id)
   const open = deliveries.rows.filter((row) => row.outcome === null)
@@ -268,6 +276,18 @@ export default function StopScreen(): React.JSX.Element {
       testID="d3-screen"
     >
       <Stack gap={6}>
+        {applied === null ? null : (
+          <Panel title={t('d5.applied')} testID="d3-applied">
+            <Stack gap={2}>
+              {applied.map((line, index) => (
+                <Txt key={line} field="body" desk="body" testID={`d3-applied-${String(index)}`}>
+                  {line}
+                </Txt>
+              ))}
+            </Stack>
+          </Panel>
+        )}
+
         <Panel testID="d3-shop">
           <Stack gap={4}>
             {address === null ? null : (
