@@ -404,15 +404,21 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `warehouse.packs.list` status=awaiting_load ✓ (packed, on no draft or confirmed sheet, newest pack first; DOS-133),
   `warehouse.challans.get/list` ✓, `inventory.locations.list` kind=vehicle ✓, `delivery.vehicles.list` (planned).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
+  The count is blind on both halves: the per-order carton figures appear only once the crew has keyed its own count (DOS-049),
+  and each `source = 'van'` lot takes its own blind count which the confirm sends as `countedVanStock` — the check-out is refused
+  until every van lot has a figure, because since DOS-039 that count is the only stock the load-out moves (DOS-121).
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
 transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` ✓. MISSING: `inventory.cycleCounts.*`, `expiringBefore`.
   Adjust: reductions only for the warehouse role; opening stock and additions are the desk's (DOS-044).
 - **W9 Van check-in count (stock counted back)** — the crew's unsold stock is counted at the gate; the settlement itself is desk
   work. Calls: `inventory.stock.balances` locationId=vehicle ✓, `delivery.trips.settlementPreview` ✗ (planned roles exclude
-  warehouse) — the warehouse app shows expected van stock from balances instead.
+  warehouse) — the warehouse app shows expected van stock from balances instead, listing only the lots the vehicle still holds
+  (a balance row stays at zero once a lot has stood there; a "0 pc" row is not expected on the vehicle — DOS-049).
 - **W10 Trips: create, start loading** — `delivery.trips.create/startLoading/list/get` (planned, warehouse included).
 - **W11 Reservations (what is held for whom)** — `warehouse.reservations.list` ✓; `release` ✗ by design.
-- **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned).
+- **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned). The inbox is the notices addressed to
+  the person signed in: `messages.list` scopes a warehouse login to `recipient_user_id = actor` (DOS-052 — it used to answer the
+  distributor's whole outbound log to its SHOPS, order values and all). The crew is not narrowed; it sends bills at the door.
 
 ### 4.2 Graphs
 
@@ -427,6 +433,8 @@ None beyond counts on W1 (a `<Sparkline>` of packs per day from `reporting.regis
   Consequence for the frontend: either (a) load-out confirm lives in the manager app (M7) and the warehouse app's W7 is read-only
   "waiting for manager", or (b) an `auth.stepUp` procedure (manager username + PIN on the warehouse device → short-lived
   manager token scoped to `loadSheets.confirm`) is added and warehouse-service accepts it. Decision needed; (a) needs no backend.
+- `retailers.get/list` answer the warehouse role the PUBLIC shop (name, owner, phone, address, GST, terms) and no credit block —
+  no tier, limit, bills, days, mode, code, identity or onboarded-by (DOS-052). W6 needs the name on the carton and nothing else.
 - Can but no screen (wider than the app): `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
   `catalog.propose`, `tenantCatalog.suppliers`. The order writes (`orders.create/setLines/submit/repeatLast`, a loader placing and
   submitting orders): closed by DOS-115 (2026-09-13).
@@ -467,7 +475,9 @@ The whole `delivery` contract is **planned** (docs/plans/delivery.md §2); calls
   `delivery.collections.record` (planned, wraps `receivables.receipts.create` ✓), `billing.invoices.upiQr` ✓,
   `receivables.receipts.get` ✓, `receivables.receipts.list` tripId ✓. MISSING: receipt document to share (see receivables gaps).
 - **D6 Van sale (order from vehicle stock, invoice at the door)** — Calls: `delivery.vanSales.create` (planned, one transaction),
-  `inventory.stock.balances` locationId=vehicle ✓, `inventory.stock.sellable` ✓, `pricing.quote` ✓, `receivables.creditCheck` ✓,
+  `inventory.stock.balances` locationId=vehicle ✓, `inventory.stock.sellable` locationId=vehicle ✓ (DOS-140: `sellable` answers the
+  godowns, and a VEHICLE only when that vehicle is the `locationId` asked for — this screen's read; the damaged / expiry bin, goods
+  in transit and a customer location are never sellable, named or not), `pricing.quote` ✓, `receivables.creditCheck` ✓,
   `billing.invoices.issueVanSale` ✓ (DOORSTEP), `delivery.stops.add` (planned). Plan correction: docs/plans/delivery.md §2 bills the
   van sale from a per-vehicle `VAN-<reg>` series with `allocation_mode = 'device'`; docs/17 §D5 removed that — it must call
   `BillingService` on the tenant's normal series exactly as `billing.invoices.issueVanSale` already does.
@@ -497,8 +507,12 @@ None required. D8 shows totals only; D11 may show own on-time rate (`deliveryPer
   `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`. The order writes (`orders.create/submit` for
   non-van orders): closed by DOS-115 (2026-09-13).
   Recommendation: drop `delivery` from `outstanding.list`; move retailer/beat/visit writes off STAFF.
-- `retailers.get` returns the staff shape (code, tier, credit limit, credit days, mode) to the crew; the ROLE_GROUPS comment says
-  credit terms are back-office. The crew needs `creditMode` and dues, not the limit. Field-level narrowing to consider.
+- CLOSED (DOS-072, batch 2): `retailers.get/list` answer the delivery role the PUBLIC shop — name, owner, phone, alt phone,
+  address, GST, payment terms — and no credit block, code, identity or onboarded-by (`toView`, shared with DOS-052's warehouse
+  half). The DEVICE copy is narrowed with it: the `retailers` pull omits `credit_limit_paise`, `credit_limit_bills`,
+  `credit_days` and `tier` for this role and KEEPS `credit_mode`, which with `retailer_outstanding_summary` is the money the door
+  needs. The manifest is built from the same omit, so the schema hash changes and a device that held those columns re-snapshots.
+  The rep's copy is untouched: it quotes and warns against the limit offline.
 
 ### 5.4 Offline (must work before the pilot)
 
@@ -571,7 +585,8 @@ R3: `<AgeingBuckets>` from `outstanding.get.buckets` ✓. Nothing else (a shop n
 - Needs but cannot: `orders.submit` (STAFF), `pricing.schemes.list` (STAFF), `pricing.bargains.list` (STAFF), `retailers.upsert`
   (STAFF). Everything else the screens call is ANY_MEMBER / MONEY_READERS / SHOPKEEPER_ONLY ✓ with RLS narrowing.
 - Can but no screen: `catalog.manufacturers`, `inventory.stock.sellable` per-lot rows (batch, MRP, expiry to a shop — acceptable,
-  it is ATP), `orders.cancel` on own draft/submitted ✓ (R8 needs it).
+  it is ATP, and since DOS-140 it is godown rows only: no damaged-bin, in-transit or vehicle piece is ever offered to a shop or a
+  rep), `orders.cancel` on own draft/submitted ✓ (R8 needs it).
 - Directory opt-in (`directory_optins` table) has no procedure — post-pilot, not a pilot gap.
 
 ### 6.4 Offline

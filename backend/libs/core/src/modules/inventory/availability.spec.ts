@@ -277,16 +277,17 @@ describeDb('inventory stock.availability (DATABASE_URL)', () => {
   })
 
   it('DOS-074: stock.availability counts only the godown orders reserve from (not a vehicle, the damaged bin, in-transit or a second warehouse) and nets reservations', async () => {
-    // Summing the per-lot read over every location overstates the item: 38 at the godown + 7 on the van
-    // + 5 damaged + 3 in transit + 11 in the second warehouse = 64.
+    // Summing the per-lot read still overstates the item: 38 at the godown + 11 in the second
+    // warehouse = 49, a second godown no order reserves from. (The van's 7, the bin's 5 and the 3 in
+    // transit left this read with DOS-140 — they were never orderable and are no longer offered.)
     const everywhere = await call<SellablePage>(app, rep, 'GET', '/inventory/sellable', {
       variantId: mixed,
       limit: 500,
     })
     expect(everywhere.status).toBe(200)
-    expect(everywhere.body.items.reduce((sum, row) => sum + row.available, 0)).toBe(64)
+    expect(everywhere.body.items.reduce((sum, row) => sum + row.available, 0)).toBe(49)
     expect(new Set(everywhere.body.items.map((row) => row.locationId))).toEqual(
-      new Set([godown, van, damaged, transit, secondGodown]),
+      new Set([godown, secondGodown]),
     )
 
     // At the godown: 30 + 20 on hand, 12 promised to a confirmed order.
