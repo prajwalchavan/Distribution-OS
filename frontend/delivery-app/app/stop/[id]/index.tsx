@@ -299,7 +299,12 @@ export default function StopScreen(): React.JSX.Element {
           <Panel title={t('d5.applied')} testID="d3-applied">
             <Stack gap={2}>
               {applied.map((line, index) => (
-                <Txt key={`${String(index)}-${line}`} field="body" desk="body" testID={`d3-applied-${String(index)}`}>
+                <Txt
+                  key={`${String(index)}-${line}`}
+                  field="body"
+                  desk="body"
+                  testID={`d3-applied-${String(index)}`}
+                >
                   {line}
                 </Txt>
               ))}
