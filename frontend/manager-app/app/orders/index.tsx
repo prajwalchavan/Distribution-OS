@@ -766,10 +766,16 @@ export default function OrderQueue(): React.JSX.Element {
         testID="order-dialog"
       />
 
+      {/*
+        DOS-153: the note belongs to the gate it was typed for. It was cleared only after a decision
+        went through, so a dialog closed without deciding kept the sentence and the next gate opened
+        with it already in the box — ready to be sent to whoever asked for THAT one.
+      */}
       <Dialog
         open={deciding !== null}
         onClose={() => {
           setDeciding(null)
+          setNote('')
         }}
         title={deciding?.decision === 'approve' ? t('m2.approve') : t('m2.reject')}
         body={

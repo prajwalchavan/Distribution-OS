@@ -247,12 +247,30 @@ export default function Approvals(): React.JSX.Element {
     )
   }
 
+  /*
+   * DOS-153: the note belongs to the request it was typed for, and to no other.
+   *
+   * It was cleared only after a decision went through, so closing the panel without deciding left
+   * the text in the box and the next request opened with another rep's sentence already typed in —
+   * and sending it means sending it to the person who asked. Every way OUT of a request clears it:
+   * the panel closing, and a different row being chosen (by tap or by `j`/`k`). Re-choosing the row
+   * already open is not a change and never wipes what is being typed.
+   */
+  const openRow = (id: string): void => {
+    if (id !== selected) setNote('')
+    setSelected(id)
+  }
+  const closePanel = (): void => {
+    setSelected(null)
+    setNote('')
+  }
+
   useRegisterKeys({
     rows,
     rowKey: (row) => row.id,
     selected,
     onSelect: (row) => {
-      setSelected(row.id)
+      openRow(row.id)
     },
     enabled: confirm === null,
   })
@@ -267,7 +285,7 @@ export default function Approvals(): React.JSX.Element {
       },
       Escape: () => {
         setConfirm(null)
-        setSelected(null)
+        closePanel()
       },
     },
     true,
@@ -326,7 +344,7 @@ export default function Approvals(): React.JSX.Element {
             frozen="what"
             selectedKey={selected}
             onSelect={(row) => {
-              setSelected(row.id)
+              openRow(row.id)
             }}
             state="ready"
           />
@@ -335,9 +353,7 @@ export default function Approvals(): React.JSX.Element {
 
       <Sheet
         open={current !== null && confirm === null}
-        onClose={() => {
-          setSelected(null)
-        }}
+        onClose={closePanel}
         title={heading}
         testID="approval-panel"
       >
