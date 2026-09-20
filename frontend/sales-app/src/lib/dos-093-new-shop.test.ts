@@ -8,11 +8,20 @@
  * with a Retry for ANY error, so a rep who added a shop and opened its card got a red panel and a
  * button that could only fail again, on the one screen they open next.
  *
+ * THE ERROR IS BUILT THE WAY THE WIRE BUILDS IT, never by hand. The first version of this test made
+ * up `{ status: 404, code: 'behaviour_not_computed' }`, an object the app never produces — the oRPC
+ * code at the top level is `NOT_FOUND` and the module's word is inside `data` — so it passed with
+ * the branch stone dead. Here the service's own `ORPCError` is serialised with `toJSON()`, sent
+ * through `JSON` exactly as a reply is, rebuilt the way `@orpc/client` rebuilds it
+ * (`new ORPCError(json.code, { ...json })`, its `createORPCErrorFromJson` verbatim) and normalised
+ * by the app's real `toApiError`. What `isNewShop` is handed here is what a rep's phone holds.
+ *
  * The owner's shops panel had the opposite failure on the same 404: it printed `?? 0`, so a shop
  * with no history showed "0 days to pay" as if it paid instantly. `lastOrderAt` in the same panel
  * already printed "—"; now the rest of the panel does too. No new owner string key — `—` is already
  * written inline four times in that file.
  */
+import { ORPCError, toApiError, type ApiError } from '@dos/api-client'
 import { describe, expect, it } from 'vitest'
 
 import { isNewShop } from './behaviour'
@@ -36,15 +45,69 @@ async function source(relative: string): Promise<string> {
     .replace(/^\s*\/\/.*$/gm, '')
 }
 
+/**
+ * A service failure as a screen receives it: thrown on the server, serialised, parsed, rebuilt by
+ * the client and normalised by `toApiError`. No field is filled in by this test.
+ */
+function asTheScreenSeesIt(thrown: ORPCError<string, unknown>): ApiError {
+  const wire: unknown = JSON.parse(JSON.stringify(thrown.toJSON()))
+  const json = wire as { code: string }
+  // `createORPCErrorFromJson` in @orpc/client, verbatim.
+  const rebuilt = new ORPCError(json.code, { ...(wire as object) })
+  return toApiError(rebuilt)
+}
+
+/** What `reporting.service.ts:1073` throws for a shop the nightly rollup has not seen yet. */
+function behaviourNotComputed(): ORPCError<string, unknown> {
+  return new ORPCError('NOT_FOUND', {
+    message: 'No behaviour has been computed for this shop yet.',
+    data: { code: 'behaviour_not_computed', retailerId: 'r-1' },
+  })
+}
+
 describe('DOS-093 a shop with no history yet is a new shop, not an error', () => {
-  it('DOS-093 reads a 404 behaviour_not_computed as "new shop" and leaves every other failure alone', () => {
-    expect(isNewShop({ status: 404, code: 'behaviour_not_computed' })).toBe(true)
+  it('DOS-093 reads the service’s real 404 payload as "new shop" and leaves every other failure alone', () => {
+    const newShop = asTheScreenSeesIt(behaviourNotComputed())
+    // The proof that the first fix was inert: the CODE on the wire is the oRPC one.
+    expect(newShop.status).toBe(404)
+    expect(newShop.code).toBe('NOT_FOUND')
+    expect(isNewShop(newShop)).toBe(true)
+
     // A 404 from somewhere else is still a 404 the rep should see.
-    expect(isNewShop({ status: 404, code: 'retailer_not_found' })).toBe(false)
-    expect(isNewShop({ status: 404, code: undefined })).toBe(false)
+    expect(
+      isNewShop(
+        asTheScreenSeesIt(
+          new ORPCError('NOT_FOUND', {
+            message: 'That shop is not here.',
+            data: { code: 'retailer_not_found', retailerId: 'r-1' },
+          }),
+        ),
+      ),
+    ).toBe(false)
+    expect(isNewShop(asTheScreenSeesIt(new ORPCError('NOT_FOUND', { message: 'Gone.' })))).toBe(
+      false,
+    )
     // And a refusal, a timeout or a server fault are never "new shop".
-    expect(isNewShop({ status: 403, code: 'behaviour_not_computed' })).toBe(false)
-    expect(isNewShop({ status: 500, code: 'behaviour_not_computed' })).toBe(false)
+    expect(
+      isNewShop(
+        asTheScreenSeesIt(
+          new ORPCError('FORBIDDEN', {
+            message: 'Not your shop.',
+            data: { code: 'behaviour_not_computed', retailerId: 'r-1' },
+          }),
+        ),
+      ),
+    ).toBe(false)
+    expect(
+      isNewShop(
+        asTheScreenSeesIt(
+          new ORPCError('INTERNAL_SERVER_ERROR', {
+            message: 'The rollup crashed.',
+            data: { code: 'behaviour_not_computed', retailerId: 'r-1' },
+          }),
+        ),
+      ),
+    ).toBe(false)
     expect(isNewShop(undefined)).toBe(false)
   })
 
