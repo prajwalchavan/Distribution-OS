@@ -29,6 +29,7 @@ const PAGE_SIZE = 200
 
 const FILE_STEM: Record<ReportRegister, string> = {
   dailySales: 'daily-sales',
+  orders: 'orders',
   repProductivity: 'rep-productivity',
   schemeSpend: 'scheme-spend',
   stockValue: 'stock-value',

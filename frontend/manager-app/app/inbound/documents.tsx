@@ -21,7 +21,6 @@
  */
 import type { QueueItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { uuidv7 } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -42,7 +41,7 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import {
   Async,
@@ -52,10 +51,12 @@ import {
   Refusal,
   moneyColumn,
   stayOpen,
+  stayOpenAnd,
   textColumn,
   useCan,
   useNames,
 } from '../../src/lib/ui'
+import { keepIds } from '../../src/lib/money-intents'
 import { absoluteUrl } from '../../src/config'
 import { longDate, rangeOf } from '../../src/lib/dates'
 import { mayStartReview } from '../../src/lib/review-desk'
@@ -198,14 +199,26 @@ export default function Documents(): React.JSX.Element {
     (id: string, meta) => api.api.docint.review.submit({ id, idempotencyKey: meta.idempotencyKey }),
     { invalidates: [['docint']] },
   )
+  /*
+   * The goods-receipt line ids come from the INPUT, made once per document (DOS-136). A `uuidv7()`
+   * inside the call was a new id on every press, so a retry after a lost reply was a different request
+   * under the spent idempotency key — refused, over a bill the service may already have booked.
+   */
   const approve = useMutation(
-    (input: { id: string; lineNos: readonly number[]; supplierId: string | null }, meta) =>
+    (
+      input: {
+        id: string
+        lineIds: readonly { lineNo: number; id: string }[]
+        supplierId: string | null
+      },
+      meta,
+    ) =>
       api.api.docint.documents.approve({
         id: input.id,
         idempotencyKey: meta.idempotencyKey,
         supplierInvoiceId: meta.id,
         ...(input.supplierId === null ? {} : { supplierId: input.supplierId }),
-        lineIds: input.lineNos.map((lineNo) => ({ lineNo, id: uuidv7() })),
+        lineIds: input.lineIds.map((line) => ({ lineNo: line.lineNo, id: line.id })),
       }),
     { invalidates: [['docint'], ['procurement']] },
   )
@@ -274,26 +287,47 @@ export default function Documents(): React.JSX.Element {
   const header = full?.result?.header
   const lines = full?.result?.lines ?? []
 
+  /*
+   * One id per approved line, made the first time this document is approved and kept while its panel is
+   * open, so pressing "Book it as a supplier bill" again sends the same lines (DOS-136).
+   */
+  const heldLineIds = useRef<{ documentId: string | null; ids: Record<string, string> }>({
+    documentId: null,
+    ids: {},
+  })
+  const approvedLineIds = (lineNos: readonly number[]): { lineNo: number; id: string }[] => {
+    if (heldLineIds.current.documentId !== selected)
+      heldLineIds.current = { documentId: selected, ids: {} }
+    const ids = keepIds(
+      heldLineIds.current.ids,
+      lineNos.map((lineNo) => String(lineNo)),
+    )
+    heldLineIds.current.ids = ids
+    return lineNos.map((lineNo) => ({ lineNo, id: ids[String(lineNo)] ?? '' }))
+  }
+
   const commit = (): void => {
     if (selected === null || acting === null) return
     const done = (): void => {
       setActing(null)
       setNote('')
     }
+    /* A write whose reply never arrived may still have landed: the document is read back (DOS-136). */
+    const unknown = stayOpenAnd(detail.refetch, queue.refetch)
     if (acting === 'approve')
       void approve
         .mutateAsync({
           id: selected,
-          lineNos: lines.map((line) => line.lineNo),
+          lineIds: approvedLineIds(lines.map((line) => line.lineNo)),
           supplierId: doc?.supplierId ?? null,
         })
-        .then(done, stayOpen)
+        .then(done, unknown)
     if (acting === 'reject')
       void reject
         .mutateAsync({ id: selected, reason: rejectReason, note: note.trim() })
-        .then(done, stayOpen)
+        .then(done, unknown)
     if (acting === 'submit' && sessionId !== null)
-      void submitReview.mutateAsync(sessionId).then(done, stayOpen)
+      void submitReview.mutateAsync(sessionId).then(done, unknown)
   }
 
   return (

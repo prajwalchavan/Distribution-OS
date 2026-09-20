@@ -29218,6 +29218,7 @@ curl "http://localhost:3004/reporting/dashboard/owner" \
   "cashInTransitPaise": 4000,
   "totalOutstandingPaise": 2680000,
   "overduePaise": 4000,
+  "onAccountPaise": 4000,
   "ageing": {
     "b0_7": 1,
     "b8_15": 1,
@@ -32429,7 +32430,7 @@ Queue a CSV / JSON export of a register (async, audited) · contract `reporting.
 |---|---|---|
 | `idempotencyKey` | string | yes |
 | `id` | uuid | yes |
-| `register` | dailySales | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
+| `register` | dailySales | orders | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
 | `format` | csv | json | no |
 | `filters` | record | no |
 | `deviceId` | string | no |

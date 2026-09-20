@@ -341,7 +341,9 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
 - **S11 Catalog & stock browse, deals to pitch** — `tenantCatalog.list` ✓, `catalog.search` ✓,
   `inventory.stock.availability` ✓ (the stock chip and the "In stock" view: godown total per item, DOS-074),
   `pricing.schemes.list` on=today ✓.
-- **S12 Pending bills of a shop (read-only chip)** — `billing.invoices.list/get` ✓ by matrix, wiring ✗ on sales-service.
+- **S12 Pending bills of a shop** — `receivables.outstanding.get` ✓ for the list; `billing.invoices.get` / `.pdf` ✓ (ANY_MEMBER,
+  and the `billing` key IS on sales-service since e934e8e). S12b opens one bill and its server-rendered PDF (DOS-091); the due
+  line reads the SIGN of `OpenBill.ageDays` ("2 days overdue" vs "in 2 days"), never the bare number.
 - **S13 Inbox** — `notifications.messages.list/markRead`, `notifications.inbound.list/markHandled`,
   `notifications.pushTokens.register` (planned).
 - **S14 Me** — X4.

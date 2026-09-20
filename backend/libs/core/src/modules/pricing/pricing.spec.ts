@@ -14,6 +14,7 @@ import {
   retailerIdentities,
   retailerLinks,
   retailers,
+  tenantProducts,
   tenants,
   users,
 } from '@dos/db'
@@ -240,6 +241,70 @@ describeDb('pricing (DATABASE_URL)', () => {
     const lists = await call<{ items: PriceList[] }>(app, rep, 'GET', '/pricing/price-lists', {})
     expect(lists.status).toBe(200)
     expect(lists.body.items.map((l) => l.name).sort()).toEqual(['Default', 'Tier A'])
+  })
+
+  // -------------------------------------------------------------------------------------------------------
+  // DOS-013: a price list names what it prices. The owner's Prices screen used to name rows from the
+  // tenant's LISTED catalogue, so a variant that is priced but not listed (Chamak Glass Cleaner, priced in
+  // all four lists) showed as "1c3586ee". The name belongs on the wire, resolved the way order and invoice
+  // lines resolve it (DOS-003): the tenant's local alias, else the global variant name.
+
+  it('DOS-013: priceLists.list names every item — a variant the tenant does not list carries the global variant name, a listed one its local alias', async () => {
+    // v1 is listed under the tenant's own word for it; v2 is priced but never listed.
+    await db
+      .insert(tenantProducts)
+      .values({ id: uuidv7(), tenantId, variantId: v1, localAlias: `Makhana Salted ${run}` })
+
+    const lists = await call<{ items: PriceList[] }>(app, owner, 'GET', '/pricing/price-lists', {})
+    expect(lists.status).toBe(200)
+    const items = lists.body.items.find((l) => l.id === defaultListId)?.items ?? []
+    const byVariant = new Map(items.map((i) => [i.variantId, i]))
+    expect(byVariant.get(v1)?.variantName).toBe(`Makhana Salted ${run}`)
+    expect(byVariant.get(v2)?.variantName).toBe('Peri Peri 60g')
+    expect(items.every((i) => i.variantName !== '' && i.variantName !== i.variantId)).toBe(true)
+  })
+
+  it('DOS-013: setItems and the price-list upsert answer the same names, and a same-key replay of setItems answers 200 with the stored reply', async () => {
+    // the same rates the list already carries: this proves the reply's names, not a price change
+    const body = {
+      idempotencyKey: `pli-dos013-${run}`,
+      priceListId: defaultListId,
+      items: [
+        { id: uuidv7(), variantId: v1, ratePaise: 1000 },
+        { id: uuidv7(), variantId: v2, ratePaise: 2000 },
+      ],
+    }
+    const set = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      body,
+    )
+    expect(set.status).toBe(200)
+    const names = new Map(set.body.item.items.map((i) => [i.variantId, i.variantName]))
+    expect(names.get(v1)).toBe(`Makhana Salted ${run}`)
+    expect(names.get(v2)).toBe('Peri Peri 60g')
+
+    // DOS-160: the stored reply of the first call answers the replay, whatever the schema has since gained.
+    const replay = await call<{ item: PriceList }>(
+      app,
+      owner,
+      'POST',
+      `/pricing/price-lists/${defaultListId}/items`,
+      body,
+    )
+    expect(replay.status).toBe(200)
+    expect(replay.body).toEqual(set.body)
+
+    const upsert = await call<{ item: PriceList }>(app, owner, 'POST', '/pricing/price-lists', {
+      idempotencyKey: `pl-dos013-${run}`,
+      id: defaultListId,
+      name: 'Default',
+      isDefault: true,
+    })
+    expect(upsert.status).toBe(200)
+    expect(new Map(upsert.body.item.items.map((i) => [i.variantId, i.variantName]))).toEqual(names)
   })
 
   it('owner creates a "buy 12 get 1 free" scheme; replay is idempotent; economics change bumps the version', async () => {

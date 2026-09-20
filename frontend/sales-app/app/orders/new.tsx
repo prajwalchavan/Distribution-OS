@@ -81,7 +81,7 @@ import {
 import { useGodownStock } from '../../src/lib/stock'
 import { OrderLineRow, Panel } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
-import { useEnqueueOrder } from '../../src/lib/queue'
+import { useEnqueueOrder, useSubmitAcceptedDrafts } from '../../src/lib/queue'
 
 export default function OrderEntry(): React.JSX.Element {
   const t = useStrings()
@@ -227,6 +227,8 @@ export default function OrderEntry(): React.JSX.Element {
 
   const enqueueOrder = useEnqueueOrder()
   const engine = useSyncEngine()
+  /* DOS-086: the order just queued here submits itself the moment the signal comes back. */
+  useSubmitAcceptedDrafts()
   /*
    * DOS-161: the native Screen pins its header and bottomBar around the ScrollView, so on an iPhone
    * the header (context, title, chips) and a 3-line footer between them left only a 267-pt window —

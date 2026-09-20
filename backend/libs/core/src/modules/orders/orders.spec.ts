@@ -143,6 +143,8 @@ describeDb('orders (DATABASE_URL)', () => {
   const strictOrder = uuidv7()
   const strictOrderDos004 = uuidv7() // DOS-004: a second over-limit order for Shop B, left pending
   const tripApprovalDos004 = uuidv7() // DOS-004: an approval with no order behind it
+  const strictOrderDos006 = uuidv7() // DOS-006: an over-limit order released by its gate
+  const strictOrderDos006Next = uuidv7() // DOS-006: the shop's next order, gated again
   const shopOrder = uuidv7()
   const syncOrder = uuidv7()
   let godown = ''
@@ -641,6 +643,96 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(item?.orderTotalPaise).toBeNull()
     expect(item?.retailerId).toBeNull()
     expect(item?.retailerName).toBeNull()
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-006: an "Over credit limit" approval RELEASES THE ORDER; it does not change the shop's limit.
+  // Founder, 2026-09-13 (docs/22 §8): approving lets only that one order through, and the limit is a
+  // setting changed on the shop's page (`retailers.setCredit`, audited). This guard pins the semantics
+  // so the alternative — approve also raises the limit — cannot arrive without a decision to allow it.
+
+  it('DOS-006: approving an over-limit gate lets only that order through — the limit is unchanged, no set_credit is audited, and the next order raises a fresh gate', async () => {
+    const [before] = await db
+      .select({ limit: retailers.creditLimitPaise })
+      .from(retailers)
+      .where(eq(retailers.id, retailerB))
+    expect(before?.limit).toBe(1000)
+
+    await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos006-${run}`,
+      id: strictOrderDos006,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos006}/submit`,
+      { idempotencyKey: `submit-dos006-${run}` },
+    )
+    expect(submitted.status).toBe(200)
+    expect(submitted.body.item.approvalFlags).toEqual(['credit_limit'])
+
+    // The gate production raises names the ORDER it releases, and asks for no limit at all.
+    const [gate] = await asOwner((tx) =>
+      tx
+        .select()
+        .from(approvals)
+        .where(and(eq(approvals.orderId, strictOrderDos006), eq(approvals.kind, 'credit_limit'))),
+    )
+    expect(gate?.entityType).toBe('sales_order')
+    expect(gate?.entityId).toBe(strictOrderDos006)
+    expect(gate?.payload).toEqual({
+      orderNo: submitted.body.item.orderNo,
+      totalPaise: submitted.body.item.totalPaise,
+      flag: 'credit_limit',
+    })
+
+    const decided = await call<{ item: { status: string }; order: Detail | null }>(
+      app,
+      owner,
+      'POST',
+      `/approvals/${gate?.id ?? ''}/decide`,
+      { idempotencyKey: `decide-dos006-${run}`, decision: 'approve', note: 'festive stocking' },
+    )
+    expect(decided.status).toBe(200)
+    expect(decided.body.item.status).toBe('approved')
+    expect(decided.body.order?.state).toBe('confirmed')
+
+    // The shop is exactly where it was: same limit, and nothing claims a limit was set.
+    const [after] = await db
+      .select({ limit: retailers.creditLimitPaise })
+      .from(retailers)
+      .where(eq(retailers.id, retailerB))
+    expect(after?.limit).toBe(before?.limit)
+    const credits = await asOwner((tx) =>
+      tx
+        .select({ id: auditLog.id })
+        .from(auditLog)
+        .where(and(eq(auditLog.action, 'retailer.set_credit'), eq(auditLog.entityId, retailerB))),
+    )
+    expect(credits).toEqual([])
+
+    // So the shop's next over-limit order is gated again, exactly as the first one was.
+    await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos006-next-${run}`,
+      id: strictOrderDos006Next,
+      retailerId: retailerB,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId: variantB, enteredQty: 1, enteredUnit: 'case' }],
+    })
+    const next = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${strictOrderDos006Next}/submit`,
+      { idempotencyKey: `submit-dos006-next-${run}` },
+    )
+    expect(next.status).toBe(200)
+    expect(next.body.item.state).toBe('submitted')
+    expect(next.body.item.approvalFlags).toEqual(['credit_limit'])
   })
 
   it('lets the rep cancel a draft', async () => {
@@ -3537,6 +3629,67 @@ describeDb('orders (DATABASE_URL)', () => {
         await db.update(priceLists).set({ active: true }).where(inArray(priceLists.id, activeLists))
         await cancel('te', p.orderId)
       }
+    })
+  })
+  /**
+   * DOS-141 — a refused decision has to say WHICH gate and WHOSE decision it is about.
+   *
+   * Two desks open the queue, both press Approve, and the second one was told "approval
+   * 01a09766-114f-73f5-b1fc-9d9cab81e82e was already approved": a row id, no order, no name, no time.
+   */
+  describe('DOS-141 a refused decision is written for the desk that pressed', () => {
+    it('DOS-141: a gate already decided names the order, the approver and the IST time, and carries no id', async () => {
+      const orderId = uuidv7()
+      const lineId = uuidv7()
+      const draft = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos141-create-${run}`,
+        id: orderId,
+        retailerId: retailerA,
+        source: 'salesperson',
+        lines: [{ id: lineId, variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+      })
+      expect(draft.status).toBe(200)
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${orderId}/submit`,
+        { idempotencyKey: `dos141-submit-${run}` },
+      )
+      expect(submitted.status).toBe(200)
+      const orderNo = submitted.body.item.orderNo ?? ''
+      expect(orderNo).not.toBe('')
+
+      // The gate the first desk has already approved, decided at 4:20 pm IST on 13 September.
+      const approvalId = uuidv7()
+      await db.insert(approvals).values({
+        id: approvalId,
+        tenantId,
+        kind: 'credit_limit',
+        orderId,
+        entityType: 'sales_order',
+        entityId: orderId,
+        requestedBy: repId,
+        status: 'approved',
+        payload: {},
+        decidedBy: ownerId,
+        decidedAt: new Date('2026-09-13T10:50:00.000Z'),
+      })
+
+      const refused = await call<{ message: string }>(
+        app,
+        manager,
+        'POST',
+        `/approvals/${approvalId}/decide`,
+        { idempotencyKey: `dos141-decide-${run}`, decision: 'approve' },
+      )
+      expect(refused.status).toBe(409)
+      expect(refused.body.message).toBe(
+        `the credit limit gate on ${orderNo} was already approved by Owner on 13 Sep, 4:20 pm`,
+      )
+      expect(refused.body.message).not.toContain(approvalId)
+      expect(refused.body.message).not.toContain(ownerId)
+      expect(refused.body.message).not.toContain('T10:50')
     })
   })
 })
