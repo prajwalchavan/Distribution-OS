@@ -8288,6 +8288,15 @@ request.json
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -8492,6 +8501,15 @@ request.json
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
+    ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
     ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -8705,6 +8723,15 @@ request.json
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -8900,6 +8927,15 @@ request.json
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
+    ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
     ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9106,6 +9142,15 @@ request.json
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
+    ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
     ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9324,6 +9369,15 @@ request.json
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9517,6 +9571,15 @@ curl "http://localhost:3006/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -9689,6 +9752,15 @@ curl "http://localhost:3006/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
+    ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
     ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9882,6 +9954,15 @@ curl "http://localhost:3006/orders?state=draft&openOnly=true&retailerId=01a06dbc
       "totalPaise": 2680000,
       "approvalFlags": [
         "text"
+      ],
+      "stockShortages": [
+        {
+          "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+          "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "requestedPcs": 24,
+          "reservedPcs": 24,
+          "shortQtyPcs": 24
+        }
       ],
       "expectedDeliveryDate": "2026-09-04",
       "note": null,
@@ -10129,6 +10210,15 @@ request.json
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
+    ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
     ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -21141,6 +21231,15 @@ request.json
     "approvalFlags": [
       "text"
     ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
+    ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
     "submittedAt": "2026-09-04T10:30:00.000Z",
@@ -24250,6 +24349,15 @@ request.json
     "totalPaise": 2680000,
     "approvalFlags": [
       "text"
+    ],
+    "stockShortages": [
+      {
+        "lineId": "01a06db2-da39-7334-863c-3d85d8b13619",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "requestedPcs": 24,
+        "reservedPcs": 24,
+        "shortQtyPcs": 24
+      }
     ],
     "expectedDeliveryDate": "2026-09-04",
     "note": null,

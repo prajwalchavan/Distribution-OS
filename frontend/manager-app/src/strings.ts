@@ -157,7 +157,14 @@ export const strings = {
   'm2.confirmBody': 'Stock is reserved when this is confirmed. There is no undo.',
   'm2.subtotal': 'Subtotal',
   'm2.discount': 'Discount',
-  'm2.tax': 'GST',
+  /* DOS-079: the figure is GST plus compensation cess, so the head is not "GST". */
+  'm2.tax': 'Tax',
+  'm2.cessInside': 'includes cess {amount}',
+  /* DOS-078: what the godown could not hold when the order confirmed. */
+  'm2.short': 'Stock',
+  'm2.shortCount': 'Short {count}',
+  'm2.shortAtGodown': 'Short at the godown',
+  'm2.shortPieces': '{short} pcs short of {requested}',
   'm2.total': 'Total',
   'm2.terms': 'Terms',
   'm2.expected': 'Wanted by',

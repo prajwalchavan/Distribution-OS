@@ -333,7 +333,9 @@ export async function listOrders(
     .where(and(...filters.filter((f): f is SQL => f !== undefined)))
     .orderBy(desc(salesOrders.id))
     .limit(input.limit + 1)
-  const items = rows.slice(0, input.limit).map(toOrder)
+  // DOS-078: the shortage record is office-only, exactly as on `get`.
+  const office = ctx.actorRole !== 'retailer'
+  const items = rows.slice(0, input.limit).map((row) => toOrder(row, office))
   const last = items[items.length - 1]
   return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
 }

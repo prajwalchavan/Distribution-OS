@@ -344,6 +344,13 @@
       "when": 1789893891220,
       "tag": "0048_order_cess_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1789894648769,
+      "tag": "0049_order_stock_shortages_expand",
+      "breakpoints": true
     }
   ]
 }

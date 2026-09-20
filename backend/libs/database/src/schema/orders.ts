@@ -66,6 +66,20 @@ export interface AppliedRule {
   freeVariantId?: string
 }
 
+/**
+ * A line the godown could not fully hold when the order was confirmed (DOS-078). The order is NEVER
+ * refused for it — over-available is accepted (UX-00 §6.4) and the warehouse decides what to do with a
+ * shortage — it is RECORDED, so the office sees it before pack. Kept identical to the contract's
+ * `OrderShortageSchema`, like `AppliedRule`.
+ */
+export interface StockShortage {
+  lineId: string
+  variantId: string
+  requestedPcs: number
+  reservedPcs: number
+  shortQtyPcs: number
+}
+
 export const salesOrders = pgTable(
   'sales_orders',
   {
@@ -99,6 +113,14 @@ export const salesOrders = pgTable(
     /** Approval-worthy conditions raised at submit (credit_limit, bargain, below_floor). */
     approvalFlags: jsonb('approval_flags')
       .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    /**
+     * What the godown could not hold at confirm (DOS-078): office-only, empty until confirmed, and
+     * history afterwards — a cancel releases the reservations and leaves this record standing.
+     */
+    stockShortages: jsonb('stock_shortages')
+      .$type<StockShortage[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
     expectedDeliveryDate: text('expected_delivery_date'),

@@ -102,6 +102,17 @@ export const OrderLineSchema = z.object({
 })
 export type OrderLine = z.infer<typeof OrderLineSchema>
 
+/** Reserved pieces per line; a line the location cannot cover is reserved short, never refused. */
+export const OrderShortageSchema = z.object({
+  lineId: IdSchema,
+  variantId: IdSchema,
+  requestedPcs: PiecesSchema,
+  reservedPcs: PiecesSchema,
+  shortQtyPcs: PiecesSchema,
+})
+
+export type OrderShortage = z.infer<typeof OrderShortageSchema>
+
 export const OrderSchema = z.object({
   id: IdSchema,
   /** Assigned from the `SO` series at submit, never at draft (ADR 0001). */
@@ -124,6 +135,12 @@ export const OrderSchema = z.object({
   roundOffPaise: PaiseSchema,
   totalPaise: PaiseSchema,
   approvalFlags: z.array(z.string()),
+  /**
+   * What the godown could not fully hold when this order was confirmed (DOS-078): empty until it is
+   * confirmed, and office-only — a retailer-role caller always reads `[]`. Recorded, never acted on:
+   * the order confirms short and the warehouse decides what to do with it.
+   */
+  stockShortages: z.array(OrderShortageSchema),
   expectedDeliveryDate: z.string().nullable(),
   note: z.string().nullable(),
   submittedAt: z.string().nullable(),
@@ -222,15 +239,6 @@ export const SubmitOrderInput = MutationBase.extend({
   deviceId: DeviceIdSchema.optional(),
 })
 export const SubmitOrderOutput = OrderItemOutput
-
-/** Reserved pieces per line; a line the location cannot cover is reserved short, never refused. */
-export const OrderShortageSchema = z.object({
-  lineId: IdSchema,
-  variantId: IdSchema,
-  requestedPcs: PiecesSchema,
-  reservedPcs: PiecesSchema,
-  shortQtyPcs: PiecesSchema,
-})
 
 export const ConfirmOrderInput = MutationBase.extend({
   id: IdSchema,

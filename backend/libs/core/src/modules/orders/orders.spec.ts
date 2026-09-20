@@ -77,6 +77,7 @@ type Detail = {
   roundOffPaise: number
   totalPaise: number
   approvalFlags: string[]
+  stockShortages: Shortage[]
   cancelReason: string | null
   lines: Line[]
   transitions: { event: string; toState: string; actorId: string; deviceId: string | null }[]
@@ -88,7 +89,13 @@ type Detail = {
     decisionNote: string | null
   }[]
 }
-type Shortage = { lineId: string; requestedPcs: number; reservedPcs: number; shortQtyPcs: number }
+type Shortage = {
+  lineId: string
+  variantId: string
+  requestedPcs: number
+  reservedPcs: number
+  shortQtyPcs: number
+}
 
 describeDb('orders (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
@@ -108,6 +115,7 @@ describeDb('orders (DATABASE_URL)', () => {
   const variantA = uuidv7() // 100 pcs in the godown
   const variantB = uuidv7() // no stock at all
   const variantCess = uuidv7() // DOS-079: on `cessHsn`, 28% GST + 12% cess, ₹22.97 a piece
+  const variantShort = uuidv7() // DOS-078: 120 pcs (10 cs) in the godown and nothing more
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const shop: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
@@ -184,12 +192,23 @@ describeDb('orders (DATABASE_URL)', () => {
         hsnCode: cessHsn,
         mrpPaise: 4000,
       },
+      {
+        id: variantShort,
+        productId,
+        name: 'Neelam Sandal Soap 3x100 g',
+        netQty: 300,
+        netUnit: 'g',
+        defaultCaseSize: 24,
+        hsnCode: hsn,
+        mrpPaise: 3000,
+      },
     ])
     // the tenant sells in 12s even though the manufacturer prints 24 (docs/17 B: sell-side pack wins)
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantShort, caseSizeOverride: 12 },
     ])
     await db.insert(hsnRates).values([
       { id: uuidv7(), hsnCode: hsn, gstBps: 1200, effectiveFrom: '2020-04-01' },
@@ -257,6 +276,7 @@ describeDb('orders (DATABASE_URL)', () => {
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantShort, ratePaise: 1000 },
     ])
 
     const locs = await db
@@ -1040,6 +1060,19 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(confirmed.body.shortages).toEqual([
       { lineId: line, variantId: variantA, requestedPcs: 90, reservedPcs: 76, shortQtyPcs: 14 },
     ])
+    // DOS-078: the desk's own confirm records the same list on the order, and a second confirm reads
+    // it back instead of answering an empty one — the record is history, not a one-off reply.
+    expect(confirmed.body.item.stockShortages).toEqual(confirmed.body.shortages)
+    const again = await call<{ item: Detail; shortages: Shortage[] }>(
+      app,
+      owner,
+      'POST',
+      `/orders/${id}/confirm`,
+      { idempotencyKey: `confirm-short-again-${run}` },
+    )
+    expect(again.status).toBe(200)
+    expect(again.body.item.stockShortages).toEqual(confirmed.body.shortages)
+    expect(again.body.shortages).toEqual(confirmed.body.shortages)
     // confirm left the gate exactly as it was decided: it decides nothing itself
     expect(
       confirmed.body.item.approvals.map(({ status, decidedBy, decisionNote }) => ({
@@ -1054,6 +1087,98 @@ describeDb('orders (DATABASE_URL)', () => {
       )
     ).rows as { reserved: number }[]
     expect(balances[0]?.reserved).toBe(100)
+  })
+
+  const shortOrder = uuidv7()
+  const shortLineA = uuidv7()
+  const shortLineB = uuidv7()
+
+  it("DOS-078: a rep's order beyond the godown's stock confirms short and the shortage is recorded on the order", async () => {
+    // Exactly 10 cases of 12 in the godown, opened here rather than in `beforeAll`: the earlier tests
+    // count the godown's balance ROWS, and a second item would be a second row for them.
+    const inventory = app.get(InventoryService)
+    await asOwner(async (tx) => {
+      const { lot } = await inventory.findOrCreateLot(tx, {
+        variantId: variantShort,
+        batchNo: 'OPENING',
+        mrpPaise: 3000,
+      })
+      await inventory.post(tx, [
+        {
+          lotId: lot.id,
+          locationId: godown,
+          qtyDelta: 120,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-short`,
+        },
+      ])
+    })
+    const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+      idempotencyKey: `create-dos078-${run}`,
+      id: shortOrder,
+      retailerId: retailerA,
+      source: 'salesperson',
+      lines: [
+        // 12 cs of an item the godown holds 10 cs of, and 1 cs of one it holds none of.
+        { id: shortLineA, variantId: variantShort, enteredQty: 12, enteredUnit: 'case' },
+        { id: shortLineB, variantId: variantB, enteredQty: 1, enteredUnit: 'case' },
+      ],
+    })
+    expect(created.status).toBe(200)
+    const submitted = await call<{ item: Detail }>(
+      app,
+      rep,
+      'POST',
+      `/orders/${shortOrder}/submit`,
+      {
+        idempotencyKey: `submit-dos078-${run}`,
+      },
+    )
+    expect(submitted.status).toBe(200)
+    // Over-available is accepted, never blocked (UX-00 §6.4): it confirms, short, and says so.
+    expect(submitted.body.item.state).toBe('confirmed')
+    const expected = [
+      {
+        lineId: shortLineA,
+        variantId: variantShort,
+        requestedPcs: 144,
+        reservedPcs: 120,
+        shortQtyPcs: 24,
+      },
+      {
+        lineId: shortLineB,
+        variantId: variantB,
+        requestedPcs: 12,
+        reservedPcs: 0,
+        shortQtyPcs: 12,
+      },
+    ]
+    expect(submitted.body.item.stockShortages).toEqual(expected)
+
+    // The desk reads the same record on the order and in its list.
+    const read = await call<{ item: Detail }>(app, manager, 'GET', `/orders/${shortOrder}`)
+    expect(read.status).toBe(200)
+    expect(read.body.item.stockShortages).toEqual(expected)
+    const listed = await call<{ items: Detail[] }>(app, manager, 'GET', '/orders?limit=50')
+    expect(listed.status).toBe(200)
+    expect(listed.body.items.find((o) => o.id === shortOrder)?.stockShortages).toEqual(expected)
+  })
+
+  it('DOS-078: the shop reads no shortage on its order', async () => {
+    // Office-only, like `approvals`: what the godown is short of is not the shopkeeper's business.
+    const read = await call<{ item: Detail }>(app, shop, 'GET', `/orders/${shortOrder}`)
+    expect(read.status).toBe(200)
+    expect(read.body.item.stockShortages).toEqual([])
+    const listed = await call<{ items: Detail[] }>(app, shop, 'GET', '/orders?limit=50')
+    expect(listed.status).toBe(200)
+    expect(listed.body.items.find((o) => o.id === shortOrder)?.stockShortages).toEqual([])
+    // The `[]` is the mapping, not an empty column: the record itself is still on the row.
+    const stored = (
+      await db.execute(
+        sql`select jsonb_array_length(stock_shortages)::int as n from sales_orders where id = ${shortOrder}`,
+      )
+    ).rows as { n: number }[]
+    expect(stored[0]?.n).toBe(2)
   })
 
   // -----------------------------------------------------------------------------------------------------

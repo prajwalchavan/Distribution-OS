@@ -212,6 +212,9 @@ export const strings = {
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
   's3.pricesChanged': 'Prices changed since you built this order:',
+  /* DOS-078: the godown's answer at the counter — the order stands, the rest follows. */
+  's3.shortAtGodown': 'The godown is short on {count} item(s) — the shop gets the rest:',
+  's3.noneInStock': 'none in stock',
   's3.queuedTitle': 'Saved on this phone',
   's3.queuedBody':
     'It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.',

@@ -289,6 +289,23 @@ export default function OrderQueue(): React.JSX.Element {
       ),
     },
     /*
+     * DOS-078: what the godown could not hold when this order confirmed. The order was never refused
+     * for it (UX-00 §6.4) — this is the desk's warning before it goes to pack, read from the order's
+     * own record, never recomputed from reservations.
+     */
+    {
+      key: 'short',
+      head: t('m2.short'),
+      priority: 'chip',
+      cell: (row) =>
+        row.stockShortages.length === 0 ? null : (
+          <StatusChip
+            label={t('m2.shortCount', { count: row.stockShortages.length })}
+            family="ochre"
+          />
+        ),
+    },
+    /*
      * DOS-027: the gates this order is still held by, read from the approvals themselves.
      * `row.approvalFlags` is the stored copy raised at submit — nothing keeps it in step with the
      * decisions, and it was empty for an order with two gates pending, which is precisely when this
@@ -664,6 +681,23 @@ export default function OrderQueue(): React.JSX.Element {
                   family={STATE_FAMILY[order.state] ?? 'neutral'}
                 />
               </Field>
+              {order.stockShortages.length === 0 ? null : (
+                <Field label={t('m2.shortAtGodown')}>
+                  <Stack gap={1} testID="order-stock-shortages">
+                    {order.stockShortages.map((short) => (
+                      <Txt key={short.lineId} field="body" desk="body">
+                        {`${
+                          order.lines.find((line) => line.id === short.lineId)?.variantName ??
+                          short.variantId.slice(0, 8)
+                        } — ${t('m2.shortPieces', {
+                          short: formatCount(short.shortQtyPcs),
+                          requested: formatCount(short.requestedPcs),
+                        })}`}
+                      </Txt>
+                    ))}
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('m2.terms')}>{word(order.paymentTerms)}</Field>
               <Field label={t('m2.expected')}>{longDate(order.expectedDeliveryDate)}</Field>
 
@@ -702,7 +736,15 @@ export default function OrderQueue(): React.JSX.Element {
                 <Money value={order.discountPaise} size="cell" />
               </Field>
               <Field label={t('m2.tax')}>
-                <Money value={order.taxPaise} size="cell" />
+                <Stack gap={1}>
+                  <Money value={order.taxPaise} size="cell" />
+                  {/* DOS-079: cess is INSIDE the tax, so the figure above is not GST alone. */}
+                  {order.cessPaise > 0 ? (
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('m2.cessInside', { amount: formatINR(paise(order.cessPaise)) })}
+                    </Txt>
+                  ) : null}
+                </Stack>
               </Field>
               <Field label={t('m2.total')}>
                 <Money value={order.totalPaise} size="moneyM" />

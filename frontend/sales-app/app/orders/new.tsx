@@ -21,12 +21,14 @@
  * NOT ONE COST, MARGIN OR LANDED PRICE (docs/23 §3.3). `tenant_product_costs` is not in this role's
  * manifest and `tenantCatalog.costs` refuses a salesperson, so there is nothing here to leak.
  */
+import type { OrderShortage } from '@dos/contracts'
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { useNeedsAttention, useRow, useSyncEngine } from '@dos/offline/react'
 import { formatINR, formatQty, paise, pieces, uuidv7 } from '@dos/domain'
 import {
   Box,
   Button,
+  caseLine,
   EmptyState,
   Group,
   Money,
@@ -225,7 +227,12 @@ export default function OrderEntry(): React.JSX.Element {
           lines: draft.lines.filter((line) => line.qtyPcs > 0),
           catalog: byVariant,
         })
-        return { id: draft.id, queued: true as const, priceChanges: [] as PriceChange[] }
+        return {
+          id: draft.id,
+          queued: true as const,
+          priceChanges: [] as PriceChange[],
+          shortages: [] as OrderShortage[],
+        }
       }
 
       /*
@@ -252,13 +259,23 @@ export default function OrderEntry(): React.JSX.Element {
        */
       const priceChanges =
         quote.result === null ? [] : diffQuoteVsOrder(quote.result.lines, created.item.lines)
-      await api.api.orders.submit({
+      const submitted = await api.api.orders.submit({
         id: draft.id,
         idempotencyKey: `${draft.id}:submit`,
         deviceId: deviceId(),
       })
       void meta
-      return { id: draft.id, queued: false as const, priceChanges }
+      /*
+       * DOS-078: the godown's answer, from the submit reply the tap already has. An order beyond what
+       * the godown holds is never refused (UX-00 §6.4) — it confirms short — so the rep is told at the
+       * counter, while they can still say "the rest follows" instead of the shop finding out at the door.
+       */
+      return {
+        id: draft.id,
+        queued: false as const,
+        priceChanges,
+        shortages: submitted.item.stockShortages,
+      }
     },
     {
       invalidates: [['orders']],
@@ -475,6 +492,26 @@ export default function OrderEntry(): React.JSX.Element {
                   {place.data?.priceChanges.map((change) => (
                     <Txt key={change.variantId} field="body" desk="body">
                       {describePriceChange(change)}
+                    </Txt>
+                  ))}
+                </Stack>
+              )}
+              {(place.data?.shortages.length ?? 0) === 0 ? null : (
+                <Stack gap={1}>
+                  <Txt field="label" desk="meta" color={colors.status.ochre.fg}>
+                    {t('s3.shortAtGodown', { count: place.data?.shortages.length ?? 0 })}
+                  </Txt>
+                  {place.data?.shortages.map((short) => (
+                    <Txt key={short.lineId} field="body" desk="body">
+                      {`${byVariant.get(short.variantId)?.name ?? short.variantId.slice(0, 8)} — ${
+                        short.reservedPcs === 0
+                          ? t('s3.noneInStock')
+                          : caseLine(
+                              short.shortQtyPcs,
+                              byVariant.get(short.variantId)?.caseSize ?? 1,
+                              t,
+                            )
+                      }`}
                     </Txt>
                   ))}
                 </Stack>

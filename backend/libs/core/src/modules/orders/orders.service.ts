@@ -347,7 +347,9 @@ export class OrdersService {
    * warehouse decides what to do with a shortage, not the API.
    */
   async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
-    if (order.state === 'confirmed') return { item: await this.detail(tx, order), shortages: [] }
+    // DOS-078: an idempotent re-confirm reads the stored record back, never an empty list.
+    if (order.state === 'confirmed')
+      return { item: await this.detail(tx, order), shortages: order.stockShortages }
     const to = transition(order.state, 'confirm')
     const waiting = await tx
       .select({ id: approvals.id, kind: approvals.kind })
@@ -420,6 +422,9 @@ export class OrdersService {
         ...(repriced?.totals ?? {}),
         state: to,
         fulfilFromLocationId: locationId,
+        // DOS-078: what the godown could not hold is RECORDED on the order — never a refusal, never a
+        // clamp, never a new gate — so the desk sees it before pack instead of only the caller who confirmed.
+        stockShortages: shortages,
         confirmedAt: now,
         updatedAt: now,
       })
