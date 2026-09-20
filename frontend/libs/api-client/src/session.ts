@@ -140,6 +140,13 @@ function isPlatformAdminLevel(value: unknown): value is PlatformAdminLevel {
 abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
   #state: { readonly session: S | null; readonly hydrating: boolean }
   #accessToken: string | null = null
+  /**
+   * WHEN THE TOKEN IN MEMORY DIES (DOS-089), as epoch ms — null when nothing has been settled since this store
+   * was built (a restored snapshot has a session and no access token until the boot refresh answers). Every pair
+   * the server sends carries `accessExpiresIn`; before this it was parsed and thrown away, so the client learned
+   * the token had expired only from the 401 the next call earned.
+   */
+  #accessExpiresAt: number | null = null
   readonly #listeners = new Set<() => void>()
   protected readonly storage: TokenStorage
 
@@ -188,6 +195,11 @@ abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
     return this.#accessToken
   }
 
+  /** Epoch ms at which the token in memory stops being accepted; null when there is nothing to say. */
+  get accessExpiresAt(): number | null {
+    return this.#accessExpiresAt
+  }
+
   get refreshToken(): string | null {
     return this.storage.getRefreshToken()
   }
@@ -197,8 +209,17 @@ abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
     return this.storage.getRefreshToken() !== null
   }
 
-  protected settle(session: S, accessToken: string, refreshToken: string): void {
+  protected settle(
+    session: S,
+    accessToken: string,
+    refreshToken: string,
+    accessExpiresIn?: number,
+  ): void {
     this.#accessToken = accessToken
+    this.#accessExpiresAt =
+      typeof accessExpiresIn === 'number' && accessExpiresIn > 0
+        ? Date.now() + accessExpiresIn * 1000
+        : null
     this.storage.setRefreshToken(refreshToken)
     this.storage.setItem(SNAPSHOT_KEY, JSON.stringify(session))
     this.emit({ session, hydrating: false })
@@ -206,6 +227,7 @@ abstract class BaseSessionStore<S extends { readonly user: AuthUser }> {
 
   clear(): void {
     this.#accessToken = null
+    this.#accessExpiresAt = null
     this.storage.setRefreshToken(null)
     this.storage.setItem(SNAPSHOT_KEY, null)
     this.emit({ session: null, hydrating: false })
@@ -238,7 +260,7 @@ export class SessionStore extends BaseSessionStore<Session> {
 
   /** login, refresh and switch-tenant all resolve a fresh pair; they all land here. */
   applyTokens(pair: TokenPair): void {
-    this.settle(toSession(pair), pair.accessToken, pair.refreshToken)
+    this.settle(toSession(pair), pair.accessToken, pair.refreshToken, pair.accessExpiresIn)
   }
 
   /** After changePassword: the same session, with `mustChangePassword` cleared. */
@@ -272,6 +294,7 @@ export class PlatformSessionStore extends BaseSessionStore<PlatformSession> {
       { user: pair.user, role: pair.role, level: pair.level },
       pair.accessToken,
       pair.refreshToken,
+      pair.accessExpiresIn,
     )
   }
 

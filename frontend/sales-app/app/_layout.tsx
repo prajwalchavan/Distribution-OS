@@ -199,16 +199,20 @@ function Shell(): React.JSX.Element {
   /**
    * ONE `<OfflineProvider>`, ABOVE the gate — not inside it.
    *
-   * It used to sit in the signed-in branch only, and that cost a rep their queue. `hydrating` flips
-   * true whenever the client refreshes the access token; the branch above returned a bare skeleton
-   * for that frame, which UNMOUNTED the provider, stopped the engine and threw away its store — and
-   * on the web fallback that store is in memory (docs/27 §2), so five queued lines and a whole pull
-   * went with it. Measured: queue an order in a dead spot, let the token refresh fail (which is what
-   * a dead spot does), and the needs-attention tray reads "0 waiting" over an order the rep was told
-   * was saved.
+   * It used to sit in the signed-in branch only, and that cost a rep their queue: the branch above
+   * returns a bare skeleton while the session settles, which UNMOUNTED the provider, stopped the engine
+   * and threw away its store — and on the web fallback that store is in memory (docs/27 §2), so five
+   * queued lines and a whole pull went with it. Measured: queue an order in a dead spot, reload, and the
+   * needs-attention tray reads "0 waiting" over an order the rep was told was saved.
    *
    * So the provider is mounted for the life of the app and switched with `enabled`. A signed-out app
    * runs no engine; a signed-in one runs exactly one, whatever the gate is rendering underneath.
+   *
+   * AND NOT WHILE `hydrating` (DOS-089). `SessionStore` sets that flag in its constructor and nowhere else:
+   * it is true for exactly one window, a cold start with a remembered session, where there is a person and
+   * no access token yet. Starting the engine into it meant the first thing every launch did was
+   * `GET /sync/manifest` with no Authorization header — a 401, a refresh, and the same call again. The
+   * provider still stays mounted through it; only the engine waits, which is the whole of the fix.
    */
   const content = hydrating ? (
     <Screen>
@@ -266,7 +270,10 @@ function Shell(): React.JSX.Element {
 
   return (
     <ThemeProvider touch={APP.touch} density={APP.density} tenant={tenantBrand} strings={strings}>
-      <Offline identity={identity} enabled={session !== null && !mustChangePassword && !wrongRole}>
+      <Offline
+        identity={identity}
+        enabled={session !== null && !hydrating && !mustChangePassword && !wrongRole}
+      >
         {content}
       </Offline>
     </ThemeProvider>
