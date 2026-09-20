@@ -455,7 +455,29 @@ export default function PickingSheet(): React.JSX.Element {
             expected={ask > 0 ? ask : null}
             expectedLabel={t('w5.bin', { pieces: ask })}
             onChange={setShortPieces}
-            doneLabel={t('w5.short')}
+            /*
+             * AND THE BUTTON THAT WAS PRESSED SAYS IT TOO (DOS-118, merge review).
+             *
+             * Above the pad is where a refusal belongs, and on a phone it is also a whole keypad
+             * away from the button that was pressed: this sheet's body scrolls on both renderers
+             * (`native/feedback.tsx` ScrollView at maxHeight 86%, `web/feedback.tsx` overflowY at
+             * 80vh) and DOS-152 measured this very sheet overflowing on a Pixel 7. A picker who has
+             * scrolled down far enough to reach Short is looking at the BOTTOM of the content, with
+             * the sentence a pad-height above the top of the viewport — DOS-118's own "press Short,
+             * nothing happens" all over again, one screenful higher.
+             *
+             * `NumberPadProps` renders exactly one thing at the bottom of the pad, and it is this
+             * label. So the button wears the refusal — the kit's own `disabledReason` idea said
+             * through the one prop the contract offers — and the full sentence stays where DOS-118
+             * put it. Whatever part of the sheet the picker can see, one of the two is in it.
+             */
+            doneLabel={
+              overAsk
+                ? t('w5.shortOverAsk')
+                : needsReason
+                  ? t('w5.shortNeedsReason')
+                  : t('w5.short')
+            }
             onDone={saveShort}
           />
         </Stack>

@@ -304,6 +304,14 @@ export const strings = {
   'w5.bin': 'Requested {pieces} pc',
   'w5.enterPieces': 'Pieces picked',
   'w5.overAsk': 'This batch asks for {pieces} pc. Count again — more cannot be saved on this line.',
+  /*
+   * The two labels the pad's OWN button wears while the save would be refused (DOS-118, merge
+   * review). The sentences above the pad say the whole of it; these say it where the thumb is, for
+   * a picker whose scrolled view of a tall sheet holds the keypad and nothing above it. Short
+   * enough to sit on one button line at 390 px.
+   */
+  'w5.shortOverAsk': 'Too many pieces',
+  'w5.shortNeedsReason': 'Choose a reason',
   'w5.pickedAll': 'Picked in full',
   'w5.status': 'Sheet is {status}',
   'w5.offlineNote': 'Picks are saved on this phone and sent when there is a signal.',
