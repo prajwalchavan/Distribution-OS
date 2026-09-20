@@ -40,6 +40,7 @@ import { location } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
+import { isNewShop } from '../../src/lib/behaviour'
 import { dueKey, longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import {
@@ -98,6 +99,13 @@ export default function ShopCard(): React.JSX.Element {
     () => api.api.receivables.outstanding.get({ retailerId }),
     { enabled: retailerId !== '' && tab === 'bills', staleTime: 60_000 },
   )
+
+  /*
+   * DOS-093: `behaviour` is a 404 `behaviour_not_computed` until the nightly rollup has seen the
+   * shop — the contract's own answer for a shop added this morning. It is not a fault, so it does
+   * not go through `<Async>`, which draws an ErrorState and a Retry that could only fail again.
+   */
+  const newShop = isNewShop(behaviour.error)
 
   const beatName = beats.find((beat) => beat.id === shop?.beat_id)?.name ?? null
 
@@ -244,26 +252,32 @@ export default function ShopCard(): React.JSX.Element {
             )}
 
             <Panel title={t('s2.habits')} meta={local.online ? undefined : t('s0.needsSignal')}>
-              <Async state={[behaviour]} rows={3}>
-                <Row gap={4} wrap>
-                  <Field label={t('s2.ordersLast30')}>
-                    {behaviour.data?.item.ordersLast30 ?? 0}
-                  </Field>
-                  <Field label={t('s2.valueLast30')}>
-                    <Money value={behaviour.data?.item.valueLast30Paise ?? null} size="moneyM" />
-                  </Field>
-                  <Field label={t('s2.avgDaysToPay')}>
-                    {behaviour.data?.item.avgDaysToPay ?? '—'}
-                  </Field>
-                  <Field label={t('s2.lapsedRisk')}>
-                    <StatusChip
-                      label={`${String(behaviour.data?.item.lapsedRisk ?? 0)}%`}
-                      family={(behaviour.data?.item.lapsedRisk ?? 0) >= 50 ? 'brick' : 'moss'}
-                      figure
-                    />
-                  </Field>
-                </Row>
-              </Async>
+              {newShop ? (
+                <Txt testID="shop-new" field="body" desk="body" color={colors.text.secondary}>
+                  {t('s2.newShop')}
+                </Txt>
+              ) : (
+                <Async state={[behaviour]} rows={3}>
+                  <Row gap={4} wrap>
+                    <Field label={t('s2.ordersLast30')}>
+                      {behaviour.data?.item.ordersLast30 ?? 0}
+                    </Field>
+                    <Field label={t('s2.valueLast30')}>
+                      <Money value={behaviour.data?.item.valueLast30Paise ?? null} size="moneyM" />
+                    </Field>
+                    <Field label={t('s2.avgDaysToPay')}>
+                      {behaviour.data?.item.avgDaysToPay ?? '—'}
+                    </Field>
+                    <Field label={t('s2.lapsedRisk')}>
+                      <StatusChip
+                        label={`${String(behaviour.data?.item.lapsedRisk ?? 0)}%`}
+                        family={(behaviour.data?.item.lapsedRisk ?? 0) >= 50 ? 'brick' : 'moss'}
+                        figure
+                      />
+                    </Field>
+                  </Row>
+                </Async>
+              )}
             </Panel>
 
             <Panel title={t('s2.contact')}>

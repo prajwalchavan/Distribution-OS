@@ -155,6 +155,11 @@ export const strings = {
   's2.terms': 'Terms',
   's2.creditRunsAtSubmit':
     'The office checks the credit ({mode}) when the order is submitted, not here.',
+  /*
+   * DOS-093 — a shop added this morning has no rollup yet, and `behaviour` answers 404
+   * `behaviour_not_computed`. That is the contract's own answer, not a fault: it is a sentence.
+   */
+  's2.newShop': 'New shop — no orders yet, so there is nothing to show here until it buys.',
   's2.schemes': 'Schemes this shop is in',
   /* DOS-088: all of them, not the six that happened to be first — so the panel says how many. */
   's2.schemesMeta': '{count} live today. The price screen applies them.',
