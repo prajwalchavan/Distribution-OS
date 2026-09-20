@@ -38,11 +38,54 @@ const describeDb = url ? describe : describe.skip
 
 /**
  * "No money reached the shed": any JSON KEY naming a rate, a taxable value, a cost or paise. Anchored
- * to keys so it cannot be satisfied — or tripped — by an English word in a value ("generated",
- * "separate", "operate" all contain "rate"); the token must end the key or be followed by a new
- * camelCase word, so `ratePaise`, `taxableValuePaise`, `costPaise`, `unitRate` all match.
+ * to keys so it cannot be satisfied — or tripped — by an English word in a value, and anchored to the
+ * camelCase WORD so it cannot be tripped by one spelled inside a key either: the token must begin the
+ * key in lowercase or appear capitalised, so `ratePaise`, `taxableValuePaise`, `costPaise` and
+ * `unitRate` all match while `generatedAt`, `operatedBy`, `separateFlag` and `corporateName` — each
+ * of which merely contains "rate" mid-word — do not.
  */
-const MONEY_FIELD = /"[a-zA-Z]*(?:[Pp]aise|[Rr]ate|[Cc]ost|[Tt]axable)(?:[A-Z][a-zA-Z]*)?"\s*:/
+const MONEY_FIELD =
+  /"(?:(?:paise|rate|cost|taxable)|[a-zA-Z0-9]*[a-z0-9](?:Paise|Rate|Cost|Taxable))[a-zA-Z0-9]*"\s*:/
+
+/**
+ * The guard's own guard (merge review, 2026-09-20): a money token counts only when it STARTS a
+ * camelCase word — it begins the key in lowercase, or it appears capitalised. An English word that
+ * merely spells one inside itself ("generated", "operated", "separate", "corporate") must neither
+ * satisfy the guard nor trip it, in a key or in a value.
+ */
+describe('the money guard itself', () => {
+  it('matches every money key and no key that merely spells one', () => {
+    for (const key of [
+      'paise',
+      'rate',
+      'cost',
+      'taxable',
+      'ratePaise',
+      'unitRate',
+      'costPaise',
+      'mrpPaise',
+      'cgstPaise',
+      'landedCostPaise',
+      'totalCostPaise',
+      'taxableValuePaise',
+    ]) {
+      expect(`{"${key}": 1}`).toMatch(MONEY_FIELD)
+    }
+    for (const key of [
+      'generatedAt',
+      'operatedBy',
+      'separateFlag',
+      'separateLine',
+      'corporateName',
+      'lineCount',
+      'expectedQtyPcs',
+      'createdAt',
+    ]) {
+      expect(`{"${key}": 1}`).not.toMatch(MONEY_FIELD)
+    }
+    expect('{"note": "generated and separate, operated by the rate desk"}').not.toMatch(MONEY_FIELD)
+  })
+})
 
 type GrnLine = {
   id: string
