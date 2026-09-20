@@ -122,7 +122,8 @@ describe('useRefusal — the rule a manager surface follows to show a refused wr
     // refused at once because another manager holds the review lock, then re-match comes back.
     const lock = refusal(
       'CONFLICT',
-      'Sunil Tarsun is reviewing this document (until 2026-10-12T00:00:00.000Z)',
+      // The service writes the lock time in IST since DOS-141; this is its sentence verbatim.
+      'Sunil Tarsun is reviewing this document (until 12 Oct, 12:00 am)',
     )
     const rerun = refusal('CONFLICT', 'a reviewed document cannot be re-matched')
 
@@ -199,5 +200,37 @@ describe('useRefusal — the rule a manager surface follows to show a refused wr
     // The same refusal is shown again only if it arrives again; a scope change on its own shows nothing.
     const back = frames([[failed(onThisBill)], [failed(onThisBill)]], ['INV/0635', 'INV/0634'])
     expect(back.shown).toEqual([undefined, undefined])
+  })
+})
+
+/**
+ * DOS-136 — the one refusal on these surfaces that is not written for a person.
+ *
+ * Every other sentence a service sends is business language the client passes straight through. The
+ * platform's own idempotency guard is the exception: "idempotencyKey was already used with a different
+ * request" is a developer's line, and it reached an accountant pressing "Bank it" a second time after
+ * the reply to the first press was dropped — over money that was already in the bank.
+ */
+describe('DOS-136 — a reused idempotency key reaches the desk as a sentence', () => {
+  const ALREADY_SAVED = 'This was already saved. Close this and open it again to see it.'
+
+  it('says the write was already saved instead of naming the idempotency key', () => {
+    const error = refusal('CONFLICT', 'idempotencyKey was already used with a different request')
+    expect(error.kind).toBe('conflict')
+    expect(error.message).toBe(ALREADY_SAVED)
+  })
+
+  it('reads the same when the service sends it in the body, as the transport really does', () => {
+    const error = toApiError(
+      new ORPCError('CONFLICT', {
+        message: 'Conflict',
+        data: { body: { message: 'idempotencyKey was already used with a different request' } },
+      }),
+    )
+    expect(error.message).toBe(ALREADY_SAVED)
+  })
+
+  it("leaves a business 409 in the service's own words", () => {
+    expect(refusal('CONFLICT', WAVE_409).message).toBe(WAVE_409)
   })
 })

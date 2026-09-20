@@ -341,7 +341,9 @@ Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps.
 - **S11 Catalog & stock browse, deals to pitch** — `tenantCatalog.list` ✓, `catalog.search` ✓,
   `inventory.stock.availability` ✓ (the stock chip and the "In stock" view: godown total per item, DOS-074),
   `pricing.schemes.list` on=today ✓.
-- **S12 Pending bills of a shop (read-only chip)** — `billing.invoices.list/get` ✓ by matrix, wiring ✗ on sales-service.
+- **S12 Pending bills of a shop** — `receivables.outstanding.get` ✓ for the list; `billing.invoices.get` / `.pdf` ✓ (ANY_MEMBER,
+  and the `billing` key IS on sales-service since e934e8e). S12b opens one bill and its server-rendered PDF (DOS-091); the due
+  line reads the SIGN of `OpenBill.ageDays` ("2 days overdue" vs "in 2 days"), never the bare number.
 - **S13 Inbox** — `notifications.messages.list/markRead`, `notifications.inbound.list/markHandled`,
   `notifications.pushTokens.register` (planned).
 - **S14 Me** — X4.
@@ -404,15 +406,21 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `warehouse.packs.list` status=awaiting_load ✓ (packed, on no draft or confirmed sheet, newest pack first; DOS-133),
   `warehouse.challans.get/list` ✓, `inventory.locations.list` kind=vehicle ✓, `delivery.vehicles.list` (planned).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
+  The count is blind on both halves: the per-order carton figures appear only once the crew has keyed its own count (DOS-049),
+  and each `source = 'van'` lot takes its own blind count which the confirm sends as `countedVanStock` — the check-out is refused
+  until every van lot has a figure, because since DOS-039 that count is the only stock the load-out moves (DOS-121).
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
 transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` ✓. MISSING: `inventory.cycleCounts.*`, `expiringBefore`.
   Adjust: reductions only for the warehouse role; opening stock and additions are the desk's (DOS-044).
 - **W9 Van check-in count (stock counted back)** — the crew's unsold stock is counted at the gate; the settlement itself is desk
   work. Calls: `inventory.stock.balances` locationId=vehicle ✓, `delivery.trips.settlementPreview` ✗ (planned roles exclude
-  warehouse) — the warehouse app shows expected van stock from balances instead.
+  warehouse) — the warehouse app shows expected van stock from balances instead, listing only the lots the vehicle still holds
+  (a balance row stays at zero once a lot has stood there; a "0 pc" row is not expected on the vehicle — DOS-049).
 - **W10 Trips: create, start loading** — `delivery.trips.create/startLoading/list/get` (planned, warehouse included).
 - **W11 Reservations (what is held for whom)** — `warehouse.reservations.list` ✓; `release` ✗ by design.
-- **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned).
+- **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned). The inbox is the notices addressed to
+  the person signed in: `messages.list` scopes a warehouse login to `recipient_user_id = actor` (DOS-052 — it used to answer the
+  distributor's whole outbound log to its SHOPS, order values and all). The crew is not narrowed; it sends bills at the door.
 
 ### 4.2 Graphs
 
@@ -427,6 +435,8 @@ None beyond counts on W1 (a `<Sparkline>` of packs per day from `reporting.regis
   Consequence for the frontend: either (a) load-out confirm lives in the manager app (M7) and the warehouse app's W7 is read-only
   "waiting for manager", or (b) an `auth.stepUp` procedure (manager username + PIN on the warehouse device → short-lived
   manager token scoped to `loadSheets.confirm`) is added and warehouse-service accepts it. Decision needed; (a) needs no backend.
+- `retailers.get/list` answer the warehouse role the PUBLIC shop (name, owner, phone, address, GST, terms) and no credit block —
+  no tier, limit, bills, days, mode, code, identity or onboarded-by (DOS-052). W6 needs the name on the carton and nothing else.
 - Can but no screen (wider than the app): `retailers.upsert`, `retailers.beats.upsert/assign`, `retailers.visits.record`,
   `catalog.propose`, `tenantCatalog.suppliers`. The order writes (`orders.create/setLines/submit/repeatLast`, a loader placing and
   submitting orders): closed by DOS-115 (2026-09-13).
@@ -467,7 +477,9 @@ The whole `delivery` contract is **planned** (docs/plans/delivery.md §2); calls
   `delivery.collections.record` (planned, wraps `receivables.receipts.create` ✓), `billing.invoices.upiQr` ✓,
   `receivables.receipts.get` ✓, `receivables.receipts.list` tripId ✓. MISSING: receipt document to share (see receivables gaps).
 - **D6 Van sale (order from vehicle stock, invoice at the door)** — Calls: `delivery.vanSales.create` (planned, one transaction),
-  `inventory.stock.balances` locationId=vehicle ✓, `inventory.stock.sellable` ✓, `pricing.quote` ✓, `receivables.creditCheck` ✓,
+  `inventory.stock.balances` locationId=vehicle ✓, `inventory.stock.sellable` locationId=vehicle ✓ (DOS-140: `sellable` answers the
+  godowns, and a VEHICLE only when that vehicle is the `locationId` asked for — this screen's read; the damaged / expiry bin, goods
+  in transit and a customer location are never sellable, named or not), `pricing.quote` ✓, `receivables.creditCheck` ✓,
   `billing.invoices.issueVanSale` ✓ (DOORSTEP), `delivery.stops.add` (planned). Plan correction: docs/plans/delivery.md §2 bills the
   van sale from a per-vehicle `VAN-<reg>` series with `allocation_mode = 'device'`; docs/17 §D5 removed that — it must call
   `BillingService` on the tenant's normal series exactly as `billing.invoices.issueVanSale` already does.
@@ -497,8 +509,12 @@ None required. D8 shows totals only; D11 may show own on-time rate (`deliveryPer
   `pricing.bargains.request`, `inventory.stock.ledger`, `tenantCatalog.suppliers`. The order writes (`orders.create/submit` for
   non-van orders): closed by DOS-115 (2026-09-13).
   Recommendation: drop `delivery` from `outstanding.list`; move retailer/beat/visit writes off STAFF.
-- `retailers.get` returns the staff shape (code, tier, credit limit, credit days, mode) to the crew; the ROLE_GROUPS comment says
-  credit terms are back-office. The crew needs `creditMode` and dues, not the limit. Field-level narrowing to consider.
+- CLOSED (DOS-072, batch 2): `retailers.get/list` answer the delivery role the PUBLIC shop — name, owner, phone, alt phone,
+  address, GST, payment terms — and no credit block, code, identity or onboarded-by (`toView`, shared with DOS-052's warehouse
+  half). The DEVICE copy is narrowed with it: the `retailers` pull omits `credit_limit_paise`, `credit_limit_bills`,
+  `credit_days` and `tier` for this role and KEEPS `credit_mode`, which with `retailer_outstanding_summary` is the money the door
+  needs. The manifest is built from the same omit, so the schema hash changes and a device that held those columns re-snapshots.
+  The rep's copy is untouched: it quotes and warns against the limit offline.
 
 ### 5.4 Offline (must work before the pilot)
 
@@ -571,7 +587,8 @@ R3: `<AgeingBuckets>` from `outstanding.get.buckets` ✓. Nothing else (a shop n
 - Needs but cannot: `orders.submit` (STAFF), `pricing.schemes.list` (STAFF), `pricing.bargains.list` (STAFF), `retailers.upsert`
   (STAFF). Everything else the screens call is ANY_MEMBER / MONEY_READERS / SHOPKEEPER_ONLY ✓ with RLS narrowing.
 - Can but no screen: `catalog.manufacturers`, `inventory.stock.sellable` per-lot rows (batch, MRP, expiry to a shop — acceptable,
-  it is ATP), `orders.cancel` on own draft/submitted ✓ (R8 needs it).
+  it is ATP, and since DOS-140 it is godown rows only: no damaged-bin, in-transit or vehicle piece is ever offered to a shop or a
+  rep), `orders.cancel` on own draft/submitted ✓ (R8 needs it).
 - Directory opt-in (`directory_optins` table) has no procedure — post-pilot, not a pilot gap.
 
 ### 6.4 Offline
@@ -962,6 +979,7 @@ would break the gate that is running.
 | 13  | `admin.audit.list`                                                                                       | rows carry `tenantSlug` but no `tenantName`, and `actorId` + `actorRole` but no `actorName`, so the audit register prints a handle (`tarsun`) where every other screen prints "M/s. Tarsun Enterprise", and a column headed "Who" that answers "Distribution OS staff" on every row. `support.list` already joins `requestedByName`; there are 100+ platform users in a developer's database, so the app cannot build the directory itself | `tenantName` and `actorName` on the audit row, the same join `support.list` does. **Done (DOS-109):** both are on the row, `actorName` resolved through `dos_support_requester_names()` (migration 0037) and `tenantName` from `tenants.legal_name`; `admin.tenants.get` names each support window's requester the same way |
 | 14  | `admin.users` (`disable`, no enable)                                                                     | the platform kill switch is one-way from the console: nothing in the product sets `users.status` back to `active` (only `pnpm db:seed`'s `restoreDemoAccess`)                                                                                                                                                                                                              | an audited `admin.users.enable`, the same shape as `disable`. **Done (DOS-107):** `POST /admin/users/{id}/enable`, super only, reason mandatory and audited as `user.enabled`; it restores `users.status` only (the sessions the lock ended stay ended; memberships, `platform_admins` and the password-failure lock are untouched) and is a no-op with no audit row on a login that is not locked. The People panel offers "Unlock this login" on a locked person, and both confirmations name every distributorship the press spans |
 | 15  | `tenancy.me` under a support pass                                                                        | answers **401 "No active membership for this tenant"** through a perfectly valid pass — the procedure reads the ACTOR's membership row and a console session has none anywhere. Verified by hand: `GET /tenancy/branding` through the same pass is 200, a write is 403 "this support window is read-only", and the pass on :3007 itself is 403. The console asks for branding and numbering instead                                     | either answer `tenancy.me` from the borrowed owner, or say in the contract that it is not pass-reachable |
+| 16  | owner-app Settings (`frontend/owner-app/app/settings/index.tsx:537-550`)                                  | the owner has no control for `delivery.expense_proof_min_paise`; only `settings.set` moves it and the ₹200 default holds                                                                                                                                                                                                                                                            | lean-retailer-platform (19): a Money field beside `delivery.pod_required`, 0 = every expense (DOS-071)   |
 
 Three data-quality items on the demo database, same slice:
 

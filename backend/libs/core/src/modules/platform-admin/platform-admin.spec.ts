@@ -3,6 +3,7 @@ import { PLATFORM_AUDIT_ACTIONS, allProcedures, contract } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   accounts,
+  auditLog,
   authSessions,
   createDb,
   createPool,
@@ -784,7 +785,175 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
     expect(res.json<{ message: string }>().message).toContain('console session')
   })
 
+  /**
+   * DOS-111 — "audited" has to cut BOTH ways.
+   *
+   * Every call made under a window already writes a `platform_audit` row, which only Distribution OS
+   * can read. The distributor who OPENED the window could see nothing of it: its own `audit_log` —
+   * the table behind `tenancy.audit.list`, the owner's Settings › Audit — recorded the approval and
+   * the revocation and not one of the reads in between, so an owner could not check that support
+   * stayed on the ticket it named while it read purchase costs and every shop's dues.
+   *
+   * The same interceptor, a second insert, under `withSystem` (the request is running as the
+   * distributor's OWNER, and the trail must not depend on that borrowed role). The row hangs off the
+   * grant — `support_grant` / the grant id — so it sits beside the `support.approve` and
+   * `support.revoke` rows the owner's own decisions wrote, and it names the platform actor by role.
+   */
+  it('DOS-111: a read under a support window is written into the distributor’s OWN audit_log, under the grant', async () => {
+    const grantId = uuidv7()
+    await db.insert(supportGrants).values({
+      id: grantId,
+      tenantId,
+      adminUserId,
+      requestedAt: new Date(),
+      requestedHours: 4,
+      reason: 'Ticket #4207: the August GST register does not tie to the sales register.',
+      approvedBy: ownerId,
+      approvedAt: new Date(),
+      expiresAt: new Date(Date.now() + HOUR_MS),
+      scope: 'read',
+    })
+    const pass = await consoleCall<{ pass: string }>('POST', '/auth/platform/support-pass', {
+      grantId,
+    })
+    expect(pass.status).toBe(200)
+
+    const shops = await consoleCall<{ items: unknown[] }>(
+      'GET',
+      '/retailers',
+      undefined,
+      pass.body.pass,
+    )
+    expect(shops.status).toBe(200)
+
+    // The tenant's own trail carries the read: the platform actor, the route, the grant it was made
+    // under. It lands just after the reply, like its platform sibling, so this polls too.
+    const written = await waitFor(async () => {
+      const rows = await db
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), eq(auditLog.entityId, grantId)))
+      return rows.some((row) => row.action === 'support.read')
+    })
+    expect(written).toBe(true)
+    const [row] = (
+      await db
+        .select()
+        .from(auditLog)
+        .where(and(eq(auditLog.tenantId, tenantId), eq(auditLog.entityId, grantId)))
+    ).filter((r) => r.action === 'support.read')
+    expect({
+      actorId: row?.actorId,
+      actorRole: row?.actorRole,
+      entityType: row?.entityType,
+      route: (row?.after as Record<string, unknown> | null)?.['route'],
+      outcome: (row?.after as Record<string, unknown> | null)?.['outcome'],
+    }).toEqual({
+      actorId: adminUserId,
+      actorRole: 'platform_admin',
+      entityType: 'support_grant',
+      route: 'GET /retailers',
+      outcome: 'ok',
+    })
+
+    // …and the OWNER reads it back through their own audit list, under the grant.
+    const seen = await call<{ items: { action: string; entityId: string; actorRole: string }[] }>(
+      app,
+      owner,
+      'GET',
+      '/tenancy/audit',
+      { entityType: 'support_grant', entityId: grantId, action: 'support.read', limit: 20 },
+    )
+    expect(seen.status).toBe(200)
+    expect(
+      seen.body.items.filter((item) => item.action === 'support.read' && item.entityId === grantId)
+        .length,
+    ).toBeGreaterThan(0)
+  })
+
   // ---------------------------------------------------------------- subscriptions, users, metrics
+
+  /**
+   * DOS-110 — the console and the owner's service must agree on what a request IS.
+   *
+   * An ask is openable only inside the hours it asked for, counted from the ask itself; past that,
+   * `tenancy.support.approve` answers 409 `request_expired`. Both list endpoints nevertheless called
+   * it `requested` for ever, so the console's home tile counted asks nobody could answer, its
+   * "Waiting for their owner" segment listed them, and the two services would have disagreed the
+   * moment one of them learned better. One derivation, imported by both.
+   */
+  it('DOS-110: the console lists a lapsed ask as lapsed, excludes it from status=requested and openOnly, counts it under status=lapsed, revoke answers 409 request_expired, and a fresh ask reads requested on both services', async () => {
+    const lapsedId = uuidv7()
+    const requestedAt = new Date(Date.now() - 5 * HOUR_MS)
+    await db.insert(supportGrants).values({
+      id: lapsedId,
+      tenantId,
+      adminUserId,
+      requestedAt,
+      requestedHours: 4,
+      reason: 'Ticket #4390: an ask nobody answered inside the four hours it asked for.',
+      expiresAt: new Date(requestedAt.getTime() + 4 * HOUR_MS),
+      scope: 'read',
+    })
+    const freshId = uuidv7()
+    const fresh = await consoleCall<{ item: Grant }>('POST', '/admin/support-grants', {
+      idempotencyKey: `fresh-${run}`,
+      id: freshId,
+      tenantId,
+      reason: 'Ticket #4391: a request raised just now, which their owner can still answer.',
+      scope: 'read_only',
+      hours: 1,
+    })
+    expect(fresh.status, JSON.stringify(fresh.body)).toBe(200)
+    expect(fresh.body.item.status).toBe('requested')
+
+    const all = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      limit: 200,
+    })
+    expect(all.body.items.find((g) => g.id === lapsedId)?.status).toBe('lapsed')
+    expect(all.body.items.find((g) => g.id === lapsedId)?.active).toBe(false)
+
+    const waiting = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      status: 'requested',
+      limit: 200,
+    })
+    expect(waiting.body.items.map((g) => g.id)).toContain(freshId)
+    expect(waiting.body.items.map((g) => g.id)).not.toContain(lapsedId)
+    const open = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      openOnly: true,
+      limit: 200,
+    })
+    expect(open.body.items.map((g) => g.id)).not.toContain(lapsedId)
+    const lapsed = await consoleCall<{ items: Grant[] }>('GET', '/admin/support-grants', {
+      tenantId,
+      status: 'lapsed',
+      limit: 200,
+    })
+    expect(lapsed.body.items.map((g) => g.id)).toContain(lapsedId)
+    expect(lapsed.body.items.every((g) => g.status === 'lapsed')).toBe(true)
+
+    // Nothing to withdraw: the ask closed itself when its hours ran out, and `rejected` stays the
+    // word for a refusal the owner made.
+    const withdraw = await consoleCall<{ data?: { code?: string } }>(
+      'POST',
+      `/admin/support-grants/${lapsedId}/revoke`,
+      { idempotencyKey: `withdraw-${run}`, id: lapsedId },
+    )
+    expect(withdraw.status).toBe(409)
+    expect(withdraw.body.data?.code).toBe('request_expired')
+    const [untouched] = await db.select().from(supportGrants).where(eq(supportGrants.id, lapsedId))
+    expect(untouched?.revokedAt).toBeNull()
+
+    // ...and the two services read the SAME fresh ask the same way.
+    const ownerSide = await call<{ items: Grant[] }>(app, owner, 'GET', '/tenancy/support-grants', {
+      limit: 200,
+    })
+    expect(ownerSide.body.items.find((g) => g.id === freshId)?.status).toBe('requested')
+    expect(ownerSide.body.items.find((g) => g.id === lapsedId)?.status).toBe('lapsed')
+  })
 
   it('records what a distributor pays us, and keeps the plan on the tenant row in step', async () => {
     const id = uuidv7()
@@ -857,6 +1026,51 @@ describeDb('platform console — module 13 (DATABASE_URL)', () => {
       q: `p${run}.`,
     })
     expect(everyone.body.items.some((u) => u.id === ownerId)).toBe(true)
+  })
+
+  /**
+   * DOS-114 — People came back in database order.
+   *
+   * The console's directory listed 52 rows as `sandeep.mane, pilot.owner, anita.sonawane…` — the
+   * order the ids happened to be written in — and offered no sort, so finding a person meant reading
+   * every row or knowing enough of their name to search. A directory is read by NAME.
+   *
+   * The cursor stays one opaque string, as the contract already declares it: `<id>|<name>`, compared
+   * as the pair Postgres orders by, so paging cannot drop a row or hand the same person back twice
+   * when two people share a name.
+   */
+  it('DOS-114: the People directory comes back in NAME order, and pages by name without dropping or repeating anybody', async () => {
+    const ours = { q: `p${run}.` }
+    const all = await consoleCall<{ items: { id: string; name: string }[] }>(
+      'GET',
+      '/admin/users',
+      { ...ours, limit: 50 },
+    )
+    expect(all.status, JSON.stringify(all.body)).toBe(200)
+    expect(all.body.items.map((u) => u.name)).toEqual([
+      'Console colleague',
+      'Console super',
+      'Distributor manager',
+      'Distributor owner',
+    ])
+
+    // Two at a time, through the cursor the previous page returned: the same four, in the same
+    // order, and the pages do not overlap.
+    const first = await consoleCall<{
+      items: { id: string; name: string }[]
+      nextCursor: string | null
+    }>('GET', '/admin/users', { ...ours, limit: 2 })
+    expect(first.body.items.map((u) => u.name)).toEqual(['Console colleague', 'Console super'])
+    expect(first.body.nextCursor).not.toBeNull()
+    const second = await consoleCall<{
+      items: { id: string; name: string }[]
+      nextCursor: string | null
+    }>('GET', '/admin/users', { ...ours, limit: 2, cursor: first.body.nextCursor ?? '' })
+    expect(second.body.items.map((u) => u.name)).toEqual([
+      'Distributor manager',
+      'Distributor owner',
+    ])
+    expect(second.body.items.filter((u) => first.body.items.some((f) => f.id === u.id))).toEqual([])
   })
 
   it('answers counts that match the tables, and never a rupee of anybody’s trade', async () => {

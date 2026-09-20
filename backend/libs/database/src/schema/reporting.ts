@@ -62,6 +62,11 @@ export type DailyPaymentModeMix = Record<string, number>
  */
 export type OwnerSummaryDetail = {
   cashInTransitPaise?: number
+  /**
+   * DOS-016: money shops have paid that no bill has claimed yet (Σ `unallocated_credit_paise`). Every
+   * "outstanding" figure stays GROSS; this is what the books net off, so the owner can be shown both.
+   */
+  onAccountPaise?: number
   ageingB0_7?: number
   ageingB8_15?: number
   ageingB16_30?: number

@@ -29,6 +29,49 @@ import { keepKey } from '../src/lib/keep'
 import { useLeave } from '../src/lib/leave-context'
 import { Async, Panel } from '../src/lib/ui'
 
+/**
+ * A device NAME, out of what the sign-in actually stored (DOS-053).
+ *
+ * `@dos/api-client` sends the browser's user agent as `deviceName` (120 characters of it), and this list
+ * printed it: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 … HeadlessChrome/145…" as
+ * the name of the device a picker is being asked to sign out. A phone sign-in stores nothing, so those rows
+ * fell back to the platform word. Neither answers the only question this panel asks — WHICH device is this.
+ *
+ * So: name the browser and the machine when the string is a user agent, and pass anything else through. The
+ * raw string is still what the service holds; nothing is lost, it is read. Same shape as the manager, sales
+ * and retailer registers, which have had it since DOS-018.
+ */
+export function deviceLabel(name: string | null | undefined, unnamed: string): string {
+  const raw = (name ?? '').trim()
+  if (raw === '') return unnamed
+  if (!raw.startsWith('Mozilla/')) return raw
+  const browser = /\bEdg\//.test(raw)
+    ? 'Edge'
+    : /\bOPR\//.test(raw)
+      ? 'Opera'
+      : /\bChrome\//.test(raw)
+        ? 'Chrome'
+        : /\bFirefox\//.test(raw)
+          ? 'Firefox'
+          : /\bSafari\//.test(raw)
+            ? 'Safari'
+            : 'Browser'
+  const machine = /iPhone/.test(raw)
+    ? 'iPhone'
+    : /iPad/.test(raw)
+      ? 'iPad'
+      : /Android/.test(raw)
+        ? 'Android'
+        : /Macintosh|Mac OS X/.test(raw)
+          ? 'Mac'
+          : /Windows/.test(raw)
+            ? 'Windows'
+            : /Linux/.test(raw)
+              ? 'Linux'
+              : null
+  return machine === null ? browser : `${browser} on ${machine}`
+}
+
 export default function Me(): React.JSX.Element {
   const t = useStrings()
   const api = useApi()
@@ -115,7 +158,7 @@ export default function Me(): React.JSX.Element {
                 <ListRow
                   key={one.id}
                   testID={`x4-session-${one.id}`}
-                  primary={one.deviceName ?? one.platform ?? t('x4.device')}
+                  primary={deviceLabel(one.deviceName, one.platform ?? t('x4.device'))}
                   secondary={instantWithClock(one.lastUsedAt)}
                   trailing={
                     <StatusChip

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { z } from 'zod'
 import type {
   CollectionsRegisterOutput,
+  DeliveryPerformanceOutput,
   DailyRepStatsOutput,
   DailyTenantStatsOutput,
   FillRateOutput,
@@ -28,6 +29,7 @@ type Lapsed = z.infer<typeof LapsedRetailersOutput>
 type StockValue = z.infer<typeof StockValueOutput>
 type FillRate = z.infer<typeof FillRateOutput>
 type Collections = z.infer<typeof CollectionsRegisterOutput>
+type DeliveryPerf = z.infer<typeof DeliveryPerformanceOutput>
 import { businessDate, financialYear, uuidv7 } from '@dos/domain'
 import {
   ageingSnapshots,
@@ -63,12 +65,15 @@ import {
   suppliers,
   tenantProductCosts,
   tenants,
+  tripStops,
+  trips,
   users,
+  vehicles,
   withTenant,
   type Db,
   type TenantContext,
 } from '@dos/db'
-import { tenantStorage } from '../../platform/index.js'
+import { createObjectStorage, tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { rollupTenantDay } from './rollup.js'
 import { ReportingModule } from './index.js'
@@ -120,6 +125,8 @@ describeDb('reporting (DATABASE_URL)', () => {
   const lotId = uuidv7()
   const schemeCompanyId = uuidv7()
   const schemeDistributorId = uuidv7()
+  /** An APPROVED BARGAIN on the same bill line: a price the rep argued for, not a scheme (DOS-018). */
+  const bargainRuleId = uuidv7()
   const supplierId = uuidv7()
   let godown = ''
 
@@ -538,6 +545,13 @@ describeDb('reporting (DATABASE_URL)', () => {
           version: 1,
           rewardKind: 'order_pct',
           amountPaise: 800,
+        },
+        // A line carries every rule the engine applied, and only some of them are schemes.
+        {
+          kind: 'bargain' as const,
+          ruleId: bargainRuleId,
+          version: 1,
+          amountPaise: 5_000,
         },
       ],
     })
@@ -1082,6 +1096,110 @@ describeDb('reporting (DATABASE_URL)', () => {
   })
 
   /**
+   * DOS-067 — "DELIVERED ON THE FIRST ATTEMPT 0%" FOR A DRIVER WITH 104 OF 125 STOPS DELIVERED.
+   *
+   * Two faults met in that one figure. The KPI was LABELLED as a first-attempt rate and is an
+   * ON-TIME rate (`completed_at <= eta_at`), which is a different measurement of a different thing.
+   * And `performance.ts` says in its own comment that "a stop with no ETA is never counted as late
+   * (nothing was promised) and never as on time either" — while the rate divided the on-time stops
+   * by every ATTEMPTED stop, so a stop nobody ever promised a time for counted as late. A trip
+   * planned with no ETAs at all therefore reported 0% on time, which reads as a driver who is never
+   * on time rather than a day nobody put times against.
+   *
+   * The denominator is the attempted stops THAT CARRIED AN ETA. A trip with no ETA anywhere is 0/0,
+   * which the contract's own rule makes 0 — but it is now honest arithmetic instead of a verdict.
+   */
+  it('DOS-067: the on-time rate is out of the stops that carried an ETA, and a stop with none is neither', async () => {
+    const perfVehicleId = uuidv7()
+    const perfLocationId = uuidv7()
+    const tripId = uuidv7()
+    await db.insert(locations).values({
+      id: perfLocationId,
+      tenantId,
+      kind: 'vehicle',
+      name: `Tempo perf ${run}`,
+    })
+    await db.insert(vehicles).values({
+      id: perfVehicleId,
+      tenantId,
+      regNo: `MH05 P ${run}`,
+      locationId: perfLocationId,
+    })
+    await db.insert(trips).values({
+      id: tripId,
+      tenantId,
+      tripNo: `TRIP-PERF-${run}`,
+      tripDate: to,
+      vehicleId: perfVehicleId,
+      driverId: crewId,
+      state: 'settled',
+      plannedStops: 4,
+    })
+    const at = (hour: number): Date =>
+      new Date(Date.parse(`${to}T${String(hour).padStart(2, '0')}:00:00Z`))
+    await db.insert(tripStops).values([
+      // promised 10:00, done 09:30 — on time
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 1,
+        retailerId: shopA1,
+        state: 'delivered',
+        etaAt: at(10),
+        completedAt: at(9),
+      },
+      // promised 11:00, done 10:00 — on time
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 2,
+        retailerId: shopA2,
+        state: 'delivered',
+        etaAt: at(11),
+        completedAt: at(10),
+      },
+      // promised 12:00, done 13:00 — late
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 3,
+        retailerId: shopB1,
+        state: 'partial',
+        etaAt: at(12),
+        completedAt: at(13),
+      },
+      // nobody promised a time for this one: it is neither late nor on time
+      {
+        id: uuidv7(),
+        tenantId,
+        tripId,
+        sequence: 4,
+        retailerId: shopA1,
+        state: 'delivered',
+        completedAt: at(14),
+      },
+    ])
+
+    const perf = await call<DeliveryPerf>(
+      app,
+      owner,
+      'GET',
+      '/reporting/registers/delivery-performance',
+      { from, to, driverId: crewId, limit: 50 },
+    )
+    expect(perf.status).toBe(200)
+    const row = perf.body.items.find((i) => i.tripId === tripId)
+    expect(row?.stopsDelivered).toBe(3)
+    expect(row?.stopsPartial).toBe(1)
+    // Two of the THREE stops that carried an ETA, never two of the four that were attempted.
+    expect(row?.onTimeRate).toBeCloseTo(2 / 3, 6)
+    expect(perf.body.totals.onTimeRate).toBeCloseTo(2 / 3, 6)
+  })
+
+  /**
    * The gate found (2026-09-05) that three registers ordered for the READER — worst fill rate first,
    * biggest scheme spend first, trips by date — paged with a keyset cursor on an id the list is not
    * sorted by, so scrolling silently dropped rows: on the demo data fill rate answered 29 variants in
@@ -1222,6 +1340,85 @@ describeDb('reporting (DATABASE_URL)', () => {
   })
 
   /**
+   * DOS-018: `applied_rules` is every rule the pricing engine applied to a line — an override, a
+   * SCHEME, an approved bargain, a manual price (`AppliedRule.kind`, @dos/domain) — and billing's
+   * aggregate returns the kind with each row. The register counted all four as scheme spend, so the
+   * owner's Profit screen listed "Scheme fd5079b5" with no brand against it: an id, because no scheme
+   * of that id exists, because the rule was never a scheme.
+   */
+  it('DOS-018: scheme spend counts scheme rules only, and never names a row by its id', async () => {
+    const spend = await call<{
+      items: { schemeId: string; schemeName: string; brandName: string | null }[]
+      totals: { amountPaise: number }
+    }>(app, accountant, 'GET', '/reporting/registers/scheme-spend', { from, to, limit: 50 })
+    expect(spend.status).toBe(200)
+    expect(spend.body.items.map((i) => i.schemeId).sort()).toEqual(
+      [schemeCompanyId, schemeDistributorId].sort(),
+    )
+    // The bargain on the same line is 5 000 paise; the two schemes are 1 200 + 800.
+    expect(spend.body.totals.amountPaise).toBe(2_000)
+    // Every row is a scheme this distributor can name, with the brand it belongs to.
+    expect(spend.body.items.every((i) => i.schemeName !== i.schemeId)).toBe(true)
+    expect(spend.body.items.every((i) => i.brandName !== null)).toBe(true)
+  })
+
+  /**
+   * DOS-018: the owner's tile reads "{n} trips active" and the live map draws the vans that are out.
+   * The summary counted `planned` and `loading` too, so tomorrow's round — a plan with no van on the
+   * road — was counted as active and the tile said two while the map showed one. The manager's tile
+   * (m1.trips) reads the same column and is cured by the same count.
+   */
+  it('DOS-018: the owner summary counts trips on the road, not a plan for tomorrow', async () => {
+    const tripTenantId = uuidv7()
+    const vanLocationId = uuidv7()
+    const vehicleId = uuidv7()
+    await db.insert(tenants).values({
+      id: tripTenantId,
+      slug: `rep-t-${run}`,
+      legalName: 'Trips on the road',
+      stateCode: '27',
+    })
+    await db.insert(locations).values({
+      id: vanLocationId,
+      tenantId: tripTenantId,
+      kind: 'vehicle',
+      name: `Tempo ${run}`,
+    })
+    await db.insert(vehicles).values({
+      id: vehicleId,
+      tenantId: tripTenantId,
+      regNo: `MH05 T ${run}`,
+      locationId: vanLocationId,
+    })
+    await db.insert(trips).values([
+      {
+        id: uuidv7(),
+        tenantId: tripTenantId,
+        tripNo: `TRIP-${run}-1`,
+        tripDate: today,
+        vehicleId,
+        state: 'active',
+        plannedStops: 10,
+      },
+      {
+        id: uuidv7(),
+        tenantId: tripTenantId,
+        tripNo: `TRIP-${run}-2`,
+        tripDate: plusDays(today, 1),
+        vehicleId,
+        state: 'planned',
+        plannedStops: 8,
+      },
+    ])
+
+    await rollupTenantDay(db, tripTenantId, today)
+
+    const summary = await db.execute(sql`
+      select active_trips from owner_summary where tenant_id = ${tripTenantId}`)
+    expect(Number(summary.rows[0]?.active_trips)).toBe(1)
+  })
+
+  /**
    * docs/plans/reporting.md §2 and §5.14: a filing shows what actually landed. Four of the five seeded
    * supplier bills are extracted / in review / disputed / cancelled and must contribute nothing.
    */
@@ -1328,6 +1525,88 @@ describeDb('reporting (DATABASE_URL)', () => {
     expect(Number((rows.rows[0] as { n: number }).n)).toBe(1)
   })
 
+  // -----------------------------------------------------------------------------------------------
+  // DOS-014: "Export CSV" on Orders exported the daily-sales register, because there was no orders
+  // register to export. Every list the owner reads is exportable (the owner brief), so the orders list
+  // is a register of its own: one row per order, the shop and the rep named beside their ids, money in
+  // integer paise like every other register, and the same 92-day cap enforced before a job is queued.
+
+  /** The rendered file of a finished export job, read straight out of the object store. */
+  const csvOf = async (jobId: string): Promise<string> => {
+    const rows = await as(ctxFor('owner', ownerId), (tx) =>
+      tx.execute(sql`select object_key from export_jobs where id = ${jobId}`),
+    )
+    const key = (rows.rows[0] as { object_key: string | null } | undefined)?.object_key
+    expect(key).toBeTruthy()
+    return (await createObjectStorage().get(key ?? '')).toString('utf8')
+  }
+
+  it('DOS-014: an orders export renders one CSV row per order in the window with its number, shop name, state and total, honours the state filter, and refuses a window wider than 92 days with window_too_wide', async () => {
+    const id = uuidv7()
+    const queued = await call<{ item: ReportExportJob }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-${run}`,
+      id,
+      register: 'orders',
+      format: 'csv',
+      filters: { from, to },
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.item.kind).toBe('report_orders_csv')
+    expect(queued.body.item.status).toBe('succeeded')
+    expect(queued.body.item.rowCount).toBe(1)
+
+    const csv = await csvOf(id)
+    expect(csv).toContain(`SO-${run}`)
+    expect(csv).toContain(`Shop A1 ${run}`)
+    expect(csv).toContain('packed')
+    expect(csv).toContain('26880')
+    // ids travel beside the names, so the file joins to anything else the owner holds
+    expect(csv).toContain(shopA1)
+
+    // the register's own filters answer: nothing was delivered in this window
+    const empty = uuidv7()
+    const filtered = await call<{ item: ReportExportJob }>(
+      app,
+      owner,
+      'POST',
+      '/reporting/exports',
+      {
+        idempotencyKey: `exp-orders-delivered-${run}`,
+        id: empty,
+        register: 'orders',
+        format: 'csv',
+        filters: { from, to, state: 'delivered' },
+      },
+    )
+    expect(filtered.status).toBe(200)
+    expect(filtered.body.item.rowCount).toBe(0)
+
+    const wide = await call<{ code: string }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-wide-${run}`,
+      id: uuidv7(),
+      register: 'orders',
+      format: 'csv',
+      filters: { from: plusDays(to, -200), to },
+    })
+    expect(wide.status).toBe(400)
+  })
+
+  it('DOS-014: a salesperson-credited order appears in the owner’s orders export (the register is back-office scoped, not rep-scoped)', async () => {
+    const id = uuidv7()
+    const queued = await call<{ item: ReportExportJob }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-rep-${run}`,
+      id,
+      register: 'orders',
+      format: 'csv',
+      filters: { from, to, salespersonId: rep1Id },
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.item.rowCount).toBe(1)
+    const csv = await csvOf(id)
+    expect(csv).toContain('Rep One')
+    expect(csv).toContain(rep1Id)
+  })
+
   // ===============================================================================================
   // the rollup
   // ===============================================================================================
@@ -1353,6 +1632,24 @@ describeDb('reporting (DATABASE_URL)', () => {
     // The order's three lines, each picked at 80%: 96 + 192 + 48 of 120 + 240 + 60.
     expect(Number((once.day as { ordered_pcs: unknown }).ordered_pcs)).toBe(420)
     expect(Number((once.day as { picked_pcs: unknown }).picked_pcs)).toBe(336)
+  })
+
+  /**
+   * DOS-018, the same rule one layer down: the Profit screen's scheme-spend LINE comes from
+   * `daily_owner_stats`, which the rollup fills from `applied_rules` with the same
+   * everything-is-a-scheme reading the register had — a rule with no scheme behind it fell to the
+   * `company` side and made a brand look like it owed a claim for a price a rep argued for. The chart
+   * and the list on that one screen have to agree, and they have to agree about schemes.
+   */
+  it('DOS-018: the day rollup counts scheme rules only as scheme spend', async () => {
+    await rollupTenantDay(db, tenantId, to)
+    const owner = await db.execute(sql`
+      select scheme_spend_company_paise, scheme_spend_distributor_paise
+        from daily_owner_stats where tenant_id = ${tenantId} and day = ${to}`)
+    expect({
+      company: Number(owner.rows[0]?.scheme_spend_company_paise),
+      distributor: Number(owner.rows[0]?.scheme_spend_distributor_paise),
+    }).toEqual({ company: 1_200, distributor: 800 })
   })
 
   it("DOS-117: once a day carries its nightly ageing snapshot, today's rollup still takes dues from the live summary and re-running a past day keeps the closing figure it stored", async () => {
@@ -1432,6 +1729,94 @@ describeDb('reporting (DATABASE_URL)', () => {
       { day: yesterday, outstanding: 60_000, overdue: 15_000 },
       { day: weekAgo, outstanding: 30_000, overdue: 3_000 },
     ])
+  })
+
+  /*
+   * DOS-016: money a shop has paid but that no bill has claimed yet. It is netted off in the books
+   * (`outstanding − unallocated = AR`), so the owner's gross "Outstanding" and Books → Trial balance
+   * disagreed by exactly that sum and nobody could say why. The founder keeps the headline gross and
+   * puts this figure beside it (docs/22 §8), so the rollup must carry it: live, like the ageing rungs.
+   */
+  it('DOS-016: after a rollup the owner dashboard carries onAccountPaise = Σ unallocated_credit_paise, and the net of the two is what the books call AR', async () => {
+    const onAccountTenantId = uuidv7()
+    const onAccountOwnerId = uuidv7()
+    const shopOne = uuidv7()
+    const shopTwo = uuidv7()
+    await db.insert(tenants).values({
+      id: onAccountTenantId,
+      slug: `oa-${run}`,
+      legalName: 'On account',
+      stateCode: '27',
+    })
+    await db.insert(retailers).values([
+      {
+        id: shopOne,
+        tenantId: onAccountTenantId,
+        code: `OA1-${run}`,
+        name: `Shop OA1 ${run}`,
+        phone: `+91918${run}1`,
+        stateCode: '27',
+      },
+      {
+        id: shopTwo,
+        tenantId: onAccountTenantId,
+        code: `OA2-${run}`,
+        name: `Shop OA2 ${run}`,
+        phone: `+91918${run}2`,
+        stateCode: '27',
+      },
+    ])
+    await db.insert(retailerOutstandingSummary).values([
+      {
+        tenantId: onAccountTenantId,
+        retailerId: shopOne,
+        outstandingPaise: 70_000,
+        overduePaise: 20_000,
+        unallocatedCreditPaise: 5_000,
+        asOf: today,
+      },
+      {
+        tenantId: onAccountTenantId,
+        retailerId: shopTwo,
+        outstandingPaise: 30_000,
+        overduePaise: 0,
+        unallocatedCreditPaise: 2_500,
+        asOf: today,
+      },
+    ])
+    await rollupTenantDay(db, onAccountTenantId, today)
+
+    const dash = await call<OwnerDashboard>(
+      app,
+      { tenantId: onAccountTenantId, actorId: onAccountOwnerId, role: 'owner' },
+      'GET',
+      '/reporting/dashboard/owner',
+    )
+    expect(dash.status).toBe(200)
+    // the headline stays GROSS — the ageing ladder, the snapshots and the shop register all sum to it
+    expect(dash.body.totalOutstandingPaise).toBe(100_000)
+    expect(dash.body.onAccountPaise).toBe(7_500)
+    // and the net, which is the figure the books carry as Sundry Debtors
+    expect(dash.body.totalOutstandingPaise - dash.body.onAccountPaise).toBe(92_500)
+
+    // it is LIVE, like the ageing rungs: a receipt taken on account moves it on the next rollup
+    await db
+      .update(retailerOutstandingSummary)
+      .set({ unallocatedCreditPaise: 9_000 })
+      .where(
+        and(
+          eq(retailerOutstandingSummary.tenantId, onAccountTenantId),
+          eq(retailerOutstandingSummary.retailerId, shopOne),
+        ),
+      )
+    await rollupTenantDay(db, onAccountTenantId, today)
+    const again = await call<OwnerDashboard>(
+      app,
+      { tenantId: onAccountTenantId, actorId: onAccountOwnerId, role: 'owner' },
+      'GET',
+      '/reporting/dashboard/owner',
+    )
+    expect(again.body.onAccountPaise).toBe(11_500)
   })
 
   // ===============================================================================================

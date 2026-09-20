@@ -41,6 +41,7 @@ import {
   useCan,
 } from '../../src/lib/ui'
 import { AskForAccess, InsidePanel } from '../../src/lib/support'
+import { planShown } from '../../src/lib/plan'
 import { SubscriptionEditor } from '../../src/lib/subscription'
 import { daysFromToday, formatBytes, instantWithClock, longDate } from '../../src/lib/dates'
 import { stateName, useWord } from '../../src/lib/words'
@@ -122,7 +123,14 @@ export default function Distributor(): React.JSX.Element {
               family={item.status === 'active' ? 'moss' : 'brick'}
               solid={item.status !== 'active'}
             />
-            <StatusChip label={word(item.plan)} family="neutral" />
+            {/*
+              ONE plan, from one place (DOS-113). The plan is stored on the tenant row and on the
+              subscription; this page used to print both — the chip off `tenants.plan` and a "Plan"
+              field in the Subscription block off `subscriptions.plan` — and for two of the three
+              seeded distributorships they disagreed ("Pilot" here, "Pro" below). The chip is now the
+              only place it is printed, and it names the plan being paid for.
+            */}
+            <StatusChip testID="tenant-plan" label={word(planShown(item))} family="neutral" />
             <StatusChip
               testID="tenant-subscription"
               /*
@@ -230,7 +238,6 @@ export default function Distributor(): React.JSX.Element {
                     </Txt>
                   ) : (
                     <Stack gap={3}>
-                      <Field label={t('p5.plan')}>{word(item.subscription.plan)}</Field>
                       <Field label={t('p5.state')}>{word(item.subscription.status)}</Field>
                       <Field label={t('p5.price')}>
                         <Row gap={2} align="center">

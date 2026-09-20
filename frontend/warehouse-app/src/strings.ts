@@ -390,6 +390,14 @@ export const strings = {
   'w7.challanQueued': 'The challan is being drawn — try the print again in a moment',
   'w7.ewbRequired': 'An e-way bill is needed for this load. The desk types the number.',
   'w7.ewbNo': 'E-way bill {no}',
+  /*
+   * DOS-121: the van-sale stock the crew counts before the vehicle leaves. Since DOS-039 the
+   * check-out moves exactly these pieces — an uncounted lot stays in the godown, so the count is
+   * asked for, blind, and the check-out waits for it.
+   */
+  'w7.vanPieces': 'Pieces on the vehicle',
+  'w7.vanUncounted': 'Not counted yet',
+  'w7.countVanFirst': 'Count the van-sale stock first',
   'w7.lots': 'WHAT GOES ON THE VEHICLE',
   'w7.orders': 'ORDERS ON THIS SHEET',
   'w7.sourceOrder': 'For an order',

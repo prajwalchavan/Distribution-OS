@@ -244,6 +244,23 @@ export interface EndResult {
   rejected: number
 }
 
+/**
+ * ONE OP THE OFFICE TOOK, named (DOS-086).
+ *
+ * A device write that lands is invisible to a screen: `_pending` goes null and the table changes,
+ * but nothing says WHICH row it was or that the office was the one that changed it. Some writes have
+ * a second half that only the online API can do — a queued order is a `draft` until `orders.submit`
+ * numbers it, and `orders.sync.ts` refuses any state past `draft` from a device — so the app has to
+ * know the moment its own draft arrived, by id, to make that call for the rep instead of leaving it
+ * in a list to remember.
+ */
+export interface AcceptedOp {
+  opId: string
+  table: string
+  rowId: string
+  op: SyncOp['op']
+}
+
 export interface SyncEngineOptions {
   transport: SyncTransport
   /** One id per install (docs/27 §4); the app already has it for `auth_sessions`. */
@@ -396,6 +413,7 @@ export class SyncEngine {
   private store: HeldStore | null = null
   private readonly bus = new ChangeBus()
   private readonly statusListeners = new Set<(status: SyncStatus) => void>()
+  private readonly acceptedListeners = new Set<(ops: readonly AcceptedOp[]) => void>()
   private shapes = new Map<string, TableShape>()
   private manifestTables: SyncTableManifest[] = []
 
@@ -1047,6 +1065,20 @@ export class SyncEngine {
   }
 
   /**
+   * The ops the office has just taken (DOS-086) — table, row and opId, in the order they were sent.
+   *
+   * It fires once per accepted op, from `settle()`, after the device has recorded the ack: a replay
+   * counts, because a replay IS the answer a device that lost the response gets (ADR 0007), and a
+   * refused op never does. A listener that throws never touches the upload loop.
+   */
+  onAccepted(listener: (ops: readonly AcceptedOp[]) => void): () => void {
+    this.acceptedListeners.add(listener)
+    return () => {
+      this.acceptedListeners.delete(listener)
+    }
+  }
+
+  /**
    * The platform telling us the radio came back or went away (NetInfo, `online`/`offline` events); it
    * never ends the session. The ANSWER is kept — discarding it left a React Native app, where there is
    * no `navigator.onLine` to fall back on, unable to say it was offline at all — and coming back is
@@ -1084,6 +1116,21 @@ export class SyncEngine {
   private emitStatus(): void {
     const snapshot = this.status()
     for (const listener of [...this.statusListeners]) listener(snapshot)
+  }
+
+  /**
+   * A listener here is a SCREEN, and a screen that throws must not stop the queue draining (DOS-086):
+   * the ack is already written, so the throw is logged like any other and the loop carries on.
+   */
+  private emitAccepted(ops: readonly AcceptedOp[]): void {
+    if (ops.length === 0 || this.acceptedListeners.size === 0) return
+    for (const listener of [...this.acceptedListeners]) {
+      try {
+        listener(ops)
+      } catch (error) {
+        this.note(error, 'sync.accepted')
+      }
+    }
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1205,14 +1252,16 @@ export class SyncEngine {
     }
     if (answer.items.length === 0) return
     /*
-     * A rejection the user has already dealt with must not come back on the next sync — thrown away, or
-     * (DOS-178) handed to the cashier. `INSERT OR REPLACE` writes a whole new row, so without this a
-     * handed-over payment would lose its `handed_over_at` and start asking for attention again.
+     * A rejection the user has already dealt with must not come back on the next sync — thrown away,
+     * (DOS-178) handed to the cashier, or (DOS-046) sent again under a new opId. `INSERT OR REPLACE` writes a
+     * whole new row, so without this a handed-over payment would lose its `handed_over_at` and start asking for
+     * attention again, and a retried one would be back in the tray beside the retry: the server still lists the
+     * old opId unresolved, and on a reconnect this pull runs before the queue drains.
      */
     const settled = new Set(
       (
         await store.query<{ op_id: string }>(
-          `SELECT op_id FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NOT NULL OR handed_over_at IS NOT NULL`,
+          `SELECT op_id FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NOT NULL OR handed_over_at IS NOT NULL OR retried_as IS NOT NULL`,
         )
       ).map((row) => row.op_id),
     )
@@ -1226,7 +1275,13 @@ export class SyncEngine {
         )
       }
     })
+    /*
+     * The strip and the rail badge count what this table holds (DOS-053), so a row that arrived here is a row
+     * they must already be showing: the tray is never one number ahead of the chrome pointing at it.
+     */
+    await this.refreshCounts()
     this.bus.emit([ERRORS_CHANNEL])
+    this.emitStatus()
   }
 
   /** Loop while `hasMore`, always echoing the cursor the LAST response gave (docs/07 §0 rule 3). */
@@ -1598,6 +1653,7 @@ export class SyncEngine {
     const byOpId = new Map(rejections.map((rejection) => [rejection.opId, rejection]))
     const at = new Date(this.now()).toISOString()
     const touched = new Set<string>([OUTBOX_CHANNEL])
+    const accepted: AcceptedOp[] = []
     let stale = false
     await store.transaction(async (tx) => {
       for (const op of batch) {
@@ -1610,6 +1666,7 @@ export class SyncEngine {
             [at, op.opId],
           )
           if (shape) await this.setPending(tx, shape, op.rowId, null)
+          accepted.push({ opId: op.opId, table: op.table, rowId: op.rowId, op: op.op })
           continue
         }
         if (upgradeRequired) {
@@ -1637,6 +1694,7 @@ export class SyncEngine {
       await writeState(tx, 'lastUploadAt', at)
     })
     this.bus.emit(touched)
+    this.emitAccepted(accepted)
     // A `stale` op means the server's row moved on: fetch it so the tray can show both versions.
     if (stale && !this.pulling) await this.sync('stale-rejection')
   }
@@ -1654,29 +1712,65 @@ export class SyncEngine {
     )
   }
 
-  /** Send a rejected op again after the user fixed what was wrong. The `opId` is deliberately kept. */
-  async retry(opId: string): Promise<void> {
+  /**
+   * "TRY IT AGAIN" IS A NEW OPERATION (DOS-046, docs/27 §4). Returns the opId it went out under, or null when
+   * this install no longer holds the op (a tray row pulled back from the server after a reinstall or a cleared
+   * browser — those rows offer only "Throw it away").
+   *
+   * The opId is deliberately NEW. Every outcome the server stores is durable and a replay returns it unchanged
+   * (ADR 0007), a refusal included, so an op re-queued under its own opId can only be told the same thing for
+   * ever — the warehouse gate pressed "Try it again" on a wave that WAS being picked again and got back
+   * "is no longer being picked", on every press. The person pressing the button later, against a server that
+   * has moved on, is making a new request; so the same intent (same row, data, baseUpdatedAt and place in the
+   * queue) goes out under a fresh opId = idempotencyKey, and the old refusal stays on the device marked with
+   * what it was sent again as. It is never deleted: the server still lists it unresolved, so `pullErrors` would
+   * bring it straight back beside the retry — and on a reconnect the pull usually runs BEFORE the queue drains.
+   *
+   * The AUTOMATIC re-sends are untouched (`start()`, the backoff, the `upgradeRequired` re-queue): they keep
+   * their opId, which is exactly what makes a lost answer safe.
+   *
+   * ONLY A REFUSAL IS RETRIED, AND NEVER MONEY — both decided here rather than by whichever screen draws the
+   * tray, the same way `discard` refuses money at the engine (DOS-178). A queued or `sending` op is already on
+   * its way under an opId the server can recognise as a replay, so giving it a new one would make a second
+   * request out of one intent; an `acked` op is done; and a `kept` one is rupees a person counted at a door
+   * that the cashier has already recorded at the office — sending those again under a fresh opId is money out
+   * of the door twice, with nothing on either side able to tell. So anything but `rejected` changes nothing,
+   * and a money table throws `KeptMoneyError` whether the op is still refused, kept, or gone with only its
+   * tray row left.
+   */
+  async retry(opId: string): Promise<string | null> {
     // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
     return this.inHand(async () => {
       const rows = await store.query<Record<string, SqlValue>>(
-        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ?`,
+        `SELECT * FROM ${OUTBOX_TABLE} WHERE op_id = ? AND status = 'rejected'`,
         [opId],
       )
       const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
-      if (op === null) return
-      await store.exec(
-        `UPDATE ${OUTBOX_TABLE} SET status = 'queued', rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
-        [opId],
-      )
-      await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`, [opId])
-      const shape = this.shapes.get(op.table)
-      if (shape) await this.setPending(store, shape, op.rowId, 'queued')
+      // As in `discard`: the table is read from whichever of the two halves this device still has.
+      const table = op?.table ?? (await this.errorTable(store, opId))
+      if (table !== null && isMoneyTable(table)) throw new KeptMoneyError(table)
+      if (op === null) return null
+      const next = uuidv7()
+      await store.transaction(async (tx) => {
+        // seq, created_at, tbl, row_id, op, data, base_updated_at and attempts are the intent: untouched.
+        await tx.exec(
+          `UPDATE ${OUTBOX_TABLE} SET op_id = ?, idempotency_key = ?, status = 'queued', sent_at = NULL, acked_at = NULL, rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
+          [next, next, opId],
+        )
+        await tx.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET retried_as = ? WHERE op_id = ?`, [
+          next,
+          opId,
+        ])
+        const shape = this.shapes.get(op.table)
+        if (shape) await this.setPending(tx, shape, op.rowId, 'queued')
+      })
       await this.refreshCounts()
       this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
       this.emitStatus()
       // Named for the same reason as the write's own kick above.
       void this.flush().catch((error: unknown) => this.note(error, 'flush(retry)'))
+      return next
     })
   }
 
@@ -1724,8 +1818,8 @@ export class SyncEngine {
    * THE WAY OUT FOR A REFUSED PAYMENT (DOS-178): the crew handed the money and the slip to the cashier, who
    * records it at the office against the same paper-book number.
    *
-   * Nothing is deleted. The op moves to `kept`, which is not a status `claim()` will ever pick up — sending
-   * it again would only replay the server's stored refusal (S-73) — the row's `_pending` says `kept` so D8
+   * Nothing is deleted. The op moves to `kept`, which is not a status `claim()` or `retry()` will ever pick
+   * up — the automatic send skips it, and "Try it again" refuses money outright — the row's `_pending` says `kept` so D8
    * stops asking the driver to hand the same rupee over twice, and `_sync_errors.handed_over_at` records
    * when. It leaves the "need attention" count and never leaves the phone.
    */
@@ -1821,7 +1915,8 @@ export class SyncEngine {
     const store = this.store
     if (store === null || !this.readsOpen()) return []
     const errors = await store.query<Record<string, SqlValue>>(
-      `SELECT * FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL ORDER BY created_at DESC`,
+      // Thrown away, or sent again under a new opId (DOS-046): either way it is not work for a person any more.
+      `SELECT * FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND retried_as IS NULL ORDER BY created_at DESC`,
     )
     const items: NeedsAttentionItem[] = []
     for (const raw of errors) {
@@ -1837,6 +1932,8 @@ export class SyncEngine {
           raw.handed_over_at === null || raw.handed_over_at === undefined
             ? null
             : String(raw.handed_over_at),
+        retriedAs:
+          raw.retried_as === null || raw.retried_as === undefined ? null : String(raw.retried_as),
       }
       // A sign-out or a stop that began while this read ran ends it here: no call starts after it (addendum (x)).
       if (!this.readsOpen()) return []
@@ -1981,8 +2078,15 @@ export class SyncEngine {
     const [pending] = await store.query<{ n: number; at: string | null }>(
       `SELECT COUNT(*) AS n, MIN(created_at) AS at FROM ${OUTBOX_TABLE} WHERE status IN ('queued', 'sending')`,
     )
+    /*
+     * THE REFUSED COUNT IS THE TRAY (DOS-053). Counted off the outbox's own `status = 'rejected'` it disagreed
+     * with `needsAttention()` the moment a refusal had no outbox row behind it — one the server still holds,
+     * brought back by `pullErrors` after a reinstall or a reload of the web fallback: a real tray item, counted
+     * nowhere, so X4 read "Refused 0" over a tray holding two. Same table, same predicate as `needsAttention`,
+     * minus the rows a person has already dealt with — thrown away, handed to the cashier, or sent again.
+     */
     const [rejected] = await store.query<{ n: number }>(
-      `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'rejected'`,
+      `SELECT COUNT(*) AS n FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND handed_over_at IS NULL AND retried_as IS NULL`,
     )
     /*
      * DOS-178: a payment handed to the cashier is nobody's work any more, so it leaves `rejected` — but it

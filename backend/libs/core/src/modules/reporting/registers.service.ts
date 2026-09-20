@@ -12,6 +12,7 @@ import type {
   GstPurchaseRegisterOutput,
   GstSalesRegisterInput,
   GstSalesRegisterOutput,
+  OrdersRegisterInput,
   RepProductivityInput,
   RepProductivityOutput,
   SchemeSpendInput,
@@ -25,11 +26,11 @@ import { currentTenant, DB, DB_REPLICA, requireDb, requireRole } from '../../pla
 import { RegistersService as BillingRegistersService } from '../billing/index.js'
 import { deliveryPerformanceRows } from '../delivery/index.js'
 import { InventoryService, valuationByLocation } from '../inventory/index.js'
-import { fillRateLines } from '../orders/index.js'
+import { fillRateLines, orderRegisterRows } from '../orders/index.js'
 import { SchemesService } from '../pricing/index.js'
 import { purchaseRegister } from '../procurement/index.js'
 import { collectionsRegister } from '../receivables/index.js'
-import { beatAssignmentsFor, beatLabels } from '../retailers/index.js'
+import { beatAssignmentsFor, beatLabels, retailerRefs } from '../retailers/index.js'
 import { userLabels } from '../tenancy/index.js'
 import { brandLabels, TenantCatalogService } from '../tenant-catalog/index.js'
 import { pageByOffset, ratio } from './reporting.internals.js'
@@ -179,15 +180,24 @@ export class ReportingRegistersService {
         to: input.to,
         ...(input.brandId ? { brandId: input.brandId } : {}),
       })
+      /*
+       * DOS-018: `applied_rules` carries EVERY rule the pricing engine applied to a line — an
+       * override, a scheme, an approved bargain, a manual price (`AppliedRule.kind`, @dos/domain) —
+       * and billing's aggregate returns that kind with each row. A bargain is a price argued for on
+       * one order and a scheme is a published offer with a funder behind it; counting them together
+       * put rows named "Scheme <id>", with no brand, on the owner's Profit screen, because no scheme
+       * of that id exists. Scheme spend is what the SCHEMES cost.
+       */
+      const schemeRules = spend.filter((row) => row.kind === 'scheme')
       const schemes = await this.schemes.schemesByIds(
         tx,
-        spend.map((r) => r.ruleId),
+        schemeRules.map((r) => r.ruleId),
       )
       const brands = await brandLabels(
         tx,
         [...schemes.values()].map((s) => s.brandId ?? '').filter((id) => id.length > 0),
       )
-      const rows: SchemeSpendRow[] = spend
+      const rows: SchemeSpendRow[] = schemeRules
         .map((row) => {
           const scheme = schemes.get(row.ruleId)
           return {
@@ -363,7 +373,11 @@ export class ReportingRegistersService {
           stopsDelivered: row.stopsDelivered,
           stopsPartial: row.stopsPartial,
           stopsFailed: row.stopsFailed,
-          onTimeRate: ratio(row.stopsOnTime, attempted),
+          /*
+           * QA DOS-067: out of the attempted stops that CARRIED AN ETA, never out of every attempted
+           * stop — a stop nobody promised a time for is neither late nor on time (performance.ts).
+           */
+          onTimeRate: ratio(row.stopsOnTime, row.stopsWithEta),
           podCoverageRate: ratio(row.stopsWithPod, attempted),
           cashVariancePaise: row.cashVariancePaise,
         }
@@ -375,6 +389,7 @@ export class ReportingRegistersService {
           stopsPartial: acc.stopsPartial + r.stopsPartial,
           stopsFailed: acc.stopsFailed + r.stopsFailed,
           onTime: acc.onTime + r.stopsOnTime,
+          withEta: acc.withEta + r.stopsWithEta,
           pod: acc.pod + r.stopsWithPod,
           // Only a settled trip has a variance; an open one contributes nothing, not a zero.
           cashVariancePaise: acc.cashVariancePaise + (r.cashVariancePaise ?? 0),
@@ -385,6 +400,7 @@ export class ReportingRegistersService {
           stopsPartial: 0,
           stopsFailed: 0,
           onTime: 0,
+          withEta: 0,
           pod: 0,
           cashVariancePaise: 0,
         },
@@ -401,10 +417,55 @@ export class ReportingRegistersService {
           stopsDelivered: sums.stopsDelivered,
           stopsPartial: sums.stopsPartial,
           stopsFailed: sums.stopsFailed,
-          onTimeRate: ratio(sums.onTime, attempted),
+          onTimeRate: ratio(sums.onTime, sums.withEta),
           podCoverageRate: ratio(sums.pod, attempted),
           cashVariancePaise: sums.cashVariancePaise,
         },
+      }
+    })
+  }
+
+  /**
+   * The orders register (DOS-014): the owner's Orders list as a file, one row per order. Back office only
+   * — a rep exports nothing here, and `listOrders` would silently narrow to its own orders if one did.
+   * The shop and the rep are named in one batch each, beside the ids, so the file joins to anything else.
+   */
+  async orders(input: z.infer<typeof OrdersRegisterInput>): Promise<{
+    items: Record<string, unknown>[]
+    nextCursor: string | null
+  }> {
+    requireRole(BACK_OFFICE_READERS)
+    return this.read(async (tx) => {
+      const page = await orderRegisterRows(tx, input)
+      const shops = await retailerRefs(
+        tx,
+        page.rows.map((r) => r.retailerId),
+      )
+      const reps = await userLabels(
+        tx,
+        page.rows.flatMap((r) => (r.salespersonId === null ? [] : [r.salespersonId])),
+      )
+      return {
+        items: page.rows.map((row) => ({
+          orderNo: row.orderNo,
+          orderDate: row.orderDate,
+          retailerId: row.retailerId,
+          retailerName: shops.get(row.retailerId)?.name ?? null,
+          state: row.state,
+          source: row.source,
+          salespersonId: row.salespersonId,
+          salespersonName: row.salespersonId ? (reps.get(row.salespersonId) ?? null) : null,
+          paymentTerms: row.paymentTerms,
+          subtotalPaise: row.subtotalPaise,
+          discountPaise: row.discountPaise,
+          taxPaise: row.taxPaise,
+          roundOffPaise: row.roundOffPaise,
+          totalPaise: row.totalPaise,
+          approvalFlags: row.approvalFlags,
+          expectedDeliveryDate: row.expectedDeliveryDate,
+          cancelReason: row.cancelReason,
+        })),
+        nextCursor: page.nextCursor,
       }
     })
   }

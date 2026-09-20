@@ -23,6 +23,7 @@ import {
   legacyStoreName,
   storeNameFor,
   SyncEngine,
+  type AcceptedOp,
   type EndResult,
   type SyncEngineOptions,
 } from './engine.js'
@@ -63,6 +64,15 @@ export interface OfflineProviderProps {
   /** An explicit file name, for the harness and tests. It wins over `storePrefix`. */
   databaseName?: string
   pullIntervalMs?: number
+  /**
+   * THE RADIO, WHERE THE PLATFORM HAS ONE TO REPORT (DOS-068, docs/27 §10). The provider listens to the browser's
+   * own `online` / `offline` events by itself; a phone fires neither, and React Native's `navigator` carries no
+   * `onLine` for the engine to fall back on — so a device with the radio off believed it was connected and the
+   * strip stayed green through airplane mode. An app on a device passes NetInfo through here: called once with a
+   * callback, it reports every change and returns the unsubscribe. It is a HINT, not the truth: `online` still
+   * needs the last call to have reached a service, because the office can be unreachable with the radio up.
+   */
+  watchRadio?: (onChange: (online: boolean) => void) => (() => void) | void
   /** False while nobody is signed in: no manifest, no pull, no queue. */
   enabled?: boolean
   onLog?: (line: string, detail?: unknown) => void
@@ -186,6 +196,7 @@ export function OfflineProvider({
   storePrefix,
   databaseName,
   pullIntervalMs,
+  watchRadio,
   enabled = true,
   onLog,
   children,
@@ -296,12 +307,51 @@ export function OfflineProvider({
     }
   }, [engine])
 
+  /*
+   * And the same thing where the platform has a radio to report (DOS-068): the app hands in NetInfo, this holds the
+   * subscription for the life of the engine and lets go of it with the engine. A hint either way is safe — the
+   * engine ignores one it already believed, and a hint that the radio is back is the reconnect that drains the
+   * queue (DOS-183), which no failing call can be.
+   */
+  useEffect(() => {
+    if (engine === null || watchRadio === undefined) return
+    const stop = watchRadio((online) => {
+      engine.setNetworkHint(online)
+    })
+    return () => {
+      stop?.()
+    }
+  }, [engine, watchRadio])
+
   return <EngineContext.Provider value={engine}>{children}</EngineContext.Provider>
 }
 
 /** The engine itself, for the rare screen that needs `sync()` on a pull-to-refresh. */
 export function useSyncEngine(): SyncEngine | null {
   return useContext(EngineContext)
+}
+
+export type { AcceptedOp }
+
+/**
+ * "The office has just taken this write" (DOS-086).
+ *
+ * The one signal a screen cannot get from `useTable`: a row whose `_pending` went null changed, but
+ * nothing says the OFFICE is why, and a queued write whose second half only the online API can do —
+ * a draft order that still needs `orders.submit` — has to be finished the moment it lands, not left
+ * in a list for a rep to remember. `handler` is held in a ref, so a screen may pass an inline
+ * function without re-subscribing on every render; the engine swallows anything it throws.
+ */
+export function useAccepted(handler: (ops: readonly AcceptedOp[]) => void): void {
+  const engine = useSyncEngine()
+  const latest = useRef(handler)
+  latest.current = handler
+  useEffect(() => {
+    if (engine === null) return
+    return engine.onAccepted((ops) => {
+      latest.current(ops)
+    })
+  }, [engine])
 }
 
 const IDLE: SyncStatus = {
@@ -536,7 +586,12 @@ export interface OutboxApi {
   rows: OutboxRow[]
   pending: number
   rejected: number
-  retry: (opId: string) => Promise<void>
+  /**
+   * "Try it again" — a NEW operation on the same intent (DOS-046). Resolves to the opId it went out under, or
+   * null when this install no longer holds the op (a tray row pulled from the server after a reinstall: those
+   * offer only "Throw it away").
+   */
+  retry: (opId: string) => Promise<string | null>
   /** Throws `KeptMoneyError` on a refused money write (DOS-178) — that one goes to the cashier instead. */
   discard: (opId: string) => Promise<void>
   /** DOS-178: the crew handed this refused payment and its slip to the cashier. Nothing is deleted. */
@@ -587,7 +642,7 @@ export function useOutbox(): OutboxApi {
     },
     [engine],
   )
-  const retry = useCallback(async (opId: string) => engine?.retry(opId) ?? undefined, [engine])
+  const retry = useCallback(async (opId: string) => (await engine?.retry(opId)) ?? null, [engine])
   const discard = useCallback(async (opId: string) => engine?.discard(opId) ?? undefined, [engine])
   const handOver = useCallback(
     async (opId: string) => engine?.handOver(opId) ?? undefined,

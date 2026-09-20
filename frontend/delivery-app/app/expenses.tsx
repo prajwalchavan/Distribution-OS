@@ -41,6 +41,13 @@ import { pickCurrentTrip, useHydrated, useLocalTrips } from '../src/lib/local'
 import { captureProof, storeProof, type CapturedProof } from '../src/lib/proof'
 import { Async, FillingNote, Panel } from '../src/lib/ui'
 
+/**
+ * DOS-071: the amount at or above which the office wants a photo of the bill, until `trips.get`
+ * answers with this distributor's own (`delivery.expense_proof_min_paise`, ₹200 by default). The
+ * SERVER is the rule; this is only what the button says while the policy is on its way.
+ */
+const DEFAULT_PROOF_MIN_PAISE = 20_000
+
 /** `TripExpenseKindSchema`. `other` needs a note — the server refuses it without one. */
 const KINDS = ['diesel', 'toll', 'parking', 'loading', 'food', 'repair', 'other'] as const
 
@@ -71,6 +78,20 @@ export default function Expenses(): React.JSX.Element {
     () => api.api.delivery.expenses.list({ tripId: tripId ?? '', limit: 50 }),
     { enabled: signedIn && tripId !== null },
   )
+
+  /*
+   * DOS-071 — WHAT THE OFFICE WANTS A BILL FOR. The rule is the SERVER's (`recordExpenseInTx` refuses
+   * an expense at or above `delivery.expense_proof_min_paise` with no proof), and the phone carries
+   * the amount only so it can say why the button is off before the driver leaves the pump. It rides
+   * on `trips.get` like every other trip policy; this screen already needs a signal (d7.online), so
+   * reading it adds no offline dependency, and the default holds if the call has not answered yet.
+   */
+  const tripDetail = useQuery(
+    ['trip', tripId],
+    () => api.api.delivery.trips.get({ id: tripId ?? '' }),
+    { enabled: signedIn && tripId !== null, staleTime: 300_000 },
+  )
+  const proofMinPaise = tripDetail.data?.item.policy.expenseProofMinPaise ?? DEFAULT_PROOF_MIN_PAISE
 
   const [kind, setKind] = useState<string>('diesel')
   const [amountPaise, setAmountPaise] = useState<number | null>(null)
@@ -122,6 +143,8 @@ export default function Expenses(): React.JSX.Element {
 
   const needsNote = kind === 'other' && note.trim() === ''
   const amountBad = amountPaise === null || amountPaise <= 0
+  /** This expense is big enough that the office wants the bill, and no photo is attached yet. */
+  const proofNeeded = amountPaise !== null && amountPaise >= proofMinPaise && proof === null
 
   const commit = (): void => {
     setError(null)
@@ -207,7 +230,14 @@ export default function Expenses(): React.JSX.Element {
             size="floor"
             fullWidth
             loading={busy || record.status === 'pending'}
-            disabled={amountBad || needsNote || tripId === null || !status.online || provisional}
+            disabled={
+              amountBad ||
+              needsNote ||
+              proofNeeded ||
+              tripId === null ||
+              !status.online ||
+              provisional
+            }
             disabledReason={
               !status.online
                 ? t('d7.online')
@@ -217,7 +247,11 @@ export default function Expenses(): React.JSX.Element {
                     ? t('d1.noTrip')
                     : needsNote
                       ? t('d7.needsNote')
-                      : t('d7.amount')
+                      : proofNeeded
+                        ? t('d7.proofRequired', {
+                            amount: formatINR(paise(proofMinPaise)),
+                          })
+                        : t('d7.amount')
             }
             onPress={commit}
           />
@@ -254,6 +288,11 @@ export default function Expenses(): React.JSX.Element {
               value={amountPaise}
               onChange={setAmountPaise}
             />
+            {!proofNeeded ? null : (
+              <Txt field="label" desk="meta" color={colors.status.ochre.fg} testID="d7-proof-note">
+                {t('d7.proofRequired', { amount: formatINR(paise(proofMinPaise)) })}
+              </Txt>
+            )}
             <TextInput
               testID="d7-note"
               label={t('d7.note')}
@@ -267,7 +306,7 @@ export default function Expenses(): React.JSX.Element {
               <Button
                 testID="d7-photo"
                 label={proof === null ? t('d7.proof') : t('d4.podRetake')}
-                variant="secondary"
+                variant={proofNeeded ? 'primary' : 'secondary'}
                 onPress={() => {
                   void (async () => {
                     try {

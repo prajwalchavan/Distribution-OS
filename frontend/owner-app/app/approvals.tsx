@@ -25,6 +25,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   formatINR,
   paise,
@@ -35,6 +36,7 @@ import {
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
+import { orderLabel, resolutionOf, type OrderResolution } from '../src/lib/bargain-order'
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../src/lib/ui'
 import { instantWithClock } from '../src/lib/dates'
 import { useWord } from '../src/lib/words'
@@ -75,6 +77,7 @@ export default function Approvals(): React.JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<'approve' | 'reject' | null>(null)
   const [note, setNote] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const approvals = useQuery(['approvals', 'pending'], () =>
     api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
@@ -90,6 +93,36 @@ export default function Approvals(): React.JSX.Element {
   const bargains = useQuery(['bargains', 'requested'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 100 }),
   )
+
+  /*
+   * DOS-090: a rate request names the order id the REP'S PHONE minted, and the draft is placed under
+   * that same id later — which is how the request gates that one order and no other. Until it is
+   * placed `orders.get` answers 404, so this row used to show no order at all. One settled read per
+   * distinct id on the page (at most the 100 above), cached for a minute; a 404 is an ANSWER here.
+   */
+  const rateOrderIds = [
+    ...new Set(
+      (bargains.data?.items ?? [])
+        .map((row) => row.orderId)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
+  const rateOrders = useQuery(
+    ['orders', 'rate-requests', rateOrderIds.join(',')],
+    async (): Promise<[string, OrderResolution][]> => {
+      const settled = await Promise.allSettled(rateOrderIds.map((id) => api.api.orders.get({ id })))
+      return rateOrderIds.map((id, i) => {
+        const answer = settled[i]
+        if (answer === undefined || answer.status === 'rejected') return [id, { kind: 'missing' }]
+        return [
+          id,
+          { kind: 'found', orderNo: answer.value.item.orderNo, state: answer.value.item.state },
+        ]
+      })
+    },
+    { enabled: rateOrderIds.length > 0, staleTime: 60_000 },
+  )
+  const resolvedRateOrders = new Map<string, OrderResolution>(rateOrders.data ?? [])
 
   const pending = [
     ...new Map(
@@ -144,13 +177,21 @@ export default function Approvals(): React.JSX.Element {
         id: row.id,
         stream: 'bargain',
         kind: 'bargain',
-        what: names.retailer(row.retailerId),
+        // DOS-090: the shop, and which order this rate is for — "not placed yet" while it is on the phone.
+        what: [
+          names.retailer(row.retailerId),
+          orderLabel(resolutionOf(row.orderId, resolvedRateOrders), t),
+        ]
+          .filter((part): part is string => part !== null && part !== '')
+          .join(' · '),
         who: names.staff(row.requestedBy),
         askedAt: row.createdAt,
         amountPaise: row.askedRatePaise,
         listRatePaise: row.listRatePaise,
         askedRatePaise: row.askedRatePaise,
-        orderId: null,
+        // The id the request names, even when the server has no such order yet: the label says so and
+        // nothing links to it.
+        orderId: row.orderId,
         orderNo: null,
         orderTotalPaise: null,
         retailerId: null,
@@ -206,6 +247,28 @@ export default function Approvals(): React.JSX.Element {
     return parts.join(' · ')
   }
 
+  /*
+   * DOS-155: is this gate the LAST one the order is waiting on?
+   *
+   * Approving the last gate confirms the order and reserves its stock (`approvals.service.ts:187`),
+   * and the owner was never told. The answer comes from the ORDER's own approvals rather than the
+   * page of pending rows on screen: a gate on another page would make "last" a guess, and the
+   * sentence in the dialog is a promise. A rate request decided outside a gate names no order and
+   * confirms nothing, so it is never the last of anything.
+   */
+  const gateOrder = useQuery(
+    ['orders', 'get', current?.orderId ?? 'none'],
+    () => api.api.orders.get({ id: current?.orderId ?? '' }),
+    { enabled: current?.stream === 'approval' && current.orderId !== null },
+  )
+  const stillPending = (gateOrder.data?.item.approvals ?? []).filter((a) => a.status === 'pending')
+  const lastGate =
+    current !== null &&
+    current.stream === 'approval' &&
+    current.orderId !== null &&
+    stillPending.length === 1 &&
+    stillPending[0]?.id === current.id
+
   const decideApproval = useMutation(
     (input: { id: string; decision: 'approve' | 'reject'; note?: string }, meta) =>
       api.api.orders.approvals.decide({
@@ -233,18 +296,48 @@ export default function Approvals(): React.JSX.Element {
   const commit = (): void => {
     if (current === null || confirm === null) return
     const input = { id: current.id, decision: confirm, note: note.trim() }
-    const run = current.stream === 'approval' ? decideApproval : decideBargain
+    const done = (): void => {
+      setConfirm(null)
+      setNote('')
+      setSelected(null)
+    }
+    const failed = (): void => {
+      /* the error is on the mutation state and rendered under the dialog */
+    }
     // One intent, one idempotency key: a retry of THIS decision can never write a second row.
-    void run.mutateAsync(input).then(
-      () => {
-        setConfirm(null)
-        setNote('')
-        setSelected(null)
-      },
-      () => {
-        /* the error is on the mutation state and rendered under the dialog */
-      },
-    )
+    if (current.stream === 'approval') {
+      void decideApproval.mutateAsync(input).then((result) => {
+        done()
+        /*
+         * DOS-155: the order AFTER the decision, from the reply itself. It is `confirmed` only when
+         * this was the last gate, so the toast states what actually happened rather than what the
+         * screen expected. `pricing.bargains.decide` answers `{ item }` with no order and confirms
+         * nothing, which is why only this branch says anything.
+         */
+        if (result.order?.state === 'confirmed')
+          setToast(t('o3.orderConfirmed', { order: result.order.orderNo ?? '' }))
+      }, failed)
+      return
+    }
+    void decideBargain.mutateAsync(input).then(done, failed)
+  }
+
+  /*
+   * DOS-153: the note belongs to the request it was typed for, and to no other.
+   *
+   * It was cleared only after a decision went through, so closing the panel without deciding left
+   * the text in the box and the next request opened with another rep's sentence already typed in —
+   * and sending it means sending it to the person who asked. Every way OUT of a request clears it:
+   * the panel closing, and a different row being chosen (by tap or by `j`/`k`). Re-choosing the row
+   * already open is not a change and never wipes what is being typed.
+   */
+  const openRow = (id: string): void => {
+    if (id !== selected) setNote('')
+    setSelected(id)
+  }
+  const closePanel = (): void => {
+    setSelected(null)
+    setNote('')
   }
 
   useRegisterKeys({
@@ -252,7 +345,7 @@ export default function Approvals(): React.JSX.Element {
     rowKey: (row) => row.id,
     selected,
     onSelect: (row) => {
-      setSelected(row.id)
+      openRow(row.id)
     },
     enabled: confirm === null,
   })
@@ -267,7 +360,7 @@ export default function Approvals(): React.JSX.Element {
       },
       Escape: () => {
         setConfirm(null)
-        setSelected(null)
+        closePanel()
       },
     },
     true,
@@ -326,7 +419,7 @@ export default function Approvals(): React.JSX.Element {
             frozen="what"
             selectedKey={selected}
             onSelect={(row) => {
-              setSelected(row.id)
+              openRow(row.id)
             }}
             state="ready"
           />
@@ -335,9 +428,7 @@ export default function Approvals(): React.JSX.Element {
 
       <Sheet
         open={current !== null && confirm === null}
-        onClose={() => {
-          setSelected(null)
-        }}
+        onClose={closePanel}
         title={heading}
         testID="approval-panel"
       >
@@ -439,6 +530,48 @@ export default function Approvals(): React.JSX.Element {
                   {note}
                 </Txt>
               )}
+              {/*
+                DOS-155: the consequence, stated before it happens. Only on approve — rejecting a
+                gate confirms nothing.
+              */}
+              {lastGate && confirm === 'approve' ? (
+                <Txt field="bodyStrong" desk="body" testID="approval-last-gate">
+                  {t('o3.lastGate', { order: current?.orderNo ?? '' })}
+                </Txt>
+              ) : null}
+              {/*
+                DOS-006: what approving an over-limit gate actually does, said before it happens.
+                The founder's answer (docs/22 §8, 2026-09-13): it releases THIS order and leaves the
+                shop's limit where it is — the limit is a setting on the shop's page. The owner used
+                to read a "requested limit" the server never honoured, so the sentence names the
+                order, its total and the limit that stays, and the button goes where it is changed.
+                Only on approve: rejecting a gate releases nothing.
+              */}
+              {current?.kind === 'credit_limit' && confirm === 'approve' ? (
+                <Stack gap={2}>
+                  <Txt field="bodyStrong" desk="body" testID="approval-credit-release">
+                    {t('o3.creditRelease', {
+                      order: current.orderNo ?? '',
+                      total: formatINR(paise(current.orderTotalPaise ?? 0)),
+                      limit:
+                        credit.data === undefined
+                          ? t('o3.creditUnknown')
+                          : formatINR(paise(credit.data.creditLimitPaise)),
+                    })}
+                  </Txt>
+                  <Button
+                    label={t('o3.changeLimit')}
+                    variant="secondary"
+                    onPress={() => {
+                      const href = `/shops?q=${encodeURIComponent(current.what)}`
+                      setConfirm(null)
+                      setSelected(null)
+                      router.push(href)
+                    }}
+                    testID="approval-change-limit"
+                  />
+                </Stack>
+              ) : null}
             </Stack>
           </Panel>
         }
@@ -447,6 +580,15 @@ export default function Approvals(): React.JSX.Element {
         busy={busy}
         onConfirm={commit}
         testID="approval-confirm"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="approval-toast"
       />
     </Screen>
   )

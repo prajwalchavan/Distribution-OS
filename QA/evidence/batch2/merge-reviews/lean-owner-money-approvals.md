@@ -1,0 +1,39 @@
+# Merge review — lean-owner-money-approvals (Fable, 2026-09-20)
+
+Branch `qa/b2-lean-owner-money-approvals`, five commits 433ca27…6bd3fed on merge-base 8b030e5 = main HEAD. Items DOS-006, DOS-013, DOS-014, DOS-016, DOS-011 (+DOS-033). Founder decisions honoured: docs/22 §8 2026-09-13 rows for DOS-006 (release the order, limit stays) and DOS-016 (headline gross, on-account beside it).
+
+**Decision:** MERGE AFTER FIXES
+
+## Blockers
+
+1. `frontend/owner-app/app/reports/exports.tsx:73-75, :107-109, :262-268` — the Request-export dialog states a period for `stockValue` and `outstanding` and sends `{from,to}` that their inputs strip (`StockValueInput` reporting.ts:1166, `OutstandingListInput` receivables.ts:589 carry no window). The owner reads "Stock value · CSV · 14 Aug to 12 Sep" and gets the whole register — the DOS-014 class ("says exactly what is queued") broken for 2 of 11 registers, against design E ("hidden for registers whose input has no from/to … which send {}"), and not in the deviations list. Fix: `filters: cap === undefined ? {} : { from: span.from, to: span.to }`; render the `o22.period` label + `RangeSegments` only when `cap !== undefined`; add a second body string without dates (e.g. `'o22.requestBodyWhole': '{register} · {format} · whole register'`) and pick it when `cap === undefined`; extend `dos-014-exports.guard.test.ts` with `noWindowForUnwindowed: /cap === undefined \? \{\}/`. Owner-app tests + typecheck green, then merge.
+
+## Minors (no re-verify needed; record as owed)
+
+- dos_qa cannot be repaired by `pnpm db:seed` alone: approval ids are deterministic and `insertMany` is `onConflictDoNothing` (seed-demo/db-helpers.ts:45), so the 17 stale `credit_limit` rows keep `requestedLimitPaise`. Integrator, before the seed: `delete from approvals where kind = 'credit_limit' and payload ? 'requestedLimitPaise';` then `pnpm db:seed`, then verify-seed.sql. I-35 now joins credit_limit rows (entity_id = order) and stays green: `credit-limit-rejected-1` is seeded `cancelled` with `cancelReason` (sales.ts:1508-1516). Add the DOS-006 check from design (f) to `QA/tools/seed/verify-seed.sql` (lane could not: QA/ read-only).
+- DOS-006 manager half not built: `frontend/manager-app/app/orders/index.tsx:740-763` decide dialog still says nothing (needs one appended key in manager `strings.ts`, owned by unmerged lean-manager-money — amendment (e)). Owed after that group merges; the founder's "the approval screen says so" is half-delivered until then. Same for DOS-011 (d)'s manager cash-discount Field (design permits the drop).
+- `frontend/owner-app/app/orders/index.tsx:112` vs `:262-268`: a number search drops the range on screen but the export keeps it (design D), so the file can hold fewer rows than the list. Acceptable; say so in the walk if it bites.
+- Manager allocation row secondary is `word(bill.state)` (money/index.tsx:314), not "open ₹X" as designed; the number — the finding — is right.
+- DOS-016 identity test moved from reporting.spec to receivables.spec (rollup fixtures are synthetic rows with no journal) — correct call, the trial-balance AR query is the comparator as (e) demands.
+- Two files outside `ownsFiles`, both design-directed: `orders/index.ts` (+1 re-export), `receivables.queries.ts` (+3 lines; file holds a NUL byte, use `git diff --text`). Three new guard tests under `owner-app/src/lib/` (precedent dos-015). `git stash` slip disclosed and undone; no trace in the branch.
+- Design is right on the code: `variantNames` import is chain-legal (tenant-catalog → pricing); `loadInvoices` (allocation.ts:62) is a plain select, no lock, no state write; `refreshOwnerSummary` receives `liveRow` (rollup.ts:269) so on-account is always live; DOS-160 box (idempotency.ts:106-119, on main d1c7da0) covers the `variantName` required-field growth on stored replies; `useMutation.reset()` swaps `metaRef` synchronously, so a second Export CSV press is a new intent.
+- No existing assertion edited in any spec (all four diffs are pure additions); DOS-011 tests placed after the `retailers).toBe(9)` case rather than touching it. Guard widening (`const refetch = job.refetch` + `void refetch()`) proves the same behaviour.
+
+## Conflicts
+
+- With main now: none (merge-base is HEAD).
+- Order inversion: the runner lists lean-manager-money, lean-delivery-collect and lean-sales-orders-pricing in this group's `after`; none has merged. Three-way `git merge-tree` against each: zero conflict hunks. Overlaps are textual only — sales-orders-pricing: `contracts/pricing.ts` (scheme/bargain schemas, not `PriceListItemSchema`), `orders.spec.ts` (adds retailerD + DOS-081 held order for retailerB; limit untouched, our gate lookup is by orderId), `approvals.tsx` (bargain row mapping, not the dialog), owner `strings.ts` (o3.rateOrder* at :129 vs our o3.creditRelease at :156), `prices/index.tsx:170`; manager-money: owner `receipts.tsx` (DOS-136 dialog state, not the panel), manager `money/index.tsx` (hunks after :328, panel is :299-321); delivery-collect: `registers.service.ts:372-416` (collections region; ours inserts at :422), `reporting.spec.ts:1092`. Whoever merges second re-runs `pnpm docs:readme` (six READMEs change on both sides) and the full `orders.spec` / `reporting.spec`.
+
+## Walks (none run by the lane; all owed, the lean gate is at the walk stage)
+
+- Owner web desk (≥1024) + phone (390) + Android Pixel_7_API_36: Approvals → "Over credit limit" → Approve: sentence "Approving lets SO-… through for ₹… The limit stays ₹1,50,000"; "Change the shop's limit" lands on Shops filtered to the shop; after approve the limit on Shops is unchanged (re-seeded dos_qa). Prices → Default Price List: row after Konkan Farsan reads "Chamak Glass Cleaner 500 ml 68.03", search "Chamak" finds it. Reports → Exports → Request export: chips + period + summary line; Queue → toast "Export queued"; row goes queued → succeeded with the worker running; Download opens. Orders → Export CSV → "Preparing…" → "Download export" + toast; the file's rows equal the list for the range and one state chip; Android opens through documents.open; check the Toast renders sanely from inside the header Row. Today: "₹X overdue · less ₹35,080 on account"; Money: "On account ₹35,080 · Net dues ₹43,89,294" equal to Books → Trial balance AR. Money → Receipts → RCPT-0699: Settles INV/0824 · paid, Cash discount ₹1,464.90, "₹71,780.10 received + ₹1,464.90 cash discount = ₹73,245.00 settled"; a FIFO receipt lists each bill.
+- Manager web + Android: Money → RCPT-0696 "OPEN/0005 — ₹9,182.00", not a uuid.
+- iOS sanity: Chips inside the exports Dialog and the secondary Button inside the approve dialog (DOS-164 in-Sheet precedent).
+- Lane smoke per the 09-19 ruling (a)–(c): `pricing.priceLists.{list,upsert,setItems}`, `receivables.receipts.get`, `receivables.outstanding.list`, `reporting.dashboard.owner`, `reporting.exports.request` (register `orders`) OK on fresh seed and replay; no new BROKEN vs main.
+- CI chain not stated in the report (lint/typecheck/build/format, `docs:readme:check`, owner-app + manager-app typecheck): integrator runs it on the merged tree.
+
+## Defects outside the group (unfiled)
+
+- `backend/libs/database/src/seed-demo/reporting.ts:470` — `below_floor` gates seeded with `entity_type = 'order'`; production writes `'sales_order'` (orders.service.ts:303). Same class as DOS-006's root cause; I-35 joins on entity_id only, so it is masked.
+- `backend/libs/database/src/seed-demo/db-helpers.ts:45` — `onConflictDoNothing` makes every seed shape change unrepairable on an already-seeded database; CLAUDE.md calls the seed idempotent, which it is, but it cannot correct a row. Worth a rule: a seed shape change = rebuild the QA database.
+- `frontend/owner-app/app/stock/catalog.tsx:71` — same `variantId.slice(0, 8)` fallback as DOS-013 (design (d) asked for a follow-up finding).

@@ -162,6 +162,130 @@ describe('priceOrder', () => {
     expect(line(capped, 'l1').lineNetPaise).toBe(0)
   })
 
+  /**
+   * DOS-087 (founder, 2026-09-13): "₹15 off per case on 2+" is ₹15 on EVERY case once two are
+   * bought — ₹30 on 2 cases, ₹45 on 3 — which no reward kind could express: `net_scheme_amount`
+   * pays once per MULTIPLE of the trigger, so the seeded scheme paid ₹15 on two cases and ₹15 on
+   * three. `net_scheme_amount` keeps its meaning (the test above stands); this is a new kind.
+   */
+  it('DOS-087: per_unit_amount pays on every whole case once the trigger is met', () => {
+    const perCase = (over: Partial<SchemeRule> = {}) =>
+      scheme({
+        id: 's-per-case',
+        triggerMin: 2,
+        triggerUnit: 'case',
+        rewardKind: 'per_unit_amount',
+        rewardValue: fromRupees('15'),
+        ...over,
+      })
+    const cases = (qtyPcs: number) =>
+      priceOrder(
+        order({
+          lines: [{ lineId: 'a', variantId: V1, qtyPcs, caseSize: 12 }],
+          schemes: [perCase()],
+        }),
+      )
+    // one case is under the trigger; from two on, every whole case pays
+    expect(line(cases(12), 'a').discountPaise).toBe(0)
+    expect(line(cases(24), 'a').discountPaise).toBe(fromRupees('30'))
+    expect(line(cases(36), 'a').discountPaise).toBe(fromRupees('45'))
+    // 2 cs + 6 loose pieces is two cases: loose pieces never round up
+    expect(line(cases(30), 'a').discountPaise).toBe(fromRupees('30'))
+    expect(line(cases(24), 'a').appliedRules).toEqual([
+      {
+        ruleId: 's-per-case',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'per_unit_amount',
+        amountPaise: fromRupees('30'),
+      },
+    ])
+    // never below zero: ₹500 a case on 2 cases of ₹240 is capped at the line
+    const capped = priceOrder(
+      order({
+        lines: [{ lineId: 'a', variantId: V1, qtyPcs: 24, caseSize: 12 }],
+        schemes: [perCase({ id: 's-huge', rewardValue: fromRupees('500') })],
+      }),
+    )
+    expect(line(capped, 'a').discountPaise).toBe(fromRupees('240'))
+    expect(line(capped, 'a').lineNetPaise).toBe(0)
+  })
+
+  it('DOS-087: per_unit_amount slabs replace the per-unit amount and a mix trigger spreads it', () => {
+    const slabbed = priceOrder(
+      order({
+        lines: [{ lineId: 'a', variantId: V1, qtyPcs: 48, caseSize: 12 }],
+        schemes: [
+          scheme({
+            id: 's-slab',
+            triggerMin: 2,
+            triggerUnit: 'case',
+            rewardKind: 'per_unit_amount',
+            rewardValue: fromRupees('15'),
+            slabs: [
+              { min: 2, value: fromRupees('15') },
+              { min: 4, value: fromRupees('20') },
+            ],
+          }),
+        ],
+      }),
+    )
+    // 4 cases reaches the ₹20 slab: ₹20 on every case, not ₹15
+    expect(line(slabbed, 'a').discountPaise).toBe(fromRupees('80'))
+
+    const mixed = priceOrder(
+      order({
+        lines: [
+          { lineId: 'a', variantId: V1, brandId: BRAND, qtyPcs: 12, caseSize: 12 },
+          { lineId: 'b', variantId: V1, brandId: BRAND, qtyPcs: 12, caseSize: 12 },
+        ],
+        schemes: [
+          scheme({
+            id: 's-mix-unit',
+            scope: { brandIds: [BRAND] },
+            triggerKind: 'mix',
+            triggerMin: 2,
+            triggerUnit: 'case',
+            rewardKind: 'per_unit_amount',
+            rewardValue: fromRupees('15'),
+          }),
+        ],
+      }),
+    )
+    // two cases across two lines: ₹30 allocated to the paisa across them
+    expect(line(mixed, 'a').discountPaise + line(mixed, 'b').discountPaise).toBe(fromRupees('30'))
+    expect(mixed.orderRules).toEqual([
+      {
+        ruleId: 's-mix-unit',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'per_unit_amount',
+        amountPaise: fromRupees('30'),
+      },
+    ])
+  })
+
+  it('DOS-087: per_unit_amount refuses an inr trigger', () => {
+    // A rupee trigger has no unit to pay per. The contract refuses saving one at all; the engine
+    // refuses to price one that reached its trigger, rather than inventing a count.
+    expect(() =>
+      priceOrder(
+        order({
+          schemes: [
+            scheme({
+              id: 's-inr',
+              triggerKind: 'value',
+              triggerMin: fromRupees('100'),
+              triggerUnit: 'inr',
+              rewardKind: 'per_unit_amount',
+              rewardValue: fromRupees('15'),
+            }),
+          ],
+        }),
+      ),
+    ).toThrow(PricingError)
+  })
+
   it('spreads an order_pct discount across the lines to the paisa', () => {
     const input = order({
       lines: [

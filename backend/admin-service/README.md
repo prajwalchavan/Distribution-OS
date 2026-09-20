@@ -1183,7 +1183,7 @@ Support requests and windows across every distributor · console levels: super, 
 | Field | Type | Required |
 |---|---|---|
 | `tenantId` | uuid | no |
-| `status` | requested | approved | rejected | revoked | expired | no |
+| `status` | requested | approved | rejected | revoked | expired | lapsed | no |
 | `openOnly` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |

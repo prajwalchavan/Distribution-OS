@@ -153,10 +153,18 @@ export const strings = {
   's2.creditDays': 'Credit days',
   's2.openBills': 'Open bills',
   's2.terms': 'Terms',
-  's2.creditRunsAtSubmit':
-    'The office checks the credit ({mode}) when the order is submitted, not here.',
+  /* DOS-081: the office's own verdict at the door, not "the office checks it, not here". */
+  's2.creditHeadroom': 'Headroom {amount} · {mode}',
+  's2.creditOver': 'Over the limit by {amount} · {mode}',
+  's2.creditOffline': 'Owes {owed} of {limit} — checked again at submit',
+  /*
+   * DOS-093 — a shop added this morning has no rollup yet, and `behaviour` answers 404
+   * `behaviour_not_computed`. That is the contract's own answer, not a fault: it is a sentence.
+   */
+  's2.newShop': 'New shop — no orders yet, so there is nothing to show here until it buys.',
   's2.schemes': 'Schemes this shop is in',
-  's2.schemesMeta': 'Live today. The price screen applies them.',
+  /* DOS-088: all of them, not the six that happened to be first — so the panel says how many. */
+  's2.schemesMeta': '{count} live today. The price screen applies them.',
   's2.schemeWindow': '{from} to {to}',
   's2.habits': 'How this shop buys',
   's2.ordersLast30': 'Orders, 30 days',
@@ -194,6 +202,10 @@ export const strings = {
   /* DOS-161: the phone footer's one line — the desk stack's "Items · qty · money · before GST" said as one sentence. */
   's3.summaryCompact': 'Items {lines} · {amount} before GST',
   's3.beforeGst': 'before GST',
+  /* DOS-083: with a signal the footer's big figure is the payable `pricing.quote` answers, not the net. */
+  's3.withGst': 'the shop pays · {net} + {tax} GST',
+  's3.withGstCess': 'the shop pays · {net} + {tax} GST and cess',
+  's3.summaryCompactPayable': 'Items {lines} · {amount} the shop pays',
   's3.place': 'Place order',
   's3.placed': 'Order placed',
   's3.queue': 'Save on this phone',
@@ -204,20 +216,54 @@ export const strings = {
    */
   's3.queueTab': 'Hold until there is a signal',
   's3.queuedTab': 'Held in this tab only',
+  /* DOS-081: the office took it but is holding it — and what it waits on. */
+  's3.held': 'Waiting for the office',
+  's3.heldTitle': 'With the office',
+  's3.heldBody': 'It has its number. The office decides before it ships.',
+  's3.heldCreditTitle': 'Held for credit',
+  's3.heldCreditBody': 'The office decides before it ships.',
+  's3.heldBargainTitle': 'Waiting on the rate you asked for',
+  's3.heldBargainBody': 'The office decides the rate, then the order goes ahead.',
+  's3.heldFloorTitle': 'Waiting for the office',
+  's3.heldFloorBody': 'A price on this order is below the floor.',
+  /*
+   * DOS-081: the credit verdict BEFORE the tap. It never stops the tap.
+   *
+   * The office is asked about the PAYABLE (GST and cess in), the same figure its submit-time gate
+   * weighs. The `…Net` pair is the fallback with no signal or before the quote lands: the same
+   * sentence on the before-GST net, saying so, because that figure is short by exactly the tax.
+   */
+  's3.creditWillHoldOver': 'Will be held for credit — over the limit by {over}',
+  's3.creditWillHoldOverNet': 'Will be held for credit — over the limit by {over} (before GST)',
+  's3.creditWillHoldOverdue': 'Will be held for credit — {days} days overdue',
+  's3.creditWillHoldBills': 'Will be held for credit — too many open bills',
+  's3.creditWarnOver': 'Over the credit limit by {over} (warn only)',
+  's3.creditWarnOverNet': 'Over the credit limit by {over} before GST (warn only)',
+  's3.creditWarnOverdue': '{days} days overdue (warn only)',
+  's3.creditWarnBills': 'Too many open bills (warn only)',
   's3.placedTitle': 'Order placed',
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */
   's3.pricesChanged': 'Prices changed since you built this order:',
+  /* DOS-078: the godown's answer at the counter — the order stands, the rest follows. */
+  's3.shortAtGodown': 'The godown is short on {count} item(s) — the shop gets the rest:',
+  's3.noneInStock': 'none in stock',
   's3.queuedTitle': 'Saved on this phone',
+  /*
+   * DOS-086 — the sweep submits the landed draft itself (`submitLandedDrafts` in src/lib/queue.ts),
+   * so neither of these two sentences may send the rep to My orders to do it by hand. They say who
+   * is doing the work instead; `dos-086-placed-copy.guard.test.ts` is what keeps the chore out.
+   */
   's3.queuedBody':
-    'It goes to the office as a draft as soon as there is a signal. Submit it from My orders once it lands.',
+    'It goes to the office as soon as there is a signal, and this phone submits it the moment it lands.',
   /*
    * DOS-180 — the two states between "held on the phone" and "placed". The queued op writes a DRAFT
    * (queue.ts), so an order the office has accepted still has no number and nobody has checked the
    * shop's credit; and a refusal belongs to the Needs-you tray, which carries the office's sentence.
    */
   's3.draftTitle': 'Reached the office as a draft',
-  's3.draftBody': 'It has no number yet. Submit it from My orders.',
+  's3.draftBody':
+    'The office has it and this phone is submitting it now. If the office refuses, Needs you will say why.',
   's3.draftLabel': 'Sent as a draft',
   's3.refusedTitle': 'The office refused this order',
   's3.refusedBody': 'Open Needs you to see what the office said, and what to do about it.',
@@ -297,8 +343,24 @@ export const strings = {
   's5.cancelTitle': 'Cancel this order',
   's5.cancelBody': 'Order {order} for {shop} will be cancelled and its stock released.',
   's5.cancelReason': 'Why',
-  's5.cancelConfirm': 'Cancel order',
+  /*
+   * DOS-092 — the two buttons used to read "Cancel" and "Cancel order", one word apart, with the
+   * destructive one on the right where a dismiss usually sits. UX-00 §12: the real verb on the
+   * confirm, and a dismiss that names what it keeps. Both are at or under 20 characters.
+   */
+  's5.cancelConfirm': 'Cancel the order',
+  's5.cancelKeep': 'Keep it',
+  's5.cancelSayWhy': 'Type why, so the office and the shop know',
   's5.cancelNeedsSignal': 'Cancelling needs a signal',
+  /*
+   * DOS-142 — the office's own words, on the rep's screen. The row carries `cancel_reason` and
+   * `cancelled_at` and no `cancelled_by`, so the sentence never says who: a name we do not hold
+   * would be worse than none in front of the shopkeeper who placed the order.
+   */
+  's5.cancelled': 'This order was cancelled',
+  's5.cancelledReason': 'Reason given: {reason}',
+  's5.cancelledNoReason': 'No reason was recorded with the cancellation.',
+  's5.cancelledAt': 'Cancelled {when}',
   's5.notOnDevice': 'That order is not on this phone',
   's5.trayTitle': 'Needs you',
   's5.trayOnline': 'Signal is good. Anything waiting goes on its own.',
@@ -437,9 +499,46 @@ export const strings = {
 
   // --- S12 the shop's bills ----------------------------------------------------------------------
   's12.noBills': 'No open bill',
-  's12.due': 'Due {when} · {age} days',
+  /*
+   * DOS-091 — `ageDays` is days SINCE the due date and is negative before it, so "Due 10 Sep · 2
+   * days" told a rep either that the shop has two days left or that it is two days late, with no
+   * way to tell which. `dueKey()` in src/lib/dates.ts picks by the sign; `{days}` is always its
+   * magnitude. A count of exactly 1 takes the `.one` sentence.
+   */
+  's12.overdue': 'Was due {when} · {age} overdue',
+  's12.dueToday': 'Due today, {when}',
+  's12.dueIn': 'Due {when} · in {age}',
+  /* The count as words, so neither sentence above ever reads "1 days". */
+  's12.day': '1 day',
+  's12.days': '{days} days',
   's12.ofTotal': 'of {total}',
   's12.billed': 'Billed {when}',
+  /* DOS-091 — S12b, one bill opened from the shop's Bills tab. */
+  's12b.title': 'Bill {no}',
+  /*
+   * A bill is read from the office — its open amount moves every time money is taken — so it is not
+   * held offline at all. Said without naming the machine, which `keepKey` alone is allowed to do
+   * (DOS-179): there is no keep to claim here, only a read that needs a signal.
+   */
+  's12b.needsSignal': 'A bill is read from the office. Open it where there is a signal.',
+  's12b.lines': 'What is on this bill',
+  's12b.rate': '{rate}/pc',
+  's12b.taxes': 'Taxes and total',
+  's12b.taxable': 'Taxable',
+  's12b.cgst': 'CGST',
+  's12b.sgst': 'SGST',
+  's12b.igst': 'IGST',
+  's12b.cess': 'Cess',
+  's12b.roundOff': 'Round off',
+  's12b.total': 'Bill total',
+  's12b.stillDue': 'Still due',
+  's12b.settled': 'Paid on this bill',
+  's12b.openPdf': 'Open the bill',
+  's12b.printPdf': 'Print',
+  's12b.pdfPending': 'The printed bill is still being made. Try again in a moment.',
+  's12b.credits': 'Returns against this bill',
+  's12b.noCredits': 'Nothing has been returned against this bill',
+  's12b.for': 'For {name}',
   /* DOS-179 — where the totals came from, when the signal is gone and the store may be too. */
   's12.offline':
     'No signal: these are bill totals from this phone, not what is still open on each one.',
@@ -517,6 +616,8 @@ export const strings = {
   'word.order_pct': 'Order discount',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Off the net',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.pcs': 'pieces',
   'word.case': 'cases',
   'word.inr': 'rupees',

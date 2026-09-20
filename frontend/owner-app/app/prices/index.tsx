@@ -32,6 +32,8 @@ type PriceListItem = {
   id: string
   priceListId: string
   variantId: string
+  /** DOS-013: the server names the item; a price list may price something the tenant never listed. */
+  variantName: string
   ratePaise: number
   inclusiveOfGst: boolean
 }
@@ -94,13 +96,19 @@ export default function Prices(): React.JSX.Element {
   } | null>(null)
   const [quoteError, setQuoteError] = useState<string | null>(null)
 
+  /*
+   * The tenant's LISTED catalogue names an override row, which carries no name of its own. It must not name
+   * a price-list row: a list may price a variant the tenant never listed (DOS-013 — Chamak Glass Cleaner is
+   * priced in all four lists and listed in none), and the id showed instead of the item. A price-list item
+   * now carries `variantName` from the server, resolved the same way an order line is.
+   */
   const variantName = (variantId: string): string =>
     catalog.data?.items.find((row) => row.variantId === variantId)?.name ?? variantId.slice(0, 8)
 
   const listRows = (lists.data?.items ?? []) as readonly PriceList[]
   const current = listRows.find((row) => row.id === listId) ?? listRows[0] ?? null
   const itemRows = (current?.items ?? []).filter((item) =>
-    q === '' ? true : variantName(item.variantId).toLowerCase().includes(q.toLowerCase()),
+    q === '' ? true : item.variantName.toLowerCase().includes(q.toLowerCase()),
   )
 
   const runQuote = (): void => {
@@ -133,7 +141,7 @@ export default function Prices(): React.JSX.Element {
   }
 
   const itemColumns: readonly RegisterColumn<PriceListItem>[] = [
-    textColumn('item', t('o8.item'), (row) => variantName(row.variantId), {
+    textColumn('item', t('o8.item'), (row) => row.variantName, {
       priority: 'identity',
     }),
     moneyColumn('rate', t('o8.rate'), (row) => row.ratePaise),
@@ -170,7 +178,8 @@ export default function Prices(): React.JSX.Element {
     if (row.rewardKind === 'free_qty') {
       return `${word(row.rewardKind)}: ${String(row.rewardValue)}`
     }
-    if (row.rewardKind === 'net_scheme_amount') {
+    // DOS-087: `per_unit_amount` is money too — paise per case or per piece, not a percentage.
+    if (row.rewardKind === 'net_scheme_amount' || row.rewardKind === 'per_unit_amount') {
       return `${word(row.rewardKind)}: ${formatINR(paise(row.rewardValue))}`
     }
     return `${word(row.rewardKind)}: ${formatBps(row.rewardValue)}`

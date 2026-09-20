@@ -54,6 +54,15 @@ export class FakeServer {
   readonly applied = new Map<string, number>()
   /** opId -> the rejection to answer with, instead of applying. */
   readonly rejections = new Map<string, FakeRejection>()
+  /**
+   * THE OUTCOME THE SERVER STORED, by opId — the half of `sync_ops` this double used to leave out (DOS-046).
+   *
+   * `sync.service.ts` reads the stored outcome for a known opId and answers `replayed += 1` AND, when that
+   * outcome was a refusal, the refusal itself. This answered a replay with `replayed` alone, so the engine
+   * acked a replayed rejection in every test and the one screen behaviour that depends on it — "Try it again"
+   * on a refused write — looked fine here while it was a dead end on a real service.
+   */
+  private readonly outcomes = new Map<string, UploadOutput['rejected'][number]>()
   /** What `sync.errors.list` answers — the tray's rows after the upload response is gone. */
   serverErrors: ErrorsListOutput['items'] = []
   /** While true every call throws the way a dead spot does. */
@@ -153,20 +162,25 @@ export class FakeServer {
           const seen = this.applied.get(op.opId)
           if (seen !== undefined) {
             out.replayed += 1
+            // The stored outcome, whatever it was: a refusal comes back word for word, for ever.
+            const stored = this.outcomes.get(op.opId)
+            if (stored) out.rejected.push(stored)
             continue
           }
           const rejection = this.rejections.get(op.opId)
           if (rejection) {
-            out.rejected.push({
+            const refusal = {
               opId: op.opId,
               table: op.table,
               rowId: op.id,
               code: rejection.code,
               messageEn: rejection.messageEn,
               messageHi: rejection.messageHi ?? rejection.messageEn,
-            })
+            }
+            out.rejected.push(refusal)
             // A rejection is an outcome too: the server records it and never runs the op twice.
             this.applied.set(op.opId, 0)
+            this.outcomes.set(op.opId, refusal)
             continue
           }
           this.applied.set(op.opId, 1)

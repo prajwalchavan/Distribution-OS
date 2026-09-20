@@ -166,6 +166,12 @@ export interface LocalSyncError {
    * is never discardable, and a discarded op is not money.
    */
   handedOverAt: string | null
+  /**
+   * The opId the user sent this intent again under (DOS-046). The old refusal stays as history — the server
+   * still holds it and will answer it again for that opId for ever — and this is what keeps it out of the
+   * tray and out of the count without pretending it never happened.
+   */
+  retriedAs: string | null
 }
 
 /** One entry of the tray: what the device tried, and what the server holds instead. */

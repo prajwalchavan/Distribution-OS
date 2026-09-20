@@ -28,8 +28,18 @@ import {
 } from '@dos/ui'
 import { useRouter } from 'expo-router'
 
-import { AsOf, Async, Columns, Half, PageTabs, Panel, useNames } from '../src/lib/ui'
+import {
+  AsOf,
+  Async,
+  Columns,
+  Half,
+  MIX_TOP_GROUPS,
+  PageTabs,
+  Panel,
+  useNames,
+} from '../src/lib/ui'
 import { instantWithClock, monthsBack, rangeOf, shortDate } from '../src/lib/dates'
+import { pendingDecisions } from '../src/lib/pending-decisions'
 import { useWord } from '../src/lib/words'
 
 export default function Today(): React.JSX.Element {
@@ -57,7 +67,11 @@ export default function Today(): React.JSX.Element {
     }),
   )
   const mix = useQuery(['series', 'brandMix', month.from, month.to], () =>
-    api.api.reporting.series.brandMix({ from: month.from, to: month.to, topGroups: 5 }),
+    api.api.reporting.series.brandMix({
+      from: month.from,
+      to: month.to,
+      topGroups: MIX_TOP_GROUPS,
+    }),
   )
   const approvals = useQuery(['approvals', 'pending', 'top'], () =>
     api.api.orders.approvals.list({ status: 'pending', limit: 5 }),
@@ -140,6 +154,13 @@ export default function Today(): React.JSX.Element {
       })),
   ].slice(0, 6)
 
+  /*
+   * What the heading states, and what the rail badge states: the same two reads, counted once each
+   * (DOS-019). The panel lists the first six; the count is all of them, so it may run ahead of the
+   * rows — that is what "Open approvals" is for.
+   */
+  const decisions = pendingDecisions(approvals.data, bargains.data)
+
   return (
     <Screen
       title={t('o1.title')}
@@ -175,10 +196,21 @@ export default function Today(): React.JSX.Element {
                 {
                   label: t('o1.outstanding'),
                   value: <Money value={d?.totalOutstandingPaise ?? 0} size="moneyM" />,
+                  /*
+                   * DOS-016: the tile stays the GROSS open value of bills — the ageing ladder, the
+                   * ageing history and the shop register all sum to it. Money already received on
+                   * account is stated beside it, so the owner stops chasing what is in the till and
+                   * the gap against Books → Trial balance is named rather than unexplained.
+                   */
                   delta:
                     d === undefined
                       ? undefined
-                      : t('o1.overdue', { amount: formatINR(paise(d.overduePaise)) }),
+                      : d.onAccountPaise > 0
+                        ? t('o1.overdueLessOnAccount', {
+                            amount: formatINR(paise(d.overduePaise)),
+                            onAccount: formatINR(paise(d.onAccountPaise)),
+                          })
+                        : t('o1.overdue', { amount: formatINR(paise(d.overduePaise)) }),
                   tone: (d?.overduePaise ?? 0) > 0 ? 'critical' : 'neutral',
                 },
                 {
@@ -277,14 +309,21 @@ export default function Today(): React.JSX.Element {
         <Panel
           /*
            * The count is stated only when a read has actually answered. With the service refusing or
-           * unreachable, `d` is undefined and `waiting` is empty, so this asserted "Needs you (0)"
-           * over a panel whose own body was reporting the failure — the heading contradicting the
-           * body, and claiming the safer of the two possible facts.
+           * unreachable, both reads are undefined, so this asserted "Needs you (0)" over a panel
+           * whose own body was reporting the failure — the heading contradicting the body, and
+           * claiming the safer of the two possible facts.
+           *
+           * It is the live lists, not `owner_summary.pendingApprovals` (DOS-019): that rollup counts
+           * approvals alone and is rewritten every 15 minutes, so it disagreed with the rows under it
+           * and did not move when the owner decided two of them. A page left holding a cursor is a
+           * floor, and says so with a "+".
            */
           title={
-            d !== undefined || approvals.data !== undefined || bargains.data !== undefined
-              ? t('o1.needsYouCount', { count: d?.pendingApprovals ?? waiting.length })
-              : t('o1.needsYou')
+            decisions === undefined
+              ? t('o1.needsYou')
+              : decisions.more
+                ? t('o1.needsYouAtLeast', { count: decisions.count })
+                : t('o1.needsYouCount', { count: decisions.count })
           }
           actions={
             <Button

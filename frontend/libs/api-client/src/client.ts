@@ -45,6 +45,17 @@ const AUTH_RETRY_PATHS: ReadonlySet<string> = new Set([
 /** How long a sign-in waits for the device's last leaving before it goes on (DOS-167 addendum (z2)). */
 const LEAVING_WAIT_MS = 25_000
 
+/**
+ * How close to the end of an access token's life a call refreshes BEFORE it goes out (DOS-089).
+ *
+ * The token lives 15 minutes and nothing watched the clock, so the first call after it expired was always a 401
+ * the interceptor then healed — 31 of them on `/sync/manifest` in one sales afternoon, one per navigation, each a
+ * wasted round trip on a phone's data and a line in every service log. A minute is long enough to cover the
+ * request's own flight and a device clock a little out of step, and short enough that a normal session refreshes
+ * once per token rather than on a timer nobody can see.
+ */
+const REFRESH_BEFORE_EXPIRY_MS = 60_000
+
 export interface CreateApiClientOptions {
   /** Base URL of this app's own service. Same-origin `/api` behind a dev proxy is fine. */
   apiUrl: string
@@ -244,6 +255,28 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   }
 
   /**
+   * BEFORE THE CALL, NOT AFTER THE 401 (DOS-089). A token with less than a minute left is refreshed first, sharing
+   * the single flight above, so a burst of screens pays for one refresh and none of them earns a 401.
+   *
+   * It never turns a failure of its own into the caller's: a refresh that could not reach the office (the dead spot
+   * this whole client is built for) leaves the token that is there to be sent, and the 401 path — still exactly
+   * where it was — covers a token revoked early or a device clock that disagrees. Called only for the paths that
+   * carry a Bearer token: `login`, `refresh` and `logout` authenticate through the body, and refreshing for them
+   * would rotate the very token they are about to use.
+   */
+  async function refreshBeforeExpiry(): Promise<void> {
+    const expiresAt = session.accessExpiresAt
+    if (session.accessToken === null || expiresAt === null) return
+    if (expiresAt - Date.now() > REFRESH_BEFORE_EXPIRY_MS) return
+    if (session.refreshToken === null) return
+    try {
+      await ensureFreshAccessToken()
+    } catch {
+      // Said above: the call goes out with what this device has.
+    }
+  }
+
+  /**
    * One interceptor for both links. On a 401 it refreshes ONCE and replays the call; every other
    * failure — and a second 401 — leaves as an `ApiError`, so no screen ever sees a raw fetch error.
    */
@@ -253,6 +286,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       path: readonly string[]
     }): Promise<unknown> => {
       const at = generation
+      if (retryable(opts.path)) await refreshBeforeExpiry()
       try {
         return await opts.next()
       } catch (err) {

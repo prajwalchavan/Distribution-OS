@@ -9,7 +9,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { KeptMoneyError, SyncEngine } from './engine.js'
 import { connectionStateFrom } from './connection.js'
-import { OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
+import {
+  OUTBOX_TABLE,
+  SYNC_ERRORS_TABLE,
+  SYSTEM_TABLE_ADDITIONS,
+  SYSTEM_TABLE_STATEMENTS,
+} from './schema.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
 import type { SyncStore } from './types.js'
@@ -550,7 +555,7 @@ describe('6. a rejection keeps the row and becomes a work item', () => {
     expect(tray[0]?.serverRow?.state).toBe('submitted')
   })
 
-  it('lets a rejected op be sent again with the SAME opId, or discarded with an audit line', async () => {
+  it('lets a rejected op be discarded with an audit line', async () => {
     const store = createMemoryStore()
     const server = new FakeServer(TABLES)
     server.queuePull({ changes: [] })
@@ -1157,5 +1162,532 @@ describe('6b. a refused payment is kept and handed to the cashier', () => {
       `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'kept'`,
     )
     expect(Number(left[0]?.n ?? 0)).toBe(1)
+  })
+
+  /*
+   * MONEY IS NEVER SENT AGAIN FROM THE PHONE, AND THE ENGINE IS WHERE THAT IS DECIDED (merge review blocker 1,
+   * DOS-046 against DOS-178). `discard` refuses a money refusal here rather than in whichever screen draws the
+   * tray; "Try it again" is the same door with the same rupees behind it. A doorstep receipt the cashier has
+   * already recorded at the office under the same paper-book number must not go out a second time under a fresh
+   * opId — the server would have no way to know it is the same money, because a new opId IS a new request.
+   */
+  it('DOS-046 blocker: money the cashier already has is refused by "Try it again", refused or handed over', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer([...TABLES, RECEIPTS], 'delivery')
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({
+      table: 'receipts',
+      id: 'rc9',
+      op: 'PUT',
+      data: { retailer_id: 'r1', mode: 'cash', amount_paise: 180000, client_receipt_no: '77' },
+    })
+    server.rejections.set(opId, {
+      code: 'trip_settled',
+      messageEn: 'Trip TRIP-0031 is settled; money is collected while the trip is out',
+    })
+    await engine.flush()
+    server.uploadCalls.length = 0
+
+    // 1. While it still sits in the tray refused, it is money: there is no retry, only the cashier.
+    await expect(engine.retry(opId)).rejects.toBeInstanceOf(KeptMoneyError)
+    expect((await engine.outbox()).find((op) => op.opId === opId)?.status).toBe('rejected')
+
+    // 2. And once it HAS gone to the cashier, a second press cannot post it again behind their back.
+    clock += 60_000
+    await engine.handOver(opId)
+    await expect(engine.retry(opId)).rejects.toBeInstanceOf(KeptMoneyError)
+
+    const kept = (await engine.outbox()).find((op) => op.opId === opId)
+    expect(kept?.status).toBe('kept')
+    expect(kept?.opId).toBe(opId)
+    expect(kept?.idempotencyKey).toBe(opId)
+    const marks = await store.query<{ handed_over_at: string | null; retried_as: string | null }>(
+      `SELECT handed_over_at, retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    expect(marks[0]?.handed_over_at).toBe('2026-09-06T06:01:00.000Z')
+    expect(marks[0]?.retried_as).toBeNull()
+    expect(await engine.getRow<{ _pending: string | null }>('receipts', 'rc9')).toMatchObject({
+      _pending: 'kept',
+    })
+
+    // 3. Nothing was sent by either press, and nothing is waiting to be.
+    await engine.flush()
+    expect(server.uploadCalls).toEqual([])
+    await engine.stop()
+  })
+})
+
+// 6c -------------------------------------------------------------------------------------------------------------
+
+/**
+ * DOS-053 — ONE refused count, and it is the tray.
+ *
+ * The strip's badge, the rail's badge and X4's "Refused" chip all read `status().rejected`; the tray itself
+ * draws `needsAttention()`. The two were counted from different tables — the outbox's own `status = 'rejected'`
+ * against `_sync_errors` — and they disagree the moment a rejection has no outbox row behind it: a refusal the
+ * server still holds, pulled back by `pullErrors` after a reinstall or (on the web fallback) a reload, is a tray
+ * item this device can act on and was counted nowhere. The warehouse gate saw the two sides of exactly that:
+ * "Refused 0" over a tray holding two, and a rail badge of 1 over the same two.
+ *
+ * So the count is the tray: `_sync_errors` minus the rows a person has already dealt with — thrown away, or
+ * (DOS-178) handed to the cashier, which is the one row the tray still lists and nobody owes work on.
+ */
+describe('6c. the refused count and the tray are the same number', () => {
+  const SERVER_ERROR = {
+    id: 'e1',
+    opId: 'op-from-yesterday',
+    table: 'sales_orders',
+    rowId: 'o9',
+    code: 'credit_hold',
+    messageEn: 'Shop is on credit hold',
+    messageHi: 'दुकान क्रेडिट होल्ड पर है',
+    deviceId: 'device-1',
+    createdAt: '2026-09-05T10:00:00.000Z',
+    resolved: false,
+    resolvedAt: null,
+  }
+
+  it('DOS-053 a rejection pulled from the server counts in status().rejected, like the tray it draws', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    server.serverErrors = [SERVER_ERROR]
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const tray = await engine.needsAttention()
+    expect(tray).toHaveLength(1)
+    expect(tray[0]?.op).toBeNull()
+    expect(engine.status().rejected).toBe(tray.length)
+    await engine.stop()
+  })
+
+  it('DOS-053 the count the strip is handed after the pull says so too, without waiting for the next write', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const seen: number[] = []
+    engine.onStatus((status) => {
+      seen.push(status.rejected)
+    })
+    server.serverErrors = [SERVER_ERROR]
+    await engine.sync('again')
+
+    expect(seen.at(-1)).toBe(1)
+    expect(connectionStateFrom(engine.status()).needsAttention).toBe(1)
+    await engine.stop()
+  })
+
+  it('DOS-053 a refusal this device raised itself and one pulled from the server are counted once each', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    server.serverErrors = [SERVER_ERROR]
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'retailer_required', messageEn: 'The order has no shop' })
+    await engine.flush()
+
+    expect(await engine.needsAttention()).toHaveLength(2)
+    expect(engine.status().rejected).toBe(2)
+
+    // Thrown away is dealt with: it leaves both the tray and the count, and the pull never brings it back.
+    await engine.discard(opId)
+    await engine.sync('again')
+    expect(await engine.needsAttention()).toHaveLength(1)
+    expect(engine.status().rejected).toBe(1)
+    await engine.stop()
+  })
+})
+
+// 6d -------------------------------------------------------------------------------------------------------------
+
+/**
+ * DOS-046 — "Try it again" is a NEW operation, and the rejection it replaces stays as history.
+ *
+ * ADR 0007 makes every outcome durable: `sync_ops` remembers what the server answered for an opId, and a replay
+ * gets that answer back rather than a second run. A REFUSAL is such an outcome — `sync.service.ts` answers a
+ * replayed refused op `replayed: 1, rejected: [the stored one]` — so an outbox row re-queued under its own opId
+ * can only ever be told the same thing again. The warehouse gate proved it: the wave that refused the pick was
+ * `picking` again, and "Try it again" still came back "Picklist PICK-0224 is picked; it is no longer being
+ * picked", for ever. Only "Throw it away" and re-picking worked, and the tray never said so.
+ *
+ * The user pressing the button later, against a server that has moved on, IS a new intent. So a retry mints a
+ * fresh opId (= idempotencyKey) on the same row, data and baseUpdatedAt, keeps its place in the queue, and the
+ * old refusal is kept on the device marked with what it was sent again as — never deleted, because the server
+ * still lists it unresolved and the errors pull would bring it straight back beside the retry.
+ *
+ * AUTOMATIC re-sends are untouched (describe 7): a batch that never left, an op `sending` when the app was
+ * killed, a lost response and an `upgradeRequired` re-queue all keep their opId, which is what makes losing the
+ * answer safe.
+ */
+describe('6d. a user’s retry is a new operation', () => {
+  it('DOS-046 the fake server answers a replayed rejection as replayed AND rejected, like sync.service.ts', async () => {
+    const server = new FakeServer(TABLES)
+    const transport = server.transport()
+    const op = {
+      opId: 'op-1',
+      table: 'sales_orders',
+      id: 'o1',
+      op: 'PUT' as const,
+      data: {},
+      idempotencyKey: 'op-1',
+      clientTime: '2026-09-06T06:00:00.000Z',
+    }
+    server.rejections.set('op-1', { code: 'picklist_closed', messageEn: 'The wave is not open' })
+
+    const first = await transport.upload({ deviceId: 'device-1', protocol: 1, ops: [op] })
+    expect(first.rejected.map((one) => one.code)).toEqual(['picklist_closed'])
+    expect(first.replayed).toBe(0)
+
+    // The cause is gone on the server — and it changes nothing for THIS opId, which already has an outcome.
+    server.rejections.delete('op-1')
+    const again = await transport.upload({ deviceId: 'device-1', protocol: 1, ops: [op] })
+    expect(again.replayed).toBe(1)
+    expect(again.accepted).toBe(0)
+    expect(again.rejected.map((one) => one.code)).toEqual(['picklist_closed'])
+  })
+
+  it('DOS-046 Try it again sends the intent under a NEW opId and is accepted once the cause is gone', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o1',
+      op: 'PUT',
+      data: { retailer_id: 'r1' },
+    })
+    server.rejections.set(opId, {
+      code: 'picklist_closed',
+      messageEn: 'Picklist PICK-0224 is picked; it is no longer being picked',
+    })
+    await engine.flush()
+    expect(engine.status().rejected).toBe(1)
+    const before = (await engine.outbox()).find((row) => row.opId === opId)
+
+    // The wave is being picked again: the reason the office gave is gone.
+    server.rejections.delete(opId)
+    server.uploadCalls.length = 0
+    const next = await engine.retry(opId)
+    await engine.flush()
+
+    expect(next).not.toBeNull()
+    expect(next).not.toBe(opId)
+    expect(server.uploadCalls[0]?.ops[0]?.opId).toBe(next)
+    expect(server.applied.get(next ?? '')).toBe(1)
+    // The old opId is never sent again: its outcome is the server's, for ever.
+    expect(server.uploadCalls.flatMap((call) => call.ops.map((one) => one.opId))).not.toContain(
+      opId,
+    )
+
+    const after = (await engine.outbox()).find((row) => row.opId === next)
+    expect(after?.status).toBe('acked')
+    expect(after?.idempotencyKey).toBe(next)
+    // Same intent, same place in the queue: an order still goes before its lines.
+    expect(after?.seq).toBe(before?.seq)
+    expect(after?.createdAt).toBe(before?.createdAt)
+    expect(after?.data).toEqual({ retailer_id: 'r1' })
+    expect(await engine.outbox()).toHaveLength(1)
+
+    const row = await engine.getRow<{ _pending: string | null }>('sales_orders', 'o1')
+    expect(row?._pending).toBeNull()
+    expect(engine.status().rejected).toBe(0)
+    expect(await engine.needsAttention()).toEqual([])
+    await engine.stop()
+  })
+
+  it('DOS-046 the old rejection never comes back from the errors pull, even while the retry waits to go', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    /*
+     * A phone that can READ and not WRITE — the dead spot that lasts exactly as long as one POST. The queue goes
+     * out before the handshake and the pull on every path the engine schedules (DOS-183), so this is how the
+     * errors pull is made to run while the retry is still queued, which is the race the finding's tray is in.
+     */
+    const base = server.transport()
+    let sendable = true
+    const engine = new SyncEngine({
+      transport: {
+        ...base,
+        upload: async (input) => {
+          if (!sendable) throw new TypeError('Failed to fetch')
+          return base.upload(input)
+        },
+      },
+      deviceId: 'device-1',
+      storeFactory: fixedStoreFactory(store),
+      pullIntervalMs: 0,
+      now,
+    })
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'picklist_closed', messageEn: 'The wave is not open' })
+    await engine.flush()
+    expect(engine.status().rejected).toBe(1)
+
+    // The wave is open again and the picker presses the button, but nothing can be sent yet.
+    sendable = false
+    server.rejections.delete(opId)
+    const next = await engine.retry(opId)
+    // The server still holds the refusal for the OLD opId, unresolved, and the tray pull will list it.
+    server.serverErrors = [
+      {
+        id: 'e1',
+        opId,
+        table: 'sales_orders',
+        rowId: 'o1',
+        code: 'picklist_closed',
+        messageEn: 'The wave is not open',
+        messageHi: 'वेव खुली नहीं है',
+        deviceId: 'device-1',
+        createdAt: '2026-09-06T06:00:00.000Z',
+        resolved: false,
+        resolvedAt: null,
+      },
+    ]
+    await engine.sync('again')
+
+    expect(await engine.needsAttention()).toEqual([])
+    expect(engine.status().rejected).toBe(0)
+    const kept = await store.query<{ retried_as: string | null }>(
+      `SELECT retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    expect(kept[0]?.retried_as).toBe(next)
+    expect((await engine.outbox())[0]?.status).toBe('queued')
+
+    // The signal comes back: the retry goes out and is accepted, and the old rejection stays gone.
+    sendable = true
+    await engine.flush()
+    expect(server.applied.get(next ?? '')).toBe(1)
+    expect(await engine.needsAttention()).toEqual([])
+    await engine.stop()
+  })
+
+  it('DOS-046 a retry refused again is ONE tray item, and the chain stays readable', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'picklist_closed', messageEn: 'The wave is not open' })
+    await engine.flush()
+
+    const next = await engine.retry(opId)
+    if (next !== null) {
+      server.rejections.set(next, { code: 'picklist_closed', messageEn: 'The wave is not open' })
+    }
+    await engine.flush()
+
+    const tray = await engine.needsAttention()
+    expect(tray).toHaveLength(1)
+    expect(tray[0]?.error.opId).toBe(next)
+    expect(tray[0]?.op?.opId).toBe(next)
+    expect(engine.status().rejected).toBe(1)
+    const old = await store.query<{ retried_as: string | null }>(
+      `SELECT retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    expect(old[0]?.retried_as).toBe(next)
+    await engine.stop()
+  })
+
+  it('DOS-046 a retry of a rejection this install no longer holds returns null and changes nothing', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    server.serverErrors = [
+      {
+        id: 'e1',
+        opId: 'op-from-yesterday',
+        table: 'sales_orders',
+        rowId: 'o9',
+        code: 'credit_hold',
+        messageEn: 'Shop is on credit hold',
+        messageHi: 'दुकान क्रेडिट होल्ड पर है',
+        deviceId: 'device-1',
+        createdAt: '2026-09-05T10:00:00.000Z',
+        resolved: false,
+        resolvedAt: null,
+      },
+    ]
+    const engine = engineOn(store, server)
+    await engine.start()
+    server.uploadCalls.length = 0
+
+    expect(await engine.retry('op-from-yesterday')).toBeNull()
+    expect(server.uploadCalls).toEqual([])
+    expect(await engine.needsAttention()).toHaveLength(1)
+    const untouched = await store.query<{ retried_as: string | null }>(
+      `SELECT retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      ['op-from-yesterday'],
+    )
+    expect(untouched[0]?.retried_as).toBeNull()
+    await engine.stop()
+  })
+
+  /*
+   * "TRY IT AGAIN" IS THE ANSWER TO A REFUSAL, AND ONLY TO A REFUSAL (merge review blocker 1). A write still
+   * waiting its turn in a dead spot is already on its way under an opId the server can recognise as a replay;
+   * minting it a NEW one would turn a queued op into a second request for the same intent — the one thing the
+   * opId exists to prevent. So a retry of anything that is not `rejected` (queued, sending, acked, kept, gone)
+   * answers null and leaves the queue exactly as it found it.
+   */
+  it('DOS-046 blocker: a retry of an op that was never refused returns null and leaves its opId alone', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    server.offline = true
+    const opId = await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o7',
+      op: 'PUT',
+      data: { retailer_id: 'r1', state: 'draft' },
+    })
+    await engine.flush().catch(() => undefined)
+    expect((await engine.outbox()).find((op) => op.opId === opId)?.status).toBe('queued')
+
+    expect(await engine.retry(opId)).toBeNull()
+
+    const after = (await engine.outbox()).find((op) => op.opId === opId)
+    expect(after?.status).toBe('queued')
+    expect(after?.idempotencyKey).toBe(opId)
+    expect(await engine.needsAttention()).toEqual([])
+
+    // The radio comes back and the op goes out as itself — one request, the opId the server can replay.
+    server.offline = false
+    server.uploadCalls.length = 0
+    await engine.flush()
+    expect(server.uploadCalls.flatMap((call) => call.ops.map((op) => op.opId))).toEqual([opId])
+    await engine.stop()
+  })
+
+  /*
+   * The MEMORY engine cannot tell a missing column from a NULL one — `select` answers `row[name] ?? null` and
+   * `update` writes whatever key it is given (`sql.ts`), because it is a map with SQL over it. Real SQLite, which
+   * is what a phone and an OPFS browser run, answers "no such column" and would take the tray down on a file
+   * written by the build before this one. So the upgrade is asserted where it is actually decided: the column is
+   * in the CREATE for a new file, and in the ALTER list for one that already exists (DOS-178 set that pattern
+   * with `handed_over_at`; the ALTER is idempotent by failure, which is why it runs best effort).
+   */
+  it('DOS-046 retried_as is created on a new device file and added to one that already exists', () => {
+    const errors = SYSTEM_TABLE_STATEMENTS.find((statement) =>
+      statement.includes(`CREATE TABLE IF NOT EXISTS ${SYNC_ERRORS_TABLE}`),
+    )
+    expect(errors).toMatch(/retried_as TEXT/)
+    expect(SYSTEM_TABLE_ADDITIONS).toContain(
+      `ALTER TABLE ${SYNC_ERRORS_TABLE} ADD COLUMN retried_as TEXT`,
+    )
+  })
+})
+
+// DOS-086 ---------------------------------------------------------------------------------------------------------
+
+describe('DOS-086 the device is told which of its own writes the office accepted', () => {
+  /*
+   * A draft queued in a dead spot is a draft until someone submits it, and `orders.sync.ts` refuses
+   * any state past `draft` from a device — so the app has to make the online `orders.submit` call
+   * itself, the moment the draft lands. It can only do that if the engine says WHICH op landed:
+   * `_pending` going null is a table change with no name on it, and the outbox row is `acked`
+   * whether the write was an order, a line or a visit.
+   *
+   * So the signal carries the table and the row id, fires once per accepted op, and never carries a
+   * refused one — submitting an order the office refused would be the app arguing with it.
+   */
+  it('DOS-086 names every accepted op by table and row, once, and never a refused one', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const seen: { table: string; rowId: string }[] = []
+    const off = engine.onAccepted((ops) => {
+      for (const op of ops) seen.push({ table: op.table, rowId: op.rowId })
+    })
+
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-accepted',
+      op: 'PUT',
+      data: { retailer_id: 'r1', state: 'draft' },
+    })
+    await engine.enqueue({
+      table: 'sales_order_lines',
+      id: 'l-accepted',
+      op: 'PUT',
+      data: { order_id: 'o-accepted', variant_id: 'v1', entered_qty: 2 },
+    })
+    const refused = await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-refused',
+      op: 'PUT',
+      data: { retailer_id: 'r2', state: 'draft' },
+    })
+    server.rejections.set(refused, { code: 'credit_hold', messageEn: 'Shop is on credit hold' })
+
+    // Nothing has reached the office yet, so nothing has been accepted yet.
+    expect(seen).toEqual([])
+
+    server.offline = false
+    await engine.flush()
+
+    expect(seen).toEqual([
+      { table: 'sales_orders', rowId: 'o-accepted' },
+      { table: 'sales_order_lines', rowId: 'l-accepted' },
+    ])
+
+    /*
+     * ONCE PER OP, asserted while the listener is still attached (review of the first version, which
+     * unsubscribed first and so proved only that `off()` works): a second flush with nothing left to
+     * send says nothing at all, because the signal is the landing, not the state.
+     */
+    await engine.flush()
+    expect(seen).toEqual([
+      { table: 'sales_orders', rowId: 'o-accepted' },
+      { table: 'sales_order_lines', rowId: 'l-accepted' },
+    ])
+
+    // And a listener that has let go hears nothing about the next write, while a new one does.
+    off()
+    server.offline = true
+    await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o-later',
+      op: 'PUT',
+      data: { retailer_id: 'r3', state: 'draft' },
+    })
+    const after: { table: string; rowId: string }[] = []
+    const offAfter = engine.onAccepted((ops) => {
+      for (const op of ops) after.push({ table: op.table, rowId: op.rowId })
+    })
+    server.offline = false
+    await engine.flush()
+    expect(after).toEqual([{ table: 'sales_orders', rowId: 'o-later' }])
+    expect(seen).toHaveLength(2)
+
+    offAfter()
+    await engine.stop()
   })
 })

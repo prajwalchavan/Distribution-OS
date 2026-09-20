@@ -575,6 +575,34 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       expect(snapshot.body.changes.some((c) => c.table === table)).toBe(true)
   })
 
+  it("DOS-072: the crew's copy of a shop carries credit_mode and none of the credit terms, while the rep still prices against the limit", async () => {
+    const CREW_MUST_NOT_HOLD = ['credit_limit_paise', 'credit_limit_bills', 'credit_days', 'tier']
+
+    // The crew needs to know whether the shop pays at the door, not what it is allowed to owe
+    // (docs/23 §5.3). The manifest and the rows are one `omit`, so both halves are checked.
+    const manifest = await manifestOf(crew)
+    const columns =
+      manifest.body.tables.find((t) => t.table === 'retailers')?.columns.map((c) => c.name) ?? []
+    expect(columns).toContain('credit_mode')
+    for (const key of CREW_MUST_NOT_HOLD) expect(columns, key).not.toContain(key)
+
+    const crewPull = await drainOf(crew, tablesOf('retailers'))
+    const crewRows = crewPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []
+    expect(crewRows.length).toBeGreaterThan(0)
+    for (const row of crewRows) {
+      expect(Object.keys(row)).toContain('credit_mode')
+      for (const key of CREW_MUST_NOT_HOLD) expect(Object.keys(row), key).not.toContain(key)
+      // Who and where is untouched: a driver still has the name, the phone and the door.
+      expect(Object.keys(row)).toEqual(expect.arrayContaining(['name', 'phone', 'address']))
+    }
+
+    // The rep quotes and warns against the limit offline, so its copy keeps the block.
+    const repPull = await drainOf(rep, tablesOf('retailers'))
+    const repRows = repPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []
+    expect(repRows.length).toBeGreaterThan(0)
+    for (const key of CREW_MUST_NOT_HOLD) expect(Object.keys(repRows[0] ?? {}), key).toContain(key)
+  })
+
   it('gives the shop its own bill and the desk both shops, and the rep only its own beat', async () => {
     const shopPull = await drainOf(shop, tablesOf('retailers', 'invoices'))
     const shopRetailers = shopPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []

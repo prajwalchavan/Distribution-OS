@@ -51,6 +51,11 @@ export const strings = {
   'app.export': 'Export CSV',
   'app.exportQueued': 'Export queued',
   'app.exportReady': 'Download export',
+  // DOS-014: a queued export is polled, so the button says where it has got to.
+  'app.exportPreparing': 'Preparing…',
+  'app.exportReadyToast': 'Export ready',
+  'app.exportFailed': 'The export could not be prepared',
+  'app.exportSlow': 'Still preparing — see Reports → Exports',
   'app.print': 'Print',
   'app.open': 'Open',
   'app.save': 'Save changes',
@@ -89,11 +94,15 @@ export const strings = {
   'o1.orders': 'Orders today',
   'o1.stops': 'Stops delivered',
   'o1.overdue': '{amount} overdue',
+  // DOS-016: the headline is gross; money already in the till is named beside it (founder, docs/22 §8).
+  'o1.overdueLessOnAccount': '{amount} overdue · less {onAccount} on account',
   'o1.trips': '{count} trips active',
   'o1.failedStops': '{count} failed',
   'o1.stopsDone': '{count} stops delivered',
   'o1.needsYou': 'Needs you',
   'o1.needsYouCount': 'Needs you ({count})',
+  /* A page of decisions left a cursor behind, so the count is a floor and is written as one. */
+  'o1.needsYouAtLeast': 'Needs you ({count}+)',
   'o1.openApprovals': 'Open approvals',
   'o1.noApprovals': 'Nothing waiting for you',
   'o1.week': 'Last 7 days',
@@ -117,6 +126,8 @@ export const strings = {
   'o3.reject': 'Reject',
   'o3.ask': 'Ask again',
   'o3.note': 'Note for the person who asked',
+  'o3.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
+  'o3.orderConfirmed': '{order} confirmed — stock held',
   'o3.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'o3.approved': 'Approved',
   'o3.rejected': 'Rejected',
@@ -125,6 +136,11 @@ export const strings = {
   'o3.grnExceptions': 'GRN exceptions',
   'o3.listRate': 'List rate',
   'o3.askedRate': 'Asked rate',
+  /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
+  'o3.rateOrderAny': 'Any order of this shop',
+  'o3.rateOrderMissing': "Not placed yet — on the rep's phone",
+  'o3.rateOrderFound': '{no} · {state}',
+  'o3.rateOrderDraft': 'Draft',
   'o3.gap': 'Gap',
   'o3.empty': 'Nothing waiting for a decision',
   'o3.keys': 'j / k move · 1 approve · 2 reject',
@@ -142,6 +158,10 @@ export const strings = {
   'o3.creditBills': '{count} bills open · limit {limit}',
   'o3.creditClear': 'Within terms',
   'o3.creditUnknown': 'Credit not checked',
+  // DOS-006: approving a credit gate releases the order, never the limit (founder, docs/22 §8).
+  'o3.creditRelease':
+    'Approving lets {order} through for {total}. The limit stays {limit} — change it under Shops.',
+  'o3.changeLimit': "Change the shop's limit",
 
   // --- O4 Live map ---------------------------------------------------------------------------------
   'o4.tab': 'Live map',
@@ -153,7 +173,9 @@ export const strings = {
   'o4.speed': 'Speed',
   'o4.stops': 'Stops',
   'o4.noPositions': 'No vehicle has reported a position today',
-  'o4.mapNote': 'Map tiles arrive with the MapView component; positions are live.',
+  'o4.mapNote':
+    'Positions are live. Tiles are OpenStreetMap in a browser and Apple Maps on iPhone; on Android the vans are a labelled list until the maps key arrives.',
+  'o4.noFix': 'No vehicle has reported a position to put on the map',
   'o4.openInMaps': 'Open in maps',
   'o4.trace': 'Trip trace',
 
@@ -172,6 +194,8 @@ export const strings = {
   'o5.cancel': 'Cancel order',
   'o5.cancelReason': 'Why is it cancelled',
   'o5.reservations': 'Stock held',
+  'o5.reservationsLot': 'across 1 lot',
+  'o5.reservationsLots': 'across {count} lots',
   'o5.release': 'Release stock',
   'o5.bills': 'Bills',
   'o5.detail': 'Order {no}',
@@ -190,6 +214,7 @@ export const strings = {
   'o18.date': 'Date',
   'o18.vehicle': 'Vehicle',
   'o18.stops': 'Stops',
+  'o18.openingCash': 'Opening cash ₹',
   'o18.collected': 'Collected ₹',
   'o18.expenses': 'Expenses ₹',
   'o18.settle': 'Settle trip',
@@ -313,9 +338,12 @@ export const strings = {
   'o10.oldest': 'Oldest due',
   'o10.mode': 'On the limit',
   'o10.buckets': 'Money owed, by age',
+  // DOS-016: the ladder is gross; this names the money already in the till and the net the books carry.
+  'o10.onAccountLine': 'On account {onAccount} · Net dues {net} (matches Books → Trial balance)',
   'o10.byShop': 'Shop by shop',
   'o10.history': 'Ageing over time',
   'o10.rebuild': 'Rebuild ageing',
+  'o10.rebuilt': 'Ageing rebuilt to {date} — {count} shops',
   'o10.writeOff': 'Write off',
   'o10.writeOffAmount': 'Amount to write off',
   'o10.writeOffReason': 'Reason',
@@ -344,6 +372,12 @@ export const strings = {
   'o11.document': 'Receipt document',
   'o11.counted': 'Counted',
   'o11.onAccount': 'On account',
+  // DOS-011: the receipt says which bills it closed and what the cash discount cost.
+  'o11.settles': 'Settles',
+  'o11.billUnknown': 'Bill not named',
+  'o11.billOpen': 'open {amount}',
+  'o11.cashDiscount': 'Cash discount',
+  'o11.settledLine': '{received} received + {discount} cash discount = {total} settled',
   'o11.empty': 'No receipts in this window',
 
   // --- O12 Books ------------------------------------------------------------------------------------------
@@ -375,7 +409,9 @@ export const strings = {
   'o13.due': 'Due ₹',
   'o13.state': 'State',
   'o13.pdf': 'Open bill',
-  'o13.pdfQueued': 'The bill is being prepared — press again in a moment',
+  'o13.pdfQueued': 'The bill is being prepared — it will be offered here in a moment',
+  'o13.pdfSlow': 'The bill is still being prepared; ask for it again',
+  'o13.pdfReady': 'The bill is ready — open it',
   'o13.printBill': 'Print bill',
   'o13.cancel': 'Cancel bill',
   'o13.eway': 'Record e-way bill',
@@ -571,6 +607,12 @@ export const strings = {
   'o22.tallyLedger': 'Tally ledger',
   'o22.syncLedger': 'Tally sync log',
   'o22.empty': 'No export requested yet',
+  // DOS-014: Request export asks what and when before it queues anything.
+  'o22.period': 'Period',
+  'o22.requestBody': '{register} · {format} · {from} to {to}',
+  'o22.requestBodyWhole': '{register} · {format} · whole register',
+  'o22.queue': 'Queue export',
+  'o22.queuedToast': 'Export queued',
 
   // --- O23 Notifications ------------------------------------------------------------------------------------------------
   'o23.tab': 'Messages',
@@ -659,6 +701,9 @@ export const strings = {
   'o25.device': 'Device',
   'o25.lastSeen': 'Last used',
   'o25.empty': 'Nothing recorded yet',
+  // DOS-111: what a Distribution OS support window read inside these books, under the window itself.
+  'o24.reads': 'What they have read under this window',
+  'o24.noReads': 'Nothing read under this window yet',
 
   // --- shared vocabulary ---------------------------------------------------------------------------------------------------
   'word.beat': 'Beat',
@@ -749,6 +794,12 @@ export const strings = {
   // people
   'word.salesperson': 'Salesperson',
   'word.platform_admin': 'Distribution OS staff',
+  // The audit trail's own words for a support window: the reads it wrote and the decisions this
+  // distributorship made about it (DOS-111).
+  'word.support.read': 'Read under a support window',
+  'word.support.approve': 'Support window opened',
+  'word.support.revoke': 'Support window closed',
+  'word.support_grant': 'Support window',
   'word.must_change_password': 'Temporary password',
 
   // imports and exports
@@ -814,6 +865,8 @@ export const strings = {
   'word.order_pct': 'Off the bill',
   'word.cash_discount_pct': 'Cash discount',
   'word.net_scheme_amount': 'Flat scheme amount',
+  /* DOS-087: paise off every case or piece once the trigger is met. */
+  'word.per_unit_amount': 'Per case/piece off',
   'word.company': 'The brand',
   'word.distributor': 'Us',
 

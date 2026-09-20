@@ -16,7 +16,7 @@
  * has no GPS and the visit still gets recorded.
  */
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { haversineMetres } from '@dos/domain'
+import { formatINR, haversineMetres, paise } from '@dos/domain'
 import {
   AgeingBuckets,
   Button,
@@ -40,9 +40,11 @@ import { location } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
-import { longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
+import { isNewShop } from '../../src/lib/behaviour'
+import { dueKey, longDate, shortDate, shortInstant, today } from '../../src/lib/dates'
 import { keepKey } from '../../src/lib/keep'
 import {
+  schemesForShop,
   useBeats,
   useLastOrderOf,
   useLocalState,
@@ -97,34 +99,37 @@ export default function ShopCard(): React.JSX.Element {
     () => api.api.receivables.outstanding.get({ retailerId }),
     { enabled: retailerId !== '' && tab === 'bills', staleTime: 60_000 },
   )
+  /*
+   * DOS-081: the shop card said the office checks credit "not here" — but the rep may ask
+   * (`CREDIT_CHECKERS`), and what the rep needs at the door is the headroom before a single item is
+   * added. `orderTotalPaise: 0` asks about the shop as it stands. Offline the card says what the
+   * device knows and that it is checked again at submit; the device never re-implements the rule.
+   */
+  const creditNow = useQuery(
+    ['receivables', 'creditCheck', retailerId, 0],
+    () => api.api.receivables.creditCheck({ retailerId, orderTotalPaise: 0 }),
+    { enabled: retailerId !== '' && local.online, staleTime: 60_000 },
+  )
+
+  /*
+   * DOS-093: `behaviour` is a 404 `behaviour_not_computed` until the nightly rollup has seen the
+   * shop — the contract's own answer for a shop added this morning. It is not a fault, so it does
+   * not go through `<Async>`, which draws an ErrorState and a Retry that could only fail again.
+   */
+  const newShop = isNewShop(behaviour.error)
 
   const beatName = beats.find((beat) => beat.id === shop?.beat_id)?.name ?? null
 
   /**
    * The schemes this shop is inside today — the banner a rep opens the door with.
    *
-   * The filter is the engine's own applicability rule (`@dos/domain`: an empty list means "no
-   * restriction", every list that is set must match), read off the same rows the price is computed
-   * from. Nothing here decides a discount; that is `priceOrder()` on the order screen.
+   * DOS-088: EVERY one of them, newest `valid_from` first. This used to end in `.slice(0, 6)` over
+   * rows held in id order, so six of the pilot's fourteen reached the panel and the month's
+   * launches were among the eight that did not. The rule itself is `schemesForShop` in
+   * `src/lib/local.ts`, where a test can reach it; nothing here decides a discount, which is
+   * `priceOrder()` on the order screen, from the same rows.
    */
-  const banners = useMemo(() => {
-    if (shop === null) return []
-    const day = today()
-    return schemes
-      .filter((row) => row.valid_from <= day && row.valid_to >= day)
-      .filter((row) => {
-        const rule = (row.applicability ?? {}) as {
-          tiers?: string[]
-          retailerIds?: string[]
-          beatIds?: string[]
-        }
-        if (rule.tiers?.length && !rule.tiers.includes(shop.tier ?? '')) return false
-        if (rule.retailerIds?.length && !rule.retailerIds.includes(shop.id)) return false
-        if (rule.beatIds?.length && !rule.beatIds.includes(shop.beat_id ?? '')) return false
-        return true
-      })
-      .slice(0, 6)
-  }, [schemes, shop])
+  const banners = useMemo(() => schemesForShop(schemes, shop, today()), [schemes, shop])
 
   if (shop === null) {
     return (
@@ -233,14 +238,32 @@ export default function ShopCard(): React.JSX.Element {
                   <Field label={t('s2.openBills')}>{dues?.open_bills ?? 0}</Field>
                   <Field label={t('s2.terms')}>{word(shop.payment_terms)}</Field>
                 </Row>
-                <Txt field="label" desk="meta" color={colors.text.secondary}>
-                  {t('s2.creditRunsAtSubmit', { mode: word(shop.credit_mode) })}
+                <Txt
+                  field="label"
+                  desk="meta"
+                  color={colors.text.secondary}
+                  testID="credit-verdict"
+                >
+                  {creditNow.data === undefined
+                    ? t('s2.creditOffline', {
+                        owed: formatINR(paise(dues?.outstanding_paise ?? 0)),
+                        limit: formatINR(paise(shop.credit_limit_paise ?? 0)),
+                      })
+                    : creditNow.data.headroomPaise >= 0
+                      ? t('s2.creditHeadroom', {
+                          amount: formatINR(paise(creditNow.data.headroomPaise)),
+                          mode: word(shop.credit_mode),
+                        })
+                      : t('s2.creditOver', {
+                          amount: formatINR(paise(-creditNow.data.headroomPaise)),
+                          mode: word(shop.credit_mode),
+                        })}
                 </Txt>
               </Stack>
             </Panel>
 
             {banners.length === 0 ? null : (
-              <Panel title={t('s2.schemes')} meta={t('s2.schemesMeta')}>
+              <Panel title={t('s2.schemes')} meta={t('s2.schemesMeta', { count: banners.length })}>
                 <Group>
                   {banners.map((scheme) => (
                     <ListRow
@@ -258,26 +281,32 @@ export default function ShopCard(): React.JSX.Element {
             )}
 
             <Panel title={t('s2.habits')} meta={local.online ? undefined : t('s0.needsSignal')}>
-              <Async state={[behaviour]} rows={3}>
-                <Row gap={4} wrap>
-                  <Field label={t('s2.ordersLast30')}>
-                    {behaviour.data?.item.ordersLast30 ?? 0}
-                  </Field>
-                  <Field label={t('s2.valueLast30')}>
-                    <Money value={behaviour.data?.item.valueLast30Paise ?? null} size="moneyM" />
-                  </Field>
-                  <Field label={t('s2.avgDaysToPay')}>
-                    {behaviour.data?.item.avgDaysToPay ?? '—'}
-                  </Field>
-                  <Field label={t('s2.lapsedRisk')}>
-                    <StatusChip
-                      label={`${String(behaviour.data?.item.lapsedRisk ?? 0)}%`}
-                      family={(behaviour.data?.item.lapsedRisk ?? 0) >= 50 ? 'brick' : 'moss'}
-                      figure
-                    />
-                  </Field>
-                </Row>
-              </Async>
+              {newShop ? (
+                <Txt testID="shop-new" field="body" desk="body" color={colors.text.secondary}>
+                  {t('s2.newShop')}
+                </Txt>
+              ) : (
+                <Async state={[behaviour]} rows={3}>
+                  <Row gap={4} wrap>
+                    <Field label={t('s2.ordersLast30')}>
+                      {behaviour.data?.item.ordersLast30 ?? 0}
+                    </Field>
+                    <Field label={t('s2.valueLast30')}>
+                      <Money value={behaviour.data?.item.valueLast30Paise ?? null} size="moneyM" />
+                    </Field>
+                    <Field label={t('s2.avgDaysToPay')}>
+                      {behaviour.data?.item.avgDaysToPay ?? '—'}
+                    </Field>
+                    <Field label={t('s2.lapsedRisk')}>
+                      <StatusChip
+                        label={`${String(behaviour.data?.item.lapsedRisk ?? 0)}%`}
+                        family={(behaviour.data?.item.lapsedRisk ?? 0) >= 50 ? 'brick' : 'moss'}
+                        figure
+                      />
+                    </Field>
+                  </Row>
+                </Async>
+              )}
             </Panel>
 
             <Panel title={t('s2.contact')}>
@@ -357,10 +386,15 @@ export default function ShopCard(): React.JSX.Element {
                   {(outstanding.data?.bills ?? []).map((bill) => (
                     <TwoLine
                       key={bill.id}
+                      testID={`shop-bill-${bill.id}`}
                       primary={bill.invoiceNo}
-                      secondary={t('s12.due', {
+                      /*
+                       * DOS-091: `ageDays` is days SINCE the due date and negative before it, so
+                       * "Due 10 Sep · 2 days" said nothing about which side of it the shop is on.
+                       */
+                      secondary={t(dueKey(bill.ageDays), {
                         when: longDate(bill.dueDate),
-                        age: bill.ageDays,
+                        age: dayCount(t, bill.ageDays),
                       })}
                       trailing={
                         <Stack gap={1} align="end">
@@ -372,6 +406,9 @@ export default function ShopCard(): React.JSX.Element {
                           />
                         </Stack>
                       }
+                      onPress={() => {
+                        router.push(`/bills/${bill.id}`)
+                      }}
                     />
                   ))}
                 </Stack>
@@ -388,9 +425,14 @@ export default function ShopCard(): React.JSX.Element {
                     {invoices.map((bill) => (
                       <TwoLine
                         key={bill.id}
+                        testID={`shop-bill-local-${bill.id}`}
                         primary={bill.invoice_no ?? bill.id.slice(0, 8)}
                         secondary={t('s12.billed', { when: longDate(bill.invoice_date) })}
                         trailing={<Money value={bill.total_paise} size="moneyM" />}
+                        /* The same destination with no signal: the bill screen says it needs one. */
+                        onPress={() => {
+                          router.push(`/bills/${bill.id}`)
+                        }}
                       />
                     ))}
                   </Stack>
@@ -419,6 +461,18 @@ export default function ShopCard(): React.JSX.Element {
 /** Paise as a plain rupee figure for a chip label — the chip itself is not a `<Money>` slot. */
 function rupees(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+}
+
+/**
+ * A count of days as words, so neither S12 sentence ever reads "1 days" (DOS-091). The translator
+ * has no plural rule of its own, so the choice is made here and both forms are in `strings.ts`.
+ */
+function dayCount(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  days: number,
+): string {
+  const n = Math.abs(days)
+  return n === 1 ? t('s12.day') : t('s12.days', { days: n })
 }
 
 interface CheckInProps {

@@ -84,7 +84,13 @@ interface TripBody {
   loadSheetIds: string[]
   vanSalesAllowed: boolean
   expectedCashPaise: number
-  policy: { settlementTolerancePaise: number; podRequired: string; geofenceMetres: number }
+  policy: {
+    settlementTolerancePaise: number
+    podRequired: string
+    geofenceMetres: number
+    /** DOS-071: the amount at or above which an expense must carry a photo of its bill. */
+    expenseProofMinPaise: number
+  }
 }
 interface DeliveryBody {
   id: string
@@ -605,6 +611,8 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(desk.body.item.stops[0]?.deliveries[0]?.outcome).toBeNull()
     expect(trip.policy.podRequired).toBe('credit_only')
     expect(trip.policy.settlementTolerancePaise).toBe(10_000)
+    // DOS-071: the expense-proof amount rides on the trip, so the phone can say why the button is off.
+    expect(trip.policy.expenseProofMinPaise).toBe(20_000)
     expect(trip.loadConfirmedAt).toBeNull()
     expect(await outboxTypes(tripId)).toEqual(['TripPlanned'])
 
@@ -1322,6 +1330,130 @@ describeDb('delivery (DATABASE_URL)', () => {
     })
     expect(list.status).toBe(200)
     expect(list.body.totalPaise).toBe(30_000)
+  })
+
+  /**
+   * DOS-071 — "Photograph the bill" was an optional button with no policy behind it, and a ₹500 diesel
+   * went in with `proofObjectKey` null. The founder's rule (2026-09-13): a photo at or above a
+   * per-distributor amount, ₹200 by default, 0 for every expense. It runs on the SERVER, in
+   * `recordExpenseInTx`, so the crew and the desk meet the same rule and `/sync/upload` agrees.
+   */
+  it('DOS-071: an expense at or above the distributor’s amount needs a photo of its bill, and a small one does not', async () => {
+    // The two expenses this case DOES record are removed again at the end: the trip's cash story is
+    // read by the settlement cases below, and this one is about the rule, not about the money.
+    const recorded: string[] = []
+    /*
+     * The threshold is a TENANT setting: every case after this one reads it. An assertion that
+     * fails inside the block below used to leave it at 0, which turns every later expense in
+     * this file into `expense_proof_required` and hides the real failure behind a cascade.
+     */
+    try {
+      const noProof = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-a-${run}`,
+        id: uuidv7(),
+        tripId,
+        kind: 'diesel',
+        amountPaise: 50_000,
+      })
+      expect(noProof.status).toBe(400)
+      expect((noProof.body as { data?: { code?: string } }).data?.code).toBe(
+        'expense_proof_required',
+      )
+
+      const proofId = uuidv7()
+      recorded.push(proofId)
+      const withProof = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-b-${run}`,
+        id: proofId,
+        tripId,
+        kind: 'diesel',
+        amountPaise: 50_000,
+        inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+      })
+      expect(withProof.status).toBe(200)
+
+      // A ₹150 parking slip is under the amount: nothing is asked for.
+      const smallId = uuidv7()
+      recorded.push(smallId)
+      const small = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-c-${run}`,
+        id: smallId,
+        tripId,
+        kind: 'parking',
+        amountPaise: 15_000,
+      })
+      expect(small.status).toBe(200)
+
+      // The owner may ask for one on every rupee: 0 refuses the same ₹150.
+      await db
+        .insert(tenantSettings)
+        .values({ tenantId, key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise, value: 0 })
+        .onConflictDoUpdate({
+          target: [tenantSettings.tenantId, tenantSettings.key],
+          set: { value: 0 },
+        })
+      const everyRupee = await call(app, driver, 'POST', '/delivery/expenses', {
+        idempotencyKey: `expense-dos071-d-${run}`,
+        id: uuidv7(),
+        tripId,
+        kind: 'parking',
+        amountPaise: 15_000,
+      })
+      expect(everyRupee.status).toBe(400)
+      expect((everyRupee.body as { data?: { code?: string } }).data?.code).toBe(
+        'expense_proof_required',
+      )
+    } finally {
+      await db
+        .insert(tenantSettings)
+        .values({
+          tenantId,
+          key: TENANT_SETTING_KEYS.deliveryExpenseProofMinPaise,
+          value: 20_000,
+        })
+        .onConflictDoUpdate({
+          target: [tenantSettings.tenantId, tenantSettings.key],
+          set: { value: 20_000 },
+        })
+      // Nothing recorded (an assertion failed before the first one landed) is nothing to delete:
+      // `sql.join` of an empty list is not valid SQL.
+      if (recorded.length > 0)
+        await db.execute(
+          sql`delete from trip_expenses where tenant_id = ${tenantId} and id in (${sql.join(
+            recorded.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        )
+    }
+  })
+
+  it('DOS-071: the same rule reaches the offline queue as a 2xx rejection, and writes no expense row', async () => {
+    const opId = `exp-dos071-${run}`
+    const expenseId = uuidv7()
+    const res = await call<{
+      accepted: number
+      rejected: { opId: string; code: string; messageEn: string }[]
+    }>(app, driver, 'POST', '/sync/upload', {
+      protocol: 1,
+      deviceId: `driver-phone-${run}`,
+      ops: [
+        {
+          opId,
+          op: 'PUT',
+          table: 'trip_expenses',
+          id: expenseId,
+          data: { trip_id: tripId, kind: 'diesel', amount_paise: 50_000 },
+        },
+      ],
+    })
+    // `/sync/upload` NEVER answers 4xx (ADR 0007): the refusal is a row in `rejected`.
+    expect(res.status).toBe(200)
+    expect(res.body.rejected.map((r) => r.opId)).toEqual([opId])
+    expect(res.body.rejected[0]?.code).toBe('bad_request')
+    const rows = await db.execute(
+      sql`select id from trip_expenses where tenant_id = ${tenantId} and id = ${expenseId}`,
+    )
+    expect(rows.rows).toEqual([])
   })
 
   it('accepts the offline queue: an expense and a doorstep collection land, an impossible stop move is rejected 2xx', async () => {

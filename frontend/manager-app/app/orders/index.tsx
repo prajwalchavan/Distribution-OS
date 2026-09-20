@@ -29,14 +29,18 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
+  formatCount,
   formatINR,
   paise,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -57,6 +61,9 @@ import {
   useNames,
 } from '../../src/lib/ui'
 import { longDate, rangeOf, shortInstant, type RangeId } from '../../src/lib/dates'
+import { readAllReservations, reservedPcs } from '../../src/lib/reservations'
+import { orderLabel, resolutionOf, type OrderResolution } from '../../src/lib/bargain-order'
+import { waitingOnKinds } from '../../src/lib/waiting-on'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
 
@@ -82,6 +89,16 @@ export default function OrderQueue(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
   const can = useCan()
+  /*
+   * DOS-010: `<Register>` keeps three cells only — identity, chip, value — whenever it is not a real
+   * table, and a queue row then read "order no · state · amount" on the Pixel 7 because the
+   * Shop column is dropped. That is the web register below 1024 px AND the native register at EVERY
+   * width: `ui/src/native/list.tsx` is "the phone rendering of the one props contract" and has no
+   * table branch, so an Android tablet or an iPad at desk width is still cards with no Shop column to
+   * fall back on. The shop rides in the identity cell for exactly that shell; where a real table is
+   * drawn it has its own column and printing it twice would be the same defect the other way round.
+   */
+  const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
   const mayDecide = can('orders.confirm')
   const params = useLocalSearchParams<{ q?: string }>()
@@ -137,17 +154,37 @@ export default function OrderQueue(): React.JSX.Element {
     { enabled: order !== undefined },
   )
 
+  /*
+   * DOS-130: every hold, not the first page of them. Holds are per LOT, so the pieces this order has
+   * taken out of stock are the sum of `qtyPcs` over all of them, and a page cut off mid-way would
+   * under-report the one figure the manager reads as a quantity before confirming.
+   */
   const reservations = useQuery(
     ['warehouse', 'reservations', selected ?? 'none'],
-    () => api.api.warehouse.reservations.list({ orderId: selected ?? '', state: 'pending' }),
+    () =>
+      readAllReservations((cursor) =>
+        api.api.warehouse.reservations.list({
+          orderId: selected ?? '',
+          state: 'pending',
+          limit: 200,
+          ...(cursor === null ? {} : { cursor }),
+        }),
+      ),
     { enabled: selected !== null && can('warehouse.reservations.list') },
   )
 
+  /*
+   * The pending gates: the panel's cards, and the set the "Waiting on" column is derived from
+   * (DOS-027). The page bounds the column — an order whose gate falls past it shows a blank cell,
+   * which is the finding's own symptom — so it asks for the same 100 the owner's register asks off
+   * this list rather than the narrower 20 it used to. `gates` below already brings up to 200 bargain
+   * gates into the same panel, so this widens the column's reach without changing what the panel shows.
+   */
   const approvals = useQuery(['approvals', 'pending'], () =>
-    api.api.orders.approvals.list({ status: 'pending', limit: 20 }),
+    api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
   )
   /*
-   * Every pending bargain gate, past the 20-row page (DOS-005). A gate names the rate request it waits on and its
+   * Every pending bargain gate, past the page above (DOS-005). A gate names the rate request it waits on and its
    * decision decides that request, so the pair is one card, decided through the gate. The requests list is oldest
    * first and the approvals list newest first; without every gate, a request could show alone and deciding it
    * there would leave its order waiting on the gate.
@@ -158,6 +195,41 @@ export default function OrderQueue(): React.JSX.Element {
   const bargains = useQuery(['bargains', 'requested'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 20 }),
   )
+
+  /*
+   * DOS-090: a rate request carries the order id the REP'S PHONE minted. That is deliberate — the draft
+   * is placed under the same id later, which is how the request gates that order and no other — but it
+   * means `orders.get` answers 404 until it is placed, and the row used to name an order nobody could
+   * open. One read per distinct id on this page (at most the 20 above), settled so a 404 is an answer
+   * rather than a failed query, cached for a minute.
+   */
+  const rateOrderIds = [
+    ...new Set(
+      (bargains.data?.items ?? [])
+        .map((row) => row.orderId)
+        .filter((id): id is string => id !== null),
+    ),
+  ]
+  const rateOrders = useQuery(
+    ['orders', 'rate-requests', rateOrderIds.join(',')],
+    async (): Promise<[string, OrderResolution][]> => {
+      const settled = await Promise.allSettled(rateOrderIds.map((id) => api.api.orders.get({ id })))
+      return rateOrderIds.map((id, i) => {
+        const answer = settled[i]
+        if (answer === undefined || answer.status === 'rejected') return [id, { kind: 'missing' }]
+        return [
+          id,
+          {
+            kind: 'found',
+            orderNo: answer.value.item.orderNo,
+            state: answer.value.item.state,
+          },
+        ]
+      })
+    },
+    { enabled: rateOrderIds.length > 0, staleTime: 60_000 },
+  )
+  const resolvedRateOrders = new Map<string, OrderResolution>(rateOrders.data ?? [])
 
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
@@ -216,8 +288,25 @@ export default function OrderQueue(): React.JSX.Element {
   /* A capped page's footer states the page, not the register: "100+ rows" and the page's own sum. */
   const page = pagedCount(list)
 
+  /*
+   * Every gate still waiting, from the two reads above — the approvals page and every pending bargain
+   * gate — each row once. It feeds the "Waiting on" column (DOS-027) as well as the decision panel
+   * below, so the column and the cards can never disagree about what an order is held by.
+   */
+  const pending = [
+    ...new Map(
+      [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
+    ).values(),
+  ]
+
   const columns: readonly RegisterColumn<Order>[] = [
-    textColumn('orderNo', t('m2.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
+    textColumn(
+      'orderNo',
+      t('m2.orderNo'),
+      (row) =>
+        phone ? `${row.orderNo ?? t('app.none')} · ${names.retailer(row.retailerId)}` : row.orderNo,
+      { priority: 'identity' },
+    ),
     textColumn('shop', t('m2.shop'), (row) => names.retailer(row.retailerId)),
     /*
      * A line COUNT is what UX-00 §9.2 draws here and `orders.list` does not carry one (only
@@ -235,9 +324,53 @@ export default function OrderQueue(): React.JSX.Element {
         <StatusChip label={word(row.state)} family={STATE_FAMILY[row.state] ?? 'neutral'} />
       ),
     },
-    textColumn('flags', t('m2.flags'), (row) =>
-      row.approvalFlags.length === 0 ? null : row.approvalFlags.map(word).join(', '),
-    ),
+    /*
+     * DOS-078: what the godown could not hold when this order confirmed. The order was never refused
+     * for it (UX-00 §6.4) — this is the desk's warning before it goes to pack, read from the order's
+     * own record, never recomputed from reservations.
+     */
+    {
+      key: 'short',
+      head: t('m2.short'),
+      priority: 'chip',
+      cell: (row) =>
+        row.stockShortages.length === 0 ? null : (
+          <StatusChip
+            label={t('m2.shortCount', { count: row.stockShortages.length })}
+            family="ochre"
+          />
+        ),
+    },
+    /*
+     * DOS-027: the gates this order is still held by, read from the approvals themselves.
+     * `row.approvalFlags` is the stored copy raised at submit — nothing keeps it in step with the
+     * decisions, and it was empty for an order with two gates pending, which is precisely when this
+     * column matters.
+     */
+    textColumn('flags', t('m2.flags'), (row) => {
+      const kinds = waitingOnKinds(row, pending)
+      return kinds.length === 0 ? null : kinds.map(word).join(' · ')
+    }),
+    /*
+     * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit CONFIRMS and
+     * carries a notice the desk reads here; strict and stop are held by the gate and carry the same
+     * notice. The chip reads the order's own record, never a second credit rule.
+     */
+    {
+      key: 'credit',
+      head: t('m2.creditNotice'),
+      priority: 'chip',
+      cell: (row) => {
+        if (row.creditNotice === null) return null
+        const held = waitingOnKinds(row, pending).includes('credit_limit')
+        return (
+          <StatusChip
+            label={t(held ? 'm2.overLimitHeld' : 'm2.overLimitWarn')}
+            family={held ? 'brick' : 'ochre'}
+          />
+        )
+      },
+    },
     textColumn('placed', t('m2.placed'), (row) => shortInstant(row.submittedAt ?? row.createdAt)),
   ]
 
@@ -294,11 +427,6 @@ export default function OrderQueue(): React.JSX.Element {
     return `${head} · ${t('m2.creditOver', { over: formatINR(paise(over)) })}`
   }
 
-  const pending = [
-    ...new Map(
-      [...(approvals.data?.items ?? []), ...(gates.data?.items ?? [])].map((row) => [row.id, row]),
-    ).values(),
-  ]
   const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
   const gated = new Set(
     pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),
@@ -332,8 +460,14 @@ export default function OrderQueue(): React.JSX.Element {
       .map((row) => ({
         id: row.id,
         kind: 'bargain' as const,
-        what: names.retailer(row.retailerId),
-        why: t('m2.askedRate'),
+        // DOS-090: which order this rate is for — and "not placed yet" when it is still on the phone.
+        what: [
+          names.retailer(row.retailerId),
+          orderLabel(resolutionOf(row.orderId, resolvedRateOrders), t),
+        ]
+          .filter((part): part is string => part !== null && part !== '')
+          .join(' · '),
+        why: `${t('m2.askedRate')} · ${t('m2.rateAsked', { when: shortInstant(row.createdAt) })}`,
         amount: row.askedRatePaise,
       })),
   ]
@@ -343,8 +477,16 @@ export default function OrderQueue(): React.JSX.Element {
     kind: 'approval' | 'bargain'
     decision: 'approve' | 'reject'
     what: string
+    /*
+     * DOS-155: is this the last gate the order is waiting on? True only for a gate of the OPEN
+     * order, whose other gates this screen has read (`order.approvals`); a card in the list below
+     * belongs to an order it has not, so it promises nothing beforehand.
+     */
+    last: boolean
+    orderNo: string | null
   } | null>(null)
   const [note, setNote] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const commitDecision = (): void => {
     if (deciding === null) return
@@ -353,8 +495,21 @@ export default function OrderQueue(): React.JSX.Element {
       setNote('')
     }
     const input = { id: deciding.id, decision: deciding.decision, note: note.trim() }
-    if (deciding.kind === 'approval') void decideApproval.mutateAsync(input).then(done, stayOpen)
-    else void decideBargain.mutateAsync(input).then(done, stayOpen)
+    if (deciding.kind === 'approval') {
+      void decideApproval.mutateAsync(input).then((result) => {
+        done()
+        /*
+         * DOS-155: the order AFTER the decision, from the reply itself — `confirmed` only when this
+         * was the last gate. Said afterwards for every gate, including the cards below, because
+         * that is where "nothing said so" hurt. A rate request decided outside a gate answers
+         * `{ item }` with no order and confirms nothing.
+         */
+        if (result.order?.state === 'confirmed')
+          setToast(t('m2.orderConfirmed', { order: result.order.orderNo ?? '' }))
+      }, stayOpen)
+      return
+    }
+    void decideBargain.mutateAsync(input).then(done, stayOpen)
   }
 
   return (
@@ -471,6 +626,8 @@ export default function OrderQueue(): React.JSX.Element {
                             kind: row.kind,
                             decision: 'approve',
                             what: row.what,
+                            last: false,
+                            orderNo: null,
                           })
                         }}
                       />
@@ -483,6 +640,8 @@ export default function OrderQueue(): React.JSX.Element {
                             kind: row.kind,
                             decision: 'reject',
                             what: row.what,
+                            last: false,
+                            orderNo: null,
                           })
                         }}
                       />
@@ -549,6 +708,8 @@ export default function OrderQueue(): React.JSX.Element {
                                     kind: 'approval',
                                     decision: 'approve',
                                     what,
+                                    last: waitingOn.length === 1,
+                                    orderNo: order.orderNo,
                                   })
                                 }}
                                 testID={`order-approve-${gate.kind}`}
@@ -562,6 +723,8 @@ export default function OrderQueue(): React.JSX.Element {
                                     kind: 'approval',
                                     decision: 'reject',
                                     what,
+                                    last: waitingOn.length === 1,
+                                    orderNo: order.orderNo,
                                   })
                                 }}
                                 testID={`order-reject-${gate.kind}`}
@@ -580,6 +743,45 @@ export default function OrderQueue(): React.JSX.Element {
                   family={STATE_FAMILY[order.state] ?? 'neutral'}
                 />
               </Field>
+              {order.creditNotice === null ? null : (
+                <Field label={t('m2.creditNotice')}>
+                  <Stack gap={1} testID="order-credit-notice">
+                    <Txt
+                      field="body"
+                      desk="body"
+                      color={
+                        order.creditNotice.headroomPaise < 0 ? colors.status.ochre.fg : undefined
+                      }
+                    >
+                      {t('m2.creditNoticeLine', {
+                        owed: formatINR(paise(order.creditNotice.outstandingPaise)),
+                        limit: formatINR(paise(order.creditNotice.creditLimitPaise)),
+                        mode: word(order.creditNotice.creditMode),
+                      })}
+                    </Txt>
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {order.creditNotice.reasons.map(word).join(' · ')}
+                    </Txt>
+                  </Stack>
+                </Field>
+              )}
+              {order.stockShortages.length === 0 ? null : (
+                <Field label={t('m2.shortAtGodown')}>
+                  <Stack gap={1} testID="order-stock-shortages">
+                    {order.stockShortages.map((short) => (
+                      <Txt key={short.lineId} field="body" desk="body">
+                        {`${
+                          order.lines.find((line) => line.id === short.lineId)?.variantName ??
+                          short.variantId.slice(0, 8)
+                        } — ${t('m2.shortPieces', {
+                          short: formatCount(short.shortQtyPcs),
+                          requested: formatCount(short.requestedPcs),
+                        })}`}
+                      </Txt>
+                    ))}
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('m2.terms')}>{word(order.paymentTerms)}</Field>
               <Field label={t('m2.expected')}>{longDate(order.expectedDeliveryDate)}</Field>
 
@@ -618,7 +820,15 @@ export default function OrderQueue(): React.JSX.Element {
                 <Money value={order.discountPaise} size="cell" />
               </Field>
               <Field label={t('m2.tax')}>
-                <Money value={order.taxPaise} size="cell" />
+                <Stack gap={1}>
+                  <Money value={order.taxPaise} size="cell" />
+                  {/* DOS-079: cess is INSIDE the tax, so the figure above is not GST alone. */}
+                  {order.cessPaise > 0 ? (
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('m2.cessInside', { amount: formatINR(paise(order.cessPaise)) })}
+                    </Txt>
+                  ) : null}
+                </Stack>
               </Field>
               <Field label={t('m2.total')}>
                 <Money value={order.totalPaise} size="moneyM" />
@@ -626,7 +836,18 @@ export default function OrderQueue(): React.JSX.Element {
 
               {can('warehouse.reservations.list') ? (
                 <Field label={t('m2.reservations')}>
-                  {String(reservations.data?.items.length ?? 0)}
+                  <Stack gap={1}>
+                    <Txt field="body" desk="cell" numeric>
+                      {t('qty.piecesOnly', {
+                        pieces: formatCount(reservedPcs(reservations.data ?? [])),
+                      })}
+                    </Txt>
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {(reservations.data ?? []).length === 1
+                        ? t('m2.reservationsLot')
+                        : t('m2.reservationsLots', { count: (reservations.data ?? []).length })}
+                    </Txt>
+                  </Stack>
                 </Field>
               ) : null}
 
@@ -653,7 +874,7 @@ export default function OrderQueue(): React.JSX.Element {
                     <Button
                       label={t('m2.release')}
                       variant="secondary"
-                      disabled={(reservations.data?.items.length ?? 0) === 0}
+                      disabled={(reservations.data ?? []).length === 0}
                       disabledReason={t('m2.nothingHeld')}
                       onPress={() => {
                         setActing('release')
@@ -737,10 +958,16 @@ export default function OrderQueue(): React.JSX.Element {
         testID="order-dialog"
       />
 
+      {/*
+        DOS-153: the note belongs to the gate it was typed for. It was cleared only after a decision
+        went through, so a dialog closed without deciding kept the sentence and the next gate opened
+        with it already in the box — ready to be sent to whoever asked for THAT one.
+      */}
       <Dialog
         open={deciding !== null}
         onClose={() => {
           setDeciding(null)
+          setNote('')
         }}
         title={deciding?.decision === 'approve' ? t('m2.approve') : t('m2.reject')}
         body={
@@ -748,6 +975,12 @@ export default function OrderQueue(): React.JSX.Element {
             <Txt field="body" desk="body">
               {deciding?.what ?? ''}
             </Txt>
+            {/* DOS-155: the consequence, stated before it happens. Never on a reject. */}
+            {deciding?.last === true && deciding.decision === 'approve' ? (
+              <Txt field="bodyStrong" desk="body" testID="decision-last-gate">
+                {t('m2.lastGate', { order: deciding.orderNo ?? '' })}
+              </Txt>
+            ) : null}
             <TextInput
               label={t('m2.decisionNote')}
               value={note}
@@ -764,6 +997,15 @@ export default function OrderQueue(): React.JSX.Element {
         busy={decideApproval.status === 'pending' || decideBargain.status === 'pending'}
         onConfirm={commitDecision}
         testID="decision-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="orders-toast"
       />
     </Screen>
   )

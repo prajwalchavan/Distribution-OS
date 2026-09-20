@@ -5,11 +5,11 @@ export { PlatformSupportService } from './support.service.js'
 export { PlatformConsoleService, ACTIVE_WINDOW_DAYS } from './console.service.js'
 /**
  * One support grant on the wire, in the shape both the console and the distributor's owner read
- * (`SupportGrantSchema`). `tenancy`'s own support service keeps its private copy of the same mapping
- * because the two modules must not import each other; if a third reader ever appears, move this one
- * into `@dos/domain` rather than adding a cross-module edge.
+ * (`SupportGrantSchema`). The STATUS it carries is not derived here: `statusOf` lives in
+ * `modules/tenancy/support-status.ts` and is read by both halves of the flow, so the two services
+ * can never disagree about whether an ask is still answerable (DOS-110).
  */
-export { toSupportGrant, statusOf as supportGrantStatus } from './support-grants.js'
+export { toSupportGrant } from './support-grants.js'
 /**
  * How big each distributor is, and how busy the platform is — COUNTS ONLY (see the header of
  * `counts.ts` for the rule every query there obeys). Plain functions, so a later worker rollup imports
