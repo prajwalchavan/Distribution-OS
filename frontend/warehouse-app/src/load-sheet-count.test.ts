@@ -34,6 +34,13 @@ async function readScreen(): Promise<string> {
   return readFileSync(fileURLToPath(new URL('../app/load/[id].tsx', import.meta.url)), 'utf8')
 }
 
+/** W9's source, the other half of DOS-049. */
+async function readCheckIn(): Promise<string> {
+  const { readFileSync } = (await import(NODE_FS)) as NodeFs
+  const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
+  return readFileSync(fileURLToPath(new URL('../app/load/check-in.tsx', import.meta.url)), 'utf8')
+}
+
 /** Block and line comments removed, so a comment that names a testID is not counted as the element. */
 function withoutComments(code: string): string {
   return code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1')
@@ -80,5 +87,38 @@ describe('W7 load-out: the counts that leave the godown', () => {
     // Blind here too: an uncounted van lot shows no quantity to copy into the pad.
     expect(catalogue['w7.vanUncounted']).toBe('Not counted yet')
     expect(code).toMatch(/t\('w7\.vanUncounted'\)/)
+  })
+
+  it('DOS-049: the per-order carton counts stay off the draft sheet until the crew has keyed its own count', async () => {
+    const code = withoutComments(await readScreen())
+
+    // One rule, named once: the answer is off the screen while the question is being asked.
+    expect(code).toMatch(/const cartonsVisible = !draft \|\| counted !== null/)
+
+    // "ORDERS ON THIS SHEET" printed "Cartons 7 / 12 / 12 / 4 / 3" — 38 — directly under a pad asking
+    // for 38. The figure now hangs off that one rule, and it is the only place the screen names it.
+    const orders = between(code, "t('w7.orders')", 'testID="w7-lots"')
+    const flagAt = orders.indexOf('cartonsVisible')
+    expect(flagAt, 'the orders panel does not read cartonsVisible').toBeGreaterThan(-1)
+    expect([...code.matchAll(/order\.packages/g)], 'order.packages is drawn twice').toHaveLength(1)
+    const packagesAt = orders.indexOf('order.packages')
+    expect(packagesAt).toBeGreaterThan(flagAt)
+    expect(packagesAt).toBeLessThan(orders.indexOf('trailing='))
+
+    // The panel's own meta counts ORDERS while the sheet is a draft, and the expected cartons only
+    // after the check-out, where they are a record rather than a hint.
+    const meta = between(orders, 'meta=', 'testID="w7-orders"')
+    expect(meta).toMatch(/pl\(t, 'w\.ordersN', item\.orders\.length\)/)
+    expect(meta).toMatch(/\bdraft\b/)
+    expect(meta.indexOf("pl(t, 'w.ordersN'")).toBeLessThan(meta.indexOf("t('w7.expected'"))
+  })
+
+  it('DOS-049: the van check-in lists only what the vehicle still holds, never a "0 pc" row under EXPECTED ON THE VEHICLE', async () => {
+    const code = withoutComments(await readCheckIn())
+    // `stock.balances` keeps a row at zero once a lot has ever stood there; a lot with nothing on the
+    // van is not expected on the van, and offering it a count pad only invites a stray transfer.
+    expect(code).toMatch(
+      /const rows =[\s\S]{0,120}?\.filter\(\s*\(\w+\)\s*=>\s*\w+\.onHand > 0\s*\)/,
+    )
   })
 })

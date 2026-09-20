@@ -404,12 +404,16 @@ list/get` (planned, CAP includes warehouse). Review/commit ✗ by design (desk).
   `warehouse.packs.list` status=awaiting_load ✓ (packed, on no draft or confirmed sheet, newest pack first; DOS-133),
   `warehouse.challans.get/list` ✓, `inventory.locations.list` kind=vehicle ✓, `delivery.vehicles.list` (planned).
   `warehouse.loadSheets.confirm/cancel` ✗ (PIN_HOLDERS) — see §4.3. MISSING: `warehouse.challans.pdf`.
+  The count is blind on both halves: the per-order carton figures appear only once the crew has keyed its own count (DOS-049),
+  and each `source = 'van'` lot takes its own blind count which the confirm sends as `countedVanStock` — the check-out is refused
+  until every van lot has a figure, because since DOS-039 that count is the only stock the load-out moves (DOS-121).
 - **W8 Stock: balances per lot, near expiry, damage/expiry bin, transfer, new lot** — Calls: `inventory.stock.balances/ledger/adjust/
 transfer` ✓, `inventory.lots.upsert` ✓, `inventory.locations.list/upsert` ✓. MISSING: `inventory.cycleCounts.*`, `expiringBefore`.
   Adjust: reductions only for the warehouse role; opening stock and additions are the desk's (DOS-044).
 - **W9 Van check-in count (stock counted back)** — the crew's unsold stock is counted at the gate; the settlement itself is desk
   work. Calls: `inventory.stock.balances` locationId=vehicle ✓, `delivery.trips.settlementPreview` ✗ (planned roles exclude
-  warehouse) — the warehouse app shows expected van stock from balances instead.
+  warehouse) — the warehouse app shows expected van stock from balances instead, listing only the lots the vehicle still holds
+  (a balance row stays at zero once a lot has stood there; a "0 pc" row is not expected on the vehicle — DOS-049).
 - **W10 Trips: create, start loading** — `delivery.trips.create/startLoading/list/get` (planned, warehouse included).
 - **W11 Reservations (what is held for whom)** — `warehouse.reservations.list` ✓; `release` ✗ by design.
 - **W12 Me / inbox** — X4, `notifications.messages.list`, `pushTokens.register` (planned).

@@ -86,6 +86,14 @@ export default function LoadSheet(): React.JSX.Element {
    */
   const vanLots = item?.lots.filter((lot) => lot.source === 'van') ?? []
   const vanCounted = vanLots.every((lot) => vanCounts[lot.lotId] !== undefined)
+  /*
+   * DOS-049. "Blind count: what the bill says is not on this screen" stood two inches above ORDERS ON
+   * THIS SHEET — Cartons 7 / 12 / 12 / 4 / 3 — and 7 + 12 + 12 + 4 + 3 is the 38 the pad is asking
+   * for. A crew three cartons short types 38 and the count is theatre. So the per-order figure waits
+   * for the crew's own: once a number is keyed it comes back, and on a confirmed sheet it is simply
+   * the record of what went out.
+   */
+  const cartonsVisible = !draft || counted !== null
   const blocked = !approved || counted === null || !vanCounted || (variance && note.trim() === '')
 
   const confirm = useMutation(
@@ -257,9 +265,13 @@ export default function LoadSheet(): React.JSX.Element {
                       key={order.orderId}
                       testID={`w7-order-${order.orderId}`}
                       primary={order.retailerName}
-                      secondary={`${order.orderNo ?? order.orderId.slice(0, 8)} · ${t(
-                        'w6.packages',
-                      )} ${String(order.packages)}`}
+                      secondary={
+                        cartonsVisible
+                          ? `${order.orderNo ?? order.orderId.slice(0, 8)} · ${t(
+                              'w6.packages',
+                            )} ${String(order.packages)}`
+                          : (order.orderNo ?? order.orderId.slice(0, 8))
+                      }
                       trailing={
                         order.invoiceNo === null ? (
                           <StatusChip label={t('w6.noBill')} family="ochre" />
