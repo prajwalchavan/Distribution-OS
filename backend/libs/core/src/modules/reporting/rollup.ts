@@ -192,6 +192,7 @@ export async function rollupTenantDay(
       const live = await tx.execute(sql`
         select coalesce(sum(outstanding_paise), 0)::bigint as outstanding_paise,
                coalesce(sum(overdue_paise), 0)::bigint     as overdue_paise,
+               coalesce(sum(unallocated_credit_paise), 0)::bigint as unallocated,
                coalesce(sum(bucket_0_7_paise), 0)::bigint     as b0_7,
                coalesce(sum(bucket_8_15_paise), 0)::bigint    as b8_15,
                coalesce(sum(bucket_16_30_paise), 0)::bigint   as b16_30,
@@ -583,6 +584,11 @@ async function refreshOwnerSummary(
       activeTrips: n(active.rows[0]?.active),
       detail: {
         cashInTransitPaise: n(inTransit.rows[0]?.paise),
+        /*
+         * DOS-016: always LIVE, like the ageing rungs beside it — `dues` here is the live row, not the
+         * stored closing figure, so the tile and the Money screen agree with the books as they stand.
+         */
+        onAccountPaise: n(dues?.unallocated),
         ageingB0_7: n(dues?.b0_7),
         ageingB8_15: n(dues?.b8_15),
         ageingB16_30: n(dues?.b16_30),

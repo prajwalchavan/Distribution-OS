@@ -696,6 +696,66 @@ describeDb('demo seed on an empty database', () => {
   }, 60_000)
 
   /**
+   * DOS-079. `sales_orders.tax_paise` is GST PLUS compensation cess and `cess_paise` is the cess
+   * share of it — that is what the column's own comment promises and what the manager's detail reads
+   * to print "includes cess ₹X". The seed folded the cess into `tax_paise` and left `cess_paise`
+   * and the line's `cess_bps` at their defaults, so every seeded aerated-drink order said the cess
+   * was zero under a tax that contained it: the column's definition was false on seed rows, and the
+   * manager's line never appeared on any order the demo shipped with. The bill built from the same
+   * items has always carried the split (`invoice_lines.cess_bps`), so the invoice is the witness the
+   * order is measured against here.
+   */
+  it('DOS-079: a seeded order of a cess-bearing item carries the cess rate and the cess share, and the order header sums its lines', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+
+    // Which items bear cess is not on `product_variants` — the rate lives in the seed's own catalog
+    // and reaches the database only on the documents. The bill for the very same order line is
+    // therefore the reference: where it billed cess, the order must have ordered cess.
+    const lines = (
+      await db.execute(sql`
+        SELECT count(*)::int AS n,
+               count(*) FILTER (WHERE l.cess_bps = il.cess_bps)::int AS rate_matches,
+               count(*) FILTER (WHERE l.cess_paise > 0)::int AS carries_share,
+               count(*) FILTER (WHERE l.cess_paise > l.tax_paise)::int AS share_exceeds_tax
+          FROM sales_order_lines l
+          JOIN invoices i ON i.order_id = l.order_id AND i.tenant_id = l.tenant_id
+          JOIN invoice_lines il ON il.invoice_id = i.id AND il.variant_id = l.variant_id
+         WHERE il.cess_bps > 0`)
+    ).rows as {
+      n: number
+      rate_matches: number
+      carries_share: number
+      share_exceeds_tax: number
+    }[]
+    const seen = lines[0]
+    expect(seen).toBeDefined()
+    expect(seen?.n).toBeGreaterThan(0)
+    expect({
+      rate_matches: seen?.rate_matches,
+      carries_share: seen?.carries_share,
+      share_exceeds_tax: seen?.share_exceeds_tax,
+    }).toEqual({ rate_matches: seen?.n, carries_share: seen?.n, share_exceeds_tax: 0 })
+
+    // ...and the header is the sum of its own lines, never a second, independent figure.
+    const headers = (
+      await db.execute(sql`
+        SELECT o.id
+          FROM sales_orders o
+          JOIN (SELECT order_id, sum(cess_paise)::bigint AS cess, sum(tax_paise)::bigint AS tax
+                  FROM sales_order_lines GROUP BY order_id) l ON l.order_id = o.id
+         WHERE o.cess_paise <> l.cess OR o.cess_paise > o.tax_paise
+         ORDER BY o.id`)
+    ).rows as { id: string }[]
+    expect(headers).toEqual([])
+
+    // The demo really does ship such an order, in every distributorship that sells the item.
+    const [withCess] = (
+      await db.execute(sql`SELECT count(*)::int AS n FROM sales_orders WHERE cess_paise > 0`)
+    ).rows as { n: number }[]
+    expect(withCess?.n).toBeGreaterThan(0)
+  }, 180_000)
+
+  /**
    * DOS-018: every trip the demo writes carries a number of the TRIP series' own shape,
    * `TRIP-<yyyymmdd>-<n>` (`tenant-bootstrap.ts` gives the series the prefix `TRIP-`). Two did not:
    * today's active trip was `TRIP-ACTIVE` and tomorrow's planned round `TRIP-NEXT`, placeholders that

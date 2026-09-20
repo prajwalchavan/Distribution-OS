@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { describePriceChange, diffQuoteVsOrder, formatCaseSummary, summarizeCases } from './pricing'
+import {
+  describePriceChange,
+  diffQuoteVsOrder,
+  formatCaseSummary,
+  payableSummary,
+  summarizeCases,
+} from './pricing'
 
 /**
  * DOS-082: `orders.create` re-prices on the server from the same price-list tables the device just
@@ -89,5 +95,58 @@ describe('DOS-129: summarizeCases sums each line in its OWN case size', () => {
   it('reads pieces alone when there is no whole case anywhere, and "0 pcs" for an empty order', () => {
     expect(formatCaseSummary(summarizeCases([{ qtyPcs: 5, caseSize: 24 }]))).toBe('5 pcs')
     expect(formatCaseSummary(summarizeCases([]))).toBe('0 pcs')
+  })
+})
+
+/**
+ * DOS-083: the rep read "₹28,739.70 before GST" on the order screen and "Order total ₹32,030.00" on
+ * the order the moment it was placed — two totals for the same goods on consecutive screens, and the
+ * shop heard the wrong one across the counter. `pricing.quote` knows the payable (GST and, since
+ * DOS-079, cess); the device engine never will, because `hsn_rates` is not in a salesperson's
+ * manifest. So the summary carries the server's payable when there is one and says "before GST"
+ * honestly when there is not — it never invents a tax.
+ */
+describe('DOS-083: the payable the shop will owe, before the rep commits', () => {
+  const deviceTotals = { netPaise: 2_873_970, discountPaise: 41_200 }
+  const serverTotals = {
+    netPaise: 2_873_970,
+    discountPaise: 41_200,
+    taxPaise: 329_030,
+    cessPaise: 13_231,
+    roundOffPaise: 0,
+    totalPaise: 3_203_000,
+  }
+
+  it('carries the server quote: the payable is its total, with GST and cess named', () => {
+    const summary = payableSummary(deviceTotals, serverTotals)
+    expect(summary).toEqual({
+      netPaise: 2_873_970,
+      discountPaise: 41_200,
+      taxPaise: 329_030,
+      cessPaise: 13_231,
+      roundOffPaise: 0,
+      payablePaise: 3_203_000,
+      withGst: true,
+    })
+  })
+
+  it('stays honestly before GST with no server quote: no tax, no payable, nothing invented', () => {
+    const summary = payableSummary(deviceTotals, null)
+    expect(summary).toEqual({
+      netPaise: 2_873_970,
+      discountPaise: 41_200,
+      taxPaise: null,
+      cessPaise: null,
+      roundOffPaise: null,
+      payablePaise: null,
+      withGst: false,
+    })
+  })
+
+  it('refuses a server quote that priced a different basket: a stale payable is worse than none', () => {
+    const stale = payableSummary(deviceTotals, { ...serverTotals, netPaise: 1_000_000 })
+    expect(stale.withGst).toBe(false)
+    expect(stale.payablePaise).toBeNull()
+    expect(stale.netPaise).toBe(2_873_970)
   })
 })

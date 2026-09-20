@@ -11,6 +11,7 @@ import {
   Button,
   Chips,
   Dialog,
+  ListRow,
   Money,
   Register,
   RupeeInput,
@@ -19,6 +20,9 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Txt,
+  formatINR,
+  paise,
   useStrings,
   type RegisterColumn,
   type StatusFamily,
@@ -35,6 +39,7 @@ import {
   textColumn,
   useNames,
 } from '../../src/lib/ui'
+import { Refusal, stayOpen } from '../../src/lib/refusal'
 import { instantWithClock, rangeOf, type RangeId } from '../../src/lib/dates'
 import { useWord } from '../../src/lib/words'
 
@@ -58,7 +63,15 @@ export default function Receipts(): React.JSX.Element {
   const [mode, setMode] = useState<Mode | null>(null)
   const [unallocatedOnly, setUnallocatedOnly] = useState(false)
   const [selected, setSelected] = useState<string | null>(null)
-  const [dialog, setDialog] = useState<'deposit' | 'bounce' | 'reverse' | null>(null)
+  /*
+   * The dialog carries the instant it OPENED (DOS-136): `depositedAt` and `bouncedAt` are client
+   * values, and made inside the call they change on every press — a retry after a lost reply is then a
+   * different request under the spent idempotency key, refused over money that is already banked.
+   */
+  const [dialog, setDialog] = useState<{
+    kind: 'deposit' | 'bounce' | 'reverse'
+    at: string
+  } | null>(null)
   const [note, setNote] = useState('')
   const [charges, setCharges] = useState<number | null>(null)
 
@@ -81,24 +94,24 @@ export default function Receipts(): React.JSX.Element {
   )
 
   const deposit = useMutation(
-    (input: { ids: readonly string[]; ref: string }, meta) =>
+    (input: { ids: readonly string[]; ref: string; at: string }, meta) =>
       api.api.receivables.receipts.deposit({
         id: meta.id,
         idempotencyKey: meta.idempotencyKey,
         receiptIds: [...input.ids],
         depositAccountCode: 'BANK',
-        depositedAt: new Date().toISOString(),
+        depositedAt: input.at,
         ...(input.ref === '' ? {} : { depositRef: input.ref }),
       }),
     { invalidates: [['receipts'], ['receivables']] },
   )
   const bounce = useMutation(
-    (input: { id: string; reason: string; charges: number | null }, meta) =>
+    (input: { id: string; reason: string; charges: number | null; at: string }, meta) =>
       api.api.receivables.receipts.bounce({
         id: input.id,
         reversalId: meta.id,
         idempotencyKey: meta.idempotencyKey,
-        bouncedAt: new Date().toISOString(),
+        bouncedAt: input.at,
         reason: input.reason,
         bankChargesPaise: input.charges ?? 0,
       }),
@@ -117,6 +130,8 @@ export default function Receipts(): React.JSX.Element {
 
   const rows = list.data?.items ?? []
   const receipt = detail.data?.item
+  /** The bills this receipt settled, by id: `receipts.get` names them, so no read per allocation (DOS-011). */
+  const settled = new Map((detail.data?.invoices ?? []).map((bill) => [bill.id, bill]))
 
   const columns: readonly RegisterColumn<Receipt>[] = [
     textColumn('no', t('o11.receiptNo'), (row) => row.receiptNo, { priority: 'identity' }),
@@ -220,6 +235,51 @@ export default function Receipts(): React.JSX.Element {
               <Field label={t('o11.unallocated')}>
                 <Money value={receipt.unallocatedPaise} size="cell" />
               </Field>
+              {/*
+                DOS-011: what the money actually DID. The allocations were on the wire naming only an
+                invoice id, and the cash discount the business gave away was in the ledger and nowhere
+                on screen. `receipts.get` now names each bill it settled, in allocation order, with the
+                state and balance it left behind — one read, never a call per allocation.
+              */}
+              {(detail.data?.allocations.length ?? 0) === 0 ? null : (
+                <Field label={t('o11.settles')}>
+                  <Stack gap={2} testID="receipt-settles">
+                    {(detail.data?.allocations ?? []).map((line) => {
+                      const bill = settled.get(line.invoiceId)
+                      return (
+                        <ListRow
+                          key={line.id}
+                          primary={bill?.invoiceNo ?? t('o11.billUnknown')}
+                          secondary={
+                            bill === undefined
+                              ? undefined
+                              : bill.openPaise === 0
+                                ? word(bill.state)
+                                : t('o11.billOpen', {
+                                    amount: formatINR(paise(bill.openPaise)),
+                                  })
+                          }
+                          trailingMoney={line.amountPaise}
+                        />
+                      )
+                    })}
+                  </Stack>
+                </Field>
+              )}
+              {receipt.cashDiscountPaise === 0 ? null : (
+                <Field label={t('o11.cashDiscount')}>
+                  <Stack gap={2}>
+                    <Money value={receipt.cashDiscountPaise} size="cell" />
+                    <Txt field="label" desk="meta" testID="receipt-settled-line">
+                      {t('o11.settledLine', {
+                        received: formatINR(paise(receipt.amountPaise)),
+                        discount: formatINR(paise(receipt.cashDiscountPaise)),
+                        total: formatINR(paise(receipt.amountPaise + receipt.cashDiscountPaise)),
+                      })}
+                    </Txt>
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('o11.received')}>{instantWithClock(receipt.receivedAt)}</Field>
               <Field label={t('o7.person')}>{names.staff(receipt.receivedBy)}</Field>
               <Button
@@ -230,7 +290,7 @@ export default function Receipts(): React.JSX.Element {
                   detail.data?.withCrew === true ? t('o11.withCrew') : t('o11.status')
                 }
                 onPress={() => {
-                  setDialog('deposit')
+                  setDialog({ kind: 'deposit', at: new Date().toISOString() })
                 }}
                 testID="receipt-deposit"
               />
@@ -240,7 +300,7 @@ export default function Receipts(): React.JSX.Element {
                 disabled={receipt.mode !== 'cheque' || receipt.status === 'bounced'}
                 disabledReason={t('o11.mode')}
                 onPress={() => {
-                  setDialog('bounce')
+                  setDialog({ kind: 'bounce', at: new Date().toISOString() })
                 }}
               />
               <Button
@@ -249,7 +309,7 @@ export default function Receipts(): React.JSX.Element {
                 disabled={receipt.status === 'cancelled'}
                 disabledReason={t('o11.status')}
                 onPress={() => {
-                  setDialog('reverse')
+                  setDialog({ kind: 'reverse', at: new Date().toISOString() })
                 }}
               />
             </Stack>
@@ -263,9 +323,9 @@ export default function Receipts(): React.JSX.Element {
           setDialog(null)
         }}
         title={
-          dialog === 'deposit'
+          dialog?.kind === 'deposit'
             ? t('o11.deposit')
-            : dialog === 'bounce'
+            : dialog?.kind === 'bounce'
               ? t('o11.bounce')
               : t('o11.reverse')
         }
@@ -273,44 +333,61 @@ export default function Receipts(): React.JSX.Element {
           <Stack gap={3}>
             <Money value={receipt?.amountPaise ?? null} size="moneyM" />
             <TextInput
-              label={dialog === 'bounce' ? t('o11.bounceReason') : t('o3.note')}
+              label={dialog?.kind === 'bounce' ? t('o11.bounceReason') : t('o3.note')}
               value={note}
               onChange={setNote}
               capitalize="sentences"
             />
-            {dialog === 'bounce' ? (
+            {dialog?.kind === 'bounce' ? (
               <RupeeInput label={t('o23.cost')} value={charges} onChange={setCharges} />
             ) : null}
+            {/* The service's own sentence, on the surface it was pressed (DOS-029/DOS-136). */}
+            <Refusal of={[deposit, bounce, reverse]} scope={selected} testID="receipt-refusal" />
           </Stack>
         }
         confirmLabel={
-          dialog === 'deposit'
+          dialog?.kind === 'deposit'
             ? t('o11.deposit')
-            : dialog === 'bounce'
+            : dialog?.kind === 'bounce'
               ? t('o11.bounce')
               : t('o11.reverse')
         }
-        destructive={dialog !== 'deposit'}
+        destructive={dialog?.kind !== 'deposit'}
         busy={
           deposit.status === 'pending' ||
           bounce.status === 'pending' ||
           reverse.status === 'pending'
         }
         onConfirm={() => {
-          if (receipt === undefined) return
+          if (receipt === undefined || dialog === null) return
           const done = (): void => {
             setDialog(null)
             setNote('')
             setCharges(null)
           }
-          if (dialog === 'deposit')
-            void deposit.mutateAsync({ ids: [receipt.id], ref: note.trim() }).then(done, done)
-          if (dialog === 'bounce')
+          /*
+           * The dialog closes on SUCCESS only (DOS-029): a refusal stays on screen in the service's
+           * own words. A write whose reply never arrived may still have landed, so the receipt and the
+           * register are read back before the reader presses again (DOS-136).
+           */
+          const refused = (error: unknown): void => {
+            stayOpen()
+            const kind = (error as { kind?: string } | null)?.kind
+            if (kind === 'network' || kind === 'server') {
+              void detail.refetch()
+              void list.refetch()
+            }
+          }
+          if (dialog.kind === 'deposit')
+            void deposit
+              .mutateAsync({ ids: [receipt.id], ref: note.trim(), at: dialog.at })
+              .then(done, refused)
+          if (dialog.kind === 'bounce')
             void bounce
-              .mutateAsync({ id: receipt.id, reason: note.trim(), charges })
-              .then(done, done)
-          if (dialog === 'reverse')
-            void reverse.mutateAsync({ id: receipt.id, reason: note.trim() }).then(done, done)
+              .mutateAsync({ id: receipt.id, reason: note.trim(), charges, at: dialog.at })
+              .then(done, refused)
+          if (dialog.kind === 'reverse')
+            void reverse.mutateAsync({ id: receipt.id, reason: note.trim() }).then(done, refused)
         }}
         testID="receipt-dialog"
       />

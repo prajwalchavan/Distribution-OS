@@ -252,9 +252,20 @@ export default function Orders(): React.JSX.Element {
             }}
             testID="orders-range"
           />
+          {/*
+            DOS-014: "Export CSV" on the orders register exports the ORDERS, not the daily-sales
+            figures it used to queue, and it carries the filters on screen — the range, and the state
+            chips. A number search keeps the range (the register is dated) and adds the query.
+          */}
           <ExportButton
-            register="dailySales"
-            filters={{ from: span.from, to: span.to }}
+            register="orders"
+            filters={{
+              from: span.from,
+              to: span.to,
+              ...(searching ? { q } : {}),
+              ...(states.length === 1 ? { state: states[0] } : {}),
+              ...(states.length > 1 ? { states: [...states] } : {}),
+            }}
             testID="orders-export"
           />
         </>

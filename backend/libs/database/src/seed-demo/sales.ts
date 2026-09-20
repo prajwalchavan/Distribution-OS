@@ -128,6 +128,8 @@ export interface OrderRecord {
   subtotalPaise: number
   discountPaise: number
   taxPaise: number
+  /** The compensation-cess share of `taxPaise` (DOS-079), the sum of the lines' own shares. */
+  cessPaise: number
   roundOffPaise: number
   totalPaise: number
   lineCount: number
@@ -781,6 +783,8 @@ export async function seedSales(
     subtotal: number
     discount: number
     tax: number
+    /** The compensation-cess share INSIDE `tax`, never a figure added to it (DOS-079). */
+    cess: number
   }
   /** Loose pieces, an inner, or whole cases: how the shop typed it. */
   function enteredFor(
@@ -919,12 +923,16 @@ export async function seedSales(
     let subtotal = 0
     let discount = 0
     let tax = 0
+    let cess = 0
     const lines: LineRow[] = []
     drafts.forEach(({ v, entered, qtyPcs, priced }, i) => {
       const lineDiscount = priced.discountPaise + (extraDiscount.get(i) ?? 0)
       const gross = priced.rate * qtyPcs
       const taxable = gross - lineDiscount
       const lineTax = taxOn(taxable, v.gstBps, v.cessBps)
+      // DOS-079: `tax_paise` is GST PLUS cess; `cess_paise` is the share of it `taxOn` folded in,
+      // never an addition on top. The bill built from this line splits it the same way.
+      const lineCess = percentOf(paise(taxable), v.cessBps)
       // A godown that always picks in full makes the fill-rate chart a flat 1.0 and teaches nobody
       // anything (docs/plans/reporting.md §6 item 2). Its own RNG stream; invoice lines bill `qtyPcs`.
       const shortPicked = priced.freeQtyPcs === 0 && qtyPcs >= 4 && shortPickRng() < 0.05
@@ -947,7 +955,9 @@ export async function seedSales(
         discountBps: gross > 0 ? Math.round((lineDiscount * 10_000) / gross) : 0,
         discountPaise: lineDiscount,
         gstBps: v.gstBps,
+        cessBps: v.cessBps,
         taxPaise: lineTax,
+        cessPaise: lineCess,
         lineTotalPaise: taxable + lineTax,
         appliedRules: [...priced.appliedRules, ...(orderRules.get(i) ?? [])],
         priceLocked: priced.priceLocked,
@@ -955,8 +965,9 @@ export async function seedSales(
       subtotal += gross
       discount += lineDiscount
       tax += lineTax
+      cess += lineCess
     })
-    return { lines, subtotal, discount, tax }
+    return { lines, subtotal, discount, tax, cess }
   }
 
   // --- the order book -------------------------------------------------------------------------------
@@ -1036,6 +1047,7 @@ export async function seedSales(
       subtotalPaise: built.subtotal,
       discountPaise: built.discount,
       taxPaise: built.tax,
+      cessPaise: built.cess,
       roundOffPaise: roundOff,
       totalPaise,
       lineCount: built.lines.length,
@@ -2780,6 +2792,7 @@ export async function seedSales(
         subtotalPaise: o.subtotalPaise,
         discountPaise: o.discountPaise,
         taxPaise: o.taxPaise,
+        cessPaise: o.cessPaise,
         roundOffPaise: o.roundOffPaise,
         totalPaise: o.totalPaise,
         submittedAt: o.state === 'draft' ? null : occurred(atIstTime(o.day, 10, 0)),

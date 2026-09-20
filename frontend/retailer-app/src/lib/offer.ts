@@ -96,6 +96,9 @@ export function offerSentence(
             amount: formatMoney(scheme.rewardValue),
           })
         : t('r9.lineAmount', { min, unit, amount: formatMoney(scheme.rewardValue) })
+    // DOS-087: "₹15 off per case on 2+" — on EVERY case once the trigger is met, not once per pair.
+    case 'per_unit_amount':
+      return t('r9.perUnitAmount', { min, unit, amount: formatMoney(scheme.rewardValue) })
   }
 }
 
@@ -103,7 +106,7 @@ export function offerSentence(
 export function slabSentence(t: Translate, scheme: SchemeView): string | null {
   const slabs = scheme.slabs ?? []
   if (slabs.length === 0) return null
-  const money = scheme.rewardKind === 'net_scheme_amount'
+  const money = scheme.rewardKind === 'net_scheme_amount' || scheme.rewardKind === 'per_unit_amount'
   const rungs = slabs
     .map((slab) =>
       t('r9.slab', {

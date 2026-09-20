@@ -110,6 +110,8 @@ describeDb('billing (DATABASE_URL)', () => {
   const db = createDb(pool)
   const run = String(Date.now()).slice(-8)
   const hsn = `9${run.slice(-6)}`
+  /** DOS-079: aerated waters — 28% GST plus 12% compensation cess. */
+  const cessHsn = `7${run.slice(-6)}`
 
   const tenantId = uuidv7()
   const otherTenantId = uuidv7()
@@ -128,6 +130,7 @@ describeDb('billing (DATABASE_URL)', () => {
   const shopB2c = uuidv7()
   const variantA = uuidv7()
   const variantB = uuidv7()
+  const variantCess = uuidv7() // DOS-079: on `cessHsn`, ₹22.97 a piece
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -318,15 +321,27 @@ describeDb('billing (DATABASE_URL)', () => {
         hsnCode: hsn,
         mrpPaise: 2000,
       },
+      {
+        id: variantCess,
+        productId,
+        name: 'Campa Cola 750 ml',
+        netQty: 750,
+        netUnit: 'ml',
+        defaultCaseSize: 24,
+        hsnCode: cessHsn,
+        mrpPaise: 4000,
+      },
     ])
     // the tenant sells in 12s even though the maker prints 24 (docs/17 B: sell-side pack wins)
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
     ])
-    await db
-      .insert(hsnRates)
-      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1200, cessBps: 0, effectiveFrom: '2020-04-01' })
+    await db.insert(hsnRates).values([
+      { id: uuidv7(), hsnCode: hsn, gstBps: 1200, cessBps: 0, effectiveFrom: '2020-04-01' },
+      { id: uuidv7(), hsnCode: cessHsn, gstBps: 2800, cessBps: 1200, effectiveFrom: '2020-04-01' },
+    ])
 
     const identityId = uuidv7()
     await db.insert(retailerIdentities).values({
@@ -390,6 +405,7 @@ describeDb('billing (DATABASE_URL)', () => {
     await db.insert(priceListItems).values([
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
     ])
 
     const locs = await db
@@ -428,6 +444,11 @@ describeDb('billing (DATABASE_URL)', () => {
         batchNo: `B2-${run}`,
         mrpPaise: 2000,
       })
+      const c = await inventory.findOrCreateLot(tx, {
+        variantId: variantCess,
+        batchNo: `B3-${run}`,
+        mrpPaise: 4000,
+      })
       await inventory.post(tx, [
         {
           lotId: a.lot.id,
@@ -442,6 +463,13 @@ describeDb('billing (DATABASE_URL)', () => {
           qtyDelta: 5_000,
           reason: 'opening',
           idempotencyKey: `open-${run}-b`,
+        },
+        {
+          lotId: c.lot.id,
+          locationId: godown,
+          qtyDelta: 5_000,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-c`,
         },
         {
           lotId: a.lot.id,
@@ -1553,6 +1581,42 @@ describeDb('billing (DATABASE_URL)', () => {
     })
     expect(bill).toMatchObject({ discountPaise: 0, taxablePaise: 21_600, totalPaise: 24_200 })
     expect(bill.totalPaise).toBe(submitted.body.item.totalPaise)
+  })
+
+  it('DOS-079: a fully packed invoice for a cess item equals the order total', async () => {
+    type OrderBody = {
+      state: string
+      taxPaise: number
+      cessPaise: number
+      totalPaise: number
+      lines: { id: string; taxPaise: number; cessPaise: number; lineTotalPaise: number }[]
+    }
+    // 4 cs of 12 = 48 pcs at ₹22.97 = ₹1,102.56 taxable; 28% GST ₹308.72 + 12% cess ₹132.31.
+    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantCess, cases: 4 }], 'dos079')
+    const order = await call<{ item: OrderBody }>(app, manager, 'GET', `/orders/${orderId}`)
+    expect(order.status).toBe(200)
+    expect(order.body.item).toMatchObject({
+      taxPaise: 44_103,
+      cessPaise: 13_231,
+      totalPaise: 154_400,
+    })
+
+    const { res } = await issueFor(orderId, 'dos079')
+    expect(res.status).toBe(200)
+    const bill = res.body.item
+    expect(bill.lines).toHaveLength(1)
+    expect(bill.lines[0]).toMatchObject({
+      qtyPcs: 48,
+      taxablePaise: 110_256,
+      cgstPaise: 15_436,
+      sgstPaise: 15_436,
+      igstPaise: 0,
+      cessPaise: 13_231,
+      lineTotalPaise: 154_359,
+    })
+    expect(bill).toMatchObject({ taxablePaise: 110_256, cessPaise: 13_231, totalPaise: 154_400 })
+    // The point of DOS-079: the rep's total and the bill's are the same number, not two stored constants.
+    expect(bill.totalPaise).toBe(order.body.item.totalPaise)
   })
 
   // ---------------------------------------------------------------------------------------------------------------
