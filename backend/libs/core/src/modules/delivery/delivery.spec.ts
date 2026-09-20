@@ -3741,4 +3741,92 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(await ledgerFor(plannedId)).toEqual([])
     expect(await outboxTypes(plannedId)).toEqual(['DeliveryRecorded'])
   })
+
+  it('DOS-009: trips.list is newest first by trip_date then id — a trip planned for a later day tops a trip for an earlier day created after it; the cursor walks each once; the crew’s list is still forced to its own trips', async () => {
+    interface TripPage {
+      items: { id: string; tripDate: string; driverId: string | null; helperId: string | null }[]
+      nextCursor: string | null
+    }
+    // Two days nobody else in this file plans on, and further out than every other trip it plans (56 is
+    // the furthest), so the "driver already on a trip" check never fires and these two are the top rows.
+    const laterDay = new Date(Date.parse(today) + 70 * 86_400_000).toISOString().slice(0, 10)
+    const earlierDay = new Date(Date.parse(today) + 69 * 86_400_000).toISOString().slice(0, 10)
+
+    const plan = async (tag: string, tripDate: string): Promise<string> => {
+      const id = uuidv7()
+      const res = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+        idempotencyKey: `dos009-${tag}-${run}`,
+        id,
+        tripDate,
+        vehicleId,
+        driverId,
+        // a trip with no stops is a van-sale round; only the ORDER of the two rows is under test here
+        vanSalesEnabled: true,
+        openingCashPaise: 0,
+        stops: [],
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+      return id
+    }
+    // The pre-planned trip is made FIRST, so its id is the LOWER of the two; the nearer trip is minted
+    // after it and sorts above it by id alone.
+    const later = await plan('later', laterDay)
+    const earlier = await plan('earlier', earlierDay)
+    expect(earlier > later).toBe(true)
+
+    const page = (actor: Actor, query: Record<string, unknown>) =>
+      call<TripPage>(app, actor, 'GET', '/delivery/trips', query)
+
+    // (a) the trip planned for the later day is the top row, even though its id is lower
+    const top = await page(manager, { limit: 1 })
+    expect(top.status, JSON.stringify(top.body)).toBe(200)
+    expect(top.body.items[0]?.id).toBe(later)
+
+    /** Follows `nextCursor` to the end and returns every trip in the order the pages gave them. */
+    const walk = async (
+      actor: Actor,
+      query: Record<string, unknown>,
+      limit: number,
+    ): Promise<TripPage['items']> => {
+      const seen: TripPage['items'] = []
+      let cursor: string | undefined
+      for (let pages = 0; pages < 2000; pages += 1) {
+        const got = await page(actor, { ...query, limit, cursor })
+        expect(got.status, JSON.stringify(got.body)).toBe(200)
+        seen.push(...got.body.items)
+        if (got.body.nextCursor === null) return seen
+        cursor = got.body.nextCursor
+      }
+      throw new Error('trips.list never ended its cursor walk')
+    }
+    const expectEachOnceNewestFirst = (items: TripPage['items']): void => {
+      const ids = items.map((i) => i.id)
+      expect(new Set(ids).size, 'no trip comes back twice').toBe(ids.length)
+      items.forEach((item, i) => {
+        const before = items[i - 1]
+        if (before !== undefined)
+          expect(
+            item.tripDate <= before.tripDate,
+            `${item.id} (${item.tripDate}) after ${before.id} (${before.tripDate})`,
+          ).toBe(true)
+      })
+    }
+    const countOf = async (): Promise<number> =>
+      (
+        (await db.execute(sql`select count(*)::int as n from trips where tenant_id = ${tenantId}`))
+          .rows as { n: number }[]
+      )[0]?.n ?? 0
+
+    const all = await walk(manager, {}, 1)
+    expectEachOnceNewestFirst(all)
+    expect(all).toHaveLength(await countOf())
+    const at = (id: string) => all.findIndex((i) => i.id === id)
+    expect(at(later)).toBeLessThan(at(earlier))
+
+    // (b) the crew's list is still its own, in the same order
+    const crewSees = await walk(driver, {}, 2)
+    expectEachOnceNewestFirst(crewSees)
+    expect(crewSees.length).toBeGreaterThan(0)
+    expect(crewSees.every((t) => t.driverId === driverId || t.helperId === driverId)).toBe(true)
+  })
 })

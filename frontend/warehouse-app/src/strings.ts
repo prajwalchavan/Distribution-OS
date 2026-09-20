@@ -299,6 +299,10 @@ export const strings = {
   'w5.notStarted': 'This sheet has not been started',
   'w5.waiting': 'Getting this wave from the office…',
   'w5.cancelIsManager': 'A wave is cancelled by the manager.',
+  // DOS-138: the desk cancelled the order while this sheet was live; these pieces go back on the rack.
+  'w5.putBackTitle': 'Put back',
+  'w5.putBack': 'Put back {pieces} pcs · {batch}',
+  'w5.notNeeded': 'Not needed — the order was cancelled',
   'w5.viewTodo': 'To pick',
   'w5.viewAll': 'Every line',
   'w5.bin': 'Requested {pieces} pc',

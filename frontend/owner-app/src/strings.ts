@@ -193,6 +193,11 @@ export const strings = {
     'Waiting on {what}. Decide it on Approvals; the last approval confirms the order.',
   'o5.cancel': 'Cancel order',
   'o5.cancelReason': 'Why is it cancelled',
+  // DOS-138 / DOS-139: why Cancel is off, and what to do instead.
+  'o5.alreadyClosed': 'This order is already cancelled or closed',
+  'o5.cancelViaBill': 'Cancel its bill; the order is cancelled with it',
+  'o5.afterDispatch': 'After dispatch the only correction is a credit note',
+  'o5.cancelPicking': 'The picker will be told which lines to put back.',
   'o5.reservations': 'Stock held',
   'o5.reservationsLot': 'across 1 lot',
   'o5.reservationsLots': 'across {count} lots',

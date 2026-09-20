@@ -79,6 +79,24 @@ const STATE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   closed: 'moss',
 }
 
+/**
+ * Why Cancel is off, or `null` when the desk may press it (QA DOS-138, DOS-139).
+ *
+ * The desk — owner or manager — cancels up to and INCLUDING picking (founder, 2026-09-13): the hold is
+ * released and the picker's sheet shows the lines to put back. A packed order carries an issued GST
+ * bill, so it is cancelled through that bill and goes with it; after dispatch the only correction is a
+ * credit note. Saying which of the three it is beats the server's own 409, which the desk cannot act on.
+ */
+function cancelBlock(
+  state: string,
+): 'm2.alreadyClosed' | 'm2.cancelViaBill' | 'm2.afterDispatch' | null {
+  if (state === 'cancelled' || state === 'closed') return 'm2.alreadyClosed'
+  if (state === 'packed') return 'm2.cancelViaBill'
+  if (state === 'dispatched' || state === 'delivered' || state === 'partially_delivered')
+    return 'm2.afterDispatch'
+  return null
+}
+
 const STATES = ['submitted', 'confirmed', 'picking', 'packed', 'dispatched', 'cancelled'] as const
 type OrderState = (typeof STATES)[number]
 
@@ -881,12 +899,19 @@ export default function OrderQueue(): React.JSX.Element {
                       }}
                     />
                   ) : null}
+                  {/*
+                   * DOS-138 / DOS-139: Cancel used to be offered on every state but `cancelled` and
+                   * `delivered`, so a picking order answered the machine's raw "cannot apply cancel in
+                   * state picking" and a packed one answered nothing the desk could act on. The desk may
+                   * now cancel up to and including picking (founder); a packed order is cancelled
+                   * through its bill, and after dispatch the only correction is a credit note.
+                   */}
                   <Button
                     label={t('m2.cancel')}
                     variant="destructive"
                     shortcut="2"
-                    disabled={order.state === 'cancelled' || order.state === 'delivered'}
-                    disabledReason={t('m2.alreadyClosed')}
+                    disabled={cancelBlock(order.state) !== null}
+                    disabledReason={t(cancelBlock(order.state) ?? 'm2.alreadyClosed')}
                     onPress={() => {
                       setActing('cancel')
                     }}
@@ -927,6 +952,11 @@ export default function OrderQueue(): React.JSX.Element {
             {acting === 'confirm' ? (
               <Txt field="label" desk="meta" color={colors.text.secondary}>
                 {creditLine()}
+              </Txt>
+            ) : null}
+            {acting === 'cancel' && order?.state === 'picking' ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="order-picking">
+                {t('m2.cancelPicking')}
               </Txt>
             ) : null}
             {acting === 'confirm' ? null : (

@@ -115,6 +115,8 @@ export const invoices = pgTable(
     uniqueIndex('invoices_no_idx')
       .on(t.tenantId, t.seriesCode, t.fy, t.invoiceNo)
       .where(sql`invoice_no IS NOT NULL`),
+    /** The bill register, newest first by bill date with an (invoice_date, id) keyset (QA DOS-009). */
+    index('invoices_date_idx').on(t.tenantId, t.invoiceDate, t.id),
     index('invoices_retailer_idx').on(t.tenantId, t.retailerId, t.invoiceDate),
     index('invoices_order_idx').on(t.tenantId, t.orderId),
     index('invoices_state_idx').on(t.tenantId, t.state, t.dueDate),

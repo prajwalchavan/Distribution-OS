@@ -1,18 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import {
-  and,
-  desc,
-  eq,
-  gte,
-  ilike,
-  inArray,
-  lt,
-  lte,
-  notInArray,
-  or,
-  sql,
-  type SQL,
-} from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lte, notInArray, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
@@ -337,6 +324,11 @@ export async function listOrders(
   const ctx = currentTenant()
   const salespersonId = ctx.actorRole === 'salesperson' ? ctx.actorId : input.salespersonId
   const filters: (SQL | undefined)[] = [
+    /*
+     * RLS is the guarantee; the literal is what lets the planner start from the tenant-led
+     * `sales_orders_created_idx (tenant_id, created_at, id)` instead of scanning the table (docs/20 rule 8).
+     */
+    eq(salesOrders.tenantId, ctx.tenantId),
     input.state ? eq(salesOrders.state, input.state) : undefined,
     input.states && input.states.length > 0 ? inArray(salesOrders.state, input.states) : undefined,
     // "pending undelivered" on the shop card (docs/23 §8.15): still travelling.
@@ -350,13 +342,25 @@ export async function listOrders(
     input.q
       ? or(ilike(salesOrders.orderNo, `%${input.q}%`), ilike(salesOrders.note, `%${input.q}%`))
       : undefined,
-    input.cursor ? lt(salesOrders.id, input.cursor) : undefined,
+    /*
+     * Keyset on the cursor order's own (created_at, id), read inside this tenant's transaction with its
+     * own tenant fence, so the comparison keeps Postgres's microseconds and no other distributor's row
+     * can anchor a page. An unknown cursor matches nothing (DOS-009, the DOS-023/DOS-133 convention).
+     */
+    input.cursor
+      ? sql`(${salesOrders.createdAt}, ${salesOrders.id}) < (select c.created_at, c.id from sales_orders c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+      : undefined,
   ]
   const rows = await tx
     .select()
     .from(salesOrders)
     .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-    .orderBy(desc(salesOrders.id))
+    /*
+     * Newest first by SERVER time (DOS-009), the same column `from`/`to` filters on, so the window and
+     * the order never disagree. Ids are minted on the device and the demo seed's are hashes, so id order
+     * is not age: a back-dated import sorted above every order placed today.
+     */
+    .orderBy(desc(salesOrders.createdAt), desc(salesOrders.id))
     .limit(input.limit + 1)
   // DOS-078: the shortage record is office-only, exactly as on `get`.
   const office = ctx.actorRole !== 'retailer'

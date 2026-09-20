@@ -146,12 +146,23 @@ export default function PickingSheet(): React.JSX.Element {
   const shortOfAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) < ask
   const needsReason = shortOfAsk && shortReason === null
 
-  const picked = rows.filter((row) => row.state !== 'todo').length
+  /*
+   * DOS-138: the desk cancelled the order while this sheet was live, so these pieces are going BACK
+   * on the rack. `pick_lines.cancelled_at` reaches the device with the table itself (the sync manifest
+   * publishes every column of the row), and the shared `LocalPickLine` shape is owned by another
+   * slice, so the one column this screen needs is read off the row here.
+   */
+  const putBack = (row: PickRow): boolean =>
+    (row.line as PickRow['line'] & { cancelled_at?: string | null }).cancelled_at != null
+  const live = useMemo(() => rows.filter((row) => !putBack(row)), [rows])
+  const returns = useMemo(() => rows.filter(putBack), [rows])
+
+  const picked = live.filter((row) => row.state !== 'todo').length
   const shown = useMemo(
-    () => (view === 'todo' ? rows.filter((row) => row.state === 'todo') : rows),
-    [rows, view],
+    () => (view === 'todo' ? live.filter((row) => row.state === 'todo') : live),
+    [live, view],
   )
-  const left = rows.length - picked
+  const left = live.length - picked
 
   /** A tap that means "all of it came off the rack" — the common case, one tap, no keypad. */
   const pickInFull = (row: PickRow): void => {
@@ -190,7 +201,7 @@ export default function PickingSheet(): React.JSX.Element {
         setScanNote(t('w.scanNothing'))
         return
       }
-      const found = rows.find((row) => row.ean === code.value)
+      const found = live.find((row) => row.ean === code.value)
       if (found === undefined) {
         setScanNote(t('w.noMatch', { code: code.value }))
         return
@@ -203,7 +214,7 @@ export default function PickingSheet(): React.JSX.Element {
   return (
     <Screen
       title={sheet?.picklist_no ?? t('w5.title')}
-      context={sheet === null ? t('w5.title') : t('w5.progress', { picked, total: rows.length })}
+      context={sheet === null ? t('w5.title') : t('w5.progress', { picked, total: live.length })}
       chips={
         sheet === null ? undefined : (
           <StatusChip
@@ -247,7 +258,7 @@ export default function PickingSheet(): React.JSX.Element {
             </Txt>
           ) : (
             <Txt field="moneyM" desk="cell" numeric>
-              {t('w5.progress', { picked, total: rows.length })}
+              {t('w5.progress', { picked, total: live.length })}
             </Txt>
           )}
           {/*
@@ -374,6 +385,34 @@ export default function PickingSheet(): React.JSX.Element {
             ))}
           </Stack>
         </LocalAsync>
+
+        {/*
+         * THE ONLY INSTRUCTION ON THIS SCREEN THAT IS NOT "TAKE SOMETHING OFF A RACK" (DOS-138). The
+         * desk cancelled these orders while the sheet was live: what is already in the trolley goes
+         * back, and what was never touched is simply not needed. They are OUT of the progress figure
+         * and out of the Confirm gate — the wave finishes on the orders that are still live.
+         */}
+        {returns.length === 0 ? null : (
+          <Panel title={t('w5.putBackTitle')} testID="w5-put-back">
+            <Stack gap={3}>
+              {returns.map((row) => (
+                <Stack key={row.line.id} gap={1} testID={`w5-put-back-${row.line.id}`}>
+                  <Txt field="bodyStrong" desk="cell">
+                    {row.variantName}
+                  </Txt>
+                  <Txt field="body" desk="cell" color={colors.text.secondary}>
+                    {row.line.picked_qty_pcs > 0
+                      ? t('w5.putBack', {
+                          pieces: row.line.picked_qty_pcs,
+                          batch: row.batchNo ?? t('w.noBatch'),
+                        })
+                      : t('w5.notNeeded')}
+                  </Txt>
+                </Stack>
+              ))}
+            </Stack>
+          </Panel>
+        )}
 
         <DeskOnly>{t('w5.cancelIsManager')}</DeskOnly>
 
