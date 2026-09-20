@@ -25,6 +25,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   formatINR,
   paise,
@@ -75,6 +76,7 @@ export default function Approvals(): React.JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<'approve' | 'reject' | null>(null)
   const [note, setNote] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const approvals = useQuery(['approvals', 'pending'], () =>
     api.api.orders.approvals.list({ status: 'pending', limit: 100 }),
@@ -206,6 +208,28 @@ export default function Approvals(): React.JSX.Element {
     return parts.join(' · ')
   }
 
+  /*
+   * DOS-155: is this gate the LAST one the order is waiting on?
+   *
+   * Approving the last gate confirms the order and reserves its stock (`approvals.service.ts:187`),
+   * and the owner was never told. The answer comes from the ORDER's own approvals rather than the
+   * page of pending rows on screen: a gate on another page would make "last" a guess, and the
+   * sentence in the dialog is a promise. A rate request decided outside a gate names no order and
+   * confirms nothing, so it is never the last of anything.
+   */
+  const gateOrder = useQuery(
+    ['orders', 'get', current?.orderId ?? 'none'],
+    () => api.api.orders.get({ id: current?.orderId ?? '' }),
+    { enabled: current?.stream === 'approval' && current.orderId !== null },
+  )
+  const stillPending = (gateOrder.data?.item.approvals ?? []).filter((a) => a.status === 'pending')
+  const lastGate =
+    current !== null &&
+    current.stream === 'approval' &&
+    current.orderId !== null &&
+    stillPending.length === 1 &&
+    stillPending[0]?.id === current.id
+
   const decideApproval = useMutation(
     (input: { id: string; decision: 'approve' | 'reject'; note?: string }, meta) =>
       api.api.orders.approvals.decide({
@@ -233,18 +257,30 @@ export default function Approvals(): React.JSX.Element {
   const commit = (): void => {
     if (current === null || confirm === null) return
     const input = { id: current.id, decision: confirm, note: note.trim() }
-    const run = current.stream === 'approval' ? decideApproval : decideBargain
+    const done = (): void => {
+      setConfirm(null)
+      setNote('')
+      setSelected(null)
+    }
+    const failed = (): void => {
+      /* the error is on the mutation state and rendered under the dialog */
+    }
     // One intent, one idempotency key: a retry of THIS decision can never write a second row.
-    void run.mutateAsync(input).then(
-      () => {
-        setConfirm(null)
-        setNote('')
-        setSelected(null)
-      },
-      () => {
-        /* the error is on the mutation state and rendered under the dialog */
-      },
-    )
+    if (current.stream === 'approval') {
+      void decideApproval.mutateAsync(input).then((result) => {
+        done()
+        /*
+         * DOS-155: the order AFTER the decision, from the reply itself. It is `confirmed` only when
+         * this was the last gate, so the toast states what actually happened rather than what the
+         * screen expected. `pricing.bargains.decide` answers `{ item }` with no order and confirms
+         * nothing, which is why only this branch says anything.
+         */
+        if (result.order?.state === 'confirmed')
+          setToast(t('o3.orderConfirmed', { order: result.order.orderNo ?? '' }))
+      }, failed)
+      return
+    }
+    void decideBargain.mutateAsync(input).then(done, failed)
   }
 
   /*
@@ -455,6 +491,15 @@ export default function Approvals(): React.JSX.Element {
                   {note}
                 </Txt>
               )}
+              {/*
+                DOS-155: the consequence, stated before it happens. Only on approve — rejecting a
+                gate confirms nothing.
+              */}
+              {lastGate && confirm === 'approve' ? (
+                <Txt field="bodyStrong" desk="body" testID="approval-last-gate">
+                  {t('o3.lastGate', { order: current?.orderNo ?? '' })}
+                </Txt>
+              ) : null}
             </Stack>
           </Panel>
         }
@@ -463,6 +508,15 @@ export default function Approvals(): React.JSX.Element {
         busy={busy}
         onConfirm={commit}
         testID="approval-confirm"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="approval-toast"
       />
     </Screen>
   )

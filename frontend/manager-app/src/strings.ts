@@ -151,6 +151,8 @@ export const strings = {
   'm2.approve': 'Approve',
   'm2.reject': 'Reject',
   'm2.decisionNote': 'Note for the person who asked',
+  'm2.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
+  'm2.orderConfirmed': '{order} confirmed — stock held',
   'm2.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'm2.confirmBody': 'Stock is reserved when this is confirmed. There is no undo.',
   'm2.subtotal': 'Subtotal',

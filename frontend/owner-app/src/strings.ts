@@ -117,6 +117,8 @@ export const strings = {
   'o3.reject': 'Reject',
   'o3.ask': 'Ask again',
   'o3.note': 'Note for the person who asked',
+  'o3.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
+  'o3.orderConfirmed': '{order} confirmed — stock held',
   'o3.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'o3.approved': 'Approved',
   'o3.rejected': 'Rejected',

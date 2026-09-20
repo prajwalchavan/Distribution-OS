@@ -29,6 +29,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   formatINR,
   paise,
@@ -372,8 +373,16 @@ export default function OrderQueue(): React.JSX.Element {
     kind: 'approval' | 'bargain'
     decision: 'approve' | 'reject'
     what: string
+    /*
+     * DOS-155: is this the last gate the order is waiting on? True only for a gate of the OPEN
+     * order, whose other gates this screen has read (`order.approvals`); a card in the list below
+     * belongs to an order it has not, so it promises nothing beforehand.
+     */
+    last: boolean
+    orderNo: string | null
   } | null>(null)
   const [note, setNote] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const commitDecision = (): void => {
     if (deciding === null) return
@@ -382,8 +391,21 @@ export default function OrderQueue(): React.JSX.Element {
       setNote('')
     }
     const input = { id: deciding.id, decision: deciding.decision, note: note.trim() }
-    if (deciding.kind === 'approval') void decideApproval.mutateAsync(input).then(done, stayOpen)
-    else void decideBargain.mutateAsync(input).then(done, stayOpen)
+    if (deciding.kind === 'approval') {
+      void decideApproval.mutateAsync(input).then((result) => {
+        done()
+        /*
+         * DOS-155: the order AFTER the decision, from the reply itself — `confirmed` only when this
+         * was the last gate. Said afterwards for every gate, including the cards below, because
+         * that is where "nothing said so" hurt. A rate request decided outside a gate answers
+         * `{ item }` with no order and confirms nothing.
+         */
+        if (result.order?.state === 'confirmed')
+          setToast(t('m2.orderConfirmed', { order: result.order.orderNo ?? '' }))
+      }, stayOpen)
+      return
+    }
+    void decideBargain.mutateAsync(input).then(done, stayOpen)
   }
 
   return (
@@ -500,6 +522,8 @@ export default function OrderQueue(): React.JSX.Element {
                             kind: row.kind,
                             decision: 'approve',
                             what: row.what,
+                            last: false,
+                            orderNo: null,
                           })
                         }}
                       />
@@ -512,6 +536,8 @@ export default function OrderQueue(): React.JSX.Element {
                             kind: row.kind,
                             decision: 'reject',
                             what: row.what,
+                            last: false,
+                            orderNo: null,
                           })
                         }}
                       />
@@ -578,6 +604,8 @@ export default function OrderQueue(): React.JSX.Element {
                                     kind: 'approval',
                                     decision: 'approve',
                                     what,
+                                    last: waitingOn.length === 1,
+                                    orderNo: order.orderNo,
                                   })
                                 }}
                                 testID={`order-approve-${gate.kind}`}
@@ -591,6 +619,8 @@ export default function OrderQueue(): React.JSX.Element {
                                     kind: 'approval',
                                     decision: 'reject',
                                     what,
+                                    last: waitingOn.length === 1,
+                                    orderNo: order.orderNo,
                                   })
                                 }}
                                 testID={`order-reject-${gate.kind}`}
@@ -783,6 +813,12 @@ export default function OrderQueue(): React.JSX.Element {
             <Txt field="body" desk="body">
               {deciding?.what ?? ''}
             </Txt>
+            {/* DOS-155: the consequence, stated before it happens. Never on a reject. */}
+            {deciding?.last === true && deciding.decision === 'approve' ? (
+              <Txt field="bodyStrong" desk="body" testID="decision-last-gate">
+                {t('m2.lastGate', { order: deciding.orderNo ?? '' })}
+              </Txt>
+            ) : null}
             <TextInput
               label={t('m2.decisionNote')}
               value={note}
@@ -799,6 +835,15 @@ export default function OrderQueue(): React.JSX.Element {
         busy={decideApproval.status === 'pending' || decideBargain.status === 'pending'}
         onConfirm={commitDecision}
         testID="decision-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="orders-toast"
       />
     </Screen>
   )
