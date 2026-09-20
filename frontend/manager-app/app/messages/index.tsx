@@ -19,6 +19,7 @@ import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
   Dialog,
+  Link,
   Register,
   Screen,
   Chips,
@@ -143,6 +144,44 @@ export default function Messages(): React.JSX.Element {
     textColumn('shop', t('m18.shop'), (row) => row.retailerName ?? row.fromPhone, {
       priority: 'identity',
     }),
+    /*
+     * DOS-103. A report the shop filed from its own app carries a kind and, usually, the bill or
+     * delivery it is about; a text the WhatsApp webhook captured carries neither. Both land in this
+     * one queue, so the register states what it knows and the em dash where it knows nothing — never
+     * a guessed kind. The reference is the desk's shortcut: a bill opens on the Billing desk with
+     * its own panel already open, the same route the header search uses (DOS-145). Display only —
+     * triage is still "Mark it handled".
+     */
+    textColumn('kind', t('m18.kind'), (row) =>
+      row.kind === null ? null : t(`m18.kind.${row.kind}`),
+    ),
+    {
+      key: 'ref',
+      head: t('m18.ref'),
+      cell: (row) => {
+        if (row.refType === null || row.refId === null) {
+          return (
+            <Txt field="body" desk="cell" numberOfLines={1}>
+              {'—'}
+            </Txt>
+          )
+        }
+        const label = t(`m18.ref.${row.refType}`)
+        return row.refType === 'invoice' ? (
+          <Link
+            testID={`m18-ref-${row.id}`}
+            href={`/billing?view=bills&bill=${encodeURIComponent(row.refId)}`}
+            variant="text"
+          >
+            {label}
+          </Link>
+        ) : (
+          <Txt field="body" desk="cell" numberOfLines={1}>
+            {label}
+          </Txt>
+        )
+      },
+    },
     textColumn('text', t('m18.text'), (row) => row.body),
     textColumn('channel', t('m18.channel'), (row) => word(row.channel)),
     textColumn('at', t('m18.received'), (row) => shortInstant(row.receivedAt)),
