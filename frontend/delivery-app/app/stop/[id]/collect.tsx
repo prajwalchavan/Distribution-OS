@@ -475,7 +475,7 @@ export default function Collect(): React.JSX.Element {
                   ? whereTheMoneyGoes(t, {
                       bills: doorBills,
                       tagged,
-                      openBills: dues?.open_bills ?? takesMoney.size,
+                      openBills: officeBills.data?.openBills ?? dues?.open_bills ?? takesMoney.size,
                       canTag,
                     })
                   : t('d5.appliedOffline')}
