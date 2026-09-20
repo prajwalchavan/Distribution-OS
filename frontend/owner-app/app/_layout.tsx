@@ -36,6 +36,7 @@ import { APP, absoluteUrl } from '../src/config'
 import { SECTIONS } from '../src/nav'
 import { strings } from '../src/strings'
 import { useHotkeys } from '../src/lib/keys'
+import { pendingDecisions } from '../src/lib/pending-decisions'
 import { staffRetailer } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
 
@@ -281,9 +282,8 @@ function Chrome({
   const [query, setQuery] = useState('')
 
   /*
-   * One cheap read serves two honesty jobs: the count of decisions waiting (the rail badge) and
-   * "Updated 2 min ago" on the strip. It is the owner dashboard because that is the read this app
-   * opens on anyway — the cache hands the Today screen the same rows without a second request.
+   * The owner dashboard, for "Updated 2 min ago" on the strip. It is the read this app opens on
+   * anyway — the cache hands the Today screen the same rows without a second request.
    */
   const mayRead = isAllowed(permissionFor('reporting.dashboard.owner'), role)
   const dashboard = useQuery(
@@ -292,17 +292,36 @@ function Chrome({
     { enabled: mayRead, staleTime: 60_000 },
   )
 
+  /*
+   * The rail badge counts the decisions waiting — the same two live lists, under the same query keys,
+   * that the Today panel lists and the Approvals screen decides from (DOS-019). Same keys means one
+   * request for the pair, and means a decision's own `invalidates: [['approvals'], ['bargains']]`
+   * moves the badge and the heading together. The badge used to read the 15-minute
+   * `owner_summary.pendingApprovals`, which counts approvals alone and sat at 5 after two decisions.
+   */
+  const approvals = useQuery(
+    ['approvals', 'pending', 'top'],
+    () => api.api.orders.approvals.list({ status: 'pending', limit: 5 }),
+    { enabled: isAllowed(permissionFor('orders.approvals.list'), role) },
+  )
+  const bargains = useQuery(
+    ['bargains', 'requested', 'top'],
+    () => api.api.pricing.bargains.list({ status: 'requested', limit: 5 }),
+    { enabled: isAllowed(permissionFor('pricing.bargains.list'), role) },
+  )
+  /* The kit's badge is a number (`NavItem.badge`), so a bounded count shows its floor; the heading on
+   * Today carries the "+". Nothing here changes the kit. */
+  const waiting = pendingDecisions(approvals.data, bargains.data)?.count ?? 0
+
   const sections = useMemo(
     () =>
       SECTIONS.map((section) => ({
         ...section,
         items: section.items.map((item) =>
-          item.href === '/' && (dashboard.data?.pendingApprovals ?? 0) > 0
-            ? { ...item, badge: dashboard.data?.pendingApprovals }
-            : item,
+          item.href === '/' && waiting > 0 ? { ...item, badge: waiting } : item,
         ),
       })),
-    [dashboard.data?.pendingApprovals],
+    [waiting],
   )
 
   /*

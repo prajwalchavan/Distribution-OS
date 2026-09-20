@@ -41,10 +41,11 @@ import {
   Txt,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
-import { documents } from '@dos/ui/platform'
+import { documents, platform } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
@@ -87,6 +88,16 @@ export default function BillingDesk(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
   const can = useCan()
+  /*
+   * DOS-010: `<Register>` keeps three cells only — identity, chip, value — whenever it is not a real
+   * table, and a Billing desk row then read "bill no · state · amount" on the Pixel 7 because the
+   * Shop column is dropped. That is the web register below 1024 px AND the native register at EVERY
+   * width: `ui/src/native/list.tsx` is "the phone rendering of the one props contract" and has no
+   * table branch, so an Android tablet or an iPad at desk width is still cards with no Shop column to
+   * fall back on. The shop rides in the identity cell for exactly that shell; where a real table is
+   * drawn it has its own column and printing it twice would be the same defect the other way round.
+   */
+  const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
   const mayCancel = can('billing.invoices.cancel')
   const mayIssueForPack = can('billing.invoices.issueForPack')
@@ -182,7 +193,15 @@ export default function BillingDesk(): React.JSX.Element {
   const remaining = addCounts(pagedCount(queue), pagedCount(unbilledPacks))
 
   const queueColumns: readonly RegisterColumn<BillingQueueItem>[] = [
-    textColumn('orderNo', t('m6.orderNo'), (row) => row.orderNo, { priority: 'identity' }),
+    textColumn(
+      'orderNo',
+      t('m6.orderNo'),
+      (row) =>
+        phone
+          ? `${row.orderNo ?? t('app.none')} · ${row.retailerName || names.retailer(row.retailerId)}`
+          : row.orderNo,
+      { priority: 'identity' },
+    ),
     textColumn('shop', t('m6.shop'), (row) => row.retailerName || names.retailer(row.retailerId)),
     textColumn('lines', t('m6.linesCount'), (row) => row.lineCount, { align: 'right' }),
     moneyColumn('total', t('m6.value'), (row) => row.orderTotalPaise),
@@ -196,7 +215,15 @@ export default function BillingDesk(): React.JSX.Element {
   ]
 
   const billColumns: readonly RegisterColumn<InvoiceListItem>[] = [
-    textColumn('invoiceNo', t('m6.invoiceNo'), (row) => row.invoiceNo, { priority: 'identity' }),
+    textColumn(
+      'invoiceNo',
+      t('m6.invoiceNo'),
+      (row) =>
+        phone
+          ? `${row.invoiceNo ?? row.externalInvoiceNo ?? t('app.none')} · ${row.buyerName || names.retailer(row.retailerId)}`
+          : row.invoiceNo,
+      { priority: 'identity' },
+    ),
     textColumn('date', t('m12.date'), (row) => longDate(row.invoiceDate)),
     textColumn('shop', t('m6.buyer'), (row) => row.buyerName || names.retailer(row.retailerId)),
     moneyColumn('taxable', t('m6.taxable'), (row) => row.taxablePaise),
