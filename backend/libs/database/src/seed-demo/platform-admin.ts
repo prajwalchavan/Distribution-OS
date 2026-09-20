@@ -27,7 +27,7 @@
  * binds it — the window below is inside the 30 days the database allows and the requester is an active
  * administrator, because the row above it says so.
  */
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne } from 'drizzle-orm'
 import { businessDate } from '@dos/domain'
 import type { Db } from '../client.js'
 import { insertMany } from './db-helpers.js'
@@ -173,7 +173,7 @@ export async function seedPlatformConsole(
   // "the dev database accumulates test rows"), and writing a subscription for each of those would make
   // the console's own list unreadable and the seed slow, for rows nobody will ever look at.
   const rows = await db
-    .select({ id: tenants.id, slug: tenants.slug })
+    .select({ id: tenants.id, slug: tenants.slug, plan: tenants.plan })
     .from(tenants)
     .where(inArray(tenants.slug, [...DEMO_TENANT_SLUGS]))
     .orderBy(asc(tenants.createdAt), asc(tenants.id))
@@ -187,7 +187,15 @@ export async function seedPlatformConsole(
       return {
         id: demoId('subscription', tenant.slug),
         tenantId: tenant.id,
-        plan: paying ? 'pro' : 'standard',
+        // THE TENANT'S OWN PLAN, never a second one (DOS-113). The plan lives in two columns on
+        // purpose — the tenant row is what every service reads, the subscription row is what the
+        // console edits — and the product keeps them equal wherever it writes either
+        // (`admin.tenants.create` writes one plan into both; `admin.subscriptions.upsert` updates the
+        // tenant row when the plan changes). This seed used to write its own `pro`/`standard` beside
+        // the tenants' `pilot`/`starter`/`growth`, so the console read Tarsun as "Pilot" on the
+        // Distributors list and "Pro" on Subscriptions, and its two home ladders counted the same
+        // three distributorships under different words.
+        plan: tenant.plan,
         status: paying ? 'active' : 'trial',
         trialEndsAt: paying ? null : new Date(Date.now() + (20 - index) * DAY_MS),
         periodStart: today,
@@ -201,6 +209,17 @@ export async function seedPlatformConsole(
       }
     }),
   )
+
+  // A database seeded before DOS-113 carries the old second plan on its subscription rows, and
+  // `insertMany` is `onConflictDoNothing` — it would leave them disagreeing for ever. One UPDATE per
+  // re-seed puts the subscription back on the distributor's own plan, in the same spirit as the
+  // pilot's legal name and username repairs in `seed.ts`. It writes nothing when they already agree.
+  for (const tenant of rows) {
+    await db
+      .update(subscriptions)
+      .set({ plan: tenant.plan, updatedBy: adminUserId })
+      .where(and(eq(subscriptions.tenantId, tenant.id), ne(subscriptions.plan, tenant.plan)))
+  }
 
   // The two decided grants belong to the pilot, which is the tenant every /docs example points at.
   const [pilot] = rows.filter((t) => t.slug === 'tarsun')

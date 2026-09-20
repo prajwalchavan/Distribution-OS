@@ -3,6 +3,12 @@ export { TenancyService } from './tenancy.service.js'
 export { TenantConfigService } from './config.service.js'
 /** The owner's half of platform support access (`tenancy.support.*`); the console's half is module 13. */
 export { SupportAccessService } from './support.service.js'
+/**
+ * WHAT A SUPPORT GRANT IS, derived in exactly ONE place (DOS-110): both halves of the flow — the
+ * owner's here and the console's in module 13 — read a status and filter a list through these, so
+ * the two services can never disagree about whether an ask is still answerable. Plain functions.
+ */
+export { statusOf, openGrants, grantStatusPredicate } from './support-status.js'
 export { TenantGuard, PLATFORM_SCOPE, type SupportAwareRequest } from './tenant.guard.js'
 /**
  * THE WHITE-LABEL BLOCK every printed document and every app's chrome carries (docs/17 §D6). One

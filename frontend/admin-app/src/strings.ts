@@ -96,6 +96,11 @@ export const strings = {
   'p1.pastDue': '{count} past due',
   'p1.trialEnding': '{count} trials ending in 30 days',
   'p1.waitingOwners': '{count} support requests waiting for an owner',
+  // One of a thing is not "{count} things" (DOS-114). No plural FORM exists in this product — Hindi
+  // and Marathi do not share English's one-or-many rule — so the sentence that can be about one
+  // gets its own key and the screen picks between them.
+  'p1.trialEndingOne': '1 trial ending in 30 days',
+  'p1.waitingOwner': '1 support request waiting for an owner',
   'p1.allClear': 'Nothing waiting',
 
   // --- P2 distributors -----------------------------------------------------
@@ -286,7 +291,6 @@ export const strings = {
   'p6.decisionNote': 'Their note',
   'p6.revokeReason': 'Closing note',
   'p6.deniedByOwner': 'Their owner said no',
-  'p6.lapsed': 'Lapsed, no answer',
   'p6.handedBack': 'Handed back from the Distribution OS console.',
   'p6.emptyOpen': 'No window is open right now',
   'p6.emptyWaiting': 'Nobody’s owner is being waited on',
@@ -387,6 +391,8 @@ export const strings = {
   'word.quarterly': 'Quarterly',
   'word.yearly': 'Yearly',
   'word.requested': 'Waiting for their owner',
+  // A status of its own since DOS-110: asked, and nobody answered inside the hours it asked for.
+  'word.lapsed': 'Lapsed, no answer',
   'word.approved': 'Open',
   'word.rejected': 'Refused',
   'word.revoked': 'Handed back',

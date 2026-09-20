@@ -106,6 +106,30 @@ export default function Subscriptions(): React.JSX.Element {
   const nameOf = (tenantId: string): string => names.data?.[tenantId] ?? '—'
   const current = rows.find((row) => row.id === selected) ?? null
 
+  /**
+   * THE ACTION WHERE THE DATA IS (DOS-114). This register was a read-only wall: changing a plan meant
+   * knowing that Distributors → the distributorship → "Change the plan" existed, on a screen whose
+   * every row is a plan. Selecting a row has always opened the editor for a level that may use it;
+   * now the row SAYS so. Only super and billing are offered it (DOS-106), and admin-service re-reads
+   * the level on the call whatever this draws.
+   */
+  const change: RegisterColumn<Subscription> = {
+    key: 'change',
+    head: t('p5.edit'),
+    priority: 'chip',
+    cell: (row) => (
+      <Button
+        label={t('p5.edit')}
+        variant="ghost"
+        testID={`change-plan-${row.id}`}
+        onPress={() => {
+          setSelected(row.id)
+          setEditing(true)
+        }}
+      />
+    ),
+  }
+
   const columns: readonly RegisterColumn<Subscription>[] = [
     {
       key: 'tenant',
@@ -156,6 +180,7 @@ export default function Subscriptions(): React.JSX.Element {
       },
     },
     textColumn('note', t('p5.note'), (row) => row.note),
+    ...(mayEdit ? [change] : []),
   ]
 
   return (
