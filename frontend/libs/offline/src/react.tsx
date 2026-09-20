@@ -562,7 +562,12 @@ export interface OutboxApi {
   rows: OutboxRow[]
   pending: number
   rejected: number
-  retry: (opId: string) => Promise<void>
+  /**
+   * "Try it again" — a NEW operation on the same intent (DOS-046). Resolves to the opId it went out under, or
+   * null when this install no longer holds the op (a tray row pulled from the server after a reinstall: those
+   * offer only "Throw it away").
+   */
+  retry: (opId: string) => Promise<string | null>
   /** Throws `KeptMoneyError` on a refused money write (DOS-178) — that one goes to the cashier instead. */
   discard: (opId: string) => Promise<void>
   /** DOS-178: the crew handed this refused payment and its slip to the cashier. Nothing is deleted. */
@@ -613,7 +618,7 @@ export function useOutbox(): OutboxApi {
     },
     [engine],
   )
-  const retry = useCallback(async (opId: string) => engine?.retry(opId) ?? undefined, [engine])
+  const retry = useCallback(async (opId: string) => (await engine?.retry(opId)) ?? null, [engine])
   const discard = useCallback(async (opId: string) => engine?.discard(opId) ?? undefined, [engine])
   const handOver = useCallback(
     async (opId: string) => engine?.handOver(opId) ?? undefined,

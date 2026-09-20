@@ -110,8 +110,12 @@ rejection_message TEXT)` — `status ∈ queued | sending | acked | rejected | k
     through a sign-out, because it is the only record anywhere that the shop paid.
   - `_gps_buffer(ts TEXT, trip_id TEXT, lat REAL, lng REAL, accuracy_m REAL, speed_mps REAL, posted INTEGER)` — delivery only (§8).
   - `_sync_errors` — a mirror of the server's `sync_errors` rows for this device, so "Needs attention" works offline. It carries
-    `discarded_at` (the user threw the write away) and `handed_over_at` (DOS-178: the money went to the cashier); a row with
-    either is never re-mirrored by `sync.errors.list`, so it cannot come back asking for attention.
+    `discarded_at` (the user threw the write away), `handed_over_at` (DOS-178: the money went to the cashier) and `retried_as`
+    (DOS-046: the opId the user sent the same intent again under); a row with any of the three is never re-mirrored by
+    `sync.errors.list`, so it cannot come back asking for attention — the server still lists the old opId unresolved.
+    A system table grows EXPAND-ONLY: a new column goes in the `CREATE` for a new file and in `SYSTEM_TABLE_ADDITIONS`
+    (`ALTER TABLE … ADD COLUMN`, run best effort — SQLite refuses a duplicate, which is what makes it idempotent) for a file a
+    phone has been carrying since before it, and the two lists are held equal by a test.
     Mirroring is BEST EFFORT: `sync.errors.list` is STAFF-only, the oRPC client exposes it to every app because the contract is
     shared, and a shop's app is answered 403. A refusal is logged and the tray is not asked for again — it must never turn a
     pull that has already committed into a failed sync (gate, 2026-09-06).
@@ -129,8 +133,13 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   crash, a closed tab or a session that ended by itself, and before the pull on every reconnect and every poll tick
   (DOS-183, 2026-09-20); refused ones wait in Needs attention (§12).
 - Row `id`: UUIDv7 generated on the device at creation (the contract's `MutationBase` shape).
-- `opId`: UUIDv7 per queued op. `idempotencyKey = opId`. A retry of the same op reuses both; the server's `sync_ops`
-  `(tenant_id, device_id, op_id)` makes a replay return the stored outcome.
+- `opId`: UUIDv7 per queued op. `idempotencyKey = opId`. Every AUTOMATIC re-send reuses both — a batch that never reached a
+  service, an op left `sending` when the app was killed, a lost response, an `upgradeRequired` re-queue — and the server's
+  `sync_ops` `(tenant_id, device_id, op_id)` makes such a replay return the stored outcome, which is what makes losing an answer
+  safe. A USER's "Try it again" from the tray is not a re-send but a NEW operation (DOS-046, 2026-09-20): a fresh
+  `opId` = `idempotencyKey` on the same intent (same `seq`, row, data and `baseUpdatedAt`), because a stored outcome is durable
+  and a REFUSAL is such an outcome — replaying the same opId can only ever be told the same thing again, however far the server
+  has moved on. The old refusal stays the server's, unresolved, and is marked `retried_as` on the device.
 
 ## 5. Pull
 
@@ -184,6 +193,11 @@ Indexes: `(tbl, row_id)` on `_outbox`; on each data table the columns the screen
   against `PERMISSIONS` before any handler runs), `not_permitted` (a database policy refused this actor) and `row_too_large` (one
   op over 1 MiB of JSON, §15) → mark rejected with the server's sentence in the tray; keep the row, never retry it (DOS-166,
   DOS-056).
+- "Try it again" re-queues the row under a NEW opId (DOS-046, §4); the old `_sync_errors` row is kept, marked `retried_as`, and
+  never resurrected by the errors pull — which matters because on a reconnect that pull can run beside a queue that has not
+  drained yet. A retry refused again is a fresh row under the new opId, so the chain reads old → new → newer. `retry()` on a tray
+  row this install no longer holds the op for (one the errors pull brought back) answers null and changes nothing; those rows
+  offer only "Throw it away".
 - Queue survives restarts (it is a table). A pending count and the oldest queued time feed the status object.
 - **No upload before the device can answer, and every kicked flush names its own failure** (merge review of DOS-183,
   2026-09-20). A flush that lands before the store's shapes are loaded — a reconnect hint arriving during the opening
@@ -283,7 +297,8 @@ still cannot say "not kept in this browser" — an S-row, P3).
 - `useTable<T>(table, { where?, params?, orderBy?, limit? })` — a live query: re-runs when a pull applies rows to that table or the
   outbox touches it (an in-process change bus keyed by table). Returns `{ rows, loading }`.
 - `useRow<T>(table, id)`
-- `useOutbox()` → `{ enqueue, enqueueMany(inputs), pending, rejected, retry(opId), discard(opId) }`. `enqueueMany` queues an order and
+- `useOutbox()` → `{ enqueue, enqueueMany(inputs), pending, rejected, retry(opId), discard(opId) }`. `retry(opId)` resolves to the
+  NEW opId the intent went out under (DOS-046), or null when this install no longer holds the op. `enqueueMany` queues an order and
   its lines as one write, whole or not at all (ruling 2 (u)). `discard` is only offered on a rejected op and writes an audit line
   into `_sync_errors`.
 - `useNeedsAttention()` — the rejected ops joined with their rows, for the tray.
@@ -373,6 +388,13 @@ queue in that person's file the same way (§14). Decided by the founder, 2026-09
     `_pending` is cleared, and the pull that follows is allowed to bring the server's version of that row down. Each of the
     three flushes the engine kicks for itself writes a named line when the device store throws under `claim`, and no rejection
     goes unhandled.
+18. A user's retry is a NEW operation (DOS-046): the fake server answers a replayed refused opId the way `sync.service.ts` does
+    — `replayed` AND the stored refusal — and against that, "Try it again" on a refusal whose cause is gone goes out under a new
+    opId, is accepted once, keeps the row's original `seq` and `createdAt`, and leaves the old opId never sent again; the old
+    `_sync_errors` row stays, marked `retried_as`, and the errors pull does not bring it back even while the retry is still
+    queued; a retry refused again is ONE tray item under the new opId; a retry of a rejection this install no longer holds the
+    op for answers null and touches nothing; and `retried_as` is in the `CREATE` for a new file and in the `ALTER` list for one
+    that already exists.
 
 ## 14. Failure modes
 

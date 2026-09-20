@@ -1205,14 +1205,16 @@ export class SyncEngine {
     }
     if (answer.items.length === 0) return
     /*
-     * A rejection the user has already dealt with must not come back on the next sync — thrown away, or
-     * (DOS-178) handed to the cashier. `INSERT OR REPLACE` writes a whole new row, so without this a
-     * handed-over payment would lose its `handed_over_at` and start asking for attention again.
+     * A rejection the user has already dealt with must not come back on the next sync — thrown away,
+     * (DOS-178) handed to the cashier, or (DOS-046) sent again under a new opId. `INSERT OR REPLACE` writes a
+     * whole new row, so without this a handed-over payment would lose its `handed_over_at` and start asking for
+     * attention again, and a retried one would be back in the tray beside the retry: the server still lists the
+     * old opId unresolved, and on a reconnect this pull runs before the queue drains.
      */
     const settled = new Set(
       (
         await store.query<{ op_id: string }>(
-          `SELECT op_id FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NOT NULL OR handed_over_at IS NOT NULL`,
+          `SELECT op_id FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NOT NULL OR handed_over_at IS NOT NULL OR retried_as IS NOT NULL`,
         )
       ).map((row) => row.op_id),
     )
@@ -1660,8 +1662,24 @@ export class SyncEngine {
     )
   }
 
-  /** Send a rejected op again after the user fixed what was wrong. The `opId` is deliberately kept. */
-  async retry(opId: string): Promise<void> {
+  /**
+   * "TRY IT AGAIN" IS A NEW OPERATION (DOS-046, docs/27 §4). Returns the opId it went out under, or null when
+   * this install no longer holds the op (a tray row pulled back from the server after a reinstall or a cleared
+   * browser — those rows offer only "Throw it away").
+   *
+   * The opId is deliberately NEW. Every outcome the server stores is durable and a replay returns it unchanged
+   * (ADR 0007), a refusal included, so an op re-queued under its own opId can only be told the same thing for
+   * ever — the warehouse gate pressed "Try it again" on a wave that WAS being picked again and got back
+   * "is no longer being picked", on every press. The person pressing the button later, against a server that
+   * has moved on, is making a new request; so the same intent (same row, data, baseUpdatedAt and place in the
+   * queue) goes out under a fresh opId = idempotencyKey, and the old refusal stays on the device marked with
+   * what it was sent again as. It is never deleted: the server still lists it unresolved, so `pullErrors` would
+   * bring it straight back beside the retry — and on a reconnect the pull usually runs BEFORE the queue drains.
+   *
+   * The AUTOMATIC re-sends are untouched (`start()`, the backoff, the `upgradeRequired` re-queue): they keep
+   * their opId, which is exactly what makes a lost answer safe.
+   */
+  async retry(opId: string): Promise<string | null> {
     // The gate (ruling (m)): refused once `end()` has begun.
     const store = this.requireStore()
     return this.inHand(async () => {
@@ -1670,19 +1688,27 @@ export class SyncEngine {
         [opId],
       )
       const op = rows[0] === undefined ? null : toOutboxRow(rows[0])
-      if (op === null) return
-      await store.exec(
-        `UPDATE ${OUTBOX_TABLE} SET status = 'queued', rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
-        [opId],
-      )
-      await store.exec(`DELETE FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`, [opId])
-      const shape = this.shapes.get(op.table)
-      if (shape) await this.setPending(store, shape, op.rowId, 'queued')
+      if (op === null) return null
+      const next = uuidv7()
+      await store.transaction(async (tx) => {
+        // seq, created_at, tbl, row_id, op, data, base_updated_at and attempts are the intent: untouched.
+        await tx.exec(
+          `UPDATE ${OUTBOX_TABLE} SET op_id = ?, idempotency_key = ?, status = 'queued', sent_at = NULL, acked_at = NULL, rejection_code = NULL, rejection_message = NULL WHERE op_id = ?`,
+          [next, next, opId],
+        )
+        await tx.exec(`UPDATE ${SYNC_ERRORS_TABLE} SET retried_as = ? WHERE op_id = ?`, [
+          next,
+          opId,
+        ])
+        const shape = this.shapes.get(op.table)
+        if (shape) await this.setPending(tx, shape, op.rowId, 'queued')
+      })
       await this.refreshCounts()
       this.bus.emit([op.table, OUTBOX_CHANNEL, ERRORS_CHANNEL])
       this.emitStatus()
       // Named for the same reason as the write's own kick above.
       void this.flush().catch((error: unknown) => this.note(error, 'flush(retry)'))
+      return next
     })
   }
 
@@ -1827,7 +1853,8 @@ export class SyncEngine {
     const store = this.store
     if (store === null || !this.readsOpen()) return []
     const errors = await store.query<Record<string, SqlValue>>(
-      `SELECT * FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL ORDER BY created_at DESC`,
+      // Thrown away, or sent again under a new opId (DOS-046): either way it is not work for a person any more.
+      `SELECT * FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND retried_as IS NULL ORDER BY created_at DESC`,
     )
     const items: NeedsAttentionItem[] = []
     for (const raw of errors) {
@@ -1843,6 +1870,8 @@ export class SyncEngine {
           raw.handed_over_at === null || raw.handed_over_at === undefined
             ? null
             : String(raw.handed_over_at),
+        retriedAs:
+          raw.retried_as === null || raw.retried_as === undefined ? null : String(raw.retried_as),
       }
       // A sign-out or a stop that began while this read ran ends it here: no call starts after it (addendum (x)).
       if (!this.readsOpen()) return []
@@ -1998,7 +2027,7 @@ export class SyncEngine {
      * is still the only record that the shop paid, so it is counted here and a sign-out keeps the file.
      */
     const [rejected] = await store.query<{ n: number }>(
-      `SELECT COUNT(*) AS n FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND handed_over_at IS NULL`,
+      `SELECT COUNT(*) AS n FROM ${SYNC_ERRORS_TABLE} WHERE discarded_at IS NULL AND handed_over_at IS NULL AND retried_as IS NULL`,
     )
     const [held] = await store.query<{ n: number }>(
       `SELECT COUNT(*) AS n FROM ${OUTBOX_TABLE} WHERE status = 'kept'`,

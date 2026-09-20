@@ -9,7 +9,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { KeptMoneyError, SyncEngine } from './engine.js'
 import { connectionStateFrom } from './connection.js'
-import { OUTBOX_TABLE, SYNC_ERRORS_TABLE } from './schema.js'
+import {
+  OUTBOX_TABLE,
+  SYNC_ERRORS_TABLE,
+  SYSTEM_TABLE_ADDITIONS,
+  SYSTEM_TABLE_STATEMENTS,
+} from './schema.js'
 import { createMemoryStore } from './store/memory.js'
 import { column, FakeServer, fixedStoreFactory, tableManifest } from './test-support.js'
 import type { SyncStore } from './types.js'
@@ -550,7 +555,7 @@ describe('6. a rejection keeps the row and becomes a work item', () => {
     expect(tray[0]?.serverRow?.state).toBe('submitted')
   })
 
-  it('lets a rejected op be sent again with the SAME opId, or discarded with an audit line', async () => {
+  it('lets a rejected op be discarded with an audit line', async () => {
     const store = createMemoryStore()
     const server = new FakeServer(TABLES)
     server.queuePull({ changes: [] })
@@ -1245,5 +1250,258 @@ describe('6c. the refused count and the tray are the same number', () => {
     expect(await engine.needsAttention()).toHaveLength(1)
     expect(engine.status().rejected).toBe(1)
     await engine.stop()
+  })
+})
+
+// 6d -------------------------------------------------------------------------------------------------------------
+
+/**
+ * DOS-046 — "Try it again" is a NEW operation, and the rejection it replaces stays as history.
+ *
+ * ADR 0007 makes every outcome durable: `sync_ops` remembers what the server answered for an opId, and a replay
+ * gets that answer back rather than a second run. A REFUSAL is such an outcome — `sync.service.ts` answers a
+ * replayed refused op `replayed: 1, rejected: [the stored one]` — so an outbox row re-queued under its own opId
+ * can only ever be told the same thing again. The warehouse gate proved it: the wave that refused the pick was
+ * `picking` again, and "Try it again" still came back "Picklist PICK-0224 is picked; it is no longer being
+ * picked", for ever. Only "Throw it away" and re-picking worked, and the tray never said so.
+ *
+ * The user pressing the button later, against a server that has moved on, IS a new intent. So a retry mints a
+ * fresh opId (= idempotencyKey) on the same row, data and baseUpdatedAt, keeps its place in the queue, and the
+ * old refusal is kept on the device marked with what it was sent again as — never deleted, because the server
+ * still lists it unresolved and the errors pull would bring it straight back beside the retry.
+ *
+ * AUTOMATIC re-sends are untouched (describe 7): a batch that never left, an op `sending` when the app was
+ * killed, a lost response and an `upgradeRequired` re-queue all keep their opId, which is what makes losing the
+ * answer safe.
+ */
+describe('6d. a user’s retry is a new operation', () => {
+  it('DOS-046 the fake server answers a replayed rejection as replayed AND rejected, like sync.service.ts', async () => {
+    const server = new FakeServer(TABLES)
+    const transport = server.transport()
+    const op = {
+      opId: 'op-1',
+      table: 'sales_orders',
+      id: 'o1',
+      op: 'PUT' as const,
+      data: {},
+      idempotencyKey: 'op-1',
+      clientTime: '2026-09-06T06:00:00.000Z',
+    }
+    server.rejections.set('op-1', { code: 'picklist_closed', messageEn: 'The wave is not open' })
+
+    const first = await transport.upload({ deviceId: 'device-1', protocol: 1, ops: [op] })
+    expect(first.rejected.map((one) => one.code)).toEqual(['picklist_closed'])
+    expect(first.replayed).toBe(0)
+
+    // The cause is gone on the server — and it changes nothing for THIS opId, which already has an outcome.
+    server.rejections.delete('op-1')
+    const again = await transport.upload({ deviceId: 'device-1', protocol: 1, ops: [op] })
+    expect(again.replayed).toBe(1)
+    expect(again.accepted).toBe(0)
+    expect(again.rejected.map((one) => one.code)).toEqual(['picklist_closed'])
+  })
+
+  it('DOS-046 Try it again sends the intent under a NEW opId and is accepted once the cause is gone', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({
+      table: 'sales_orders',
+      id: 'o1',
+      op: 'PUT',
+      data: { retailer_id: 'r1' },
+    })
+    server.rejections.set(opId, {
+      code: 'picklist_closed',
+      messageEn: 'Picklist PICK-0224 is picked; it is no longer being picked',
+    })
+    await engine.flush()
+    expect(engine.status().rejected).toBe(1)
+    const before = (await engine.outbox()).find((row) => row.opId === opId)
+
+    // The wave is being picked again: the reason the office gave is gone.
+    server.rejections.delete(opId)
+    server.uploadCalls.length = 0
+    const next = await engine.retry(opId)
+    await engine.flush()
+
+    expect(next).not.toBeNull()
+    expect(next).not.toBe(opId)
+    expect(server.uploadCalls[0]?.ops[0]?.opId).toBe(next)
+    expect(server.applied.get(next ?? '')).toBe(1)
+    // The old opId is never sent again: its outcome is the server's, for ever.
+    expect(server.uploadCalls.flatMap((call) => call.ops.map((one) => one.opId))).not.toContain(
+      opId,
+    )
+
+    const after = (await engine.outbox()).find((row) => row.opId === next)
+    expect(after?.status).toBe('acked')
+    expect(after?.idempotencyKey).toBe(next)
+    // Same intent, same place in the queue: an order still goes before its lines.
+    expect(after?.seq).toBe(before?.seq)
+    expect(after?.createdAt).toBe(before?.createdAt)
+    expect(after?.data).toEqual({ retailer_id: 'r1' })
+    expect(await engine.outbox()).toHaveLength(1)
+
+    const row = await engine.getRow<{ _pending: string | null }>('sales_orders', 'o1')
+    expect(row?._pending).toBeNull()
+    expect(engine.status().rejected).toBe(0)
+    expect(await engine.needsAttention()).toEqual([])
+    await engine.stop()
+  })
+
+  it('DOS-046 the old rejection never comes back from the errors pull, even while the retry waits to go', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    /*
+     * A phone that can READ and not WRITE — the dead spot that lasts exactly as long as one POST. The queue goes
+     * out before the handshake and the pull on every path the engine schedules (DOS-183), so this is how the
+     * errors pull is made to run while the retry is still queued, which is the race the finding's tray is in.
+     */
+    const base = server.transport()
+    let sendable = true
+    const engine = new SyncEngine({
+      transport: {
+        ...base,
+        upload: async (input) => {
+          if (!sendable) throw new TypeError('Failed to fetch')
+          return base.upload(input)
+        },
+      },
+      deviceId: 'device-1',
+      storeFactory: fixedStoreFactory(store),
+      pullIntervalMs: 0,
+      now,
+    })
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'picklist_closed', messageEn: 'The wave is not open' })
+    await engine.flush()
+    expect(engine.status().rejected).toBe(1)
+
+    // The wave is open again and the picker presses the button, but nothing can be sent yet.
+    sendable = false
+    server.rejections.delete(opId)
+    const next = await engine.retry(opId)
+    // The server still holds the refusal for the OLD opId, unresolved, and the tray pull will list it.
+    server.serverErrors = [
+      {
+        id: 'e1',
+        opId,
+        table: 'sales_orders',
+        rowId: 'o1',
+        code: 'picklist_closed',
+        messageEn: 'The wave is not open',
+        messageHi: 'वेव खुली नहीं है',
+        deviceId: 'device-1',
+        createdAt: '2026-09-06T06:00:00.000Z',
+        resolved: false,
+        resolvedAt: null,
+      },
+    ]
+    await engine.sync('again')
+
+    expect(await engine.needsAttention()).toEqual([])
+    expect(engine.status().rejected).toBe(0)
+    const kept = await store.query<{ retried_as: string | null }>(
+      `SELECT retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    expect(kept[0]?.retried_as).toBe(next)
+    expect((await engine.outbox())[0]?.status).toBe('queued')
+
+    // The signal comes back: the retry goes out and is accepted, and the old rejection stays gone.
+    sendable = true
+    await engine.flush()
+    expect(server.applied.get(next ?? '')).toBe(1)
+    expect(await engine.needsAttention()).toEqual([])
+    await engine.stop()
+  })
+
+  it('DOS-046 a retry refused again is ONE tray item, and the chain stays readable', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    const engine = engineOn(store, server)
+    await engine.start()
+
+    const opId = await engine.enqueue({ table: 'sales_orders', id: 'o1', op: 'PUT', data: {} })
+    server.rejections.set(opId, { code: 'picklist_closed', messageEn: 'The wave is not open' })
+    await engine.flush()
+
+    const next = await engine.retry(opId)
+    if (next !== null) {
+      server.rejections.set(next, { code: 'picklist_closed', messageEn: 'The wave is not open' })
+    }
+    await engine.flush()
+
+    const tray = await engine.needsAttention()
+    expect(tray).toHaveLength(1)
+    expect(tray[0]?.error.opId).toBe(next)
+    expect(tray[0]?.op?.opId).toBe(next)
+    expect(engine.status().rejected).toBe(1)
+    const old = await store.query<{ retried_as: string | null }>(
+      `SELECT retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      [opId],
+    )
+    expect(old[0]?.retried_as).toBe(next)
+    await engine.stop()
+  })
+
+  it('DOS-046 a retry of a rejection this install no longer holds returns null and changes nothing', async () => {
+    const store = createMemoryStore()
+    const server = new FakeServer(TABLES)
+    server.queuePull({ changes: [] })
+    server.serverErrors = [
+      {
+        id: 'e1',
+        opId: 'op-from-yesterday',
+        table: 'sales_orders',
+        rowId: 'o9',
+        code: 'credit_hold',
+        messageEn: 'Shop is on credit hold',
+        messageHi: 'दुकान क्रेडिट होल्ड पर है',
+        deviceId: 'device-1',
+        createdAt: '2026-09-05T10:00:00.000Z',
+        resolved: false,
+        resolvedAt: null,
+      },
+    ]
+    const engine = engineOn(store, server)
+    await engine.start()
+    server.uploadCalls.length = 0
+
+    expect(await engine.retry('op-from-yesterday')).toBeNull()
+    expect(server.uploadCalls).toEqual([])
+    expect(await engine.needsAttention()).toHaveLength(1)
+    const untouched = await store.query<{ retried_as: string | null }>(
+      `SELECT retried_as FROM ${SYNC_ERRORS_TABLE} WHERE op_id = ?`,
+      ['op-from-yesterday'],
+    )
+    expect(untouched[0]?.retried_as).toBeNull()
+    await engine.stop()
+  })
+
+  /*
+   * The MEMORY engine cannot tell a missing column from a NULL one — `select` answers `row[name] ?? null` and
+   * `update` writes whatever key it is given (`sql.ts`), because it is a map with SQL over it. Real SQLite, which
+   * is what a phone and an OPFS browser run, answers "no such column" and would take the tray down on a file
+   * written by the build before this one. So the upgrade is asserted where it is actually decided: the column is
+   * in the CREATE for a new file, and in the ALTER list for one that already exists (DOS-178 set that pattern
+   * with `handed_over_at`; the ALTER is idempotent by failure, which is why it runs best effort).
+   */
+  it('DOS-046 retried_as is created on a new device file and added to one that already exists', () => {
+    const errors = SYSTEM_TABLE_STATEMENTS.find((statement) =>
+      statement.includes(`CREATE TABLE IF NOT EXISTS ${SYNC_ERRORS_TABLE}`),
+    )
+    expect(errors).toMatch(/retried_as TEXT/)
+    expect(SYSTEM_TABLE_ADDITIONS).toContain(
+      `ALTER TABLE ${SYNC_ERRORS_TABLE} ADD COLUMN retried_as TEXT`,
+    )
   })
 })
