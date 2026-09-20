@@ -44,6 +44,7 @@ import { links } from '@dos/ui/platform'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
+import { acrossTotal } from '../src/lib/across'
 import { absoluteUrl } from '../src/config'
 import { instantWithClock, longInstant, shortDate } from '../src/lib/dates'
 import { rememberDistributor } from '../src/lib/last-distributor'
@@ -137,6 +138,16 @@ export default function Home(): React.JSX.Element {
     staleTime: 60_000,
   })
   const acrossBy = new Map((across.data?.items ?? []).map((item) => [item.tenantId, item]))
+  /*
+   * A SUMMARY THE DEVICE DID NOT READ IS NOT A MONEY FIGURE (`src/lib/across.ts`).
+   *
+   * This line used to be `formatMoney(across.data?.totalOutstandingPaise ?? 0)` and the cards below
+   * used to read their dues and their last bill through the same `?? 0`, so a read still in flight
+   * and a read that was refused both came out as "You owe ₹0.00" under a green chip. `acrossTotal`
+   * names the three states and each one is rendered as what it is.
+   */
+  const total = acrossTotal(across)
+  const acrossKnown = total.kind === 'known'
 
   /**
    * DOS-103: the office number, so the shop can call or WhatsApp the distributor it is looking at.
@@ -214,15 +225,22 @@ export default function Home(): React.JSX.Element {
           <Stack gap={3}>
             {memberships.length > 1 ? (
               <Txt field="label" desk="meta" color={colors.text.secondary} testID="r2-total">
-                {t('r2.owedAcross', {
-                  total: formatMoney(across.data?.totalOutstandingPaise ?? 0),
-                  count: String(memberships.length),
-                })}
+                {total.kind === 'known'
+                  ? t('r2.owedAcross', {
+                      total: formatMoney(total.totalPaise),
+                      count: String(memberships.length),
+                    })
+                  : total.kind === 'reading'
+                    ? t('r2.owedAcrossReading', { count: String(memberships.length) })
+                    : t('r2.owedAcrossUnread', { count: String(memberships.length) })}
               </Txt>
             ) : null}
             {memberships.map((membership) => {
               const open = membership.tenantId === openTenantId
               const card = acrossBy.get(membership.tenantId)
+              // The open card's dues come from its own `receivables.outstanding` read; the others'
+              // from the summary. Either may be missing, and then there is no chip colour to claim.
+              const figures = open ? summary : card
               return (
                 <Box
                   key={membership.tenantId}
@@ -252,15 +270,13 @@ export default function Home(): React.JSX.Element {
                     <Row gap={3} wrap>
                       <StatusChip
                         label={t('r2.owes')}
-                        family={duesFamily(
-                          (open ? summary?.overduePaise : card?.overduePaise) ?? 0,
-                          (open ? summary?.outstandingPaise : card?.outstandingPaise) ?? 0,
-                        )}
+                        family={
+                          figures === undefined
+                            ? 'neutral'
+                            : duesFamily(figures.overduePaise, figures.outstandingPaise)
+                        }
                       />
-                      <Money
-                        value={(open ? summary?.outstandingPaise : card?.outstandingPaise) ?? null}
-                        size="moneyM"
-                      />
+                      <Money value={figures?.outstandingPaise ?? null} size="moneyM" />
                     </Row>
                     <Txt
                       field="label"
@@ -268,13 +284,15 @@ export default function Home(): React.JSX.Element {
                       color={colors.text.secondary}
                       testID={`r2-card-${membership.tenantSlug}-bills`}
                     >
-                      {card?.lastBill === undefined || card.lastBill === null
-                        ? t('r2.noBillsYet')
-                        : t('r2.cardLastBill', {
-                            no: card.lastBill.invoiceNo ?? t('app.none'),
-                            date: shortDate(card.lastBill.invoiceDate),
-                            amount: formatMoney(card.lastBill.totalPaise),
-                          })}
+                      {!acrossKnown
+                        ? t('r2.cardUnread')
+                        : card?.lastBill === undefined || card.lastBill === null
+                          ? t('r2.noBillsYet')
+                          : t('r2.cardLastBill', {
+                              no: card.lastBill.invoiceNo ?? t('app.none'),
+                              date: shortDate(card.lastBill.invoiceDate),
+                              amount: formatMoney(card.lastBill.totalPaise),
+                            })}
                     </Txt>
                     {card?.onTheWay === undefined || card.onTheWay === null ? null : (
                       <Txt

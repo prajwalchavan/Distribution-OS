@@ -71,8 +71,12 @@ export const strings = {
   // DOS-102: one home for a shop that buys from several distributors — every card carries its own
   // dues, its last bill and any van on the way, and this is the total across all of them.
   'r2.owedAcross': 'You owe {total} across {count} distributors',
+  // A read that has not landed is never ₹0.00: these two sentences are what stands in its place.
+  'r2.owedAcrossReading': 'Adding up what you owe across {count} distributors…',
+  'r2.owedAcrossUnread': 'What you owe across {count} distributors could not be read just now',
   'r2.cardLastBill': 'Last bill {no} · {date} · {amount}',
   'r2.noBillsYet': 'No bills yet',
+  'r2.cardUnread': 'Not read just now',
   'r2.vanHere': 'A van is at your shop',
   'r2.vanEta': 'On the way, expected {when}',
   'r2.vanComing': '{count} deliveries coming',

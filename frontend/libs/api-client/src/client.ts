@@ -31,16 +31,35 @@ export type ApiRouter = ContractRouterClient<typeof contract>
 export type AuthRouter = ContractRouterClient<typeof authContract>
 
 /**
- * The auth procedures that carry a Bearer token and are worth a refresh-and-retry on 401. `login`,
- * `refresh`, `logout`, `switchTenant` and `jwks` authenticate through the body (or not at all);
- * retrying `refresh` on its own 401 would loop.
+ * The auth procedures that authenticate through the BODY, or not at all. They are the only ones never
+ * refreshed before the call and never replayed after a 401: `refresh` retried on its own 401 would
+ * loop, and refreshing before `login`, `logout` or `switchTenant` would rotate the very token they are
+ * about to send. Everything else auth-service serves, it serves under a Bearer token, and those are
+ * healed exactly like a call to this app's own service.
+ *
+ * A DENY-LIST, READ OFF THE WHOLE PATH. It was an allow-list of four names read off `path[0]`, and
+ * `auth.memberships.summary` is nested — its `path[0]` is 'memberships' — so it fell outside and became
+ * the one authenticated read in the product that neither refreshed a dying token nor healed a 401. The
+ * shop's home screen turned the throw into "You owe Rs 0.00 across 3 distributors" (DOS-102
+ * verification). Inverted, a procedure added to the auth contract tomorrow is healed the day it lands,
+ * and only a body-authenticated one has to be remembered here.
  */
-const AUTH_RETRY_PATHS: ReadonlySet<string> = new Set([
-  'me',
-  'sessions',
-  'revokeSession',
-  'changePassword',
+const BODY_AUTHENTICATED_AUTH_PATHS: ReadonlySet<string> = new Set([
+  'login',
+  'refresh',
+  'logout',
+  'switchTenant',
+  'forgotPassword',
+  'resetPassword',
+  'platformLogin',
+  'platformRefresh',
+  'jwks',
 ])
+
+/** True when this auth path carries a Bearer token, and so is worth a refresh and one replay. */
+export function isBearerAuthPath(path: readonly string[]): boolean {
+  return !BODY_AUTHENTICATED_AUTH_PATHS.has(path.join('.'))
+}
 
 /** How long a sign-in waits for the device's last leaving before it goes on (DOS-167 addendum (z2)). */
 const LEAVING_WAIT_MS = 25_000
@@ -318,7 +337,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     url: join(options.authUrl, options.authPrefix),
     headers,
     fetch: deadline,
-    interceptors: [interceptor((path) => AUTH_RETRY_PATHS.has(path[0] ?? ''))],
+    interceptors: [interceptor(isBearerAuthPath)],
   })
   const authClient: AuthRouter = createORPCClient<AuthRouter>(authLink)
 
