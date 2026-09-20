@@ -16,7 +16,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { strings } from '../strings'
-import { doorDoneHref, doorDoneMessage } from './at-the-door'
+import { DOOR_DONE_CLEARED, doorDoneHref, doorDoneMessage } from './at-the-door'
 
 /** The delivery app's own catalogue, as `<ThemeProvider>` merges it: key in, sentence out. */
 const t = (key: string, vars?: Record<string, string | number>): string => {
@@ -124,6 +124,43 @@ describe('DOS-149 the doorstep outcome is said on the stop screen', () => {
     expect(doorDoneMessage(t, true, { done: 'money' })).toBeNull()
     // Expo-router hands a repeated parameter back as an array; the first one is the answer.
     expect(doorDoneMessage(t, true, { done: ['delivered', 'kept'] })).toBe('Delivery recorded')
+  })
+
+  /**
+   * MINOR 1 (merge review, 2026-09-20) — A DISMISSED HANDOVER IS NOT SAID A SECOND TIME.
+   *
+   * `handoffSeen` lives in the mount: a reload of the stop, or walking back to an earlier instance of
+   * it, reads the same `done`/`doneNo` off the route and announces a credit note the driver has
+   * already read, beside the bill that now plainly shows it. The dismissal therefore strips both
+   * parameters. The integration verifier reversed that line and no test noticed; these two are why it
+   * cannot happen again — what the strip DOES (the message goes silent, for every code that had one),
+   * and that the dismissal is the thing that does it.
+   */
+  it('DOS-149 minor 1 — every handover goes silent once the route parameters are cleared', () => {
+    const said = [
+      { done: 'delivered' },
+      { done: 'credit', doneNo: 'CN/9007' },
+      { done: 'kept' },
+      { done: 'money', doneNo: 'RCP/0042' },
+      { done: 'moneyKept', doneNo: 'B-114' },
+    ]
+    for (const params of said) {
+      // It is said once…
+      expect(doorDoneMessage(t, true, params)).not.toBeNull()
+      // …and the dismissal leaves a route that says nothing, on this mount or the next one.
+      expect(doorDoneMessage(t, true, { ...params, ...DOOR_DONE_CLEARED })).toBeNull()
+      expect(doorDoneMessage(t, false, { ...params, ...DOOR_DONE_CLEARED })).toBeNull()
+    }
+    expect(DOOR_DONE_CLEARED).toEqual({ done: undefined, doneNo: undefined })
+  })
+
+  it('DOS-149 minor 1 — dismissing the toast on D3 both marks it seen and clears the route', async () => {
+    const stop = await read('../../app/stop/[id]/index.tsx')
+    const hit = stop.indexOf('onDismiss={')
+    expect(hit).toBeGreaterThan(-1)
+    const dismissal = stop.slice(hit, hit + 200)
+    expect(dismissal).toContain('setHandoffSeen(true)')
+    expect(dismissal).toContain('router.setParams(DOOR_DONE_CLEARED)')
   })
 
   it('DOS-149 D3 says what the driver has just done, and still says its own arrivals', async () => {

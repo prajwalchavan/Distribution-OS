@@ -37,7 +37,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
 import { deviceId } from '../../../src/api'
-import { doorDoneMessage } from '../../../src/lib/at-the-door'
+import { DOOR_DONE_CLEARED, doorDoneMessage } from '../../../src/lib/at-the-door'
 import { instantWithClock, longDate } from '../../../src/lib/dates'
 import { keepKey } from '../../../src/lib/keep'
 import {
@@ -97,9 +97,10 @@ export default function StopScreen(): React.JSX.Element {
    * DOS-149 — WHAT THE DRIVER HAS JUST DONE, SAID BY THE SCREEN HE LANDED ON. D4 and D5 replace
    * themselves with this route, so a toast raised there was drawn by a screen already being torn down
    * and the credit note's number was never read. The sentence is resolved here, against THIS render's
-   * own store, and shown once: `seen` is what a dismissal means, and dismissing also strips the
-   * parameter off the route, so a reload of the stop is not a second announcement of work that is now
-   * plainly on the screen (`seen` alone would not survive the remount a reload is).
+   * own store, and shown once: `seen` is what a dismissal means, and dismissing also drops both
+   * parameters from the route (`DOOR_DONE_CLEARED`), so the NEXT MOUNT of this stop — a reload, or
+   * walking back to it — reads no code and says nothing (`seen` alone is per-mount and would not
+   * survive either). That the address bar itself loses them is the web walk's to confirm.
    */
   const [handoffSeen, setHandoffSeen] = useState(false)
   const handoff = handoffSeen ? null : doorDoneMessage(t, sync.persistent, params)
@@ -466,7 +467,7 @@ export default function StopScreen(): React.JSX.Element {
         onDismiss={() => {
           setToast(null)
           setHandoffSeen(true)
-          router.setParams({ done: undefined, doneNo: undefined })
+          router.setParams(DOOR_DONE_CLEARED)
         }}
       />
     </Screen>

@@ -85,6 +85,20 @@ export function doorDoneMessage(
   }
 }
 
+/**
+ * WHAT A DISMISSAL LEAVES ON THE ROUTE (merge review minor 1).
+ *
+ * `handoffSeen` is per-mount, so on its own it survives nothing: a reload of
+ * `/stop/x?done=credit&doneNo=CN%2F9007`, or walking back to an earlier instance of the same stop,
+ * mounts D3 again and announces work that is by then plainly on the screen. Dropping both parameters
+ * is what makes the second reading silent — `doorDoneMessage` over these is null for every code — and
+ * `router.setParams` takes `undefined` as "drop this one" (expo-router 57, SET_PARAMS merges).
+ */
+export const DOOR_DONE_CLEARED: { done: undefined; doneNo: undefined } = {
+  done: undefined,
+  doneNo: undefined,
+}
+
 // ---------------------------------------------------------------------------
 // DOS-148 — the bill that is not on this van
 // ---------------------------------------------------------------------------
