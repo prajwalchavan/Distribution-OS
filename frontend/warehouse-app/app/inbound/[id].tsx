@@ -174,6 +174,21 @@ export default function GateCount(): React.JSX.Element {
           <Txt field="label" desk="meta" color={colors.text.secondary}>
             {t('w3.blind')}
           </Txt>
+          {/*
+           * WHERE THE DAMAGED PIECES GO, SAID BEFORE THEY ARE KEYED (DOS-051).
+           *
+           * `grn.service.ts` counts `received = countedQtyPcs + damagedQtyPcs`, so this pad asks for
+           * the GOOD pieces and the next step adds the crushed ones on top. It used to be labelled
+           * "Pieces received", and a gate hand who counted 144 boxes of which 2 were crushed keyed
+           * 144 and then 2: the receipt recorded an excess of 2 pieces that never came off the lorry,
+           * and the supplier claim for the damage was wrong by the same 2. The label is the fix; this
+           * sentence is the label saying it out loud, on the step where the hand is typing.
+           */}
+          {isDamaged ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary} testID="w3-count-split">
+              {t('w3.countSplit')}
+            </Txt>
+          )}
           <NumberPad
             testID={isDamaged ? 'w3-pad-damaged' : 'w3-pad-count'}
             mode="count"

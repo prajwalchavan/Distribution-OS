@@ -29,6 +29,8 @@ import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Box,
   Button,
+  Group,
+  ListRow,
   Money,
   NumberPad,
   Row,
@@ -109,7 +111,16 @@ export default function PickingSheet(): React.JSX.Element {
 
   const [shortFor, setShortFor] = useState<PickRow | null>(null)
   const [shortPieces, setShortPieces] = useState<number | null>(null)
-  const [shortReason, setShortReason] = useState<string>(REASON_KEYS[0])
+  /*
+   * NULL, AND IT STAYS NULL UNTIL THE PICKER SAYS OTHERWISE (DOS-051).
+   *
+   * This used to open on `REASON_KEYS[0]`, so Short pressed with nothing chosen saved "Not on the
+   * rack" — measured on PICK-0079: `picked_qty_pcs 0`, `short_reason 'Not on the rack'`, a reason
+   * nobody had touched. The desk rings the supplier and holds a batch on the strength of that word,
+   * so a default here writes fiction into the short report. `warehouse.sync.ts` refuses a short with
+   * no reason as well; a screen is not a guarantee, and the two halves say the same thing.
+   */
+  const [shortReason, setShortReason] = useState<string | null>(null)
   const [scanNote, setScanNote] = useState<string | null>(null)
   const [view, setView] = useState<'todo' | 'all'>('todo')
   /*
@@ -120,6 +131,13 @@ export default function PickingSheet(): React.JSX.Element {
    */
   const ask = shortFor?.line.requested_qty_pcs ?? 0
   const overAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) > ask
+  /*
+   * DOS-051: pieces left on the rack are explained, or they are not recorded. A pick that is NOT
+   * under the ask needs no reason — nothing was left behind — and a split row asks for nothing of its
+   * own (0), which is the same rule `applyPicks` and `warehouse.sync.ts` apply on the server.
+   */
+  const shortOfAsk = shortFor !== null && ask > 0 && (shortPieces ?? 0) < ask
+  const needsReason = shortOfAsk && shortReason === null
 
   const picked = rows.filter((row) => row.state !== 'todo').length
   const shown = useMemo(
@@ -142,7 +160,7 @@ export default function PickingSheet(): React.JSX.Element {
   const saveShort = (): void => {
     const row = shortFor
     if (row === null || locked) return
-    if (overAsk) {
+    if (overAsk || needsReason) {
       haptics.error()
       return
     }
@@ -150,10 +168,11 @@ export default function PickingSheet(): React.JSX.Element {
     void recordPick({
       line: row.line,
       pickedQtyPcs: shortPieces ?? 0,
-      shortReason: t(shortReason),
+      shortReason: shortReason === null ? null : t(shortReason),
     })
     setShortFor(null)
     setShortPieces(null)
+    setShortReason(null)
   }
 
   /** Scanning is a convenience, never the only way: every row is reachable by thumb (docs/23 §4.1). */
@@ -325,7 +344,7 @@ export default function PickingSheet(): React.JSX.Element {
                 onShort={() => {
                   setShortFor(row)
                   setShortPieces(row.line.picked_qty_pcs)
-                  setShortReason(REASON_KEYS[0])
+                  setShortReason(null)
                 }}
               />
             ))}
@@ -360,12 +379,35 @@ export default function PickingSheet(): React.JSX.Element {
         testID="w5-short-sheet"
       >
         <Stack gap={4}>
-          <Segments
-            testID="w5-short-reason"
-            items={REASON_KEYS.slice(0, 3).map((key) => ({ id: key, label: t(key) }))}
-            value={shortReason}
-            onChange={setShortReason}
-          />
+          <Txt field="bodyStrong" desk="cell">
+            {t('w5.shortReason')}
+          </Txt>
+          {/*
+           * STACKED, NOT SHARED (DOS-165). Measured on an iPhone 16 Pro at 402 pt, the three reasons
+           * in one segmented row laid the third out at x 331-487 and printed it as "Batcl", half of
+           * it off the screen; a tap at its centre landed on nothing and the preselected first chip
+           * stayed selected. Three labels of the trade's own length do not fit one phone line, so
+           * they take a row each, exactly as D4's return reasons do (DOS-163). The words themselves
+           * are never shortened: the desk's short report prints them.
+           */}
+          <Group testID="w5-short-reason">
+            {REASON_KEYS.slice(0, 3).map((key) => (
+              <ListRow
+                key={key}
+                testID={`w5-short-reason-${key}`}
+                primary={t(key)}
+                state={shortReason === key ? 'selected' : 'default'}
+                onPress={() => {
+                  setShortReason(key)
+                }}
+              />
+            ))}
+          </Group>
+          {needsReason ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-noreason">
+              {t('w5.chooseReason')}
+            </Txt>
+          ) : null}
           <NumberPad
             testID="w5-short-pad"
             mode="count"
