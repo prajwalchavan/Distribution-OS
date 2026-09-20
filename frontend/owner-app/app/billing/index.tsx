@@ -29,7 +29,7 @@ import {
 } from '@dos/ui'
 import { documents } from '@dos/ui/platform'
 import { useLocalSearchParams } from 'expo-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import {
   Async,
@@ -47,6 +47,25 @@ import { absoluteUrl } from '../../src/config'
 import { longDate, rangeOf, type RangeId } from '../../src/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../src/lib/keys'
 import { useWord } from '../../src/lib/words'
+
+/*
+ * DOS-008: a bill's PDF is the WORKER's (scale rule 3), so the first ask for one of the 856 bills that
+ * have never been printed answers `queued`. The screen used to say "press again in a moment" and stop
+ * there. It now waits for the worker — thirty seconds at two-second steps, which is fifteen times what
+ * a bill takes to render — and then hands the file over as a BUTTON: a window opened seconds after the
+ * press that asked for it is blocked by the browser, and that would be the same silence in a new shape.
+ */
+const PDF_POLL_TRIES = 15
+const PDF_POLL_MS = 2_000
+
+/** One bill's wait for its rendering. `print` is how it was asked for, so that is how it opens. */
+interface PdfWait {
+  invoiceId: string
+  print: boolean
+  tries: number
+  status: 'waiting' | 'ready' | 'slow' | 'error'
+  url: string | null
+}
 
 const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -73,6 +92,7 @@ export default function Billing(): React.JSX.Element {
   const [reason, setReason] = useState('')
   const [ewayNo, setEwayNo] = useState('')
   const [pdfNote, setPdfNote] = useState<string | null>(null)
+  const [wait, setWait] = useState<PdfWait | null>(null)
 
   const span = rangeOf(range)
   /*
@@ -175,25 +195,60 @@ export default function Billing(): React.JSX.Element {
   /*
    * The PDF is rendered by the WORKER (`documents.pdf.render`), so the first ask for a bill that has
    * never been printed answers `queued` with a null URL. That is not a failure and must not look like
-   * one: the button says so and the next press opens the file.
+   * one: the panel says the bill is being prepared, waits for it (below), and then offers it.
    */
+  const show = (url: string, print: boolean): void => {
+    void (print ? documents.print(url) : documents.open(url))
+  }
+
   const openPdf = (print: boolean): void => {
     if (invoice === undefined) return
+    const id = invoice.id
     setPdfNote(null)
-    void api.api.billing.invoices.pdf({ id: invoice.id }).then(
+    setWait(null)
+    void api.api.billing.invoices.pdf({ id }).then(
       (result) => {
         const url = absoluteUrl(result.url)
-        if (url === null) {
-          setPdfNote(t('o13.pdfQueued'))
-          return
-        }
-        void (print ? documents.print(url) : documents.open(url))
+        if (url === null) setWait({ invoiceId: id, print, tries: 0, status: 'waiting', url: null })
+        else show(url, print)
       },
       () => {
         setPdfNote(t('state.error'))
       },
     )
   }
+
+  /*
+   * The wait itself: one timer per attempt, re-armed by the state it writes, and torn down the moment
+   * the panel moves to another bill or closes. Nothing here renders and nothing here opens a window.
+   */
+  useEffect(() => {
+    if (wait === null) return
+    if (wait.invoiceId !== selected) {
+      setWait(null)
+      return
+    }
+    if (wait.status !== 'waiting') return
+    let live = true
+    const timer = setTimeout(() => {
+      void api.api.billing.invoices.pdf({ id: wait.invoiceId }).then(
+        (result) => {
+          if (!live) return
+          const url = absoluteUrl(result.url)
+          if (url !== null) setWait({ ...wait, status: 'ready', url })
+          else if (wait.tries + 1 >= PDF_POLL_TRIES) setWait({ ...wait, status: 'slow' })
+          else setWait({ ...wait, tries: wait.tries + 1 })
+        },
+        () => {
+          if (live) setWait({ ...wait, status: 'error' })
+        },
+      )
+    }, PDF_POLL_MS)
+    return () => {
+      live = false
+      clearTimeout(timer)
+    }
+  }, [wait, selected, api])
 
   return (
     <Screen
@@ -374,6 +429,28 @@ export default function Billing(): React.JSX.Element {
                   openPdf(true)
                 }}
               />
+              {wait === null || wait.invoiceId !== invoice.id ? null : wait.status === 'ready' &&
+                wait.url !== null ? (
+                <Button
+                  label={t('o13.pdfReady')}
+                  variant="primary"
+                  onPress={() => {
+                    const ready = wait.url
+                    if (ready === null) return
+                    show(ready, wait.print)
+                    setWait(null)
+                  }}
+                  testID="invoice-pdf-ready"
+                />
+              ) : (
+                <Txt field="label" desk="meta" testID="invoice-pdf-note">
+                  {wait.status === 'waiting'
+                    ? t('o13.pdfQueued')
+                    : wait.status === 'slow'
+                      ? t('o13.pdfSlow')
+                      : t('state.error')}
+                </Txt>
+              )}
               {pdfNote === null ? null : (
                 <Txt field="label" desk="meta">
                   {pdfNote}
