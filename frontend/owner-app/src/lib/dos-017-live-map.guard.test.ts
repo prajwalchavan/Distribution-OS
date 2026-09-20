@@ -81,15 +81,26 @@ describe('DOS-017 the owner live map draws a map', () => {
     const deps = manifest.dependencies ?? {}
     const catalogue: Readonly<Record<string, string>> = strings
 
+    const note = catalogue['o4.mapNote'] ?? ''
+
     expect({
       web: deps['maplibre-gl'],
       native: deps['react-native-maps'],
       // The old sentence was a promise, not a note; the note now says where the tiles come from.
-      promisesTiles: /arrive with the MapView component/.test(catalogue['o4.mapNote'] ?? ''),
+      promisesTiles: /arrive with the MapView component/.test(note),
+      /*
+       * And it says what ANDROID shows, because that is not a map until the key arrives (see the
+       * `listOnly` guard above). A note that offers every phone "its own maps" would be a promise
+       * again — and the repo-wide DOS-179 guard refuses that vocabulary anyway.
+       */
+      namesAndroidList: /android/i.test(note) && /list/i.test(note),
+      claimsEveryPhonesMaps: /\b(this|the)\s+(phone|device|browser)\b/i.test(note),
     }).toEqual({
       web: 'catalog:',
       native: 'catalog:',
       promisesTiles: false,
+      namesAndroidList: true,
+      claimsEveryPhonesMaps: false,
     })
   })
 })
