@@ -237,6 +237,16 @@ answered "I knew that" to the only event that says the radio is back and sat on 
 at 49.5 s). A spurious hint on a page that never gave one costs a single probe, which is what this section already
 calls the honest thing. The reconnect IS the retry: the backoff timer is cleared, so no op is sent twice.
 
+**A PHONE HAS TO BE TOLD (DOS-068, 2026-09-20).** The provider listens to the browser's own `online` / `offline`
+events; a device fires neither, and React Native's `navigator` has no `onLine`, so `radio()`'s fallback answered
+"connected" through airplane mode and the strip stayed green over a phone reaching nothing (Pixel 7, delivery gate:
+ping "Network is unreachable", "Updated just now" for the whole run, against web's "Offline since 4:55 pm" within
+the second). An app on a device passes NetInfo in as `<OfflineProvider watchRadio>`: one subscription, one boolean
+per change, straight into `setNetworkHint`. It is a HINT and never the verdict — `online` still requires the last
+call to have reached a service, because the office can be unreachable with four bars — and the engine does with it
+what it does with the browser's event, including draining the queue on the way back. The delivery app wires it;
+the other apps are unchanged until their own phone walk asks for it.
+
 ```ts
 interface SyncStatus {
   online: boolean // navigator.onLine / NetInfo AND the last call reached a service
@@ -287,6 +297,9 @@ still cannot say "not kept in this browser" — an S-row, P3).
   once `leave` has settled, in the background, and a sign-in on that client waits until then, for at most 25 s (addendum (z2)).
 - `<OfflineProvider identity storePrefix>` — `identity` is `sessionIdentity(session)` from `@dos/api-client` (`null` signed out),
   `storePrefix` the app's literal file prefix. A distributor switch stops the engine on one file and starts it on the other.
+- `<OfflineProvider watchRadio>` (DOS-068, 2026-09-20) — optional: `(onChange: (online: boolean) => void) => (() => void) | void`,
+  the platform's own radio where it has one to report (NetInfo on a device). The provider holds the subscription for the life of
+  the engine and lets go of it with the engine; the browser's `online` / `offline` events are listened to without it. §10.
 
 Screens never write SQL; only the library does. Screens never call `sync.upload` or `sync.pull` directly.
 

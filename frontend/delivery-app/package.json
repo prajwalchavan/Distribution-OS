@@ -29,6 +29,7 @@
     "@orpc/contract": "catalog:",
     "@orpc/openapi": "catalog:",
     "@orpc/openapi-client": "catalog:",
+    "@react-native-community/netinfo": "catalog:",
     "expo": "catalog:",
     "expo-camera": "catalog:",
     "expo-constants": "catalog:",

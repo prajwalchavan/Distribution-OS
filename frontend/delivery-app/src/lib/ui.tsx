@@ -175,9 +175,14 @@ export function Async({
   const failed = states.find((one) => one.error !== undefined)
   if (failed?.error !== undefined) {
     return (
+      /*
+       * The SENTENCE, and nothing under it (DOS-068). The detail line printed the ApiError's own `kind` — the
+       * driver read "Something could not be completed. Try again. · unknown · Try again" when the office went
+       * unreachable — and 'unknown' is this codebase's vocabulary, not a word anyone in a van can act on
+       * (UX-00 §12). Everything a screen has to say is in the message and the button beside it.
+       */
       <ErrorState
         message={failed.error.kind === 'network' ? t('d.noConnectionRead') : failed.error.message}
-        detail={failed.error.kind}
         actionLabel={failed.refetch === undefined ? undefined : t('action.retry')}
         onAction={failed.refetch}
       />

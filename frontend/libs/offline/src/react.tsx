@@ -63,6 +63,15 @@ export interface OfflineProviderProps {
   /** An explicit file name, for the harness and tests. It wins over `storePrefix`. */
   databaseName?: string
   pullIntervalMs?: number
+  /**
+   * THE RADIO, WHERE THE PLATFORM HAS ONE TO REPORT (DOS-068, docs/27 §10). The provider listens to the browser's
+   * own `online` / `offline` events by itself; a phone fires neither, and React Native's `navigator` carries no
+   * `onLine` for the engine to fall back on — so a device with the radio off believed it was connected and the
+   * strip stayed green through airplane mode. An app on a device passes NetInfo through here: called once with a
+   * callback, it reports every change and returns the unsubscribe. It is a HINT, not the truth: `online` still
+   * needs the last call to have reached a service, because the office can be unreachable with the radio up.
+   */
+  watchRadio?: (onChange: (online: boolean) => void) => (() => void) | void
   /** False while nobody is signed in: no manifest, no pull, no queue. */
   enabled?: boolean
   onLog?: (line: string, detail?: unknown) => void
@@ -186,6 +195,7 @@ export function OfflineProvider({
   storePrefix,
   databaseName,
   pullIntervalMs,
+  watchRadio,
   enabled = true,
   onLog,
   children,
@@ -295,6 +305,22 @@ export function OfflineProvider({
       scope.removeEventListener?.('offline', down)
     }
   }, [engine])
+
+  /*
+   * And the same thing where the platform has a radio to report (DOS-068): the app hands in NetInfo, this holds the
+   * subscription for the life of the engine and lets go of it with the engine. A hint either way is safe — the
+   * engine ignores one it already believed, and a hint that the radio is back is the reconnect that drains the
+   * queue (DOS-183), which no failing call can be.
+   */
+  useEffect(() => {
+    if (engine === null || watchRadio === undefined) return
+    const stop = watchRadio((online) => {
+      engine.setNetworkHint(online)
+    })
+    return () => {
+      stop?.()
+    }
+  }, [engine, watchRadio])
 
   return <EngineContext.Provider value={engine}>{children}</EngineContext.Provider>
 }
