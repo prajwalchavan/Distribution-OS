@@ -476,10 +476,15 @@ export async function seedDelivery(
     const partialNote =
       partial && shortLine ? `${shortPcs} pcs ${partial.note}` : (partial?.note ?? null)
     /**
-     * When the crew were done at this door. A FAILED stop keeps `completed_at` null on the stop row
-     * — nothing was delivered — but the crew still stood there and still stamped the failure, so it
-     * runs on the same beat clock as every other door (`stopCompleted`). A stop that is merely
+     * When the crew were done at this door. A FAILED stop here keeps `completed_at` null on the stop
+     * row — nothing was delivered — but the crew still stood there and still stamped the failure, so
+     * it runs on the same beat clock as every other door (`stopCompleted`). A stop that is merely
      * `arrived` has no such moment: the crew are inside it right now.
+     *
+     * That null DIVERGES FROM THE SERVICE and is not held up as the intended shape: `fail` in
+     * trips.service.ts writes `completedAt` like `deliver` does, so a stop failed through the api
+     * carries one. It is a pre-existing shape of the demo rows (on main before this lane), harmless
+     * to every register because they exclude a failed stop by state — not a rule anything may read.
      *
      * QA verification: this is the clock the ETA move of DOS-067 missed. The failed row's stamp was
      * still written against the OLD half-hour grid, which put every failed delivery fifteen minutes
@@ -529,9 +534,11 @@ export async function seedDelivery(
         invoiceId: inv.id,
         outcome: 'failed',
         deliveredBy: driverId,
-        // The moment the crew gave up, seven minutes after they reached the door — the same clock
+        // The moment the crew gave up, seven minutes after they reached the door — the SAME value
         // the stop's own `arrived_at` is derived from, so a failure is never stamped before it.
-        deliveredAt: occurred(stopCompleted(day, sequence)),
+        // Read `doorFinishedAt` itself, not the expression behind it: a caller that one day passes a
+        // `completedAt` for a failed stop must not be able to split the two clocks again.
+        deliveredAt: occurred(doorFinishedAt ?? stopCompleted(day, sequence)),
         deviceId,
         idempotencyKey: `delivery:${tripId}:${inv.id}`,
         note: failureReason ? FAILURE_NOTES[failureReason] : null,
