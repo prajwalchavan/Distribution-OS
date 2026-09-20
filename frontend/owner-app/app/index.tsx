@@ -196,10 +196,21 @@ export default function Today(): React.JSX.Element {
                 {
                   label: t('o1.outstanding'),
                   value: <Money value={d?.totalOutstandingPaise ?? 0} size="moneyM" />,
+                  /*
+                   * DOS-016: the tile stays the GROSS open value of bills — the ageing ladder, the
+                   * ageing history and the shop register all sum to it. Money already received on
+                   * account is stated beside it, so the owner stops chasing what is in the till and
+                   * the gap against Books → Trial balance is named rather than unexplained.
+                   */
                   delta:
                     d === undefined
                       ? undefined
-                      : t('o1.overdue', { amount: formatINR(paise(d.overduePaise)) }),
+                      : d.onAccountPaise > 0
+                        ? t('o1.overdueLessOnAccount', {
+                            amount: formatINR(paise(d.overduePaise)),
+                            onAccount: formatINR(paise(d.onAccountPaise)),
+                          })
+                        : t('o1.overdue', { amount: formatINR(paise(d.overduePaise)) }),
                   tone: (d?.overduePaise ?? 0) > 0 ? 'critical' : 'neutral',
                 },
                 {

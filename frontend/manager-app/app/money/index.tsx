@@ -123,6 +123,8 @@ export default function Receipts(): React.JSX.Element {
     { enabled: selected !== null },
   )
   const receipt = detail.data?.item
+  /** The bills this receipt settled, by id, from the receipt's own read (DOS-011 / DOS-033). */
+  const settled = new Map((detail.data?.invoices ?? []).map((bill) => [bill.id, bill]))
 
   const shopHits = useQuery(
     ['retailers', 'search', shopQuery],
@@ -300,11 +302,26 @@ export default function Receipts(): React.JSX.Element {
                 />
               </Field>
 
+              {/*
+                DOS-033: "Put against" printed the bill's UUID, because an allocation carries only an
+                invoice id. `receipts.get` now names each bill it settled (DOS-011), so the row reads
+                OPEN/0005 with the state the payment left it in. Never a read per allocation — the
+                numbers come from the same reply. The id fallback is for a bill the reply could not
+                name, which the money desk should never see.
+              */}
               <Panel title={t('m9.allocations')}>
                 <Stack gap={2}>
-                  {detail.data?.allocations.map((row) => (
-                    <ListRow key={row.id} primary={row.invoiceId} trailingMoney={row.amountPaise} />
-                  ))}
+                  {detail.data?.allocations.map((row) => {
+                    const bill = settled.get(row.invoiceId)
+                    return (
+                      <ListRow
+                        key={row.id}
+                        primary={bill?.invoiceNo ?? row.invoiceId.slice(0, 8)}
+                        secondary={bill === undefined ? undefined : word(bill.state)}
+                        trailingMoney={row.amountPaise}
+                      />
+                    )
+                  })}
                 </Stack>
               </Panel>
 

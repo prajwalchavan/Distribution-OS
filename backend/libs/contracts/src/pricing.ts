@@ -36,6 +36,12 @@ export const PriceListItemSchema = z.object({
   id: IdSchema,
   priceListId: IdSchema,
   variantId: IdSchema,
+  /**
+   * What this tenant calls the item — its listing's local alias, else the global variant name, the same
+   * rule order and invoice lines follow (DOS-003). A price list may price a variant the tenant does not
+   * list, so a screen cannot name these rows from its own catalogue: the name comes on the wire (DOS-013).
+   */
+  variantName: z.string(),
   ratePaise: PaiseSchema,
   inclusiveOfGst: z.boolean(),
 })

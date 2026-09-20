@@ -70,7 +70,7 @@ import {
   type Db,
   type TenantContext,
 } from '@dos/db'
-import { tenantStorage } from '../../platform/index.js'
+import { createObjectStorage, tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { rollupTenantDay } from './rollup.js'
 import { ReportingModule } from './index.js'
@@ -1418,6 +1418,88 @@ describeDb('reporting (DATABASE_URL)', () => {
     expect(Number((rows.rows[0] as { n: number }).n)).toBe(1)
   })
 
+  // -----------------------------------------------------------------------------------------------
+  // DOS-014: "Export CSV" on Orders exported the daily-sales register, because there was no orders
+  // register to export. Every list the owner reads is exportable (the owner brief), so the orders list
+  // is a register of its own: one row per order, the shop and the rep named beside their ids, money in
+  // integer paise like every other register, and the same 92-day cap enforced before a job is queued.
+
+  /** The rendered file of a finished export job, read straight out of the object store. */
+  const csvOf = async (jobId: string): Promise<string> => {
+    const rows = await as(ctxFor('owner', ownerId), (tx) =>
+      tx.execute(sql`select object_key from export_jobs where id = ${jobId}`),
+    )
+    const key = (rows.rows[0] as { object_key: string | null } | undefined)?.object_key
+    expect(key).toBeTruthy()
+    return (await createObjectStorage().get(key ?? '')).toString('utf8')
+  }
+
+  it('DOS-014: an orders export renders one CSV row per order in the window with its number, shop name, state and total, honours the state filter, and refuses a window wider than 92 days with window_too_wide', async () => {
+    const id = uuidv7()
+    const queued = await call<{ item: ReportExportJob }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-${run}`,
+      id,
+      register: 'orders',
+      format: 'csv',
+      filters: { from, to },
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.item.kind).toBe('report_orders_csv')
+    expect(queued.body.item.status).toBe('succeeded')
+    expect(queued.body.item.rowCount).toBe(1)
+
+    const csv = await csvOf(id)
+    expect(csv).toContain(`SO-${run}`)
+    expect(csv).toContain(`Shop A1 ${run}`)
+    expect(csv).toContain('packed')
+    expect(csv).toContain('26880')
+    // ids travel beside the names, so the file joins to anything else the owner holds
+    expect(csv).toContain(shopA1)
+
+    // the register's own filters answer: nothing was delivered in this window
+    const empty = uuidv7()
+    const filtered = await call<{ item: ReportExportJob }>(
+      app,
+      owner,
+      'POST',
+      '/reporting/exports',
+      {
+        idempotencyKey: `exp-orders-delivered-${run}`,
+        id: empty,
+        register: 'orders',
+        format: 'csv',
+        filters: { from, to, state: 'delivered' },
+      },
+    )
+    expect(filtered.status).toBe(200)
+    expect(filtered.body.item.rowCount).toBe(0)
+
+    const wide = await call<{ code: string }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-wide-${run}`,
+      id: uuidv7(),
+      register: 'orders',
+      format: 'csv',
+      filters: { from: plusDays(to, -200), to },
+    })
+    expect(wide.status).toBe(400)
+  })
+
+  it('DOS-014: a salesperson-credited order appears in the owner’s orders export (the register is back-office scoped, not rep-scoped)', async () => {
+    const id = uuidv7()
+    const queued = await call<{ item: ReportExportJob }>(app, owner, 'POST', '/reporting/exports', {
+      idempotencyKey: `exp-orders-rep-${run}`,
+      id,
+      register: 'orders',
+      format: 'csv',
+      filters: { from, to, salespersonId: rep1Id },
+    })
+    expect(queued.status).toBe(200)
+    expect(queued.body.item.rowCount).toBe(1)
+    const csv = await csvOf(id)
+    expect(csv).toContain('Rep One')
+    expect(csv).toContain(rep1Id)
+  })
+
   // ===============================================================================================
   // the rollup
   // ===============================================================================================
@@ -1540,6 +1622,94 @@ describeDb('reporting (DATABASE_URL)', () => {
       { day: yesterday, outstanding: 60_000, overdue: 15_000 },
       { day: weekAgo, outstanding: 30_000, overdue: 3_000 },
     ])
+  })
+
+  /*
+   * DOS-016: money a shop has paid but that no bill has claimed yet. It is netted off in the books
+   * (`outstanding − unallocated = AR`), so the owner's gross "Outstanding" and Books → Trial balance
+   * disagreed by exactly that sum and nobody could say why. The founder keeps the headline gross and
+   * puts this figure beside it (docs/22 §8), so the rollup must carry it: live, like the ageing rungs.
+   */
+  it('DOS-016: after a rollup the owner dashboard carries onAccountPaise = Σ unallocated_credit_paise, and the net of the two is what the books call AR', async () => {
+    const onAccountTenantId = uuidv7()
+    const onAccountOwnerId = uuidv7()
+    const shopOne = uuidv7()
+    const shopTwo = uuidv7()
+    await db.insert(tenants).values({
+      id: onAccountTenantId,
+      slug: `oa-${run}`,
+      legalName: 'On account',
+      stateCode: '27',
+    })
+    await db.insert(retailers).values([
+      {
+        id: shopOne,
+        tenantId: onAccountTenantId,
+        code: `OA1-${run}`,
+        name: `Shop OA1 ${run}`,
+        phone: `+91918${run}1`,
+        stateCode: '27',
+      },
+      {
+        id: shopTwo,
+        tenantId: onAccountTenantId,
+        code: `OA2-${run}`,
+        name: `Shop OA2 ${run}`,
+        phone: `+91918${run}2`,
+        stateCode: '27',
+      },
+    ])
+    await db.insert(retailerOutstandingSummary).values([
+      {
+        tenantId: onAccountTenantId,
+        retailerId: shopOne,
+        outstandingPaise: 70_000,
+        overduePaise: 20_000,
+        unallocatedCreditPaise: 5_000,
+        asOf: today,
+      },
+      {
+        tenantId: onAccountTenantId,
+        retailerId: shopTwo,
+        outstandingPaise: 30_000,
+        overduePaise: 0,
+        unallocatedCreditPaise: 2_500,
+        asOf: today,
+      },
+    ])
+    await rollupTenantDay(db, onAccountTenantId, today)
+
+    const dash = await call<OwnerDashboard>(
+      app,
+      { tenantId: onAccountTenantId, actorId: onAccountOwnerId, role: 'owner' },
+      'GET',
+      '/reporting/dashboard/owner',
+    )
+    expect(dash.status).toBe(200)
+    // the headline stays GROSS — the ageing ladder, the snapshots and the shop register all sum to it
+    expect(dash.body.totalOutstandingPaise).toBe(100_000)
+    expect(dash.body.onAccountPaise).toBe(7_500)
+    // and the net, which is the figure the books carry as Sundry Debtors
+    expect(dash.body.totalOutstandingPaise - dash.body.onAccountPaise).toBe(92_500)
+
+    // it is LIVE, like the ageing rungs: a receipt taken on account moves it on the next rollup
+    await db
+      .update(retailerOutstandingSummary)
+      .set({ unallocatedCreditPaise: 9_000 })
+      .where(
+        and(
+          eq(retailerOutstandingSummary.tenantId, onAccountTenantId),
+          eq(retailerOutstandingSummary.retailerId, shopOne),
+        ),
+      )
+    await rollupTenantDay(db, onAccountTenantId, today)
+    const again = await call<OwnerDashboard>(
+      app,
+      { tenantId: onAccountTenantId, actorId: onAccountOwnerId, role: 'owner' },
+      'GET',
+      '/reporting/dashboard/owner',
+    )
+    expect(again.body.onAccountPaise).toBe(11_500)
   })
 
   // ===============================================================================================

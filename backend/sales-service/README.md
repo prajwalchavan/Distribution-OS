@@ -5040,6 +5040,7 @@ curl "http://localhost:3003/pricing/price-lists?activeOnly=false&withItems=true"
           "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
           "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
           "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+          "variantName": "Campa Cola 750 ml",
           "ratePaise": 4000,
           "inclusiveOfGst": true
         }
@@ -5158,6 +5159,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "ratePaise": 4000,
         "inclusiveOfGst": true
       }
@@ -5282,6 +5284,7 @@ request.json
         "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
         "priceListId": "01a06d4c-b430-7575-8033-448fb7c3cd1d",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "variantName": "Campa Cola 750 ml",
         "ratePaise": 4000,
         "inclusiveOfGst": true
       }
@@ -10655,6 +10658,14 @@ curl "http://localhost:3003/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "allocatedBy": "01a06d83-2db2-7449-8f15-c2bd4fbc3f1c"
     }
   ],
+  "invoices": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceNo": "SO-0042",
+      "state": "draft",
+      "openPaise": 4000
+    }
+  ],
   "reversal": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "receiptNo": "SO-0042",
@@ -11961,6 +11972,7 @@ curl "http://localhost:3003/receivables/outstanding?beatId=01a06d3e-cfdb-7635-85
   "totals": {
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "unallocatedCreditPaise": 4000,
     "retailers": 1,
     "buckets": {
       "b0_7": 1,
@@ -18066,6 +18078,7 @@ curl "http://localhost:3003/reporting/dashboard/owner" \
   "cashInTransitPaise": 4000,
   "totalOutstandingPaise": 2680000,
   "overduePaise": 4000,
+  "onAccountPaise": 4000,
   "ageing": {
     "b0_7": 1,
     "b8_15": 1,
@@ -21277,7 +21290,7 @@ Queue a CSV / JSON export of a register (async, audited) · contract `reporting.
 |---|---|---|
 | `idempotencyKey` | string | yes |
 | `id` | uuid | yes |
-| `register` | dailySales | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
+| `register` | dailySales | orders | repProductivity | schemeSpend | stockValue | fillRate | deliveryPerformance | collections | gstSalesRegister | gstPurchaseRegister | outstanding | yes |
 | `format` | csv | json | no |
 | `filters` | record | no |
 | `deviceId` | string | no |

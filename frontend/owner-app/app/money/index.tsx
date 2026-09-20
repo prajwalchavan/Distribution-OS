@@ -25,6 +25,8 @@ import {
   Toast,
   TrendChart,
   Txt,
+  formatINR,
+  paise,
   useColors,
   useStrings,
   type RegisterColumn,
@@ -235,6 +237,23 @@ export default function OutstandingListItem(): React.JSX.Element {
                   }}
                 />
               </Async>
+              {/*
+                DOS-016: the ladder above sums to the GROSS open value of bills. Money already received
+                on account is netted off in the books, so the two disagreed by exactly this figure and
+                nobody could say why. State it, and state the net — which is Sundry Debtors in Books.
+              */}
+              {(totals?.unallocatedCreditPaise ?? 0) > 0 ? (
+                <Txt field="body" desk="body" testID="money-on-account">
+                  {t('o10.onAccountLine', {
+                    onAccount: formatINR(paise(totals?.unallocatedCreditPaise ?? 0)),
+                    net: formatINR(
+                      paise(
+                        (totals?.outstandingPaise ?? 0) - (totals?.unallocatedCreditPaise ?? 0),
+                      ),
+                    ),
+                  })}
+                </Txt>
+              ) : null}
               <Chips
                 testID="money-bucket-filter"
                 items={BUCKETS.map((id) => ({

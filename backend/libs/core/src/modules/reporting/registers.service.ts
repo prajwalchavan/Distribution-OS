@@ -12,6 +12,7 @@ import type {
   GstPurchaseRegisterOutput,
   GstSalesRegisterInput,
   GstSalesRegisterOutput,
+  OrdersRegisterInput,
   RepProductivityInput,
   RepProductivityOutput,
   SchemeSpendInput,
@@ -25,11 +26,11 @@ import { currentTenant, DB, DB_REPLICA, requireDb, requireRole } from '../../pla
 import { RegistersService as BillingRegistersService } from '../billing/index.js'
 import { deliveryPerformanceRows } from '../delivery/index.js'
 import { InventoryService, valuationByLocation } from '../inventory/index.js'
-import { fillRateLines } from '../orders/index.js'
+import { fillRateLines, orderRegisterRows } from '../orders/index.js'
 import { SchemesService } from '../pricing/index.js'
 import { purchaseRegister } from '../procurement/index.js'
 import { collectionsRegister } from '../receivables/index.js'
-import { beatAssignmentsFor, beatLabels } from '../retailers/index.js'
+import { beatAssignmentsFor, beatLabels, retailerRefs } from '../retailers/index.js'
 import { userLabels } from '../tenancy/index.js'
 import { brandLabels, TenantCatalogService } from '../tenant-catalog/index.js'
 import { pageByOffset, ratio } from './reporting.internals.js'
@@ -414,6 +415,51 @@ export class ReportingRegistersService {
           podCoverageRate: ratio(sums.pod, attempted),
           cashVariancePaise: sums.cashVariancePaise,
         },
+      }
+    })
+  }
+
+  /**
+   * The orders register (DOS-014): the owner's Orders list as a file, one row per order. Back office only
+   * — a rep exports nothing here, and `listOrders` would silently narrow to its own orders if one did.
+   * The shop and the rep are named in one batch each, beside the ids, so the file joins to anything else.
+   */
+  async orders(input: z.infer<typeof OrdersRegisterInput>): Promise<{
+    items: Record<string, unknown>[]
+    nextCursor: string | null
+  }> {
+    requireRole(BACK_OFFICE_READERS)
+    return this.read(async (tx) => {
+      const page = await orderRegisterRows(tx, input)
+      const shops = await retailerRefs(
+        tx,
+        page.rows.map((r) => r.retailerId),
+      )
+      const reps = await userLabels(
+        tx,
+        page.rows.flatMap((r) => (r.salespersonId === null ? [] : [r.salespersonId])),
+      )
+      return {
+        items: page.rows.map((row) => ({
+          orderNo: row.orderNo,
+          orderDate: row.orderDate,
+          retailerId: row.retailerId,
+          retailerName: shops.get(row.retailerId)?.name ?? null,
+          state: row.state,
+          source: row.source,
+          salespersonId: row.salespersonId,
+          salespersonName: row.salespersonId ? (reps.get(row.salespersonId) ?? null) : null,
+          paymentTerms: row.paymentTerms,
+          subtotalPaise: row.subtotalPaise,
+          discountPaise: row.discountPaise,
+          taxPaise: row.taxPaise,
+          roundOffPaise: row.roundOffPaise,
+          totalPaise: row.totalPaise,
+          approvalFlags: row.approvalFlags,
+          expectedDeliveryDate: row.expectedDeliveryDate,
+          cancelReason: row.cancelReason,
+        })),
+        nextCursor: page.nextCursor,
       }
     })
   }
