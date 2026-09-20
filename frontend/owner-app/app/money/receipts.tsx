@@ -11,6 +11,7 @@ import {
   Button,
   Chips,
   Dialog,
+  ListRow,
   Money,
   Register,
   RupeeInput,
@@ -19,6 +20,9 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Txt,
+  formatINR,
+  paise,
   useStrings,
   type RegisterColumn,
   type StatusFamily,
@@ -117,6 +121,8 @@ export default function Receipts(): React.JSX.Element {
 
   const rows = list.data?.items ?? []
   const receipt = detail.data?.item
+  /** The bills this receipt settled, by id: `receipts.get` names them, so no read per allocation (DOS-011). */
+  const settled = new Map((detail.data?.invoices ?? []).map((bill) => [bill.id, bill]))
 
   const columns: readonly RegisterColumn<Receipt>[] = [
     textColumn('no', t('o11.receiptNo'), (row) => row.receiptNo, { priority: 'identity' }),
@@ -220,6 +226,51 @@ export default function Receipts(): React.JSX.Element {
               <Field label={t('o11.unallocated')}>
                 <Money value={receipt.unallocatedPaise} size="cell" />
               </Field>
+              {/*
+                DOS-011: what the money actually DID. The allocations were on the wire naming only an
+                invoice id, and the cash discount the business gave away was in the ledger and nowhere
+                on screen. `receipts.get` now names each bill it settled, in allocation order, with the
+                state and balance it left behind — one read, never a call per allocation.
+              */}
+              {(detail.data?.allocations.length ?? 0) === 0 ? null : (
+                <Field label={t('o11.settles')}>
+                  <Stack gap={2} testID="receipt-settles">
+                    {(detail.data?.allocations ?? []).map((line) => {
+                      const bill = settled.get(line.invoiceId)
+                      return (
+                        <ListRow
+                          key={line.id}
+                          primary={bill?.invoiceNo ?? t('o11.billUnknown')}
+                          secondary={
+                            bill === undefined
+                              ? undefined
+                              : bill.openPaise === 0
+                                ? word(bill.state)
+                                : t('o11.billOpen', {
+                                    amount: formatINR(paise(bill.openPaise)),
+                                  })
+                          }
+                          trailingMoney={line.amountPaise}
+                        />
+                      )
+                    })}
+                  </Stack>
+                </Field>
+              )}
+              {receipt.cashDiscountPaise === 0 ? null : (
+                <Field label={t('o11.cashDiscount')}>
+                  <Stack gap={2}>
+                    <Money value={receipt.cashDiscountPaise} size="cell" />
+                    <Txt field="label" desk="meta" testID="receipt-settled-line">
+                      {t('o11.settledLine', {
+                        received: formatINR(paise(receipt.amountPaise)),
+                        discount: formatINR(paise(receipt.cashDiscountPaise)),
+                        total: formatINR(paise(receipt.amountPaise + receipt.cashDiscountPaise)),
+                      })}
+                    </Txt>
+                  </Stack>
+                </Field>
+              )}
               <Field label={t('o11.received')}>{instantWithClock(receipt.receivedAt)}</Field>
               <Field label={t('o7.person')}>{names.staff(receipt.receivedBy)}</Field>
               <Button

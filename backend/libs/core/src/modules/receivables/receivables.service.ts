@@ -929,9 +929,32 @@ export class ReceivablesService {
           withCrew = !(await this.isTripSettled(tx, tripId, ctx.tenantId))
         }
       }
+      /*
+       * DOS-011: name the bills this receipt settled, in allocation order and de-duplicated, from ONE
+       * read. `loadInvoices` is read-only on purpose — `recomputeInvoiceStates` writes `invoices.state`
+       * and a GET must not write — so the state and the open balance here are what the bills already say.
+       */
+      const settled = await loadInvoices(
+        tx,
+        rows.map((r) => r.invoiceId),
+      )
+      const seen = new Set<string>()
+      const invoices: SettledInvoice[] = []
+      for (const row of rows) {
+        const bill = settled.get(row.invoiceId)
+        if (!bill || seen.has(bill.id)) continue
+        seen.add(bill.id)
+        invoices.push({
+          id: bill.id,
+          invoiceNo: bill.invoiceNo,
+          state: bill.state as SettledInvoice['state'],
+          openPaise: bill.totalPaise - bill.allocatedPaise,
+        })
+      }
       return {
         item: toReceipt(found.row, found.allocatedPaise),
         allocations: rows.map(toAllocation),
+        invoices,
         reversal: reversal ? toReceipt(reversal, reversalAllocated) : null,
         // The receipt is the third white-label document (docs/22 §4 D6): the distributor's own block.
         seller: await sellerBranding(tx),

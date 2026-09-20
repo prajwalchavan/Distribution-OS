@@ -883,6 +883,97 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(Number(row.overdue_paise)).toBe(21_000)
   })
 
+  /*
+   * DOS-011: a receipt panel showed Shop · Mode · Amount and nothing about what the money DID. The
+   * allocations were on the wire but named only an invoice id, the cash discount the business gave away
+   * was in the ledger and not on screen, and the manager's panel printed a UUID (DOS-033). The bills a
+   * receipt settled belong on its own read — one batch query, never a call per allocation.
+   */
+  it('DOS-011: receipts.get names the bills a receipt settled (invoice number, payment state, open balance) in allocation order and carries the cash discount it realised', async () => {
+    const settleShop = uuidv7()
+    const bill1 = uuidv7()
+    const bill2 = uuidv7()
+    const receiptId = uuidv7()
+    await db.insert(retailers).values({
+      id: settleShop,
+      tenantId,
+      code: `S12-${run}`,
+      name: `Shop 12 ${run}`,
+      phone: `+9194${run}9`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+    })
+    await seedInvoice({ id: bill1, retailerId: settleShop, totalPaise: 10_000, dueOffsetDays: -5 })
+    await seedInvoice({ id: bill2, retailerId: settleShop, totalPaise: 20_000, dueOffsetDays: 5 })
+    // "2% if you pay by today" on the older bill: the discount is REPORTED, never deducted from the books
+    await asOwner((tx) =>
+      receivables.openCashDiscountCondition(tx, {
+        id: uuidv7(),
+        invoiceId: bill1,
+        discountBps: 200,
+        payBy: day(0),
+      }),
+    )
+
+    const paid = await call<ReceiptReply>(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `rcpt-dos011-${run}`,
+      id: receiptId,
+      retailerId: settleShop,
+      mode: 'upi',
+      amountPaise: 15_000,
+    })
+    expect(paid.status).toBe(200)
+    expect(paid.body.cashDiscountPaise).toBe(200)
+
+    type GetReply = {
+      item: Receipt
+      allocations: { invoiceId: string; amountPaise: number }[]
+      invoices: Settled[]
+    }
+    const got = await call<GetReply>(app, owner, 'GET', `/receipts/${receiptId}`)
+    expect(got.status).toBe(200)
+    // in allocation order: the older bill first, closed; then what is left against the newer one
+    expect(got.body.invoices.map((i) => i.id)).toEqual([bill1, bill2])
+    expect(got.body.invoices[0]).toMatchObject({ state: 'paid', openPaise: 0 })
+    expect(got.body.invoices[0]?.invoiceNo).toMatch(/^INV\//)
+    expect(got.body.invoices[1]).toMatchObject({ state: 'partially_paid', openPaise: 14_800 })
+    expect(got.body.invoices[1]?.invoiceNo).toMatch(/^INV\//)
+    // ₹150 received + ₹2 cash discount = ₹152 of bills settled
+    expect(got.body.item.cashDiscountPaise).toBe(200)
+    expect(got.body.item.amountPaise + got.body.item.cashDiscountPaise).toBe(
+      got.body.allocations.reduce((sum, a) => sum + a.amountPaise, 0),
+    )
+  })
+
+  it('DOS-011 (guard): receipts.get writes nothing, and a shop reading its own receipt gets the same bills', async () => {
+    const list = await call<{ items: { id: string }[] }>(app, owner, 'GET', '/receipts', {
+      retailerId: shop.a,
+      limit: 1,
+    })
+    const receiptId = list.body.items[0]?.id ?? ''
+    expect(receiptId).not.toBe('')
+    const before = await db.execute(sql`
+      select id, state::text as state, updated_at from invoices
+       where tenant_id = ${tenantId} order by id`)
+
+    type GetReply = { invoices: Settled[] }
+    const desk = await call<GetReply>(app, owner, 'GET', `/receipts/${receiptId}`)
+    expect(desk.status).toBe(200)
+    expect(desk.body.invoices.length).toBeGreaterThan(0)
+
+    // A GET never recomputes a payment state: nothing on `invoices` moved.
+    const after = await db.execute(sql`
+      select id, state::text as state, updated_at from invoices
+       where tenant_id = ${tenantId} order by id`)
+    expect(after.rows).toEqual(before.rows)
+
+    // The shop reads its own receipt and is told the same bills; RLS shows it only its own.
+    const shopside = await call<GetReply>(app, shopA, 'GET', `/receipts/${receiptId}`)
+    expect(shopside.status).toBe(200)
+    expect(shopside.body.invoices).toEqual(desk.body.invoices)
+  })
+
   it('keeps the rollup equal to the books for every shop', async () => {
     for (const retailerId of Object.values(shop)) {
       const summary = await db.execute(sql`

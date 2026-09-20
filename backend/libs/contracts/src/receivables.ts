@@ -427,6 +427,13 @@ export const ReceiptGetInput = z.object({ id: IdSchema })
 export const ReceiptGetOutput = z.object({
   item: ReceiptSchema,
   allocations: z.array(AllocationSchema),
+  /**
+   * The bills this receipt settled, in allocation order, named (DOS-011, DOS-033): an allocation carries
+   * only an invoice id, so a panel could not say WHICH bill the money closed without a call per
+   * allocation. The same shape `createReceipt` answers. A GET, so nothing here is ever recomputed or
+   * stored — the states are read, never written.
+   */
+  invoices: z.array(SettledInvoiceSchema),
   /** The reversing receipt, when this one was reversed or bounced. */
   reversal: ReceiptSchema.nullable(),
   /** The distributor's own name and logo: the receipt is the third white-label document (docs/22 §4 D6). */

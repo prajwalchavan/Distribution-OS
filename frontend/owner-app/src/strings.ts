@@ -367,6 +367,12 @@ export const strings = {
   'o11.document': 'Receipt document',
   'o11.counted': 'Counted',
   'o11.onAccount': 'On account',
+  // DOS-011: the receipt says which bills it closed and what the cash discount cost.
+  'o11.settles': 'Settles',
+  'o11.billUnknown': 'Bill not named',
+  'o11.billOpen': 'open {amount}',
+  'o11.cashDiscount': 'Cash discount',
+  'o11.settledLine': '{received} received + {discount} cash discount = {total} settled',
   'o11.empty': 'No receipts in this window',
 
   // --- O12 Books ------------------------------------------------------------------------------------------

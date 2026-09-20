@@ -12884,6 +12884,14 @@ curl "http://localhost:3002/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "allocatedBy": "01a06d83-2db2-7449-8f15-c2bd4fbc3f1c"
     }
   ],
+  "invoices": [
+    {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "invoiceNo": "SO-0042",
+      "state": "draft",
+      "openPaise": 4000
+    }
+  ],
   "reversal": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "receiptNo": "SO-0042",
