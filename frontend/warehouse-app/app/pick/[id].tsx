@@ -403,9 +403,24 @@ export default function PickingSheet(): React.JSX.Element {
               />
             ))}
           </Group>
+          {/*
+           * EVERY REASON A SHORT IS REFUSED PRINTS HERE, ABOVE THE PAD (DOS-118).
+           *
+           * Measured at 390 x 844: the over-ask sentence used to follow the keypad and was laid out
+           * at y 836-880 in an 844-px viewport, UNDER its own Short button at y 728-804 — a sliver of
+           * red at the screen edge, so a picker pressed Short, saw nothing happen, and pressed it
+           * again. `NumberPadProps` has no `disabled`, so the fix is the order of the sheet: a
+           * refusal belongs at the top, beside the reasons and the requested figure, where no keypad
+           * can push it off a phone. At 1280 x 800 nothing moves, which is why the desk never saw it.
+           */}
           {needsReason ? (
             <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-noreason">
               {t('w5.chooseReason')}
+            </Txt>
+          ) : null}
+          {overAsk ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-over">
+              {t('w5.overAsk', { pieces: ask })}
             </Txt>
           ) : null}
           <NumberPad
@@ -419,11 +434,6 @@ export default function PickingSheet(): React.JSX.Element {
             doneLabel={t('w5.short')}
             onDone={saveShort}
           />
-          {overAsk ? (
-            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w5-short-over">
-              {t('w5.overAsk', { pieces: ask })}
-            </Txt>
-          ) : null}
         </Stack>
       </Sheet>
     </Screen>
