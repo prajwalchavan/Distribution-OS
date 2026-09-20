@@ -185,6 +185,35 @@ export function startOfIstDay(isoDate: string = today()): string {
   return new Date(`${isoDate}T00:00:00+05:30`).toISOString()
 }
 
+/**
+ * DOS-091 — which SIDE of the due date a bill's `ageDays` is on.
+ *
+ * `OpenBill.ageDays` is "days since the due date, negative when it is not due yet" (the contract's
+ * own words), and the S12 line printed it as "Due 10 Sep · 2 days" whichever way it pointed. A rep
+ * quoting that to a shopkeeper is telling them either that they have two days left or that they are
+ * two days late, and cannot tell which. The sign is the whole meaning, so the copy is chosen by it.
+ */
+export function dueKey(ageDays: number): 's12.overdue' | 's12.dueToday' | 's12.dueIn' {
+  if (ageDays > 0) return 's12.overdue'
+  if (ageDays === 0) return 's12.dueToday'
+  return 's12.dueIn'
+}
+
+/**
+ * The ISO weekday of an IST business date: Monday 1 … Sunday 7 (DOS-084).
+ *
+ * `beats.visit_days` is stored in exactly this numbering, so "is this beat walked today" is a
+ * membership test and nothing more. The arithmetic is on the date string's own UTC midnight — the
+ * same trick `shiftDays()` uses — because the IST calendar date has already been decided by
+ * `businessDate()`, and asking the device's local clock again would put a phone set to another
+ * timezone on the wrong beat.
+ */
+export function istWeekday(isoDate: string = today()): number {
+  const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number]
+  const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+  return day === 0 ? 7 : day
+}
+
 /** An ISO instant → `4:45 pm` IST, with no date. The beat list has no room for one. */
 export function clockOnly(iso: string | null | undefined): string {
   if (!iso) return '—'

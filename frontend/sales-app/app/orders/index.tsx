@@ -24,6 +24,7 @@ import { useMemo, useState } from 'react'
 
 import { shortInstant } from '../../src/lib/dates'
 import { useCatalogIndex, useLocalState, useMyOrders } from '../../src/lib/local'
+import { useSubmitAcceptedDrafts } from '../../src/lib/queue'
 import { LocalAsync, PageTabs, TwoLine, orderFamily } from '../../src/lib/ui'
 import { useWord } from '../../src/lib/words'
 
@@ -43,6 +44,8 @@ export default function MyOrders(): React.JSX.Element {
   const { orders, loading } = useMyOrders(500)
   const { byVariant } = useCatalogIndex()
   const [view, setView] = useState<View>('open')
+  /* DOS-086: a draft that lands while this list is open submits itself, the same as anywhere else. */
+  useSubmitAcceptedDrafts()
 
   const matching = useMemo(() => {
     if (view === 'all') return orders

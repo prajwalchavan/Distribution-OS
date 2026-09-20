@@ -28,6 +28,7 @@ import { useRouter } from 'expo-router'
 import { clockOnly, shortInstant, startOfIstDay, today } from '../src/lib/dates'
 import { keepKey } from '../src/lib/keep'
 import {
+  useBeatChoice,
   useBeatShops,
   useBeats,
   useLocalState,
@@ -36,6 +37,7 @@ import {
   useOutstandingByShop,
   useVisitsByShop,
 } from '../src/lib/local'
+import { useSubmitAcceptedDrafts } from '../src/lib/queue'
 import { LocalAsync, TwoLine, duesFamily, useMyUserId } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
 
@@ -46,12 +48,18 @@ export default function Beat(): React.JSX.Element {
   const word = useWord()
   const userId = useMyUserId()
   const local = useLocalState()
+  /* DOS-086: an order queued in a dead spot submits itself the moment it reaches the office. */
+  useSubmitAcceptedDrafts()
 
   const day = today()
   const beats = useBeats()
   const myBeatIds = useMyBeatIds(userId, day)
-  const [chosen, setChosen] = useState<string | null>(null)
-  const beatId = chosen ?? myBeatIds[0] ?? null
+  /*
+   * DOS-084: the beat today's IST weekday says, not `myBeatIds[0]` — this screen is called "Today's
+   * beat" and it opened Station Road on a Saturday the rep spends on Khadakpada. A chip the rep taps
+   * overrules it and is kept for the rest of the IST day, under that rep's own key.
+   */
+  const { beatId, choose } = useBeatChoice(userId, beats, myBeatIds, day)
 
   const { shops, loading } = useBeatShops(beatId)
   const visits = useVisitsByShop(userId, startOfIstDay(day))
@@ -139,7 +147,7 @@ export default function Beat(): React.JSX.Element {
               label: beats.find((beat) => beat.id === id)?.name ?? id.slice(0, 8),
               selected: id === beatId,
             }))}
-            onToggle={setChosen}
+            onToggle={choose}
           />
         ) : null}
 
