@@ -1314,7 +1314,11 @@ describeDb('receivables (DATABASE_URL)', () => {
       openBills: number
       headroomPaise: number
     }
-    type Rollup = { outstandingPaise: number; undeliveredPaise: number; unallocatedCreditPaise: number }
+    type Rollup = {
+      outstandingPaise: number
+      undeliveredPaise: number
+      unallocatedCreditPaise: number
+    }
     const verdict = async (): Promise<Verdict> =>
       (
         await call<Verdict>(app, owner, 'GET', '/receivables/credit-check', {
@@ -1349,7 +1353,7 @@ describeDb('receivables (DATABASE_URL)', () => {
     const waiting = await verdict()
     expect(
       waiting.breached,
-      'a bill waiting for re-delivery is still the shop\'s exposure: it must not free credit headroom',
+      "a bill waiting for re-delivery is still the shop's exposure: it must not free credit headroom",
     ).toBe(true)
     expect(waiting.reasons).toEqual(['limit_exceeded', 'bill_count_exceeded'])
     expect(waiting.outstandingPaise).toBe(0)
