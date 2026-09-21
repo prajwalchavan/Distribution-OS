@@ -414,6 +414,13 @@
       "when": 1789971778028,
       "tag": "0058_stock_ledger_time_order_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1789971778029,
+      "tag": "0059_sellable_stock_location_guarantees",
+      "breakpoints": true
     }
   ]
 }

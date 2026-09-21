@@ -31,8 +31,14 @@ import { users } from './tenancy.js'
  * ADR 0003: append-only stock ledger in pieces, balances derived, MRP and expiry are lot attributes.
  *
  * RLS (migration 0012): every member READS stock — the `sellable_stock` view is `security_invoker`, so a
- * shop's ATP hint reads `stock_balances` and `stock_lots` as the retailer role — and only STAFF writes
- * it. The old FOR ALL policies let a shopkeeper token append a ledger row (never-list 9). A cycle count
+ * shop's ATP hint reads `stock_balances`, `stock_lots` and `locations` as the retailer role — and only
+ * STAFF writes it.
+ *
+ * `sellable_stock` holds the SELLABLE locations only (migration 0059, QA DOS-204): a godown or a vehicle.
+ * The damaged / expiry bin, goods in transit and a customer's own floor are stock, and are in
+ * `stock_balances`, but they are never in the view — not even when a caller names one. Readers that name
+ * a single location id (`stock.availability`, `inventory.reserve`, `orders.availablePcs`,
+ * `warehouse.fefoLots`) still do, because "this godown" is a narrower question than "a sellable place". The old FOR ALL policies let a shopkeeper token append a ledger row (never-list 9). A cycle count
  * is the godown's own paperwork: staff read it, the stock keepers (owner, manager, warehouse) write it.
  */
 

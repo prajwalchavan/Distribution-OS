@@ -3267,6 +3267,82 @@ describeDb('row level security and ledger guarantees', () => {
     ).rejects.toThrow()
   })
 
+  it('DOS-204: sellable_stock holds only the sellable locations — a lot standing in the damaged / expiry bin, in transit or on a customer floor is never in it', async () => {
+    /*
+     * The view is called `sellable_stock` and every caller had to remember a location filter of its
+     * own; the seventh that forgot would have offered expired and broken goods for sale. The predicate
+     * belongs in the object that carries the name, so the name cannot lie.
+     */
+    const bin = uuidv7()
+    const transit = uuidv7()
+    const floor = uuidv7()
+    const binLot = uuidv7()
+    await db.insert(locations).values([
+      { id: bin, tenantId: tenantA, kind: 'damaged', name: `Bin ${run}`, negativeAllowed: true },
+      { id: transit, tenantId: tenantA, kind: 'in_transit', name: `Transit ${run}` },
+      { id: floor, tenantId: tenantA, kind: 'customer', name: `Shop floor ${run}` },
+    ])
+    await db.insert(stockLots).values({
+      id: binLot,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `BIN-${run}`,
+      mrpPaise: 4000,
+    })
+    await db.insert(stockBalances).values([
+      { tenantId: tenantA, lotId: binLot, locationId: bin, onHand: 32 },
+      { tenantId: tenantA, lotId: binLot, locationId: transit, onHand: 11 },
+      { tenantId: tenantA, lotId: binLot, locationId: floor, onHand: 7 },
+      { tenantId: tenantA, lotId: binLot, locationId: godownA, onHand: 5 },
+    ])
+    const sellable = async (): Promise<{ location_id: string; available: number }[]> =>
+      (
+        await as('owner')((tx) =>
+          tx.execute(
+            sql`select location_id, available from sellable_stock where tenant_id = ${tenantA} and lot_id = ${binLot}`,
+          ),
+        )
+      ).rows as { location_id: string; available: number }[]
+
+    // the godown row is there, and it is the ONLY one: 32 broken pieces, 11 in transit and 7 on a
+    // customer's floor are stock, and none of them is sellable stock
+    expect((await sellable()).map((r) => [r.location_id, Number(r.available)])).toEqual([
+      [godownA, 5],
+    ])
+
+    // a vehicle IS sellable (the crew's van sale reads its own van through this view)
+    const van = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: van, tenantId: tenantA, kind: 'vehicle', name: `Van D204 ${run}` })
+    await db
+      .insert(stockBalances)
+      .values({ tenantId: tenantA, lotId: binLot, locationId: van, onHand: 9 })
+    expect(
+      (await sellable())
+        .map((r) => [r.location_id, Number(r.available)])
+        .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    ).toEqual(
+      [
+        [godownA, 5],
+        [van, 9],
+      ].sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    )
+
+    // and a shop asking the view directly gets the same answer, never the bin
+    expect(
+      (
+        (
+          await as('retailer')((tx) =>
+            tx.execute(
+              sql`select location_id from sellable_stock where tenant_id = ${tenantA} and lot_id = ${binLot}`,
+            ),
+          )
+        ).rows as { location_id: string }[]
+      ).map((r) => r.location_id),
+    ).not.toContain(bin)
+  })
+
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {
     expect(await as('retailer')((tx) => tx.select().from(grns))).toHaveLength(0)
     expect((await as('warehouse')((tx) => tx.select().from(grns))).map((g) => g.id)).toEqual([grnA])
