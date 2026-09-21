@@ -202,7 +202,25 @@ export class OrdersService {
             message: `order ${order.id} is ${order.state}; only a draft can be re-lined`,
           })
         this.assertRetailerOwns(order)
-        return { item: await this.detail(tx, await this.writeLines(tx, order, input.lines)) }
+        // DOS-185: the guard `repeatLast` and `applyLineSync` have. A client that reads the draft and posts
+        // its lines back sends the reward line too (it comes out with an enteredQty like any line); handed
+        // back as a line the rep typed it would sell the shop its own gift at the price list. A stored
+        // reward line is dropped and re-earned from what is ordered; a post of nothing but gifts is a 400.
+        const stored = await tx
+          .select({
+            id: salesOrderLines.id,
+            qtyPcs: salesOrderLines.qtyPcs,
+            freeQtyPcs: salesOrderLines.freeQtyPcs,
+          })
+          .from(salesOrderLines)
+          .where(eq(salesOrderLines.orderId, order.id))
+        const rewardIds = new Set(stored.filter(isRewardLine).map((l) => l.id))
+        const lines = input.lines.filter((l) => !rewardIds.has(l.id))
+        if (lines.length === 0)
+          throw new ORPCError('BAD_REQUEST', {
+            message: `order ${order.id} needs at least one line the shop ordered; a scheme's free goods are earned, not entered`,
+          })
+        return { item: await this.detail(tx, await this.writeLines(tx, order, lines)) }
       }),
     )
   }

@@ -546,6 +546,70 @@ describeDb('DOS-185 free goods down the chain (DATABASE_URL)', () => {
     expect(lines).toHaveLength(3)
   })
 
+  it('hop 1c — posting the stored lines back to /orders/{id}/lines never sells the gift', async () => {
+    /*
+     * The third way a draft is re-lined from what is STORED: a client reads the order (the reward line
+     * comes back with enteredQty 5 / enteredUnit piece, like any line) and posts every line back to
+     * `orders.setLines`. Without the guard `repeatLast` and `applyLineSync` already have, the shop's own
+     * free bottles are sold to it at the price list.
+     */
+    const draftId = uuidv7()
+    const created = await post<{ item: OrderBody }>(rep, '/orders', {
+      idempotencyKey: `order-relines-${run}`,
+      id: draftId,
+      retailerId: shopA,
+      source: 'salesperson',
+      lines: [
+        { id: uuidv7(), variantId: soldVariant, enteredQty: ORDERED_PCS, enteredUnit: 'piece' },
+      ],
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const stored = await call<{
+      item: { lines: (OrderLineBody & { enteredQty: number; enteredUnit: string })[] }
+    }>(app, rep, 'GET', `/orders/${draftId}`)
+    expect(stored.status, JSON.stringify(stored.body)).toBe(200)
+    expect(stored.body.item.lines).toHaveLength(2)
+    const relined = await post<{ item: OrderBody }>(rep, `/orders/${draftId}/lines`, {
+      idempotencyKey: `relines-${run}`,
+      id: draftId,
+      lines: stored.body.item.lines.map((l) => ({
+        id: l.id,
+        variantId: l.variantId,
+        enteredQty: l.enteredQty,
+        enteredUnit: l.enteredUnit,
+      })),
+    })
+    expect(relined.status, JSON.stringify(relined.body)).toBe(200)
+    const lines = relined.body.item.lines
+    // nothing of the free variant is SOLD; the gift is re-earned from the sold line, once
+    expect(lines.filter((l) => l.variantId === freeVariant && l.qtyPcs > 0)).toHaveLength(0)
+    const rewards = lines.filter((l) => l.qtyPcs === 0 && l.freeQtyPcs > 0)
+    expect(rewards).toHaveLength(1)
+    expect(rewards[0]?.variantId).toBe(freeVariant)
+    expect(rewards[0]?.freeQtyPcs).toBe(FREE_PCS)
+    expect(lines).toHaveLength(2)
+    expect(relined.body.item.totalPaise).toBe(created.body.item.totalPaise)
+
+    // only the gift posted back, nothing the shop ordered: a 400, never an order of free bottles alone
+    // (re-read first: every re-line writes the reward line afresh, under a new id)
+    const again = await call<typeof stored.body>(app, rep, 'GET', `/orders/${draftId}`)
+    const onlyGift = again.body.item.lines.find((l) => l.qtyPcs === 0 && l.freeQtyPcs > 0)
+    expect(onlyGift).toBeDefined()
+    const refused = await post<{ message: string }>(rep, `/orders/${draftId}/lines`, {
+      idempotencyKey: `relines-gift-only-${run}`,
+      id: draftId,
+      lines: [
+        {
+          id: onlyGift?.id,
+          variantId: onlyGift?.variantId,
+          enteredQty: onlyGift?.enteredQty,
+          enteredUnit: onlyGift?.enteredUnit,
+        },
+      ],
+    })
+    expect(refused.status, JSON.stringify(refused.body)).toBe(400)
+  })
+
   it('hop 2 — confirm holds the free bottles in the godown too', async () => {
     const held = (
       await db.execute(
