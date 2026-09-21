@@ -13,19 +13,32 @@
 -- the rate row and on the variant, so one code names one rate; 0061 then makes that unique, and a
 -- second live row is a database error instead of a silent hole in a bill. `product_variants` and
 -- `hsn_rates` are the GLOBAL CURATED master (ADR 0005) — ours to correct — and the ids here are the
--- seed's own deterministic ones, so `pnpm db:seed` after this migration writes nothing new.
+-- seed's own deterministic ones (`demoId('hsn-rate', key)` in `seed-demo/catalog.ts` and
+-- `catalog-extra.ts`), so `pnpm db:seed` after this migration writes nothing new.
 --
---   1. The three rates that were sharing a heading move to their sub-heading, keeping their id and
---      their `effective_from` (2017-07-01, the GST start date), so a bill re-printed from before this
---      migration resolves to the rate it was issued at. A fourth rate, milk-based beverages, is new.
+-- SELF-CONTAINED ON ANY DATABASE (the verifier's blocker). A database whose curated catalogue predates
+-- the seed's extras — the founder's own carries five rate rows (1905, 2008, 2106, 2202 twice), NO
+-- 2201 and no sub-heading at all, with the Independence water variant on 2202 — has goods to move but
+-- no row to move them to, and the first cut of this migration aborted there with "HSN 2201 is on a
+-- variant but has no rate at all". So, before any variant moves, step 1b GUARANTEES a rate row for
+-- every code goods are moved to: the UPDATE-by-description moves of step 1a keep the ids of the rows
+-- that exist, and a guarded INSERT … WHERE NOT EXISTS covers the databases where that row never
+-- existed. Each insert carries the seed's own id for the row, so the two paths land on the same row.
+--
+--   1. a. The three rates that were sharing a heading move to their sub-heading, keeping their id and
+--         their `effective_from` (2017-07-01, the GST start date), so a bill re-printed from before
+--         this migration resolves to the rate it was issued at.
+--      b. Every code that goods move to has a rate row afterwards: 2201, 22029920, 22029930 (milk-based
+--         beverages, which had no row of their own anywhere: they were riding the fruit-juice one),
+--         04063000 and 21069099.
 --   2. The variants of those goods move with them, matched by the curated product name.
 --   3. The two rows that are left over go: packaged drinking water belongs to heading 2201 (18%,
---      already there), and 1905 held two rows at the SAME 18%, so one was only ever redundant.
+--      guaranteed by 1b), and 1905 held two rows at the SAME 18%, so one was only ever redundant.
 --   4. A migrate-time assertion: no HSN is left with two rates on one date, and no variant is left
 --      pointing at a code with no rate at all.
 -- No table is added, so there is no new grant and no new FORCE line.
 
--- 1. The rates that move, and the one that is new.
+-- 1a. The rates that move, keeping their id.
 UPDATE "hsn_rates" SET "hsn_code" = '22029920'
  WHERE "hsn_code" = '2202' AND "description" = 'Fruit pulp / fruit juice based drinks';--> statement-breakpoint
 
@@ -35,14 +48,29 @@ UPDATE "hsn_rates" SET "hsn_code" = '04063000'
 UPDATE "hsn_rates" SET "hsn_code" = '21069099'
  WHERE "hsn_code" = '2106' AND "description" = 'Namkeen, pre-packed and labelled';--> statement-breakpoint
 
--- Milk-based beverages had no row of their own at all: they were riding the fruit-juice one. The id is
--- the seed's own for this row, so `pnpm db:seed` on a migrated database writes nothing new; the guard
--- on 2202 keeps this out of a database that carries no curated catalogue yet (the seed makes it there).
+UPDATE "hsn_rates" SET "description" = 'Waters, not sweetened: soda water and packaged drinking water'
+ WHERE "hsn_code" = '2201' AND "description" = 'Soda water, waters not sweetened';--> statement-breakpoint
+
+-- 1b. Every code goods move to has a rate row afterwards. Guarded on the CODE (a row that 1a moved, or
+--     that the seed wrote, is left alone) and on the ID (never a duplicate-key abort: a seed id that
+--     somehow sits on another code is caught by the orphan assertion in step 4, loudly). The ids are
+--     `demoId('hsn-rate', <key>)` of the seed, so `pnpm db:seed` afterwards inserts nothing new.
 INSERT INTO "hsn_rates" ("id", "hsn_code", "description", "gst_bps", "cess_bps", "effective_from")
-SELECT '16e17f27-f1be-70ca-b064-a150bf13e0e3', '22029930', 'Beverages containing milk', 1200, 0,
-       '2017-07-01'::date
- WHERE EXISTS (SELECT 1 FROM "hsn_rates" x WHERE x."hsn_code" = '2202')
-   AND NOT EXISTS (SELECT 1 FROM "hsn_rates" y WHERE y."hsn_code" = '22029930');--> statement-breakpoint
+SELECT r."id", r."hsn_code", r."description", r."gst_bps", r."cess_bps", '2017-07-01'::date
+  FROM (VALUES
+         ('d8a40284-cfb0-70fe-9144-efea33bf9233', '2201',
+          'Waters, not sweetened: soda water and packaged drinking water', 1800, 0),   -- hsn-2201
+         ('bf2ee453-0cc9-7167-baa9-6cd3a4947dc9', '22029920',
+          'Fruit pulp / fruit juice based drinks', 1200, 0),                            -- hsn-2202-fruit
+         ('16e17f27-f1be-70ca-b064-a150bf13e0e3', '22029930',
+          'Beverages containing milk', 1200, 0),                                        -- hsn-2202-milk
+         ('3e1f407c-3c8c-72c1-bd6e-b22dad9517f7', '04063000',
+          'Processed cheese', 1200, 0),                                                 -- hsn-0406-cheese
+         ('81e62932-abf3-7cbc-b4f5-453ec8448f23', '21069099',
+          'Namkeen, pre-packed and labelled', 1200, 0)                                  -- hsn-2106-prepacked
+       ) AS r("id", "hsn_code", "description", "gst_bps", "cess_bps")
+ WHERE NOT EXISTS (SELECT 1 FROM "hsn_rates" x WHERE x."hsn_code" = r."hsn_code")
+   AND NOT EXISTS (SELECT 1 FROM "hsn_rates" y WHERE y."id" = r."id");--> statement-breakpoint
 
 -- 2. The goods that were sharing a heading with a different rate. Matched on the curated product
 --    name, which is the catalogue's own identity; the `hsn_code` guard makes a re-run a no-op.
@@ -75,9 +103,6 @@ DELETE FROM "hsn_rates"
 
 UPDATE "hsn_rates" SET "description" = 'Biscuits and extruded / expanded savoury snacks'
  WHERE "hsn_code" = '1905' AND "description" = 'Extruded / expanded savoury snacks';--> statement-breakpoint
-
-UPDATE "hsn_rates" SET "description" = 'Waters, not sweetened: soda water and packaged drinking water'
- WHERE "hsn_code" = '2201' AND "description" = 'Soda water, waters not sweetened';--> statement-breakpoint
 
 UPDATE "hsn_rates"
    SET "description" = 'Namkeen, bhujia, wafers, mixture (not pre-packed and labelled)'
