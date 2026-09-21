@@ -38,14 +38,12 @@ export const strings = {
   /* What a rep needs at the door, not what a developer finds interesting about the build. */
   'app.signInHelp': 'Use the username your distributor gave you.',
   /*
-   * A role sales-service does not serve (docs/22 §2: "a service serves only its roles"). Without
-   * this the app signed a manager in, drew the salesperson's shell around an empty beat and left
-   * "Still loading the beat onto this phone" on the screen for ever, because every call — the sync
-   * manifest included — comes back 403 "sales-service does not serve the manager role".
+   * `app.wrongRoleTitle` / `app.wrongRoleBody` were deleted at the one-app merge (docs/31 §1.3,
+   * ruling B3). With a group per role there is no wrong app to be in: the election happens at the
+   * Continue-as chooser, the refusal sentence docs/29 §2 states is printed THERE, and the root's
+   * ladder takes a person to their own group. A screen that said "this app is for X" would now be a
+   * screen about a route.
    */
-  'app.wrongRoleTitle': 'This app is for the sales team',
-  'app.wrongRoleBody':
-    'Your login at {distributor} is a {role}; ask the owner to add salesperson to it.',
   'app.signOut': 'Sign out',
   /*
    * DOS-167: signing out, or switching distributor, while this phone still holds changes the office has

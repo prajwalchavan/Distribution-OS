@@ -64,9 +64,13 @@ export const strings = {
   'app.setPassword': 'Set password',
   'app.passwordFailed': 'Could not change the password',
   'app.settings': 'Me',
-  'app.wrongRoleTitle': 'This app is for the godown',
-  'app.wrongRoleBody':
-    'Your login at {distributor} is a {role}; ask the owner to add warehouse to it.',
+  /*
+   * `app.wrongRoleTitle` / `app.wrongRoleBody` were deleted at the one-app merge (docs/31 §1.3,
+   * ruling B3). With a group per role there is no wrong app to be in: the election happens at the
+   * Continue-as chooser, the refusal sentence docs/29 §2 states is printed THERE, and the root's
+   * ladder takes a person to their own group. A screen that said "this app is for X" would now be a
+   * screen about a route.
+   */
 
   // X4 profile and devices
   'x4.title': 'Me',

@@ -124,7 +124,7 @@ export default function Inbox(): React.JSX.Element {
                     {message.mediaUrl === null ? null : (
                       <Row padX={3} padY={2}>
                         <Img
-                          source={absoluteUrl(message.mediaUrl) ?? ''}
+                          source={absoluteUrl('sales', message.mediaUrl) ?? ''}
                           alt={t('s13.photoAlt', { shop: message.retailerName ?? '' })}
                           width={220}
                           height={160}

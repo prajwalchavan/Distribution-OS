@@ -123,7 +123,9 @@ describe('DOS-066 the dues the door shows', () => {
 describe('DOS-066 review — the stop itself carries the overdue lines', () => {
   it('DOS-066 D3 draws its chips and its panel from this rule, not from outstanding alone', async () => {
     const d3 = await readScreen('../../../../app/delivery/stop/[id]/index.tsx')
-    expect(d3).toMatch(/import \{ doorDues, overdueLine \} from '\.\.\/\.\.\/\.\.\/\.\.\/src\/groups\/delivery\/lib\/dues'/)
+    expect(d3).toMatch(
+      /import \{ doorDues, overdueLine \} from '\.\.\/\.\.\/\.\.\/\.\.\/src\/groups\/delivery\/lib\/dues'/,
+    )
     expect(d3).toMatch(/const door = doorDues\(dues, shop\?\.credit_mode \?\? null\)/)
     expect(d3).toMatch(/const overdue = overdueLine\(t, door,/)
     for (const id of [

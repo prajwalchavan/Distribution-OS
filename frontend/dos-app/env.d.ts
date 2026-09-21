@@ -12,5 +12,13 @@ declare const process: {
     readonly EXPO_PUBLIC_AUTH_URL?: string
     readonly EXPO_PUBLIC_API_PREFIX?: string
     readonly NODE_ENV?: 'development' | 'production' | 'test'
+    /**
+     * The platform this bundle was built for. Not a variable of ours and not read from `.env`:
+     * babel-preset-expo substitutes the literal at build time (`configs/expo.js`, `process.env.EXPO_OS`
+     * -> the platform), so `process.env.EXPO_OS === 'android'` is a constant in each bundle and folds
+     * away in the other two. O4 uses it to keep the keyless Google Maps SDK off Android (DOS-017,
+     * ruling Q3(b): today's behaviour, kept for the pilot).
+     */
+    readonly EXPO_OS?: 'android' | 'ios' | 'web'
   }
 }

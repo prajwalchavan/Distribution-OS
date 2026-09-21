@@ -76,9 +76,13 @@ export const strings = {
   'leave.signOutKeep': 'Sign out, keep here',
   'leave.switchAnyway': 'Switch anyway',
   'leave.noSignal': 'No connection — they cannot go now.',
-  'app.wrongRoleTitle': 'This app is for the delivery crew',
-  'app.wrongRoleBody':
-    'Your login at {distributor} is a {role}; ask the owner to add delivery to it.',
+  /*
+   * `app.wrongRoleTitle` / `app.wrongRoleBody` were deleted at the one-app merge (docs/31 §1.3,
+   * ruling B3). With a group per role there is no wrong app to be in: the election happens at the
+   * Continue-as chooser, the refusal sentence docs/29 §2 states is printed THERE, and the root's
+   * ladder takes a person to their own group. A screen that said "this app is for X" would now be a
+   * screen about a route.
+   */
 
   // --- the rail / more sheet (labels are <= 14 characters, UX-00 §8.1) ------------------------
   'nav.today': 'Today',

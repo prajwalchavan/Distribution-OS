@@ -1,0 +1,39 @@
+[
+  {
+    "url": "http://127.0.0.1:3100/auth/auth/login",
+    "status": 200,
+    "body": {
+      "accessToken": "eyJhbGciOiJFZERTQSIsImtpZCI6Ik53VHZhSEpnd2NpZEViQnJNYzZHVldKemhhV19fbjlsRTZYTTd3ZTM0VU0iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTk5YS0yOGMzLTczNDEtOTNmNS1lMGU4NGIwMTg5YTEiLCJyb2xlIjoic2FsZXNwZXJzb24iLCJzaWQiOiIwMWEwYzJlMi00OTE5LTc0NTQtOGFhNy1lNjM3MTUwNWVkMGYiLCJkaWQiOiIwMWEwYzJlMi0zZWE0LTc2YmItOWVmMC00YmI4MWE3M2IyNjYiLCJzdWIiOiI4NzYwZTE3ZS00ODMwLTczOTUtYTk0Ni0xZTAyZmZmYTFhZDciLCJpc3MiOiJkb3MtYXV0aCIsImF1ZCI6ImRvcyIsImlhdCI6MTc4OTk3NjAwNCwiZXhwIjoxNzg5OTc2OTA0LCJqdGkiOiIwMWEwYzJlMi00OTI5LTcyMWUtOTI3NC03MDVkZjQ1ZDBmOGEifQ.Jovsy5kH3ocqgoPZBRi59X7m1xxRe4fzbc48xp_pYcFlnRBu4dQ-fcsK661ztjYEe8mk3eZFB3H2JejELNtoDA",
+      "tokenType": "Bearer",
+      "accessExpiresIn": 900,
+      "refreshToken": "89mY2uSDbWP7hBMmQKUSbWnpJQwXLyKGTPKF7UDYn9M",
+      "refreshExpiresAt": "2026-10-21T07:33:24.816Z",
+      "user": {
+        "id": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "username": "rahul.deshmukh",
+        "name": "Rahul Deshmukh",
+        "locale": "mr-IN",
+        "mustChangePassword": false
+      },
+      "tenant": {
+        "id": "01a0999a-28c3-7341-93f5-e0e84b0189a1",
+        "slug": "tarsun",
+        "legalName": "M/s. Tarsun Enterprise",
+        "displayName": "Tarsun Enterprise",
+        "logoUrl": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1790062404&signature=a906648599d72249fc3699c6c9b563ffa4290b27ce4605d5afc3d44b708712ac"
+      },
+      "role": "salesperson",
+      "memberships": [
+        {
+          "tenantId": "01a0999a-28c3-7341-93f5-e0e84b0189a1",
+          "tenantSlug": "tarsun",
+          "tenantName": "M/s. Tarsun Enterprise",
+          "displayName": "Tarsun Enterprise",
+          "logoUrl": "/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1790062404&signature=a906648599d72249fc3699c6c9b563ffa4290b27ce4605d5afc3d44b708712ac",
+          "role": "salesperson",
+          "status": "active"
+        }
+      ]
+    }
+  }
+]

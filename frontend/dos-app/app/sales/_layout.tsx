@@ -23,7 +23,13 @@
  */
 import { groupOf, sessionIdentity } from '@dos/api-client'
 import { useApi, useSession } from '@dos/api-client/react'
-import { connectionStateFrom, consoleSink, openStore, SyncEngine } from '@dos/offline'
+import {
+  connectionStateFrom,
+  consoleSink,
+  FIELD_STORE_PREFIXES,
+  openStore,
+  SyncEngine,
+} from '@dos/offline'
 import { OfflineProvider, useLeaveSession, useSyncStatus } from '@dos/offline/react'
 import {
   AppShell,
@@ -216,15 +222,36 @@ function Offline({
   )
 }
 
-/** The person's files at their OTHER distributors, swept at a sign-out that leaves nothing unsent. */
-function otherIdentities(session: Session): SyncIdentity[] {
-  return session.memberships
-    .filter((membership) => membership.tenantId !== session.tenant.id)
-    .map((membership) => ({
-      userId: session.user.id,
-      tenantId: membership.tenantId,
-      role: membership.role,
-    }))
+/**
+ * EVERY FILE THIS PERSON COULD HAVE ON THIS DEVICE — this distributorship and their others.
+ *
+ * It used to be their OTHER distributorships only, and with six installs that was the whole of it:
+ * signing out of the sales app could not reach a delivery store, because the delivery app was a
+ * different install with its own storage. One app is one install (docs/31 §4, architect's
+ * amendment): the owner who reps in the morning and drives in the afternoon has a `dos-sales` file
+ * and a `dos-delivery` file under the same person and the same distributor, and a sign-out that
+ * swept only the running engine's prefix would leave the other on a phone he hands over.
+ *
+ * So this distributorship is in the list too, and the sweep runs over all three field prefixes. The
+ * rule underneath is untouched: a file with anything queued, sending or refused is KEPT and said,
+ * never deleted to tidy a device.
+ */
+function deviceIdentities(session: Session): SyncIdentity[] {
+  const here: SyncIdentity = {
+    userId: session.user.id,
+    tenantId: session.tenant.id,
+    role: session.role,
+  }
+  return [
+    here,
+    ...session.memberships
+      .filter((membership) => membership.tenantId !== session.tenant.id)
+      .map((membership) => ({
+        userId: session.user.id,
+        tenantId: membership.tenantId,
+        role: membership.role,
+      })),
+  ]
 }
 
 type ShellTenant = NonNullable<React.ComponentProps<typeof AppShell>['tenant']>
@@ -299,8 +326,9 @@ function Chrome({
       waiting: device.waiting,
       sendNow: device.sendNow,
       end: device.end,
+      // DEVICE-WIDE (docs/31 §4): every field prefix, not only this group's engine.
       sweep: () =>
-        SyncEngine.sweepIdentityStores(openStore, STORE_PREFIX, otherIdentities(session)),
+        SyncEngine.sweepDeviceStores(openStore, FIELD_STORE_PREFIXES, deviceIdentities(session)),
       forgetDrafts: () => forgetDraftsOf(session.user.id),
       signOutOnDevice,
       switchDistributor,

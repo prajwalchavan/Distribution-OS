@@ -70,7 +70,7 @@ export default function BillDetail(): React.JSX.Element {
    * Service-relative on the local storage driver: a browser would resolve a bare `/storage/…`
    * against THIS app's origin and a phone has no origin to resolve it against at all (DOS-099).
    */
-  const url = absoluteUrl(pdf.data?.url)
+  const url = absoluteUrl('sales', pdf.data?.url)
   const filename = `${bill?.invoiceNo ?? 'bill'}.pdf`
   const settled = bill === undefined ? 0 : bill.totalPaise - bill.amountDuePaise
 
