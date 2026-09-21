@@ -67,10 +67,14 @@ step() {
 say "app:      $APP  ($PACKAGE)"
 say "project:  $PROJECT   branch: $BRANCH"
 say "EXPO_PUBLIC_API_URL=$API_URL"
+# Both lines are printed FROM $PREFIX, the same variable the build command below exports, so the
+# banner cannot drift from what the bundle gets. It used to say "(unset)" over a command that
+# exported EXPO_PUBLIC_API_PREFIX='' — an empty string, which is not the same thing: Expo inlines an
+# empty string, and a banner that disagrees with the command under it is how a wrong bundle ships.
 if [ -n "$PREFIX" ]; then
   say "EXPO_PUBLIC_API_PREFIX=$PREFIX"
 else
-  say "EXPO_PUBLIC_API_PREFIX=   (unset: the merged app elects its role, and its service with it)"
+  say "EXPO_PUBLIC_API_PREFIX=$PREFIX   (the empty string, exported as one: the merged app elects its role at sign-in, and its service with it)"
 fi
 say "EXPO_PUBLIC_AUTH_URL=$AUTH_URL"
 

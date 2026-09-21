@@ -59,6 +59,20 @@ describe('DEP-07 the Pages pipeline and the image pipeline', () => {
     expect(one).not.toMatch(/EXPO_PUBLIC_API_PREFIX=\/dos\b/)
   })
 
+  it('DEP-07 prints the prefix it exports, empty string included', () => {
+    // The banner used to read "(unset)" above a build command that exported
+    // EXPO_PUBLIC_API_PREFIX='' — an empty string, which is not the same thing and is what Expo
+    // actually inlines. Both are now printed from the same variable, and this is the check that
+    // they still agree: what a reader sees in the banner is what the bundle is built with.
+    for (const app of ['owner', 'warehouse', 'dos']) {
+      const out = plan(app)
+      const banner = /^EXPO_PUBLIC_API_PREFIX=(\S*)/m.exec(out)?.[1] ?? '<no banner line>'
+      const exported = /EXPO_PUBLIC_API_PREFIX='([^']*)'/.exec(out)?.[1] ?? '<not exported>'
+      expect(banner, `${app}: the banner and the build command disagree`).toBe(exported)
+    }
+    expect(plan('dos'), 'an exported empty string is not "unset"').not.toMatch(/unset/)
+  })
+
   it('DEP-07 publishes dist with wrangler to a named project, and fixes deep links', () => {
     const owner = plan('owner')
     expect(owner).toMatch(/wrangler pages deploy/)
