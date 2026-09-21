@@ -36,6 +36,9 @@ import { BACKEND_ROOT, readArtifact } from './paths.js'
  *
  *   DOS_DEPLOY_PROOF=1 DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_deploy \
  *     pnpm --filter @dos/all-in-one exec vitest run src/deploy/migrate-bootstrap.spec.ts
+ *
+ * Run this file ON ITS OWN. It and the DEP-05 round trip both own `dos_test_b2_deploy`, and
+ * vitest runs files in parallel: together, one would be dropping the database the other is dumping.
  */
 const entrypoint = readArtifact('backend/infra/docker/entrypoint.sh')
 const dockerfile = readArtifact('backend/infra/docker/Dockerfile')

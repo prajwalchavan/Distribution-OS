@@ -19,6 +19,9 @@ import { BACKEND_ROOT, readArtifact } from './paths.js'
  *
  *   DOS_DEPLOY_PROOF=1 DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_deploy \
  *     pnpm --filter @dos/all-in-one exec vitest run src/deploy/backup.spec.ts
+ *
+ * Run this file ON ITS OWN, and after DEP-04 has bootstrapped the database: it and the DEP-04
+ * proof both own `dos_test_b2_deploy`, and vitest runs files in parallel.
  */
 const backup = readArtifact('backend/infra/backup.sh')
 const restore = readArtifact('backend/infra/restore.sh')
