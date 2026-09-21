@@ -2777,6 +2777,27 @@ async function collectFreshSlots(tx: Db, tenantId: string, ctx: ExampleContext):
           ).map((row) => row.id),
         ),
     ),
+    // S-165: the shop's own report (DOS-103) creates a row under the client's id too, and it was the
+    // one create in this module that never claimed a slot — so its example wrote the SAME id for
+    // ever. The first Execute stored it and every later one hit the primary key.
+    'notifications.inbound.create': await freeSlots(
+      'notifications.inbound.create',
+      'id',
+      async (candidates) =>
+        new Set(
+          (
+            await tx
+              .select({ id: inboundMessages.id })
+              .from(inboundMessages)
+              .where(
+                and(
+                  eq(inboundMessages.tenantId, tenantId),
+                  inArray(inboundMessages.id, [...candidates]),
+                ),
+              )
+          ).map((row) => row.id),
+        ),
+    ),
     // The three ai procedures that CREATE a row: a draft from a text, a draft from a voice note, and
     // the order a confirm makes. Each walks its own lane past the ids this database already holds, so
     // a document generated after the first "Try it out" still documents a call that works.
@@ -3144,6 +3165,15 @@ function createdBroadcastId(ctx: ExampleContext): string {
     'notifications.broadcasts.create',
     'id',
     slotOf(ctx, 'notifications.broadcasts.create'),
+  )
+}
+
+/** The report the shop's own create example files, on this service's lane (S-165). */
+function createdInboundReportId(ctx: ExampleContext): string {
+  return createdId(
+    'notifications.inbound.create',
+    'id',
+    slotOf(ctx, 'notifications.inbound.create'),
   )
 }
 
@@ -4588,6 +4618,15 @@ const OVERRIDES: Record<
     deviceId: ctx.deviceId ?? 'swagger-ui',
     token: 'ExponentPushToken[docs-example]',
     platform: 'android',
+  }),
+  // S-165: id and key come from the SAME free slot, so pressing Execute twice replays the stored
+  // reply (identical body) while a document fetched later walks on to an id this database is free of.
+  'notifications.inbound.create': (ctx) => ({
+    id: createdInboundReportId(ctx),
+    idempotencyKey: docsIdempotencyKey(
+      'notifications.inbound.create',
+      slotOf(ctx, 'notifications.inbound.create'),
+    ),
   }),
   'notifications.inbound.list': () => ({
     retailerId: DROP,
