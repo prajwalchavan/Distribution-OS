@@ -777,7 +777,15 @@ export async function emitDeliveryEvent(
  * ageing, and both emit ONE `DeliveryFailed` carrying the bill's NUMBER — never an id fragment — so the
  * shop's message can name it (docs/22: a message to a shop names the bill by its number).
  *
- * Keyed by the delivery row, so a replay of either path finds the flag set and the event already there.
+ * WHAT THIS GUARANTEES, and what it does not. Only `markUndelivered` short-circuits: it locks the bill
+ * and writes nothing when the flag is already set. `emitDeliveryEvent` inserts a FRESH outbox row (a
+ * new uuidv7) on every call — this function is not idempotent by itself. Nothing double-emits today
+ * because both callers run inside `idempotent()` (a same-key replay never reaches here) and are
+ * followed by `walkStop`, whose stop machine refuses a second move of the same stop and rolls this
+ * event back with it; and the notifications handler is keyed `DeliveryFailed:${deliveryId}`
+ * (`notifications/events.ts`), so even a duplicate event yields one message to the shop. A new
+ * caller outside an idempotent, machine-guarded path inherits none of that and must key its own
+ * replay.
  */
 export async function declareUndelivered(
   tx: Db,
