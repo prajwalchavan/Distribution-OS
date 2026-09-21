@@ -18,7 +18,7 @@ export interface HsnRate {
  * `billing.internals.ts`, on a table that held three live rows for HSN 2202. Same SQL, but "the first
  * row" of an unordered set is the query PLAN's choice: `hsn_code IN ('2202')` returned the 12% row and
  * `IN ('2202','1905',…)` the 28% + 12% cess row, so what a case of Campa was taxed at depended on what
- * else was on the order. `hsn_rates_code_from_idx` is unique from migration 0059, which makes
+ * else was on the order. `hsn_rates_code_from_idx` is unique from migration 0061, which makes
  * `effective_from DESC` a total order per HSN and this function a function.
  *
  * A rate CHANGE is a new row with a later `effective_from`, so an old bill re-printed with its own

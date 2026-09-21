@@ -716,7 +716,7 @@ describeDb('pricing (DATABASE_URL)', () => {
      * query PLAN's choice. It was not even a stable wrong answer: `hsn_code IN ('2202')` came back
      * 12% with no cess and `IN ('2202', <another>)` came back 28% + 12%, so a rep who put only
      * aerated drinks on an order quoted the shopkeeper a quarter under the bill he would be handed.
-     * One heading now names one rate (migration 0058) and a second live row is refused (0059).
+     * One heading now names one rate (migration 0060) and a second live row is refused (0061).
      */
     const alone = await quoteFor(rep, shopA, [{ lineId: 'a1', variantId: vAerated, qtyPcs: 24 }])
     expect(alone.status).toBe(200)

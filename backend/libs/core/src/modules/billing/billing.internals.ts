@@ -202,7 +202,7 @@ export async function loadVariantBilling(
  * THE RATE IS PRICING'S, NOT BILLING'S OWN COPY (QA S-176). The bill must charge the GST and the cess
  * the order quoted for the same variant on the same day (docs/22 §4, §6): two copies of one lookup
  * over a table that held two live rows for a heading priced the same case at 12% on the order and at
- * 28% + 12% cess on the invoice. One function now answers both, and migration 0059 makes a second
+ * 28% + 12% cess on the invoice. One function now answers both, and migration 0061 makes a second
  * live row a database error.
  */
 export { loadHsnRates, type HsnRate } from '../pricing/index.js'
