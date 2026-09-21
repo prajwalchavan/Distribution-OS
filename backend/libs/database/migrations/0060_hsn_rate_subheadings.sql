@@ -1,4 +1,4 @@
--- Hand-written, and it must run BEFORE 0059 makes `hsn_rates_code_from_idx` unique (QA S-176).
+-- Hand-written, and it must run BEFORE 0061 makes `hsn_rates_code_from_idx` unique (QA S-176).
 --
 -- WHAT WAS WRONG. `hsn_rates` is the only place a GST and cess rate comes from, and every caller asks
 -- it the same question: the rows live on this date, newest `effective_from` first, take the first.
@@ -10,7 +10,7 @@
 -- 28% + 12%. An order of only aerated drinks was quoted a quarter under the bill it would get.
 --
 -- THE FIX AT THE CAUSE. Goods of one heading that bear different rates get their own SUB-HEADING, on
--- the rate row and on the variant, so one code names one rate; 0059 then makes that unique, and a
+-- the rate row and on the variant, so one code names one rate; 0061 then makes that unique, and a
 -- second live row is a database error instead of a silent hole in a bill. `product_variants` and
 -- `hsn_rates` are the GLOBAL CURATED master (ADR 0005) — ours to correct — and the ids here are the
 -- seed's own deterministic ones, so `pnpm db:seed` after this migration writes nothing new.
@@ -94,7 +94,7 @@ BEGIN
     SELECT r."hsn_code" FROM "hsn_rates" r
      GROUP BY r."hsn_code", r."effective_from" HAVING count(*) > 1) x;
   IF ambiguous IS NOT NULL THEN
-    RAISE EXCEPTION '0058: HSN % still has two rates on one date; 0059 cannot make the index unique', ambiguous;
+    RAISE EXCEPTION '0060: HSN % still has two rates on one date; 0061 cannot make the index unique', ambiguous;
   END IF;
 
   SELECT string_agg(DISTINCT v."hsn_code", ', ') INTO orphaned
@@ -103,16 +103,16 @@ BEGIN
                           '22029920', '22029930', '04063000', '21069099')
      AND NOT EXISTS (SELECT 1 FROM "hsn_rates" r WHERE r."hsn_code" = v."hsn_code");
   IF orphaned IS NOT NULL THEN
-    RAISE EXCEPTION '0058: HSN % is on a variant but has no rate at all', orphaned;
+    RAISE EXCEPTION '0060: HSN % is on a variant but has no rate at all', orphaned;
   END IF;
 
   SELECT c.relforcerowsecurity INTO forced
     FROM pg_class c JOIN pg_namespace ns ON ns.oid = c.relnamespace
    WHERE ns.nspname = 'public' AND c.relname = 'hsn_rates';
   IF forced IS DISTINCT FROM true THEN
-    RAISE EXCEPTION '0058: hsn_rates must keep FORCE ROW LEVEL SECURITY';
+    RAISE EXCEPTION '0060: hsn_rates must keep FORCE ROW LEVEL SECURITY';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_policy p WHERE p.polrelid = 'public.hsn_rates'::regclass AND p.polcmd = '*') THEN
-    RAISE EXCEPTION '0058: hsn_rates must not carry a FOR ALL policy';
+    RAISE EXCEPTION '0060: hsn_rates must not carry a FOR ALL policy';
   END IF;
 END $$;
