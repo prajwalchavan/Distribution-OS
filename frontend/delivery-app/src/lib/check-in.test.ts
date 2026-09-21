@@ -125,8 +125,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('active'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED,
-        deviceAllPaise: COUNTED,
+        heldCashPaise: 0,
+        heldAllPaise: 0,
       }),
     ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: 0, note: null })
 
@@ -135,8 +138,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('closing'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD,
       }),
     ).toEqual({
       handOverPaise: FLOAT + COUNTED + HELD,
@@ -149,8 +155,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('settled'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD,
       }),
     ).toEqual({
       handOverPaise: FLOAT + COUNTED,
@@ -162,8 +171,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('settled_with_variance'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD,
       }),
     ).toEqual({
       handOverPaise: FLOAT + COUNTED,
@@ -176,8 +188,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('active'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: 0,
+        heldAllPaise: HELD,
       }),
     ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'uncounted' })
 
@@ -185,17 +200,25 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('active'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: 0,
-        deviceAllPaise: 0,
+        heldCashPaise: 0,
+        heldAllPaise: 0,
       }),
     ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: 0, note: null })
 
-    // No signal to read the preview with: the screen has no office figure to show at all.
+    // The office read is still in flight: nothing is claimed yet, and the panel's own skeleton
+    // stands for it. Once that read has FAILED the screen answers from the device instead of going
+    // silent — S-183, s183-offline-money.test.ts.
     expect(
       dayEndCash({
         figures: undefined,
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD,
       }),
     ).toEqual({ handOverPaise: null, uncountedAllPaise: 0, note: null })
   })
@@ -215,8 +238,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('settled'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD,
       }),
     ).toEqual({
       handOverPaise: FLOAT + COUNTED,
@@ -229,8 +255,11 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
     expect(
       dayEndCash({
         figures: figuresFor('closing'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD,
       }),
     ).toEqual({
       handOverPaise: FLOAT + COUNTED + HELD,
@@ -286,24 +315,34 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
       { mode: 'upi', amount_paise: HELD, _pending: 'queued' as const },
     ]
 
-    expect(deviceMoney(rows)).toEqual({ cashPaise: COUNTED, allPaise: COUNTED + HELD })
+    expect(deviceMoney(rows)).toEqual({
+      cashPaise: COUNTED,
+      heldCashPaise: 0,
+      heldAllPaise: HELD,
+    })
 
     // And through the arithmetic: the hand-over is the office's figure, with only the UPI named.
     const money = deviceMoney(rows)
     expect(
       dayEndCash({
         figures: figuresFor('active'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: money.cashPaise,
-        deviceAllPaise: money.allPaise,
+        heldCashPaise: money.heldCashPaise,
+        heldAllPaise: money.heldAllPaise,
       }),
     ).toEqual({ handOverPaise: FLOAT + COUNTED, uncountedAllPaise: HELD, note: 'uncounted' })
 
-    // Counting it would have asked for the handed-over ₹2,500 again.
+    // Counting the kept cash as held would have asked for the handed-over ₹2,500 again.
     expect(
       dayEndCash({
         figures: figuresFor('active'),
+        officeUnreachable: false,
+        openingCashPaise: FLOAT,
         deviceCashPaise: COUNTED + HELD,
-        deviceAllPaise: COUNTED + HELD + HELD,
+        heldCashPaise: HELD,
+        heldAllPaise: HELD + HELD,
       }).handOverPaise,
     ).toBe(FLOAT + COUNTED + HELD)
   })

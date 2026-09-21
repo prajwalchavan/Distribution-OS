@@ -192,12 +192,21 @@ export default function DaySummary(): React.JSX.Element {
   /*
    * DOS-178: a refused payment the crew handed to the cashier is no longer this phone's to hand over —
    * it stays on the device for ever as the record that the shop paid, and `deviceMoney` leaves it out.
+   *
+   * S-183: and the money the office has not taken is read from the OUTBOX (`held*`), not from the
+   * difference of two totals — see the rule. With no signal the rule answers from the device rather
+   * than going silent, which is why it is handed the float and told whether the office can be
+   * reached: a read still in flight is not an answer, a failed one is.
    */
-  const { cashPaise: deviceCashPaise, allPaise: deviceAllPaise } = deviceMoney(receipts.rows)
+  const officeUnreachable = preview.error !== undefined || (!status.online && figures === undefined)
+  const { cashPaise: deviceCashPaise, heldCashPaise, heldAllPaise } = deviceMoney(receipts.rows)
   const { handOverPaise, uncountedAllPaise, note } = dayEndCash({
     figures,
+    officeUnreachable,
+    openingCashPaise: trip?.opening_cash_paise ?? 0,
     deviceCashPaise,
-    deviceAllPaise,
+    heldCashPaise,
+    heldAllPaise,
   })
 
   const odometerKm = odometer.trim() === '' ? null : Number.parseInt(odometer.trim(), 10)
@@ -248,14 +257,12 @@ export default function DaySummary(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {t('d8.expected')}
             </Txt>
-            <Money
-              testID="d8-expected"
-              value={
-                handOverPaise ??
-                (status.online ? null : deviceCashPaise + (trip?.opening_cash_paise ?? 0))
-              }
-              size="moneyL"
-            />
+            {/*
+              ONE rule behind this figure (S-183). The bar used to carry its own offline fallback —
+              right by arithmetic, and the reason the driver could be shown ₹1,944 with no sentence
+              anywhere saying ₹1,544 of it was still on the phone. `dayEndCash` owns both now.
+            */}
+            <Money testID="d8-expected" value={handOverPaise} size="moneyL" />
           </Row>
           <Button
             testID="d8-return"
@@ -320,8 +327,17 @@ export default function DaySummary(): React.JSX.Element {
           }
           testID="d8-cash"
         >
-          <Async state={preview} rows={3}>
-            <Stack gap={4}>
+          {/*
+            S-183 — THE OFFICE'S THREE FIGURES ARE INSIDE `<Async>`; THE MONEY SENTENCES ARE NOT.
+            `<Async>` paints `d.noConnectionRead` over its children the moment the preview fails,
+            which is every offline mount — and offline is the one state this screen exists for. It
+            took the hand-over line and the uncounted note down with the office's figures, so the
+            driver was shown a rupee in the bottom bar and told nothing about it. Measured 3/3 on web
+            at both widths (money-web.md §5(A)). What the office alone knows can go blank; what the
+            phone knows about its own money must not.
+          */}
+          <Stack gap={4}>
+            <Async state={preview} rows={2}>
               <Row gap={4} wrap>
                 <Field label={t('d1.openingCash')}>
                   <Money value={figures?.openingCashPaise ?? null} size="moneyM" />
@@ -333,31 +349,34 @@ export default function DaySummary(): React.JSX.Element {
                   <Money value={figures?.expensesPaise ?? null} size="moneyM" />
                 </Field>
               </Row>
-              {/*
-                A trip that is already closed is HISTORY, not an instruction. D11's rows open this
-                screen for a settled trip, and "Hand ₹20,085.10 to the cashier" on a trip that was
-                settled four days ago is a job nobody has.
-              */}
+            </Async>
+            {/*
+              A trip that is already closed is HISTORY, not an instruction. D11's rows open this
+              screen for a settled trip, and "Hand ₹20,085.10 to the cashier" on a trip that was
+              settled four days ago is a job nobody has. A null figure is the office read still in
+              flight: the skeleton above stands for it, and no rupee is claimed until there is one.
+            */}
+            {handOverPaise === null ? null : (
               <Txt field="bodyStrong" desk="cell" testID="d8-hand-over">
                 {t(onTheRoad ? 'd8.handOver' : 'd8.handedOver', {
-                  amount: formatINR(paise(handOverPaise ?? 0)),
+                  amount: formatINR(paise(handOverPaise)),
                 })}
               </Txt>
-              {/*
-                DOS-179 — both sentences begin "This phone holds ₹X in receipts", which is false on a
-                browser with no OPFS, where the strip at the top of this screen already reads "· Not kept
-                in this browser". `dayEndCash` picks WHICH sentence; the store picks whose it is.
-              */}
-              {note === null ? null : (
-                <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
-                  {t(keepKey(note, status.persistent), {
-                    amount: formatINR(paise(uncountedAllPaise)),
-                  })}
-                </Txt>
-              )}
-              <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
-            </Stack>
-          </Async>
+            )}
+            {/*
+              DOS-179 — both sentences begin "This phone holds ₹X in receipts", which is false on a
+              browser with no OPFS, where the strip at the top of this screen already reads "· Not kept
+              in this browser". `dayEndCash` picks WHICH sentence; the store picks whose it is.
+            */}
+            {note === null ? null : (
+              <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
+                {t(keepKey(note, status.persistent), {
+                  amount: formatINR(paise(uncountedAllPaise)),
+                })}
+              </Txt>
+            )}
+            <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
+          </Stack>
         </Panel>
 
         <Panel

@@ -50,24 +50,39 @@ export interface DeviceReceipt {
 }
 
 /**
- * What THIS PHONE is still carrying (DOS-178).
+ * What THIS PHONE is carrying, and which part of it the office has not answered for (DOS-178, S-183).
  *
  * A receipt the office refused and the crew handed to the cashier stays on the phone for ever — nothing a
  * person entered is ever thrown away (never-list #13) — but it is the cashier's money from that moment
  * on. Counting it here would put it back into "Hand ₹X to the cashier" and ask the driver for the same
  * notes a second time, at the counter, having already put them down. `kept` is the only status that
  * leaves: queued, sending and rejected money is all still the driver's.
+ *
+ * `cashPaise` is every rupee of doorstep CASH this trip's receipts add up to on this device, the total
+ * the screen needs when the office cannot be reached at all and there is no server figure to add to.
+ *
+ * `held*` is the OUTBOX half, and it is a different question: money the office has not taken —
+ * `queued`, `sending`, or refused outright. The DOS-168..170 ruling's risk (e)(2) named this: held
+ * money used to be `Σ local receipts − Σ the office counted`, exact only while this phone's table is a
+ * superset of the server's. A trip has a driver AND a helper, so a helper's landed receipt of the same
+ * amount, not yet pulled to this device, made the difference zero and the sentence vanish while this
+ * phone really was holding it. A row's own `_pending` cannot be masked that way.
  */
 export function deviceMoney(rows: readonly DeviceReceipt[]): {
   readonly cashPaise: number
-  readonly allPaise: number
+  readonly heldCashPaise: number
+  readonly heldAllPaise: number
 } {
-  const held = rows.filter((row) => row._pending !== 'kept')
+  const mine = rows.filter((row) => row._pending !== 'kept')
+  const held = mine.filter(
+    (row) => row._pending === 'queued' || row._pending === 'sending' || row._pending === 'rejected',
+  )
+  const cash = (rowsIn: readonly DeviceReceipt[]): number =>
+    rowsIn.filter((row) => row.mode === 'cash').reduce((sum, row) => sum + row.amount_paise, 0)
   return {
-    cashPaise: held
-      .filter((row) => row.mode === 'cash')
-      .reduce((sum, row) => sum + row.amount_paise, 0),
-    allPaise: held.reduce((sum, row) => sum + row.amount_paise, 0),
+    cashPaise: cash(mine),
+    heldCashPaise: cash(held),
+    heldAllPaise: held.reduce((sum, row) => sum + row.amount_paise, 0),
   }
 }
 
@@ -125,24 +140,50 @@ export function checkInBlock(input: {
 }
 
 /**
- * The hand-over figure and the sentence beside it.
+ * The hand-over figure and the sentence beside it — ONE rule, in every state the screen can be in.
  *
- * `deviceAllPaise − everything the office counted` is what this phone is still carrying. Only its
- * CASH half moves the hand-over figure, because UPI and a cheque are not in the driver's hand; the
- * sentence names all of it either way, so "the office expects ₹8,000" is never read next to a phone
- * holding a ₹2,500 UPI receipt with nothing said.
+ * Held money is the outbox's (`deviceMoney`): only its CASH half moves the hand-over figure, because
+ * UPI and a cheque are not in the driver's hand; the sentence names all of it either way, so "the
+ * office expects ₹8,000" is never read next to a phone holding a ₹2,500 UPI receipt with nothing said.
+ *
+ * S-183: WITH NO SIGNAL THIS STILL ANSWERS. `figures` is the server's preview and cannot resolve
+ * offline, and the rule used to return nothing at all — so on the exact state D8 exists for, the
+ * driver was never told the phone was holding money. The device knows enough to say: the float is on
+ * its own trip row, the doorstep receipts are its own. The figure it gives is the office's own
+ * arithmetic minus what only the office can see — this trip's expenses, and anything a helper's phone
+ * took — so it is an estimate, and the panel says so above it (`d.noConnectionRead`). It is the
+ * figure the bottom bar was already computing privately; owning it here is what keeps the sentence
+ * and the rupee from disagreeing.
+ *
+ * `officeUnreachable` is not "figures are missing": a read still in flight is not an answer, and a
+ * device figure that flashes and then changes under the driver's eyes is its own kind of lie.
  */
 export function dayEndCash(input: {
   readonly figures: DayEndFigures | undefined
+  /** The office read has FAILED or there is no signal — not merely "has not come back yet". */
+  readonly officeUnreachable: boolean
+  /** The float the cashier handed out, from this device's own trip row. */
+  readonly openingCashPaise: number
+  /** Every rupee of doorstep cash on this trip's receipts on this device, `kept` excluded. */
   readonly deviceCashPaise: number
-  readonly deviceAllPaise: number
+  readonly heldCashPaise: number
+  readonly heldAllPaise: number
 }): DayEndCash {
-  const { figures } = input
-  if (figures === undefined) return { handOverPaise: null, uncountedAllPaise: 0, note: null }
+  const { figures, heldAllPaise } = input
 
-  const counted =
-    figures.cashCollectedPaise + figures.upiCollectedPaise + figures.chequeCollectedPaise
-  const uncountedAllPaise = Math.max(0, input.deviceAllPaise - counted)
+  if (figures === undefined) {
+    /*
+     * No office figure to build on. What the device can account for: the float it was given plus the
+     * cash it took at doors. The note is `uncounted` — with no preview there is no trip state to read
+     * (this rule takes none by design), and "not reached the office yet" is the true half of it.
+     */
+    if (!input.officeUnreachable) return { handOverPaise: null, uncountedAllPaise: 0, note: null }
+    return {
+      handOverPaise: input.openingCashPaise + input.deviceCashPaise,
+      uncountedAllPaise: heldAllPaise,
+      note: heldAllPaise === 0 ? null : 'uncounted',
+    }
+  }
 
   /*
    * A closed trip reports the figures it settled with; nothing on this phone is added to them. The
@@ -152,15 +193,14 @@ export function dayEndCash(input: {
   if (figures.tripState === 'settled' || figures.tripState === 'settled_with_variance') {
     return {
       handOverPaise: figures.expectedCashPaise,
-      uncountedAllPaise,
-      note: uncountedAllPaise === 0 ? null : 'uncountedSettled',
+      uncountedAllPaise: heldAllPaise,
+      note: heldAllPaise === 0 ? null : 'uncountedSettled',
     }
   }
 
-  const uncountedCashPaise = Math.max(0, input.deviceCashPaise - figures.cashCollectedPaise)
   return {
-    handOverPaise: figures.expectedCashPaise + uncountedCashPaise,
-    uncountedAllPaise,
-    note: uncountedAllPaise === 0 ? null : 'uncounted',
+    handOverPaise: figures.expectedCashPaise + input.heldCashPaise,
+    uncountedAllPaise: heldAllPaise,
+    note: heldAllPaise === 0 ? null : 'uncounted',
   }
 }

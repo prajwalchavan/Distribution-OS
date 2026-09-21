@@ -136,17 +136,24 @@ describe('DOS-179 closing the trip never claims a keep the store cannot make', (
     }
 
     // The rule hands back the KeepWord, never the phone's string key: the screen has to ask the store.
-    expect(dayEndCash({ figures, deviceCashPaise: 0, deviceAllPaise: 50_00 }).note).toBe(
+    const held = {
+      officeUnreachable: false,
+      openingCashPaise: 0,
+      deviceCashPaise: 0,
+      heldCashPaise: 0,
+      heldAllPaise: 50_00,
+    }
+    expect(dayEndCash({ figures, ...held }).note).toBe('uncounted')
+    expect(dayEndCash({ figures: { ...figures, tripState: 'settled' }, ...held }).note).toBe(
+      'uncountedSettled',
+    )
+    expect(dayEndCash({ figures, ...held, heldAllPaise: 0 }).note).toBeNull()
+
+    // S-183 added a third state this sentence can be chosen in: no signal at all, where the rule
+    // answers from the device rather than going silent. It is a keep WORD there too.
+    expect(dayEndCash({ figures: undefined, ...held, officeUnreachable: true }).note).toBe(
       'uncounted',
     )
-    expect(
-      dayEndCash({
-        figures: { ...figures, tripState: 'settled' },
-        deviceCashPaise: 0,
-        deviceAllPaise: 50_00,
-      }).note,
-    ).toBe('uncountedSettled')
-    expect(dayEndCash({ figures, deviceCashPaise: 0, deviceAllPaise: 0 }).note).toBeNull()
 
     // And D8 renders whichever it chose through the helper, not straight into the translator.
     const day = await read('../../app/day.tsx')
