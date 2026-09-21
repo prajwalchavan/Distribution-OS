@@ -26,7 +26,7 @@ Nothing below is a summary of something else: `backend/infra/` holds the files, 
 | --- | --- | --- |
 | Founder | An Oracle Cloud account, home region **Mumbai** (irreversible), with a real credit card — PIN-debit, prepaid and virtual cards are refused | The Always Free shape lives in the home region |
 | Founder | A Cloudflare account and an API token with **Pages: Edit** and, for R2, **Object Read & Write** | Pages publishes the apps; R2 holds the backups |
-| Founder | The domain **`distributionos.in`** bought, nameservers pointed at Cloudflare | `api.<domain>` and `app.<domain>` both come from it |
+| Founder | The domain **`distributionos.in`** bought, nameservers pointed at Cloudflare | `api.<domain>` and `www.<domain>` both come from it; the bare `distributionos.in` redirects to `www` (founder, 2026-09-21, docs/22 §8) |
 | This repo | A green `ci.yml` on `main`, and one `image.yml` run that pushed a `sha-…` tag | The box only ever pulls |
 
 **Go-live gate (founder, 2026-09-21 — docs/22 §8).** Role election at sign-in and the ONE merged app
@@ -110,7 +110,7 @@ list itself; every one of them is required.
 # Edit .env.prod and set:
 #   DOS_IMAGE                  ghcr.io/prajwalchavan/distribution-os:sha-xxxxxxx   (never :latest)
 #   DOMAIN, ACME_EMAIL         distributionos.in, a mailbox you read
-#   CORS_ORIGINS               https://app.distributionos.in  (the Pages hostname; NOT api.*)
+#   CORS_ORIGINS               https://www.distributionos.in  (the Pages hostname; NOT api.*)
 #   OBJECT_STORAGE_PUBLIC_URL  https://api.distributionos.in
 #   TENANT_LEGAL_NAME, TENANT_GSTIN, TENANT_STATE_CODE, OWNER_NAME, OWNER_USERNAME, OWNER_PHONE
 #   BACKUP_S3_*                the R2 bucket, endpoint and API token
@@ -242,12 +242,13 @@ here — see §12.
 cd frontend && DOMAIN=distributionos.in PAGES_PROJECT=dos-web ./scripts/pages-deploy.sh dos
 ```
 
-[not run here: needs a Cloudflare account] Proves: the site answers on the app hostname and a deep
-link survives a hard refresh.
+[not run here: needs a Cloudflare account] Proves: the site answers on the website hostname and a
+deep link survives a hard refresh.
 
 ```bash
-# Cloudflare dashboard → Pages → dos-web → Custom domains → app.distributionos.in
-curl -fsS -o /dev/null -w '%{http_code}\n' https://app.distributionos.in/orders/does-not-exist
+# Cloudflare dashboard → Pages → dos-web → Custom domains → www.distributionos.in
+#   and a redirect rule sending the bare distributionos.in to https://www.distributionos.in
+curl -fsS -o /dev/null -w '%{http_code}\n' https://www.distributionos.in/orders/does-not-exist
 # expect 200 (the SPA's own not-found screen), not Cloudflare's 404
 ```
 
