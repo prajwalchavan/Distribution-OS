@@ -17,7 +17,40 @@ Two questions, asked of every phase:
    endpoint × every role), and a smoke run of 1 618 calls that now ends 0 BROKEN on a fresh seed. A phase
    whose content is "check the thing those already check" is re-verification, not verification.
 
-## The ten days
+## The five days (founder, 2026-09-21: "Possibly cut it down to 4-5 days")
+
+The ten-day plan below this section is kept as the record of what was cut and why; the schedule itself is
+now FIVE days. Two things went, and both were genuine duplication or genuine deferral rather than a
+shortening of the work:
+
+- **The standalone regression day merged into the cross-role chain.** Walking one order through all seven
+  apps IS walking all seven apps. Two days were checking one thing from opposite ends.
+- **The four safety lanes stopped being lanes.** Money, pricing and GST, inventory and tenant isolation now
+  run on day 4, narrowed to what the simulation actually exposed. A real trading week exercises them harder
+  than a checklist does — but this is a real reduction in breadth and is recorded as one.
+
+| Day | What runs |
+|---|---|
+| 1 (Mon) | One order through all seven apps — the cross-role chain, which is also the regression. **Fable designs the simulation the same day, in parallel** (Fable 1 of 2) |
+| 2–3 (Tue–Wed) | **The seven-day business simulation.** Two full days; everything else was cut so that this keeps them |
+| 4 (Thu) | Fix what the simulation found, and check only where it pointed. If the books balanced and nothing surfaced: the money reconciliation and an adversarial cross-tenant read, which are never skipped (Fable 2 of 2 — reviews) |
+| 5 (Fri) | Android basics on the Pixel 7 · the security slice public URLs require (authz, signed file URLs, secrets) · **host it and hand over the URLs** · Fable's audit folded into the handover |
+
+**The honest shape: four days of scheduled work and one day of unknown.** Day 4 is the only day set aside
+for repairing whatever days 2-3 find. If Wednesday evening's books reconcile, Friday is live. If they do
+not, the unknown is the repair and not the schedule — likely eight days rather than five — and the founder
+hears that on Wednesday night, not on Friday with his URLs half-built.
+
+Also now cut, beyond the pilot cuts listed further down:
+- **iOS beyond boot.** Android is the pilot platform (founder, 2026-09-05). Same codebase and the same
+  native renderer — but that is an argument, not a reading, and it stays named as one.
+- **A separate audit day.** Fable's verdict arrives with the URLs instead of a day later.
+
+The plan as a page for the founder: https://claude.ai/artifact/5c7mWeutvCDtEEsiujS1ei
+
+## The ten-day plan, kept as the record of the cut
+
+
 
 **Revised 2026-09-21 on the founder's word: "Business simulation is imp."** It was on day 7 with three days
 behind it. It is now on days 4-5 with FIVE days behind it, because it is both the most valuable test in the
