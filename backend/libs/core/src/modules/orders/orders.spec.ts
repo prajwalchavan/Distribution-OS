@@ -88,6 +88,7 @@ type Detail = {
     orderTotalPaise: number
   } | null
   cancelReason: string | null
+  refusedAt: string | null
   lines: Line[]
   transitions: { event: string; toState: string; actorId: string; deviceId: string | null }[]
   approvals: {
@@ -2049,9 +2050,10 @@ describeDb('orders (DATABASE_URL)', () => {
     })
     expect(decided.status).toBe(200)
     expect(decided.body.item.status).toBe('rejected')
+    // QA DOS-191: the order carries the decision in the owner's own words, never the machine's enum
     expect(decided.body.order).toMatchObject({
       state: 'cancelled',
-      cancelReason: 'approval_rejected',
+      cancelReason: 'Refused by Owner: list rate holds',
     })
 
     // the owner's "no" reached the request itself, which the rep's device and the shop pull
@@ -3992,6 +3994,105 @@ describeDb('orders (DATABASE_URL)', () => {
       expect(refused.body.message).not.toContain(approvalId)
       expect(refused.body.message).not.toContain(ownerId)
       expect(refused.body.message).not.toContain('T10:50')
+    })
+  })
+
+  // -----------------------------------------------------------------------------------------------------
+  // DOS-191: an order refused at a gate
+
+  describe('DOS-191: the rep is told, in the manager’s own words', () => {
+    it('writes the decision onto the order in words, marks it refused, and tells the rep through the outbox', async () => {
+      const orderId = uuidv7()
+      const created = await call<{ item: Detail }>(app, rep, 'POST', '/orders', {
+        idempotencyKey: `dos191-create-${run}`,
+        id: orderId,
+        retailerId: retailerB,
+        source: 'salesperson',
+        lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 20, enteredUnit: 'case' }],
+      })
+      expect(created.status, JSON.stringify(created.body)).toBe(200)
+      const submitted = await call<{ item: Detail }>(
+        app,
+        rep,
+        'POST',
+        `/orders/${orderId}/submit`,
+        {
+          idempotencyKey: `dos191-submit-${run}`,
+        },
+      )
+      expect(submitted.status, JSON.stringify(submitted.body)).toBe(200)
+      expect(submitted.body.item.state).toBe('submitted')
+      expect(submitted.body.item.approvalFlags.length).toBeGreaterThan(0)
+
+      const queue = await call<{ items: { id: string }[] }>(app, owner, 'GET', '/approvals', {
+        status: 'pending',
+        orderId,
+      })
+      expect(queue.status).toBe(200)
+      const gateId = queue.body.items[0]?.id ?? ''
+      expect(gateId).not.toBe('')
+
+      const note = '40 days overdue and no payment promised. Collect the old bills first.'
+      const decided = await call<{ item: { status: string }; order: Detail | null }>(
+        app,
+        owner,
+        'POST',
+        `/approvals/${gateId}/decide`,
+        { idempotencyKey: `dos191-reject-${run}`, decision: 'reject', note },
+      )
+      expect(decided.status, JSON.stringify(decided.body)).toBe(200)
+      expect(decided.body.item.status).toBe('rejected')
+
+      // the reason on the order is a SENTENCE a rep can read to a shopkeeper, not the machine's enum
+      const order = decided.body.order
+      expect(order?.state).toBe('cancelled')
+      expect(order?.cancelReason).toBe(`Refused by Owner: ${note}`)
+      expect(order?.cancelReason).not.toContain('approval_rejected')
+      // and the order says it was REFUSED, not merely cancelled, so the rep’s list can keep it
+      expect(order?.refusedAt).not.toBeNull()
+
+      // the rep’s own read says the same thing, with no signal needed beyond this one call
+      const read = await call<{ item: Detail }>(app, rep, 'GET', `/orders/${orderId}`)
+      expect(read.status).toBe(200)
+      expect(read.body.item.cancelReason).toBe(`Refused by Owner: ${note}`)
+      expect(read.body.item.refusedAt).not.toBeNull()
+
+      // the event notifications reads carries who to tell and what to say
+      const events = (
+        await db.execute(sql`
+          select payload from outbox_events
+           where tenant_id = ${tenantId} and aggregate_id = ${orderId}
+             and event_type = 'OrderCancelled'`)
+      ).rows as { payload: Record<string, unknown> }[]
+      expect(events).toHaveLength(1)
+      expect(events[0]?.payload.salespersonId).toBe(repId)
+      expect(events[0]?.payload.cancelReason).toBe(`Refused by Owner: ${note}`)
+      expect(events[0]?.payload.refused).toBe(true)
+    })
+
+    it('a desk cancel is still a cancel: the typed reason travels and the order is not marked refused', async () => {
+      const orderId = uuidv7()
+      expect(
+        (
+          await call(app, rep, 'POST', '/orders', {
+            idempotencyKey: `dos191-plain-create-${run}`,
+            id: orderId,
+            retailerId: retailerA,
+            source: 'salesperson',
+            lines: [{ id: uuidv7(), variantId: variantA, enteredQty: 1, enteredUnit: 'case' }],
+          })
+        ).status,
+      ).toBe(200)
+      const cancelled = await call<{ item: Detail }>(
+        app,
+        manager,
+        'POST',
+        `/orders/${orderId}/cancel`,
+        { idempotencyKey: `dos191-plain-cancel-${run}`, reason: 'The shop rang and called it off' },
+      )
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      expect(cancelled.body.item.cancelReason).toBe('The shop rang and called it off')
+      expect(cancelled.body.item.refusedAt).toBeNull()
     })
   })
 })

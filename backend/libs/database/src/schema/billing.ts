@@ -105,6 +105,16 @@ export const invoices = pgTable(
     pdfObjectKey: text('pdf_object_key'),
     issuedBy: text('issued_by').references(() => users.id),
     issuedAt: tz('issued_at'),
+    /**
+     * THE BILL IS ON A VAN AND THE SHOP DOES NOT HAVE THE GOODS (QA DOS-197; docs/22 §4: "the bill waits
+     * on the van until check-in, then goes back to planning"). Set when a stop outcome is failed or
+     * refused, cleared the moment the bill is delivered or part-delivered. Deliberately NOT a state: the
+     * bill is issued, its GST is due and it will be re-attempted, so `cancelled` would be a lie and the
+     * `invoice_state` machine has no rung for "issued but not handed over". Receivables reads it as the
+     * one extra clause on "open": an undelivered bill is out of the shop's dues, its ageing and the FIFO
+     * allocation, and its value is carried on the rollup as `undelivered_paise` so the books still prove.
+     */
+    undeliveredAt: tz('undelivered_at'),
     cancelledAt: tz('cancelled_at'),
     cancelReason: text('cancel_reason'),
     ...timestamps,
@@ -134,6 +144,10 @@ export const invoices = pgTable(
       .where(sql`external_invoice_no IS NOT NULL`),
     /** Register filters and the per-source Tally split (van_sale vs pack vs brand_dms_import). */
     index('invoices_source_date_idx').on(t.tenantId, t.source, t.invoiceDate),
+    /** The desk's Undelivered register, and the one extra clause every "open bill" read carries. */
+    index('invoices_undelivered_idx')
+      .on(t.tenantId, t.undeliveredAt)
+      .where(sql`undelivered_at IS NOT NULL`),
     tenantOrOwnRetailerPolicy('invoices_read', 'retailer_id'),
     ...staffWritePolicy('invoices_write'),
   ],

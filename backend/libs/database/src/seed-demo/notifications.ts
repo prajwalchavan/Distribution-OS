@@ -133,6 +133,19 @@ export const PLATFORM_TEMPLATES: readonly PlatformTemplate[] = [
     body: 'Order {{orderNo}} of {{totalRupees}} is waiting for your approval.',
     variables: ['orderNo', 'totalRupees'],
   },
+  // QA DOS-191: the rep who booked the order hears the office's decision in the manager's own words.
+  {
+    key: 'order_refused',
+    channel: 'push',
+    body: 'Order {{orderNo}} of {{totalRupees}} — {{reason}}',
+    variables: ['orderNo', 'totalRupees', 'reason'],
+  },
+  {
+    key: 'order_refused',
+    channel: 'in_app',
+    body: 'Order {{orderNo}} of {{totalRupees}} — {{reason}}',
+    variables: ['orderNo', 'totalRupees', 'reason'],
+  },
   {
     key: 'invoice_issued',
     channel: 'whatsapp',
@@ -162,6 +175,25 @@ export const PLATFORM_TEMPLATES: readonly PlatformTemplate[] = [
     channel: 'in_app',
     body: 'Your goods against bill {{invoiceRef}} were {{outcome}} today.',
     variables: ['invoiceRef', 'outcome'],
+  },
+  // QA DOS-197: the shop hears that nothing came off the van, by bill NUMBER, and that we will return.
+  {
+    key: 'delivery_failed',
+    channel: 'whatsapp',
+    body: 'Bill {{invoiceNo}} could not be delivered today — we will come again. — {{distributorName}}',
+    variables: ['invoiceNo'],
+  },
+  {
+    key: 'delivery_failed',
+    channel: 'sms',
+    body: 'Bill {{invoiceNo}} could not be delivered today. We will come again. {{distributorName}}',
+    variables: ['invoiceNo'],
+  },
+  {
+    key: 'delivery_failed',
+    channel: 'in_app',
+    body: 'Bill {{invoiceNo}} could not be delivered today — we will come again.',
+    variables: ['invoiceNo'],
   },
   {
     key: 'payment_received',

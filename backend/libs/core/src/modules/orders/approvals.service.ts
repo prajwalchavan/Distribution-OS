@@ -32,9 +32,6 @@ type ListOut = z.infer<typeof ApprovalsListOutput>
 type DecideIn = z.infer<typeof DecideApprovalInput>
 type DecideOut = z.infer<typeof DecideApprovalOutput>
 
-/** Reason recorded on an order cancelled because the owner turned its approval down. */
-export const APPROVAL_REJECTED = 'approval_rejected'
-
 /**
  * The owner's approvals queue (docs/06): credit, bargain and below-floor gates raised at submit. Approving the
  * last one confirms the order (which reserves stock); rejecting any of them cancels it, because the rep must
@@ -178,8 +175,9 @@ export class ApprovalsService {
           const cancelled = await this.orders.cancelInTx(
             tx,
             order,
-            APPROVAL_REJECTED,
+            await this.refusalWords(tx, ctx.actorId, input.note ?? null),
             input.deviceId ?? null,
+            now,
           )
           return { item, order: cancelled }
         }
@@ -189,6 +187,22 @@ export class ApprovalsService {
         return { item, order: confirmed.item }
       }),
     )
+  }
+
+  /**
+   * WHAT THE REP READS when the office turns an order down (QA DOS-191).
+   *
+   * The rejection dialog demands a note — "the person who asked will read it" — and that note used to
+   * land in `approvals.decision_note` and nowhere the rep could reach, while the order itself carried
+   * the literal string `approval_rejected` where the desk's own cancel carries a human sentence. Same
+   * column, same screen, two different languages. So the decision is written onto the order in words:
+   * who refused it, then what they typed. The machine-readable fact is `sales_orders.refused_at`.
+   */
+  private async refusalWords(tx: Db, decidedBy: string, note: string | null): Promise<string> {
+    const names = await userLabels(tx, [decidedBy])
+    const by = personWord(names.get(decidedBy))
+    const said = note?.trim() ?? ''
+    return said === '' ? `Refused by ${by}` : `Refused by ${by}: ${said}`
   }
 
   /**

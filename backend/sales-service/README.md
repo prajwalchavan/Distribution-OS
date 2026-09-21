@@ -8527,6 +8527,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -8753,6 +8754,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -8986,6 +8988,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9203,6 +9206,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9430,6 +9434,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9668,6 +9673,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9882,6 +9888,7 @@ curl "http://localhost:3003/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10076,6 +10083,7 @@ curl "http://localhost:3003/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10290,6 +10298,7 @@ curl "http://localhost:3003/orders?state=draft&openOnly=true&retailerId=01a06dbc
       "confirmedAt": "2026-09-04T10:30:00.000Z",
       "cancelledAt": null,
       "cancelReason": null,
+      "refusedAt": "2026-09-04T10:30:00.000Z",
       "createdAt": "2026-09-04T10:30:00.000Z"
     }
   ],
@@ -10557,6 +10566,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10828,6 +10838,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -11422,6 +11433,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -11737,6 +11749,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -12025,6 +12038,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -12154,6 +12168,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -12270,6 +12285,7 @@ curl "http://localhost:3003/receivables/outstanding/01a06dbc-35ed-7760-86f2-6c70
   "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
   "outstandingPaise": 2680000,
   "overduePaise": 4000,
+  "undeliveredPaise": 4000,
   "unallocatedCreditPaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
@@ -12506,6 +12522,7 @@ curl "http://localhost:3003/receivables/credit-check?retailerId=01a06dbc-35ed-77
   "creditLimitBills": 1,
   "creditDays": 7,
   "outstandingPaise": 2680000,
+  "undeliveredPaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
   "overdueDays": 7,
@@ -12851,6 +12868,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -24428,6 +24446,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {

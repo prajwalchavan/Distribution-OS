@@ -45,6 +45,8 @@ type MessageOut = Record<string, unknown> & {
   body: string | null
   retailerName: string | null
   recipientRetailerId: string | null
+  recipientUserId: string | null
+  templateKey: string | null
   costPaise?: number | null
   providerMessageId?: string | null
   error?: string | null
@@ -285,6 +287,24 @@ describeDb('notifications (DATABASE_URL)', () => {
           ['invoiceNo', 'totalRupees', 'dueDate', 'upiLink'],
         ),
         platformTemplate(
+          'order_refused',
+          'in_app',
+          'Order {{orderNo}} of {{totalRupees}} — {{reason}}',
+          ['orderNo', 'totalRupees', 'reason'],
+        ),
+        platformTemplate(
+          'order_refused',
+          'push',
+          'Order {{orderNo}} of {{totalRupees}} — {{reason}}',
+          ['orderNo', 'totalRupees', 'reason'],
+        ),
+        platformTemplate(
+          'delivery_failed',
+          'whatsapp',
+          'Bill {{invoiceNo}} could not be delivered today — we will come again. — {{distributorName}}',
+          ['invoiceNo'],
+        ),
+        platformTemplate(
           'scheme_announcement',
           'whatsapp',
           '{{schemeName}} till {{validTill}}. — {{distributorName}}',
@@ -447,6 +467,162 @@ describeDb('notifications (DATABASE_URL)', () => {
       },
     })
     expect(noPhone).toEqual({ outcome: 'skipped', reason: 'no_phone' })
+  })
+
+  /*
+   * QA DOS-197 — THE SHOP IS TOLD, BY BILL NUMBER, WHEN NOTHING CAME OFF THE VAN.
+   *
+   * The shop had already had "your bill is ready" and "our vehicle is on its way"; the failed stop
+   * answered neither. One message per bill, keyed by the delivery so a relay replay finds it, naming
+   * the bill the way the shop reads it — the NUMBER, never an id fragment (docs/22).
+   */
+  it('DOS-197: a DeliveryFailed event becomes ONE message naming the bill by its number, and none at all for a bill with no number', async () => {
+    const deliveryId = uuidv7()
+    const failedInvoice = uuidv7()
+    const failedEvent = {
+      tenantId,
+      aggregateType: 'delivery',
+      aggregateId: deliveryId,
+      eventType: 'DeliveryFailed',
+      payload: {
+        deliveryId,
+        tripId: uuidv7(),
+        stopId: uuidv7(),
+        retailerId: shopA,
+        invoiceId: failedInvoice,
+        invoiceNo: `INV/26-27/${run}9`,
+        failureReason: 'shop_closed',
+      },
+    }
+    const first = await handleNotificationEvent(db, failedEvent)
+    expect(first.outcome).toBe('queued')
+    expect((await handleNotificationEvent(db, failedEvent)).outcome).toBe('replayed')
+    const rows = await messagesByKey(`DeliveryFailed:${deliveryId}`)
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row?.channel).toBe('whatsapp')
+    expect(row?.to).toBe(shopPhoneA)
+    expect(row?.refType).toBe('invoice')
+    expect(row?.refId).toBe(failedInvoice)
+    const payload = row?.payload as Record<string, unknown>
+    expect(payload.body).toBe(
+      `Bill INV/26-27/${run}9 could not be delivered today — we will come again. — Notify Traders`,
+    )
+    expect(String(payload.body)).not.toContain(failedInvoice.slice(-8).toUpperCase())
+    expect(payload.body).not.toContain('{{')
+
+    // a bill that never got a number is a bill the shop was never told about: nothing is sent
+    const unnumbered = uuidv7()
+    const skipped = await handleNotificationEvent(db, {
+      ...failedEvent,
+      aggregateId: unnumbered,
+      payload: { ...failedEvent.payload, deliveryId: unnumbered, invoiceNo: null },
+    })
+    expect(skipped).toEqual({ outcome: 'skipped', reason: 'the bill has no number' })
+    expect(await messagesByKey(`DeliveryFailed:${unnumbered}`)).toHaveLength(0)
+  })
+
+  /*
+   * QA DOS-191 — THE REP WHO BOOKED IT IS TOLD, IN THE MANAGER'S OWN WORDS.
+   *
+   * The submit had pushed "needs approval" to the desk; the decision pushed nothing back. The rep stood
+   * in the shop reading `approval_rejected` off a screen while the manager's sentence sat in a column no
+   * app could reach. Now the same two channels the submit used carry the answer: one in-app row that
+   * survives a phone that was off, and a push to every device the rep has registered.
+   */
+  it('DOS-191: an order the office refused notifies the rep in-app and on every device, in the manager\u2019s words, and a plain cancel notifies nobody', async () => {
+    const deviceId = uuidv7()
+    expect(
+      (
+        await call(app, rep, 'POST', '/notifications/push-tokens', {
+          idempotencyKey: `dos191-pt-${run}`,
+          id: deviceId,
+          deviceId: `rep-phone-${run}`,
+          token: 'ExponentPushToken[dos191]',
+          platform: 'android',
+        })
+      ).status,
+    ).toBe(200)
+
+    const refusedOrder = uuidv7()
+    const words = 'Refused by Vikas Kadam: 40 days overdue and no payment promised.'
+    const refused = await handleNotificationEvent(db, {
+      tenantId,
+      aggregateType: 'sales_order',
+      aggregateId: refusedOrder,
+      eventType: 'OrderCancelled',
+      payload: {
+        orderId: refusedOrder,
+        orderNo: `SO-${run}-R`,
+        retailerId: shopA,
+        state: 'cancelled',
+        totalPaise: 61_700,
+        salespersonId: repId,
+        cancelReason: words,
+        refused: true,
+      },
+    })
+    expect(refused.outcome).toBe('queued')
+
+    const inApp = await messagesByKey(`OrderRefused:${refusedOrder}`)
+    expect(inApp).toHaveLength(1)
+    expect(inApp[0]?.channel).toBe('in_app')
+    expect(inApp[0]?.recipientUserId).toBe(repId)
+    expect(inApp[0]?.refType).toBe('order')
+    expect(inApp[0]?.refId).toBe(refusedOrder)
+    const body = (inApp[0]?.payload as Record<string, unknown>).body
+    expect(body).toBe(`Order SO-${run}-R of \u20b9617.00 \u2014 ${words}`)
+    expect(String(body)).not.toContain('approval_rejected')
+
+    const push = await messagesByKey(`OrderRefused:${refusedOrder}:${deviceId}`)
+    expect(push).toHaveLength(1)
+    expect(push[0]?.channel).toBe('push')
+    expect(push[0]?.to).toBe(deviceId)
+
+    // a replay of the same event writes nothing new
+    expect(
+      (
+        await handleNotificationEvent(db, {
+          tenantId,
+          aggregateType: 'sales_order',
+          aggregateId: refusedOrder,
+          eventType: 'OrderCancelled',
+          payload: {
+            orderId: refusedOrder,
+            orderNo: `SO-${run}-R`,
+            retailerId: shopA,
+            state: 'cancelled',
+            totalPaise: 61_700,
+            salespersonId: repId,
+            cancelReason: words,
+            refused: true,
+          },
+        })
+      ).outcome,
+    ).toBe('replayed')
+    expect(await messagesByKey(`OrderRefused:${refusedOrder}`)).toHaveLength(1)
+
+    // and a desk cancel is still only the shop's message: no rep is woken for it
+    const plainOrder = uuidv7()
+    const plain = await handleNotificationEvent(db, {
+      tenantId,
+      aggregateType: 'sales_order',
+      aggregateId: plainOrder,
+      eventType: 'OrderCancelled',
+      payload: {
+        orderId: plainOrder,
+        orderNo: `SO-${run}-P`,
+        retailerId: shopA,
+        state: 'cancelled',
+        totalPaise: 1_000,
+        salespersonId: repId,
+        cancelReason: 'The shop rang and called it off',
+        refused: false,
+      },
+    })
+    expect(plain.outcome).toBe('queued')
+    expect(await messagesByKey(`OrderRefused:${plainOrder}`)).toHaveLength(0)
+    expect(await messagesByKey(`OrderCancelled:${plainOrder}`)).toHaveLength(1)
   })
 
   it('a brand-DMS or migrated bill is never announced as a new bill', async () => {
@@ -750,9 +926,13 @@ describeDb('notifications (DATABASE_URL)', () => {
     const mine = await call<{ items: MessageOut[] }>(app, rep, 'GET', '/notifications/messages')
     expect(mine.status).toBe(200)
     expect(mine.body.items.length).toBeGreaterThanOrEqual(2)
-    expect(mine.body.items.every((m) => [shopA, shopB].includes(m.recipientRetailerId ?? ''))).toBe(
-      true,
-    )
+    // its own notices (QA DOS-191: the office's refusal is one of them) and the shops on its beats
+    expect(
+      mine.body.items.every(
+        (m) => m.recipientUserId === repId || [shopA, shopB].includes(m.recipientRetailerId ?? ''),
+      ),
+    ).toBe(true)
+    expect(mine.body.items.some((m) => m.templateKey === 'order_refused')).toBe(true)
     expect(mine.body.items.every((m) => !('costPaise' in m))).toBe(true)
     // the other rep (beat B) sees none of beat A's rows
     const theirs = await call<{ items: MessageOut[] }>(

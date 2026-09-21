@@ -121,6 +121,12 @@ export interface LocalOrder extends LocalMeta {
   cancelled_at: string | null
   /* DOS-142: what the office typed when it cancelled. The pull has always sent it; nothing read it. */
   cancel_reason: string | null
+  /*
+   * DOS-191: the office turned this order down at an approval gate, as against anyone calling it off.
+   * Both end `cancelled` and both carry a `cancel_reason`, so the Refused filter needs the FACT — a
+   * text match on a free-text column is not a filter, it is a guess.
+   */
+  refused_at: string | null
   created_at: string
 }
 

@@ -460,6 +460,21 @@ export const strings = {
   'm7t.needDriver': 'Choose a driver',
   'm7t.sameCrew': 'The helper cannot be the driver',
   'm7t.needBill': 'Choose at least one bill',
+  'm7t.onTheRoad': 'On the road — the desk cannot change it',
+
+  // --- M7 Trips · what came back undelivered (QA DOS-196) ------------------------------------------
+  'm7u.title': 'Came back undelivered',
+  'm7u.empty': 'Every bill that went out was delivered',
+  'm7u.count': '{count} bills',
+  'm7u.bill': 'Bill no.',
+  'm7u.shop': 'Shop',
+  'm7u.value': 'Amount ₹',
+  'm7u.reason': 'Why',
+  'm7u.note': "Crew's note",
+  'm7u.trip': 'Trip',
+  'm7u.next': 'What happens next',
+  'm7u.onTheRoad': 'Out on {trip} — back after check-in',
+  'm7u.backAtTheGodown': 'Back at the godown — plan it again',
 
   // --- M6 Billing desk -----------------------------------------------------------------------------
   'm6.tab': 'Billing desk',

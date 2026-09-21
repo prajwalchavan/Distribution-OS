@@ -68,6 +68,7 @@ import { LoadSheetsService } from '../warehouse/index.js'
 import {
   assertCrewOrDesk,
   asSystemRole,
+  declareUndelivered,
   defined,
   DOORSTEP,
   driverConsentGranted,
@@ -1011,6 +1012,27 @@ export class TripsService {
     return next ?? stop
   }
 
+  /**
+   * The cause of a doorstep failure onto the stop itself (QA DOS-203), for the path that does NOT go
+   * through the fail sheet: `deliveries.record` with every line zero. `failStopInTx` writes the same two
+   * columns for `stops.fail` and `trips.return`. Never overwrites a reason already recorded, so a
+   * second bill failed at the same stop keeps the first one's words.
+   */
+  async recordStopFailure(
+    tx: Db,
+    stop: StopRow,
+    failureReason: StopRow['failureReason'],
+    failureNote: string | null,
+  ): Promise<StopRow> {
+    if (stop.failureReason !== null) return stop
+    const [next] = await tx
+      .update(tripStops)
+      .set({ failureReason, failureNote, updatedAt: new Date() })
+      .where(eq(tripStops.id, stop.id))
+      .returning()
+    return next ?? stop
+  }
+
   async stopItem(tx: Db, stop: StopRow, trip: TripRow): Promise<Stop> {
     const vehicle = await loadVehicle(tx, trip.vehicleId)
     const [item] = await mapStops(tx, [stop], this.deps(), () => vehicle.regNo)
@@ -1138,6 +1160,18 @@ export class TripsService {
           deviceId,
           failureReason ?? 'failed',
         )
+      // QA DOS-197: the bill rides back on the van, so it leaves the shop's dues and the ageing, and
+      // the shop is told by bill NUMBER. docs/22 §4: it waits on the van until check-in.
+      await declareUndelivered(tx, this.billing, {
+        deliveryId: d.id,
+        tripId: row.tripId,
+        stopId: row.id,
+        retailerId: row.retailerId,
+        invoiceId: invoice.id,
+        invoiceNo: invoice.invoiceNo,
+        failureReason,
+        at,
+      })
     }
     await emitDeliveryEvent(tx, 'trip', row.tripId, 'StopFailed', {
       tripId: row.tripId,

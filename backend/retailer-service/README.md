@@ -8515,6 +8515,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -8741,6 +8742,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -8974,6 +8976,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9191,6 +9194,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9418,6 +9422,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9656,6 +9661,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9870,6 +9876,7 @@ curl "http://localhost:3006/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10064,6 +10071,7 @@ curl "http://localhost:3006/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10278,6 +10286,7 @@ curl "http://localhost:3006/orders?state=draft&openOnly=true&retailerId=01a06dbc
       "confirmedAt": "2026-09-04T10:30:00.000Z",
       "cancelledAt": null,
       "cancelReason": null,
+      "refusedAt": "2026-09-04T10:30:00.000Z",
       "createdAt": "2026-09-04T10:30:00.000Z"
     }
   ],
@@ -10545,6 +10554,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10816,6 +10826,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -11410,6 +11421,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -11725,6 +11737,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -12013,6 +12026,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -12142,6 +12156,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -12258,6 +12273,7 @@ curl "http://localhost:3006/receivables/outstanding/01a06dbc-35ed-7760-86f2-6c70
   "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
   "outstandingPaise": 2680000,
   "overduePaise": 4000,
+  "undeliveredPaise": 4000,
   "unallocatedCreditPaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
@@ -12494,6 +12510,7 @@ curl "http://localhost:3006/receivables/credit-check?retailerId=01a06dbc-35ed-77
   "creditLimitBills": 1,
   "creditDays": 7,
   "outstandingPaise": 2680000,
+  "undeliveredPaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
   "overdueDays": 7,
@@ -12839,6 +12856,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -20476,11 +20494,17 @@ request.json
     {
       "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
       "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "tripNo": "SO-0042",
+      "tripState": "planned",
       "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+      "stopFailureReason": null,
+      "stopFailureNote": "Confirmed on phone with the shopkeeper",
       "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
       "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
       "invoiceNo": "SO-0042",
+      "invoiceTotalPaise": 2680000,
       "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
       "outcome": "delivered",
       "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
       "deliveredAt": "2026-09-04T10:30:00.000Z",
@@ -20633,11 +20657,17 @@ request.json
   "item": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "tripState": "planned",
     "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "stopFailureReason": null,
+    "stopFailureNote": "Confirmed on phone with the shopkeeper",
     "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
     "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
     "invoiceNo": "SO-0042",
+    "invoiceTotalPaise": 2680000,
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
     "outcome": "delivered",
     "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
     "deliveredAt": "2026-09-04T10:30:00.000Z",
@@ -20938,6 +20968,7 @@ Delivery register (a shop sees only its own bills' deliveries) · contract `deli
 | `retailerId` | uuid | no |
 | `outcome` | delivered | partial | returned | failed | no |
 | `attemptedOnly` | boolean | string | no |
+| `undeliveredOnly` | boolean | string | no |
 | `from` | date | no |
 | `to` | date | no |
 | `limit` | integer | no |
@@ -20946,7 +20977,7 @@ Delivery register (a shop sees only its own bills' deliveries) · contract `deli
 **Example request**
 
 ```bash
-curl "http://localhost:3006/delivery/deliveries?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&stopId=01a06d5c-e42f-7382-88a1-ae0ef12689a5&invoiceId=01a06dea-de0c-7ad3-8a15-120111eb3642&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&outcome=delivered&attemptedOnly=false&from=2026-09-04&to=2026-09-04&limit=50" \
+curl "http://localhost:3006/delivery/deliveries?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&stopId=01a06d5c-e42f-7382-88a1-ae0ef12689a5&invoiceId=01a06dea-de0c-7ad3-8a15-120111eb3642&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&outcome=delivered&attemptedOnly=false&undeliveredOnly=false&from=2026-09-04&to=2026-09-04&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -20958,11 +20989,17 @@ curl "http://localhost:3006/delivery/deliveries?tripId=01a06d0b-bd31-7813-8e79-a
     {
       "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
       "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "tripNo": "SO-0042",
+      "tripState": "planned",
       "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+      "stopFailureReason": null,
+      "stopFailureNote": "Confirmed on phone with the shopkeeper",
       "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
       "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
       "invoiceNo": "SO-0042",
+      "invoiceTotalPaise": 2680000,
       "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
       "outcome": "delivered",
       "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
       "deliveredAt": "2026-09-04T10:30:00.000Z",
@@ -21058,11 +21095,17 @@ curl "http://localhost:3006/delivery/deliveries/01a06d17-0be7-794a-8dab-9b14cf78
   "item": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "tripState": "planned",
     "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "stopFailureReason": null,
+    "stopFailureNote": "Confirmed on phone with the shopkeeper",
     "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
     "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
     "invoiceNo": "SO-0042",
+    "invoiceTotalPaise": 2680000,
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
     "outcome": "delivered",
     "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
     "deliveredAt": "2026-09-04T10:30:00.000Z",
@@ -21319,6 +21362,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
@@ -21620,6 +21664,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -21823,11 +21868,17 @@ request.json
   "delivery": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
     "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "tripState": "planned",
     "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "stopFailureReason": null,
+    "stopFailureNote": "Confirmed on phone with the shopkeeper",
     "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
     "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
     "invoiceNo": "SO-0042",
+    "invoiceTotalPaise": 2680000,
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
     "outcome": "delivered",
     "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
     "deliveredAt": "2026-09-04T10:30:00.000Z",
@@ -24881,6 +24932,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {

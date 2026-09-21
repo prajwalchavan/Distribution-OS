@@ -18,8 +18,16 @@
  * ONE APP, TWO ROLES. The accountant reaches this tab (`delivery.trips.list` is STOCK_VIEWERS) and reads
  * the register. It plans nothing, and the board (owner, manager, warehouse) is never even asked for, so
  * no refusal is drawn where there is nothing to do.
+ *
+ * WHAT CAME BACK (QA DOS-196). Above the trips sits the **Undelivered** register: every bill whose last
+ * stop failed or was refused, with the reason and the crew's note, the trip it is riding, and the one
+ * thing the desk does about it — wait for that van to check in, then plan it again. The rows are the
+ * server's own answer (`delivery.deliveries.list` with `undeliveredOnly`); nothing here re-derives what
+ * "undelivered" means. The trips register also lists the vans that are OUT, not only the ones still to
+ * leave, so a desk told "3 trips active" has three rows it can open — read-only: a trip that has left
+ * takes no late bill (`delivery.stops.add` is refused for it anyway), so the panel is never offered.
  */
-import type { PlanningBill, Trip } from '@dos/contracts'
+import type { Delivery, PlanningBill, Trip } from '@dos/contracts'
 import { newId } from '@dos/api-client'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
@@ -59,10 +67,16 @@ import {
   type TripPlan,
 } from '../../../src/groups/manager/lib/trip-plan'
 import {
+  TRIP_TAKES_A_LATE_BILL,
+  tripReach,
+  undeliveredNext,
+} from '../../../src/groups/manager/lib/trip-reach'
+import {
   Async,
   PageTabs,
   Panel,
   Refusal,
+  moneyColumn,
   stayOpen,
   textColumn,
   useCan,
@@ -73,7 +87,11 @@ import { useWord } from '../../../src/groups/manager/lib/words'
 const TRIP_FAMILY: Readonly<Record<string, StatusFamily>> = {
   planned: 'ochre',
   loading: 'clay',
+  active: 'moss',
 }
+
+/** One row of the desk's Undelivered register. */
+type Undelivered = Delivery
 
 /** The inline panel that is open: a new trip, or a late bill for one trip. Never both. */
 type OpenPanel = { kind: 'plan' } | { kind: 'add'; tripId: string } | null
@@ -88,6 +106,7 @@ export default function DeskTrips(): React.JSX.Element {
   const mayPlan = can('delivery.trips.create')
   const mayAdd = can('delivery.stops.add')
   const mayReadBoard = can('delivery.trips.planning')
+  const mayReadUndelivered = can('delivery.deliveries.list')
 
   const [panel, setPanel] = useState<OpenPanel>(null)
   const [date, setDate] = useState(today)
@@ -106,12 +125,21 @@ export default function DeskTrips(): React.JSX.Element {
   const [confirming, setConfirming] = useState<'plan' | 'add' | null>(null)
 
   const trips = useQuery(['trips', 'desk-open'], () =>
-    api.api.delivery.trips.list({ states: ['planned', 'loading'], limit: 50 }),
+    api.api.delivery.trips.list({ states: ['planned', 'loading', 'active'], limit: 50 }),
+  )
+  /** What came back on a van and is waiting to go out again (QA DOS-196). */
+  const undelivered = useQuery(
+    ['deliveries', 'undelivered'],
+    () => api.api.delivery.deliveries.list({ undeliveredOnly: true, limit: 50 }),
+    { enabled: mayReadUndelivered },
   )
   const vehicles = useQuery(['vehicles', 'all'], () => api.api.delivery.vehicles.list({}))
   const openTrips = trips.data?.items ?? []
+  const undeliveredBills = undelivered.data?.items ?? []
   const addTrip =
     panel?.kind === 'add' ? openTrips.find((trip) => trip.id === panel.tripId) : undefined
+  /** A late bill goes only on a trip that has not left (QA DOS-196); a van on the road is read-only. */
+  const mayAddTo = (trip: Trip): boolean => mayAdd && TRIP_TAKES_A_LATE_BILL.has(trip.state)
   /** Who is busy depends on the date; the bills do not. A late bill is read for its trip's own date. */
   const boardDate = addTrip?.tripDate ?? date
   /** Asked only by a role that may read it: the accountant's tab draws no refusal it cannot act on. */
@@ -207,6 +235,37 @@ export default function DeskTrips(): React.JSX.Element {
         <StatusChip label={word(row.state)} family={TRIP_FAMILY[row.state] ?? 'neutral'} />
       ),
     },
+    /*
+     * A van that has left says so in words, because the row does not open anything (QA DOS-196). A
+     * fact about the trip, never about the reader: the accountant, who may add no bill, reads nothing.
+     */
+    textColumn('reach', t('m7u.next'), (row) =>
+      tripReach(row.state, mayAdd) === 'onTheRoad' ? t('m7t.onTheRoad') : null,
+    ),
+  ]
+
+  /**
+   * WHAT CAME BACK, and what the desk does about it (QA DOS-196). The last column is the only action
+   * there is, and it is read off the trip's own state (`undeliveredNext`, src/groups/manager/lib/trip-reach.ts): while
+   * that van is out the bill cannot be planned (the server refuses it, QA DOS-172); from the moment it
+   * checks in — `closing`, before any settlement — the bill is back on the planning board.
+   */
+  const undeliveredColumns: readonly RegisterColumn<Undelivered>[] = [
+    textColumn('bill', t('m7u.bill'), (row) => row.invoiceNo ?? row.invoiceId.slice(0, 8), {
+      priority: 'identity',
+    }),
+    textColumn('shop', t('m7u.shop'), (row) => row.retailerName),
+    moneyColumn('value', t('m7u.value'), (row) => row.invoiceTotalPaise),
+    textColumn('reason', t('m7u.reason'), (row) =>
+      row.stopFailureReason === null ? null : word(row.stopFailureReason),
+    ),
+    textColumn('note', t('m7u.note'), (row) => row.stopFailureNote),
+    textColumn('trip', t('m7u.trip'), (row) => row.tripNo ?? row.tripId.slice(0, 8)),
+    textColumn('next', t('m7u.next'), (row) =>
+      undeliveredNext(row.tripState) === 'plan'
+        ? t('m7u.backAtTheGodown')
+        : t('m7u.onTheRoad', { trip: row.tripNo ?? row.tripId.slice(0, 8) }),
+    ),
   ]
 
   const label = (text: string): React.JSX.Element => (
@@ -312,6 +371,30 @@ export default function DeskTrips(): React.JSX.Element {
       }
     >
       <Stack gap={6}>
+        {mayReadUndelivered ? (
+          <Panel
+            title={t('m7u.title')}
+            meta={t('m7u.count', { count: undeliveredBills.length })}
+            testID="desk-undelivered"
+          >
+            <Async
+              state={[undelivered]}
+              rows={3}
+              empty={undeliveredBills.length === 0}
+              emptyMessage={t('m7u.empty')}
+            >
+              <Register
+                testID="desk-undelivered-register"
+                columns={undeliveredColumns}
+                rows={undeliveredBills}
+                rowKey={(row) => row.id}
+                frozen="bill"
+                state="ready"
+              />
+            </Async>
+          </Panel>
+        ) : null}
+
         <Panel
           title={t('m7t.open')}
           actions={
@@ -345,6 +428,7 @@ export default function DeskTrips(): React.JSX.Element {
               onSelect={
                 mayAdd
                   ? (row) => {
+                      if (!mayAddTo(row)) return
                       openPanel(
                         panel?.kind === 'add' && panel.tripId === row.id
                           ? null

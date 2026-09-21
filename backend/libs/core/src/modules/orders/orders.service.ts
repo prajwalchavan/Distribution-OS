@@ -553,12 +553,20 @@ export class OrdersService {
     )
   }
 
-  /** Cancelling releases every held piece and expires the approvals that were waiting on the order. */
+  /**
+   * Cancelling releases every held piece and expires the approvals that were waiting on the order.
+   *
+   * `refusedAt` is set only when the office turned the order down at an approval gate (QA DOS-191): both
+   * paths end `cancelled` and both write `reason` into `cancel_reason`, but only a refusal is a decision
+   * the rep must carry back to the shop, so the rep's list can hold it under its own filter without
+   * matching on the text of a free-text column.
+   */
   async cancelInTx(
     tx: Db,
     order: OrderRow,
     reason: string,
     deviceId: string | null,
+    refusedAt: Date | null = null,
   ): Promise<OrderDetail> {
     const to = transition(order.state, 'cancel')
     const now = new Date()
@@ -578,7 +586,7 @@ export class OrdersService {
     )
     const [cancelled] = await tx
       .update(salesOrders)
-      .set({ state: to, cancelledAt: now, cancelReason: reason, updatedAt: now })
+      .set({ state: to, cancelledAt: now, cancelReason: reason, refusedAt, updatedAt: now })
       .where(eq(salesOrders.id, order.id))
       .returning()
     const next = cancelled ?? order

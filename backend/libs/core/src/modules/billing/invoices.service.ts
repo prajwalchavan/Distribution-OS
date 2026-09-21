@@ -1294,6 +1294,63 @@ export class BillingService {
     return live
   }
 
+  /**
+   * THE BILL CAME BACK ON THE VAN (QA DOS-197; docs/22 §4). A failed or refused stop flags the bill
+   * `undelivered_at` instead of touching its state: it is issued, its GST is due and it will be
+   * re-attempted, so `cancelled` would be a lie and the invoice machine has no rung for "issued but
+   * not handed over". Receivables then leaves it out of the shop's dues and its ageing until it is
+   * delivered, so the shop's rollup is refreshed in this same transaction.
+   *
+   * Idempotent: a replayed stop failure finds the flag already set and writes nothing. `undelivered_at`
+   * is not one of the columns `dos_invoice_immutable()` freezes, so an issued bill takes it.
+   */
+  async markUndelivered(tx: Db, invoiceId: string, at: Date): Promise<void> {
+    const row = await this.lockInvoice(tx, invoiceId)
+    if (row.undeliveredAt !== null) return
+    await tx
+      .update(invoices)
+      .set({ undeliveredAt: at, updatedAt: new Date() })
+      .where(eq(invoices.id, row.id))
+    await this.receivables.refreshOutstanding(tx, row.retailerId)
+  }
+
+  /** The shop has the goods: the flag goes and the bill is the shop's money again (QA DOS-197). */
+  async clearUndelivered(tx: Db, invoiceId: string): Promise<void> {
+    const row = await this.lockInvoice(tx, invoiceId)
+    if (row.undeliveredAt === null) return
+    await tx
+      .update(invoices)
+      .set({ undeliveredAt: null, updatedAt: new Date() })
+      .where(eq(invoices.id, row.id))
+    await this.receivables.refreshOutstanding(tx, row.retailerId)
+  }
+
+  /**
+   * The bills waiting to be delivered, newest first (QA DOS-196): what delivery's Undelivered register
+   * is a register OF. Asked here rather than joined there because `invoices` is billing's table and a
+   * module reads another's only through its service. A cancelled bill drops out on its state, so the
+   * desk's only other move — cancel the bill — empties the row rather than leaving a ghost.
+   *
+   * Bounded by `limit`: a distributor with more bills on vans than this has a bigger problem than a
+   * register page, and the caller pages within what it is given.
+   */
+  async undeliveredInvoiceIds(tx: Db, limit: number): Promise<string[]> {
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.tenantId, tenantId),
+          sql`${invoices.undeliveredAt} is not null`,
+          inArray(invoices.state, ['issued', 'partially_paid']),
+        ),
+      )
+      .orderBy(desc(invoices.undeliveredAt))
+      .limit(limit)
+    return rows.map((r) => r.id)
+  }
+
   /** The bill and its lines for the doorstep (`InvoiceForDelivery`); a bill the caller may not see is NOT_FOUND. */
   async invoiceForDelivery(tx: Db, invoiceId: string): Promise<InvoiceForDelivery> {
     const row = await this.findInvoice(tx, invoiceId)

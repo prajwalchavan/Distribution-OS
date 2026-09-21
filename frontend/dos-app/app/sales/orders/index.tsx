@@ -7,12 +7,18 @@
  *
  * A row this device wrote and the server has not yet acknowledged says **Waiting to send** — never
  * "Placed". That distinction is the whole honesty contract of an offline app (UX-00 §6.11).
+ *
+ * FOUR VIEWS, ON A CHIP ROW (QA DOS-191). An order the office refused is `cancelled`, so it fell off
+ * Travelling and lived only under All, one tap the rep had to think to take, about the one order a
+ * shopkeeper is waiting to hear about. It now has its own filter — and a fourth option is why the
+ * control is `<Chips>` and not `<Segments>`, which renders `items.slice(0, 3)` and drops the fourth
+ * without a word; `PageTabs` makes the same switch at five destinations for the same reason.
  */
 import {
+  Chips,
   Money,
   Row,
   Screen,
-  Segments,
   Stack,
   StatusChip,
   Txt,
@@ -28,8 +34,7 @@ import { useSubmitAcceptedDrafts } from '../../../src/groups/sales/lib/queue'
 import { LocalAsync, PageTabs, TwoLine, orderFamily } from '../../../src/groups/sales/lib/ui'
 import { useWord } from '../../../src/groups/sales/lib/words'
 
-/** Exactly three, because `<Segments>` renders `items.slice(0, 3)` and drops a fourth in silence. */
-type View = 'open' | 'all' | 'draft'
+type View = 'open' | 'refused' | 'draft' | 'all'
 
 const PAGE = 100
 
@@ -47,11 +52,14 @@ export default function MyOrders(): React.JSX.Element {
   /* DOS-086: a draft that lands while this list is open submits itself, the same as anywhere else. */
   useSubmitAcceptedDrafts()
 
+  const refusedOrders = useMemo(() => orders.filter((order) => order.refused_at !== null), [orders])
+
   const matching = useMemo(() => {
     if (view === 'all') return orders
     if (view === 'draft') return orders.filter((order) => order.state === 'draft')
+    if (view === 'refused') return refusedOrders
     return orders.filter((order) => OPEN_STATES.has(order.state))
-  }, [orders, view])
+  }, [orders, refusedOrders, view])
 
   /*
    * A cheap Android phone does not want 500 rows in the DOM, and a rep does not want to scroll them:
@@ -95,16 +103,20 @@ export default function MyOrders(): React.JSX.Element {
       <Stack gap={4}>
         <PageTabs group={go.href('/orders')} active={go.href('/orders')} />
 
-        <Segments
+        <Chips
           testID="order-view"
-          value={view}
-          onChange={(id) => {
+          onToggle={(id) => {
             setView(id as View)
           }}
           items={[
-            { id: 'open', label: t('s6.viewOpen') },
-            { id: 'all', label: t('s6.viewAll') },
-            { id: 'draft', label: t('s6.viewDraft') },
+            { id: 'open', label: t('s6.viewOpen'), selected: view === 'open' },
+            {
+              id: 'refused',
+              label: t('s6.viewRefused'),
+              selected: view === 'refused',
+            },
+            { id: 'draft', label: t('s6.viewDraft'), selected: view === 'draft' },
+            { id: 'all', label: t('s6.viewAll'), selected: view === 'all' },
           ]}
         />
 
