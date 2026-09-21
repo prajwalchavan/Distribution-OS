@@ -78,7 +78,7 @@ export const strings = {
   'leave.noSignal': 'No connection — they cannot go now.',
   'app.wrongRoleTitle': 'This app is for the delivery crew',
   'app.wrongRoleBody':
-    'You are signed in as {role}. The delivery service answers only the crew, so nothing here would load. Sign out and use your own app.',
+    'Your login at {distributor} is a {role}; ask the owner to add delivery to it.',
 
   // --- the rail / more sheet (labels are <= 14 characters, UX-00 §8.1) ------------------------
   'nav.today': 'Today',

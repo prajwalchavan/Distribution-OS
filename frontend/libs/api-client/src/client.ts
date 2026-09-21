@@ -19,6 +19,7 @@ import {
   contract,
   type AuthMe,
   type AuthPlatform,
+  type MembershipRole,
   type TokenPair,
 } from '@dos/contracts'
 
@@ -88,6 +89,17 @@ export interface CreateApiClientOptions {
   storage?: TokenStorage
   /** Which app this is; sent on login so `auth_sessions` can name the device. */
   platform?: AuthPlatform
+  /**
+   * ROLE ELECTION (docs/29 §2, founder 2026-09-21): the role THIS app asks to act as, sent on every
+   * sign-in and every distributor switch. The three field apps declare their own — a van phone must
+   * hold a delivery token and never an owner token, whoever is driving today — and the owner, manager,
+   * retailer and console apps declare none, which signs the person in as their membership's own role.
+   *
+   * The server grants it only downward from that membership (`ROLE_ELECTION` in `@dos/domain`) and
+   * refuses anything else with a sentence the person can act on. Asking is all the device does: it is
+   * never the thing that decides.
+   */
+  actAs?: MembershipRole
   /** Device name for the sessions list. Defaults to the browser's user agent, trimmed. */
   deviceName?: string
   /** Called whenever the session ends, including when a refresh is rejected. */
@@ -380,6 +392,8 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
         // Sent ONLY for a user with more than one membership: a tenantId they are not a member of is
         // a 403, including the sample value an API console pre-fills (auth contract, LoginInput).
         ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+        // docs/29 §2: the role this app needs. Omitted entirely by the apps that declare none.
+        ...(options.actAs === undefined ? {} : { actAs: options.actAs }),
       })
       session.applyTokens(pair)
       const current = session.getSnapshot().session
@@ -450,6 +464,9 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
         refreshToken,
         deviceId: session.deviceId,
         tenantId,
+        // The other distributor elects against ITS membership (docs/29 §2): the same app asks for the
+        // same role there, and is refused there if that login is not allowed it.
+        ...(options.actAs === undefined ? {} : { actAs: options.actAs }),
       })
       if (generation !== at) {
         // Signed out while the switch was on its way: nobody's pair, never written.

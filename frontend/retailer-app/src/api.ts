@@ -7,10 +7,11 @@
  * instead of rendering a sign-in screen that would forget a live session on every launch.
  */
 import { createApiClient, type ApiClient, type TokenStorage } from '@dos/api-client'
+import type { MembershipRole } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import { os, storage } from '@dos/ui/platform'
 
-import { API_PREFIX, API_URL, AUTH_URL } from './config'
+import { APP, API_PREFIX, API_URL, AUTH_URL } from './config'
 import { LAST_TENANT_KEY } from './lib/last-distributor'
 
 const REFRESH_KEY = 'dos.auth.refresh'
@@ -29,6 +30,27 @@ const SNAPSHOT_KEY = 'dos.auth.session'
  * (`src/lib/dos-102-last-distributor-restart.guard.test.ts`).
  */
 export const PERSISTED_KEYS = [REFRESH_KEY, DEVICE_KEY, SNAPSHOT_KEY, LAST_TENANT_KEY] as const
+
+/**
+ * docs/29 §2 — a FIELD app always asks for the role it NEEDS (founder 2026-09-21).
+ *
+ * A van phone is shared and droppable. The owner who drives on Tuesdays must sign in on it and get a
+ * DELIVERY token, not an owner token that would reach owner-service for the life of its refresh, so
+ * the sales, warehouse and delivery apps send their own role on every sign-in and every distributor
+ * switch. The owner, manager, retailer and console apps send nothing and sign the person in as the
+ * membership's own role. The server grants it only downward and refuses anything else with a sentence
+ * the person can act on: asking is all the device does.
+ *
+ * It is written once here, in the template, and generated identically into every app — `APP.role` is
+ * the only thing that differs, which is what makes "which role does this app ask for" a property of
+ * the app rather than seven hand-edited lines.
+ */
+const FIELD_APP_ROLES: Readonly<Partial<Record<string, MembershipRole>>> = {
+  sales: 'salesperson',
+  warehouse: 'warehouse',
+  delivery: 'delivery',
+}
+const ELECTED_ROLE: MembershipRole | undefined = FIELD_APP_ROLES[APP.role]
 
 export async function boot(): Promise<ApiClient> {
   await storage.prime(PERSISTED_KEYS)
@@ -59,5 +81,6 @@ export async function boot(): Promise<ApiClient> {
     ...(API_PREFIX === undefined ? {} : { prefix: API_PREFIX }),
     storage: tokens,
     platform: os,
+    ...(ELECTED_ROLE === undefined ? {} : { actAs: ELECTED_ROLE }),
   })
 }

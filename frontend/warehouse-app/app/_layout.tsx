@@ -215,6 +215,7 @@ function Shell(): React.JSX.Element {
   ) : wrongRole ? (
     <WrongRole
       role={session.role}
+      distributor={session.tenant.displayName}
       onSignOut={() => {
         void signOut()
       }}
@@ -285,16 +286,18 @@ function Shell(): React.JSX.Element {
 /** The service's own refusal, as a screen: no shell, no tabs, one way out. */
 function WrongRole({
   role,
+  distributor,
   onSignOut,
 }: {
   role: string
+  distributor: string
   onSignOut: () => void
 }): React.JSX.Element {
   const t = useStrings()
   return (
     <Screen title={t('app.wrongRoleTitle')}>
       <Stack gap={4}>
-        <EmptyState testID="wrong-role" message={t('app.wrongRoleBody', { role })} />
+        <EmptyState testID="wrong-role" message={t('app.wrongRoleBody', { role, distributor })} />
         <Button label={t('app.signOut')} variant="primary" onPress={onSignOut} />
       </Stack>
     </Screen>
