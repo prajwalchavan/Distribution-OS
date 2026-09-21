@@ -8,26 +8,38 @@ Last updated: 2026-09-20, 20:15 IST
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_03d6ec07-1f8` | `wi3counce` | **The last wave-3 lane**, `lean-retailer-platform` — runner `QA/tools/batch2/workflows/finish-retailer-platform.js`: repair, adversarial re-verify, a DEVICE walk, Fable re-review, integrate, merge. |
+| `wf_af0335fb-a15` | `w0d4utpmt` | **Two code lanes**, runner `QA/tools/batch2/workflows/seed-and-founder-answers.js`: `fix-seed-harness` (S-149, S-156, S-157 — the three faults that disarmed the main-health gate) and `founder-answers` (DOS-075, DOS-043, and the rest of the DOS-023 list convention). Both code-only, so the devices stay free for the walks. |
 
-**Wave 3 is otherwise finished. 20 of 21 lean groups are on main; 148 of 158 batch-2 findings merged.**
-`finish-wave3.js` (`wf_f5cf1873-fd0`, 40 agents, 0 errors) merged nine of its ten lanes: `lean-kit-polish`
-`a79c160`, `lean-manager-money` `2477fcf`, `lean-sales-rep` `0738479`, `lean-owner-money-approvals`
-`5fea76a`, `lean-sales-orders-pricing` `0bac7e0`, `lean-delivery-collect` `c85316a`, `lean-warehouse-pick`
-`4247c0d`, `lean-manager-order-lifecycle` `e926a7f`, `lean-warehouse-rules` `30c83f7`.
+**Queued next, and it is the big one: the owed platform walks.** Fable's merge-gate ruling
+(`QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`) items 1–7 for DOS-168/169/170 and DOS-172,
+plus DOS-174, DOS-175/176/177, plus the walks every wave-3 lane recorded as owed. Run it as ONE device
+queue — there is one Pixel 7 and one simulator — and not while a gate is hammering the CPU, or the
+measurements are worth nothing. 25 worktrees are gone, so there is disk for it now.
 
-**The walk stage worked, and it is the answer to the walks-owed debt.** Given permission to start services
-under the port rule, two lanes walked web desk 1280, web phone 390, the Pixel 7 AND the iOS simulator, with
-measured geometry and screenshots in `QA/evidence/batch2/walks/`. That is the first iOS walk this programme
-has recorded. Every remaining "merged, proof owed" finding should be settled the same way, not by another
-round of static reading.
+## Wave 3 is closed — all 21 lean groups on main, 153 of 158 findings merged
 
-**`lean-retailer-platform` failed its re-verification, honestly and usefully.** The repair moved the retailer
-home screen's memberships read onto the auth link, where `AUTH_RETRY_PATHS` (`frontend/libs/api-client/src/client.ts:38-43`)
-lists only me/sessions/revokeSession/changePassword — so a 401 on `auth.memberships.summary` is never retried
-and the home screen can still tell a shop that owes lakhs "You owe ₹0.00 across 3 distributors". Never-list #12
-in the first place a shop looks. It is a one-line set entry plus the proof that it fires, and it is what the
-run above is fixing, together with the DOS-102 device walk that no wave-3 lane was allowed to take.
+`lean-retailer-platform` was the last, merged `d211e21` after a repair, a device walk and a Fable
+re-review. Its story is worth keeping: the previous repair had moved the retailer home screen's
+memberships read onto the auth link, where `AUTH_RETRY_PATHS` did not list it — so a 401 on that call was
+never retried and the screen could tell a shop that owes lakhs "You owe ₹0.00 across 3 distributors". The
+fix replaced the four-name allow-list with a deny-list of the nine routes that authenticate through the
+BODY (login, refresh, logout, switchTenant, forgotPassword, resetPassword, platformLogin, platformRefresh,
+jwks), so every Bearer-carrying auth route heals like any other read **and a new one heals the day it
+lands**; a test walks the auth contract's leaves and pins that exactly those nine are excluded. The screen
+was fixed at the same cause: an unanswered read can no longer become a money figure, a green chip or
+"No bills yet".
+
+**The walk stage is the method from now on.** Three lanes walked with services running under the port rule
+and produced measured evidence in `QA/evidence/batch2/walks/`: web desk 1280, web phone 390, the Pixel 7,
+and — for `lean-warehouse-pick` and `lean-warehouse-rules` — the iOS simulator. One walk overturned its own
+finding honestly ("CLAIM FALSE at HEAD — the call IS healed"). Every remaining "merged, proof owed"
+finding is settled this way, not by another round of static reading.
+
+**Machine limits that shaped these runs, and will shape the next.** At walk time the Mac had ~40 MB of RAM
+free and 6.07 of 7.17 GB of swap in use; the retailer lane declined to boot an iOS simulator on top of that
+rather than risk the other live lanes, and said so instead of pretending. The 25 lane worktrees held 44 GB
+on a disk that was 94% full; they are removed now that every branch is merged and pushed (the branches
+themselves are kept as the evidence trail). Size the next run to this machine: few lanes, one device queue.
 
 The Mac is held awake two ways: the app's keep-awake hold, and `caffeinate -dimsu -t 86400` (pid 58695). Founder, 2026-09-19: the machine runs unattended around the clock; **the 70%-by-Wednesday stop rule is WITHDRAWN** — batch 2 runs to the end, P2 and P3 included, aiming to finish this week.
 
@@ -75,7 +87,7 @@ The founder hands over a **real data extract** ("okk share real data extract wit
 
 `c3b4ec1` S-108/DOS-174 challan poll · `d65034b` DOS-171 van sale · `ce3dc8c` DOS-167 ruling 3 (the web store opens under slow loads) · `6e5c7c5` DOS-168+169+170 money · `d25574e` DOS-172 loading · `609388b` DOS-167 Fable amendments A1–A5 · `ed3e1b7` DOS-178+179+180 honesty · `f144e29` DOS-175+176+177 money-delivery · plus two CI repairs, `d30ccf7` (backend lint: a package imported its own name) and `eb9a155` (CI seeds before `pnpm test`).
 
-**Coverage: 148 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
+**Coverage: 153 of 158 batch-2 findings merged.** P0 DOS-167 is OPEN on one clause (DOS-183). MERGED BUT STILL OPEN, platform walks owed: DOS-168, DOS-169, DOS-170, DOS-172, DOS-175, DOS-176, DOS-177. Filed and building: DOS-181, DOS-182, DOS-183.
 
 ## Databases
 
