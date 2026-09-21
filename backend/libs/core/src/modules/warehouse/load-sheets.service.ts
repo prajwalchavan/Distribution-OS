@@ -497,8 +497,16 @@ export class LoadSheetsService {
         // now standing in the vehicle's own location, which is what makes "the goods stay on the van"
         // after a refusal, and what the godown's van check-in counts back. Summed per lot across the
         // orders (two bills may draw on one batch) and keyed per lot, so a replayed confirm moves
-        // nothing twice. Bills packed before the dock existed have nothing waiting there and are
-        // skipped by the zero check below, exactly as they were before.
+        // nothing twice.
+        //
+        // THE LOAD-OUT NEVER CLAMPS OR SHORT-LOADS (verifier's major on DOS-195, ruling S2). The sheet
+        // says the goods went aboard, the challan values them, the e-way bill declares them and the
+        // door will sell them off the van: so a dock that holds fewer pieces of a lot than the sheet
+        // needs is a 409 naming the lot and the shortfall, and NOTHING moves — no ledger row, no
+        // challan, no order dispatched; the transaction rolls back. A quiet `min()` here once issued a
+        // full challan for an empty van and sent the crew to an open shop with a 400 (the bill that came
+        // back undelivered and was never staged again). Every packed bill is on the dock since the
+        // check-in stages undelivered bills there and migration 0062 staged the ones packed before.
         const packedByLot = new Map<string, number>()
         for (const entries of (await packedLotsByOrder(tx, sheet.orderIds)).values()) {
           for (const entry of entries) {
@@ -508,33 +516,46 @@ export class LoadSheetsService {
         const dock = packedByLot.size > 0 ? await dockLocationId(tx) : null
         const onTheDock =
           dock === null ? new Map<string, number>() : await this.inventory.onHandAt(tx, dock)
-        const shipping = [...packedByLot].flatMap(([lotId, qtyPcs]) => {
-          // Never take more off the dock than is standing on it: a bill packed before this existed,
-          // or one whose pieces a cancel already put back, would otherwise drive the dock negative.
+        const lotLabel = new Map(
+          lots.map((l) => [
+            l.lotId,
+            l.batchNo === null ? l.variantName : `${l.variantName} (batch ${l.batchNo})`,
+          ]),
+        )
+        for (const [lotId, qtyPcs] of packedByLot) {
           const available = onTheDock.get(lotId) ?? 0
-          const move = Math.min(qtyPcs, available)
-          if (move <= 0) return []
-          return [
-            {
+          if (available >= qtyPcs) continue
+          throw new ORPCError('CONFLICT', {
+            message: `Only ${String(available)} pc of ${lotLabel.get(lotId) ?? `lot ${lotId}`} are on the dock, the sheet needs ${String(qtyPcs)}; find the cartons or take the bill off the sheet — nothing was loaded`,
+            data: {
+              code: 'dock_short',
               lotId,
-              locationId: dock as string,
-              qtyDelta: -move,
-              reason: 'transfer_out' as const,
-              refType: 'load_sheet',
-              refId: sheet.id,
-              idempotencyKey: `load:${sheet.id}:${lotId}:pack:out`,
+              onDockPcs: available,
+              neededPcs: qtyPcs,
+              shortPcs: qtyPcs - available,
             },
-            {
-              lotId,
-              locationId: sheet.toLocationId,
-              qtyDelta: move,
-              reason: 'transfer_in' as const,
-              refType: 'load_sheet',
-              refId: sheet.id,
-              idempotencyKey: `load:${sheet.id}:${lotId}:pack:in`,
-            },
-          ]
-        })
+          })
+        }
+        const shipping = [...packedByLot].flatMap(([lotId, qtyPcs]) => [
+          {
+            lotId,
+            locationId: dock as string,
+            qtyDelta: -qtyPcs,
+            reason: 'transfer_out' as const,
+            refType: 'load_sheet',
+            refId: sheet.id,
+            idempotencyKey: `load:${sheet.id}:${lotId}:pack:out`,
+          },
+          {
+            lotId,
+            locationId: sheet.toLocationId,
+            qtyDelta: qtyPcs,
+            reason: 'transfer_in' as const,
+            refType: 'load_sheet',
+            refId: sheet.id,
+            idempotencyKey: `load:${sheet.id}:${lotId}:pack:in`,
+          },
+        ])
         if (shipping.length > 0) await this.inventory.post(tx, shipping)
 
         const vehicle = await vehicleRegNos(tx, [sheet.toLocationId])

@@ -1095,17 +1095,156 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     expect(Number(negatives.n), 'no location holds a negative balance').toBe(0)
   }, 180_000)
 
+  it('DOS-195: the load-out never short-loads — a lot the dock cannot fill is refused by name, and nothing moves', async () => {
+    const day = tripDay(5)
+    const bill = await billedOrder(retailerA, variantA, 'f-short')
+    const lot = await billedLot(bill.invoiceId)
+    const trip = await loadingTrip('f', day, driverId, [
+      { stopId: uuidv7(), retailerId: retailerA, invoiceIds: [bill.invoiceId] },
+    ])
+
+    // A carton of this lot leaves the dock behind the system's back — the picture the count exists to
+    // catch — so the dock holds ONE PIECE FEWER than the sheet needs (the earlier tests' packs of the
+    // same lot are standing there too, so the fixture counts down from what is really on the dock).
+    const inventory = app.get(InventoryService)
+    const missing = (await onHand(lot.lotId, dockId)) - lot.pcs + 1
+    expect(missing).toBeGreaterThan(0)
+    await asOwner((tx) =>
+      inventory.post(tx, [
+        {
+          lotId: lot.lotId,
+          locationId: dockId,
+          qtyDelta: -missing,
+          reason: 'adjustment',
+          idempotencyKey: `dock-short-out-${run}`,
+          note: 'a carton walked off the dock (spec fixture)',
+        },
+      ]),
+    )
+    const dockHolds = await onHand(lot.lotId, dockId)
+    expect(dockHolds).toBeLessThan(lot.pcs)
+
+    const ledgerRows = async (): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(
+              sql`select count(*)::int as n from stock_ledger where tenant_id = ${tenantId}`,
+            )
+          ).rows[0] as { n: number }
+        ).n,
+      )
+    const challans = async (sheetId: string): Promise<number> =>
+      Number(
+        (
+          (
+            await db.execute(
+              sql`select count(*)::int as n from delivery_challans where load_sheet_id = ${sheetId}`,
+            )
+          ).rows[0] as { n: number }
+        ).n,
+      )
+
+    const created = await newSheet(packer, [bill.orderId], 'f', trip.id)
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const sheetId = (created.body as unknown as { item: { id: string } }).item.id
+    const approved = await post(manager, `/warehouse/load-sheets/${sheetId}/approve`, {
+      idempotencyKey: `approve-f-${run}`,
+    })
+    expect(approved.status, JSON.stringify(approved.body)).toBe(200)
+
+    const rowsBefore = await ledgerRows()
+    const vanBefore = await onHand(lot.lotId, vehicleLocation)
+    const refused = await post<RefusalBody & { data?: { lotId?: string } }>(
+      packer,
+      `/warehouse/load-sheets/${sheetId}/confirm`,
+      {
+        idempotencyKey: `confirm-f-short-${run}`,
+        countedPackages: 1,
+        challanId: uuidv7(),
+      },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.data?.code).toBe('dock_short')
+    expect(refused.body.data?.lotId).toBe(lot.lotId)
+    expect(refused.body.message).toMatch(
+      new RegExp(
+        `Only ${String(dockHolds)} pc of .+ are on the dock, the sheet needs ${String(lot.pcs)}`,
+      ),
+    )
+    // Nothing happened: no ledger row, no challan, the van as it was, the order still packed, the sheet
+    // still waiting for a count that is true.
+    expect(await ledgerRows(), 'the refusal wrote nothing to the ledger').toBe(rowsBefore)
+    expect(await onHand(lot.lotId, vehicleLocation), 'nothing went on the van').toBe(vanBefore)
+    expect(await onHand(lot.lotId, dockId), 'the dock is as it was').toBe(dockHolds)
+    expect(await challans(sheetId), 'no challan was issued').toBe(0)
+    expect(await orderState(bill.orderId)).toBe('packed')
+    const sheet = await call<{ item: { status: string; challanNo: string | null } }>(
+      app,
+      packer,
+      'GET',
+      `/warehouse/load-sheets/${sheetId}`,
+    )
+    expect(sheet.status, JSON.stringify(sheet.body)).toBe(200)
+    expect(sheet.body.item).toMatchObject({ status: 'draft', challanNo: null })
+
+    // The carton is found and put back on the dock: the same sheet now loads, whole.
+    await asOwner((tx) =>
+      inventory.post(tx, [
+        {
+          lotId: lot.lotId,
+          locationId: dockId,
+          qtyDelta: missing,
+          reason: 'adjustment',
+          idempotencyKey: `dock-short-in-${run}`,
+          note: 'the carton was found (spec fixture)',
+        },
+      ]),
+    )
+    const confirmed = await post<{ dispatched: string[] }>(
+      packer,
+      `/warehouse/load-sheets/${sheetId}/confirm`,
+      {
+        idempotencyKey: `confirm-f-whole-${run}`,
+        countedPackages: 1,
+        challanId: uuidv7(),
+      },
+    )
+    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
+    expect(confirmed.body.dispatched).toEqual([bill.orderId])
+    expect(await onHand(lot.lotId, vehicleLocation)).toBe(vanBefore + lot.pcs)
+    expect(await challans(sheetId)).toBe(1)
+  }, 180_000)
+
   it('DOS-172: the three doorstep paths hold and release alike', async () => {
     const day = tripDay(3)
     const g1 = await billedOrder(retailerA, variantA, 'd-g1-offline-fail')
     const g2 = await billedOrder(retailerB, variantA, 'd-g2-refused-door')
     const g3 = await billedOrder(retailerC, variantB, 'd-g3-open-at-return')
     const [stop1, stop2, stop3] = [uuidv7(), uuidv7(), uuidv7()]
-    const trip1 = await loadingTrip('d-1', day, driverId, [
-      { stopId: stop1, retailerId: retailerA, invoiceIds: [g1.invoiceId] },
-      { stopId: stop2, retailerId: retailerB, invoiceIds: [g2.invoiceId] },
-      { stopId: stop3, retailerId: retailerC, invoiceIds: [g3.invoiceId] },
-    ])
+    // Its own van for the first trip, so the check-in below counts exactly what THIS trip carried: the
+    // shared one still holds the earlier tests' bills that never came home.
+    const ownVehicleId = uuidv7()
+    const ownVan = await post<{ item: { locationId: string } }>(owner, '/delivery/vehicles', {
+      idempotencyKey: `vehicle-dos172-d-${run}`,
+      id: ownVehicleId,
+      regNo: `MH-05-LD-${run.slice(-4)}`,
+      name: 'Tempo DOS-172 d',
+      kind: 'tempo',
+      capacityCases: 120,
+    })
+    expect(ownVan.status, JSON.stringify(ownVan.body)).toBe(200)
+    const trip1 = await loadingTrip(
+      'd-1',
+      day,
+      driverId,
+      [
+        { stopId: stop1, retailerId: retailerA, invoiceIds: [g1.invoiceId] },
+        { stopId: stop2, retailerId: retailerB, invoiceIds: [g2.invoiceId] },
+        { stopId: stop3, retailerId: retailerC, invoiceIds: [g3.invoiceId] },
+      ],
+      ownVehicleId,
+    )
     const all = [g1.orderId, g2.orderId, g3.orderId]
     expect(
       (await loadOut(app, crew, { tripId: trip1.id, orderIds: all, tag: `d-1-${run}` })).dispatched,
@@ -1217,6 +1356,34 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     )
     expect(freed.held.filter((h) => h.onTripId === trip1.id)).toEqual([])
     expect((await walkAwaiting(200)).orderIds).toEqual(expect.arrayContaining(all))
+
+    // The cartons themselves are still on the van until the crew counts them back in (QA DOS-195,
+    // ruling S1): the check-in stages all three bills on the dock, whichever door sent them back.
+    const [lotA, lotB] = [await billedLot(g1.invoiceId), await billedLot(g3.invoiceId)]
+    expect((await billedLot(g2.invoiceId)).lotId).toBe(lotA.lotId)
+    const dockA = await onHand(lotA.lotId, dockId)
+    const dockB = await onHand(lotB.lotId, dockId)
+    const settled = await post<{ tripState: string }>(
+      accountant,
+      `/delivery/trips/${trip1.id}/settle`,
+      {
+        idempotencyKey: `settle-d-1-${run}`,
+        id: uuidv7(),
+        handedOverCashPaise: 0,
+        counted: [
+          { lotId: lotA.lotId, countedPcs: lotA.pcs * 2 },
+          { lotId: lotB.lotId, countedPcs: lotB.pcs },
+        ],
+      },
+    )
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    expect(settled.body.tripState).toBe('settled')
+    expect(await onHand(lotA.lotId, ownVan.body.item.locationId)).toBe(0)
+    expect(await onHand(lotB.lotId, ownVan.body.item.locationId)).toBe(0)
+    expect(await onHand(lotA.lotId, dockId), 'G1 and G2 are staged on the dock').toBe(
+      dockA + lotA.pcs * 2,
+    )
+    expect(await onHand(lotB.lotId, dockId), 'and so is G3').toBe(dockB + lotB.pcs)
 
     // One sheet for the next trip takes all three, and its count dispatches them.
     const trip2 = await loadingTrip('d-2', day, otherDriverId, [
