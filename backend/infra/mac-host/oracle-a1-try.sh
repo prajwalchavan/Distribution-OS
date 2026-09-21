@@ -20,6 +20,9 @@ if echo "$R" | grep -q '^ocid1.instance'; then
   sleep 60
   IP=$(oci compute instance list-vnics --instance-id "$R" --query 'data[0]."public-ip"' --raw-output 2>/dev/null)
   echo "PUBLIC_IP=$IP" >> "$CFG"; echo "$(date '+%F %T') public ip: $IP" >> "$LOG"
+  # Notify natively — this fires from the Mac itself, whether or not any Claude session is open.
+  osascript -e "display notification \"Server is up at $IP — tell Claude to continue the cut-over.\" with title \"Oracle VM launched\" sound name \"Glass\"" 2>/dev/null
+  for n in 1 2 3; do afplay /System/Library/Sounds/Glass.aiff 2>/dev/null; sleep 1; done
   exit 0
 fi
 echo "$(date '+%F %T') attempt $i ($O/$M): $(echo "$R" | grep -o '"message": "[^"]*"' | head -1)" >> "$LOG"
