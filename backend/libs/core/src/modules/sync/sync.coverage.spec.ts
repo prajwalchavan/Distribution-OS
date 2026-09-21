@@ -186,6 +186,11 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
         beatId,
         // Two shops on two tiers, so "the shop holds its own slab" is a claim with something to fail on.
         tier: 'A',
+        // Real credit policy, so "the shop's own device never holds it" has something to fail on (S-177).
+        creditLimitPaise: 5_000_000,
+        creditLimitBills: 3,
+        creditDays: 7,
+        creditMode: 'strict',
       },
       {
         id: offBeatShopId,
@@ -601,6 +606,50 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
     const repRows = repPull.body.changes.find((c) => c.table === 'retailers')?.rows ?? []
     expect(repRows.length).toBeGreaterThan(0)
     for (const key of CREW_MUST_NOT_HOLD) expect(Object.keys(repRows[0] ?? {}), key).toContain(key)
+  })
+
+  it("S-177: the shop's own copy of its shop card carries no credit policy, while the desk's and the rep's do", async () => {
+    /*
+     * A SHOP IS NEVER TOLD WHAT IT MAY OWE (docs/22 §8, DOS-100: the shop's screen shows the overdue
+     * amount with a Pay button "and never a credit limit or credit-available figure", ADR 0006). The
+     * oRPC door already gives the retailer role the PUBLIC shop record; `sync.pull` is `select *`, so
+     * without this the same shopkeeper could read his own limit, his bill count, his days and his
+     * mode straight off the sync door — and off his phone, once the retailer app gains the offline
+     * client. What the shop IS owed an answer on — what it owes today — comes from
+     * `retailer_outstanding_summary`, which is untouched. Same shape as DOS-072 for the crew.
+     */
+    const SHOP_MUST_NOT_HOLD = [
+      'credit_limit_paise',
+      'credit_limit_bills',
+      'credit_days',
+      'credit_mode',
+    ]
+    const columns =
+      (await manifestOf(shop)).body.tables.find((t) => t.table === 'retailers')?.columns.map(
+        (c) => c.name,
+      ) ?? []
+    expect(columns.length).toBeGreaterThan(0)
+    for (const key of SHOP_MUST_NOT_HOLD) expect(columns, key).not.toContain(key)
+    // The shop still holds the row: who it is, where it is and what it pays on (payment terms).
+    expect(columns).toEqual(expect.arrayContaining(['id', 'name', 'phone', 'payment_terms']))
+
+    const shopRows = (await drainOf(shop, tablesOf('retailers'))).body.changes.find(
+      (c) => c.table === 'retailers',
+    )?.rows
+    expect(shopRows?.map((r) => r.id)).toEqual([shopId])
+    for (const row of shopRows ?? [])
+      for (const key of SHOP_MUST_NOT_HOLD) expect(Object.keys(row), key).not.toContain(key)
+
+    // The desk sets the limit and the rep quotes against it: both keep every column.
+    for (const actor of [owner, rep]) {
+      const rows = (await drainOf(actor, tablesOf('retailers'))).body.changes.find(
+        (c) => c.table === 'retailers',
+      )?.rows
+      const own = rows?.find((r) => r.id === shopId)
+      expect(own, 'the desk and the rep read the shop').toBeDefined()
+      for (const key of SHOP_MUST_NOT_HOLD) expect(Object.keys(own ?? {}), key).toContain(key)
+      expect(own?.credit_limit_paise).toBe(5_000_000)
+    }
   })
 
   it('gives the shop its own bill and the desk both shops, and the rep only its own beat', async () => {
