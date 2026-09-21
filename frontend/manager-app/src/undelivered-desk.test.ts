@@ -16,6 +16,7 @@
  */
 import { describe, expect, it } from 'vitest'
 
+import { TRIP_TAKES_A_LATE_BILL } from './lib/trip-reach'
 import { strings } from './strings'
 
 interface NodeFs {
@@ -85,7 +86,7 @@ describe('M7 Trips: what came back, and the vans still out', () => {
     // A trip that has left is read-only: only a trip still at the godown opens the add-a-bill panel.
     expect(code).toMatch(/const mayAddTo\s*=/)
     expect(code).toMatch(/TRIP_TAKES_A_LATE_BILL/)
-    expect(code).toMatch(/TRIP_TAKES_A_LATE_BILL[^=]*=\s*new Set\(\['planned', 'loading'\]\)/)
+    expect([...TRIP_TAKES_A_LATE_BILL].sort()).toEqual(['loading', 'planned'])
     expect(catalogue['m7t.onTheRoad']).toBe('On the road — the desk cannot change it')
   })
 })

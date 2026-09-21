@@ -66,6 +66,11 @@ import {
   type TripPlan,
 } from '../../src/lib/trip-plan'
 import {
+  TRIP_TAKES_A_LATE_BILL,
+  tripReach,
+  undeliveredNext,
+} from '../../src/lib/trip-reach'
+import {
   Async,
   PageTabs,
   Panel,
@@ -83,20 +88,6 @@ const TRIP_FAMILY: Readonly<Record<string, StatusFamily>> = {
   loading: 'clay',
   active: 'moss',
 }
-
-/**
- * The trip states a late bill can still be added to (QA DOS-196). A trip that has left is read-only
- * here: the server refuses `delivery.stops.add` on it, and offering a panel that can only end in a
- * refusal is how a desk learns to distrust its own screen.
- */
-const TRIP_TAKES_A_LATE_BILL: ReadonlySet<string> = new Set(['planned', 'loading'])
-
-/** Trip states in which the van is no longer carrying the bill, so the desk may plan it again. */
-const TRIP_BACK_AT_THE_GODOWN: ReadonlySet<string> = new Set([
-  'settled',
-  'settled_with_variance',
-  'cancelled',
-])
 
 /** One row of the desk's Undelivered register. */
 type Undelivered = Delivery
@@ -243,14 +234,20 @@ export default function DeskTrips(): React.JSX.Element {
         <StatusChip label={word(row.state)} family={TRIP_FAMILY[row.state] ?? 'neutral'} />
       ),
     },
-    /* A van that has left says so in words, because the row does not open anything (QA DOS-196). */
-    textColumn('reach', t('m7u.next'), (row) => (mayAddTo(row) ? null : t('m7t.onTheRoad'))),
+    /*
+     * A van that has left says so in words, because the row does not open anything (QA DOS-196). A
+     * fact about the trip, never about the reader: the accountant, who may add no bill, reads nothing.
+     */
+    textColumn('reach', t('m7u.next'), (row) =>
+      tripReach(row.state, mayAdd) === 'onTheRoad' ? t('m7t.onTheRoad') : null,
+    ),
   ]
 
   /**
    * WHAT CAME BACK, and what the desk does about it (QA DOS-196). The last column is the only action
-   * there is, and it is read off the trip's own state: while that van is out the bill cannot be planned
-   * (the server refuses it, QA DOS-172); once it has checked in the bill is back on the planning board.
+   * there is, and it is read off the trip's own state (`undeliveredNext`, src/lib/trip-reach.ts): while
+   * that van is out the bill cannot be planned (the server refuses it, QA DOS-172); from the moment it
+   * checks in — `closing`, before any settlement — the bill is back on the planning board.
    */
   const undeliveredColumns: readonly RegisterColumn<Undelivered>[] = [
     textColumn('bill', t('m7u.bill'), (row) => row.invoiceNo ?? row.invoiceId.slice(0, 8), {
@@ -264,7 +261,7 @@ export default function DeskTrips(): React.JSX.Element {
     textColumn('note', t('m7u.note'), (row) => row.stopFailureNote),
     textColumn('trip', t('m7u.trip'), (row) => row.tripNo ?? row.tripId.slice(0, 8)),
     textColumn('next', t('m7u.next'), (row) =>
-      TRIP_BACK_AT_THE_GODOWN.has(row.tripState)
+      undeliveredNext(row.tripState) === 'plan'
         ? t('m7u.backAtTheGodown')
         : t('m7u.onTheRoad', { trip: row.tripNo ?? row.tripId.slice(0, 8) }),
     ),
