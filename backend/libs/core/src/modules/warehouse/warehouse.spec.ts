@@ -170,6 +170,8 @@ describeDb('warehouse (DATABASE_URL)', () => {
   /** DOS-054 works on a variant of its own, so no FEFO expectation above it moves. */
   const variantShelf = uuidv7()
   let godown = ''
+  /** The in-transit location packed goods stand in between the rack and the van (QA DOS-195). */
+  let dock = ''
   let van = ''
   let lotEarly = ''
   let lotLate = ''
@@ -380,6 +382,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
       .from(locations)
       .where(sql`${locations.tenantId} = ${tenantId}`)
     godown = locs.find((l) => l.kind === 'warehouse')?.id ?? ''
+    dock = locs.find((l) => l.kind === 'in_transit')?.id ?? ''
     van = uuidv7()
     const vehicleId = uuidv7()
     await db
@@ -628,7 +631,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
   let packId = ''
   let invoiceId = ''
 
-  it('packs: the sale rows, the holds, the order state and the invoice all move once', async () => {
+  it('packs: the rack-to-dock rows, the holds, the order state and the invoice all move once', async () => {
     const { id, res } = await packOrder(queueOrderId, 'first')
     packId = id
     expect(res.status).toBe(200)
@@ -637,13 +640,26 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(res.body.invoice).not.toBeNull()
     invoiceId = res.body.invoice?.id ?? ''
 
-    // ONE `sale` ledger row per line-and-lot, and nothing more
+    /*
+     * ONE PAIR per line-and-lot, and nothing more: the pieces leave the rack and stand on the DOCK
+     * (QA DOS-195). They are not sold here — a pack is not a sale, and until this was a real movement a
+     * bill that came back refused left its cartons in no location at all. The sale is posted at the
+     * door, out of the vehicle.
+     */
     const ledger = await ledgerFor(queueOrderId)
-    expect(ledger.filter((r) => r.reason === 'sale')).toHaveLength(2)
-    expect(ledger.every((r) => r.qty_delta < 0 && r.location_id === godown)).toBe(true)
-    const ledgerByLot = new Map(ledger.map((r) => [r.lot_id, -r.qty_delta]))
+    expect(ledger.filter((r) => r.reason === 'sale')).toHaveLength(0)
+    const out = ledger.filter((r) => r.qty_delta < 0)
+    const into = ledger.filter((r) => r.qty_delta > 0)
+    expect(out).toHaveLength(2)
+    expect(out.every((r) => r.reason === 'transfer_out' && r.location_id === godown)).toBe(true)
+    expect(into).toHaveLength(2)
+    expect(into.every((r) => r.reason === 'transfer_in' && r.location_id === dock)).toBe(true)
+    expect(ledger.reduce((n, r) => n + r.qty_delta, 0)).toBe(0)
+    const ledgerByLot = new Map(out.map((r) => [r.lot_id, -r.qty_delta]))
     expect(ledgerByLot.get(lotLate)).toBe(18)
     expect(ledgerByLot.get(lotEarly)).toBe(6)
+    expect((await balanceOf(lotLate, dock)).on_hand).toBe(18)
+    expect((await balanceOf(lotEarly, dock)).on_hand).toBe(6)
 
     // …AND THE INVOICE LINES EQUAL THOSE LEDGER ROWS, to the piece
     const bill = await call<{
@@ -1041,9 +1057,10 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(await ledgerFor(sheetId)).toHaveLength(0)
   })
 
-  it('DOS-039 confirms: only the counted van stock moves godown → vehicle, the packed lots stay where pack left them, DC-0001 is issued and the orders dispatch', async () => {
-    // Pack already sold the order's pieces out of the godown (PackingService: stock leaves exactly
-    // once); the load-out moves only the counted van stock. Read the balances, never hard-code them.
+  it('DOS-039 confirms: the counted van stock moves godown → vehicle and the packed lots dock → vehicle, the godown is not relieved twice, DC-0001 is issued and the orders dispatch', async () => {
+    // Pack already took the order's pieces off the rack (PackingService: stock leaves the godown exactly
+    // once) and stood them on the dock; the load-out takes the counted van stock out of the godown and
+    // the packed lots off the dock, both onto the van. Read the balances, never hard-code them.
     const godownBefore = {
       early: (await balanceOf(lotEarly, godown)).on_hand,
       late: (await balanceOf(lotLate, godown)).on_hand,
@@ -1083,22 +1100,32 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(challan.lines.every((l) => l.gstBps === 1200)).toBe(true)
     expect(challan.gstPaise).toBeGreaterThan(0)
 
-    // exactly one transfer_out and one transfer_in, for the counted van stock only (lotB): the packed
-    // order's lots (lotEarly, lotLate) left as `sale` at pack and are not taken from the godown again
+    /*
+     * Three pairs, all balancing: the counted van stock out of the GODOWN (lotB, the free pieces the
+     * crew may sell), and the packed order's two lots off the DOCK (lotEarly, lotLate) — the rack is not
+     * touched for those a second time (QA DOS-039), and the goods the crew is carrying now stand in the
+     * vehicle's own location so a refused bill's cartons have somewhere to be (QA DOS-195).
+     */
     const rows = await ledgerFor(sheetId)
-    expect(rows).toHaveLength(2)
+    expect(rows).toHaveLength(6)
     expect(rows).toEqual(
       expect.arrayContaining([
         { reason: 'transfer_out', qty_delta: -12, lot_id: lotB, location_id: godown },
         { reason: 'transfer_in', qty_delta: 12, lot_id: lotB, location_id: van },
+        { reason: 'transfer_out', qty_delta: -6, lot_id: lotEarly, location_id: dock },
+        { reason: 'transfer_in', qty_delta: 6, lot_id: lotEarly, location_id: van },
+        { reason: 'transfer_out', qty_delta: -18, lot_id: lotLate, location_id: dock },
+        { reason: 'transfer_in', qty_delta: 18, lot_id: lotLate, location_id: van },
       ]),
     )
     expect(rows.reduce((n, r) => n + r.qty_delta, 0)).toBe(0)
     expect((await balanceOf(lotEarly, godown)).on_hand).toBe(godownBefore.early)
     expect((await balanceOf(lotLate, godown)).on_hand).toBe(godownBefore.late)
     expect((await balanceOf(lotB, godown)).on_hand).toBe(godownBefore.b - 12)
-    expect((await balanceOf(lotEarly, van)).on_hand).toBe(0)
-    expect((await balanceOf(lotLate, van)).on_hand).toBe(0)
+    expect((await balanceOf(lotEarly, dock)).on_hand).toBe(0)
+    expect((await balanceOf(lotLate, dock)).on_hand).toBe(0)
+    expect((await balanceOf(lotEarly, van)).on_hand).toBe(6)
+    expect((await balanceOf(lotLate, van)).on_hand).toBe(18)
     expect((await balanceOf(lotB, van)).on_hand).toBe(12)
     expect(await outboxTypes(sheetId)).toEqual(['LoadSheetApproved', 'LoadSheetConfirmed'])
     expect(await outboxTypes(challanId)).toEqual(['DeliveryChallanIssued'])
@@ -1919,7 +1946,7 @@ describeDb('warehouse (DATABASE_URL)', () => {
 
     const { res } = await packOrder(dos041Order, 'dos041')
     expect(res.status, JSON.stringify(res.body)).toBe(200)
-    const sale = (await ledgerFor(dos041Order)).filter((r) => r.reason === 'sale')
+    const sale = (await ledgerFor(dos041Order)).filter((r) => r.qty_delta < 0)
     expect(sale).toHaveLength(2)
     const deltaByLot = new Map(sale.map((r) => [r.lot_id, r.qty_delta]))
     expect(deltaByLot.get(tinyLot)).toBe(-6)
@@ -2347,8 +2374,9 @@ describeDb('warehouse (DATABASE_URL)', () => {
   // pieces on an earlier-expiry variantB lot, and FEFO in any later test would reserve them. Only the
   // DOS-023 test follows it, and that one asserts the order sheets are listed in, never a lot.
   it("DOS-039 sends out a sheet whose packed lot has nothing left in the godown instead of refusing 'insufficient stock'", async () => {
-    // The pilot's first real load-out: every piece of the lot was sold at pack, so taking the packed
-    // lot out of the godown again at confirm would drive on_hand below zero.
+    // The pilot's first real load-out: every piece of the lot left the rack at pack and is standing on
+    // the dock, so taking the packed lot out of the GODOWN again at confirm would drive on_hand below
+    // zero. The confirm takes it off the dock instead (QA DOS-195), and the rack never moves twice.
     const inventory = app.get(InventoryService)
     const soldOut = await asOwner(async (tx) => {
       const { lot } = await inventory.findOrCreateLot(tx, {
@@ -2400,9 +2428,17 @@ describeDb('warehouse (DATABASE_URL)', () => {
     expect(res.status, JSON.stringify(res.body)).toBe(200)
     expect(res.body.item.status).toBe('confirmed')
     expect(res.body.dispatched).toEqual([id])
-    expect(await ledgerFor(sheet2)).toHaveLength(0)
-    expect((await balanceOf(soldOut, godown)).on_hand).toBe(0)
-    expect((await balanceOf(soldOut, van)).on_hand).toBe(0)
+    const moved = await ledgerFor(sheet2)
+    expect(moved).toHaveLength(2)
+    expect(moved).toEqual(
+      expect.arrayContaining([
+        { reason: 'transfer_out', qty_delta: -12, lot_id: soldOut, location_id: dock },
+        { reason: 'transfer_in', qty_delta: 12, lot_id: soldOut, location_id: van },
+      ]),
+    )
+    expect((await balanceOf(soldOut, godown)).on_hand, 'the rack is not relieved twice').toBe(0)
+    expect((await balanceOf(soldOut, dock)).on_hand).toBe(0)
+    expect((await balanceOf(soldOut, van)).on_hand, 'the crew is carrying them').toBe(12)
     expect(res.body.challan.lines).toContainEqual(
       expect.objectContaining({ lotId: soldOut, qtyPcs: 12 }),
     )

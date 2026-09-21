@@ -40,3 +40,36 @@ export async function reservableLocationId(tx: Db): Promise<string> {
     })
   return id
 }
+
+/**
+ * THE DOCK: where packed goods stand between the rack and the van (QA DOS-195).
+ *
+ * A pack relieves the godown — the cartons are taped shut and off the shelf — but the goods have not been
+ * sold yet, and they have not left the business: they wait on the dock for a load sheet. `bootstrapTenant`
+ * gives every distributor exactly one `kind = 'in_transit'` location for this, and `sellable_stock` leaves
+ * that kind out (migration 0063), so staged goods are stock the owner can see and nobody can promise.
+ *
+ * Without it the packed pieces were relieved as a `sale` at pack and existed nowhere until a shop took
+ * them — so a refused or failed delivery's goods were in no location at all and the van check-in built to
+ * count them back had nothing to show.
+ */
+export async function dockLocationId(tx: Db): Promise<string> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({ id: locations.id })
+    .from(locations)
+    .where(
+      and(
+        eq(locations.tenantId, tenantId),
+        eq(locations.kind, 'in_transit'),
+        eq(locations.active, true),
+      ),
+    )
+    .orderBy(asc(locations.id))
+    .limit(1)
+  if (!row)
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'this distributor has no in-transit location for packed goods (bootstrap it first)',
+    })
+  return row.id
+}

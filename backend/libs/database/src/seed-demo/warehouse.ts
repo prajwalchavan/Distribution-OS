@@ -27,9 +27,11 @@ import { atIstTime, FY, isoDate, nth, occurred, TODAY } from './util.js'
  *   one pack confirmation per invoiced order  →  its packages, its weight, its invoice
  *   one load sheet per (day × vehicle)  →  its delivery challan
  *
- * The stock itself left the rack at PACK — the sales seed posts one `sale` row per (order, line,
- * batch) exactly as `InventoryService.postPick` does — so a load sheet here is the document, not a
- * second movement. The tempo's counter stock for today's van sales is a `van_load` from the godown.
+ * The stock itself left the rack at PACK — the sales seed posts the rack → dock pair per (order, line,
+ * batch) exactly as `InventoryService.postPick` does — and a confirmed sheet moves it dock → vehicle
+ * (`seedDispatchStock`, run right after this, exactly as `loadSheets.confirm` posts it); the sheet
+ * rows here are the paper. The tempo's counter stock for today's van sales is a `van_load` from the
+ * godown.
  *
  * Everything is keyed with `demoId(...)` and inserted with `onConflictDoNothing()`, so `pnpm db:seed`
  * twice adds nothing. Called once per distributor from `seed-demo/index.ts` with that tenant's own

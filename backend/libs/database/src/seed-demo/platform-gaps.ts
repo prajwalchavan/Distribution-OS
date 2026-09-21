@@ -90,6 +90,8 @@ async function packLedgerForParkedPacks(
     )
   const packedAtOf = new Map(parked.map((p) => [p.orderId, p.packedAt]))
   const rows: (typeof stockLedger.$inferInsert)[] = []
+  // The OUT leg only; the matching IN leg onto the dock is written beside it once the quantity is
+  // settled against what the rack really holds (below), keyed `…:in` as `InventoryService.postPick` does.
   const push = (orderId: string, orderLineId: string, lotId: string, qtyPcs: number): void => {
     if (qtyPcs <= 0) return
     const key = `pack:${orderId}:${orderLineId}:${lotId}`
@@ -100,7 +102,7 @@ async function packLedgerForParkedPacks(
       lotId,
       locationId: godown,
       qtyDelta: -qtyPcs,
-      reason: 'sale',
+      reason: 'transfer_out',
       refType: 'pack',
       refId: orderId,
       actorId: people.warehouse.id,
@@ -115,7 +117,8 @@ async function packLedgerForParkedPacks(
     push(line.orderId, line.orderLineId, lot.id, line.qtyPcs + line.freeQtyPcs)
   }
   // The pack really takes the pieces off the rack: never more than the godown holds, and always with
-  // the balance moved alongside the ledger row.
+  // the balance moved alongside the ledger row — and they land on the DOCK (QA DOS-195), the tenant's
+  // in-transit location, staged for a load sheet: rack → dock, never rack → nowhere.
   const onHand = new Map(
     (
       await db
@@ -129,7 +132,17 @@ async function packLedgerForParkedPacks(
     const qty = Math.min(-row.qtyDelta, have)
     if (qty <= 0) return []
     onHand.set(row.lotId, have - qty)
-    return [{ ...row, qtyDelta: -qty }]
+    return [
+      { ...row, qtyDelta: -qty },
+      {
+        ...row,
+        id: demoId('ledger', `${row.idempotencyKey}:in`),
+        locationId: stock.transitId,
+        qtyDelta: qty,
+        reason: 'transfer_in' as const,
+        idempotencyKey: `${row.idempotencyKey}:in`,
+      },
+    ]
   })
   await postLedger(db, tenantId, clamped)
   // The pack records what left the rack, as `packs.confirm` does through `recordPick`.

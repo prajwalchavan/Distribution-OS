@@ -36,6 +36,11 @@ export { DAMAGED_VARIANT_KEYS, lotProfileOf, type LotProfile, type LotRef } from
 export interface StockResult {
   godownId: string
   damagedId: string
+  /**
+   * THE DOCK: the tenant's `in_transit` location, where a pack stages the cartons between the rack and
+   * the van (QA DOS-195). `bootstrapTenant` creates exactly one; the load-out relieves it.
+   */
+  transitId: string
   /** Every lot for a variant, oldest batch first. */
   lotsByVariantId: Map<string, LotRef[]>
   profileByVariantId: Map<string, LotProfile>
@@ -114,9 +119,10 @@ export async function seedStock(
     existingLocations.find((l) => l.kind === 'warehouse' && l.name === 'Godown') ??
     existingLocations.find((l) => l.kind === 'warehouse')
   const damaged = existingLocations.find((l) => l.kind === 'damaged')
-  if (!godown || !damaged) {
+  const transit = existingLocations.find((l) => l.kind === 'in_transit')
+  if (!godown || !damaged || !transit) {
     throw new Error(
-      'bootstrapTenant must run before seedDemo: Godown/Damaged locations are missing',
+      'bootstrapTenant must run before seedDemo: Godown/Damaged/In transit locations are missing',
     )
   }
   const variantByKey = new Map(variants.map((v) => [v.key, v]))
@@ -443,6 +449,7 @@ export async function seedStock(
   return {
     godownId: godown.id,
     damagedId: damaged.id,
+    transitId: transit.id,
     lotsByVariantId,
     profileByVariantId: plan.profileByVariantId,
     plan,

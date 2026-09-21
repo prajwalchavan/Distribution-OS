@@ -239,10 +239,19 @@ export const TransferStockOutput = z.object({
   to: BalanceSnapshotSchema,
 })
 
+/**
+ * NEWEST FIRST by `occurred_at`, the movement's own time and the one the register prints, the row id only
+ * breaking a tie — the same column `from`/`to` filter, so the window and the order never disagree (QA
+ * DOS-186; founder, 2026-09-21). A ledger row carries its own date: an opening balance, a back-dated GRN
+ * or an imported movement is posted today for a day that has passed, and its id says nothing about either.
+ * Ids are minted on the device and the demo seed's are hashes, so id order is not age. `cursor` is the id
+ * of the last row of the page and walks that same (`occurred_at`, id) order; an unknown cursor matches
+ * nothing.
+ */
 export const LedgerListInput = z.object({
   lotId: IdSchema.optional(),
   locationId: IdSchema.optional(),
-  /** ISO timestamps; inclusive lower bound, exclusive upper bound on occurred_at. */
+  /** ISO timestamps on `occurred_at`, the column the list orders on; lower bound inclusive, upper exclusive. */
   from: z.iso.datetime({ offset: true }).optional(),
   to: z.iso.datetime({ offset: true }).optional(),
   limit: QueryIntSchema.min(1).max(500).default(100),

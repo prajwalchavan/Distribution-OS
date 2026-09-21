@@ -428,6 +428,27 @@
       "when": 1789982798532,
       "tag": "0062_undelivered_and_refused_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1789982798533,
+      "tag": "0063_sellable_stock_location_guarantees",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1789982798534,
+      "tag": "0064_pack_rows_to_the_dock_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1789988447261,
+      "tag": "0065_stock_ledger_time_order_expand",
+      "breakpoints": true
     }
   ]
 }

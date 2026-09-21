@@ -18,6 +18,7 @@ import {
   type Db,
 } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
+import { dockLocationId } from './reservable-location.js'
 import { valuationByLocation, type ValuationFilter, type ValuationRow } from './valuation.js'
 
 /**
@@ -565,26 +566,69 @@ export class InventoryService {
    *
    *  1. closes every pending hold of the line — `state = 'posted'`, `reserved` given back — whatever
    *     lot it was against, so a substituted or short pick never leaves a stale hold behind; and
-   *  2. posts ONE negative `sale` row per pick, keyed `${idempotencyKey}:${lotId}`, so a retried pack
-   *     is a no-op on `UNIQUE(tenant_id, idempotency_key)` and stock leaves exactly once.
+   *  2. MOVES the picked pieces off the rack and onto the DOCK — one `transfer_out` per pick at the
+   *     pick location, keyed `${idempotencyKey}:${lotId}`, and its `transfer_in` at the tenant's
+   *     in-transit location, keyed `${idempotencyKey}:${lotId}:in` — so a retried pack is a no-op on
+   *     `UNIQUE(tenant_id, idempotency_key)` and the godown is relieved exactly once.
    *
-   * The two together are why `on_hand` falls by what was packed and `reserved` returns to zero even
-   * when the picked lots and the reserved lots are different rows.
+   * THE PIECES DO NOT DISAPPEAR AT PACK (QA DOS-195). This used to post a `sale` row: the goods were
+   * counted as sold the moment the carton was taped, so between the pack bench and the shop's counter
+   * they stood in no location at all — and a bill that came back refused left 75 pieces physically on a
+   * van and nowhere in the database, with the godown's van check-in reading "nothing is loaded". A sale
+   * is now posted where a sale happens, at the door, out of the vehicle (`deliveries.record`); the load
+   * sheet moves the dock's pieces onto the van, and the check-in counts back whatever is still standing
+   * on it. The OUT leg keeps the old key and `refType`, so every reader of "what did this pack take"
+   * (`packedLotsByOrder`, billing's `packedSplit`) still finds exactly the rows it always did.
+   *
+   * The three together are why `on_hand` falls at the godown by what was packed and `reserved` returns
+   * to zero even when the picked lots and the reserved lots are different rows.
    */
+  /**
+   * What one location actually holds right now, lot by lot, positives only — the read a caller needs
+   * before it moves pieces OUT of a place it did not put them all into (QA DOS-195: the load-out never
+   * takes more off the dock than is standing on it). Bounded by the location, which is one tenant's.
+   */
+  async onHandAt(tx: Db, locationId: string): Promise<Map<string, number>> {
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({ lotId: stockBalances.lotId, onHand: stockBalances.onHand })
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.tenantId, tenantId),
+          eq(stockBalances.locationId, locationId),
+          sql`${stockBalances.onHand} > 0`,
+        ),
+      )
+    return new Map(rows.map((r) => [r.lotId, Number(r.onHand)]))
+  }
+
   async postPick(tx: Db, input: PostPickInput): Promise<PostResult> {
     const picks = input.picks.filter((p) => p.qtyPcs > 0)
     const pending = await this.pendingReservations(tx, input.orderLineId)
+    const dock = picks.length > 0 ? await dockLocationId(tx) : null
     const result = await this.post(
       tx,
-      picks.map((p) => ({
-        lotId: p.lotId,
-        locationId: input.locationId,
-        qtyDelta: -p.qtyPcs,
-        reason: 'sale' as const,
-        refType: input.refType,
-        refId: input.refId,
-        idempotencyKey: `${input.idempotencyKey}:${p.lotId}`,
-      })),
+      picks.flatMap((p) => [
+        {
+          lotId: p.lotId,
+          locationId: input.locationId,
+          qtyDelta: -p.qtyPcs,
+          reason: 'transfer_out' as const,
+          refType: input.refType,
+          refId: input.refId,
+          idempotencyKey: `${input.idempotencyKey}:${p.lotId}`,
+        },
+        {
+          lotId: p.lotId,
+          locationId: dock as string,
+          qtyDelta: p.qtyPcs,
+          reason: 'transfer_in' as const,
+          refType: input.refType,
+          refId: input.refId,
+          idempotencyKey: `${input.idempotencyKey}:${p.lotId}:in`,
+        },
+      ]),
     )
     for (const r of pending) {
       if (!r.lotId) continue

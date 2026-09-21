@@ -22,6 +22,7 @@ import { orderMachine, uuidv7, type OrderState } from '@dos/domain'
 import { deliveries, deliveryLines, podEvidence, withTenant, type Db } from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
 import { BillingService, CreditNotesService, type InvoiceForDelivery } from '../billing/index.js'
+import { InventoryService } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import {
   acceptObjectKey,
@@ -74,9 +75,20 @@ const UNDELIVERED_BILLS_MAX = 500
  * `record` is full, partial or failed in one call — the outcome is DERIVED from the lines, never sent.
  * The issued invoice is never edited: a shortfall or a return is ONE credit note at the original rate
  * through `CreditNotesService.raiseForDelivery`, which also puts the pieces back where they went —
- * saleable ones INTO THE VEHICLE, damaged ones into the damaged bin (ADR 0013, coordination §4 item 5)
- * — so this module posts no ledger row of its own for a return. The order moves through
- * `OrdersService.recordDelivered` + `applyFulfilmentEvent`, the stop through `stopMachine`.
+ * saleable ones INTO THE VEHICLE, damaged ones into the damaged bin (ADR 0013, coordination §4 item 5).
+ * The order moves through `OrdersService.recordDelivered` + `applyFulfilmentEvent`, the stop through
+ * `stopMachine`.
+ *
+ * THE SALE HAPPENS AT THE DOOR (QA DOS-195). The bill's pieces rode here in the vehicle's own location —
+ * the pack put them on the dock, the load sheet put them on the van — and an attempt that opened the
+ * shutter relieves the VAN of the whole bill, as `sale` rows keyed `delivery:<deliveryId>:<lotId>`.
+ * Whatever the shop would not take comes straight back on the credit note's own rows: onto the van if it
+ * is still saleable, into the damaged bin if it is not. A FAILED attempt posts NOTHING, which is how
+ * "the goods stay on the van" (docs/22 §4, D5) becomes a fact in the ledger rather than a sentence on a
+ * screen, and how the godown's van check-in has something to count back.
+ *
+ * Pack used to post the `sale` instead, so between the pack bench and the shop's counter the pieces
+ * stood in no location at all: a refused bill's cartons were physically on a van and in nothing.
  *
  * Proof travels as an object key from `files.uploadUrl`, or as inline bytes on the local storage
  * driver (`InlineFileInput`); either way only a key is stored here. `get` signs read URLs for the
@@ -90,6 +102,8 @@ export class DeliveriesService {
     private readonly billing: BillingService,
     private readonly creditNotes: CreditNotesService,
     private readonly trips: TripsService,
+    /** The van is relieved here, at the door: the sale leaves the vehicle's own location (QA DOS-195). */
+    private readonly inventory: InventoryService,
   ) {}
 
   async record(input: RecordIn): Promise<RecordOut> {
@@ -184,17 +198,41 @@ export class DeliveriesService {
           )
         }
 
-        // ONE credit note at the original rate for whatever came back; billing restocks it. A FAILED
-        // attempt (every line zero) is the same as `stops.fail`: the bill stays open, the pieces stay on
-        // the van for the next attempt, and nothing is credited.
+        // The van is relieved of this bill the moment a door opens for it (QA DOS-195). A FAILED attempt
+        // (every line zero) is the same as `stops.fail`: nothing is posted, nothing is credited, the bill
+        // stays open and its cartons stay standing on the vehicle for the next attempt or the check-in.
+        if (outcome !== 'failed') {
+          const vehicle = await loadVehicle(tx, trip.vehicleId)
+          const byLot = new Map<string, number>()
+          for (const line of invoice.lines) {
+            if (line.lotId === null) continue
+            const pcs = line.qtyPcs + line.freeQtyPcs
+            if (pcs <= 0) continue
+            byLot.set(line.lotId, (byLot.get(line.lotId) ?? 0) + pcs)
+          }
+          if (byLot.size > 0)
+            await this.inventory.post(
+              tx,
+              [...byLot].map(([lotId, qtyPcs]) => ({
+                lotId,
+                locationId: vehicle.locationId,
+                qtyDelta: -qtyPcs,
+                reason: 'sale' as const,
+                refType: 'delivery',
+                refId: row.id,
+                idempotencyKey: `delivery:${row.id}:${lotId}`,
+              })),
+            )
+        }
+
+        // ONE credit note at the original rate for whatever came back; billing restocks it.
         const returned = outcome === 'failed' ? [] : lines.filter((l) => l.returnedQtyPcs > 0)
         let creditNoteId: string | null = null
         if (returned.length > 0) {
           const vehicle = await loadVehicle(tx, trip.vehicleId)
-          const allShortLoaded = returned.every((l) => l.reason === 'short_loaded')
           const reason: CreditNoteReason = returned.every((l) => !l.returnedSaleable)
             ? 'return_damaged'
-            : allShortLoaded
+            : returned.every((l) => l.reason === 'short_loaded')
               ? 'short_delivery'
               : 'return_saleable'
           const note = await this.creditNotes.raiseForDelivery(tx, {
@@ -202,8 +240,16 @@ export class DeliveriesService {
             invoiceId: invoice.id,
             reason,
             deliveryId: row.id,
-            // short-loaded pieces never left the godown: they restock where the order shipped from
-            restockLocationId: allShortLoaded ? null : vehicle.locationId,
+            /*
+             * Back onto the VAN, whatever the reason (QA DOS-195). Short-loaded pieces used to restock at
+             * the godown on the reading that they "never left it" — but the bill's whole quantity left the
+             * rack at pack and rode out on this sheet, and the line above has just relieved the van of it,
+             * so crediting them anywhere else would drive the vehicle's balance below zero. A godown that
+             * really did put fewer in the carton is a MISCOUNT, and the check-in's van count is where it
+             * surfaces: the crew counts what is there, the settlement writes the `cycle_count` difference
+             * and a stock variance sends the trip to the owner.
+             */
+            restockLocationId: vehicle.locationId,
             note: input.note ?? null,
             lines: returned.map((l) => ({
               id: uuidv7(),

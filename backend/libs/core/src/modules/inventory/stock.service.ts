@@ -183,15 +183,17 @@ export class StockService {
    * ATP through the `sellable_stock` view (ADR 0003). Open to every role, including retailers; no
    * on-hand split, no cost.
    *
-   * SELLABLE MEANS SELLABLE (QA DOS-140). The view is `on_hand - reserved` over EVERY location, so a
-   * rep and a shop were offered the damaged / expiry bin as stock they could order — 32 pieces of
-   * Marie Light in the bin read as available, and the bin grows with every doorstep return. Goods in
-   * transit and a customer's own floor are the same kind of lie. So the read is narrowed here rather
-   * than in the view (nothing else uses it and no migration is needed): the godowns always, a VEHICLE
-   * only when that vehicle is the location asked for — which is how the crew's van sale reads its own
-   * van (D6) without a van's stock ever being promised to someone else's order. The damaged bin and
-   * goods in transit are never sellable, not even when named. Nothing is hidden from the books:
-   * `stock.balances` still shows every piece wherever it stands.
+   * SELLABLE MEANS SELLABLE (QA DOS-140). A rep and a shop were once offered the damaged / expiry bin
+   * as stock they could order — 32 pieces of Marie Light in the bin read as available, and the bin
+   * grows with every doorstep return. Goods in transit and a customer's own floor are the same kind of
+   * lie. That predicate now lives IN THE VIEW (migration 0063, QA DOS-204): `damaged`, `in_transit`
+   * and `customer` are not in `sellable_stock` at all, not even when a caller names one, so the name
+   * no longer has to be defended by every reader.
+   *
+   * What is still this screen's own rule is the narrower one: the godowns always, a VEHICLE only when
+   * that vehicle is the location asked for — which is how the crew's van sale reads its own van (D6)
+   * without a van's stock ever being promised to someone else's order. Nothing is hidden from the
+   * books: `stock.balances` still shows every piece wherever it stands.
    */
   async sellable(input: SellableIn): Promise<SellableOut> {
     const db = requireDb(this.db)
@@ -209,7 +211,7 @@ export class StockService {
           join locations l on l.id = s.location_id
           left join brands b on b.id = p.brand_id
           where s.tenant_id = ${ctx.tenantId}
-            ${input.locationId ? sql`and l.kind in ('warehouse', 'vehicle')` : sql`and l.kind = 'warehouse'`}
+            ${input.locationId ? sql`` : sql`and l.kind = 'warehouse'`}
             ${input.variantId ? sql`and s.variant_id = ${input.variantId}` : sql``}
             ${input.locationId ? sql`and s.location_id = ${input.locationId}` : sql``}
             ${pattern ? sql`and (v.name ilike ${pattern} or p.name ilike ${pattern} or b.name ilike ${pattern})` : sql``}
@@ -391,23 +393,45 @@ export class StockService {
     )
   }
 
-  /** Newest first; `cursor` is the id of the last row seen (UUIDv7 orders by time). */
+  /**
+   * NEWEST FIRST by `occurred_at`, the ledger's own time and the one the screen prints, the row id only
+   * breaking a tie — the same column `from`/`to` filter, so the window and the order never disagree
+   * (QA DOS-186; the founder's list rule, 2026-09-21). It used to order by `id` alone, on the assumption
+   * that a UUIDv7 is the posting's time: it is not. Ids are minted on the device, the demo seed's are
+   * hashes that sort above every real row, and a legitimately back-dated posting (an opening balance, a
+   * late GRN) carries its own `occurred_at`. `cursor` is the id of the last row of the page and walks
+   * that same (`occurred_at`, id) order.
+   */
   async ledger(input: LedgerIn): Promise<LedgerOut> {
     requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
-    return withTenant(db, currentTenant(), async (tx) => {
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
       const filters: (SQL | undefined)[] = [
+        /*
+         * RLS is the guarantee; the literal is what lets the planner start from the tenant-led
+         * `stock_ledger_time_idx (tenant_id, occurred_at, id)` instead of scanning (docs/20 rule 8).
+         */
+        eq(stockLedger.tenantId, ctx.tenantId),
         input.lotId ? eq(stockLedger.lotId, input.lotId) : undefined,
         input.locationId ? eq(stockLedger.locationId, input.locationId) : undefined,
         input.from ? gte(stockLedger.occurredAt, new Date(input.from)) : undefined,
         input.to ? lt(stockLedger.occurredAt, new Date(input.to)) : undefined,
-        input.cursor ? lt(stockLedger.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor row's own (occurred_at, id), read inside this tenant's transaction with
+         * its own tenant fence, so the comparison keeps Postgres's microseconds and no other
+         * distributor's row can anchor a page. An unknown cursor matches nothing (the DOS-009/DOS-023
+         * convention).
+         */
+        input.cursor
+          ? sql`(${stockLedger.occurredAt}, ${stockLedger.id}) < (select c.occurred_at, c.id from stock_ledger c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(stockLedger)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(stockLedger.id))
+        .orderBy(desc(stockLedger.occurredAt), desc(stockLedger.id))
         .limit(input.limit + 1)
       const items = rows.slice(0, input.limit).map(toEntry)
       const last = items[items.length - 1]

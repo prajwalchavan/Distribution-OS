@@ -3275,6 +3275,155 @@ describeDb('row level security and ledger guarantees', () => {
     ).rejects.toThrow()
   })
 
+  it("DOS-195: a vehicle's stock closes at zero over a trip and can never go negative — the database refuses to relieve a van of more than it carries", async () => {
+    /*
+     * The ledger half of the trip: the load sheet puts pieces on the van (`transfer_in`), a door takes
+     * some (`sale` OUT OF THE VEHICLE, which is where a sale happens), a refused door takes none, and
+     * the check-in counts the rest back into the godown (`van_unload`). Summed over the vehicle the
+     * trip closes at zero, and no row anywhere is negative — the invariant the pilot's van broke when
+     * pack posted the sale and the goods existed in no location at all.
+     */
+    const van = uuidv7()
+    const tripLot = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: van, tenantId: tenantA, kind: 'vehicle', name: `Van D195 ${run}` })
+    await db.insert(stockLots).values({
+      id: tripLot,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `TRIP-${run}`,
+      mrpPaise: 4000,
+    })
+    const post = async (locationId: string, qtyDelta: number, reason: string, key: string) => {
+      await db.insert(stockLedger).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        lotId: tripLot,
+        locationId,
+        qtyDelta,
+        reason: reason as 'sale',
+        actorId: owner,
+        idempotencyKey: `${key}-${run}`,
+      })
+      // The balance row first at zero, then moved by the delta, exactly as `applyBalance` does it: an
+      // INSERT carrying the negative would trip the CHECK before ON CONFLICT could turn it into an update.
+      await db
+        .insert(stockBalances)
+        .values({ tenantId: tenantA, lotId: tripLot, locationId, onHand: 0 })
+        .onConflictDoNothing()
+      await db
+        .update(stockBalances)
+        .set({ onHand: sql`${stockBalances.onHand} + ${qtyDelta}` })
+        .where(
+          sql`${stockBalances.tenantId} = ${tenantA} AND ${stockBalances.lotId} = ${tripLot}
+               AND ${stockBalances.locationId} = ${locationId}`,
+        )
+    }
+    await post(van, 40, 'transfer_in', 'd195-load')
+    await post(van, -24, 'sale', 'd195-sold')
+    await post(van, -16, 'van_unload', 'd195-checkin')
+    await post(godownA, 16, 'transfer_in', 'd195-back')
+
+    const vanLedger = (
+      await db.execute(
+        sql`select coalesce(sum(qty_delta), 0)::int as n from stock_ledger
+             where tenant_id = ${tenantA} and lot_id = ${tripLot} and location_id = ${van}`,
+      )
+    ).rows[0] as { n: number }
+    expect(Number(vanLedger.n), "the vehicle's own ledger closes at zero after the check-in").toBe(
+      0,
+    )
+    const [vanBalance] = await db
+      .select()
+      .from(stockBalances)
+      .where(sql`${stockBalances.lotId} = ${tripLot} AND ${stockBalances.locationId} = ${van}`)
+    expect(vanBalance?.onHand).toBe(0)
+
+    // and the database itself refuses a van relieved of more than it carries: a selling location never
+    // goes negative, so an over-posted sale at the door is an error, never quiet invented stock
+    await expect(
+      post(van, -1, 'sale', 'd195-overdraw'),
+      'a vehicle may not go negative',
+    ).rejects.toThrow()
+  })
+
+  it('DOS-204: sellable_stock holds only the sellable locations — a lot standing in the damaged / expiry bin, in transit or on a customer floor is never in it', async () => {
+    /*
+     * The view is called `sellable_stock` and every caller had to remember a location filter of its
+     * own; the seventh that forgot would have offered expired and broken goods for sale. The predicate
+     * belongs in the object that carries the name, so the name cannot lie.
+     */
+    const bin = uuidv7()
+    const transit = uuidv7()
+    const floor = uuidv7()
+    const binLot = uuidv7()
+    await db.insert(locations).values([
+      { id: bin, tenantId: tenantA, kind: 'damaged', name: `Bin ${run}`, negativeAllowed: true },
+      { id: transit, tenantId: tenantA, kind: 'in_transit', name: `Transit ${run}` },
+      { id: floor, tenantId: tenantA, kind: 'customer', name: `Shop floor ${run}` },
+    ])
+    await db.insert(stockLots).values({
+      id: binLot,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `BIN-${run}`,
+      mrpPaise: 4000,
+    })
+    await db.insert(stockBalances).values([
+      { tenantId: tenantA, lotId: binLot, locationId: bin, onHand: 32 },
+      { tenantId: tenantA, lotId: binLot, locationId: transit, onHand: 11 },
+      { tenantId: tenantA, lotId: binLot, locationId: floor, onHand: 7 },
+      { tenantId: tenantA, lotId: binLot, locationId: godownA, onHand: 5 },
+    ])
+    const sellable = async (): Promise<{ location_id: string; available: number }[]> =>
+      (
+        await as('owner')((tx) =>
+          tx.execute(
+            sql`select location_id, available from sellable_stock where tenant_id = ${tenantA} and lot_id = ${binLot}`,
+          ),
+        )
+      ).rows as { location_id: string; available: number }[]
+
+    // the godown row is there, and it is the ONLY one: 32 broken pieces, 11 in transit and 7 on a
+    // customer's floor are stock, and none of them is sellable stock
+    expect((await sellable()).map((r) => [r.location_id, Number(r.available)])).toEqual([
+      [godownA, 5],
+    ])
+
+    // a vehicle IS sellable (the crew's van sale reads its own van through this view)
+    const van = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: van, tenantId: tenantA, kind: 'vehicle', name: `Van D204 ${run}` })
+    await db
+      .insert(stockBalances)
+      .values({ tenantId: tenantA, lotId: binLot, locationId: van, onHand: 9 })
+    expect(
+      (await sellable())
+        .map((r) => [r.location_id, Number(r.available)])
+        .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    ).toEqual(
+      [
+        [godownA, 5],
+        [van, 9],
+      ].sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    )
+
+    // and a shop asking the view directly gets the same answer, never the bin
+    expect(
+      (
+        (
+          await as('retailer')((tx) =>
+            tx.execute(
+              sql`select location_id from sellable_stock where tenant_id = ${tenantA} and lot_id = ${binLot}`,
+            ),
+          )
+        ).rows as { location_id: string }[]
+      ).map((r) => r.location_id),
+    ).not.toContain(bin)
+  })
+
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {
     expect(await as('retailer')((tx) => tx.select().from(grns))).toHaveLength(0)
     expect((await as('warehouse')((tx) => tx.select().from(grns))).map((g) => g.id)).toEqual([grnA])

@@ -567,11 +567,21 @@ describeDb('billing (DATABASE_URL)', () => {
       `/orders/${firstOrderId}`,
     )
     expect(order.body.item.state).toBe('packed')
-    // the pack posts the sale rows against the ORDER (`ref_type = 'pack'`), because the pieces leave
-    // when the cartons are taped shut — before the document exists (coordination §4 step 3)
+    /*
+     * The pack posts its rows against the ORDER (`ref_type = 'pack'`), because the pieces leave the rack
+     * when the cartons are taped shut — before the document exists (coordination §4 step 3). They leave
+     * the rack FOR THE DOCK, not for nowhere: a pack is not a sale, and the sale is posted at the door
+     * out of the vehicle (QA DOS-195).
+     */
     const ledger = await ledgerFor(firstOrderId)
-    expect(ledger).toHaveLength(1)
-    expect(ledger[0]).toMatchObject({ reason: 'sale', qty_delta: -24, location_id: godown })
+    expect(ledger).toHaveLength(2)
+    expect(ledger[0]).toMatchObject({
+      reason: 'transfer_out',
+      qty_delta: -24,
+      location_id: godown,
+    })
+    expect(ledger[1]).toMatchObject({ reason: 'transfer_in', qty_delta: 24 })
+    expect(ledger.reduce((n, r) => n + r.qty_delta, 0)).toBe(0)
 
     // one balanced AR entry, and receivables owns it
     expect(await journalCount('invoice', invoiceId)).toBe(1)
@@ -760,13 +770,23 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(cancelled.body.item.cancelReason).toBe('Retailer refused the load before dispatch.')
     expect(cancelled.body.item.amountDuePaise).toBe(0)
 
-    // the pieces went out with the pack (against the order) and came back with the cancellation
-    // (against the invoice), and the two net to zero
+    /*
+     * The pieces went from the rack to the dock with the pack (against the order) and back from the dock
+     * to the rack with the cancellation (against the invoice) — a cancel before dispatch moves real
+     * cartons that are standing on the dock, it does not conjure them (QA DOS-195). The four rows net
+     * to zero and the godown ends exactly where it started.
+     */
     const out = await ledgerFor(orderId)
     const back = await ledgerFor(invoiceId)
-    expect(out.map((r) => r.reason)).toEqual(['sale'])
-    expect(back.map((r) => r.reason)).toEqual(['adjustment'])
+    expect(out.map((r) => r.reason)).toEqual(['transfer_out', 'transfer_in'])
+    expect(back.map((r) => r.reason)).toEqual(['transfer_out', 'transfer_in'])
     expect([...out, ...back].reduce((s, r) => s + r.qty_delta, 0)).toBe(0)
+    expect(
+      [...out, ...back]
+        .filter((r) => r.location_id === godown)
+        .reduce((s, r) => s + r.qty_delta, 0),
+      'the rack is whole again',
+    ).toBe(0)
     expect(await journalSum('invoice_cancel', invoiceId)).toBe(0)
 
     // The order went WITH the bill (QA DOS-139), so there is nothing left to bill: it used to stay

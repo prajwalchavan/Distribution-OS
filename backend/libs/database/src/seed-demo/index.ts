@@ -21,6 +21,7 @@ import { seedCatalog, type VariantRow } from './catalog.js'
 import { seedClaims } from './claims.js'
 import { seedDelivery } from './delivery.js'
 import { seedDeliveryRoad } from './delivery-road.js'
+import { seedDispatchStock } from './dispatch-stock.js'
 import { seedDocint } from './docint.js'
 import { inDemoScope } from './ids.js'
 import { seedIncentives } from './incentives.js'
@@ -279,6 +280,10 @@ export async function seedDemo(
     // sheet's value is the sum of those invoices. After delivery: a sheet loads a VEHICLE location, and
     // `seedDelivery` is what creates them.
     await seedWarehouse(db, tenantId, sales, stock, people)
+    // After warehouse: every confirmed sheet moves its packed lots dock → vehicle, every settled trip
+    // stages the bills that came back on the dock, and every opened door sells the bill off the van
+    // (QA DOS-195) — read from the sheets, trips and deliveries the seeds above wrote.
+    await seedDispatchStock(db, tenantId, stock, people)
     // After warehouse: the freshest load sheet has put real stock on Tempo 1, so the one van-sale order
     // still waiting to be billed can be fulfilled from it (inside `seedBilling` the van was still empty
     // on the first seed of a fresh database and the order only appeared on the second run).
