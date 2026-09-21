@@ -1,0 +1,62 @@
+== D8 walk desk-a 1280x800 driver=ganesh.more settle=false ==
+signed in, url=http://127.0.0.1:5177/
+device filled after ~22s
+home stops: 10
+  7dd63add-5883-761e-93d6-88b9e38c81fb :: 1. Prerna Super MarketShop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301₹73,245.00Delivere
+  342af087-7d68-742c-8209-52237c21bb23 :: 2. Metro Kirana BazarShop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301₹4,547.00Del
+  6c4c742c-5445-75ed-8418-049db39f5709 :: 3. Anand Bhavan ProvisionShop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306₹2,843.00Del
+  4a5f6910-67eb-75a3-86b5-1a7d0e5dd623 :: 4. Vaibhav Kirana MartShop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306₹7,856.00At the s
+  e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb :: 5. Joshi Kirana StoresShop 22, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301₹14,962.00Not starte
+  74bbfade-4f45-7c41-a3e8-8b53ba8adb2b :: 6. Ansari Kirana StoresShop 30, Rambaug Lane 4, Godrej Hill, Kalyan West, Kalyan, 421301₹2,610.00Not
+  18ac4301-73fb-72fd-9df1-cab54f72a4c4 :: 7. Nakshatra KiranaShop 4, Chinchpada Road, Kolsewadi, Kalyan East, Kalyan, 421306₹4,756.00Not start
+  49acc96c-933b-7f45-b5bb-63d01d3b2e7f :: 8. Laxmi Narayan StoresShop 11, Parnaka, Bazarpeth, Kalyan West, Kalyan, 421301₹22,508.00Not started
+  8fd70ab5-b169-7cc0-9191-fc6083358804 :: 9. Khan General StoreShop 14, Nandivli Road, Kolsewadi, Kalyan East, Kalyan, 421306₹907.00Not starte
+  a53373df-e4c5-7a7a-aeca-833d3fa1f352 :: 10. Rukmini ProvisionShop 34, Syndicate, Godrej Hill, Kalyan West, Kalyan, 421301₹26,581.00Not start
+  -> Day summary
+PHASE 1 online, no money held:
+  d8-expected  = ₹5,000.00
+  d8-hand-over = Hand ₹5,000.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] desk-a-p1-online-baseline.png
+  -> Today
+opened Take money on stop 7dd63add-5883-761e-93d6-88b9e38c81fb
+offline: true
+  [shot] desk-a-p2a-recorded-offline.png
+  -> Day summary (offline)
+PHASE 2 offline, holding ₹1544:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = This tab holds ₹1,544.00 in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.
+  d8-pending   = 1 writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.
+  disabled     = true  reason = 1 records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.
+  [shot] desk-a-p2-offline-holding.png
+offline: false (same mount, no reload)
+  t+2s expected=₹6,544.00 uncounted=shown disabled=true
+  t+4s expected=₹6,544.00 uncounted=shown disabled=true
+  t+6s expected=₹6,544.00 uncounted=shown disabled=true
+  t+8s expected=₹6,544.00 uncounted=shown disabled=true
+  t+10s expected=₹6,544.00 uncounted=shown disabled=true
+  t+12s expected=₹6,544.00 uncounted=shown disabled=true
+  t+14s expected=₹5,000.00 uncounted=none disabled=false
+  t+16s expected=₹6,544.00 uncounted=none disabled=false
+  t+18s expected=₹6,544.00 uncounted=none disabled=false
+  t+20s expected=₹6,544.00 uncounted=none disabled=false
+  t+22s expected=₹6,544.00 uncounted=none disabled=false
+  t+24s expected=₹6,544.00 uncounted=none disabled=false
+  t+26s expected=₹6,544.00 uncounted=none disabled=false
+  t+28s expected=₹6,544.00 uncounted=none disabled=false
+PHASE 3 back online, SAME MOUNT:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] desk-a-p3-online-same-mount.png
+  -> Today
+  -> Day summary (re-opened)
+PHASE 4 re-opened:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] desk-a-p4-reopened.png
