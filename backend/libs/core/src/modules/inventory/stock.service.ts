@@ -391,23 +391,45 @@ export class StockService {
     )
   }
 
-  /** Newest first; `cursor` is the id of the last row seen (UUIDv7 orders by time). */
+  /**
+   * NEWEST FIRST by `occurred_at`, the ledger's own time and the one the screen prints, the row id only
+   * breaking a tie — the same column `from`/`to` filter, so the window and the order never disagree
+   * (QA DOS-186; the founder's list rule, 2026-09-21). It used to order by `id` alone, on the assumption
+   * that a UUIDv7 is the posting's time: it is not. Ids are minted on the device, the demo seed's are
+   * hashes that sort above every real row, and a legitimately back-dated posting (an opening balance, a
+   * late GRN) carries its own `occurred_at`. `cursor` is the id of the last row of the page and walks
+   * that same (`occurred_at`, id) order.
+   */
   async ledger(input: LedgerIn): Promise<LedgerOut> {
     requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
-    return withTenant(db, currentTenant(), async (tx) => {
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
       const filters: (SQL | undefined)[] = [
+        /*
+         * RLS is the guarantee; the literal is what lets the planner start from the tenant-led
+         * `stock_ledger_time_idx (tenant_id, occurred_at, id)` instead of scanning (docs/20 rule 8).
+         */
+        eq(stockLedger.tenantId, ctx.tenantId),
         input.lotId ? eq(stockLedger.lotId, input.lotId) : undefined,
         input.locationId ? eq(stockLedger.locationId, input.locationId) : undefined,
         input.from ? gte(stockLedger.occurredAt, new Date(input.from)) : undefined,
         input.to ? lt(stockLedger.occurredAt, new Date(input.to)) : undefined,
-        input.cursor ? lt(stockLedger.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor row's own (occurred_at, id), read inside this tenant's transaction with
+         * its own tenant fence, so the comparison keeps Postgres's microseconds and no other
+         * distributor's row can anchor a page. An unknown cursor matches nothing (the DOS-009/DOS-023
+         * convention).
+         */
+        input.cursor
+          ? sql`(${stockLedger.occurredAt}, ${stockLedger.id}) < (select c.occurred_at, c.id from stock_ledger c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(stockLedger)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(stockLedger.id))
+        .orderBy(desc(stockLedger.occurredAt), desc(stockLedger.id))
         .limit(input.limit + 1)
       const items = rows.slice(0, input.limit).map(toEntry)
       const last = items[items.length - 1]

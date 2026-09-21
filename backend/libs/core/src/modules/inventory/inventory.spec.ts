@@ -1306,6 +1306,101 @@ describeDb('inventory (DATABASE_URL)', () => {
     await setShelfLife(30)
   })
 
+  it('DOS-186: the ledger reads newest first by its own occurred_at with an (occurred_at, id) cursor, so a page reaches today past ids that sort above it', async () => {
+    /*
+     * The seed's `stock_ledger.id` values are hashes, not UUIDv7, so they sort above every real row: a
+     * page ordered by id never reaches today. These three rows reproduce that exactly — two ancient rows
+     * whose ids start `ffff`, one posted today whose id is a real UUIDv7.
+     */
+    const ancientHigh = `ffffffff-ffff-4fff-8fff-${run}f001`
+    const ancientMid = `ffffffff-ffff-4fff-8fff-${run}f002`
+    const todayId = uuidv7()
+    const todayAt = new Date()
+    const ledgerLotId = uuidv7()
+    await call(app, owner, 'POST', '/inventory/lots', {
+      idempotencyKey: `dos186-lot-${run}`,
+      id: ledgerLotId,
+      variantId,
+      batchNo: `D186-${run}`,
+      mrpPaise: 1000,
+      expiryDate: '2027-12-01',
+    })
+    await db.insert(stockLedger).values([
+      {
+        id: ancientHigh,
+        tenantId,
+        occurredAt: new Date('2026-06-09T06:00:00.000Z'),
+        lotId: ledgerLotId,
+        locationId: godown,
+        qtyDelta: 7,
+        reason: 'opening',
+        actorId: ownerId,
+        idempotencyKey: `dos186-old-a-${run}`,
+      },
+      {
+        id: ancientMid,
+        tenantId,
+        occurredAt: new Date('2026-06-22T06:00:00.000Z'),
+        lotId: ledgerLotId,
+        locationId: godown,
+        qtyDelta: 5,
+        reason: 'opening',
+        actorId: ownerId,
+        idempotencyKey: `dos186-old-b-${run}`,
+      },
+      {
+        id: todayId,
+        tenantId,
+        occurredAt: todayAt,
+        lotId: ledgerLotId,
+        locationId: godown,
+        qtyDelta: -3,
+        reason: 'sale',
+        actorId: ownerId,
+        idempotencyKey: `dos186-today-${run}`,
+      },
+    ])
+
+    // page 1 of 1: today's row, not the `ffff` row that merely sorts high
+    const first = await call<{
+      items: (Entry & { occurredAt: string })[]
+      nextCursor: string | null
+    }>(app, owner, 'GET', '/inventory/ledger', { lotId: ledgerLotId, limit: 1 })
+    expect(first.status).toBe(200)
+    expect(first.body.items.map((e) => e.id)).toEqual([todayId])
+    expect(first.body.nextCursor).toBe(todayId)
+
+    // the cursor walks the same (occurred_at, id) order, so page 2 is the next newest
+    const second = await call<{
+      items: (Entry & { occurredAt: string })[]
+      nextCursor: string | null
+    }>(app, owner, 'GET', '/inventory/ledger', {
+      lotId: ledgerLotId,
+      limit: 1,
+      cursor: first.body.nextCursor ?? '',
+    })
+    expect(second.body.items.map((e) => e.id)).toEqual([ancientMid])
+
+    // and the whole window is in date order, newest first
+    const all = await call<{ items: (Entry & { occurredAt: string })[] }>(
+      app,
+      owner,
+      'GET',
+      '/inventory/ledger',
+      { lotId: ledgerLotId, limit: 100 },
+    )
+    const times = all.body.items.map((e) => Date.parse(e.occurredAt))
+    expect(times).toEqual([...times].sort((a, b) => b - a))
+
+    // the from/to window filters the column the list orders on
+    const todayOnly = await call<{ items: Entry[] }>(app, owner, 'GET', '/inventory/ledger', {
+      lotId: ledgerLotId,
+      limit: 100,
+      from: new Date(todayAt.getTime() - 60_000).toISOString(),
+    })
+    expect(todayOnly.body.items.map((e) => e.id)).toEqual([todayId])
+  })
+
   it('keeps the ledger append-only even for the owner', async () => {
     await expect(
       withTenant(db, ownerCtx, (tx) =>

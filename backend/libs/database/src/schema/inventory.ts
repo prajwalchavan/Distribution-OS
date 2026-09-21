@@ -138,7 +138,8 @@ export const stockLedger = pgTable(
   },
   (t) => [
     uniqueIndex('stock_ledger_idempotency_idx').on(t.tenantId, t.idempotencyKey),
-    index('stock_ledger_time_idx').on(t.tenantId, t.occurredAt),
+    /** The register's own order and its keyset page: newest `occurred_at` first, id the tie-break (QA DOS-186). */
+    index('stock_ledger_time_idx').on(t.tenantId, t.occurredAt, t.id),
     index('stock_ledger_lot_location_idx').on(t.tenantId, t.lotId, t.locationId),
     index('stock_ledger_ref_idx').on(t.tenantId, t.refType, t.refId),
     check('stock_ledger_qty_nonzero', sql`qty_delta <> 0`),
