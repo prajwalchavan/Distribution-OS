@@ -9,7 +9,7 @@ Last updated: 2026-09-20, 20:15 IST
 | Run | Task | What it is |
 |---|---|---|
 | `day1-chain.js` | `whj7hepvd` | Phase 2 — the cross-role chain on the seven apps as they are, then the eight days that go wrong, then a blind verifier. Output `QA/09-cross-role-workflows.md`. |
-| `welcome-and-landing.js` | `w69pcps5i` | docs/29 §1 — Welcome before sign-in, landing after, all seven apps through the template. UI only. |
+| ~~`welcome-and-landing.js`~~ | done | **MERGED** — docs/29 §1 Welcome + landing in all seven apps. Verified pass; the review's one blocker (the flag cleared on a state, not a transition) fixed on the branch with its test; the architect merged by hand. Three rulings written into docs/29 §1. Web and Pixel 7 walks owed → covered by the day-3 re-walk on the one app and day 7. |
 | `role-election.js` | `wgar6wy16` | **docs/29 §2 — role election, downward only** + `extra_roles` + staff screens. **Stops after integration**: the architect (this session, Fable 5.1) reads the branch and merges by hand, because it changes a contract and a permission surface. |
 | `deploy-plumbing.js` | `wk3sezrl3` | The path from repo to server, which did not exist: Dockerfile that builds (arm64 via colima), compose for the VM, Caddy + TLS, migrate + bootstrapTenant step, backups to R2, secrets, Pages pipeline, `docs/30-deploy-runbook.md`. |
 | `one-app-layout-plan` | see /workflows | **docs/29 §3, planning only, read-only**: six inventories → one move plan (`docs/31-one-app-layout.md`) with every string collision, the device-store rule for one phone holding two roles, guards, the retirement list → two skeptics. **The architect approves it tomorrow morning before a single screen moves.** |
