@@ -8,6 +8,9 @@
  *   pnpm smoke --only GET          reads only, nothing is written
  *   pnpm smoke --destructive       also run cancel/delete/revoke/… (breaks shared demo state)
  *   pnpm smoke --verbose           print the request body of every call
+ *   pnpm smoke --check-id <uuid>   SELF-TEST: says whether the harness can see that id as a row of
+ *                                  this database, and therefore whether a 404 on it would be BROKEN
+ *                                  or SKIPPED. Calls no service and writes nothing.
  *
  * For each service it signs in against auth-service (:3000) as that service's primary demo role,
  * reads THAT service's own /docs/openapi.json (so it tests exactly what the service serves), and
@@ -53,6 +56,8 @@ const BASE_URL = flagValue('--base')?.replace(/\/$/, '')
 const ONLY_METHOD = flagValue('--only')?.toUpperCase()
 const VERBOSE = argv.includes('--verbose')
 const DESTRUCTIVE = argv.includes('--destructive')
+/** `--check-id <uuid>`: the self-test of the rule below. Prints the verdict and exits, calling nothing. */
+const CHECK_ID = flagValue('--check-id')
 const REQUEST_TIMEOUT_MS = 20_000
 /**
  * Everything the harness creates is seeded with this, so two runs that share it write the same rows
@@ -230,6 +235,12 @@ function sealIdempotency(
 const servicePhoneSlot = (service: string) =>
   Math.max(1, SERVICES.findIndex((s) => s.name === service) + 1)
 
+/** Only a uuid-shaped path value can be checked against the row ids; a code or a date cannot. */
+const UUID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+function isUuid(value: unknown): boolean {
+  return typeof value === 'string' && UUID_SHAPE.test(value)
+}
+
 function istDate(offsetDays = 0): string {
   const ms = Date.now() + offsetDays * 86_400_000 + 5.5 * 3600 * 1000
   return new Date(ms).toISOString().slice(0, 10)
@@ -277,6 +288,49 @@ class Fixtures {
   async liveScalar(sql: string, params: unknown[] = []): Promise<string | null> {
     const rows = await this.rows(sql, params)
     return rows[0] ? ((Object.values(rows[0])[0] as string | null) ?? null) : null
+  }
+
+  /**
+   * DOES THIS ID NAME A ROW OF THIS DATABASE AT ALL? (S-157.)
+   *
+   * A published example can carry an id the DOCUMENT INVENTED: when no demo row qualifies, the doc
+   * sampler fills the path parameter with a well-formed uuid so Swagger's "Try it out" box is not
+   * empty. The harness used to count every id that came from the document as "read from the demo
+   * database", so the correct 404 that follows was reported as a BROKEN endpoint — and a harness that
+   * cannot tell "no data for this case" from "this endpoint is broken" makes every 0-BROKEN claim
+   * worthless.
+   *
+   * The test is the honest one: an id that names no row in ANY table of this database cannot be the
+   * id of a row, so a 404 on it is the endpoint working. It is deliberately a whole-database probe
+   * rather than a route→table map: the map would go stale silently, and the answer here is only ever
+   * used to DOWNGRADE a call to SKIPPED (printed, never hidden), never to excuse a failure on a real
+   * id. Every table with a scalar `id` primary key is probed on its index in one round trip, and the
+   * answer is cached for the run.
+   */
+  private idTables: string[] | null = null
+  private idExists = new Map<string, boolean>()
+  async namesARow(id: string): Promise<boolean> {
+    const held = this.idExists.get(id)
+    if (held !== undefined) return held
+    this.idTables ??= (
+      await this.rows(
+        `select c.table_name from information_schema.columns c
+           join information_schema.tables t
+             on t.table_schema = c.table_schema and t.table_name = c.table_name
+            and t.table_type = 'BASE TABLE'
+          where c.table_schema = 'public' and c.column_name = 'id'
+            and c.data_type in ('text', 'uuid', 'character varying')
+          order by c.table_name`,
+      )
+    ).map((row) => String(row.table_name))
+    if (this.idTables.length === 0) return true // no schema to check against: never accuse an endpoint
+    const probe = this.idTables
+      .map((table) => `exists (select 1 from "${table}" where id = $1)`)
+      .join(' or ')
+    const [row] = await this.rows(`select (${probe}) as found`, [id])
+    const found = row?.found === true
+    this.idExists.set(id, found)
+    return found
   }
 
   private t = () => [this.tenantId]
@@ -2481,6 +2535,8 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
     // --- path + query -------------------------------------------------------------------------
     let usedRealIds = false
     let missingFixture: string | null = null
+    /** The uuid path ids the published document supplied, for the 404 check after the call (S-157). */
+    const examplePathIds: { name: string; value: string }[] = []
     let url = op.path
     const query = new URLSearchParams(plan.query ?? {})
     for (const param of op.parameters) {
@@ -2492,13 +2548,17 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       }
       if (param.in === 'path') {
         if (value === null) {
-          missingFixture = `no demo row for path parameter {${param.name}}`
+          missingFixture = `no demo row qualifies for path parameter {${param.name}}`
           break
         }
         if (value === undefined) {
           value = await generate(param.schema, param.name, `/${param.name}`, ctx)
         } else {
           usedRealIds = true
+          // S-157: remember every id the DOCUMENT handed us. The call still goes out — the role gate,
+          // the input schema and a 500 are all worth proving on any id — but if it comes back 404
+          // these are checked against the database before the endpoint is blamed for it.
+          if (isUuid(value)) examplePathIds.push({ name: param.name, value: String(value) })
         }
         url = url.replace(`{${param.name}}`, encodeURIComponent(String(value)))
         continue
@@ -2576,7 +2636,7 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       continue
     }
 
-    const { classification, reason } = classify(
+    let { classification, reason } = classify(
       op,
       res.status,
       res.body,
@@ -2584,6 +2644,26 @@ async function runService(target: ServiceTarget, fx: Fixtures): Promise<Result[]
       usedRealIds,
       exampleSource,
     )
+    /*
+     * S-157. A published example can name an id the DOCUMENT INVENTED: where no demo row qualifies,
+     * the doc sampler still fills the path parameter so Swagger's box is not empty. Blaming the
+     * endpoint for the 404 that follows is how a harness stops being able to tell "no data for this
+     * case" from "this endpoint is broken" — and that makes every 0-BROKEN claim worthless.
+     *
+     * So a 404 is only BROKEN once the id is shown to name a row. This runs AFTER the call and only
+     * over a verdict of BROKEN: every call still goes out (the role gate, the input schema and a 500
+     * are worth proving on any id), and nothing that was EXPECTED or OK is touched.
+     */
+    if (classification === 'BROKEN' && res.status === 404 && examplePathIds.length > 0) {
+      const invented: { name: string; value: string }[] = []
+      for (const pathId of examplePathIds)
+        if (!(await fx.namesARow(pathId.value))) invented.push(pathId)
+      const first = invented[0]
+      if (first) {
+        classification = 'SKIPPED'
+        reason = `no demo row qualifies: the published example's {${first.name}} = ${first.value} names no row in this database`
+      }
+    }
     results.push({
       ...base0,
       url: fullUrl,
@@ -2850,7 +2930,29 @@ async function demoSignInStillWorks(): Promise<string | null> {
   }
 }
 
+/**
+ * `--check-id <uuid>` (S-157). Feed the harness an id and read back which verdict a 404 on it would
+ * earn. This is the self-test of `Fixtures.namesARow`: an id that cannot exist must come back as
+ * SKIPPED "no demo row qualifies", never BROKEN. It signs into nothing and calls no service.
+ */
+async function checkId(id: string): Promise<never> {
+  if (!isUuid(id)) {
+    console.error(`smoke --check-id: ${id} is not a uuid`)
+    process.exit(2)
+  }
+  const fx = await Fixtures.open('(none)')
+  const found = await fx.namesARow(id)
+  await fx.close()
+  out(
+    found
+      ? `${id}  →  names a row in this database: a 404 here would be BROKEN`
+      : `${id}  →  SKIPPED (no demo row qualifies): it names no row in this database, so a 404 is the endpoint working`,
+  )
+  process.exit(0)
+}
+
 async function main(): Promise<void> {
+  if (CHECK_ID !== undefined) await checkId(CHECK_ID)
   const targets = ONLY_SERVICE ? SERVICES.filter((s) => s.name === ONLY_SERVICE) : SERVICES
   if (targets.length === 0) {
     console.error(
