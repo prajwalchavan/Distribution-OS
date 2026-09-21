@@ -520,8 +520,13 @@ export interface ExampleContext {
    */
   allocationId?: string | undefined
   challanId?: string | undefined
-  /** A pack confirmed with `issueInvoice: false` and still unbilled — the one `issueForPack` takes. */
+  /**
+   * The pack `issueForPack` is documented with: one confirmed with `issueInvoice: false` and still
+   * unbilled where the godown has left one, else the newest pack there is — a real row either way.
+   */
   parkedPackId?: string | undefined
+  /** True when `parkedPackId` really is waiting for a bill; false when it is already invoiced. */
+  parkedPackUnbilled?: boolean | undefined
   /** A draft load sheet the manager has NOT approved yet (`loadSheets.approve`), else any draft. */
   approvableLoadSheetId?: string | undefined
   loadSheetId?: string | undefined
@@ -1670,21 +1675,34 @@ async function collectPlatformGaps(tx: Db, tenantId: string, ctx: ExampleContext
       .orderBy(desc(deliveryChallans.id))
       .limit(1),
   )?.id
-  // A parked pack that MOVED stock comes first: `issueForPack` rebuilds the bill from the pack's
-  // `pack` ledger rows, and a pack of an order nothing was ever held for (a 100 % short pack) has
-  // none to bill. Any parked pack is still the fallback, so the note can say why the call refuses.
-  ctx.parkedPackId = first(
+  /*
+   * A parked pack that MOVED stock comes first: `issueForPack` rebuilds the bill from the pack's
+   * `pack` ledger rows, and a pack of an order nothing was ever held for (a 100 % short pack) has
+   * none to bill. Then any parked pack.
+   *
+   * S-156: and then ANY pack at all. A freshly seeded database has none parked — the seed bills
+   * every pack at confirm — and the `where invoice_id is null` this used to carry left the field
+   * empty, so the schema sampler filled the path parameter with a well-formed uuid that names no
+   * row. That breaks the promise printed above every document ("every example below is real"), it
+   * 404s under a reader's finger, and `pnpm smoke` cannot tell it from a real id, so it reported a
+   * correct 404 as a broken endpoint. A billed pack is a real row: pressing Execute answers 409
+   * `already_invoiced`, and `parkedPackUnbilled` lets the note say exactly that.
+   */
+  const pack = first(
     (
       await tx.execute(
-        sql`select p.id from pack_confirmations p
-             where p.tenant_id = ${tenantId} and p.invoice_id is null
-             order by exists (select 1 from stock_ledger sl
+        sql`select p.id, (p.invoice_id is null) as unbilled from pack_confirmations p
+             where p.tenant_id = ${tenantId}
+             order by (p.invoice_id is null) desc,
+                      exists (select 1 from stock_ledger sl
                                where sl.tenant_id = p.tenant_id
                                  and sl.ref_type = 'pack' and sl.ref_id = p.order_id) desc,
                       p.id limit 1`,
       )
-    ).rows as { id: string }[],
-  )?.id
+    ).rows as { id: string; unbilled: boolean }[],
+  )
+  ctx.parkedPackId = pack?.id
+  ctx.parkedPackUnbilled = pack?.unbilled ?? false
   const sheets = await tx
     .select({ id: loadSheets.id, status: loadSheets.status, approvedBy: loadSheets.approvedBy })
     .from(loadSheets)
@@ -5133,9 +5151,11 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'files.readUrl': () =>
     'Signs a read URL for the key files.uploadUrl mints; the link answers 404 until bytes were PUT there.',
   'billing.invoices.issueForPack': (ctx) =>
-    ctx.parkedPackId
-      ? 'Bills the one pack that was confirmed with issueInvoice:false. Once billed the same call answers 409 already_invoiced.'
-      : 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm). Confirm one with issueInvoice:false first.',
+    !ctx.parkedPackId
+      ? 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm). Confirm one with issueInvoice:false first.'
+      : ctx.parkedPackUnbilled
+        ? 'Bills the one pack that was confirmed with issueInvoice:false. Once billed the same call answers 409 already_invoiced.'
+        : 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm), so this names a real pack that already carries its bill: pressing Execute answers 409 already_invoiced. Confirm a pack with issueInvoice:false to see the call succeed.',
   'warehouse.loadSheets.approve': (ctx) =>
     ctx.approvableLoadSheetId
       ? 'The manager app gives the load-out PIN: approves the draft sheet the warehouse phone is waiting on. A second Execute answers 409 already_approved.'

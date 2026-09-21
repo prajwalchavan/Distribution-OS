@@ -8,6 +8,7 @@ import {
   deliveries,
   importJobs,
   messages,
+  packConfirmations,
   podEvidence,
   retailerLinks,
   salesOrders,
@@ -921,19 +922,39 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
   }, 90_000)
   /**
    * S-149. `collectNotifications` used to take the newest 500 rows of the TENANT and only then look
-   * for in-app notices, so on a distributor whose log is mostly shop WhatsApp the manager's and the
-   * godown's own notice fell outside the window; the example then fell back to a shop's WhatsApp row,
-   * which `markRead` refuses (`recipientUserId !== actorId`) and the godown may not even read.
+   * for in-app notices, so on a distributor whose log is mostly shop WhatsApp (the pilot: 961 rows,
+   * 12 of them own-notices) the manager's and the godown's own notice fell outside the window; the
+   * example then fell back to a shop's WhatsApp row, which `markRead` refuses (`recipientUserId !==
+   * actorId` → 404) and which the godown may not even read.
+   *
+   * The lanes are pinned to the demo sign-ins `backend/tools/smoke-endpoints.mts` uses, because that
+   * is who the document is read as: `collectPeople` names the account of each role that signed in
+   * most recently, which in a smoke run is exactly the account that just signed in.
    */
   it('S-149: every service lane publishes the signed-in staff member’s OWN in-app notice for markRead, never a shop’s WhatsApp row', async () => {
     const ctx = await context()
-    const lanes: { service: string; roles: readonly string[] }[] = [
-      { service: 'owner', roles: ['owner'] },
-      { service: 'manager', roles: ['manager', 'accountant'] },
-      { service: 'sales', roles: ['salesperson'] },
-      { service: 'warehouse', roles: ['warehouse'] },
-      { service: 'delivery', roles: ['delivery'] },
+    const lanes: { service: string; roles: readonly string[]; username: string }[] = [
+      { service: 'owner', roles: ['owner'], username: 'sunil.tarsun' },
+      { service: 'manager', roles: ['manager', 'accountant'], username: 'vikas.kadam' },
+      { service: 'sales', roles: ['salesperson'], username: 'rahul.deshmukh' },
+      { service: 'warehouse', roles: ['warehouse'], username: 'dinesh.patil' },
+      { service: 'delivery', roles: ['delivery'], username: 'ganesh.more' },
     ]
+    const signInIds = new Map(
+      (
+        await withSystem(db, (tx: Db) =>
+          tx
+            .select({ id: users.id, username: users.username })
+            .from(users)
+            .where(
+              inArray(
+                users.username,
+                lanes.map((l) => l.username),
+              ),
+            ),
+        )
+      ).map((row) => [row.username ?? '', row.id]),
+    )
     const rowOf = async (id: string): Promise<typeof messages.$inferSelect | undefined> =>
       withSystem(db, async (tx: Db) => {
         const [row] = await tx.select().from(messages).where(eq(messages.id, id)).limit(1)
@@ -942,18 +963,23 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
 
     const wrong: string[] = []
     for (const lane of lanes) {
-      const examples = buildExamples(PROCEDURES, ctx, { roles: lane.roles })
-      const signedIn = lane.roles.map((role) => ctx.users?.[role]).find((u) => u?.username)
-      expect(signedIn?.id, `${lane.service}: a demo sign-in`).toBeTruthy()
+      const id = signInIds.get(lane.username)
+      expect(id, `${lane.username} signs in to the demo data`).toBeTruthy()
+      const signedIn = { id: id ?? '', username: lane.username, name: lane.username }
+      const examples = buildExamples(
+        PROCEDURES,
+        { ...ctx, users: { ...ctx.users, [lane.roles[0] ?? '']: signedIn } },
+        { roles: lane.roles },
+      )
 
       const markReadId = String(examples.get('notifications.messages.markRead')?.pathParams.id)
       const notice = await rowOf(markReadId)
       if (!notice) wrong.push(`${lane.service}/markRead: ${markReadId} is no row of this database`)
       else if (notice.channel !== 'in_app' && notice.channel !== 'push')
         wrong.push(`${lane.service}/markRead: a ${notice.channel} row is never markable`)
-      else if (notice.recipientUserId !== signedIn?.id)
+      else if (notice.recipientUserId !== signedIn.id)
         wrong.push(
-          `${lane.service}/markRead: addressed to ${String(notice.recipientUserId)}, not to ${String(signedIn?.id)}`,
+          `${lane.service}/markRead: addressed to ${String(notice.recipientUserId)}, not to ${lane.username}`,
         )
       else if (notice.recipientRetailerId !== null)
         wrong.push(`${lane.service}/markRead: a shop's row, not the staff member's own`)
@@ -963,12 +989,44 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       if (lane.service === 'warehouse') {
         const getId = String(examples.get('notifications.messages.get')?.pathParams.id)
         const row = await rowOf(getId)
-        if (row?.recipientUserId !== signedIn?.id)
+        if (row?.recipientUserId !== signedIn.id)
           wrong.push(
             `${lane.service}/messages.get: ${getId} is not addressed to the godown’s own login`,
           )
       }
     }
     expect(wrong).toEqual([])
+  }, 30_000)
+
+  /**
+   * S-156. On a FRESHLY seeded database no pack is waiting for a bill (the seed invoices every pack
+   * at confirm), so the collector's `where invoice_id is null` found nothing, the field-name map
+   * answered undefined and the schema sampler filled the path parameter with a well-formed uuid that
+   * names no row. `pnpm smoke` cannot tell that id from a real one, so it called a correct 404 BROKEN
+   * and a fresh database could never reach the 0-BROKEN bar on its first pass.
+   */
+  it('S-156: the issueForPack example names a pack that really exists, even when the seed leaves none unbilled', async () => {
+    const ctx = await context()
+    const examples = buildExamples(PROCEDURES, ctx, { roles: ['owner'] })
+    const example = examples.get('billing.invoices.issueForPack')
+    const packId = String(example?.pathParams.packId)
+
+    const packs = await withSystem(db, (tx: Db) =>
+      tx
+        .select({ id: packConfirmations.id, invoiceId: packConfirmations.invoiceId })
+        .from(packConfirmations)
+        .where(eq(packConfirmations.tenantId, ctx.tenantId ?? ''))
+        .limit(5000),
+    )
+    const published = packs.find((p) => p.id === packId)
+    expect(published, `${packId} is no pack of this distributor`).toBeDefined()
+
+    // A pack the call ACCEPTS comes first; only when the godown has left none does the example fall
+    // back to a billed one, and then the note has to say so — never a made-up id either way.
+    const unbilled = packs.some((p) => p.invoiceId === null)
+    if (unbilled) expect(published?.invoiceId, 'an unbilled pack was available').toBeNull()
+    expect(example?.note, 'the note tells the reader what Execute will do').toContain(
+      published?.invoiceId === null ? 'Bills the one pack' : 'already_invoiced',
+    )
   }, 30_000)
 })
