@@ -30,7 +30,7 @@ function read(path: string): string {
 }
 
 describe('DOS-046: the warehouse tray offers a retry only for an op it still holds', () => {
-  const source = read('warehouse-app/app/pick/attention.tsx')
+  const source = read('dos-app/app/warehouse/pick/attention.tsx')
   const retry = /<Button[\s\S]*?testID=\{`tray-retry-\$\{entry\.error\.opId\}`\}[\s\S]*?\/>/.exec(
     source,
   )?.[0]

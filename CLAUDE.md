@@ -66,9 +66,11 @@ pnpm --filter @dos/warehouse-service dev  # :3004  warehouse
 pnpm --filter @dos/delivery-service dev   # :3005  delivery
 pnpm --filter @dos/retailer-service dev   # :3006  retailer
 pnpm --filter @dos/worker dev             # pg-boss worker: outbox relay (registered handlers per event), retention sweep, PDF renderer (documents.pdf.render), docint pipeline
-cd ../frontend && pnpm --filter @dos/owner-app web   # expo start --web on :5173; manager 5174, sales 5175, warehouse 5176, delivery 5177,
-                                                    # retailer 5178, admin 5179. `expo run:ios` / `expo run:android` build the device app
-                                                    # (the emulator is `Pixel_7_API_36`); `pnpm --filter @dos/<role>-app export:web` for a static build
+cd ../frontend && pnpm --filter @dos/dos-app web     # THE app on :5173 — all six roles, one Expo project, six visible route
+                                                    # groups (/owner, /manager, /sales, /warehouse, /delivery, /retailer).
+                                                    # admin-app 5179, app-template 5170; 5174-5178 retired with the six apps.
+                                                    # `expo run:ios` / `expo run:android` build the device app (the emulator is
+                                                    # `Pixel_7_API_36`); `pnpm --filter @dos/dos-app export:web` for a static build
 ```
 
 Frontend checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (kit + client + offline specs), `pnpm build` (every app runs
@@ -130,12 +132,18 @@ frontend/libs/{ui,api-client,offline}   @dos/ui = A Ledger design system: ONE co
                               (src/web = React DOM, src/native = React Native) and resolved per platform by Metro (index.web.ts /
                               index.native.ts) + layout primitives + AppShell + platform modules; typed oRPC client with session,
                               refresh, cache hooks; our own delta-sync client (SQLite) — no PowerSync, no TanStack Query.
-frontend/libs/app-template    the skeleton every app is generated from (expo-router app/, metro/babel/tsconfig/eslint, the font sync
-                              script, `new-app.mjs`). Change the shape of an app here, not in seven places.
-frontend/<role>-app           owner, manager, sales, warehouse, delivery, retailer, admin: SEVEN UNIVERSAL Expo apps (expo-router),
-                              website + Android + iOS from one codebase each. Screens import ONLY @dos/ui (never react-native or
-                              react-dom; ESLint enforces). `pnpm --filter @dos/<role>-app web` serves the browser build; each app
-                              carries its own EXPO_PUBLIC_API_URL, strings namespace and navigation data.
+frontend/libs/app-template    the skeleton an app is generated from (expo-router app/, metro/babel/tsconfig/eslint, the font sync
+                              script, `new-app.mjs`). Kept for the console and a future SEPARATE install; a business role is a
+                              GROUP of dos-app, not a new app (docs/31 §7 — `new-app.mjs` no longer knows the six).
+frontend/dos-app              THE app (docs/31): ONE universal Expo project (expo-router) = website + Android + iOS for all six
+                              business roles. `app/<group>/` per role with a VISIBLE segment (/owner/orders), `src/groups/<group>/`
+                              for its nav, strings and lib, `src/config.ts` GROUPS (role, title, port, touch, density, store prefix),
+                              `src/api.ts` the one client whose base is chosen per request from the ELECTED role. One root layout,
+                              one redirect ladder, one session per browser profile. Screens import ONLY @dos/ui (never react-native
+                              or react-dom; ESLint enforces, and libs/ui/src/one-app-parity.test.ts allow-lists the rest).
+                              `pnpm --filter @dos/dos-app web` on :5173.
+frontend/admin-app            the platform console (`platform_admin`, :3007, web 5179) — a separate install by design: its staff
+                              hold no membership, so it elects no role and shares no session with dos-app.
 docs/                         22 source of truth · 18 build log · 28 running it locally · 23 screen inventory + API gaps · 24 Confluence audit · 25 phase-2
                               enhancements · 26 environments, config and least-cost deployment · 27 offline sync client design (binding for @dos/offline) · 28 how to run the whole thing on this Mac · plans/ (one brief per module + 00-coordination) · confluence/ (sources of the founder's
                               Confluence space, README maps page ids; docs/22 wins) · design/ (UX-00 design system on layout A Ledger,
