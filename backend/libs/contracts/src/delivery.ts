@@ -774,13 +774,21 @@ export const TripPlanningOutput = z.object({
   nextCursor: z.string().nullable(),
 })
 
+/**
+ * NEWEST FIRST by `trip_date`, the row id only breaking a tie — the same column `from`/`to` filter, so
+ * the window and the order never disagree (QA DOS-009; founder, 2026-09-21, the register reading of his
+ * 2026-09-20 rule). A trip plan is a DATED REGISTER and the godown loads AHEAD, so a round planned for
+ * Friday belongs above Thursday's whatever its id says; ids are minted on the device and the demo seed's
+ * are hashes. `cursor` is the id of the last trip of the page and walks that same (`trip_date`, id)
+ * order — a screen must draw the page it was sent and never re-sort it (D11, DOS-009).
+ */
 export const TripsListInput = z.object({
   state: TripStateSchema.optional(),
   /** Several states in one call (bracket notation on the query string). */
   states: z.array(TripStateSchema).max(7).optional(),
   vehicleId: IdSchema.optional(),
   driverId: IdSchema.optional(),
-  /** Trip date on or after / on or before this IST calendar date. */
+  /** On `trip_date`, IST calendar dates: planned on or after / on or before this day. */
   from: IsoDateSchema.optional(),
   to: IsoDateSchema.optional(),
   /** Trips the caller is driver or helper on. FORCED to true for the delivery role. */
