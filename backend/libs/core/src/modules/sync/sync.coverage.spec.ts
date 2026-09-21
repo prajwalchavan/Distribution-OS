@@ -616,13 +616,16 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
      * without this the same shopkeeper could read his own limit, his bill count, his days and his
      * mode straight off the sync door — and off his phone, once the retailer app gains the offline
      * client. What the shop IS owed an answer on — what it owes today — comes from
-     * `retailer_outstanding_summary`, which is untouched. Same shape as DOS-072 for the crew.
+     * `retailer_outstanding_summary`, which is untouched. Same shape as DOS-072 for the crew. The
+     * TIER is policy too — the slab the desk put the shop on, which `toPublic` on the oRPC door has
+     * never handed the retailer role — so the sync door refuses it the same way.
      */
     const SHOP_MUST_NOT_HOLD = [
       'credit_limit_paise',
       'credit_limit_bills',
       'credit_days',
       'credit_mode',
+      'tier',
     ]
     const columns =
       (await manifestOf(shop)).body.tables
@@ -649,6 +652,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       expect(own, 'the desk and the rep read the shop').toBeDefined()
       for (const key of SHOP_MUST_NOT_HOLD) expect(Object.keys(own ?? {}), key).toContain(key)
       expect(own?.credit_limit_paise).toBe(5_000_000)
+      expect(own?.tier).toBe('A')
     }
   })
 

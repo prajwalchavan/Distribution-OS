@@ -52,10 +52,18 @@ export class RetailersModule implements OnModuleInit {
      * retailer app grew an offline client, which is the only reason nothing was on a phone yet. The
      * crew's omission keeps `credit_mode` (may this shop take goods on credit at the door); the shop
      * does not get even that. What the shop IS owed — what it owes today — still reaches it through
-     * `retailer_outstanding_summary` and `receivables.outstanding`. The manifest is built from this
-     * same `omit`, so a device that held the columns re-snapshots on the new schema hash.
+     * `retailer_outstanding_summary` and `receivables.outstanding`. The TIER goes with the policy:
+     * the shop's slab is the desk's rate decision about it, and the oRPC door's `toPublic` has never
+     * handed the retailer role its tier either, so the two doors agree. The manifest is built from
+     * this same `omit`, so a device that held the columns re-snapshots on the new schema hash.
      */
-    const CREDIT_POLICY = ['credit_limit_paise', 'credit_limit_bills', 'credit_days', 'credit_mode']
+    const CREDIT_POLICY = [
+      'credit_limit_paise',
+      'credit_limit_bills',
+      'credit_days',
+      'credit_mode',
+      'tier',
+    ]
     this.registry.registerPull(
       'retailers',
       tablePull(retailers, {
