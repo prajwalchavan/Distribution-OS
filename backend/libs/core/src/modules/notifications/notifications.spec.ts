@@ -1392,6 +1392,40 @@ describeDb('notifications (DATABASE_URL)', () => {
     expect(rows.filter((r) => r.channel === 'in_app')).toHaveLength(1)
   })
 
+  it('S-164: a report id this tenant already holds, re-sent under a DIFFERENT key, is 409 — never a 500', async () => {
+    // The replay above is the same key and returns the stored row. This is the other case: the shop
+    // re-uses a client id under a fresh intent. The unique violation used to escape the handler as an
+    // Internal server error, which told the shop nothing and read as a broken endpoint; every sibling
+    // create (orders, trips, vehicles, GRNs, documents) answers CONFLICT instead.
+    const id = uuidv7()
+    const first = await call(app, shop, 'POST', '/notifications/inbound', {
+      id,
+      idempotencyKey: `s160-first-${run}`,
+      retailerId: shopA,
+      kind: 'complaint',
+      body: 'The delivery came an hour after we shut.',
+    })
+    expect(first.status).toBe(200)
+
+    const clash = await call(app, shop, 'POST', '/notifications/inbound', {
+      id,
+      idempotencyKey: `s160-second-${run}`,
+      retailerId: shopA,
+      kind: 'question',
+      body: 'Different words, same id.',
+    })
+    expect(clash.status).toBe(409)
+    expect(JSON.stringify(clash.body)).toContain('already exists')
+
+    // The refusal wrote nothing: the row is still the first report, untouched.
+    const rows = await db
+      .select()
+      .from(inboundMessages)
+      .where(and(eq(inboundMessages.tenantId, tenantId), eq(inboundMessages.id, id)))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.kind).toBe('complaint')
+  })
+
   it('dues reminders go once per shop per seven days', async () => {
     const overdue = [{ retailerId: shopB, overduePaise: 250_000, oldestDueDate: '2026-08-01' }]
     const first = await queueDuesReminders(db, tenantId, overdue)
