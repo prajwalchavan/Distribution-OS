@@ -5,6 +5,7 @@ import { currentTenant } from '../../platform/index.js'
 import { SyncRejection } from '../sync/index.js'
 import { callerReaches, ORDER_PLACERS } from './orders.internals.js'
 import type { OrdersService } from './orders.service.js'
+import { isRewardLine } from './pricing-lines.js'
 import type { EnteredLine, EnteredUnit } from './pricing-lines.js'
 
 /**
@@ -154,8 +155,10 @@ export async function applyLineSync(tx: Db, op: SyncOp, orders: OrdersService): 
     .from(salesOrderLines)
     .where(eq(salesOrderLines.orderId, order.id))
     .orderBy(asc(salesOrderLines.lineNo))
+  // DOS-185: a scheme reward the engine wrote is not a line the rep typed. Handing it back as one would
+  // sell the shop its own gift at the price list; the re-price below earns it again from what is ordered.
   const lines: EnteredLine[] = current
-    .filter((l) => l.id !== op.id)
+    .filter((l) => l.id !== op.id && !isRewardLine(l))
     .map((l) => ({
       id: l.id,
       variantId: l.variantId,

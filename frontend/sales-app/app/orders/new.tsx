@@ -644,6 +644,8 @@ export default function OrderEntry(): React.JSX.Element {
                 const schemeLabel = describeScheme(
                   priced?.discountPaise ?? 0,
                   priced?.freeQtyPcs ?? 0,
+                  (priced?.freeItems ?? []).filter((free) => free.variantId !== line.variantId),
+                  (variantId) => byVariant.get(variantId)?.name ?? variantId.slice(0, 8),
                   t,
                 )
                 return (
@@ -810,16 +812,26 @@ function schemeFooter(
   )
 }
 
-/** "−₹68 · 12 pc free", the scheme as it prints on the row (UX-00 §6.6). */
+/**
+ * "−₹68 · 12 pc free", the scheme as it prints on the row (UX-00 §6.6).
+ *
+ * DOS-185: a reward of ANOTHER item is NAMED here — "5 pc free · Campa Cola 750 ml" — because the rep is
+ * promising it at the counter. The order the server writes carries it as a line of its own, so what this
+ * row says and what the shop is sent are the same goods.
+ */
 function describeScheme(
   discountPaise: number,
   freeQtyPcs: number,
+  freeItems: readonly { variantId: string; qtyPcs: number }[],
+  nameOf: (variantId: string) => string,
   t: (key: string, params?: Record<string, string | number>) => string,
 ): string | undefined {
-  if (discountPaise === 0 && freeQtyPcs === 0) return undefined
+  if (discountPaise === 0 && freeQtyPcs === 0 && freeItems.length === 0) return undefined
   const parts: string[] = []
   if (discountPaise > 0) parts.push(`−${formatINR(paise(discountPaise))}`)
   if (freeQtyPcs > 0) parts.push(t('qty.freeGoods', { pieces: freeQtyPcs }))
+  for (const free of freeItems)
+    parts.push(`${t('qty.freeGoods', { pieces: free.qtyPcs })} · ${nameOf(free.variantId)}`)
   return parts.join(' · ')
 }
 

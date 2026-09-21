@@ -86,6 +86,7 @@ import {
 } from './fill-rate.js'
 import { loadDetail, type OrderRow } from './orders.mappers.js'
 import {
+  isRewardLine,
   priceOrderLines,
   repriceApprovedBargains,
   type EnteredLine,
@@ -237,12 +238,16 @@ export class OrdersService {
           expectedDeliveryDate: input.expectedDeliveryDate ?? null,
           note: `Repeat of ${previous.id}`,
         })
-        const lines: EnteredLine[] = previousLines.map((l) => ({
-          id: uuidv7(),
-          variantId: l.variantId,
-          enteredQty: l.enteredQty,
-          enteredUnit: l.enteredUnit,
-        }))
+        // DOS-185: the gift the last order EARNED is not something the shop asked for; repeating the order
+        // re-earns it from today's schemes (or does not), it is never copied forward as a purchase.
+        const lines: EnteredLine[] = previousLines
+          .filter((l) => !isRewardLine(l))
+          .map((l) => ({
+            id: uuidv7(),
+            variantId: l.variantId,
+            enteredQty: l.enteredQty,
+            enteredUnit: l.enteredUnit,
+          }))
         return { item: await this.detail(tx, await this.writeLines(tx, order, lines)) }
       }),
     )
