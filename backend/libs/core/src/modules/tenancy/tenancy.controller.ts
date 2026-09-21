@@ -60,6 +60,13 @@ export class TenancyController {
     )
   }
 
+  @Implement(contract.tenancy.memberships.update)
+  membershipsUpdate(@OwnsReply() _reply: unknown) {
+    return implement(contract.tenancy.memberships.update).handler(({ input }) =>
+      this.tenancy.updateMembership(input),
+    )
+  }
+
   @Implement(contract.tenancy.branding.get)
   brandingGet(@OwnsReply() _reply: unknown) {
     return implement(contract.tenancy.branding.get).handler(() => this.config.branding())

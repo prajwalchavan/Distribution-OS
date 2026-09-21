@@ -156,6 +156,18 @@ export const en = {
   'tenant.logoAlt': '{name} logo',
   'tenant.switch': 'Switch distributor',
 
+  /*
+   * Welcome and landing (docs/29 §1). The six business apps show the product's own name on exactly
+   * ONE surface — the welcome, before anybody has signed in. After that the distributor's own name
+   * and logo are the chrome (UX-00 §11), which is what the landing says two seconds of.
+   */
+  'welcome.product': 'Distribution OS',
+  'welcome.tagline': 'Connecting a distribution business through six apps.',
+  /* The console is not one of the six: its reader is our own staff, not a distributor's. */
+  'welcome.console': 'Platform console',
+  'welcome.signIn': 'Sign in',
+  'landing.app': '{name} app',
+
   // The shell (UX-00 sections 8.1 and 8.2).
   'nav.sections': 'Sections',
   'nav.more': 'More',
@@ -252,6 +264,22 @@ export function keepSegment(
 ): string | null {
   if (persistent !== false) return null
   return translate(surface === 'browser' ? 'connection.notKeptBrowser' : 'connection.notKeptPhone')
+}
+
+/**
+ * This app's own name, out of the one place it is written: `APP.title` ("Distribution OS - Delivery"
+ * -> "Delivery"). UX-00 §11 fixes that title as the product name, then the app, so the app's half is
+ * what follows the last separator.
+ *
+ * WHY A HELPER AND NOT A SECOND CONFIG FIELD. Seven apps already carry `APP.title`, and a second
+ * field naming the same app a second time is a field that can disagree with it. A title that names
+ * no app at all is returned whole — a heading with the product's name on it is right; an empty one
+ * never is.
+ */
+export function appShortName(title: string): string {
+  const cut = title.lastIndexOf(' - ')
+  const short = cut === -1 ? title : title.slice(cut + 3)
+  return short.trim() === '' ? title.trim() : short.trim()
 }
 
 /**

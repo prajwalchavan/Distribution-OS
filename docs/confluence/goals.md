@@ -6,9 +6,9 @@
 | ------------ | ------------------ |
 | Document     | Product Goals      |
 | Product      | Distribution OS    |
-| Version      | 2.0                |
+| Version      | 2.1                |
 | Status       | Active             |
-| Last Updated | September 2026     |
+| Last Updated | 21 September 2026  |
 | Owner        | Product Management |
 
 ---
@@ -19,7 +19,7 @@ This document defines the business and product goals of Distribution OS.
 
 These goals translate the long-term vision into measurable objectives that guide product planning, architecture decisions, development priorities, and success evaluation. Version 2.0 adds, for every goal, **where it stands in the build today**, **the backend module that serves it**, and **what remains** — so a goal can no longer be claimed without something to point at.
 
-**Decided 2026-09-05:** the product name is **Distribution OS**; the apps are named "Distribution OS - Owner", "- Manager", "- Sales", "- Warehouse", "- Delivery", "- Retailer". Inside every app and on every printed document the distributor sees their own name and logo (white-label); product branding appears only on the sign-in screen.
+**Decided 2026-09-05, revised 2026-09-21:** the product name is **Distribution OS**, and there is now **one app of that name** for the six business roles, which becomes the right app after sign-in; the platform console stays separate. Inside the app and on every printed document the distributor sees their own name and logo (white-label); product branding appears only on the Welcome and sign-in screens.
 
 **Decided 2026-09-05:** the repository file `docs/22-source-of-truth.md` is the single source of truth for product shape and founder decisions. This space mirrors it. Where the two disagree, `docs/22` wins and this page is corrected.
 
@@ -38,7 +38,7 @@ Every feature should contribute to at least one product goal.
 
 > **Build a unified cloud platform that enables distributors to manage their complete business through one integrated system instead of multiple disconnected tools.**
 
-**Status: Partial.** As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). No app screen is built yet — backend first is a deliberate sequencing decision (2026-09-04) — and deployment comes after the pilot build.
+**Status: Built, being proved.** As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and **all seven apps built and gated green on 2026-09-07**, each one codebase serving website + Android + iOS. What is left before the pilot is proof rather than construction: the cross-role walk, a seven-day business simulation, and go-live on `distributionos.in` targeted for **Saturday 27 September 2026**.
 
 # How to Read the Status Column
 
@@ -52,24 +52,24 @@ Assessments come from the alignment audit `docs/24-confluence-alignment.md` §2.
 
 | #   | Goal                             | Status    | Module that serves it                                                     | What remains                                        |
 | --- | -------------------------------- | --------- | ------------------------------------------------------------------------- | --------------------------------------------------- |
-| 1   | Digitize end-to-end operations   | Partial   | procurement, inventory, orders, warehouse, billing, delivery, receivables | reporting module; app screens                       |
-| 2   | Eliminate duplicate data entry   | Addressed | catalog + tenant-catalog, retailers, orders                               | generic importer (integrations, planned)            |
-| 3   | Real-time operational visibility | Partial   | every module's registers                                                  | owner dashboard + chart series (reporting, planned) |
+| 1   | Digitize end-to-end operations   | Addressed | procurement, inventory, orders, warehouse, billing, delivery, receivables, reporting | measurement at the pilot                  |
+| 2   | Eliminate duplicate data entry   | Addressed | catalog + tenant-catalog, retailers, orders, integrations                 | the TradeEzee import runs at cut-over               |
+| 3   | Real-time operational visibility | Addressed | every module's registers plus reporting                                   | measurement at the pilot                            |
 | 4   | Improve operational efficiency   | Addressed | orders, warehouse, billing, receivables                                   | baseline measurement at pilot                       |
 | 5   | Improve inventory accuracy       | Addressed | inventory                                                                 | nothing for v1                                      |
-| 6   | Improve delivery performance     | Partial   | delivery                                                                  | AI route sequencing (module 12)                     |
-| 7   | Strengthen financial control     | Partial   | receivables, billing                                                      | profitability registers (reporting, planned)        |
-| 8   | Empower the mobile workforce     | Partial   | all services + sync                                                       | all seven apps; no screen built yet                 |
+| 6   | Improve delivery performance     | Addressed | delivery, ai (route sequencing)                                           | measurement at the pilot                            |
+| 7   | Strengthen financial control     | Addressed | receivables, billing, reporting                                           | the money reconciliation the simulation runs        |
+| 8   | Empower the mobile workforce     | Addressed | all services + sync + offline                                             | the six apps merge into one before go-live          |
 | 9   | Support business growth          | Partial   | platform (tenancy), scale rules                                           | multi-branch is v2                                  |
-| 10  | Ship AI in v1                    | Partial   | docint (in progress), ai (module 12, queued)                              | voice, WhatsApp parsing, forecasting, routing       |
+| 10  | Ship AI in v1                    | Addressed | docint, ai                                                                | measurement at the pilot                            |
 
 ## Goal 1 — Digitize End-to-End Distribution Operations
 
 Replace manual and paper-based workflows with connected digital processes covering purchase, inventory, sales, warehouse, delivery, payments, finance and reporting. **Success Indicator:** a distributor can run the business without depending on paper for daily operations.
 
-**Status: Partial.** Purchase, inventory, sales, warehouse, delivery, payments and finance are built and verified. Reporting is a queued module (module 9). The inbound path is designed for **zero typing except the blind gate count**: QR/e-invoice verification, LLM vision extraction, validators, SKU match, human review, then a single idempotent goods-receipt commit.
+**Status: Addressed.** Purchase, inventory, sales, warehouse, delivery, payments, finance and reporting are all built and verified, and every one of them has a screen a person works on. The inbound path delivers **zero typing except the blind gate count**: QR/e-invoice verification, LLM vision extraction, validators, SKU match, human review, then a single idempotent goods-receipt commit.
 
-**What remains:** the reporting module, and the app screens that put these flows in a user's hands.
+**What remains:** measurement at the pilot — whether the distributor's day actually runs without paper.
 
 ## Goal 2 — Eliminate Duplicate Data Entry
 
@@ -77,15 +77,15 @@ Business information should be captured once and reused across the platform. **S
 
 **Status: Addressed.** One sales-order aggregate flows order → pick → pack → invoice → proof of delivery → receipt without re-keying. The product catalog is global and curated with a per-distributor overlay; retailer identity is global with per-distributor links, so one shop can be served by several distributors without being typed in twice.
 
-**What remains:** legacy data migration. **Decided 2026-09-04:** migration is a **generic importer** (upload → preview → map columns → save profile → dry run → commit) that works for any source — TradeEzee, Marg, Busy, Tally, FieldAssist, Excel — rather than one connector per ERP. It lands with the integrations module.
+**What remains:** the pilot's own legacy data, which moves at cut-over. **Decided 2026-09-04:** migration is a **generic importer** (upload → preview → map columns → save profile → dry run → commit) that works for any source — TradeEzee, Marg, Busy, Tally, FieldAssist, Excel — rather than one connector per ERP. It lands with the integrations module.
 
 ## Goal 3 — Provide Real-Time Operational Visibility
 
 Owners should know the current state of orders, deliveries, payments, inventory, warehouse and sales without waiting for end-of-day updates. **Success Indicator:** critical operational metrics are available in real time.
 
-**Status: Partial.** Every register is live today — orders, stock, sales, collections, outstanding, trips. **Decided 2026-09-04:** the owner app must carry **graphs wherever possible** (growth, how the distributorship is performing); the chart-ready series and the owner dashboard are served by the reporting module, which is planned, not built.
+**Status: Addressed.** Every register is live — orders, stock, sales, collections, outstanding, trips. **Decided 2026-09-04:** the owner app must carry **graphs wherever possible** (growth, how the distributorship is performing); the owner dashboard and its chart series are built and were walked on the owner app's gate.
 
-**What remains:** `reporting.dashboard.owner` and the chart series behind the owner graphs.
+**What remains:** measurement at the pilot.
 
 ## Goal 4 — Improve Operational Efficiency
 
@@ -107,9 +107,9 @@ Maintain accurate inventory across all warehouses, with batch tracking, expiry t
 
 Digitize delivery: route management, navigation, delivery confirmation, proof of delivery, payment collection and return handling. **Success Indicator:** delivery progress is visible throughout the day.
 
-**Status: Partial.** The delivery module is built and verified (2026-09-05): trips, stops, doorstep deliveries with proof of delivery, partial and failed outcomes, returns, van sales, expenses, GPS tracking and cash settlement with variance control.
+**Status: Addressed.** The delivery module is built and verified (2026-09-05): trips, stops, doorstep deliveries with proof of delivery, partial and failed outcomes, returns, van sales, expenses, GPS tracking and cash settlement with variance control.
 
-**Decided 2026-09-05:** **route sequencing is in v1** — stops ordered by distance and time windows, with the driver free to override. This reverses the earlier "route optimisation is out of scope" position and moves it into the new AI module (module 12); it is not built yet.
+**Decided 2026-09-05:** **route sequencing is in v1** — stops ordered by distance and time windows, with the driver free to override. This reversed the earlier "route optimisation is out of scope" position and moved it into the AI module, where it is now built.
 
 **Decided 2026-09-04 (binding on this goal):** **only the delivery crew collects money, or the shop pays online.** The salesperson never records a receipt — the sales service has no receipt endpoint and the permission matrix never grants one. The back office may record a payment received at the desk.
 
@@ -117,25 +117,25 @@ Digitize delivery: route management, navigation, delivery confirmation, proof of
 
 Provide visibility into customer credit, outstanding payments, collections, cash reconciliation and profitability. **Success Indicator:** owners can monitor financial exposure and collections in real time.
 
-**Status: Partial.** Credit limits and checks, outstanding with ageing buckets, collections, cheque lifecycle including bounce and reversal, write-offs and cash settlement variance are all built. Every rupee lands in a double-entry journal that must balance at commit — enforced in the database, not in application code.
+**Status: Addressed.** Credit limits and checks, outstanding with ageing buckets, collections, cheque lifecycle including bounce and reversal, write-offs and cash settlement variance are all built. Every rupee lands in a double-entry journal that must balance at commit — enforced in the database, not in application code.
 
 **Profitability is deliberately restricted.** Purchase cost, landed cost and margin are readable only by owner, manager, accountant and system roles; salesperson, warehouse, delivery and retailer roles cannot read them. That is a database policy with tests, not an app rule.
 
 **Decided 2026-09-05:** the **accountant is a money desk plus reads** — may record office receipts, deposits, cheque bounces and write-offs, and may read and export everything, but has no access to prices, schemes, credit limits, approvals or settings. This narrows the earlier statement that the accountant handles credit approvals.
 
-**What remains:** the profitability and stock-value registers, which arrive with the reporting module.
+**What remains:** the money reconciliation the business simulation runs — opening stock plus receipts minus sales, damage and returns against closing stock, and revenue against payments plus outstanding. Any drift there is treated as a severe defect.
 
 ## Goal 8 — Empower Mobile Workforce
 
 Field users should complete their responsibilities on their own device.
 
-**Decided 2026-09-04, extended 2026-09-05:** the platform ships **seven apps, one per role** — Owner; Manager (shared with the Accountant); Sales; Warehouse; Delivery; Retailer; and **Platform Admin** for Distribution OS staff. The six role apps are each **web + Android + iOS**; the admin console is web. Each app talks to its own backend service, so a role can only reach the endpoints its service mounts, and a per-endpoint permission matrix decides the rest.
+**Decided 2026-09-04, extended 2026-09-05, revised 2026-09-21:** the platform ships **one app for the six business roles** — Owner; Manager (shared with the Accountant); Sales; Warehouse; Delivery; Retailer — which becomes the right app after sign-in, plus a separate **Platform Admin** console for Distribution OS staff. Everything is **web + Android + iOS** from one codebase. The elected role decides which backend service the app talks to, so a role can only reach the endpoints its service mounts, and a per-endpoint permission matrix decides the rest. One listing in each store, one install for a distributor's staff.
 
-**Status: Partial.** All the backend a phone needs is built, including the offline upload contract. No app screen exists yet.
+**Status: Addressed.** All seven apps were built and gated green on 2026-09-07 — every screen walked at desk and phone widths against the live services, and driven on a real Android device. Offline works on the field apps.
 
-**Decided 2026-09-04:** the apps are **online-first now, with offline for Sales and Delivery before the pilot**; **English only** for the first release. **Decided 2026-09-05:** the visual layout is **A Ledger**, chosen from four candidate directions; the design system is finalised on it and applies to all six role apps.
+**Decided 2026-09-04:** the apps are **online-first, with offline for Sales and Delivery** — built; **English only** for the first release. **Decided 2026-09-05:** the visual layout is **A Ledger**, chosen from four candidate directions; the design system is finalised on it and applies everywhere.
 
-**What remains:** every screen. Apps start after the backend is complete.
+**What remains:** the merge into one app and role election at sign-in (decided 2026-09-21), both landing before go-live, and then the business simulation run on the merged app.
 
 ## Goal 9 — Support Business Growth
 
@@ -151,11 +151,11 @@ The platform should scale with the business: multiple warehouses, delivery vehic
 
 | Capability                               | Scope in v1                                                                                              | Status                         |
 | ---------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| Invoice scanning (supplier bills)        | LLM vision extraction, validators, SKU match, human review before commit                                 | In progress (docint, module 5) |
-| WhatsApp order capture                   | Free text parsed into a draft order against the shop's own purchase history — **always human-confirmed** | Planned (ai, module 12)        |
-| Voice order capture                      | Speech into the same parser, same human confirmation                                                     | Planned (ai, module 12)        |
-| Demand forecasting / reorder suggestions | Purchase planning support for the back office                                                            | Planned (ai, module 12)        |
-| Route sequencing                         | Stop order by distance and time windows, driver may override                                             | Planned (ai, module 12)        |
+| Invoice scanning (supplier bills)        | LLM vision extraction, validators, SKU match, human review before commit                                 | Built (docint)                 |
+| WhatsApp order capture                   | Free text parsed into a draft order against the shop's own purchase history — **always human-confirmed** | Built (ai)                     |
+| Voice order capture                      | Speech into the same parser, same human confirmation                                                     | Built (ai)                     |
+| Demand forecasting / reorder suggestions | Purchase planning support for the back office                                                            | Built (ai)                     |
+| Route sequencing                         | Stop order by distance and time windows, driver may override                                             | Built (ai)                     |
 
 **Non-negotiable:** document intake and order parsing **never commit on their own**. A human reviews before goods are received or an order is placed. A general-purpose AI assistant is not in v1 scope.
 
@@ -164,7 +164,7 @@ The platform should scale with the business: multiple warehouses, delivery vehic
 | Decision                                   | What it means for the goals                                                                                                                                                             |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **All AI features in v1**                  | Goal 10 is a delivery commitment, not readiness; route sequencing returns to scope (Goal 6)                                                                                             |
-| **Platform console in v1**                 | A seventh app and service for distributor onboarding, plans and subscription state, and time-boxed, owner-approved, audited support access. Revenue stays subscription-only; no fintech |
+| **Platform console in v1**                 | A separate app and service for distributor onboarding, plans and subscription state, and time-boxed, owner-approved, audited support access. Revenue stays subscription-only; no fintech |
 | **One tenant = one distributorship**       | Goal 9 drops "branches" for v1                                                                                                                                                          |
 | **Multi-branch in v2**                     | Each branch its own tenant plus an owner group view — an additive change, not a schema rewrite                                                                                          |
 | **Multi-industry positioning, FMCG first** | Pharma, electricals, dairy and agri are addressable markets; the product stays FMCG-shaped until a second-industry customer exists                                                      |
@@ -178,7 +178,7 @@ The platform should scale with the business: multiple warehouses, delivery vehic
 | Security      | Addressed | Argon2id passwords, signed tokens with per-device rotating refresh, lockout, forced row-level security, audit log, per-endpoint permission matrix tested for every endpoint × role. Encryption at rest is a deployment concern |
 | Extensibility | Addressed | Contract-first modules with enforced boundaries; a new module adds files, it does not edit others                                                                                                                              |
 | Performance   | Partial   | Bounded lists and indexes in place; no application performance monitoring yet                                                                                                                                                  |
-| Availability  | Planned   | Backup and restore drill scheduled; deployment comes after the pilot build                                                                                                                                                     |
+| Availability  | In build  | **Decided 2026-09-21:** Oracle Cloud Always Free (Mumbai) with self-hosted PostgreSQL 17 and Cloudflare Pages for the web; nightly backups with a restore that is actually tested. Nothing is deployed yet; go-live is targeted for 27 September 2026 |
 
 # Business Goals
 
@@ -186,7 +186,7 @@ Distribution OS aims to help distributors increase operational efficiency, reduc
 
 # User Experience Goals
 
-The platform should be easy to learn, fast to use, mobile friendly, consistent across modules, and usable by non-technical staff. **Decided 2026-09-05:** consistency is now concrete — one design system (layout A Ledger) across all six role apps — the admin console adopts the desk density of the same system when it is designed — English only for the first release, and the distributor's own branding inside every app and document.
+The platform should be easy to learn, fast to use, mobile friendly, consistent across modules, and usable by non-technical staff. **Decided 2026-09-05:** consistency is now concrete — one design system (layout A Ledger) across every role, the admin console included — English only for the first release, and the distributor's own branding inside the app and on every document. **Decided 2026-09-21:** the app opens on a Welcome screen carrying the Distribution OS mark, and after sign-in lands on who-you-are — the distributor's logo and name, the person's name, and which role this is — before the day's work.
 
 # Long-Term Goals (5–10 Years)
 
@@ -194,7 +194,7 @@ Distribution OS should evolve into a connected distribution ecosystem supporting
 
 Two corrections to version 1.0:
 
-- **Retailer self-service is not long-term — it is in v1.** The retailer app is in scope now: the shop sees its bills and outstanding, reorders, pays online and tracks delivery, with one card per linked distributor.
+- **Retailer self-service is not long-term — it is in v1 and it is built.** The shop sees its bills and outstanding, reorders, pays online and tracks delivery, with one card per linked distributor.
 - **Financial services integration is removed from the long-term list.** No fintech, no payments aggregation, no lending. Revenue is the distributor's subscription.
 
 # Non-Goals (Current Scope)
@@ -226,7 +226,7 @@ Each KPI is annotated with whether the data exists in the system today. Full KPI
 | Productivity     | Orders processed per employee   | Yes               | Salesperson on each order                                                  |
 | Customer Service | Average issue resolution time   | No                | No complaint entity exists; not planned for v1                             |
 | Platform         | Active users per day            | Yes               | Authentication events and sessions                                         |
-| Platform         | Monthly recurring revenue (MRR) | Not yet           | Plan field only; subscription state arrives with the platform console (v1) |
+| Platform         | Monthly recurring revenue (MRR) | Yes               | Plan and subscription state in the platform console                        |
 
 > **Note:** target values are set after the pilot at Tarsun Enterprises establishes baselines. A KPI without a baseline is a guess.
 
@@ -240,3 +240,4 @@ These goals support becoming the operating system for Indian distributors by con
 | ------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | August 2026    | Original goals document, written before implementation                                                                                                                                                                                                                                                                                                                                                                                      |
 | 2.0     | September 2026 | Status, serving module and remaining work added to every goal; Goal 8 restated as seven apps each web + Android + iOS; Goal 9 branches deferred to v2; Goal 10 changed from "AI-ready" to "AI in v1"; platform console added to v1; accountant scope and money-collection rule made explicit; non-goals extended (fintech, custom roles, branches); KPIs annotated with data availability; retailer self-service moved from long-term to v1 |
+| 2.1     | 21 September 2026 | Re-synced to `docs/22-source-of-truth.md`: the backend and all seven apps are built and gated, so every "Partial / no screen yet" status is replaced by what was measured; Goal 8 restated again as **one app for the six business roles** with role election at sign-in (decided 2026-09-21); hosting decided (Oracle Cloud Always Free, Cloudflare Pages, `distributionos.in`) and go-live targeted for 27 September 2026 |

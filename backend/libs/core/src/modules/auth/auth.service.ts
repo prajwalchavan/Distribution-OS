@@ -17,6 +17,7 @@ import type {
   ForgotPasswordIn,
   LoginIn,
   LogoutIn,
+  MembershipRole,
   MembershipsSummary,
   MembershipSummary,
   RefreshIn,
@@ -56,6 +57,7 @@ import {
 } from '../../platform/index.js'
 import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
 import { SIGN_IN_REQUIRED, type AuthClaims } from './auth-context.js'
+import { electionRefused, electRole } from './election.js'
 import { membershipsSummary, type SummaryMembership } from './memberships-summary.js'
 import {
   authTtl,
@@ -228,6 +230,26 @@ export class AuthService {
         })
         return fail(tenantSuspended(chosen.tenant))
       }
+      // docs/29 §2: the device asks for the role it needs and only a downward election is granted.
+      // A refusal is a 403 with a sentence the person can act on, recorded like any other refused
+      // sign-in, and it happens before a device row, a session or a token exists.
+      const elected = electRole({
+        membershipRole: chosen.membership.role,
+        extraRoles: chosen.membership.extraRoles,
+        actAs: input.actAs,
+        distributor: chosen.branding.displayName,
+      })
+      if (!elected.ok) {
+        await logEvent(tx, {
+          userId: user.id,
+          username,
+          tenantId: chosen.membership.tenantId,
+          kind: 'login_failed',
+          actedAs: input.actAs ?? null,
+          client,
+        })
+        return fail(elected.error)
+      }
       if (user.failedLoginCount > 0 || user.lockedUntil) {
         await tx
           .update(users)
@@ -256,6 +278,7 @@ export class AuthService {
       const session = await createSession(tx, {
         user,
         membership: chosen,
+        role: elected.value.role,
         deviceId: input.deviceId,
         deviceName: input.deviceName ?? null,
         platform,
@@ -267,9 +290,10 @@ export class AuthService {
         username,
         tenantId: chosen.membership.tenantId,
         kind: 'login_ok',
+        actedAs: elected.value.electedRole,
         client,
       })
-      return ok(await issuePair(keys, user, chosen, rows, session, now))
+      return ok(await issuePair(keys, user, chosen, rows, session, now, elected.value.role))
     })
     return unwrap(outcome)
   }
@@ -296,10 +320,32 @@ export class AuthService {
         await revokeSession(tx, session.id, 'tenant_suspended', now)
         return fail(tenantSuspended(current.tenant))
       }
+      // docs/29 §2: a refresh keeps the role this session was ELECTED with — re-checked against the
+      // membership as it stands NOW, so an extra role the owner took away this morning stops working
+      // within one access-token lifetime. It is never silently swapped for the membership's own role:
+      // the session is revoked and the person is told, in the same sentence a refused sign-in gives.
+      const held = session.role ?? current.membership.role
+      const stillElected = electRole({
+        membershipRole: current.membership.role,
+        extraRoles: current.membership.extraRoles,
+        actAs: held,
+        distributor: current.branding.displayName,
+      })
+      if (!stillElected.ok) {
+        // Nothing was disabled: the membership stands and the role it may elect changed under it.
+        await revokeSession(tx, session.id, 'election_withdrawn', now)
+        return fail(
+          electionRefused({
+            distributor: current.branding.displayName,
+            membershipRole: current.membership.role,
+            actAs: held,
+          }),
+        )
+      }
       const refresh = newRefreshToken()
       const rotated = {
         ...session,
-        role: current.membership.role,
+        role: stillElected.value.role,
         refreshExpiresAt: refreshExpiry(now),
         lastUsedAt: now,
       }
@@ -315,8 +361,24 @@ export class AuthService {
           userAgent: client.userAgent,
         })
         .where(eq(authSessions.id, session.id))
-      await logEvent(tx, { userId: user.id, tenantId: session.tenantId, kind: 'refresh', client })
-      return ok(await issuePair(keys, user, current, rows, { row: rotated, refresh }, now))
+      await logEvent(tx, {
+        userId: user.id,
+        tenantId: session.tenantId,
+        kind: 'refresh',
+        actedAs: stillElected.value.electedRole,
+        client,
+      })
+      return ok(
+        await issuePair(
+          keys,
+          user,
+          current,
+          rows,
+          { row: rotated, refresh },
+          now,
+          stillElected.value.role,
+        ),
+      )
     })
     return unwrap(outcome)
   }
@@ -353,10 +415,21 @@ export class AuthService {
       if (!target || target.membership.status !== 'active')
         return fail(noAccess(notAMember(input.tenantId)))
       if (target.tenant.status !== 'active') return fail(tenantSuspended(target.tenant))
+      // The same election as at sign-in, against the membership at the OTHER distributor: a rep who
+      // is a driver at one and a salesperson at the next gets the role that distributor granted him,
+      // never the one the last one did (docs/29 §2).
+      const elected = electRole({
+        membershipRole: target.membership.role,
+        extraRoles: target.membership.extraRoles,
+        actAs: input.actAs,
+        distributor: target.branding.displayName,
+      })
+      if (!elected.ok) return fail(elected.error)
       await revokeSession(tx, session.id, 'tenant_switched', now)
       const next = await createSession(tx, {
         user,
         membership: target,
+        role: elected.value.role,
         deviceId: session.deviceId,
         deviceName: session.deviceName,
         platform: session.platform ?? 'web',
@@ -367,9 +440,10 @@ export class AuthService {
         userId: user.id,
         tenantId: target.membership.tenantId,
         kind: 'tenant_switched',
+        actedAs: elected.value.electedRole,
         client,
       })
-      return ok(await issuePair(keys, user, target, rows, next, now))
+      return ok(await issuePair(keys, user, target, rows, next, now, elected.value.role))
     })
     return unwrap(outcome)
   }
@@ -605,7 +679,9 @@ export class AuthService {
       return {
         user: toAuthUser(user),
         tenant: active ? toAuthTenant(active) : null,
-        role: active?.membership.role ?? null,
+        // The role this SESSION acts as (docs/29 §2), not the membership's own: the shell and the
+        // token have to agree, or an elected driver is drawn the owner's navigation.
+        role: active ? (session.role ?? active.membership.role) : null,
         memberships: rows.map(toMembershipSummary),
         session: toAuthSession(session),
       }
@@ -1043,6 +1119,8 @@ async function revokeSession(tx: Db, id: string, reason: string, now: Date): Pro
 interface NewSession {
   user: UserRow
   membership: MembershipRow
+  /** The ELECTED role (docs/29 §2): the membership's own unless the device asked for another. */
+  role: MembershipRole
   deviceId: string
   deviceName: string | null
   platform: 'web' | 'android' | 'ios'
@@ -1063,7 +1141,7 @@ async function createSession(tx: Db, s: NewSession): Promise<CreatedSession> {
       id: uuidv7(),
       userId: s.user.id,
       tenantId: s.membership.membership.tenantId,
-      role: s.membership.membership.role,
+      role: s.role,
       deviceId: s.deviceId,
       deviceName: s.deviceName,
       platform: s.platform,
@@ -1185,9 +1263,11 @@ async function issuePair(
   rows: MembershipRow[],
   session: CreatedSession,
   now: Date,
+  /** The ELECTED role (docs/29 §2). `sub` stays the person; this is only what they act as. */
+  electedRole: MembershipRole,
 ): Promise<TokenPair> {
   const { accessTtlSeconds } = authTtl()
-  const role = membership.membership.role
+  const role = electedRole
   const access = await signAccessToken(
     {
       userId: user.id,
@@ -1218,6 +1298,8 @@ interface EventInput {
   username?: string | null
   tenantId?: string | null
   kind: AuthEventKind
+  /** docs/29 §2: the role this sign-in elected, when it was not the membership's own. */
+  actedAs?: MembershipRole | null
   client: ClientInfo
 }
 
@@ -1228,6 +1310,7 @@ async function logEvent(tx: Db, e: EventInput): Promise<void> {
     usernameAttempted: e.username ?? null,
     tenantId: e.tenantId ?? null,
     kind: e.kind,
+    actedAs: e.actedAs ?? null,
     ip: e.client.ip,
     userAgent: e.client.userAgent,
   })

@@ -6,12 +6,14 @@
 | ------------ | ------------------ |
 | Document     | Product Vision     |
 | Product      | Distribution OS    |
-| Version      | 2.0                |
+| Version      | 2.1                |
 | Status       | Active             |
 | Owner        | Product Management |
-| Last Updated | September 2026     |
+| Last Updated | 21 September 2026  |
 
-**Decided 2026-09-05:** the product name is **Distribution OS** (two words). The role apps are named "Distribution OS - Owner", "Distribution OS - Manager", "Distribution OS - Sales", "Distribution OS - Warehouse", "Distribution OS - Delivery", "Distribution OS - Retailer". Earlier drafts of this space used "DistributionOS".
+**Decided 2026-09-05:** the product name is **Distribution OS** (two words). Earlier drafts of this space used "DistributionOS".
+
+**Decided 2026-09-21:** there is **one app**, named **Distribution OS**, and it becomes the right app for whoever signs in. The six business roles — owner, manager (with the accountant), sales, warehouse, delivery and retailer — share one application on web, Android and iOS; the role is elected at sign-in and the app mounts that role's screens and its backend service. The internal platform console stays a separate application. This replaces the earlier six-apps-one-per-role shape: one listing in each store, one install for a distributor's staff, and one front door to prove.
 
 ---
 
@@ -59,10 +61,10 @@ The category is crowded, but nobody sells the local distributor a system **he** 
 
 | #   | Standout capability                                                                                                                                                                                                                                                                | Why it wins locally                                                                                              | Status                                                                                           |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 1   | **Zero-typing document intake** — photograph the supplier bill; e-invoice QR/IRN verification, LLM vision extraction, GST arithmetic and pack-size validators, SKU matching, human review, then a single idempotent goods-receipt commit. The only typing is the blind gate count. | No Indian DMS or billing product reads purchase invoices. This is the capability the pilot customer converts on. | Contract and database built; extraction module in build                                          |
+| 1   | **Zero-typing document intake** — photograph the supplier bill; e-invoice QR/IRN verification, LLM vision extraction, GST arithmetic and pack-size validators, SKU matching, human review, then a single idempotent goods-receipt commit. The only typing is the blind gate count. | No Indian DMS or billing product reads purchase invoices. This is the capability the pilot customer converts on. | Built and verified — QR/IRN verification, extraction, validators, SKU match, review and the goods-receipt commit                                          |
 | 2   | **Brand-DMS coexistence** — bills raised in a brand's own DMS (FieldAssist) are captured and imported as `brand_dms_import` so stock and receivables stay whole. A brand-DMS sale is **never** re-invoiced.                                                                        | The distributor stops keeping two truths. No competitor treats a rival DMS as a first-class input.               | Flow decided and enforced as a non-negotiable                                                    |
 | 3   | **White-label by default** — each distributor sees their own name and logo in the apps and on every printed document; Distribution OS branding appears only on the sign-in screen. Decided 2026-09-04.                                                                             | The distributor's customers see the distributor, not a vendor. Retailers trust the bill.                         | Branding keys in tenant settings                                                                 |
-| 4   | **Field apps that never block** — no sync button, geo-tag as evidence rather than a gate, offline uploads that never answer an error, rejections recorded and shown instead of lost.                                                                                               | Six years of top-voted complaints against field-force apps are exactly these.                                    | Offline contract built; **offline for sales and delivery before the pilot** (decided 2026-09-04) |
+| 4   | **Field apps that never block** — no sync button, geo-tag as evidence rather than a gate, offline uploads that never answer an error, rejections recorded and shown instead of lost.                                                                                               | Six years of top-voted complaints against field-force apps are exactly these.                                    | Built — offline contract, the device sync client and the sales and delivery apps on it |
 | 5   | **AI order capture** — a free-text WhatsApp message or a spoken order becomes a draft order, parsed against that shop's own purchase history, and is **always confirmed by a human** before it is submitted.                                                                       | Shops already order on WhatsApp and by phone. This removes the re-keying without removing the check.             | v1, decided 2026-09-05                                                                           |
 | 6   | **Demand forecasting and reorder suggestions** for purchase planning.                                                                                                                                                                                                              | Purchase decisions today rest on memory.                                                                         | v1, decided 2026-09-05                                                                           |
 | 7   | **Route sequencing** — stops ordered by distance and time window, with a driver override, handing off to the phone's own maps app.                                                                                                                                                 | Delivery order is currently decided on the van.                                                                  | v1, decided 2026-09-05 (this reverses the earlier "route optimisation: do not build" position)   |
@@ -86,7 +88,7 @@ Operational data should exist only once and be shared across all modules. Stock 
 
 ### Mobile First
 
-Field users should be able to perform every essential business activity from a mobile device. **Decided 2026-09-04:** every role gets its own app, and every app ships on **web, Android and iOS** — this replaces the earlier "web for managers, mobile for field" split.
+Field users should be able to perform every essential business activity from a mobile device. **Decided 2026-09-04, revised 2026-09-21:** every role's full job is on the phone, and the product ships on **web, Android and iOS** — this replaces the earlier "web for managers, mobile for field" split. The six business roles now share **one** app that becomes the right app after sign-in, rather than one app per role.
 
 ### Real-Time Visibility
 
@@ -117,7 +119,7 @@ Distribution OS evolves across the stages below. **Decided 2026-09-05:** stages 
 | 1 — Distribution Management    | Sales, purchase, inventory, warehouse, delivery, payments, GST billing, receivables and the double-entry journal                                                                                        | v1                                                            |
 | 2 — Connected Workforce        | Applications for owner, manager and accountant, sales representatives, warehouse operators and delivery executives                                                                                      | v1                                                            |
 | 3 — Connected Retail Network   | Retailers browse products, **place orders**, track deliveries, view outstanding balances, download invoices and **pay online**; one retailer login can be linked to several distributors, one card each | v1 — previously documented as "future", superseded 2026-09-05 |
-| 4 — Platform Console           | "Distribution OS - Admin", a seventh application (web only, for Distribution OS staff): distributor onboarding, plans and subscription state, time-boxed and owner-approved audited support access      | v1 — added 2026-09-05                                         |
+| 4 — Platform Console           | "Distribution OS - Admin", a separate application for Distribution OS staff, one codebase for web, Android and iOS like the rest: distributor onboarding, plans and subscription state, time-boxed and owner-approved audited support access | v1 — added 2026-09-05                                         |
 | 5 — Manufacturer Collaboration | Manufacturer visibility into distributor sales, stock levels, market demand, secondary sales and scheme performance                                                                                     | Future, not scheduled                                         |
 | 6 — Deeper Intelligence        | Inventory optimisation, credit-risk analysis, prescriptive insights, conversational assistant                                                                                                           | Future, built on the data v1 accumulates                      |
 
@@ -213,7 +215,7 @@ Every architectural and product decision should align with these principles:
 2. Modular design based on business domains, with enforced module boundaries.
 3. API-first development: the contract is declared once and both the services and the apps are generated against it.
 4. Security and privacy by design — per-endpoint permission matrix that fails closed, cost data invisible to field roles as a database guarantee.
-5. Mobile-first experience for field users; every role app on web, Android and iOS.
+5. Mobile-first experience for field users; one app on web, Android and iOS, which becomes the right app for the role that signs in (2026-09-21).
 6. Cloud-native deployment, built for lakhs of users from day one.
 7. Extensible integration framework — **decided 2026-09-04:** data migration is a generic importer (upload, preview, map columns, save profile, dry run, commit) for any source, rather than per-vendor readers.
 8. Event-driven business workflows where appropriate.
@@ -226,16 +228,16 @@ Every architectural and product decision should align with these principles:
 
 # Where the Vision Stands Today
 
-Honest status as of **5 September 2026**, from `docs/18-build-log.md`:
+Honest status as of **21 September 2026**, from `docs/18-build-log.md` and `QA/STATE.md`:
 
-| Area               | Status                                                                                                                                                                                                                                                                    |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend            | **14 of 21** modules verified on one Postgres database with forced row-level security. As at 2026-09-05 13:45 IST: 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken (Build Status & Roadmap mirrors `docs/18-build-log.md`).                               |
-| Authentication     | Built: username and password with our own token service. **OTP is a later layer on top, not a replacement** (decided 2026-09-04).                                                                                                                                         |
-| Remaining backend  | Document intake, integrations, claims, notifications, reporting, incentives; then the AI module and the platform console.                                                                                                                                                 |
-| Applications       | **No screen is built yet.** Backend first was a deliberate decision (2026-09-04). The visual layout was chosen on 2026-09-05 (direction "A Ledger") and applies to all apps.                                                                                              |
-| Deployment         | Local database with demonstration data first; hosting comes after the apps.                                                                                                                                                                                               |
-| Demonstration data | One full pilot tenant (Tarsun, ~36 shops) seeded today. The required target — three distributors, staff under each, and shops linked to more than one distributor — is queued at the end of the backend chain, so multi-tenancy is proven with data rather than asserted. |
+| Area               | Status                                                                                                                                                                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend            | **Complete.** 23 business modules across 8 independently running services on one Postgres database with forced row-level security; 139 tables, 646 module specs, and 1,618 endpoint calls exercised ending 0 broken.                                                                |
+| Authentication     | Built: username and password with our own token service. **OTP is a later layer on top, not a replacement** (decided 2026-09-04). Role election at sign-in — downward only — is being added before go-live (decided 2026-09-21).                                                    |
+| Applications       | **Built.** All seven apps were gated green on 2026-09-07, each one codebase serving website + Android + iOS on the "A Ledger" layout chosen 2026-09-05. The six business apps merge into **one** app before go-live (decided 2026-09-21); the platform console stays separate.      |
+| Quality            | QA batch 1 (34 findings) fixed; batch 2 has **153 of 158** findings merged. A seven-day business simulation on the merged app is the last verdict before launch.                                                                                                                    |
+| Deployment         | Not deployed yet. Decided 2026-09-21: Oracle Cloud Always Free (Mumbai) with self-hosted PostgreSQL 17, Cloudflare Pages for the web, domain `distributionos.in`. **Go-live target: Saturday 27 September 2026.**                                                                   |
+| Demonstration data | Three distributors with staff under each and shops linked to more than one of them: 174 SKUs across 13 brands, 60 / 40 / 24 shops, 90 / 60 / 45 days of trading history. Multi-tenancy is proven with data rather than asserted.                                                    |
 
 ---
 

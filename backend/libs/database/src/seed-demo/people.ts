@@ -1,5 +1,5 @@
 /** Staff and retailer-app users, their tenant memberships, brand authorisations and bargain bounds. */
-import { sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { insertMany } from './db-helpers.js'
 import {
   devices,
@@ -298,12 +298,22 @@ export async function seedPeople(
     ...Object.fromEntries(extra.map((p) => [p.id, p.role])),
   }
 
+  /**
+   * EXTRA ROLES on a demo membership (docs/29 §2). Dinesh keeps the godown and drives the second van
+   * on Tuesdays, so his own login opens the delivery app: the walk has a case of a staff member
+   * electing a role that is not his membership's without anybody borrowing the owner's password.
+   */
+  const extraRolesFor: Record<string, (typeof membershipRole.enumValues)[number][]> = {
+    [warehouse.id]: ['delivery'],
+  }
+
   await insertMany(db, memberships, [
     ...staff.map((p) => ({
       id: demoId('membership', p.id),
       tenantId,
       userId: p.id,
       role: roleFor[p.id] ?? 'salesperson',
+      extraRoles: extraRolesFor[p.id] ?? [],
     })),
     ...retailerUsers.map((p) => ({
       id: demoId('membership', p.id),
@@ -312,6 +322,14 @@ export async function seedPeople(
       role: 'retailer' as const,
     })),
   ])
+  // `insertMany` is onConflictDoNothing, so a membership seeded before extra roles existed would keep
+  // none of them: set them again on every seed, which is what makes `pnpm db:seed` idempotent.
+  for (const [userId, extraRoles] of Object.entries(extraRolesFor)) {
+    await db
+      .update(memberships)
+      .set({ extraRoles })
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)))
+  }
 
   const extraReps = extra.filter((p) => p.role === 'salesperson')
 

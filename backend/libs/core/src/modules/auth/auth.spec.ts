@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, desc, eq } from 'drizzle-orm'
 import { decodeProtectedHeader, jwtVerify } from 'jose'
 import { uuidv7 } from '@dos/domain'
 import {
@@ -38,7 +38,7 @@ interface Pair {
   refreshToken: string
   refreshExpiresAt: string
   user: { id: string; username: string | null; mustChangePassword: boolean }
-  tenant: { id: string; slug: string; legalName: string }
+  tenant: { id: string; slug: string; legalName: string; displayName: string }
   role: string
   memberships: { tenantId: string; role: string; status: string }[]
 }
@@ -906,6 +906,204 @@ describeDb('auth (DATABASE_URL)', () => {
     expect(res.body.keys[0]?.kty).toBe('OKP')
     expect(res.body.keys[0]?.alg).toBe('EdDSA')
     expect(res.body.keys[0]?.d).toBeUndefined() // never the private half
+  })
+
+  /**
+   * docs/29 §2 actAs at login and switch-tenant — role election, downward only (founder 2026-09-21).
+   *
+   * The device asks for the role it needs; the auth service grants it only downward. What is proven
+   * here is the whole of the auth half: the token claim, the session row, the audit row, the refusal
+   * sentence, what a refresh does with an elected role, and that `sub` never stops being the person.
+   */
+  describe('docs/29 §2 actAs at login and switch-tenant', () => {
+    // Its own people: every user above has had its password changed, its account locked or its
+    // membership disabled by an earlier test, and an election test must not depend on which.
+    const driverId = uuidv7()
+    const driver = `driver.${run}`
+    /** What the refusal sentence names: the distributor's own white-label name, as the app shows it. */
+    let brandA = ''
+    let brandB = ''
+
+    beforeAll(async () => {
+      await db.insert(users).values({
+        id: driverId,
+        phone: `+919${run}4`,
+        name: 'Driver',
+        username: driver,
+        passwordHash: await hashPassword(password),
+      })
+      await db
+        .insert(memberships)
+        .values({ id: uuidv7(), tenantId: tenantA, userId: driverId, role: 'delivery' })
+      await db
+        .update(memberships)
+        .set({ status: 'active', extraRoles: [] })
+        .where(eq(memberships.id, bobMembershipId))
+      const a = await login(bob, password, { deviceId: uuidv7() })
+      brandA = a.body.tenant.displayName
+      const b = await login(alice, password, { tenantId: tenantB, deviceId: uuidv7() })
+      brandB = b.body.tenant.displayName
+    })
+
+    const claims = async (accessToken: string) => {
+      const keys = await loadAuthKeys()
+      const { payload } = await jwtVerify(accessToken, keys.publicKey, {
+        issuer: AUTH_ISSUER,
+        audience: AUTH_AUDIENCE,
+        algorithms: ['EdDSA'],
+      })
+      return payload
+    }
+
+    it('gives the owner who drives today a DELIVERY token, still signed as himself', async () => {
+      const device = uuidv7()
+      const res = await login(alice, password, { actAs: 'delivery', deviceId: device })
+      expect(res.status).toBe(200)
+      expect(res.body.role).toBe('delivery')
+
+      const payload = await claims(res.body.accessToken)
+      expect(payload.role).toBe('delivery')
+      // The person never changes: every actor id, audit row, receipt and delivery is still alice's.
+      expect(payload.sub).toBe(aliceId)
+      expect(payload.tid).toBe(tenantA)
+
+      // The session row carries the elected role, which is what a refresh reads back.
+      const [session] = await db
+        .select()
+        .from(authSessions)
+        .where(eq(authSessions.id, payload.sid as string))
+      expect(session?.role).toBe('delivery')
+
+      // The membership is untouched: the staff list still shows an owner.
+      expect(res.body.memberships.find((m) => m.tenantId === tenantA)?.role).toBe('owner')
+
+      // The owner can see it happened.
+      const [event] = await db
+        .select()
+        .from(authEvents)
+        .where(and(eq(authEvents.userId, aliceId), eq(authEvents.kind, 'login_ok')))
+        .orderBy(desc(authEvents.createdAt))
+        .limit(1)
+      expect(event?.actedAs).toBe('delivery')
+    })
+
+    it('refuses a salesperson who asks for delivery, with the sentence docs/29 §2 states', async () => {
+      const device = uuidv7()
+      await db
+        .update(memberships)
+        .set({ status: 'active' })
+        .where(eq(memberships.id, bobMembershipId))
+      const res = await login(bob, password, { actAs: 'delivery', deviceId: device })
+      expect(res.status).toBe(403)
+      expect(res.body.message).toBe(
+        `Your login at ${brandA} is a salesperson; ask the owner to add delivery to it.`,
+      )
+      // Never a silent downgrade: no session was opened at all.
+      expect(res.body.accessToken).toBeUndefined()
+      const [event] = await db
+        .select()
+        .from(authEvents)
+        .where(and(eq(authEvents.userId, bobId), eq(authEvents.kind, 'login_failed')))
+        .orderBy(desc(authEvents.createdAt))
+        .limit(1)
+      expect(event?.actedAs).toBe('delivery')
+    })
+
+    it('grants it once the owner adds delivery to that membership, and takes it back again', async () => {
+      const device = uuidv7()
+      await db
+        .update(memberships)
+        .set({ extraRoles: ['delivery'] })
+        .where(eq(memberships.id, bobMembershipId))
+      const granted = await login(bob, password, { actAs: 'delivery', deviceId: device })
+      expect(granted.status).toBe(200)
+      expect(granted.body.role).toBe('delivery')
+      expect((await claims(granted.body.accessToken)).sub).toBe(bobId)
+
+      // A refresh keeps the elected role rather than quietly handing back the membership's own.
+      const rolled = await refresh(granted.body.refreshToken, device)
+      expect(rolled.status).toBe(200)
+      expect(rolled.body.role).toBe('delivery')
+
+      // The owner takes the extra role away: the session stops at the next refresh, and says why.
+      await db
+        .update(memberships)
+        .set({ extraRoles: [] })
+        .where(eq(memberships.id, bobMembershipId))
+      const stopped = await refresh(rolled.body.refreshToken, device)
+      expect(stopped.status).toBe(403)
+      expect(stopped.body.message).toBe(
+        `Your login at ${brandA} is a salesperson; ask the owner to add delivery to it.`,
+      )
+      expect((await refresh(rolled.body.refreshToken, device)).status).toBe(401)
+    })
+
+    it('never elects upward, sideways out of the table, or out of the shop', async () => {
+      const refused = async (username: string, actAs: string) => {
+        const res = await login(username, password, { actAs, deviceId: uuidv7() })
+        return res.status
+      }
+      // A manager may not become the accountant (the table's second row stops at the three field roles).
+      expect(await refused(alice, 'retailer')).toBe(403)
+      // The driver may not become the manager.
+      expect(await refused(driver, 'manager')).toBe(403)
+      expect(await refused(driver, 'accountant')).toBe(403)
+      // Its own role is always granted, with or without the field.
+      const own = await login(driver, password, { actAs: 'delivery', deviceId: uuidv7() })
+      expect(own.status).toBe(200)
+      expect(own.body.role).toBe('delivery')
+      const [event] = await db
+        .select()
+        .from(authEvents)
+        .where(and(eq(authEvents.userId, driverId), eq(authEvents.kind, 'login_ok')))
+        .orderBy(desc(authEvents.createdAt))
+        .limit(1)
+      // Asking for the role you already are is not an election: nothing to show the owner.
+      expect(event?.actedAs).toBeNull()
+    })
+
+    it('elects against the membership of the distributor being switched TO', async () => {
+      const device = uuidv7()
+      const start = await login(alice, password, { deviceId: device })
+      expect(start.body.role).toBe('owner')
+      // alice is a MANAGER at tenant B, so there she may elect salesperson but not accountant.
+      const switched = await call<Pair & ErrorBody>(app, null, 'POST', '/auth/switch-tenant', {
+        refreshToken: start.body.refreshToken,
+        deviceId: device,
+        tenantId: tenantB,
+        actAs: 'salesperson',
+      })
+      expect(switched.status).toBe(200)
+      expect(switched.body.role).toBe('salesperson')
+      expect(switched.body.tenant.id).toBe(tenantB)
+      expect((await claims(switched.body.accessToken)).sub).toBe(aliceId)
+
+      const back = await login(alice, password, { deviceId: device })
+      const denied = await call<Pair & ErrorBody>(app, null, 'POST', '/auth/switch-tenant', {
+        refreshToken: back.body.refreshToken,
+        deviceId: device,
+        tenantId: tenantB,
+        actAs: 'accountant',
+      })
+      expect(denied.status).toBe(403)
+      expect(denied.body.message).toBe(
+        `Your login at ${brandB} is a manager; ask the owner to add accountant to it.`,
+      )
+    })
+
+    it('tells /auth/me the role the session ACTS AS, so the shell and the token agree', async () => {
+      const device = uuidv7()
+      const res = await login(alice, password, { actAs: 'warehouse', deviceId: device })
+      expect(res.body.role).toBe('warehouse')
+      const me = await bearer<{ role: string; memberships: { tenantId: string; role: string }[] }>(
+        res.body.accessToken,
+        'GET',
+        '/auth/me',
+      )
+      expect(me.status).toBe(200)
+      expect(me.body.role).toBe('warehouse')
+      expect(me.body.memberships.find((m) => m.tenantId === tenantA)?.role).toBe('owner')
+    })
   })
 
   it('refuses to refresh once the membership is disabled (403) and once the user is disabled', async () => {

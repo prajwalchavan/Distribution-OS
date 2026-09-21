@@ -6,10 +6,10 @@
 | ------------ | ------------------ |
 | Document     | User Personas      |
 | Product      | Distribution OS    |
-| Version      | 2.0                |
+| Version      | 2.1                |
 | Status       | Active             |
 | Owner        | Product Management |
-| Last Updated | September 2026     |
+| Last Updated | 21 September 2026  |
 
 ---
 
@@ -17,7 +17,7 @@
 
 This document defines every user who interacts with Distribution OS. Each persona represents a real business role within a distribution organization; understanding their responsibilities, objectives, challenges and daily workflows keeps the platform designed around actual operational needs rather than assumptions. These personas guide product design, UI/UX, permissions, mobile applications, API authorization, dashboards, notifications and AI capabilities.
 
-Version 2.0 rewrites the August 2026 draft against the product as decided and built. A persona is now the same thing as **an app plus a role**: each role signs into its own application, that application talks to its own backend service, and a per-endpoint permission matrix decides what the role may call. Where a statement changed, the sentence says so and carries the date of the decision. `docs/22-source-of-truth.md` in the repository is the single source of truth; this page mirrors it.
+Version 2.0 rewrites the August 2026 draft against the product as decided and built. A persona is now the same thing as **a role plus what the app becomes for it**: since 2026-09-21 the six business roles share one application, the role is elected at sign-in, the app then talks to that role's own backend service, and a per-endpoint permission matrix decides what the role may call. Where a statement changed, the sentence says so and carries the date of the decision. `docs/22-source-of-truth.md` in the repository is the single source of truth; this page mirrors it.
 
 ---
 
@@ -25,12 +25,12 @@ Version 2.0 rewrites the August 2026 draft against the product as decided and bu
 
 | Change                                | Detail                                                                                                                                           | Decided                        |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
-| One app per role                      | Six role applications plus a platform console; manager and accountant share one app                                                              | 2026-09-04, 2026-09-05         |
-| Every role app is web + Android + iOS | The version 1.0 per-persona "web yes / mobile no" matrix is retired; the admin console is web only                                               | 2026-09-04                     |
+| One app, six roles                    | The six business roles share ONE app that becomes the right app after sign-in; manager and accountant share one set of screens; the platform console stays separate | 2026-09-04, 2026-09-05, revised 2026-09-21 |
+| Everything is web + Android + iOS     | The version 1.0 per-persona "web yes / mobile no" matrix is retired; one codebase serves all three, the console included                          | 2026-09-04                     |
 | Salesperson never collects money      | "Collections" removed from Salesperson KPIs; the rep may **see** dues and run a credit check, but only delivery collects or the shop pays online | 2026-09-04, refined 2026-09-05 |
 | Accountant = money desk + reads       | Office receipts, deposits, bounces, write-offs, credit notes, every read and export — no prices, schemes, credit limits, approvals or settings   | 2026-09-05                     |
 | Retailer is current, not future       | The Retailer app is in v1: one login across distributors, places orders, pays online                                                             | 2026-09-05                     |
-| Platform Admin becomes a real app     | A seventh application for Distribution OS staff: onboarding, plans, time-boxed support access                                                    | 2026-09-05                     |
+| Platform Admin becomes a real app     | A separate application for Distribution OS staff: onboarding, plans, time-boxed support access                                                  | 2026-09-05                     |
 | Data Entry Operator removed as a role | The invoice is issued at pack by the warehouse and orders arrive from the rep, the shop or WhatsApp                                              | 2026-09-04                     |
 | Four manager personas merged into one | Branch, Sales, Warehouse and Delivery Manager are one `manager` role in one Manager app                                                          | 2026-09-04                     |
 | No branch scope                       | One tenant = one distributorship in v1; multi-branch is v2, each branch its own tenant with an owner group view                                  | 2026-09-05                     |
@@ -42,7 +42,7 @@ Version 2.0 rewrites the August 2026 draft against the product as decided and bu
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Branch Manager, Sales Manager, Delivery Manager | Merged into `manager`: beat assignment, price bounds, rep performance, load-out approval, day-end                                                                                                                                                        |
 | Warehouse Manager                               | Physical work merged into `warehouse`; the authority steps (approve load-out, cancel a wave) are the manager's                                                                                                                                           |
-| Warehouse Staff                                 | Merged into `warehouse` — one role, one app                                                                                                                                                                                                              |
+| Warehouse Staff                                 | Merged into `warehouse` — one role, one set of screens                                                                                                                                                                                                   |
 | Data Entry Operator                             | **Removed as a role.** Nobody types orders or bills for a living. The person who did that work becomes a **Manager app user** — the order queue, billing desk and GRN review are still there, they are simply not a separate persona with reduced rights |
 | Super Administrator                             | Promoted, not retired: it is now Persona 8, Platform Admin, with an application of its own                                                                                                                                                               |
 
@@ -60,7 +60,7 @@ Decided 2026-09-05: there is no branch entity. A second branch is a second tenan
 
 # Persona 1 — Owner
 
-**Distribution OS - Owner** · role `owner` · owner-service :3001 · web, Android, iOS
+**Distribution OS, as Owner** · role `owner` · owner-service :3001 · web, Android, iOS
 
 The business owner is the primary customer and the buying decision-maker; the subscription is sold to this person. **Does:** business strategy and manufacturer relationships; prices, schemes and price bounds; credit limits and terms; approvals for price variance, credit, minimum order value and bargains; branding, invoice numbering series, settings and data imports; staff and expansion planning.
 
@@ -71,7 +71,7 @@ The business owner is the primary customer and the buying decision-maker; the su
 
 # Persona 2 — Manager
 
-**Distribution OS - Manager** · role `manager` · manager-service :3002 · web, Android, iOS
+**Distribution OS, as Manager** · role `manager` · manager-service :3002 · web, Android, iOS
 
 Decided 2026-09-04: the Branch, Sales, Warehouse and Delivery Managers of version 1.0 are **one role**. The manager runs the desk and supervises every operational team.
 
@@ -82,7 +82,7 @@ Decided 2026-09-04: the Branch, Sales, Warehouse and Delivery Managers of versio
 
 # Persona 3 — Accountant
 
-**Distribution OS - Manager (shared)** · role `accountant` · manager-service :3002 · web, Android, iOS
+**Distribution OS, as Manager (the accountant shares those screens)** · role `accountant` · manager-service :3002 · web, Android, iOS
 
 Decided 2026-09-05: the accountant's scope is **the money desk plus reads**. Version 1.0 listed "Credit approvals" among this persona's permissions; that is superseded — credit terms and approvals belong to the owner and the manager.
 
@@ -92,7 +92,7 @@ Decided 2026-09-05: the accountant's scope is **the money desk plus reads**. Ver
 
 # Persona 4 — Salesperson
 
-**Distribution OS - Sales** · role `salesperson` · sales-service :3003 · web, Android, iOS (phone-first)
+**Distribution OS, as Sales** · role `salesperson` · sales-service :3003 · web, Android, iOS (phone-first)
 
 The primary field user. Version 1.0 called this persona "Sales Representative" and gave it Android only; every role app is now web + Android + iOS, with the phone as the working surface.
 
@@ -107,7 +107,7 @@ The primary field user. Version 1.0 called this persona "Sales Representative" a
 
 # Persona 5 — Warehouse
 
-**Distribution OS - Warehouse** · role `warehouse` · warehouse-service :3004 · web, Android, iOS (phone + desk)
+**Distribution OS, as Warehouse** · role `warehouse` · warehouse-service :3004 · web, Android, iOS (phone + desk)
 
 Decided 2026-09-04: Warehouse Manager and Warehouse Staff are one role; supervision that needs authority sits with the manager.
 
@@ -118,7 +118,7 @@ Decided 2026-09-04: Warehouse Manager and Warehouse Staff are one role; supervis
 
 # Persona 6 — Delivery Crew
 
-**Distribution OS - Delivery** · role `delivery` · delivery-service :3005 · web, Android, iOS (phone-first, GPS)
+**Distribution OS, as Delivery** · role `delivery` · delivery-service :3005 · web, Android, iOS (phone-first, GPS)
 
 - **Does** — runs the trip stop by stop with a maps hand-off and live position; delivers in full, in part (per-line quantity and reason, which raises a credit note) or records a failure with its reason; captures proof of delivery; **collects money at the door in cash, UPI with UTR, or cheque**, allocated oldest bill first; makes van sales from vehicle stock on the normal invoice series; checks in at the end of the day with unsold stock counted back and cash settled.
 - **Goals and pains** — deliver on time and collect what is due. Today: finding shops, manual payment records, inefficient routes.
@@ -129,7 +129,7 @@ Decided 2026-09-04: Warehouse Manager and Warehouse Staff are one role; supervis
 
 # Persona 7 — Retailer
 
-**Distribution OS - Retailer** · role `retailer` · retailer-service :3006 · web, Android, iOS (online only)
+**Distribution OS, as Retailer** · role `retailer` · retailer-service :3006 · web, Android, iOS (online only)
 
 Decided 2026-09-05: the Retailer app is **in v1**, not future. One shop login can be linked to several distributors and switches between them without signing in again; the app shows one card per linked distributor.
 
@@ -142,9 +142,9 @@ Decided 2026-09-05: the Retailer app is **in v1**, not future. One shop login ca
 
 # Persona 8 — Platform Admin
 
-**Distribution OS - Admin** · role `platform_admin` (Distribution OS staff) · admin-service :3007 · **web only**
+**Distribution OS - Admin**, a separate console · role `platform_admin` (Distribution OS staff) · admin-service :3007 · web, Android, iOS
 
-Decided 2026-09-05: the "Super Administrator" of version 1.0 becomes a real seventh application, in v1. Version 1.0 described the responsibility; there was no console, and now there is one in scope.
+Decided 2026-09-05: the "Super Administrator" of version 1.0 becomes a real application of its own, in v1. Version 1.0 described the responsibility; there was no console, and now there is one, built.
 
 - **Does** — onboards a distributor (tenant, owner, chart of accounts, locations, numbering series); manages plans and subscription state; grants **time-boxed, owner-approved, audited** support access into a tenant; monitors the platform.
 - **KPIs** — active distributors; onboarding time; open support grants and their expiry; platform uptime; subscription revenue.
@@ -163,18 +163,18 @@ Decided 2026-09-05: the "Super Administrator" of version 1.0 becomes a real seve
 
 # Persona-to-Application Mapping
 
-Decided 2026-09-04: **every role application is delivered on web, Android and iOS from one codebase.** The version 1.0 matrix of per-persona web-or-mobile availability is retired; the admin console is web only. Availability is uniform; the **working surface** is not — the phone for sales, warehouse, delivery and retailer, and the desk for owner and manager.
+Decided 2026-09-04, revised 2026-09-21: **everything is delivered on web, Android and iOS from one codebase**, and the six business roles now share **one app** that becomes the right app after sign-in. The version 1.0 matrix of per-persona web-or-mobile availability is retired. Availability is uniform; the **working surface** is not — the phone for sales, warehouse, delivery and retailer, and the desk for owner and manager.
 
-| Persona        | Application                        | Role             | Service                 | Web | Android | iOS | Working surface |
+| Persona        | What the app becomes               | Role             | Service                 | Web | Android | iOS | Working surface |
 | -------------- | ---------------------------------- | ---------------- | ----------------------- | --- | ------- | --- | --------------- |
-| Owner          | Distribution OS - Owner            | `owner`          | owner-service :3001     | Yes | Yes     | Yes | Desk            |
-| Manager        | Distribution OS - Manager          | `manager`        | manager-service :3002   | Yes | Yes     | Yes | Desk            |
-| Accountant     | Distribution OS - Manager (shared) | `accountant`     | manager-service :3002   | Yes | Yes     | Yes | Desk            |
-| Salesperson    | Distribution OS - Sales            | `salesperson`    | sales-service :3003     | Yes | Yes     | Yes | Phone           |
-| Warehouse      | Distribution OS - Warehouse        | `warehouse`      | warehouse-service :3004 | Yes | Yes     | Yes | Phone           |
-| Delivery Crew  | Distribution OS - Delivery         | `delivery`       | delivery-service :3005  | Yes | Yes     | Yes | Phone           |
-| Retailer       | Distribution OS - Retailer         | `retailer`       | retailer-service :3006  | Yes | Yes     | Yes | Phone           |
-| Platform Admin | Distribution OS - Admin            | `platform_admin` | admin-service :3007     | Yes | No      | No  | Desk            |
+| Owner          | Owner                              | `owner`          | owner-service :3001     | Yes | Yes     | Yes | Desk            |
+| Manager        | Manager                            | `manager`        | manager-service :3002   | Yes | Yes     | Yes | Desk            |
+| Accountant     | Manager (shared screens)           | `accountant`     | manager-service :3002   | Yes | Yes     | Yes | Desk            |
+| Salesperson    | Sales                              | `salesperson`    | sales-service :3003     | Yes | Yes     | Yes | Phone           |
+| Warehouse      | Warehouse                          | `warehouse`      | warehouse-service :3004 | Yes | Yes     | Yes | Phone           |
+| Delivery Crew  | Delivery                           | `delivery`       | delivery-service :3005  | Yes | Yes     | Yes | Phone           |
+| Retailer       | Retailer                           | `retailer`       | retailer-service :3006  | Yes | Yes     | Yes | Phone           |
+| Platform Admin | Distribution OS - Admin (separate) | `platform_admin` | admin-service :3007     | Yes | Yes     | Yes | Desk            |
 | Manufacturer   | None in v1                         | —                | —                       | —   | —       | —   | —               |
 
 Every role signs in through one shared authentication service. Decided 2026-09-04: **username and password**, our own token service, no third party; one-time passwords are a later enhancement layered on top, not a replacement. A user with more than one membership — a shop linked to several distributors, or staff working for two — switches distributor without signing in again.
@@ -183,7 +183,7 @@ Every role signs in through one shared authentication service. Decided 2026-09-0
 
 # Role-Based Access Principles
 
-- A role signs into its own app, and that app's service **mounts only the endpoints that role needs**. A token from any other role is refused before any business logic runs.
+- A role's elected sign-in decides which service the app talks to, and that service **mounts only the endpoints that role needs**. A token from any other role is refused before any business logic runs. **Decided 2026-09-21:** the role is elected downward only — an owner may act as manager, accountant, warehouse, delivery or salesperson, a manager as warehouse, delivery or salesperson, every other staff role only as itself plus the extra roles the owner or manager grants; retailer and platform admin never act as anything else, and an owner token is never let into a field app.
 - Every endpoint has a row in a **permission matrix** naming the roles allowed to call it. The matrix is tested for every endpoint against every role and the guard fails closed: an endpoint with no row can be called by nobody.
 - Beneath the matrix the database enforces the same rules with row-level security — tenant isolation, cost invisibility, and a shop that reads only its own rows.
 - **Changed in 2.0:** version 1.0 said permissions "can be customized by each organization". They cannot. There is one fixed matrix over seven tenant roles plus the platform role; there are no per-tenant custom roles, and object states and approval kinds are fixed enums driven by state machines.
@@ -191,20 +191,18 @@ Every role signs in through one shared authentication service. Decided 2026-09-0
 
 ---
 
-# What is not built yet
+# Where these personas stand today
 
-As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). Against these personas:
+As at 21 September 2026: **23 backend modules across 8 services, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and every persona above has the screens it needs — all seven apps were built and gated green on 2026-09-07, on the **A Ledger** layout chosen 2026-09-05. Owner graphs, the AI capabilities, the Platform Admin console and white-label chrome are all built. What is still ahead of these personas:
 
-- **No app screen exists yet.** Backend first is a deliberate sequencing decision (2026-09-04); the screen layout **A Ledger** was chosen 2026-09-05 and the six role apps are built one at a time once the backend is complete.
-- **Owner graphs** need a reporting series endpoint that is designed but not built; month grain, year-on-year comparison and beat grouping do not exist yet.
-- **AI features** (WhatsApp and voice capture, forecasting, route sequencing) are decided for v1 and queued as a module, not built.
-- **Platform Admin** is decided for v1 and queued; today a tenant is created by a seeding script.
-- **White-label chrome** inside the apps needs branding read endpoints that are still missing; printed documents already carry the seller block.
+- **The six apps become one app** and the role is elected at sign-in (decided 2026-09-21). Both land before go-live, and the business simulation then runs on the merged app, so what is proved is what ships.
+- **The proof, not the build.** A cross-role walk of one order through every role, then a seven-day business simulation whose verdict is arithmetic: stock and money must reconcile to the rupee and the piece.
+- **Nothing is live yet.** Go-live is targeted for **Saturday 27 September 2026** on `distributionos.in`.
 
 ---
 
 # Summary
 
-These nine personas — eight with an application and one without — are the complete user set of Distribution OS. Every screen, endpoint and permission traces back to one of them. When a new module is proposed it is validated against this list: which persona asks for it, in which app, under which role, and what the permission matrix must say.
+These nine personas — eight who sign in and one who does not — are the complete user set of Distribution OS. Every screen, endpoint and permission traces back to one of them. When a new module is proposed it is validated against this list: which persona asks for it, under which role, on which service, and what the permission matrix must say.
 
 **Sources:** `docs/22-source-of-truth.md` §2, §4–§7, §8 (dated founder decisions), §9 (non-negotiables); `docs/24-confluence-alignment.md` §3 and §5; `docs/23-app-screens-and-api-gaps.md` (screen inventory, permission cross-checks); `docs/18-build-log.md` (status).

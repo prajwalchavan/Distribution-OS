@@ -6,10 +6,10 @@
 | ------------ | ----------------------------- |
 | Document     | Integrations & Data Migration |
 | Product      | Distribution OS               |
-| Version      | 2.0                           |
+| Version      | 2.1                           |
 | Status       | Active                        |
 | Owner        | Prajwal Chavan                |
-| Last Updated | September 2026                |
+| Last Updated | 21 September 2026             |
 
 **New page, September 2026.** The v1.0 space listed "Extensibility for future integrations" as a principle but never said which systems Distribution OS talks to, how a distributor's twenty years of data gets in, or what happens to a brand that forces its own software on the distributor. This page answers all three. Source documents: `docs/22-source-of-truth.md` (single source of truth), `docs/17-corrections-from-review.md` §D7, `docs/10-integrations.md`, `docs/plans/integrations.md`, `backend/libs/contracts/src/integrations.ts` and `permissions.ts`, `docs/23-app-screens-and-api-gaps.md`, ADR 0014. Where this page and the repository disagree, the repository wins.
 
@@ -33,14 +33,14 @@ Three consequences the product lives with:
 
 | Integration                                       | What it does                                                                                          | v1 status                                                     |
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| Brand-DMS coexistence (FieldAssist / Too Yumm)    | Import the brand's own secondary invoices; never issue a second legal invoice                         | Decided, specified; contract landed, module queued            |
-| Generic mapped importer                           | Upload → preview → map → save profile → dry run → review → commit → confirm (or roll back)            | Decided, specified; contract landed, module queued            |
-| Saved source profiles                             | TradeEzee, Marg, Busy, Tally, FieldAssist, Excel, Other — ship as data, refined without a code change | Decided, specified                                            |
-| Tally XML export                                  | Sales, receipt and purchase vouchers with stable GUIDs; ledger mapping screen                         | Decided, specified                                            |
-| WhatsApp                                          | Outbound templates (order, invoice, delivery, dues) and inbound free-text capture                     | Decided; notifications module queued                          |
-| WhatsApp / voice order capture into a draft order | Free text or speech parsed against the shop's own history, **always human-confirmed**                 | **Decided 2026-09-05: in v1**                                 |
+| Brand-DMS coexistence (FieldAssist / Too Yumm)    | Import the brand's own secondary invoices; never issue a second legal invoice                         | **Built**                                                     |
+| Generic mapped importer                           | Upload → preview → map → save profile → dry run → review → commit → confirm (or roll back)            | **Built**                                                     |
+| Saved source profiles                             | TradeEzee, Marg, Busy, Tally, FieldAssist, Excel, Other — ship as data, refined without a code change | **Built**                                                     |
+| Tally XML export                                  | Sales, receipt and purchase vouchers with stable GUIDs; ledger mapping screen                         | **Built**                                                     |
+| WhatsApp                                          | Outbound templates (order, invoice, delivery, dues) and inbound free-text capture                     | **Built** — the notifications module                          |
+| WhatsApp / voice order capture into a draft order | Free text or speech parsed against the shop's own history, **always human-confirmed**                 | **Built** (decided 2026-09-05: in v1)                         |
 | GST e-invoice (IRN) and e-way bill                | Recipient-side QR verification; outbound fields recorded and exported as JSON stubs                   | Partial by design — no GSP call in v1                         |
-| Maps and route sequencing                         | Navigation hand-off to the phone's map app; stop sequencing by distance and time windows              | **Decided 2026-09-05: sequencing in v1**, driver may override |
+| Maps and route sequencing                         | Navigation hand-off to the phone's map app; stop sequencing by distance and time windows              | **Built** (decided 2026-09-05), driver may override           |
 | Tally Connector (live polling of TallyPrime)      | Windows agent that pushes vouchers while Tally is open                                                | Post-pilot, not v1                                            |
 | ONDC                                              | Vocabulary alignment only (payment terms, case size, serviceable pincodes, category mapping)          | Not an integration we build in v1                             |
 
@@ -110,7 +110,7 @@ Job lifecycle: `queued → staged → running → committed → confirmed | roll
 
 ## 4.5 Where migration sits in onboarding
 
-**Decided 2026-09-05:** a **platform console** (a seventh app, "Distribution OS - Admin") is in v1 and owns distributor onboarding, plans and subscription state. Migration is not part of it: the console creates the tenant, and the migration then runs **inside that distributor's own tenant**, by their own owner or manager, in the owner or manager app. **Decided 2026-09-05:** one tenant = one distributorship, so a migration never spans two businesses.
+**Decided 2026-09-05:** a **platform console** (a separate app, "Distribution OS - Admin") is in v1 and owns distributor onboarding, plans and subscription state. Migration is not part of it: the console creates the tenant, and the migration then runs **inside that distributor's own tenant**, by their own owner or manager, on their own screens. **Decided 2026-09-05:** one tenant = one distributorship, so a migration never spans two businesses.
 
 ---
 
@@ -183,19 +183,21 @@ Screens that use it (`docs/23`): owner **Imports wizard** and **Exports & Tally*
 
 # 10. Build status
 
-As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). **No app screen exists yet** — backend first is a deliberate sequencing decision (2026-09-04).
+As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and **all seven apps built and gated green** on 2026-09-07. Everything on this page is built; what remains is the pilot's own cut-over.
 
 | Piece                                                                                                                                       | Status                                                   |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | Six database tables (import jobs, rows, profiles, export jobs, Tally mappings, Tally sync ledger), with back-office-only row-level security | Built                                                    |
 | The API contract — **21 procedures** across imports, profiles, exports and Tally — and its permission rows                                  | Built                                                    |
 | Signed upload and download URLs the wizard needs                                                                                            | Built                                                    |
-| The module itself: staging, matching, dry run, commit, rollback, renderers, worker jobs, demo data                                          | **Queued — module 6 of 10** in the current backend chain |
-| WhatsApp and SMS adapters, templates, inbound capture                                                                                       | Queued — notifications module (8 of 10)                  |
-| WhatsApp/voice order parsing, forecasting, route sequencing                                                                                 | Queued — AI module, added to scope 2026-09-05            |
-| Import and export **screens** in the owner and manager apps                                                                                 | After the backend, layout **A Ledger**                   |
+| The module itself: staging, matching, dry run, commit, rollback, renderers, worker jobs, demo data                                          | Built                                                    |
+| WhatsApp and SMS adapters, templates, inbound capture                                                                                       | Built — the notifications module                         |
+| WhatsApp/voice order parsing, forecasting, route sequencing                                                                                 | Built — the AI module, added to scope 2026-09-05         |
+| Import and export **screens** for the owner and the manager                                                                                 | Built on layout **A Ledger**, walked at the app gates    |
 
 Integrations was deliberately moved earlier in the build order (from ninth to sixth) because the claims and reporting modules both need its export queue and would otherwise each build their own.
+
+**What is left is the cut-over, not the code.** The pilot's TradeEzee masters and open balances are imported when Tarsun Enterprises switches over, with the physical pending-bills file reconciled per retailer by a person — never imported blindly. Nothing is deployed yet; go-live is targeted for **Saturday 27 September 2026** on `distributionos.in`.
 
 ---
 

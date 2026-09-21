@@ -11,7 +11,17 @@
  * because the reader is our staff (docs/22 §9 item 10 covers a distributor's surfaces, not ours).
  */
 import { usePlatformSession } from '@dos/api-client/react'
-import { Button, ErrorState, Screen, Stack, TextInput, Txt, useColors, useStrings } from '@dos/ui'
+import {
+  Button,
+  ErrorState,
+  Screen,
+  Stack,
+  TextInput,
+  Txt,
+  Welcome,
+  useColors,
+  useStrings,
+} from '@dos/ui'
 import { useState } from 'react'
 
 import { APP } from '../src/config'
@@ -39,39 +49,41 @@ export default function SignIn(): React.JSX.Element {
   }
 
   return (
-    <Screen title={t('app.signInTitle')} context={APP.brand}>
-      <Stack gap={4} maxWidth={420}>
-        <Txt field="body" desk="body" color={colors.text.secondary}>
-          {t('app.consoleOnly')}
-        </Txt>
-        <TextInput
-          label={t('app.username')}
-          value={username}
-          onChange={setUsername}
-          autoFocus
-          testID="sign-in-username"
-        />
-        <TextInput
-          label={t('app.password')}
-          value={password}
-          onChange={setPassword}
-          secure
-          onSubmit={submit}
-          testID="sign-in-password"
-        />
-        {error === null ? null : <ErrorState message={error} />}
-        <Button
-          label={t('app.signIn')}
-          onPress={submit}
-          variant="primary"
-          loading={busy}
-          fullWidth
-          testID="sign-in-submit"
-        />
-        <Txt field="label" desk="meta" color={colors.text.secondary}>
-          {t('app.consoleSeparate')}
-        </Txt>
-      </Stack>
-    </Screen>
+    <Welcome appTitle={APP.title} role={APP.role}>
+      <Screen title={t('app.signInTitle')} context={APP.brand}>
+        <Stack gap={4} maxWidth={420}>
+          <Txt field="body" desk="body" color={colors.text.secondary}>
+            {t('app.consoleOnly')}
+          </Txt>
+          <TextInput
+            label={t('app.username')}
+            value={username}
+            onChange={setUsername}
+            autoFocus
+            testID="sign-in-username"
+          />
+          <TextInput
+            label={t('app.password')}
+            value={password}
+            onChange={setPassword}
+            secure
+            onSubmit={submit}
+            testID="sign-in-password"
+          />
+          {error === null ? null : <ErrorState message={error} />}
+          <Button
+            label={t('app.signIn')}
+            onPress={submit}
+            variant="primary"
+            loading={busy}
+            fullWidth
+            testID="sign-in-submit"
+          />
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            {t('app.consoleSeparate')}
+          </Txt>
+        </Stack>
+      </Screen>
+    </Welcome>
   )
 }

@@ -371,6 +371,175 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
     expect(still?.status).toBe('active')
   })
 
+  /**
+   * docs/29 §2 extra_roles + staff screen — the owner (and, within its own floor, the manager) says
+   * which OTHER role a staff login may also sign in as, so the warehouse man who delivers on Tuesdays
+   * can open the delivery app with his own username instead of borrowing the owner's.
+   *
+   * It is a sideways grant between staff jobs and never a way up: `owner`, `manager`, `retailer` and
+   * `platform_admin` are not values the contract will accept, a manager may hand out only the three
+   * roles it already administers, and the desk's own memberships carry no extras at all.
+   */
+  describe('docs/29 §2 extra_roles + staff screen', () => {
+    const accountantId = uuidv7()
+    const accountant: Actor = { tenantId, actorId: accountantId, role: 'accountant' }
+
+    beforeAll(async () => {
+      await db.insert(users).values({
+        id: accountantId,
+        phone: `+919${run}0`,
+        name: 'Accountant',
+        username: `x${run}.acc`,
+      })
+      await db
+        .insert(memberships)
+        .values({ id: uuidv7(), tenantId, userId: accountantId, role: 'accountant' })
+    })
+
+    const extraRolesOf = async (userId: string) => {
+      const [row] = await db
+        .select({ extraRoles: memberships.extraRoles })
+        .from(memberships)
+        .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, userId)))
+      return row?.extraRoles ?? null
+    }
+
+    it('lets the owner add delivery to a rep, and shows it on the staff list', async () => {
+      const res = await call(app, owner, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-owner-${run}`,
+        userId: repId,
+        extraRoles: ['delivery'],
+      })
+      expect(res.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual(['delivery'])
+
+      const list = await call<{ items: (StaffRow & { extraRoles: string[] })[] }>(
+        app,
+        owner,
+        'GET',
+        '/tenancy/staff',
+      )
+      expect(list.body.items.find((i) => i.userId === repId)?.extraRoles).toEqual(['delivery'])
+      // Everyone else still carries none: this is per membership, never a tenant-wide switch.
+      expect(list.body.items.find((i) => i.userId === managerId)?.extraRoles).toEqual([])
+    })
+
+    it('lets the manager hand out only the three roles it already administers', async () => {
+      const ok = await call(app, manager, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-mgr-ok-${run}`,
+        userId: repId,
+        extraRoles: ['warehouse', 'delivery'],
+      })
+      expect(ok.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual(['warehouse', 'delivery'])
+
+      const denied = await call<{ message: string }>(
+        app,
+        manager,
+        'POST',
+        '/tenancy/memberships/update',
+        {
+          idempotencyKey: `extra-mgr-no-${run}`,
+          userId: repId,
+          extraRoles: ['accountant'],
+        },
+      )
+      expect(denied.status).toBe(403)
+      // and nothing was written
+      expect(await extraRolesOf(repId)).toEqual(['warehouse', 'delivery'])
+    })
+
+    it('refuses owner, manager, retailer and platform_admin as extra roles', async () => {
+      for (const role of ['owner', 'manager', 'retailer', 'platform_admin']) {
+        const res = await call(app, owner, 'POST', '/tenancy/memberships/update', {
+          idempotencyKey: `extra-bad-${role}-${run}`,
+          userId: repId,
+          extraRoles: [role],
+        })
+        expect(res.status).toBe(400)
+      }
+      expect(await extraRolesOf(repId)).toEqual(['warehouse', 'delivery'])
+    })
+
+    it('refuses to put extras on a desk membership, which already elects downward', async () => {
+      const res = await call(app, owner, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-desk-${run}`,
+        userId: managerId,
+        extraRoles: ['delivery'],
+      })
+      expect(res.status).toBe(403)
+      expect(await extraRolesOf(managerId)).toEqual([])
+    })
+
+    it('is the desk’s to set: a rep and the accountant may not', async () => {
+      const byRep = await call(app, rep, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-rep-${run}`,
+        userId: repId,
+        extraRoles: ['delivery'],
+      })
+      expect(byRep.status).toBe(403)
+      const byAccountant = await call(app, accountant, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-acc-${run}`,
+        userId: repId,
+        extraRoles: ['delivery'],
+      })
+      expect(byAccountant.status).toBe(403)
+      expect(await extraRolesOf(repId)).toEqual(['warehouse', 'delivery'])
+    })
+
+    it('takes every extra role away again when the list is sent empty', async () => {
+      const res = await call(app, owner, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-clear-${run}`,
+        userId: repId,
+        extraRoles: [],
+      })
+      expect(res.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual([])
+    })
+
+    /**
+     * The manager's remit is the DELTA, not the set. A rep the owner gave `accountant` to is still a
+     * rep on the manager's floor: adding `delivery` to him must save, because the manager touched only
+     * `delivery`. Refusing on the whole submitted set locked the manager out of every person the owner
+     * had ever granted an accountant extra — a 403 naming a role the manager never touched.
+     */
+    it('lets the manager add its own role beside an accountant extra the owner granted', async () => {
+      const granted = await call(app, owner, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-owner-acc-${run}`,
+        userId: repId,
+        extraRoles: ['accountant'],
+      })
+      expect(granted.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual(['accountant'])
+
+      const res = await call(app, manager, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-mgr-delta-${run}`,
+        userId: repId,
+        extraRoles: ['accountant', 'delivery'],
+      })
+      expect(res.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual(['accountant', 'delivery'])
+    })
+
+    /** The other half of the same rule: the manager may not REVOKE what the owner granted. */
+    it('refuses a manager that drops the owner’s accountant extra', async () => {
+      const res = await call<{ message: string }>(
+        app,
+        manager,
+        'POST',
+        '/tenancy/memberships/update',
+        {
+          idempotencyKey: `extra-mgr-drop-${run}`,
+          userId: repId,
+          extraRoles: ['delivery'],
+        },
+      )
+      expect(res.status).toBe(403)
+      expect(res.body.message).toContain('accountant')
+      expect(await extraRolesOf(repId)).toEqual(['accountant', 'delivery'])
+    })
+  })
+
   it('me() reports the signed-in username', async () => {
     const res = await call<{ user: { username: string | null } }>(app, owner, 'GET', '/tenancy/me')
     expect(res.status).toBe(200)

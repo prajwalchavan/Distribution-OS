@@ -42,6 +42,9 @@ export const SECTIONS: readonly NavSection[] = [
     title: 'SETUP',
     items: [
       { href: '/prices', label: 'Prices', permission: 'pricing.priceLists.upsert' },
+      // docs/29 §2: who works on this floor and what else their login may open. The accountant's
+      // rail loses it, because `tenancy.memberships.update` is owner + manager in the same matrix.
+      { href: '/staff', label: 'Staff', permission: 'tenancy.memberships.update' },
       { href: '/messages', label: 'Messages', permission: 'notifications.templates.list' },
     ],
   },

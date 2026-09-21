@@ -436,6 +436,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'tenancy.staff.update': ONBOARDERS,
   'tenancy.staff.setPassword': ONBOARDERS,
   'tenancy.staff.setStatus': ONBOARDERS,
+  // docs/29 §2: the extra roles a staff login may also sign in as. The owner and the manager set them
+  // (the handler narrows the manager to the three roles it already administers); nobody else.
+  'tenancy.memberships.update': ONBOARDERS,
   'tenancy.branding.get': ANY_MEMBER,
   'tenancy.settings.get': STAFF,
   'tenancy.settings.set': OWNER_ONLY,

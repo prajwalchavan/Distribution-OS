@@ -12,7 +12,14 @@ import type {
 } from '@dos/contracts'
 import { businessDate } from '@dos/domain'
 import { inboundMessages, retailers, withTenant, type ActorRole, type Db } from '@dos/db'
-import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
+import {
+  currentTenant,
+  DB,
+  idempotent,
+  isUniqueViolation,
+  requireDb,
+  requireRole,
+} from '../../platform/index.js'
 import { contactPreferences } from '../retailers/index.js'
 import { signedObjectUrl } from '../tenancy/index.js'
 import { dayWindow, repShopIds } from './notifications.internals.js'
@@ -68,25 +75,36 @@ export class InboundService {
         const contact = await contactPreferences(tx, input.retailerId)
         if (!contact || contact.userId !== ctx.actorId)
           throw new ORPCError('FORBIDDEN', { message: 'that is not your shop' })
-        const [row] = await tx
-          .insert(inboundMessages)
-          .values({
-            id: input.id,
-            tenantId: ctx.tenantId,
-            channel: 'in_app',
-            // The shop's own number as the distributor knows it; 'app' when it holds none, so the
-            // desk still sees where the report came from.
-            from: contact.phone ?? 'app',
-            retailerId: input.retailerId,
-            body: input.body,
-            kind: input.kind,
-            refType: input.refType ?? null,
-            refId: input.refId ?? null,
-            createdBy: ctx.actorId,
-            receivedAt: new Date(),
-            handled: false,
-          })
-          .returning()
+        let row: InboundRow | undefined
+        try {
+          ;[row] = await tx
+            .insert(inboundMessages)
+            .values({
+              id: input.id,
+              tenantId: ctx.tenantId,
+              channel: 'in_app',
+              // The shop's own number as the distributor knows it; 'app' when it holds none, so the
+              // desk still sees where the report came from.
+              from: contact.phone ?? 'app',
+              retailerId: input.retailerId,
+              body: input.body,
+              kind: input.kind,
+              refType: input.refType ?? null,
+              refId: input.refId ?? null,
+              createdBy: ctx.actorId,
+              receivedAt: new Date(),
+              handled: false,
+            })
+            .returning()
+        } catch (err) {
+          // A client id this tenant already holds, sent under a DIFFERENT idempotency key: the retry
+          // path above never reached, so this is the client re-using an id, not a duplicate press.
+          // Every other create says so with a 409 (orders, trips, vehicles, GRNs, documents); without
+          // this the unique violation escaped as a 500 and the shop was told nothing it could act on.
+          if (isUniqueViolation(err))
+            throw new ORPCError('CONFLICT', { message: `report ${input.id} already exists` })
+          throw err
+        }
         if (!row)
           throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'the report was not stored' })
         const [item] = await this.items(tx, [row])

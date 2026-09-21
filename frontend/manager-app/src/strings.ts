@@ -976,6 +976,19 @@ export const strings = {
   'word.never': 'Never',
 
   // people
+  // M-staff (docs/29 §2): the other roles one staff login may also sign in as.
+  'm22.title': 'Staff',
+  'm22.person': 'Person',
+  'm22.username': 'Username',
+  'm22.role': 'Role',
+  'm22.extraRoles': 'Also signs in as',
+  'm22.extraRolesHelp':
+    'They open that app with their own username. You can take it back any time.',
+  'm22.saveRoles': 'Save roles',
+  'm22.askOwner': 'Only the owner can change what this login may open.',
+  'm22.lastLogin': 'Last sign-in',
+  'm22.status': 'Status',
+
   'word.salesperson': 'Salesperson',
   'word.platform_admin': 'Distribution OS staff',
   'word.must_change_password': 'Temporary password',

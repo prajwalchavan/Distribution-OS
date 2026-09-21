@@ -81,6 +81,9 @@ describe('DOS-012 the owner hears a refused write', () => {
   })
 
   it('DOS-012: the staff dialog stays open on a refusal', async () => {
-    expect(await sweepOf('../../app/staff/index.tsx')).toEqual({ ...SWEPT, refusals: 1 })
+    // Two surfaces refuse here: the password / status dialog, and the extra-roles panel the owner
+    // saves a person's other roles from (docs/29 §2) — which is a write on the page itself, not in a
+    // dialog, so it prints its own scoped sentence where it was pressed.
+    expect(await sweepOf('../../app/staff/index.tsx')).toEqual({ ...SWEPT, refusals: 2 })
   })
 })

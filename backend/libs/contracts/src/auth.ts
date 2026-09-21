@@ -178,6 +178,11 @@ export const TokenPairOutput = z.object({
   refreshExpiresAt: z.iso.datetime(),
   user: AuthUserSchema,
   tenant: AuthTenantSchema,
+  /**
+   * The role this session ACTS AS — the elected role when the device asked for one (docs/29 §2),
+   * otherwise the membership's own. It is what the access token carries and what every service, the
+   * permission matrix and RLS read. The membership's own role is still in `memberships` below.
+   */
   role: MembershipRoleSchema,
   memberships: z.array(MembershipSummarySchema),
 })
@@ -198,6 +203,23 @@ export const LoginInput = z.object({
   tenantId: IdSchema.optional().describe(
     'Optional. Omit to sign in to your own distributor. Only send a tenantId you are a member of (see `memberships` in the response).',
   ),
+  /**
+   * ROLE ELECTION, downward only (founder 2026-09-21, docs/29 §2). The role this DEVICE is asking to
+   * act as. Each field app always sends its own role — the delivery app sends `delivery` — so the
+   * owner who drives on Tuesdays gets a delivery token on the van phone and never an owner token on a
+   * shared, droppable device. Omit it (the owner, manager, retailer and console apps do) to sign in as
+   * the membership's own role.
+   *
+   * It is granted when it IS the membership's own role, or when the fixed table in `@dos/domain`
+   * (`ROLE_ELECTION`) allows it — owner downward to manager, accountant, warehouse, delivery and
+   * salesperson; manager downward to warehouse, delivery and salesperson — or when the membership's
+   * `extra_roles` carry it. Anything else is a 403 with a sentence the person can act on, never a
+   * silent downgrade. The minted token's `role` claim is the ELECTED role; `sub` stays the person, so
+   * every audit row, receipt and delivery still records who did it.
+   */
+  actAs: MembershipRoleSchema.optional().describe(
+    'Optional. The role this app needs (docs/29 §2). Granted only downward from your membership role, or from the extra roles the owner put on it.',
+  ),
 })
 export type LoginIn = z.infer<typeof LoginInput>
 
@@ -214,6 +236,23 @@ export const SwitchTenantInput = z.object({
   refreshToken: RefreshTokenSchema,
   deviceId: IdSchema,
   tenantId: IdSchema,
+  /**
+   * ROLE ELECTION, downward only (founder 2026-09-21, docs/29 §2). The role this DEVICE is asking to
+   * act as. Each field app always sends its own role — the delivery app sends `delivery` — so the
+   * owner who drives on Tuesdays gets a delivery token on the van phone and never an owner token on a
+   * shared, droppable device. Omit it (the owner, manager, retailer and console apps do) to sign in as
+   * the membership's own role.
+   *
+   * It is granted when it IS the membership's own role, or when the fixed table in `@dos/domain`
+   * (`ROLE_ELECTION`) allows it — owner downward to manager, accountant, warehouse, delivery and
+   * salesperson; manager downward to warehouse, delivery and salesperson — or when the membership's
+   * `extra_roles` carry it. Anything else is a 403 with a sentence the person can act on, never a
+   * silent downgrade. The minted token's `role` claim is the ELECTED role; `sub` stays the person, so
+   * every audit row, receipt and delivery still records who did it.
+   */
+  actAs: MembershipRoleSchema.optional().describe(
+    'Optional. The role this app needs (docs/29 §2). Granted only downward from your membership role, or from the extra roles the owner put on it.',
+  ),
 })
 export type SwitchTenantIn = z.infer<typeof SwitchTenantInput>
 

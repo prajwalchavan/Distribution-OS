@@ -31,7 +31,7 @@ about two days. Said now, not on Friday.
 | 3 (Tue 23) | The one app finishes and is gated (lint, typecheck, kit parity extended to it, the seven per-role web apps retired) · smoke + the chain re-walked ON the one app · Fable reviews its layout |
 | 4–5 (Wed 24 – Thu 25) | **The seven-day business simulation, on the one app** — two full days, blind auditor, arithmetic verdict |
 | 6 (Fri 26) | Fix what it found; check only where it pointed |
-| 7 (Sat 27) | Android basics on the one app · the security slice public URLs require · **go live**: `app.distributionos.in` and `api.distributionos.in` · Fable's audit with the handover |
+| 7 (Sat 27) | Android basics on the one app · the security slice public URLs require · **go live**: `www.distributionos.in` and `api.distributionos.in` · Fable's audit with the handover |
 
 **Live by Saturday 27 September, if Thursday evening's books balance.** If they do not, the unknown is
 the repair — the same honest shape as before, shifted by the two days the founder chose to spend on

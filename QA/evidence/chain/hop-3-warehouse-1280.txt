@@ -1,0 +1,30 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Pack
+BEING PICKED
+Pawar General Store
+PICK-0078 · 0 of 215 pc
+picking
+Sahyadri Super Bazar
+PICK-0078 · 0 of 1693 pc
+picking
+READY TO PACK
+Nothing picked and waiting
+PACKED WITHOUT A BILL
+Every pack has its bill
+PACKED TODAY
+Shree Ganesh Kirana
+SO-0879 · Cartons 1
+INV/9007

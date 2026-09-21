@@ -6,10 +6,10 @@
 | ------------ | ------------------------------ |
 | Document     | Product Success Metrics (KPIs) |
 | Product      | Distribution OS                |
-| Version      | 2.0                            |
+| Version      | 2.1                            |
 | Status       | Active                         |
 | Owner        | Product Management             |
-| Last Updated | September 2026                 |
+| Last Updated | 21 September 2026              |
 
 ---
 
@@ -19,7 +19,7 @@ This document defines the Key Performance Indicators (KPIs) used to measure the 
 
 Version 2.0 keeps the KPI set of version 1.0 and adds the one thing it was missing — **whether each KPI can actually be measured from the system today**, and if not, which module will make it measurable. A KPI that no table can answer is a wish, not a metric, and is now marked as such.
 
-**Decided 2026-09-05:** the repository file `docs/22-source-of-truth.md` is the single source of truth for product shape and founder decisions; this space mirrors it. Measurability answers below come from the alignment audit `docs/24-confluence-alignment.md` §2.2, which checked every KPI on this page against the database schema and the contract procedures, not against intent. KPIs are now grouped **by app** (owner; manager + accountant; sales; warehouse; delivery; retailer; platform admin), because each role signs into its own app on its own backend service and sees only the numbers that app serves; the version 1.0 functional grouping is preserved inside each section.
+**Decided 2026-09-05:** the repository file `docs/22-source-of-truth.md` is the single source of truth for product shape and founder decisions; this space mirrors it. Measurability answers below come from the alignment audit `docs/24-confluence-alignment.md` §2.2, which checked every KPI on this page against the database schema and the contract procedures, not against intent. KPIs are grouped **by role** (owner; manager + accountant; sales; warehouse; delivery; retailer; platform admin), because each role reaches its own backend service and sees only the numbers that service serves; since 2026-09-21 the six business roles share one app that becomes the right app after sign-in, so the grouping is by who is signed in rather than by which app was installed. The version 1.0 functional grouping is preserved inside each section.
 
 ---
 
@@ -31,8 +31,9 @@ Version 2.0 keeps the KPI set of version 1.0 and adds the one thing it was missi
 | **Partial**  | Some inputs exist; the KPI cannot yet be computed exactly. The gap is stated.                                                          |
 | **Not yet**  | Nothing is recorded. The module that will make it measurable is named, or the metric lives outside the product database.               |
 
-- **Measurable is not visible.** As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). No app screen exists yet. Most "Measured" KPIs today are answered by a query or a register endpoint, not by a tile.
-- **The reporting module is module 9 of the current build chain and is not built.** Everything named `reporting.*` below — `reporting.dashboard.owner`, `reporting.dailyStats.*`, `reporting.registers.*`, `reporting.series.get` — is planned, not live. Until it lands, KPI reporting is per-module registers.
+- **Measured now means visible.** As at 21 September 2026: **23 backend modules across 8 services, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and all seven apps were built and gated green on 2026-09-07 — so a "Measured" KPI below generally has a screen behind it, not only a query.
+- **The reporting module is built.** Everything named `reporting.*` below — the owner dashboard, the daily stats, the registers and the series behind the charts — is live, alongside the per-module registers.
+- **Baselines still need the pilot.** Nothing is deployed yet; go-live is targeted for **Saturday 27 September 2026**, and the first real numbers come from Tarsun Enterprises after that.
 
 ---
 
@@ -41,14 +42,14 @@ Version 2.0 keeps the KPI set of version 1.0 and adds the one thing it was missi
 | KPI                                   | Measurable | Source today                                                                     |
 | ------------------------------------- | ---------- | -------------------------------------------------------------------------------- |
 | Order processing time                 | Measured   | `sales_orders.submitted_at` → `order_state_transitions` → `invoices.issued_at`   |
-| Orders received / processed           | Measured   | `sales_orders.state`, `orders.list`; rollup `daily_tenant_stats` planned         |
+| Orders received / processed           | Measured   | `sales_orders.state`, `orders.list`; rollup `daily_tenant_stats` built         |
 | Order completion rate                 | Measured   | states delivered / partially_delivered / closed vs cancelled                     |
 | Average order value                   | Measured   | `invoices.total_paise`, `billing.registers.salesRegister`                        |
-| Sales growth (month over month)       | Measured   | `invoices` by month; the **month-grain chart** needs `reporting.series.get`      |
-| Gross margin / profitability          | Partial    | `owner_summary` is month-to-date only; margin by month and by brand missing      |
+| Sales growth (month over month)       | Measured   | `invoices` by month; the month-grain growth chart is served by `reporting.series.growth`      |
+| Gross margin / profitability          | Measured   | `reporting.series.grossMargin`, owner and money desk only                        |
 | Orders processed per operator per day | Measured   | `sales_orders.created_by` / `salesperson_id`                                     |
 | Workflow automation rate              | Partial    | auto-confirmed orders vs `approvals` raised; no single automation ratio          |
-| Manual data entry time                | Partial    | `docint.stats.summary` (edits and latency per bill, planned); nothing for orders |
+| Manual data entry time                | Partial    | `docint.stats` (edits and latency per bill); nothing for orders |
 | Paper-based activities %              | Not yet    | Qualitative; deliberately not a system data point — assessed at the pilot review |
 | Attendance and activity               | Partial    | `auth_events` sign-ins, `devices.last_seen_at`; no attendance model in v1        |
 
@@ -61,14 +62,14 @@ Version 2.0 keeps the KPI set of version 1.0 and adds the one thing it was missi
 | KPI                                   | Measurable | Source today                                                                               |
 | ------------------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
 | Outstanding amount                    | Measured   | `retailer_outstanding_summary`, `receivables.outstanding.list`                             |
-| Collection rate                       | Measured   | `receipts` + `allocations` vs `invoices`; `registers.collections` planned                  |
-| Average collection period             | Measured   | allocation date − invoice date; `retailer_behaviour.avgDaysToPay` planned                  |
+| Collection rate                       | Measured   | `receipts` + `allocations` vs `invoices`; `reporting.registers.collections`                  |
+| Average collection period             | Measured   | allocation date − invoice date; `reporting.retailers.behaviour`                  |
 | Overdue customers                     | Measured   | ageing buckets 0-7 / 8-15 / 16-30 / 31-60 / 61-90 / 90+, `ageing_snapshots`                |
 | Credit utilisation                    | Measured   | `retailers.credit_limit_paise` vs outstanding, `receivables.creditCheck`                   |
 | Cash collection accuracy              | Measured   | `trip_settlements.cash_variance_paise`, `has_variance`                                     |
 | Payment recording time                | Measured   | `receipts.received_at` vs `created_at`; `sync_ops` for offline lag                         |
 | Order accuracy (no correction needed) | Partial    | `credit_notes.reason`, `pick_lines.short_reason`; no explicit "corrected" flag             |
-| GST registers (sales / purchase)      | Partial    | `billing.registers.salesRegister` built; `reporting.registers.gstPurchaseRegister` planned |
+| GST registers (sales / purchase)      | Measured   | `billing.registers.salesRegister`, plus the GST sales and purchase registers in reporting  |
 
 **Decided 2026-09-05:** the accountant is the **money desk plus reads** — office receipts, deposits, cheque bounces, write-offs, and every export — with no prices, schemes, credit limits, approvals or settings. Credit-approval KPIs are therefore the owner's and the manager's, not the accountant's (version 1.0 listed credit approvals under the accountant; superseded). The manager also approves load-out from the manager app, so time-to-approve is measurable from the load sheet timestamps and should become a manager KPI at the pilot.
 
@@ -76,11 +77,11 @@ Version 2.0 keeps the KPI set of version 1.0 and adds the one thing it was missi
 
 | KPI                                         | Measurable  | Source today                                                                              |
 | ------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- |
-| Sales orders per salesperson                | Measured    | `sales_orders.salesperson_id`; `reporting.dailyStats.rep` planned                         |
-| Salesman productivity (value booked)        | Measured    | orders and invoices by `salesperson_id`; `registers.repProductivity` planned              |
+| Sales orders per salesperson                | Measured    | `sales_orders.salesperson_id`; `reporting.registers.repDaily`                         |
+| Salesman productivity (value booked)        | Measured    | orders and invoices by `salesperson_id`; `reporting.registers.repProductivity`              |
 | Customer visit completion (planned vs done) | Partial     | `visits` recorded; planned visits are `pjp` + `beat_assignments`, no procedure joins them |
-| Shops covered / lapsed shops                | Partial     | order history per retailer; `reporting.retailers.lapsed` planned                          |
-| Target achievement                          | Not yet     | incentives module (10 in the chain) — plans, targets, slabs, statements                   |
+| Shops covered / lapsed shops                | Partial     | order history per retailer; `reporting.retailers.lapsed`                          |
+| Target achievement                          | Measured    | the incentives module — plans, targets, slabs, statements                                 |
 | Collections by salesperson                  | **Removed** | Decided 2026-09-04: the salesperson never records a receipt                               |
 
 **Decided 2026-09-04:** only the delivery crew collects money, or the shop pays online. Version 1.0 listed "Collections" as a Sales KPI; it now belongs to Delivery and the money desk, and the sales service carries no receipt endpoint at all. The rep may **see** a shop's outstanding and run a credit check before booking — that is a read, and it is deliberate.
@@ -90,7 +91,7 @@ Version 2.0 keeps the KPI set of version 1.0 and adds the one thing it was missi
 | KPI                                     | Measurable | Source today                                                                                                                                                                                              |
 | --------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Inventory accuracy (system vs physical) | Measured   | `cycle_count_lines` expected vs counted, `inventory.cycleCounts.post`                                                                                                                                     |
-| Inventory age                           | Measured   | `stock_lots.mfg_date` and GRN date; near-expiry view in `registers.stockValue` (planned)                                                                                                                  |
+| Inventory age                           | Measured   | `stock_lots.mfg_date` and GRN date; near-expiry view in `reporting.registers.stockValue`                                                                                                                  |
 | Expired inventory value                 | Measured   | `stock_lots.expiry_date` × `tenant_product_costs` — **owner/manager/accountant only; never shown in the Warehouse app**, because row-level security blocks the warehouse role from `tenant_product_costs` |
 | Warehouse tasks completed               | Measured   | `picklists`, `pack_confirmations`, `load_sheets`, each with actor and timestamps                                                                                                                          |
 | Average task completion time            | Measured   | `picklists.started_at` / `completed_at`; GRN count and post times                                                                                                                                         |
@@ -106,49 +107,49 @@ Two gaps worth a decision before the pilot: a **stockout event** (so out-of-stoc
 
 Zero manual entry is a headline promise — a supplier bill becomes a GRN with no typing except the blind gate count — and it needs KPIs of its own, which version 1.0 did not have.
 
-| KPI                                                | Measurable | Source                                                 |
-| -------------------------------------------------- | ---------- | ------------------------------------------------------ |
-| Line recall (lines extracted vs lines on the bill) | Not yet    | docint module (5 in the chain), `docint.stats.summary` |
-| Edits per ten extracted lines                      | Not yet    | docint module — the honest measure of "zero typing"    |
-| Bill-to-GRN latency (p95)                          | Not yet    | docint module                                          |
-| Bills verified by e-invoice QR / IRN               | Not yet    | docint module                                          |
-| SKU auto-match rate before human review            | Not yet    | docint module                                          |
+| KPI                                                | Measurable | Source                                              |
+| -------------------------------------------------- | ---------- | --------------------------------------------------- |
+| Line recall (lines extracted vs lines on the bill) | Measured   | `docint.stats`                                      |
+| Edits per ten extracted lines                      | Measured   | `docint.stats` — the honest measure of "zero typing" |
+| Bill-to-GRN latency (p95)                          | Measured   | `docint.stats`                                      |
+| Bills verified by e-invoice QR / IRN               | Measured   | `docint.stats`                                      |
+| SKU auto-match rate before human review            | Measured   | `docint.stats`                                      |
 
-Target proposal for the pilot: **line recall ≥ 98 %**, and edits per ten lines trending down week over week. A human always reviews before a GRN is committed — that is a non-negotiable, so "fully automatic commits" is not and will never be a KPI.
+The document-intake module is built, so these five have a source; what they do not yet have is real supplier bills, which the pilot provides. Target proposal for the pilot: **line recall ≥ 98 %**, and edits per ten lines trending down week over week. A human always reviews before a GRN is committed — that is a non-negotiable, so "fully automatic commits" is not and will never be a KPI.
 
 # 6. Delivery App — Delivery Performance
 
 | KPI                                           | Measurable | Source today                                                                                                       |
 | --------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
-| On-time delivery rate                         | Measured   | `trip_stops.eta_at` vs `arrived_at`; `registers.deliveryPerformance` planned                                       |
+| On-time delivery rate                         | Measured   | `trip_stops.eta_at` vs `arrived_at`; `reporting.registers.deliveryPerformance`                                       |
 | Delivery completion rate                      | Measured   | `trip_stops.state` delivered / partial / failed; `deliveries.outcome`                                              |
 | Average delivery time                         | Measured   | `load_sheets.confirmed_at` / `trips.started_at` → `deliveries.delivered_at`                                        |
 | Failed deliveries                             | Measured   | `trip_stops.failure_reason` (shop closed, refused, no cash, wrong address)                                         |
 | GPS tracking coverage                         | Measured   | `trip_points` per trip, `location_consents`                                                                        |
-| Delivery proof completion                     | Measured   | `pod_evidence` per delivery; `podCoverageRate` chart planned                                                       |
+| Delivery proof completion                     | Measured   | `pod_evidence` per delivery; the proof-of-delivery coverage chart                                                       |
 | Deliveries per driver                         | Measured   | `trips.driver_id` / `helper_id`, `deliveries.delivered_by`                                                         |
 | Doorstep collection accuracy                  | Measured   | `trip_settlements.cash_variance_paise` at trip close                                                               |
-| Delivery route efficiency (planned vs actual) | Partial    | actual is `trips.start_odometer_km` / `end_odometer_km` and `trip_points`; **planned distance does not exist yet** |
+| Delivery route efficiency (planned vs actual) | Measured   | actual from `trips.start_odometer_km` / `end_odometer_km` and `trip_points`; planned distance from the route plan |
 
-**Decided 2026-09-05:** route sequencing is in v1 (AI module 12: stop sequencing by distance and time windows, driver may override). That decision is what makes "route efficiency" measurable — it creates the planned distance the KPI needs. Until module 12 lands, only actual distance exists. This supersedes the earlier "route optimisation is not planned" position.
+**Decided 2026-09-05:** route sequencing is in v1 (stop sequencing by distance and time windows, driver may override). That decision is what makes "route efficiency" measurable — it creates the planned distance the KPI needs, and it is now built. This supersedes the earlier "route optimisation is not planned" position.
 
 # 7. Retailer App — Customer Management
 
 | KPI                       | Measurable | Source today                                                                                                        |
 | ------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| Active retailers          | Measured   | `sales_orders` by retailer; `retailer_behaviour.ordersLast30` planned                                               |
+| Active retailers          | Measured   | `sales_orders` by retailer; `reporting.retailers.behaviour`                                               |
 | New customers onboarded   | Measured   | `retailers.created_at`, `onboarded_by`                                                                              |
 | Repeat order rate         | Measured   | `sales_orders` per retailer over time                                                                               |
-| Customer retention        | Measured   | derived from order history; `retailers.lapsed` planned                                                              |
+| Customer retention        | Measured   | derived from order history; `reporting.retailers.lapsed`                                                              |
 | Online payment share      | Measured   | `receipts` by mode (cash / UPI / cheque / online)                                                                   |
-| Complaint resolution time | Not yet    | no complaint entity exists; nearest is `inbound_messages.handled` (notifications, planned) with no resolution clock |
+| Complaint resolution time | Not yet    | no complaint entity exists; nearest is `inbound_messages.handled` in notifications, with no resolution clock |
 | Customer satisfaction     | Not yet    | no feedback capture; still a future item                                                                            |
 
 **Decided 2026-09-05:** the retailer app is in scope now, not "future" as version 1.0 said. The shop places orders itself and pays online, and one shop login can be linked to several distributors — so retailer KPIs are per distributor, never pooled across tenants. If complaint resolution time is to be a pilot KPI, it needs a complaint or issue entity that no module brief covers today; that is scope to raise, not assume.
 
 # 8. Platform Admin App — Adoption and Business Growth
 
-**Decided 2026-09-05:** a seventh app and service, "Distribution OS - Admin" (`platform_admin`, admin-service :3007), is in v1 — organisation onboarding, plans and subscription state, and time-boxed, owner-approved, audited support access. Version 1.0 assumed these numbers existed; they did not, and module 13 is what will produce them.
+**Decided 2026-09-05:** a separate app and service, "Distribution OS - Admin" (`platform_admin`, admin-service :3007), is in v1 — organisation onboarding, plans and subscription state, and time-boxed, owner-approved, audited support access. Version 1.0 assumed these numbers existed; they did not. The console is **built**, and the numbers below now have a source.
 
 | KPI                          | Measurable | Source today                                                                               |
 | ---------------------------- | ---------- | ------------------------------------------------------------------------------------------ |
@@ -158,9 +159,9 @@ Target proposal for the pilot: **line recall ≥ 98 %**, and edits per ten lines
 | User retention               | Measured   | derived from `auth_sessions` over time                                                     |
 | Customer acquisition rate    | Measured   | `tenants.created_at`                                                                       |
 | Feature adoption rate        | Partial    | `audit_log`, `feature_flags`; no per-procedure usage counter                               |
-| Mobile app adoption          | Partial    | `devices.platform`, `auth_sessions.platform`; no app shipped yet                           |
-| Customer churn rate          | Partial    | `tenants.status`; no cancellation record — module 13 adds it                               |
-| Monthly recurring revenue    | Not yet    | `tenants.plan` is an enum (pilot / starter / growth); no subscription billing — module 13  |
+| Mobile app adoption          | Partial    | `devices.platform`, `auth_sessions.platform`; the app is built but not yet in a store      |
+| Customer churn rate          | Measured   | subscription state in the platform console, cancellation included                          |
+| Monthly recurring revenue    | Measured   | plan and subscription state in the platform console                                        |
 | ARPO, CLV, CAC, CLV:CAC      | Not yet    | outside the product database; tracked by the founder in a finance sheet                    |
 | Revenue model                | —          | Distributor subscription only; no payments aggregation and no lending — non-goal unchanged |
 
@@ -170,34 +171,36 @@ Target proposal for the pilot: **line recall ≥ 98 %**, and edits per ten lines
 | --------------------------- | ---------- | ------------------------------------------------------------------------------------ |
 | Background job success rate | Measured   | pg-boss `job` / `archive` tables                                                     |
 | Failed transactions         | Partial    | `sync_errors`, `auth_events`, unpublished `outbox_events`                            |
-| System availability         | Not yet    | `/health` on every service; no uptime store — deployment comes after the pilot build |
+| System availability         | Not yet    | `/health` on every service; no uptime store until the product is deployed            |
 | Average API response time   | Not yet    | no APM or request log yet                                                            |
-| Mobile app crash rate       | Not yet    | no app shipped yet                                                                   |
+| Mobile app crash rate       | Not yet    | the app is built but not yet in a store                                              |
 
-Availability, latency and crash rate become measurable once the product is deployed and an APM and crash reporter are chosen. Until then, quality is measured by the build gate: every module must pass the full test suite plus a smoke run that calls every published endpoint of every service with real seeded data and reports zero broken calls.
+Availability, latency and crash rate become measurable once the product is deployed — targeted for **Saturday 27 September 2026** — and an APM and crash reporter are chosen. Until then, quality is measured by the build gate: every module must pass the full test suite plus a smoke run that calls every published endpoint of every service with real seeded data and reports zero broken calls.
 
 # Owner Day View — Tiles and Their Sources
 
 | Tile group | Tiles                                                                    | Data today                                                                      |
 | ---------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Sales      | Today's orders, today's sales, pending orders, cancelled orders          | All present; tile served by `reporting.dashboard.owner` (planned)               |
+| Sales      | Today's orders, today's sales, pending orders, cancelled orders          | All present; tile served by `reporting.dashboard.owner`               |
 | Inventory  | Stock value, low stock, out of stock, expiring                           | Stock value and expiry present; "out of stock" is inferred, not an event        |
 | Delivery   | Pending, in transit, delivered today, failed                             | All present from `trips` and `trip_stops`                                       |
 | Finance    | Outstanding, today's collections, overdue customers, cash reconciliation | All present from receivables and `trip_settlements`                             |
-| Workforce  | Active reps, active drivers, warehouse activity, productivity            | Present from orders, trips and warehouse tasks; `daily_rep_stats` planned       |
+| Workforce  | Active reps, active drivers, warehouse activity, productivity            | Present from orders, trips and warehouse tasks; `reporting.registers.repDaily`       |
 | Platform   | Active users, system health, background jobs, API status                 | Active users and jobs present; system health and API status have no data source |
 
 ---
 
 # What Must Be Built for the KPI Set to Be Complete
 
-1. **`reporting.series.get`** — one procedure serving month and week grain, year-over-year comparison, and grouping by brand, beat, salesperson, payment mode or vehicle. Without it there is no growth chart, no brand mix and no margin trend (`docs/23` §1.2).
-2. **`by_beat` on `daily_tenant_stats`** — added before the reporting module is built, or sales-by-beat is impossible without a live scan.
-3. **Ageing history** (`receivables.ageing.history`) and **per-retailer series** — both missing today.
-4. **Stockout events** and **per-item load variance** — to turn two Partial rows into Measured.
-5. **Planned route distance** (AI module 12) — the denominator of route efficiency.
-6. **Subscription state and cancellations** (module 13) — MRR and churn.
-7. **A complaint or issue entity** — if complaint resolution time is to be a pilot KPI at all.
+Six of the seven items on this list have since been built. What was outstanding, and where it stands on 21 September 2026:
+
+1. **The reporting series** — one procedure serving month and week grain, year-over-year comparison, and grouping by brand, beat, salesperson, payment mode or vehicle. **Built**; the owner's growth, brand-mix and margin charts run on it.
+2. **`by_beat` on the daily tenant statistics** — **built**, so sales-by-beat needs no live scan.
+3. **Ageing history and per-retailer series** — **built**, from nightly ageing snapshots.
+4. **Subscription state and cancellations** in the platform console — **built**, so MRR and churn are measurable.
+5. **Planned route distance** — **built** with the AI route sequencing, giving route efficiency its denominator.
+6. **Stockout events and per-item load variance** — still the two Partial rows above; both need a pilot's real trading before they are worth building.
+7. **A complaint or issue entity** — still not built, and still not in v1. Complaint resolution time is therefore not a pilot KPI.
 
 ---
 
@@ -221,7 +224,7 @@ No numeric target is set on this page yet, and that is deliberate: **a target wi
 
 # Ownership
 
-| KPI group                           | Owner in the product                   | App                |
+| KPI group                           | Owner in the product                   | Role               |
 | ----------------------------------- | -------------------------------------- | ------------------ |
 | Business operations and growth      | Distributor owner                      | Owner              |
 | Order flow, finance and collections | Manager and accountant                 | Manager            |
@@ -232,7 +235,7 @@ No numeric target is set on this page yet, and that is deliberate: **a target wi
 | Adoption, subscription, growth      | Distribution OS platform team          | Platform Admin     |
 | Platform performance                | Distribution OS engineering            | —                  |
 
-Version 1.0 assigned owners to a Sales Manager, a Warehouse Manager and a Logistics Manager. Those are not separate roles in the product: the `manager` role absorbs all three, and the accountant shares the manager app with a money-desk-plus-reads permission set (decided 2026-09-05).
+Version 1.0 assigned owners to a Sales Manager, a Warehouse Manager and a Logistics Manager. Those are not separate roles in the product: the `manager` role absorbs all three, and the accountant shares the manager screens with a money-desk-plus-reads permission set (decided 2026-09-05).
 
 ---
 
@@ -247,4 +250,4 @@ Version 1.0 assigned owners to a Sales Manager, a Warehouse Manager and a Logist
 
 ---
 
-**Sources:** `docs/22-source-of-truth.md` (product shape and the dated decisions register), `docs/24-confluence-alignment.md` §2.2 (per-KPI measurability audit), `docs/23-app-screens-and-api-gaps.md` §1.2 (charts and the series behind them), `docs/18-build-log.md` (build status and verification numbers, 2026-09-05).
+**Sources:** `docs/22-source-of-truth.md` (product shape and the dated decisions register), `docs/24-confluence-alignment.md` §2.2 (per-KPI measurability audit), `docs/23-app-screens-and-api-gaps.md` §1.2 (charts and the series behind them), `docs/18-build-log.md` and `QA/STATE.md` (build status and verification numbers, 21 September 2026).
