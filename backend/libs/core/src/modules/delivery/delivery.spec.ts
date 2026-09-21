@@ -698,7 +698,13 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(confirmed.status).toBe(200)
     expect(confirmed.body.item.status).toBe('confirmed')
     expect(confirmed.body.dispatched).toEqual(loadedBills)
-    expect(await balanceOf(lotB, vehicleLocation)).toBe(48)
+    /*
+     * The van carries the 48 free pieces counted out for van sales AND the packed bills' own pieces:
+     * since QA DOS-195 a bill's cartons ride in the vehicle's own location, moved off the dock by this
+     * confirm, so a refused drop has somewhere to stand and the check-in has something to count back.
+     * billB1 and billB2 were packed from this same lot, 12 pieces each.
+     */
+    expect(await balanceOf(lotB, vehicleLocation)).toBe(48 + 24)
 
     // the helper departs: the DRIVER's consent is what counts
     const departed = await call<{ item: TripBody }>(
@@ -906,7 +912,12 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(ledger[0]?.reason).toBe('sale_return_saleable')
     expect(ledger[0]?.location_id).toBe(vehicleLocation)
     expect(ledger[0]?.qty_delta).toBe(6)
-    expect(await balanceOf(lotB, vehicleLocation)).toBe(before + 6)
+    /*
+     * The van is relieved of the WHOLE bill at the door (12 pieces, QA DOS-195) and the six the shop
+     * would not take come straight back onto it: the van is exactly six pieces lighter, which is what
+     * the shop actually kept, and the credit note is the only paper the shop ever sees.
+     */
+    expect(await balanceOf(lotB, vehicleLocation)).toBe(before - 12 + 6)
   })
 
   it('DOS-058: a return marked damaged or past its date is refused as saleable (400 return_not_saleable, online and from the offline queue) and nothing is written', async () => {
@@ -1070,7 +1081,12 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(ledger).toHaveLength(1)
     expect(ledger[0]?.reason).toBe('sale_return_damaged')
     expect(ledger[0]?.location_id).toBe(damaged)
-    expect(await balanceOf(lotB, vehicleLocation)).toBe(vanBefore)
+    /*
+     * The whole bill left the van at the door (QA DOS-195) and the broken pieces went to the bin, not
+     * back onto the vehicle — so the van is lighter by the bill and the damaged stock is out of reach
+     * of any order, which is the rule the bin exists for.
+     */
+    expect(await balanceOf(lotB, vehicleLocation)).toBe(vanBefore - 12)
   })
 
   it('a failed stop records the reason, returns the bill to packed and keeps the stock on the van', async () => {
@@ -2195,11 +2211,16 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(red.body.tripState).toBe('settled_with_variance')
     expect(red.body.item.hasVariance).toBe(true)
     expect(red.body.item.approvedBy).toBe(ownerId)
+    /*
+     * The van was carrying 22: the 10 free pieces counted out for van sales plus the 12 of the bill
+     * whose stop failed, which stayed on the vehicle (QA DOS-195). The crew counts 9, so 13 are missing
+     * and the owner has to own it — exactly what the count is for.
+     */
     expect(red.body.stockAdjustments).toEqual([
-      { lotId: lotA, expectedPcs: 10, countedPcs: 9, deltaPcs: -1 },
+      { lotId: lotA, expectedPcs: 22, countedPcs: 9, deltaPcs: -13 },
     ])
     const rows = await ledgerFor(redId)
-    expect(rows.find((r) => r.reason === 'cycle_count')?.qty_delta).toBe(-1)
+    expect(rows.find((r) => r.reason === 'cycle_count')?.qty_delta).toBe(-13)
     expect(rows.find((r) => r.reason === 'van_unload')?.qty_delta).toBe(-9)
     expect(await balanceOf(lotA, vehicleLocation)).toBe(0)
     const [decided] = (

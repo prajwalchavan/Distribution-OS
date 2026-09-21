@@ -81,7 +81,7 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
-import { InventoryService, pgConstraint } from '../inventory/index.js'
+import { dockLocationId, InventoryService, pgConstraint } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
@@ -1064,8 +1064,12 @@ export class BillingService {
 
   /**
    * The (order line × lot) split a pack posted, rebuilt from the `pack` ledger rows warehouse wrote
-   * (`postPick` keys them `pack:<orderId>:<orderLineId>:<lotId>`), with each line's pieces split into
-   * paid and free exactly as the pack did: paid first up to `picked_qty_pcs`, the rest free.
+   * (`postPick` keys the OUT leg `pack:<orderId>:<orderLineId>:<lotId>`), with each line's pieces split
+   * into paid and free exactly as the pack did: paid first up to `picked_qty_pcs`, the rest free.
+   *
+   * The negative row is the one that says what left the rack, whatever reason carries it: a pack moves
+   * the pieces onto the dock as `transfer_out` + `transfer_in` since QA DOS-195, and posted them as a
+   * `sale` before that. Filtering on the sign rather than the reason reads both.
    */
   private async packedSplit(tx: Db, orderId: string): Promise<IssueForPackLine[]> {
     const rows = await this.inventory.ledgerRowsByRef(tx, { refType: 'pack', refId: orderId })
@@ -1078,7 +1082,7 @@ export class BillingService {
     for (const line of lines) {
       const prefix = `pack:${orderId}:${line.id}:`
       const picks = rows
-        .filter((r) => r.reason === 'sale' && r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
+        .filter((r) => r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
         .map((r) => ({ lotId: r.lotId, qtyPcs: -r.qtyDelta }))
       const moved = picks.reduce((sum, p) => sum + p.qtyPcs, 0)
       if (moved === 0) continue
@@ -1736,6 +1740,12 @@ export class BillingService {
    * The goods come back where the caller says, or to the location the order shipped from. Quantities are
    * summed PER LOT so two invoice lines drawn from the same batch produce one compensating row under one
    * deterministic key — a replay can never double-count.
+   *
+   * A CANCEL BEFORE DISPATCH TAKES THEM OFF THE DOCK (QA DOS-195), it does not conjure them. A pack bill
+   * can only be cancelled while its order is still `packed`, which is exactly while its pieces are
+   * standing in the tenant's in-transit location: so the compensating pair is dock → godown, a real
+   * movement of the cartons back to the rack. Only a bill whose goods were never staged there — an
+   * imported or opening-balance bill — gets the plain `adjustment` it always did.
    */
   private async restock(
     tx: Db,
@@ -1762,18 +1772,41 @@ export class BillingService {
         ? ((await this.orders.findOrder(tx, invoice.orderId))?.fulfilFromLocationId ??
           (await this.warehouseLocation(tx)))
         : await this.warehouseLocation(tx))
+    const dock = await dockLocationId(tx)
+    const onTheDock = await this.inventory.onHandAt(tx, dock)
+    const note = `cancelled invoice ${invoice.invoiceNo ?? invoice.id}`
     await this.inventory.post(
       tx,
-      [...byLot].map(([lotId, qty]) => ({
-        lotId,
-        locationId,
-        qtyDelta: qty,
-        reason: 'adjustment' as const,
-        refType: 'invoice_cancel',
-        refId: invoice.id,
-        idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:${locationId}`,
-        note: `cancelled invoice ${invoice.invoiceNo ?? invoice.id}`,
-      })),
+      [...byLot].flatMap(([lotId, qty]) => {
+        // The whole lot has to be standing on the dock for this to be a movement: a partial match means
+        // the bill was never staged there (an import, an opening balance), and that gets the plain
+        // compensating row it always did.
+        const staged = (onTheDock.get(lotId) ?? 0) >= qty
+        const back = {
+          lotId,
+          locationId,
+          qtyDelta: qty,
+          reason: staged ? ('transfer_in' as const) : ('adjustment' as const),
+          refType: 'invoice_cancel',
+          refId: invoice.id,
+          idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:${locationId}`,
+          note,
+        }
+        if (!staged) return [back]
+        return [
+          {
+            lotId,
+            locationId: dock,
+            qtyDelta: -qty,
+            reason: 'transfer_out' as const,
+            refType: 'invoice_cancel',
+            refId: invoice.id,
+            idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:dock`,
+            note,
+          },
+          back,
+        ]
+      }),
     )
   }
 

@@ -41,6 +41,10 @@ import { DeliveryModule } from './index.js'
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
+/** A 1x1 PNG: the smallest "photo of the signed bill" a spec can hand over inline. */
+const TINY_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
 interface TripBody {
   id: string
   tripNo: string | null
@@ -205,13 +209,14 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     day: string,
     driverOf: string,
     stops: { stopId: string; retailerId: string; invoiceIds: string[] }[],
+    vehicleOf: string = vehicleId,
   ): Promise<TripBody> {
     const tripId = uuidv7()
     const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
       idempotencyKey: `trip-${tag}-${run}`,
       id: tripId,
       tripDate: day,
-      vehicleId,
+      vehicleId: vehicleOf,
       driverId: driverOf,
       openingCashPaise: 0,
       stops: stops.map((s, i) => ({
@@ -503,10 +508,21 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
       idempotencyKey: `return-a-1-${run}`,
     })
     expect(back1.status, JSON.stringify(back1.body)).toBe(200)
+    /*
+     * The crew counts the van back in (QA DOS-195): R's cartons never reached the shop, so they are
+     * standing in the vehicle's own location and the check-in moves them to the rack. Counting nothing
+     * here is now a stock variance the owner has to accept, which is the point of the count.
+     */
+    const cameBack = await billedLot(billR.invoiceId)
     const settled = await post<{ tripState: string }>(
       accountant,
       `/delivery/trips/${trip1.id}/settle`,
-      { idempotencyKey: `settle-a-1-${run}`, id: uuidv7(), handedOverCashPaise: 0, counted: [] },
+      {
+        idempotencyKey: `settle-a-1-${run}`,
+        id: uuidv7(),
+        handedOverCashPaise: 0,
+        counted: [{ lotId: cameBack.lotId, countedPcs: cameBack.pcs }],
+      },
     )
     expect(settled.status, JSON.stringify(settled.body)).toBe(200)
 
@@ -728,6 +744,250 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     expect(departed.body.item.loadSheetIds).toEqual([loaded.sheetId])
     expect(await lastTransition(billR.orderId)).toEqual({ event: 'dispatch', reason: null })
     expect(await departAudits(trip.id)).toBe(1)
+  }, 180_000)
+
+  /** `stock_balances.on_hand` at one location for one lot, 0 when no row stands there. */
+  const onHand = async (lotId: string, locationId: string): Promise<number> =>
+    Number(
+      (
+        (
+          await db.execute(
+            sql`select coalesce(sum(on_hand), 0)::int as n from stock_balances
+                 where tenant_id = ${tenantId} and lot_id = ${lotId} and location_id = ${locationId}`,
+          )
+        ).rows[0] as { n: number }
+      ).n,
+    )
+
+  /** Every ledger row that ever touched one location for one lot, summed: the location's whole story. */
+  const ledgerSum = async (lotId: string, locationId: string): Promise<number> =>
+    Number(
+      (
+        (
+          await db.execute(
+            sql`select coalesce(sum(qty_delta), 0)::int as n from stock_ledger
+                 where tenant_id = ${tenantId} and lot_id = ${lotId} and location_id = ${locationId}`,
+          )
+        ).rows[0] as { n: number }
+      ).n,
+    )
+
+  /** The one lot and the pieces an order's bill carries, read off the invoice the pack issued. */
+  const billedLot = async (invoiceId: string): Promise<{ lotId: string; pcs: number }> => {
+    const rows = (
+      await db.execute(
+        sql`select lot_id, (qty_pcs + free_qty_pcs)::int as pcs, id from invoice_lines
+             where invoice_id = ${invoiceId} order by id`,
+      )
+    ).rows as { lot_id: string; pcs: number; id: string }[]
+    expect(rows).toHaveLength(1)
+    return { lotId: rows[0]?.lot_id ?? '', pcs: Number(rows[0]?.pcs ?? 0) }
+  }
+
+  const invoiceLineOf = async (invoiceId: string): Promise<string> =>
+    (
+      (await db.execute(sql`select id from invoice_lines where invoice_id = ${invoiceId} limit 1`))
+        .rows[0] as { id: string }
+    ).id
+
+  it('DOS-195: the pieces ride the van — pack stages them, the load-out puts them on the vehicle, a refused stop leaves them standing there, and the check-in counts them back', async () => {
+    const day = tripDay(4)
+    const godownId = (
+      (
+        await db.execute(
+          sql`select id from locations where tenant_id = ${tenantId} and kind = 'warehouse' limit 1`,
+        )
+      ).rows[0] as { id: string }
+    ).id
+    const lotOfVariantA = (
+      (
+        await db.execute(
+          sql`select id from stock_lots where tenant_id = ${tenantId} and variant_id = ${variantA} limit 1`,
+        )
+      ).rows[0] as { id: string }
+    ).id
+    const transitId = (
+      (
+        await db.execute(
+          sql`select id from locations where tenant_id = ${tenantId} and kind = 'in_transit' limit 1`,
+        )
+      ).rows[0] as { id: string }
+    ).id
+
+    // Its own van, so what this trip carries is all this trip's: the shared one still holds the pieces
+    // the earlier tests' refused bills left standing on it, which is the fix working.
+    const ownVehicleId = uuidv7()
+    const ownVan = await post<{ item: { locationId: string } }>(owner, '/delivery/vehicles', {
+      idempotencyKey: `vehicle-dos195-${run}`,
+      id: ownVehicleId,
+      regNo: `MH-05-DS-${run.slice(-4)}`,
+      name: 'Tempo DOS-195',
+      kind: 'tempo',
+      capacityCases: 120,
+    })
+    expect(ownVan.status, JSON.stringify(ownVan.body)).toBe(200)
+    const vanLocation = ownVan.body.item.locationId
+
+    // What is already standing on the dock from the earlier tests' packs: this test reads its own delta.
+    const dockBefore = await onHand(lotOfVariantA, transitId)
+
+    const billD = await billedOrder(retailerA, variantA, 'e-delivered')
+    const billR = await billedOrder(retailerB, variantA, 'e-refused')
+    const lotD = await billedLot(billD.invoiceId)
+    const lotR = await billedLot(billR.invoiceId)
+    expect(lotD.lotId, 'both bills draw on the same seeded lot').toBe(lotR.lotId)
+    const lotId = lotD.lotId
+    const loadPcs = lotD.pcs + lotR.pcs
+    expect(loadPcs).toBeGreaterThan(0)
+
+    // 1. PACK. The pieces leave the rack — and they land somewhere: staged for dispatch, not nowhere.
+    const godownAfterPack = await onHand(lotId, godownId)
+    expect(await onHand(lotId, transitId), 'packed pieces are staged, not vanished').toBe(
+      dockBefore + loadPcs,
+    )
+
+    // 2. LOAD-OUT. The crew counts them out and they are ON THE VEHICLE.
+    const [stopD, stopR] = [uuidv7(), uuidv7()]
+    const trip = await loadingTrip(
+      'e-1',
+      day,
+      driverId,
+      [
+        { stopId: stopD, retailerId: retailerA, invoiceIds: [billD.invoiceId] },
+        { stopId: stopR, retailerId: retailerB, invoiceIds: [billR.invoiceId] },
+      ],
+      ownVehicleId,
+    )
+    const sheet = await loadOut(app, crew, {
+      tripId: trip.id,
+      orderIds: [billD.orderId, billR.orderId],
+      tag: `e-1-${run}`,
+    })
+    expect(sheet.dispatched).toEqual([billD.orderId, billR.orderId])
+    expect(await onHand(lotId, vanLocation), 'the load sheet put the goods on the van').toBe(
+      loadPcs,
+    )
+    expect(await onHand(lotId, transitId), 'and took them off the dock').toBe(dockBefore)
+    expect(await onHand(lotId, godownId), 'the godown was relieved once, at pack').toBe(
+      godownAfterPack,
+    )
+
+    const out = await post(driver, `/delivery/trips/${trip.id}/depart`, {
+      idempotencyKey: `depart-e-1-${run}`,
+    })
+    expect(out.status, JSON.stringify(out.body)).toBe(200)
+
+    // 3. A DOOR THAT TAKES THE GOODS relieves the VAN, not the godown a second time.
+    for (const [step, body] of [
+      ['start', {}],
+      ['arrive', { lat: 19.2437, lng: 73.1355 }],
+    ] as const) {
+      const res = await post(driver, `/delivery/stops/${stopD}/${step}`, {
+        idempotencyKey: `${step}-e-d-${run}`,
+        ...body,
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+    }
+    const delivered = await post(driver, '/delivery/deliveries', {
+      idempotencyKey: `deliver-e-d-${run}`,
+      id: uuidv7(),
+      tripId: trip.id,
+      stopId: stopD,
+      invoiceId: billD.invoiceId,
+      receiverName: 'Shop owner',
+      lines: [
+        {
+          id: uuidv7(),
+          invoiceLineId: await invoiceLineOf(billD.invoiceId),
+          deliveredQtyPcs: lotD.pcs,
+          returnedQtyPcs: 0,
+        },
+      ],
+      pod: [
+        { id: uuidv7(), kind: 'photo', inline: { mimeType: 'image/png', contentBase64: TINY_PNG } },
+      ],
+    })
+    expect(delivered.status, JSON.stringify(delivered.body)).toBe(200)
+    expect(await onHand(lotId, vanLocation), 'the delivered pieces left the van').toBe(lotR.pcs)
+    expect(await onHand(lotId, godownId), 'and the godown did not move again').toBe(godownAfterPack)
+
+    // 4. A DOOR THAT REFUSES leaves the pieces standing on the van.
+    for (const [step, body] of [
+      ['start', {}],
+      ['arrive', { lat: 19.2437, lng: 73.1355 }],
+    ] as const) {
+      const res = await post(driver, `/delivery/stops/${stopR}/${step}`, {
+        idempotencyKey: `${step}-e-r-${run}`,
+        ...body,
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+    }
+    const refused = await post<{ item: { outcome: string }; creditNoteId: string | null }>(
+      driver,
+      '/delivery/deliveries',
+      {
+        idempotencyKey: `deliver-e-r-${run}`,
+        id: uuidv7(),
+        tripId: trip.id,
+        stopId: stopR,
+        invoiceId: billR.invoiceId,
+        note: 'Owner says he never ordered this; refused the whole bill at the door.',
+        lines: [
+          {
+            id: uuidv7(),
+            invoiceLineId: await invoiceLineOf(billR.invoiceId),
+            deliveredQtyPcs: 0,
+            returnedQtyPcs: lotR.pcs,
+            returnedSaleable: true,
+            reason: 'refused',
+          },
+        ],
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'photo',
+            inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+          },
+        ],
+      },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(200)
+    expect(refused.body.item.outcome).toBe('failed')
+    expect(refused.body.creditNoteId, 'a refused bill is replanned, never credited').toBeNull()
+    expect(await onHand(lotId, vanLocation), 'the refused pieces stay on the van').toBe(lotR.pcs)
+
+    // 5. CHECK-IN counts them back: van → godown, and the godown is whole again.
+    const back = await post(driver, `/delivery/trips/${trip.id}/return`, {
+      idempotencyKey: `return-e-1-${run}`,
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    const settled = await post<{ tripState: string }>(
+      accountant,
+      `/delivery/trips/${trip.id}/settle`,
+      {
+        idempotencyKey: `settle-e-1-${run}`,
+        id: uuidv7(),
+        handedOverCashPaise: 0,
+        counted: [{ lotId, countedPcs: lotR.pcs }],
+      },
+    )
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    expect(settled.body.tripState).toBe('settled')
+    expect(await onHand(lotId, vanLocation), 'the van is empty after the count').toBe(0)
+    expect(await onHand(lotId, godownId), 'the refused pieces are back on the rack').toBe(
+      godownAfterPack + lotR.pcs,
+    )
+
+    // 6. THE INVARIANT. Every piece that went onto this vehicle came off it — sold at a door or counted
+    // back into the godown — so the vehicle's own ledger closes at zero, and nothing anywhere is negative.
+    expect(await ledgerSum(lotId, vanLocation)).toBe(0)
+    const negatives = (
+      await db.execute(
+        sql`select count(*)::int as n from stock_balances
+             where tenant_id = ${tenantId} and on_hand < 0`,
+      )
+    ).rows[0] as { n: number }
+    expect(Number(negatives.n), 'no location holds a negative balance').toBe(0)
   }, 180_000)
 
   it('DOS-172: the three doorstep paths hold and release alike', async () => {

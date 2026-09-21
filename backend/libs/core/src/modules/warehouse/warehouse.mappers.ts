@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm'
 import type {
   ConsolidatedPickLot,
   ConsolidatedPickRow,
@@ -371,10 +371,15 @@ export async function packedLotsByOrder(
       qtyPcs: sql<number>`-sum(${stockLedger.qtyDelta})`,
     })
     .from(stockLedger)
+    /*
+     * The OUT leg of the pack, whatever reason carries it: `qty_delta < 0` is what "left this rack"
+     * means, and the pack's own `in` leg onto the dock is positive (QA DOS-195). Reason-free on
+     * purpose, so bills packed before the dock existed still list their lots on a fresh sheet.
+     */
     .where(
       and(
         eq(stockLedger.refType, 'pack'),
-        eq(stockLedger.reason, 'sale'),
+        lt(stockLedger.qtyDelta, 0),
         inArray(stockLedger.refId, ids),
       ),
     )

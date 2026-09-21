@@ -79,10 +79,14 @@ import { AddressSchema, PaymentTermsSchema } from './retailers.js'
  *  - WAREHOUSE DISPATCHES, not delivery (§4 item 4): `packed → dispatched` happens at
  *    `warehouse.loadSheets.confirm`, and nowhere else. `trips.depart` dispatches nothing: it passes a bill
  *    the load-out already dispatched and refuses 409 `bill_not_loaded` while one is still packed (QA DOS-172).
- *  - GODOWN → VEHICLE IS `transfer_out` + `transfer_in`, posted by the warehouse at load-out (§4 item
- *    5). Delivery posts the RETURN direction at check-in (`van_unload` + `transfer_in`, keys
- *    `settle:<tripId>:<lotId>:out|in`), doorstep returns INTO the vehicle (`sale_return_saleable`) or
- *    the damaged bin (`sale_return_damaged`), and van-sale pieces leave the vehicle as `sale`.
+ *  - ONTO THE VEHICLE IS `transfer_out` + `transfer_in`, posted by the warehouse at load-out (§4 item
+ *    5): the counted van stock out of the godown, and the packed bills' own pieces off the dock they
+ *    have stood on since pack (QA DOS-195). Delivery posts everything after that: a bill handed over at
+ *    a door leaves the VEHICLE as `sale` (keys `delivery:<deliveryId>:<lotId>`), doorstep returns come
+ *    back INTO the vehicle (`sale_return_saleable`) or go to the damaged bin (`sale_return_damaged`),
+ *    van-sale pieces leave the vehicle as `sale`, and the check-in counts the rest back (`van_unload` +
+ *    `transfer_in`, keys `settle:<tripId>:<lotId>:out|in`). A failed or refused stop posts NOTHING, so
+ *    its cartons are still standing on the van for the godown to count.
  *  - THE SETTLEMENT JOURNAL IS POSTED INLINE through `ReceivablesService.postEntry` (§3.6: no outbox
  *    handlers before docint): Dr CASH (handed over), Dr the expense accounts, Dr/Cr CASH_SHORT for the
  *    variance, Cr CASH_VAN (opening + cash collected). Account codes are `CASH_VAN`, `CHEQUES`, `UPI`,
@@ -1002,7 +1006,8 @@ export const ArriveStopOutput = z.object({
 /**
  * `stopMachine.next(state, 'fail')`. Every planned delivery on the stop becomes `outcome = 'failed'`
  * with zero-quantity lines and its order goes `return_undelivered` (`dispatched → packed`). NO stock
- * moves — the pieces stay on the van until check-in.
+ * moves — the pieces are standing in the vehicle's own location, where the load-out put them, and they
+ * stay there until the check-in counts them back into the godown (QA DOS-195).
  */
 export const FailStopInput = MutationBase.extend({
   id: IdSchema,
@@ -1042,10 +1047,12 @@ export const DeliveryLineInput = z.object({
 /**
  * THE doorstep write: full, partial or failed in one call — the outcome is derived from the lines,
  * never sent. Writes the delivery, its lines and proof, adds the delivered pieces to the order through
- * `OrdersService.recordDelivered` and moves it `deliver_all` / `deliver_partial`, posts returns into
- * the vehicle (saleable) or the damaged bin, raises ONE credit note at the original rate for any
- * shortfall or return (`CreditNotesService.raiseForDelivery` — the issued invoice is never edited) and
- * moves the stop through `stopMachine`. When the tenant's `podRequired` policy applies to this shop
+ * `OrdersService.recordDelivered` and moves it `deliver_all` / `deliver_partial`, RELIEVES THE VEHICLE
+ * of the bill as `sale` rows (QA DOS-195 — the sale happens at the door, out of the van the goods rode
+ * in; a FAILED attempt posts none and its cartons stay on the vehicle), posts returns back into the
+ * vehicle (saleable) or the damaged bin, raises ONE credit note at the original rate for any shortfall
+ * or return (`CreditNotesService.raiseForDelivery` — the issued invoice is never edited) and moves the
+ * stop through `stopMachine`. When the tenant's `podRequired` policy applies to this shop
  * and no photo / signature is attached the call is 400 `pod_required`. `id` is the planned delivery
  * row created with the stop (`Stop.deliveries[].id`), or a new client id for a bill added at the door.
  */

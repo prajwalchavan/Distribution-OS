@@ -647,10 +647,17 @@ export const CancelPicklistOutput = PicklistItemOutput
 
 /**
  * THE moment the order becomes cartons, all in one transaction (coordination §4 step 3): the picked
- * pieces leave as `sale` rows through `InventoryService.postPick` and the holds close, `recordPick`
- * writes `sales_order_lines.picked_qty_pcs`, the `pack_confirmations` row is inserted (UNIQUE per
- * order), `applyFulfilmentEvent('pack')` moves `picking → packed` with its transition row and
- * `OrderPacked` event, and `BillingService.issueForPack` issues the bill from the PACKED quantities.
+ * pieces leave the rack FOR THE DOCK through `InventoryService.postPick` — a `transfer_out` at the
+ * godown and a `transfer_in` at the tenant's in-transit location, per line and lot — and the holds
+ * close, `recordPick` writes `sales_order_lines.picked_qty_pcs`, the `pack_confirmations` row is
+ * inserted (UNIQUE per order), `applyFulfilmentEvent('pack')` moves `picking → packed` with its
+ * transition row and `OrderPacked` event, and `BillingService.issueForPack` issues the bill from the
+ * PACKED quantities.
+ *
+ * A PACK IS NOT A SALE (QA DOS-195). It used to post `sale` rows, so the goods were counted as sold the
+ * moment the carton was taped and stood in no location between the bench and the shop's counter — a
+ * refused bill's cartons were physically on a van and nowhere in the books. The sale is posted where a
+ * sale happens: at the door, out of the vehicle.
  *
  * This is the only way a pack invoice is issued — `billing.invoices.issue` was removed with this slice.
  * A replay returns the stored response and never a second invoice number.
@@ -765,9 +772,10 @@ export const ApproveLoadSheetOutput = LoadSheetItemOutput
  * `approval_required` otherwise): the e-way bill gate (400 `ewb_required` above the tenant's threshold
  * with no number), the crew's blind package count (a variance needs a `varianceNote` and records
  * `pinVerifiedBy = approvedBy`), the van stock replaced by what was counted, a `transfer_out` +
- * `transfer_in` pair per counted van-stock lot keyed `load:<sheetId>:<lotId>:out|in` (the packed orders'
- * pieces already left as `sale` at pack), the `DC` challan issued, and every packed order
- * `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
+ * `transfer_in` pair per counted van-stock lot keyed `load:<sheetId>:<lotId>:out|in` (godown → vehicle)
+ * AND one per packed lot keyed `load:<sheetId>:<lotId>:pack:out|in` (dock → vehicle: the godown was
+ * relieved at pack and is never relieved twice, QA DOS-039/DOS-195), the `DC` challan issued, and every
+ * packed order `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
  */
 export const ConfirmLoadSheetInput = MutationBase.extend({
   id: IdSchema,

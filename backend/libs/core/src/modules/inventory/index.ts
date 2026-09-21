@@ -24,3 +24,8 @@ export { valuationByLocation, type ValuationFilter, type ValuationRow } from './
  * Orders, warehouse and `stock.availability` all use this rule; no module keeps a copy of its own.
  */
 export { reservableLocationId } from './reservable-location.js'
+/**
+ * The dock: where packed goods stand between the rack and the van (QA DOS-195). The warehouse's load-out
+ * relieves it when the crew counts the cartons onto the vehicle.
+ */
+export { dockLocationId } from './reservable-location.js'

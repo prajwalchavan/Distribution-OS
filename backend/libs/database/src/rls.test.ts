@@ -3267,6 +3267,79 @@ describeDb('row level security and ledger guarantees', () => {
     ).rejects.toThrow()
   })
 
+  it("DOS-195: a vehicle's stock closes at zero over a trip and can never go negative — the database refuses to relieve a van of more than it carries", async () => {
+    /*
+     * The ledger half of the trip: the load sheet puts pieces on the van (`transfer_in`), a door takes
+     * some (`sale` OUT OF THE VEHICLE, which is where a sale happens), a refused door takes none, and
+     * the check-in counts the rest back into the godown (`van_unload`). Summed over the vehicle the
+     * trip closes at zero, and no row anywhere is negative — the invariant the pilot's van broke when
+     * pack posted the sale and the goods existed in no location at all.
+     */
+    const van = uuidv7()
+    const tripLot = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: van, tenantId: tenantA, kind: 'vehicle', name: `Van D195 ${run}` })
+    await db.insert(stockLots).values({
+      id: tripLot,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `TRIP-${run}`,
+      mrpPaise: 4000,
+    })
+    const post = async (locationId: string, qtyDelta: number, reason: string, key: string) => {
+      await db.insert(stockLedger).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        lotId: tripLot,
+        locationId,
+        qtyDelta,
+        reason: reason as 'sale',
+        actorId: owner,
+        idempotencyKey: `${key}-${run}`,
+      })
+      // The balance row first at zero, then moved by the delta, exactly as `applyBalance` does it: an
+      // INSERT carrying the negative would trip the CHECK before ON CONFLICT could turn it into an update.
+      await db
+        .insert(stockBalances)
+        .values({ tenantId: tenantA, lotId: tripLot, locationId, onHand: 0 })
+        .onConflictDoNothing()
+      await db
+        .update(stockBalances)
+        .set({ onHand: sql`${stockBalances.onHand} + ${qtyDelta}` })
+        .where(
+          sql`${stockBalances.tenantId} = ${tenantA} AND ${stockBalances.lotId} = ${tripLot}
+               AND ${stockBalances.locationId} = ${locationId}`,
+        )
+    }
+    await post(van, 40, 'transfer_in', 'd195-load')
+    await post(van, -24, 'sale', 'd195-sold')
+    await post(van, -16, 'van_unload', 'd195-checkin')
+    await post(godownA, 16, 'transfer_in', 'd195-back')
+
+    const vanLedger = (
+      await db.execute(
+        sql`select coalesce(sum(qty_delta), 0)::int as n from stock_ledger
+             where tenant_id = ${tenantA} and lot_id = ${tripLot} and location_id = ${van}`,
+      )
+    ).rows[0] as { n: number }
+    expect(Number(vanLedger.n), "the vehicle's own ledger closes at zero after the check-in").toBe(
+      0,
+    )
+    const [vanBalance] = await db
+      .select()
+      .from(stockBalances)
+      .where(sql`${stockBalances.lotId} = ${tripLot} AND ${stockBalances.locationId} = ${van}`)
+    expect(vanBalance?.onHand).toBe(0)
+
+    // and the database itself refuses a van relieved of more than it carries: a selling location never
+    // goes negative, so an over-posted sale at the door is an error, never quiet invented stock
+    await expect(
+      post(van, -1, 'sale', 'd195-overdraw'),
+      'a vehicle may not go negative',
+    ).rejects.toThrow()
+  })
+
   it('DOS-204: sellable_stock holds only the sellable locations — a lot standing in the damaged / expiry bin, in transit or on a customer floor is never in it', async () => {
     /*
      * The view is called `sellable_stock` and every caller had to remember a location filter of its

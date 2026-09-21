@@ -43,7 +43,7 @@ import {
 } from '../../platform/index.js'
 import { istDateWord, istMoment, personWord } from '../../platform/refusal-words.js'
 import { BillingService, sellerBranding } from '../billing/index.js'
-import { InventoryService } from '../inventory/index.js'
+import { dockLocationId, InventoryService } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { userLabels } from '../tenancy/index.js'
 import {
@@ -67,6 +67,7 @@ import {
   challanDetail,
   loadSheetDetail,
   loadSheetLots,
+  packedLotsByOrder,
   toChallanSummary,
   toLoadSheetSummary,
   type ChallanRow,
@@ -136,11 +137,19 @@ export type RoadHoldLookup = (
  * load-out and are never edited: a bill that came back undelivered is loaded again on a fresh sheet once
  * its trip has checked in, and until then `heldOnTheRoad` keeps it off every sheet and off W7's list.
  *
- * STOCK LEAVES THE GODOWN ONCE (QA DOS-039). The packed orders' pieces already left as `sale` at pack
- * (`PackingService`), so the load-out puts them on the challan and never on the ledger a second time.
- * Only the counted van stock (free pieces for van sales) moves godown → vehicle, as `transfer_out` +
- * `transfer_in` (§5 item 5), keyed `load:<sheetId>:<lotId>:out|in`, so a retried confirm moves nothing
- * twice; `van_load` / `van_unload` belong to delivery's on-route movements.
+ * STOCK LEAVES THE GODOWN ONCE (QA DOS-039), AND IT LANDS ON THE VAN (QA DOS-195). The packed orders'
+ * pieces already left the rack at pack — `PackingService` moves them onto the DOCK (the tenant's
+ * in-transit location), not out of existence — so this never relieves the godown for them a second time.
+ * What the confirm does add is the second half of their journey: dock → vehicle, so the goods a crew is
+ * about to carry are standing in the vehicle's own location while they ride. Two `transfer_out` +
+ * `transfer_in` pairs are posted, both idempotent on the sheet:
+ *
+ *   * the counted VAN STOCK (free pieces for van sales) godown → vehicle, keyed `load:<sheetId>:<lotId>:out|in`;
+ *   * the PACKED ORDERS' lots dock → vehicle, keyed `load:<sheetId>:<lotId>:pack:out|in`.
+ *
+ * A retried confirm moves nothing twice; `van_load` / `van_unload` belong to delivery's on-route
+ * movements, and the vehicle is relieved at the door (`deliveries.record`) or counted back at the
+ * check-in (`delivery.settlement`).
  */
 @Injectable()
 export class LoadSheetsService {
@@ -394,9 +403,9 @@ export class LoadSheetsService {
    * until the manager has approved the sheet from the manager app — fact 2b; an owner/manager
    * confirming directly IS the approval, the database fills it in), the e-way-bill gate, the crew's
    * blind package count, the van stock replaced by what was actually counted, the
-   * `transfer_out`/`transfer_in` pair per counted van-stock lot (the packed orders' pieces already left
-   * the godown as `sale` at pack, so they go on the challan and never onto the ledger a second time),
-   * the `DC` challan, and every packed order `packed → dispatched`.
+   * `transfer_out`/`transfer_in` pair per counted van-stock lot (godown → vehicle) AND per packed lot
+   * (dock → vehicle — the godown was relieved at pack, the dock holds them until now), the `DC` challan,
+   * and every packed order `packed → dispatched`.
    *
    * A count that differs from the expectation needs a written reason and records `pinVerifiedBy =
    * approvedBy`: the manager who approved the load owns its variance in the day-end register. Never
@@ -450,10 +459,10 @@ export class LoadSheetsService {
             message: 'nothing on this sheet has left the rack yet; pack the orders first',
           })
 
-        // Godown → vehicle for the COUNTED VAN STOCK ONLY (QA DOS-039). `lots` merges in the packed
-        // orders' pieces for the challan, but those left the godown as `sale` at pack; posting them again
-        // would refuse a sold-out lot and double-deduct one with surplus. Summed per lot: the contract
-        // does not refuse a repeated lotId and the keys are per lot, so a second entry would be dropped.
+        // Godown → vehicle for the COUNTED VAN STOCK (QA DOS-039): the free pieces the crew may sell off
+        // the van, and only those — the packed orders' pieces left the godown at pack and are relieved
+        // from the DOCK just below, never from the rack twice. Summed per lot: the contract does not
+        // refuse a repeated lotId and the keys are per lot, so a second entry would be dropped.
         // Keyed per lot and per direction, so a retry is a no-op on the ledger's
         // UNIQUE(tenant_id, idempotency_key) even if this transaction is replayed a dozen times.
         const vanByLot = new Map<string, number>()
@@ -483,6 +492,50 @@ export class LoadSheetsService {
             },
           ]),
         )
+
+        // Dock → vehicle for the PACKED ORDERS' lots (QA DOS-195): the cartons the crew is loading are
+        // now standing in the vehicle's own location, which is what makes "the goods stay on the van"
+        // after a refusal, and what the godown's van check-in counts back. Summed per lot across the
+        // orders (two bills may draw on one batch) and keyed per lot, so a replayed confirm moves
+        // nothing twice. Bills packed before the dock existed have nothing waiting there and are
+        // skipped by the zero check below, exactly as they were before.
+        const packedByLot = new Map<string, number>()
+        for (const entries of (await packedLotsByOrder(tx, sheet.orderIds)).values()) {
+          for (const entry of entries) {
+            packedByLot.set(entry.lotId, (packedByLot.get(entry.lotId) ?? 0) + entry.qtyPcs)
+          }
+        }
+        const dock = packedByLot.size > 0 ? await dockLocationId(tx) : null
+        const onTheDock =
+          dock === null ? new Map<string, number>() : await this.inventory.onHandAt(tx, dock)
+        const shipping = [...packedByLot].flatMap(([lotId, qtyPcs]) => {
+          // Never take more off the dock than is standing on it: a bill packed before this existed,
+          // or one whose pieces a cancel already put back, would otherwise drive the dock negative.
+          const available = onTheDock.get(lotId) ?? 0
+          const move = Math.min(qtyPcs, available)
+          if (move <= 0) return []
+          return [
+            {
+              lotId,
+              locationId: dock as string,
+              qtyDelta: -move,
+              reason: 'transfer_out' as const,
+              refType: 'load_sheet',
+              refId: sheet.id,
+              idempotencyKey: `load:${sheet.id}:${lotId}:pack:out`,
+            },
+            {
+              lotId,
+              locationId: sheet.toLocationId,
+              qtyDelta: move,
+              reason: 'transfer_in' as const,
+              refType: 'load_sheet',
+              refId: sheet.id,
+              idempotencyKey: `load:${sheet.id}:${lotId}:pack:in`,
+            },
+          ]
+        })
+        if (shipping.length > 0) await this.inventory.post(tx, shipping)
 
         const vehicle = await vehicleRegNos(tx, [sheet.toLocationId])
         const challan = await this.issueChallan(tx, {
