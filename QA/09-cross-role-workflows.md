@@ -479,6 +479,7 @@ and an invitation to ring about a decision the office took deliberately.
 > manager's note; nobody is notified at all.
 > Evidence `wrong-1-reject-b-drawer.png`, `wrong-1-reject-c-dialog.png`, `wrong-1-rep-d-order.png`,
 > `wrong-1-rep-a-attention.png`.
+> **Status (2026-09-21):** FIXED — merged `bee8a37`: an order the office refuses reaches the rep in words, on the phone and on its own list (`sales_orders.refused_at`).
 
 ---
 
@@ -622,6 +623,7 @@ given no screen that opens one.
 > refused bill is indistinguishable from a paid one, and the desk cannot open an active trip at all.
 > Evidence `wrong-4-failed-d-desk-bill.png`, `wrong-8-refused-d-desk-bill.png`, `wrong-desk-a-today.png`,
 > `wrong-5-reassign-a-board.png`.
+> **Status (2026-09-21):** FIXED — merged `bee8a37` (lane `qa/p2-undelivered`, verified pass): one Undelivered register on the desk that follows the server from check-in (trip `closing`); the trips register's reach column states a fact about the trip only.
 
 **(c) The shop is chased for goods it never got.** R-0007 was sent, at 10:22, *"Namaste! Bill INV/9009 of ₹614.00
 is ready — pay by 2026-10-05 to keep your 2% cash discount"*, and at 10:37 *"Our vehicle is on its way … (stop 2).
@@ -631,6 +633,7 @@ Please keep the payment ready."* After the stop failed at 10:46: **nothing**. Sa
 > **DOS-197 · business-logic · P1** — a failed or refused delivery sends the shop no message and leaves the bill
 > payable and ageing; the shop is dunned for goods sitting on the distributor's van.
 > Evidence `wrong-5-shop-c-bills.png`, `wrong-5-shop-e-inbox.png`, the `messages` sweep.
+> **Status (2026-09-21):** FIXED — merged `bee8a37`: `invoices.undelivered_at` set by a failed/refused stop, cleared on hand-over; the bill leaves the shop's dues, ageing, pending-bills file, pay-online and FIFO allocation (`undelivered_paise` keeps the books provable); the credit gate counts it (ruling U3); the shop is told. Migration 0062.
 
 ---
 
@@ -812,6 +815,7 @@ Ganesh checked in — so redelivery works; **nothing automatically un-bills the 
 > **DOS-203 · bug · P2** — a refusal recorded on the deliver screen leaves the stop's `failure_reason` empty, so
 > the stop and every register over it say "failed" with no cause. Evidence: `trip_stops` rows for TRIP-0002
 > (sequence 4 vs 2 and 3), `wrong-8-refused-b-nothing.png`.
+> **Status (2026-09-21):** FIXED — merged `bee8a37`: the stop's cause is pinned when a shop refuses the whole bill on the deliver screen.
 
 ---
 
