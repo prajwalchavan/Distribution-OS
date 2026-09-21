@@ -30,8 +30,20 @@ the person's name, and *"Delivery app"* — which app, for whom. Not a screen to
 statement of where you are. The shell already holds all three facts (`session.tenant.displayName`,
 `logoUrl`, `session.role`).
 
-Acceptance: both render at 390 and 1280 in every app; `sign-in.tsx` in every app is byte-identical
-to the template's; a signed-in device never sees Welcome again until sign-out.
+Acceptance: both render at 390 and 1280 in every app; every app's `sign-in.tsx` wraps the form in the
+same two lines (`<Welcome appTitle={APP.title} role={APP.role}>` … `</Welcome>`) with the same import,
+guarded per app in the kit's `welcome.test.ts`; a signed-in device never sees Welcome again until
+sign-out.
+
+*Amended 2026-09-21 by the architect after the build:* the original line asked for `sign-in.tsx` to be
+byte-identical to the template's. It cannot be — the retailer's carries DOS-102 (land where this device
+was last used) and the console's signs in at `/auth/platform/login` — and forcing it would delete decided
+behaviour. The property the line existed to protect is that the Welcome is ONE component wired
+identically everywhere, and the guard above proves exactly that. Two more rulings from the same build:
+the **retailer landing shows the distributor being opened** (its logo and name) and the shopkeeper's
+name, not "the shop's logo" — the tenant on a retailer session IS the distributor, and the shop's
+identity is the person; and **no animation anywhere** on the landing, not only under
+`prefers-reduced-motion`, so the two renderers cannot drift.
 
 ## 2. Role election at sign-in, downward only (build on day 4 or after go-live — touches auth)
 
