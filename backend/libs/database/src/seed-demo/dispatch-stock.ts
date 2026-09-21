@@ -103,6 +103,24 @@ export async function seedDispatchStock(
   const at = (value: Date | string | null | undefined, fallback: Date): Date =>
     value === null || value === undefined ? fallback : new Date(value)
 
+  // What each (sheet, lot) already carries on the van — under the service's own key, the back-fill's
+  // (migration 0062 stages a database migrated from the old model, but loads its DISPATCHED bills
+  // only) or an earlier seed's top-up. The seed sizes every load by the whole sheet and writes the
+  // difference under its own stem, `load:<sheetId>:<lotId>:pack:seed:out|in`, exactly as 0062 tops up
+  // a sheet the service already loaded; a second run finds nothing left to add and writes no row.
+  const loaded = new Map<string, number>()
+  const loadedRows = (
+    await db.execute(sql`
+      SELECT idempotency_key, qty_delta
+        FROM stock_ledger
+       WHERE tenant_id = ${tenantId} AND ref_type = 'load_sheet'
+         AND idempotency_key LIKE 'load:%:pack%:in'`)
+  ).rows as { idempotency_key: string; qty_delta: number }[]
+  for (const r of loadedRows) {
+    const stem = r.idempotency_key.replace(/:pack(?::\w+)?:in$/, ':pack')
+    loaded.set(stem, (loaded.get(stem) ?? 0) + Number(r.qty_delta))
+  }
+
   // 1. Every confirmed sheet: dock → vehicle, per lot across its orders.
   for (const sheet of sheets) {
     const byLot = new Map<string, number>()
@@ -112,8 +130,12 @@ export async function seedDispatchStock(
       }
     }
     const when = at(sheet.confirmedAt, new Date())
-    for (const [lotId, pcs] of byLot) {
-      const key = `load:${sheet.id}:${lotId}:pack`
+    for (const [lotId, need] of byLot) {
+      const stem = `load:${sheet.id}:${lotId}:pack`
+      const already = loaded.get(stem) ?? 0
+      const pcs = need - already
+      if (pcs <= 0) continue
+      const key = already === 0 ? stem : `${stem}:seed`
       rows.push(
         {
           id: demoId('ledger', `${key}:out`),
