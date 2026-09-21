@@ -1,0 +1,37 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+21 Sep
+MH-05-AB-1234
+Waiting for the manager
+Waiting for the manager
+A manager approves this sheet from the manager app. This screen unlocks the moment it lands.
+ORDERS ON THIS SHEET
+1 order
+Sai Baba Kirana
+SO-0885
+INV/9011
+WHAT GOES ON THE VEHICLE
+Campa Orange 2 L
+1 cs = 24 pc
+Exp 25 Apr 2027
+Konkan Bhajani Chivda 400 g
+1 cs = 20 pc
+Expires in 66 days
+Declared value
+₹3,849.00
+A sheet is cancelled by the manager.
+Close
+Waiting for the manager
+Send the vehicle out
+A manager approves this sheet from the manager app. This screen unlocks the moment it lands.

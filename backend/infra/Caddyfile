@@ -1,0 +1,59 @@
+# The only thing on the box the internet can reach (compose.prod.yml mounts this read-only into the
+# caddy container). {$VAR} is Caddy's own environment substitution, read at load time from the
+# container's environment, which compose fills from .env.prod — so one file serves every environment.
+#
+# TLS is Caddy's job and nobody else's: on first start it asks Let's Encrypt for a certificate for
+# api.{$DOMAIN} over HTTP-01, renews it by itself, and redirects :80 to :443. Nothing in the app, the
+# image or the runbook may assume a certificate file exists. Two things make that work and both are
+# in the runbook: the A record for api.<domain> must point at the VM BEFORE the first `up -d`, and
+# ports 80 and 443 must be open in Oracle's security list AND in the VM's own iptables.
+#
+# There is deliberately NO file_server, NO root and NO try_files here. The web apps are on Cloudflare
+# Pages (docs/26 §9). This box serves an API, which is why a single-page fallback would be wrong:
+# an unknown path must be the API's own 404, not an index.html.
+
+{
+	# Where Let's Encrypt writes about an expiring certificate. A real mailbox, set in .env.prod.
+	email {$ACME_EMAIL}
+	# Drop the version banner; a 502 should not advertise the proxy's build.
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+api.{$DOMAIN} {
+	encode zstd gzip
+
+	# 32 MB: object-storage.ts accepts at most 25 MB for a single file (a HEIC bill page), and the
+	# local driver takes those bytes inline through the API. Anything larger is not a request we
+	# want to spend the box's memory reading.
+	request_body {
+		max_size 32MB
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# CORS is NOT set here. The services answer it themselves from CORS_ORIGINS (corsOptions() in
+	# @dos/core), per service, and a second Access-Control-Allow-Origin added by the proxy would
+	# either duplicate the header or silently widen what the server decided.
+	reverse_proxy {$APP_UPSTREAM} {
+		# The app is a Node HTTP server, not a CGI: these are the only headers it needs from the edge.
+		header_up X-Real-IP {remote_host}
+		# A PDF render or a big report can take a while; the client's own deadline is 20 s
+		# (@dos/api-client), so this only has to be longer than that, not generous.
+		transport http {
+			read_timeout 120s
+			write_timeout 120s
+		}
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

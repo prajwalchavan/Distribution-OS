@@ -1,0 +1,49 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+21 Sep
+MH-05-CD-5678
+confirmed
+Approved · 21 Sep, 10:32 am
+ORDERS ON THIS SHEET
+Expected 4
+Sai Krupa Super Bazar
+SO-0883 · Cartons 1
+INV/9008
+Ganesh General Store
+SO-0881 · Cartons 1
+INV/9009
+Balaji Wholesale Stores
+SO-0884 · Cartons 1
+INV/9010
+Laxmi Narayan Stores
+SO-0886 · Cartons 1
+INV/9012
+WHAT GOES ON THE VEHICLE
+Campa Cola 750 ml
+3 cs + 3 pc = 75 pc
+Exp 9 Feb 2027
+Campa Orange 2 L
+1 cs = 24 pc
+Exp 25 Apr 2027
+Konkan Bhajani Chivda 400 g
+1 cs = 20 pc
+Expires in 66 days
+Count the cartons
+Expected 4
+Counted 4
+Declared value
+₹5,643.00
+Print the challan
+A sheet is cancelled by the manager.
+Close

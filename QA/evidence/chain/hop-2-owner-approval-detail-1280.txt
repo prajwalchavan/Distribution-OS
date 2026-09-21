@@ -1,0 +1,113 @@
+TE
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Approvals
+All
+Order approvals
+Rate requests
+Today
+Approvals
+Live map
+j / k move · 1 approve · 2 reject
+Kind	What	Order	Person	Value ₹	Asked
+
+Over credit limit
+	
+Laxmi Narayan Stores
+	
+SO-0868
+	
+Rahul Deshmukh
+	17,736.00	
+12 Sep, 10:30 am
+
+
+Below floor price
+	
+Patil General Store
+	
+SO-0867
+	
+Rahul Deshmukh
+	5,367.00	
+12 Sep, 10:30 am
+
+
+Over credit limit
+	
+Patil General Store
+	
+SO-0867
+	
+Rahul Deshmukh
+	5,367.00	
+12 Sep, 10:30 am
+
+
+Bargain
+	
+Mahalaxmi General Stores
+	
+—
+	
+Rahul Deshmukh
+	22.28	
+12 Sep, 11:20 am
+
+
+Bargain
+	
+Om Sai Provision Store
+	
+—
+	
+Rahul Deshmukh
+	39.58	
+12 Sep, 11:20 am
+
+
+Over credit limit
+	
+Shree Ganesh Kirana
+	
+SO-0879
+	
+Rahul Deshmukh
+	10,148.00	
+21 Sep, 8:45 am
+Shree Ganesh Kirana · SO-0879
+Close
+Kind
+Over credit limit
+Person
+Rahul Deshmukh
+Asked
+21 Sep, 8:45 am
+Order
+SO-0879
+₹10,148.00
+Open the order
+Credit
+Owes ₹35,843.00 · limit ₹50,000.00 · Oldest bill 46 days past due · terms 7 days
+Note for the person who asked
+Approve
+1
+Reject
+2
+Write a note first — the person who asked will read it.

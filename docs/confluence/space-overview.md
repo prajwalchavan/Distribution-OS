@@ -6,7 +6,7 @@
 | ------------ | ------------------------------------ |
 | Document     | Space Overview (DistributionOS Home) |
 | Product      | Distribution OS                      |
-| Version      | 3.0                                  |
+| Version      | 3.1                                  |
 | Status       | Active                               |
 | Owner        | Prajwal Chavan (Founder)             |
 | Last Updated | 21 September 2026                    |
@@ -27,7 +27,7 @@ The customer is the **distributor** (manufacturer → distributor → retailer).
 
 **Quality.** QA batch 1 closed with its 34 findings fixed; **QA batch 2 is merged — 153 of its 158 findings are on `main`**, five still in flight. The severe shared-device sign-out defect, where a second person on the same phone could see the first person's shops and dues, is closed on measured evidence.
 
-**The plan is seven days and it ends live (founder, 2026-09-21).** Day 1 one order walked through every app; day 2 role election at sign-in; day 3 the six business apps merged into the one app, gated; days 4–5 a **seven-day business simulation** settled by arithmetic — stock in equals stock out, revenue equals payments plus outstanding, any drift is a stop-the-line defect; day 6 repairs; day 7 Android basics, the security work public URLs need, and **go live at `app.distributionos.in`**. **Live by Saturday 27 September**, if Thursday evening's books balance.
+**The plan is seven days and it ends live (founder, 2026-09-21).** Day 1 one order walked through every app; day 2 role election at sign-in; day 3 the six business apps merged into the one app, gated; days 4–5 a **seven-day business simulation** settled by arithmetic — stock in equals stock out, revenue equals payments plus outstanding, any drift is a stop-the-line defect; day 6 repairs; day 7 Android basics, the security work public URLs need, and **go live at `www.distributionos.in`**. **Live by Saturday 27 September**, if Thursday evening's books balance.
 
 **Hosting is decided and costs ₹0 a month (2026-09-21).** Postgres 17 is **self-hosted** on an Oracle Cloud Always Free instance in Mumbai — no free managed Postgres can run this schema, because creating the worker role that bypasses row-level security needs a superuser that Neon, Supabase and RDS all withhold — with the apps on Cloudflare Pages and backups held off the Oracle account. The only running cost is the domain `distributionos.in`, about ₹690 a year.
 
@@ -86,10 +86,10 @@ Pages carrying an August 2026 date predate the build and should be read with tha
 
 ## Open questions for the founder
 
-Three things are owed before day 7, and only the founder can do them:
+Three things are needed before day 7 and only the founder can do them — one of the three is already done:
 
 - An **Oracle Cloud account** in the Mumbai region, with an API key. It needs a **real credit card** — PIN-debit, prepaid and virtual cards are refused — and the home region cannot be changed later.
 - A **Cloudflare account** with an API token, for the web apps and the backups.
-- The **domain `distributionos.in`** bought, with its nameservers left on "custom" so they can be pointed at Cloudflare.
+- **Done, 21 September 2026:** the **domain `distributionos.in`**, bought on Hostinger, with its nameservers now moving to Cloudflare. The website will be `www.distributionos.in`; the bare domain redirects to it.
 
 The product questions still open — the invoice series at cut-over from TradeEzee, the sample exports, and which pilot shops are under the GST composition scheme — are carried with their defaults on [Open Questions & Risks](https://prajwalchavan18.atlassian.net/wiki/spaces/Distributi/pages/10321956).

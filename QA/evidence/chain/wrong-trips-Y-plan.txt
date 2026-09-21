@@ -1,0 +1,83 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Trips
+Sheets
+Trips
+Check-in
+PLAN A TRIP
+Date
+Today
+Tomorrow
+Vehicle
+MH-05-AB-1234
+Tempo 1
+MH-05-CD-5678
+Loader 1
+MH-05-EF-9012
+Loader 2
+Driver
+Ganesh More
+Iqbal Shaikh
+Mahesh Sutar
+Raju Yadav
+Santosh Kamble
+Tanaji Bhosale
+Helper
+No helper
+Ganesh More
+Iqbal Shaikh
+Mahesh Sutar
+Raju Yadav
+Santosh Kamble
+Tanaji Bhosale
+Cash float
+₹
+Packed bills not on a trip
+Balaji Wholesale Stores
+INV/0838 · Station Road
+₹1,01,531.00
+Ambika Provision Store
+INV/0820 · Station Road
+₹12,569.00
+Nutan Kirana Stores
+INV/0815 · Birla College Road
+₹4,264.00
+Laxmi Narayan Stores
+INV/9012 · Kalyan West Market
+₹614.00
+Sai Baba Kirana
+INV/9011 · Kalyan West Market
+₹3,849.00
+Balaji Wholesale Stores
+INV/9010 · Station Road
+₹605.00
+Sai Krupa Super Bazar
+INV/9008 · Station Road
+₹3,810.00
+Ganesh General Store
+INV/9009 · Station Road
+₹614.00
+TRIPS
+Close
+TRIP-NEXT
+planned
+MH-05-AB-1234 · 14 Sep · 0 of 5 stops · Ganesh More
+Start loading
+Add a bill
+TRIP-ACTIVE
+active
+MH-05-AB-1234 · 12 Sep · 3 of 10 stops · Ganesh More
+The money side of the trip is settled at the desk.
+Plan the trip

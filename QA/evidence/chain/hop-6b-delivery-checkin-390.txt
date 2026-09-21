@@ -1,0 +1,41 @@
+TE
+Tarsun Enterprise
+delivery
+⋯
+Updated just now · Not kept in this browser
+TRIP-0001 · 21 Sep 2026
+End of day
+On the road
+1 of 1 stops done
+CASH TAKEN
+₹6,000.00
+UPI TAKEN
+₹4,148.00
+CHEQUES TAKEN
+₹0.00
+SPENT
+₹0.00
+Cash the office expects
+Float ₹2,000.00 + cash taken ₹6,000.00 − spent ₹0.00
+Float at start
+₹2,000.00
+Cash taken
+₹6,000.00
+Spent
+₹0.00
+Hand ₹8,000.00 to the cashier
+The cashier counts the money and the godown counts the van. The trip closes at the office, not here.
+Stops
+Delivered 1 · Part delivered 0 · Not delivered 0
+1. Shree Ganesh Kirana
+Shop 3, Station Road, Station Road, Kalyan West, Kalyan, 421301
+₹10,148.00
+Delivered
+Still on the van
+The godown counts this back in when you check in
+Nothing here yet
+Odometer at start (km)
+Odometer now (km)
+Cash the office expects
+₹8,000.00
+Check the vehicle in

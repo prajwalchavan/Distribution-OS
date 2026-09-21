@@ -1,0 +1,57 @@
+TE
+Tarsun Enterprise
+delivery
+⋯
+Updated just now · Not kept in this browser
+Tarsun Enterprise
+Your trips
+Last 30 days and what is planned
+STOPS
+90
+DELIVERED
+63
+NOT DELIVERED
+9
+ON TIME
+0%
+Your trips
+TRIP-0002
+21 Sep 2026 · MH-05-CD-5678
+4 of 4 done
+Checked in
+TRIP-0001
+21 Sep 2026 · MH-05-CD-5678
+1 of 1 done
+Closed
+TRIP-NEXT
+14 Sep 2026 · MH-05-AB-1234
+0 of 5 done
+Planned
+TRIP-ACTIVE
+12 Sep 2026 · MH-05-AB-1234
+3 of 10 done
+On the road
+TRIP-20260910-1
+10 Sep 2026 · MH-05-AB-1234
+11 of 11 done
+Closed
+TRIP-20260907-1
+7 Sep 2026 · MH-05-AB-1234
+13 of 13 done
+Closed
+TRIP-20260904-1
+4 Sep 2026 · MH-05-AB-1234
+15 of 15 done
+Closed
+TRIP-20260901-1
+1 Sep 2026 · MH-05-AB-1234
+12 of 12 done
+Closed with a difference
+TRIP-20260829-1
+29 Aug 2026 · MH-05-AB-1234
+7 of 7 done
+Closed with a difference
+TRIP-20260826-1
+26 Aug 2026 · MH-05-AB-1234
+12 of 12 done
+Closed
