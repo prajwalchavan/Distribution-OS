@@ -26,6 +26,7 @@ import {
   clearWelcomeSeen,
   landingStarts,
   markWelcomeSeen,
+  sessionEnded,
   welcomeSeen,
 } from './web/welcome.js'
 
@@ -84,6 +85,60 @@ describe('docs/29 §1 Welcome — shown once per device', () => {
     markWelcomeSeen()
     clearWelcomeSeen()
     expect(welcomeSeen()).toBe(false)
+  })
+})
+
+/**
+ * docs/29 §1 — "shown once per device, not on every launch" is a rule about a TRANSITION.
+ *
+ * "There is no session" is the state a device sits in for the whole of a launch nobody has signed
+ * into, for the whole of a sign-in somebody abandoned, and for every launch after a sign-out. Clear
+ * the flag whenever that state is seen and the welcome returns on the next launch, and the one
+ * after, forever — exactly the thing §1 forbids. The flag may only be cleared on the render where a
+ * session that WAS there has gone: `sessionEnded`, the sibling of `landingStarts`.
+ */
+describe('docs/29 §1 Welcome — cleared on the sign-out, not on every signed-out render', () => {
+  it('a sign-out is a transition: a settled render held a session, the next holds none', () => {
+    expect(sessionEnded('tarsun:sunil', null)).toBe(true)
+  })
+
+  it('a launch on a device nobody has ever signed into is NOT a sign-out', () => {
+    expect(sessionEnded(undefined, null)).toBe(false)
+  })
+
+  it('an abandoned sign-in is NOT a sign-out — the person is still on the form they opened', () => {
+    expect(sessionEnded(null, null)).toBe(false)
+  })
+
+  it('a launch AFTER a sign-out is not a second sign-out, so the welcome is not re-armed', () => {
+    // undefined -> null is the first settled render of every signed-out launch, whatever put the
+    // device in that state. If this were true the welcome would come back on every single launch.
+    expect(sessionEnded(undefined, null)).toBe(false)
+    expect(sessionEnded(null, null)).toBe(false)
+  })
+
+  it('never fires while a session is there, nor on the arrival of one', () => {
+    expect(sessionEnded(null, 'tarsun:sunil')).toBe(false)
+    expect(sessionEnded(undefined, 'tarsun:sunil')).toBe(false)
+    expect(sessionEnded('tarsun:meena', 'sai:meena')).toBe(false)
+    expect(sessionEnded('tarsun:sunil', 'tarsun:sunil')).toBe(false)
+  })
+
+  it('is never true at the same moment as an arrival: the two rules cannot both fire', () => {
+    const observed: readonly (string | null | undefined)[] = [undefined, null, 'a', 'b', null]
+    for (const previous of observed) {
+      for (const next of [null, 'a', 'b'] as const) {
+        expect(landingStarts(previous, next) && sessionEnded(previous, next)).toBe(false)
+      }
+    }
+  })
+
+  it('both renderers hold the same rule, written out in each half', () => {
+    const body = (file: string): string =>
+      /export function sessionEnded\([\s\S]*?\n\}/.exec(readFileSync(join(here, file), 'utf8'))?.[0] ??
+      ''
+    expect(body('web/welcome.tsx')).not.toBe('')
+    expect(body('native/welcome.tsx')).toBe(body('web/welcome.tsx'))
   })
 })
 
@@ -172,6 +227,19 @@ describe('docs/29 §1 Landing — every root layout wires it the same way', () =
 
       it('gives the welcome back to the next person whichever way this app signs out', () => {
         expect(source).toContain('clearWelcomeSeen()')
+      })
+
+      /**
+       * The whole of docs/29 §1's "once per device" lives in these two lines. Conditioning the
+       * clear on the signed-out STATE deletes the key on every settled render that has no session
+       * — a cold launch, an abandoned sign-in, the launch after a sign-out that already cleared it
+       * — so the welcome returns on the launch after that, and on every launch thereafter.
+       */
+      it('clears the flag on the sign-out TRANSITION, never on the signed-out state', () => {
+        expect(source).toContain('if (landing.signedOut) clearWelcomeSeen()')
+        expect(source).toContain('}, [landing.signedOut])')
+        expect(source).not.toMatch(/session === null[^\n]*clearWelcomeSeen/)
+        expect(source).not.toMatch(/clearWelcomeSeen\(\)[^\n]*\n\s*\}, \[hydrating/)
       })
     })
   }

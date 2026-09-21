@@ -18,7 +18,7 @@ import { AppShell, MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
 import { Link, Pressable, Row } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
-import { Landing, Welcome, clearWelcomeSeen, markWelcomeSeen } from './welcome.js'
+import { Landing, Welcome, clearWelcomeSeen, markWelcomeSeen, useLandingGate } from './welcome.js'
 import type { ConnectionState, MapMarker } from '../types.js'
 
 function renderDesk(node: React.ReactNode): string {
@@ -1200,5 +1200,42 @@ describe('docs/29 §1 Landing', () => {
     const html = landing('phone')
     expect(html).not.toContain('animation')
     expect(html).not.toContain('transition')
+  })
+})
+
+/**
+ * docs/29 §1 — what the gate says about a SETTLED render that has no session.
+ *
+ * The gate is asked on every render of every root layout, and two very different things look
+ * identical in a single frame: a device somebody has just signed out of, and a device that is
+ * simply sitting on the sign-in form. Only the first may re-arm the welcome. This renders the real
+ * hook (its state is adjusted during the render that sees the change, so the first settled answer
+ * is observable in static markup) and reads its answer for the launch case.
+ */
+describe('docs/29 §1 — the landing gate on a settled render', () => {
+  function Gate({
+    hydrating,
+    sessionKey,
+  }: {
+    hydrating: boolean
+    sessionKey: string | null
+  }): React.JSX.Element {
+    const gate = useLandingGate(hydrating, sessionKey)
+    return <span>{`show=${String(gate.show)} signedOut=${String(gate.signedOut)}`}</span>
+  }
+
+  it('a signed-out launch is neither an arrival nor a sign-out', () => {
+    const html = renderToStaticMarkup(<Gate hydrating={false} sessionKey={null} />)
+    expect(html).toContain('show=false signedOut=false')
+  })
+
+  it('a launch that restored a session is not an arrival either — no two seconds at 6 am', () => {
+    const html = renderToStaticMarkup(<Gate hydrating={false} sessionKey="tarsun:sunil" />)
+    expect(html).toContain('show=false signedOut=false')
+  })
+
+  it('answers nothing at all while hydration is still running', () => {
+    const html = renderToStaticMarkup(<Gate hydrating sessionKey={null} />)
+    expect(html).toContain('show=false signedOut=false')
   })
 })
