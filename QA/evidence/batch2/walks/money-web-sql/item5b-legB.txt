@@ -1,0 +1,24 @@
+ERROR:  column "invoice_ids" does not exist
+LINE 5: from invoices i where i.id in (select unnest(invoice_ids) fr...
+                                                     ^
+HINT:  Perhaps you meant to reference the column "i.invoice_no".
+  trip_no  | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance 
+-----------+---------------------+------------------------+---------------------+--------------
+ TRIP-0019 |               40000 |                  40000 |                   0 | f
+(1 row)
+
+ receipts_on_that_trip 
+-----------------------
+                     0
+(1 row)
+
+ trial_balance_tenant 
+----------------------
+                    0
+(1 row)
+
+ invoice_no | state  | total_paise | allocated | outstanding_paise 
+------------+--------+-------------+-----------+-------------------
+ INV/9032   | issued |      154400 |         0 |            154400
+(1 row)
+
