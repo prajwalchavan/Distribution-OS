@@ -160,7 +160,7 @@ function campaSizes(flavourKey: string): VariantDef[] {
   }))
 }
 
-const PRODUCTS: ProductDef[] = [
+export const PRODUCTS: ProductDef[] = [
   {
     key: 'campa-cola',
     manufacturerKey: 'reliance',
@@ -200,7 +200,7 @@ const PRODUCTS: ProductDef[] = [
         caseSize: 24,
         mrpPaise: 2000,
         shelfLifeDays: 365,
-        hsnCode: '2202',
+        hsnCode: '2201',
         gstBps: 1800,
         cessBps: 0,
       },
@@ -482,7 +482,18 @@ const PRODUCTS: ProductDef[] = [
   ...EXTRA_PRODUCTS,
 ]
 
-const HSN_RATES: {
+/**
+ * ONE LIVE RATE PER HSN, always (QA S-176). Every caller resolves a rate the same way — the rows live
+ * on the date, newest `effective_from` first, take the first — so a heading with two live rows has no
+ * answer, only a query plan: an order priced at 12% that the bill charges 28% + 12% cess for. Goods
+ * of one heading that bear different rates therefore carry their own SUB-HEADING here and on the
+ * variant (2202 aerated / 22029920 fruit-juice based / 22029930 milk based; 0406 paneer / 04063000
+ * processed cheese; 2106 loose namkeen / 21069099 pre-packed), and `hsn_rates_code_from_idx` is
+ * unique so a second live row is a database error instead of a silent hole in a bill. A RATE CHANGE
+ * is a new row with a later `effective_from`, which is what keeps an old bill re-printing at the old
+ * rate.
+ */
+export const HSN_RATES: {
   key: string
   hsnCode: string
   description: string
@@ -497,23 +508,16 @@ const HSN_RATES: {
     cessBps: 1200,
   },
   {
-    key: 'hsn-2202-water',
-    hsnCode: '2202',
-    description: 'Packaged drinking water (Independence)',
-    gstBps: 1800,
-    cessBps: 0,
-  },
-  {
     key: 'hsn-1905',
     hsnCode: '1905',
-    description: 'Extruded / expanded savoury snacks',
+    description: 'Biscuits and extruded / expanded savoury snacks',
     gstBps: 1800,
     cessBps: 0,
   },
   {
     key: 'hsn-2106',
     hsnCode: '2106',
-    description: 'Namkeen, bhujia, wafers, mixture',
+    description: 'Namkeen, bhujia, wafers, mixture (not pre-packed and labelled)',
     gstBps: 1800,
     cessBps: 0,
   },

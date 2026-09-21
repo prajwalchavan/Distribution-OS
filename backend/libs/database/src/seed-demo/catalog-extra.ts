@@ -129,7 +129,7 @@ const konkan = (key: string, name: string, variants: readonly V[], status?: Stat
     manufacturerKey: 'konkansnack',
     brandKey: 'konkancrunch',
     category: 'Snacks - Namkeen',
-    hsnCode: '2106',
+    hsnCode: '21069099',
     gstBps: 1200,
     shelfLifeDays: 120,
     ...(status ? { status } : {}),
@@ -235,7 +235,7 @@ export const EXTRA_PRODUCTS: ProductDef[] = [
   rajwadi({
     key: 'rajwadi-aamras-mango-drink',
     name: 'Rajwadi Aamras Mango Drink',
-    hsnCode: '2202',
+    hsnCode: '22029920',
     gstBps: 1200,
     shelfLifeDays: 180,
     variants: [
@@ -247,7 +247,7 @@ export const EXTRA_PRODUCTS: ProductDef[] = [
   rajwadi({
     key: 'rajwadi-apple-nectar',
     name: 'Rajwadi Apple Nectar',
-    hsnCode: '2202',
+    hsnCode: '22029920',
     gstBps: 1200,
     shelfLifeDays: 180,
     variants: [
@@ -462,13 +462,13 @@ export const EXTRA_PRODUCTS: ProductDef[] = [
     ['500ml', '500 ml', 500, 'ml', 24, 37],
     ['1l', '1 L', 1, 'l', 12, 72],
   ]),
-  godavari('godavari-flavoured-milk-rose', 'Godavari Flavoured Milk Rose', '2202', 1200, 120, [
+  godavari('godavari-flavoured-milk-rose', 'Godavari Flavoured Milk Rose', '22029930', 1200, 120, [
     ['180ml', '180 ml', 180, 'ml', 27, 25],
   ]),
   godavari(
     'godavari-flavoured-milk-kesar-badam',
     'Godavari Flavoured Milk Kesar Badam',
-    '2202',
+    '22029930',
     1200,
     120,
     [['180ml', '180 ml', 180, 'ml', 27, 25]],
@@ -476,7 +476,7 @@ export const EXTRA_PRODUCTS: ProductDef[] = [
   godavari(
     'godavari-flavoured-milk-chocolate',
     'Godavari Flavoured Milk Chocolate',
-    '2202',
+    '22029930',
     1200,
     120,
     [['180ml', '180 ml', 180, 'ml', 27, 25]],
@@ -503,7 +503,7 @@ export const EXTRA_PRODUCTS: ProductDef[] = [
     ['500ml', '500 ml', 500, 'ml', 12, 395],
     ['1l', '1 L', 1, 'l', 8, 770],
   ]),
-  godavari('godavari-cheese-slices', 'Godavari Cheese Slices', '0406', 1200, 180, [
+  godavari('godavari-cheese-slices', 'Godavari Cheese Slices', '04063000', 1200, 180, [
     ['200g', '200 g', 200, 'g', 24, 145],
   ]),
   godavari('godavari-dairy-whitener', 'Godavari Dairy Whitener', '0402', 500, 270, [
@@ -513,7 +513,7 @@ export const EXTRA_PRODUCTS: ProductDef[] = [
   godavari(
     'godavari-kesar-shrikhand',
     'Godavari Kesar Shrikhand',
-    '0406',
+    '04063000',
     1200,
     30,
     [['200g', '200 g', 200, 'g', 24, 65, 'proposed']],
@@ -613,28 +613,28 @@ export const EXTRA_HSN_RATES: {
 }[] = [
   {
     key: 'hsn-2202-fruit',
-    hsnCode: '2202',
+    hsnCode: '22029920',
     description: 'Fruit pulp / fruit juice based drinks',
+    gstBps: 1200,
+    cessBps: 0,
+  },
+  {
+    key: 'hsn-2202-milk',
+    hsnCode: '22029930',
+    description: 'Beverages containing milk',
     gstBps: 1200,
     cessBps: 0,
   },
   {
     key: 'hsn-2201',
     hsnCode: '2201',
-    description: 'Soda water, waters not sweetened',
-    gstBps: 1800,
-    cessBps: 0,
-  },
-  {
-    key: 'hsn-1905-biscuits',
-    hsnCode: '1905',
-    description: 'Biscuits, sweet',
+    description: 'Waters, not sweetened: soda water and packaged drinking water',
     gstBps: 1800,
     cessBps: 0,
   },
   {
     key: 'hsn-2106-prepacked',
-    hsnCode: '2106',
+    hsnCode: '21069099',
     description: 'Namkeen, pre-packed and labelled',
     gstBps: 1200,
     cessBps: 0,
@@ -704,7 +704,7 @@ export const EXTRA_HSN_RATES: {
   },
   {
     key: 'hsn-0406-cheese',
-    hsnCode: '0406',
+    hsnCode: '04063000',
     description: 'Processed cheese',
     gstBps: 1200,
     cessBps: 0,

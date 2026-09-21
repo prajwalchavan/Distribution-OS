@@ -1,0 +1,50 @@
+TE
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Updated just now · Not kept in this browser
+RY
+Raju Yadav
+delivery
+TRIP-0015 · 21 Sep 2026
+End of day
+On the road
+1 of 1 stops done
+CASH TAKEN
+₹1,544.00
+UPI TAKEN
+₹0.00
+CHEQUES TAKEN
+₹0.00
+SPENT
+₹0.00
+Cash the office expects
+Float ₹400.00 + cash taken ₹1,544.00 − spent ₹0.00
+Float at start
+₹400.00
+Cash taken
+₹1,544.00
+Spent
+₹0.00
+Hand ₹1,944.00 to the cashier
+The cashier counts the money and the godown counts the van. The trip closes at the office, not here.
+Stops
+Delivered 1 · Part delivered 0 · Not delivered 0
+1. Ansari Kirana Stores
+Shop 30, Rambaug Lane 4, Godrej Hill, Kalyan West, Kalyan, 421301
+₹1,544.00
+Delivered
+Still on the van
+The godown counts this back in when you check in
+Nothing here yet
+Odometer at start (km)
+Odometer now (km)
+Cash the office expects
+₹1,944.00
+Check the vehicle in

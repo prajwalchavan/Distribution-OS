@@ -1,0 +1,59 @@
+== D8 walk phone-a 390x844 driver=balu.shirke settle=false ==
+signed in, url=http://127.0.0.1:5177/
+device filled after ~2s
+home stops: 7
+  10bf5aa1-dfde-7b2c-ad3b-eef9d1faa3f7 :: 1. Ambernath Kirana BhandarShop 4, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹7,384.00Delivered
+  e19a411d-6bde-75ca-b75a-41b0331b95d5 :: 2. Guru Nanak ProvisionShop 35, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹15,354.00Delivered
+  21661bd0-dca8-73c4-b02b-e08e69ee9f06 :: 3. Morya Provision StoreShop 18, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹5,114.00Delivered
+  47e4374c-5823-70e8-926f-fa9ad7290b1a :: 4. Shree Ganesh KiranaShop 3, Ulhasnagar Camp 3, Ulhasnagar, Ulhasnagar, 421003₹2,805.00At the shop
+  5ab75711-2030-774a-b0ac-1cecb6f47acc :: 5. Mahalaxmi General StoresShop 17, Ulhasnagar Camp 3, Ulhasnagar, Ulhasnagar, 421003₹2,247.00Not st
+  d28a77a5-7b3f-7ebe-b3e2-07223d972913 :: 6. Camp 3 General StoreShop 14, Ulhasnagar Camp 3, Ulhasnagar, Ulhasnagar, 421003₹9,739.00Not starte
+  3a7fd0dd-ce5d-7f10-bc97-3891149f249d :: 7. Sai Krupa StoresShop 28, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹21,526.00Not started
+  -> Day summary (home button)
+PHASE 1 online, no money held:
+  d8-expected  = ₹5,000.00
+  d8-hand-over = Hand ₹5,000.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] phone-a-p1-online-baseline.png
+  -> Today (via More)
+opened Take money on stop 10bf5aa1-dfde-7b2c-ad3b-eef9d1faa3f7
+offline: true
+  [shot] phone-a-p2a-recorded-offline.png
+  -> Day summary (offline) (via More)
+PHASE 2 offline, holding ₹1544:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = This tab holds ₹1,544.00 in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.
+  d8-pending   = 1 writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.
+  disabled     = true  reason = 1 records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.
+  [shot] phone-a-p2-offline-holding.png
+offline: false (same mount, no reload)
+  t+2s expected=₹6,544.00 uncounted=shown disabled=true
+  t+4s expected=₹6,544.00 uncounted=shown disabled=true
+  t+6s expected=₹6,544.00 uncounted=shown disabled=true
+  t+8s expected=₹6,544.00 uncounted=shown disabled=true
+  t+10s expected=₹6,544.00 uncounted=shown disabled=true
+  t+12s expected=₹5,000.00 uncounted=none disabled=false
+  t+14s expected=₹6,544.00 uncounted=none disabled=false
+  t+16s expected=₹6,544.00 uncounted=none disabled=false
+  t+18s expected=₹6,544.00 uncounted=none disabled=false
+  t+20s expected=₹6,544.00 uncounted=none disabled=false
+  t+22s expected=₹6,544.00 uncounted=none disabled=false
+  t+24s expected=₹6,544.00 uncounted=none disabled=false
+  t+26s expected=₹6,544.00 uncounted=none disabled=false
+  t+28s expected=₹6,544.00 uncounted=none disabled=false
+PHASE 3 back online, SAME MOUNT:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] phone-a-p3-online-same-mount.png
+  -> Today (via More)
+  -> Day summary (re-opened) (home button)
+PHASE 4 re-opened:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] phone-a-p4-reopened.png
