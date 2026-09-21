@@ -13,6 +13,7 @@ import type {
 import { businessDate, uuidv7 } from '@dos/domain'
 import {
   approvals,
+  deliveries,
   locations,
   stockBalances,
   tripExpenses,
@@ -31,7 +32,8 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
-import { InventoryService } from '../inventory/index.js'
+import { BillingService } from '../billing/index.js'
+import { dockLocationId, InventoryService } from '../inventory/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   assertCrewOrDesk,
@@ -79,9 +81,16 @@ interface Cockpit {
  *                   never netted: they are not in the crew's hand)
  *   variance      = handed over − expected; red beyond `delivery.settlement_tolerance_paise`, and red
  *                   on ANY van stock miscount (coordination §7 q14)
- *   stock         counted pieces move vehicle → godown as `van_unload` + `transfer_in` per lot (keys
- *                   `settle:<tripId>:<lotId>:out|in`); a miscount writes a `cycle_count` row at the
- *                   vehicle so its balance ends at zero (coordination §4 item 5)
+ *   stock         counted pieces leave the vehicle as `van_unload` per lot (key `settle:<tripId>:<lotId>:out`)
+ *                   and land in TWO places (QA DOS-195, ruling S1): the pieces of a bill that came back
+ *                   UNDELIVERED — its stop ended failed or refused on this trip and the bill is still
+ *                   issued — go to the DOCK (`transfer_in` at the tenant's in-transit location, key
+ *                   `settle:<tripId>:<lotId>:dock`), staged for the next sheet: the bill is still packed
+ *                   and the godown was relieved once, at pack (docs/22 §4 W5). Only the FREE van stock
+ *                   goes back to the godown (`transfer_in`, key `settle:<tripId>:<lotId>:in`). A miscount
+ *                   writes a `cycle_count` row at the vehicle first so its balance ends at zero
+ *                   (coordination §4 item 5); a short count fills the dock first and the rack with the
+ *                   rest, so the next load-out refuses the bill by name rather than loading air
  *   journal       Dr CASH (handed over − float) · Dr TRIP_EXPENSES · Dr/Cr CASH_SHORT (the variance)
  *                   · Cr CASH_VAN (the cash receipts counted, so exactly what they debited to it), through
  *                   `ReceivablesService.postEntry`, balanced to the paisa (the float went out of and back
@@ -103,6 +112,8 @@ export class SettlementService {
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly inventory: InventoryService,
     private readonly receivables: ReceivablesService,
+    /** The lines of a bill that came back undelivered: which lots, how many pieces (QA DOS-195). */
+    private readonly billing: BillingService,
   ) {}
 
   async preview(input: PreviewIn): Promise<PreviewOut> {
@@ -199,30 +210,58 @@ export class SettlementService {
             })),
           )
         const unloads = plan.counted.filter((c) => c.countedPcs > 0)
-        if (unloads.length > 0)
+        if (unloads.length > 0) {
+          // The bills that came back on this van are still issued and still packed: their cartons are
+          // staged on the DOCK for the next sheet, never put back on the rack (QA DOS-195, ruling S1).
+          // Everything the crew counted beyond them is free van stock and goes home to the godown.
+          const undelivered = await this.cameBackUndelivered(tx, trip.id)
+          const dock = undelivered.size > 0 ? await dockLocationId(tx) : null
           await this.inventory.post(
             tx,
-            unloads.flatMap((c) => [
-              {
-                lotId: c.lotId,
-                locationId: vehicle.locationId,
-                qtyDelta: -c.countedPcs,
-                reason: 'van_unload' as const,
-                refType: 'trip_settlement',
-                refId: input.id,
-                idempotencyKey: `settle:${trip.id}:${c.lotId}:out`,
-              },
-              {
-                lotId: c.lotId,
-                locationId: godown,
-                qtyDelta: c.countedPcs,
-                reason: 'transfer_in' as const,
-                refType: 'trip_settlement',
-                refId: input.id,
-                idempotencyKey: `settle:${trip.id}:${c.lotId}:in`,
-              },
-            ]),
+            unloads.flatMap((c) => {
+              const toDock = Math.min(c.countedPcs, undelivered.get(c.lotId) ?? 0)
+              const toRack = c.countedPcs - toDock
+              return [
+                {
+                  lotId: c.lotId,
+                  locationId: vehicle.locationId,
+                  qtyDelta: -c.countedPcs,
+                  reason: 'van_unload' as const,
+                  refType: 'trip_settlement',
+                  refId: input.id,
+                  idempotencyKey: `settle:${trip.id}:${c.lotId}:out`,
+                },
+                ...(toDock > 0 && dock !== null
+                  ? [
+                      {
+                        lotId: c.lotId,
+                        locationId: dock,
+                        qtyDelta: toDock,
+                        reason: 'transfer_in' as const,
+                        refType: 'trip_settlement',
+                        refId: input.id,
+                        idempotencyKey: `settle:${trip.id}:${c.lotId}:dock`,
+                        note: `undelivered bill staged for its next trip at check-in of ${trip.tripNo ?? trip.id}`,
+                      },
+                    ]
+                  : []),
+                ...(toRack > 0
+                  ? [
+                      {
+                        lotId: c.lotId,
+                        locationId: godown,
+                        qtyDelta: toRack,
+                        reason: 'transfer_in' as const,
+                        refType: 'trip_settlement',
+                        refId: input.id,
+                        idempotencyKey: `settle:${trip.id}:${c.lotId}:in`,
+                      },
+                    ]
+                  : []),
+              ]
+            }),
           )
+        }
 
         // money: one balanced entry (a trip that moved no cash at all — nothing collected, nothing
         // spent, no float — has no entry to post)
@@ -545,6 +584,40 @@ export class SettlementService {
           eq(approvals.status, 'pending'),
         ),
       )
+  }
+
+  /**
+   * The pieces per lot of every bill that CAME BACK on this trip: a `deliveries` row of the trip whose
+   * outcome is `failed` — `stops.fail` marks the planned rows so, and `deliveries.record` derives it from
+   * an all-zero door (QA DOS-195) — and whose bill is still issued. A bill cancelled while the van was out
+   * is not staged for anything. Summed per lot across the bills, so two refused bills drawn from one
+   * batch fill the dock once with both.
+   */
+  private async cameBackUndelivered(tx: Db, tripId: string): Promise<Map<string, number>> {
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({ invoiceId: deliveries.invoiceId })
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.tenantId, tenantId),
+          eq(deliveries.tripId, tripId),
+          eq(deliveries.outcome, 'failed'),
+        ),
+      )
+      .orderBy(asc(deliveries.id))
+    const need = new Map<string, number>()
+    for (const invoiceId of new Set(rows.map((r) => r.invoiceId))) {
+      const invoice = await this.billing.invoiceForDelivery(tx, invoiceId)
+      if (invoice.state === 'cancelled') continue
+      for (const line of invoice.lines) {
+        if (line.lotId === null) continue
+        const pcs = line.qtyPcs + line.freeQtyPcs
+        if (pcs <= 0) continue
+        need.set(line.lotId, (need.get(line.lotId) ?? 0) + pcs)
+      }
+    }
+    return need
   }
 
   private async settlementOf(tx: Db, tripId: string) {
