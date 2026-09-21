@@ -3,7 +3,7 @@
  * test-library dependency) and asserts what reaches the screen.
  */
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ThemeContextProvider } from '../theme.js'
 import { ThemeProvider } from './ThemeProvider.js'
@@ -18,6 +18,7 @@ import { AppShell, MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
 import { Link, Pressable, Row } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
+import { Welcome, clearWelcomeSeen, markWelcomeSeen } from './welcome.js'
 import type { ConnectionState, MapMarker } from '../types.js'
 
 function renderDesk(node: React.ReactNode): string {
@@ -1080,5 +1081,60 @@ describe('<Dialog> below the desk touch floor (DOS-122)', () => {
     expect(html).toContain('flex-direction:column-reverse')
     expect(html).toContain('height:69px')
     expect(html).not.toContain('height:32px')
+  })
+})
+
+/**
+ * docs/29 §1 Welcome — the first screen of every app on a device with no session.
+ *
+ * Rendered at both ends of the range the same build serves: a 390 px phone (`viewport="phone"`, the
+ * field floor) and a 1280 px browser (`viewport="desk"`). What must be on it is four things and no
+ * fifth: the product wordmark, the one line about what the product is, this app's own name, and one
+ * primary button. The console says what IT is instead of the six-app line.
+ */
+describe('docs/29 §1 Welcome', () => {
+  function welcome(role: string, viewport: 'desk' | 'phone'): string {
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={viewport === 'phone' ? 'field' : 'desk'} viewport={viewport}>
+        <Welcome appTitle="Distribution OS - Delivery" role={role}>
+          <span data-testid="the-sign-in-form">the form</span>
+        </Welcome>
+      </ThemeContextProvider>,
+    )
+  }
+
+  beforeEach(() => {
+    clearWelcomeSeen()
+  })
+
+  it('docs/29 §1 Welcome — at 1280: wordmark, the six-app line, the app’s own name, one button', () => {
+    const html = welcome('delivery', 'desk')
+    expect(html).toContain('Distribution OS')
+    expect(html).toContain('Connecting a distribution business through six apps.')
+    expect(html).toContain('Delivery')
+    expect(html).toContain('welcome-sign-in')
+    expect(html).not.toContain('the-sign-in-form')
+  })
+
+  it('docs/29 §1 Welcome — at 390: the same four things, at the field floor', () => {
+    const html = welcome('delivery', 'phone')
+    expect(html).toContain('Distribution OS')
+    expect(html).toContain('Connecting a distribution business through six apps.')
+    expect(html).toContain('Delivery')
+    // One primary button, at the app's own touch floor rather than the 32 px desk one.
+    expect(html).toContain('height:69px')
+  })
+
+  it('docs/29 §1 Welcome — the console names itself, never the six apps a distributor runs', () => {
+    const html = welcome('platform_admin', 'desk')
+    expect(html).toContain('Platform console')
+    expect(html).not.toContain('through six apps')
+  })
+
+  it('docs/29 §1 Welcome — a device that has been past it gets the sign-in form, not a second introduction', () => {
+    markWelcomeSeen()
+    const html = welcome('delivery', 'phone')
+    expect(html).toContain('the-sign-in-form')
+    expect(html).not.toContain('welcome-sign-in')
   })
 })

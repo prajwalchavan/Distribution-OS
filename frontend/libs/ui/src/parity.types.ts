@@ -36,6 +36,7 @@ import type {
   TenantSwitcherProps,
   TxtContract,
   Viewport,
+  WelcomeProps,
 } from './types.js'
 
 type WebModule = typeof import('./web/index.js')
@@ -140,6 +141,13 @@ export type _MapView = [
 export type _StatusChip = [
   Implements<ComponentType<StatusChipProps>, WebModule['StatusChip']>,
   Implements<ComponentType<StatusChipProps>, NativeModule['StatusChip']>,
+]
+
+// --- the welcome, bound on both renderers (docs/29 §1) -------------------------------------------
+
+export type _Welcome = [
+  Implements<ComponentType<WelcomeProps>, WebModule['Welcome']>,
+  Implements<ComponentType<WelcomeProps>, NativeModule['Welcome']>,
 ]
 
 // --- the platform pairs -------------------------------------------------------------------------

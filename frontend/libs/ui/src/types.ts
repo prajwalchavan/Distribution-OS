@@ -852,4 +852,25 @@ export interface AppShellProps extends Testable {
   children: ReactNode
 }
 
+// ---------------------------------------------------------------------------
+// 6.17 Welcome (docs/29 §1)
+// ---------------------------------------------------------------------------
+
+/**
+ * The first screen of every app on a device with no session: the Distribution OS wordmark, one line
+ * saying what the product is, this app's own name, and one button that opens the sign-in form.
+ *
+ * It WRAPS the form rather than replacing it, so every app's `sign-in.tsx` wires it with the same
+ * two characters-for-character lines and the form itself is untouched. Shown once per device: the
+ * flag is set when "Sign in" is pressed and cleared when the session goes away.
+ */
+export interface WelcomeProps extends Testable {
+  /** `APP.title` — "Distribution OS - Delivery". The app's own name is the part after the dash. */
+  appTitle: string
+  /** `APP.role`. Only `platform_admin` changes the line under the wordmark: it is a console. */
+  role: string
+  /** The app's own sign-in form, rendered in place of the welcome once this device is past it. */
+  children: ReactNode
+}
+
 export type { SeriesPoint, Series, CompareGroup, MixSlice }
