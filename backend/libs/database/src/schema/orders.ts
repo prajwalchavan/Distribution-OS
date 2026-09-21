@@ -64,6 +64,8 @@ export interface AppliedRule {
   amountPaise?: number
   freeQty?: number
   freeVariantId?: string
+  /** DOS-185: the reward line's single entry — a pointer to the rule; `freeQty` lives on the trigger line only. */
+  reward?: boolean
 }
 
 /**

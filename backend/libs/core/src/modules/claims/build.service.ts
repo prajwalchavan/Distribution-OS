@@ -347,7 +347,7 @@ export class ClaimBuildService {
     if (lines.length === 0) return []
     const ruleIds = new Set<string>()
     for (const l of lines)
-      for (const r of l.appliedRules) if (r.kind === 'scheme') ruleIds.add(r.ruleId)
+      for (const r of l.appliedRules) if (r.kind === 'scheme' && !r.reward) ruleIds.add(r.ruleId)
     const schemes = await this.schemes.schemesByIds(tx, [...ruleIds])
     const eligible = (s: SchemeForClaim | undefined): s is SchemeForClaim =>
       s !== undefined &&
@@ -379,6 +379,10 @@ export class ClaimBuildService {
       const kept = l.qtyPcs - returned
       for (const rule of l.appliedRules) {
         if (rule.kind !== 'scheme') continue
+        // DOS-185: a reward line's entry is a pointer to the rule, not the rule — the gift it carries is
+        // already claimed from the TRIGGER line's entry (the one with `freeQty`). Counting it here claimed
+        // every cross-variant free-goods scheme twice.
+        if (rule.reward) continue
         const scheme = schemes.get(rule.ruleId)
         if (!eligible(scheme)) continue
         out.push(this.schemeLine(claim, l, rule, scheme, kept, returned, packs, costs, policy))

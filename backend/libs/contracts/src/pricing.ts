@@ -302,6 +302,12 @@ export const AppliedRuleSchema = z.object({
   amountPaise: PaiseSchema.optional(),
   freeQty: PiecesSchema.optional(),
   freeVariantId: z.string().optional(),
+  /**
+   * DOS-185: `true` on the ONE entry a scheme's reward line (`qtyPcs = 0`, `freeQtyPcs > 0`) carries — a
+   * pointer back to the rule that gave it, never a second copy of the rule. Only the TRIGGER line's entry
+   * carries `freeQty` / `freeVariantId`, so a reader that sums `freeQty` over the lines counts a gift once.
+   */
+  reward: z.boolean().optional(),
 })
 export type AppliedRule = z.infer<typeof AppliedRuleSchema>
 

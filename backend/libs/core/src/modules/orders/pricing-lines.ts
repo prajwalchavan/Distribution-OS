@@ -296,17 +296,17 @@ function rewardLines(
     taxPaise: 0,
     cessPaise: 0,
     lineTotalPaise: 0,
-    // The rule that gave it, so the bill prints "Free", the claim reconstructs, and the triggering line —
-    // which carries the same `ruleId` in its own `applied_rules` — is joinable to it.
+    /*
+     * ONE marker back to the rule that gave it — and NOT the rule again. The triggering line already
+     * carries the entry with `freeQty` / `freeVariantId`; repeating it here made every reader that sums
+     * or enumerates `freeQty` per line (the claim builder, the scheme-spend register) count the gift
+     * twice: claimed twice from the brand, "spent" twice on the owner's register. The quantity of this
+     * line is structural (`freeQtyPcs`), so the pointer needs no quantity. A reader that must recognise
+     * a gift line uses `isRewardLine` (`qtyPcs = 0 && freeQtyPcs > 0`), as the picklist, the pack, the
+     * bill and the delivery already do.
+     */
     appliedRules: [
-      {
-        ruleId: reward.ruleId,
-        version: reward.version,
-        kind: 'scheme' as const,
-        rewardKind: 'free_qty',
-        freeQty: reward.qtyPcs,
-        freeVariantId: reward.variantId,
-      },
+      { ruleId: reward.ruleId, version: reward.version, kind: 'scheme' as const, reward: true },
     ],
     priceLocked: false,
   }))
@@ -419,5 +419,6 @@ function toStoredRules(rules: Quote['lines'][number]['appliedRules']): AppliedRu
     ...(r.amountPaise === undefined ? {} : { amountPaise: r.amountPaise }),
     ...(r.freeQty === undefined ? {} : { freeQty: r.freeQty }),
     ...(r.freeVariantId === undefined ? {} : { freeVariantId: r.freeVariantId }),
+    ...(r.reward === undefined ? {} : { reward: r.reward }),
   }))
 }

@@ -55,13 +55,16 @@ interface OrderLineBody {
   discountPaise: number
   taxPaise: number
   lineTotalPaise: number
-  appliedRules: {
-    ruleId: string
-    kind: string
-    rewardKind?: string
-    freeQty?: number
-    freeVariantId?: string
-  }[]
+  appliedRules: AppliedRuleBody[]
+}
+interface AppliedRuleBody {
+  ruleId: string
+  version: number
+  kind: string
+  rewardKind?: string
+  freeQty?: number
+  freeVariantId?: string
+  reward?: boolean
 }
 interface OrderBody {
   id: string
@@ -97,6 +100,7 @@ interface InvoiceLineBody {
   gstBps: number
   cessPaise: number
   lineTotalPaise: number
+  appliedRules: AppliedRuleBody[]
 }
 interface PackBody {
   invoice: { id: string; invoiceNo: string | null; totalPaise: number } | null
@@ -468,11 +472,25 @@ describeDb('DOS-185 free goods down the chain (DATABASE_URL)', () => {
     expect(free?.lineTotalPaise).toBe(0)
     // the gift adds nothing to what the shop pays: the sold line, rounded to the rupee, IS the order
     expect(orderA.totalPaise).toBe((sold?.lineTotalPaise ?? 0) + orderA.roundOffPaise)
-    const rule = free?.appliedRules.find((r) => r.ruleId === schemeId)
-    expect(rule?.kind).toBe('scheme')
-    expect(rule?.rewardKind).toBe('free_qty')
-    expect(rule?.freeQty).toBe(FREE_PCS)
-    expect(rule?.freeVariantId).toBe(freeVariant)
+    // The TRIGGER line carries the rule with what it gave; the reward line carries ONE marker back to that
+    // rule and nothing else — so a reader that sums `freeQty` over the order's rules (the claim, the
+    // scheme-spend register) sees the gift once. Repeating freeQty on the reward line claimed it twice.
+    const trigger = sold?.appliedRules.find((r) => r.ruleId === schemeId)
+    expect(trigger?.kind).toBe('scheme')
+    expect(trigger?.rewardKind).toBe('free_qty')
+    expect(trigger?.freeQty).toBe(FREE_PCS)
+    expect(trigger?.freeVariantId).toBe(freeVariant)
+    expect(free?.appliedRules).toHaveLength(1)
+    const marker = free?.appliedRules[0]
+    expect(marker?.ruleId).toBe(schemeId)
+    expect(marker?.version).toBe(trigger?.version)
+    expect(marker?.reward).toBe(true)
+    expect(marker?.freeQty).toBeUndefined()
+    expect(marker?.freeVariantId).toBeUndefined()
+    expect(
+      lines.flatMap((l) => l.appliedRules).reduce((n, r) => n + (r.freeQty ?? 0), 0),
+      'the gift is counted once across the whole order',
+    ).toBe(FREE_PCS)
   })
 
   it('hop 1b — editing the draft from a device never turns the gift into a sale', async () => {
@@ -573,6 +591,16 @@ describeDb('DOS-185 free goods down the chain (DATABASE_URL)', () => {
     const sold = lines.filter((l) => l.variantId === soldVariant)
     const total = [...sold, ...free].reduce((n, l) => n + l.lineTotalPaise, 0)
     expect(total).toBe(sold.reduce((n, l) => n + l.lineTotalPaise, 0))
+    // the bill copies the order's rules as they are: the gift's quantity appears on the trigger line only
+    for (const line of free) {
+      expect(line.appliedRules).toHaveLength(1)
+      expect(line.appliedRules[0]?.reward).toBe(true)
+      expect(line.appliedRules[0]?.freeQty).toBeUndefined()
+    }
+    expect(
+      lines.flatMap((l) => l.appliedRules).reduce((n, r) => n + (r.freeQty ?? 0), 0),
+      'the gift is counted once across the whole bill',
+    ).toBe(FREE_PCS)
   })
 
   let tripId = ''
