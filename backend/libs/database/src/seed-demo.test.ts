@@ -6,6 +6,7 @@ import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, type Db } from './client.js'
 import { memberships, salesOrders, tenants, users } from './schema/index.js'
+import { dispatchStockFaults } from './seed-demo/dispatch-stock.js'
 import { seedDemo, seedExtraTenants, seedPlatformConsole } from './seed-demo.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
@@ -176,6 +177,9 @@ describeDb('demo seed on an empty database', () => {
   it('writes the whole demo the first time and nothing the second time', async () => {
     await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
     const first = await rowCounts(db)
+    // The goods ride the van (QA DOS-195): every packed bill stands on the dock or its van, every
+    // delivered one on neither, and nothing is negative — the sentences are the failure message.
+    expect(await dispatchStockFaults(db, tenantId)).toEqual([])
     // the whole scheme book is claimed brand by brand and month by month, plus the damage, expiry,
     // shortage and brand-DMS claims: a dozen or more, never fewer
     expect(first['claims']).toBeGreaterThanOrEqual(12)

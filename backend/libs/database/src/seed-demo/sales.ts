@@ -2195,22 +2195,40 @@ export async function seedSales(
           suggestedLotId: pickLine?.suggestedLotId ?? null,
           fefoOverride: pickLine?.fefoOverride ?? false,
         })
-        // the pieces leave the rack at pack, keyed exactly as `InventoryService.postPick` keys them
+        // The pieces leave the rack at pack and land on the DOCK (QA DOS-195): rack → in-transit as
+        // `transfer_out` + `transfer_in`, keyed exactly as `InventoryService.postPick` keys them
+        // (`pack:<order>:<line>:<lot>` and `…:in`). The load sheet moves them dock → vehicle and the
+        // door sells them off the van (`seedDispatchStock`); the godown is relieved once, here.
         if (lot && pickLine && pickLine.pcs > 0) {
           const key = `pack:${order.id}:${l.id}:${lot.id}`
-          saleLedgerRows.push({
-            id: demoId('ledger', key),
-            tenantId,
-            occurredAt: packedAt,
-            lotId: lot.id,
-            locationId: stock.godownId,
-            qtyDelta: -pickLine.pcs,
-            reason: 'sale',
-            refType: 'pack',
-            refId: order.id,
-            actorId: people.warehouse.id,
-            idempotencyKey: key,
-          })
+          saleLedgerRows.push(
+            {
+              id: demoId('ledger', key),
+              tenantId,
+              occurredAt: packedAt,
+              lotId: lot.id,
+              locationId: stock.godownId,
+              qtyDelta: -pickLine.pcs,
+              reason: 'transfer_out',
+              refType: 'pack',
+              refId: order.id,
+              actorId: people.warehouse.id,
+              idempotencyKey: key,
+            },
+            {
+              id: demoId('ledger', `${key}:in`),
+              tenantId,
+              occurredAt: packedAt,
+              lotId: lot.id,
+              locationId: stock.transitId,
+              qtyDelta: pickLine.pcs,
+              reason: 'transfer_in',
+              refType: 'pack',
+              refId: order.id,
+              actorId: people.warehouse.id,
+              idempotencyKey: `${key}:in`,
+            },
+          )
         }
         return {
           id: invoiceLineId,
