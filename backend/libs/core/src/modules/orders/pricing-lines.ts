@@ -1,7 +1,7 @@
 import { ORPCError } from '@orpc/server'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Quote } from '@dos/contracts'
-import { paise, roundToRupee } from '@dos/domain'
+import { paise, roundToRupee, uuidv7 } from '@dos/domain'
 import type { salesOrderLines } from '@dos/db'
 import { productVariants, tenantProducts, type AppliedRule, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
@@ -229,8 +229,87 @@ export async function priceOrderLines(
       ...pricedLineFields(q),
     } satisfies typeof salesOrderLines.$inferInsert
   })
+  const all = [...lines, ...rewardLines(tenantId, args.orderId, quote, lines.length)]
 
-  return { lines, totals: orderTotals(lines), quote }
+  return { lines: all, totals: orderTotals(all), quote }
+}
+
+/** True for a line this module wrote as a scheme reward, not one the rep or the shop typed. */
+export function isRewardLine(line: Pick<OrderLineRow, 'qtyPcs' | 'freeQtyPcs'>): boolean {
+  return line.qtyPcs === 0 && line.freeQtyPcs > 0
+}
+
+/**
+ * QA DOS-185: a scheme whose reward is a DIFFERENT item ("a bottle free per case") is an entitlement to
+ * GOODS, not a footnote on the line that triggered it. The engine returns it in `freeItems`; here it becomes
+ * a real order line of the reward variant at no charge — `qty_pcs = 0`, `free_qty_pcs` = the reward, rate ₹0 —
+ * which is exactly how the rest of the chain already carries free goods, so the reservation, the pick row, the
+ * ₹0 invoice line, the load sheet, the delivery and the credit note all take it with no special case. Free
+ * pieces of a line's OWN variant stay where the engine puts them, on that line.
+ *
+ * One line per (reward variant × rule), so two triggering lines of the same scheme are one gift on the sheet.
+ */
+function rewardLines(
+  tenantId: string,
+  orderId: string,
+  quote: Quote,
+  enteredCount: number,
+): (typeof salesOrderLines.$inferInsert &
+  Pick<OrderLineRow, 'discountPaise' | 'taxPaise' | 'cessPaise' | 'lineTotalPaise'>)[] {
+  const rewards = new Map<
+    string,
+    { variantId: string; ruleId: string; version: number; qtyPcs: number }
+  >()
+  for (const line of quote.lines) {
+    for (const free of line.freeItems) {
+      if (free.variantId === line.variantId || free.qtyPcs <= 0) continue
+      const key = `${free.variantId}|${free.ruleId}`
+      const found = rewards.get(key)
+      if (found) found.qtyPcs += free.qtyPcs
+      else rewards.set(key, { ...free })
+    }
+  }
+  return [...rewards.values()].map((reward, index) => ({
+    id: uuidv7(),
+    tenantId,
+    orderId,
+    lineNo: enteredCount + index + 1,
+    variantId: reward.variantId,
+    // Nobody typed this line, so it is entered in the unit it is counted in: pieces.
+    enteredQty: reward.qtyPcs,
+    enteredUnit: 'piece' as const,
+    packSizeAtEntry: 1,
+    qtyPcs: 0,
+    freeQtyPcs: reward.qtyPcs,
+    /*
+     * Nothing is charged and nothing is taxed. A free line's taxable is ₹0, which IS the treatment billing
+     * already gives free goods (`InvoiceLineSchema.freeQtyPcs`: "quantity with no value, excluded from
+     * taxablePaise"), and the bill puts the item's own dated HSN rate on the line at issue. Putting a rate
+     * here would invent tax on a gift, which is not ours to decide.
+     */
+    listRatePaise: 0,
+    ratePaise: 0,
+    discountBps: 0,
+    discountPaise: 0,
+    gstBps: 0,
+    cessBps: 0,
+    taxPaise: 0,
+    cessPaise: 0,
+    lineTotalPaise: 0,
+    /*
+     * ONE marker back to the rule that gave it — and NOT the rule again. The triggering line already
+     * carries the entry with `freeQty` / `freeVariantId`; repeating it here made every reader that sums
+     * or enumerates `freeQty` per line (the claim builder, the scheme-spend register) count the gift
+     * twice: claimed twice from the brand, "spent" twice on the owner's register. The quantity of this
+     * line is structural (`freeQtyPcs`), so the pointer needs no quantity. A reader that must recognise
+     * a gift line uses `isRewardLine` (`qtyPcs = 0 && freeQtyPcs > 0`), as the picklist, the pack, the
+     * bill and the delivery already do.
+     */
+    appliedRules: [
+      { ruleId: reward.ruleId, version: reward.version, kind: 'scheme' as const, reward: true },
+    ],
+    priceLocked: false,
+  }))
 }
 
 /** The approved rate a stored line already carries: the `ruleId` of its `bargain` rule, or null. */
@@ -299,7 +378,10 @@ export async function repriceApprovedBargains(
     ...(order.pricingDateMode === 'delivery' && order.expectedDeliveryDate
       ? { deliveryDate: order.expectedDeliveryDate }
       : {}),
-    lines: lines.map((line) => ({
+    // A reward line (DOS-185) is not priced: it carries no rate for a bargain to replace, and the engine
+    // would refuse a variant the shop's price list does not name. Its free pieces depend on the quantities
+    // ordered, which a rate approval never changes, so it comes through confirm exactly as drafted.
+    lines: priced.map((line) => ({
       lineId: line.id,
       variantId: line.variantId,
       qtyPcs: line.qtyPcs,
@@ -309,6 +391,8 @@ export async function repriceApprovedBargains(
 
   const changed: OrderLineRow[] = []
   const merged = lines.map((line) => {
+    // Exactly the lines `priced` left out of the quote above: a reward line, and nothing else today.
+    if (line.qtyPcs <= 0) return line
     const q = quoted.get(line.id)
     if (!q) throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `quote lost line ${line.id}` })
     const stored = storedBargain(line)
@@ -335,5 +419,6 @@ function toStoredRules(rules: Quote['lines'][number]['appliedRules']): AppliedRu
     ...(r.amountPaise === undefined ? {} : { amountPaise: r.amountPaise }),
     ...(r.freeQty === undefined ? {} : { freeQty: r.freeQty }),
     ...(r.freeVariantId === undefined ? {} : { freeVariantId: r.freeVariantId }),
+    ...(r.reward === undefined ? {} : { reward: r.reward }),
   }))
 }

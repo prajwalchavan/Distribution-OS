@@ -6111,7 +6111,8 @@ request.json
           "rewardKind": "free_qty",
           "amountPaise": 4000,
           "freeQty": 24,
-          "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+          "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+          "reward": true
         }
       ],
       "lineNetPaise": 2680000,
@@ -6130,7 +6131,8 @@ request.json
       "rewardKind": "free_qty",
       "amountPaise": 4000,
       "freeQty": 24,
-      "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+      "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+      "reward": true
     }
   ],
   "cashDiscountBps": 500,
@@ -8556,7 +8558,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -8781,7 +8784,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -9013,7 +9017,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -9229,7 +9234,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -9455,7 +9461,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -9692,7 +9699,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -9905,7 +9913,8 @@ curl "http://localhost:3003/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -10098,7 +10107,8 @@ curl "http://localhost:3003/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -10578,7 +10588,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true
@@ -13648,7 +13659,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ]
       }
@@ -13891,7 +13903,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ]
       }
@@ -14153,7 +14166,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ]
       }
@@ -14384,7 +14398,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ]
       }
@@ -14608,7 +14623,8 @@ curl "http://localhost:3003/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ]
       }
@@ -15138,7 +15154,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ]
       }
@@ -24442,7 +24459,8 @@ request.json
             "rewardKind": "free_qty",
             "amountPaise": 4000,
             "freeQty": 24,
-            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4"
+            "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
+            "reward": true
           }
         ],
         "priceLocked": true

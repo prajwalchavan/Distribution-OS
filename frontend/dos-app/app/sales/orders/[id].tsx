@@ -304,13 +304,23 @@ export default function OrderDetail(): React.JSX.Element {
                 const rate = line.rate_paise ?? priced?.ratePaise ?? null
                 const lineTotal = line.line_total_paise ?? priced?.lineNetPaise ?? null
                 const free = line.free_qty_pcs ?? priced?.freeQtyPcs ?? 0
+                /*
+                 * DOS-185: a scheme reward of another item is its own line, at no charge. Saying
+                 * "5 pc · Rs 0.00/pc · 5 pc free" would price a gift and count it twice; the row says
+                 * what it is once — free goods, and how many.
+                 */
+                const reward = line.qty_pcs === 0 && free > 0
                 return (
                   <ListRow
                     key={line.id}
                     primary={item?.name ?? line.variant_id.slice(0, 8)}
-                    secondary={`${formatQty(pieces(qtyPcs), caseSize)}${
-                      rate === null ? '' : ` · ${formatINR(paise(rate))}/pc`
-                    }${free > 0 ? ` · ${t('qty.freeGoods', { pieces: free })}` : ''}`}
+                    secondary={
+                      reward
+                        ? t('qty.freeGoods', { pieces: free })
+                        : `${formatQty(pieces(qtyPcs), caseSize)}${
+                            rate === null ? '' : ` · ${formatINR(paise(rate))}/pc`
+                          }${free > 0 ? ` · ${t('qty.freeGoods', { pieces: free })}` : ''}`
+                    }
                     trailingMoney={lineTotal}
                     trailing={
                       line._pending == null ? undefined : (

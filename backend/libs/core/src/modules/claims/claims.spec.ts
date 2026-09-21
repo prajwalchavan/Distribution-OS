@@ -107,6 +107,8 @@ describeDb('claims (DATABASE_URL)', () => {
   }
   const line = {
     a1: uuidv7(),
+    /** DOS-185: the reward line the trigger `a1` earned — another variant, at ₹0, carrying the rule's marker. */
+    a1free: uuidv7(),
     a2: uuidv7(),
     b1: uuidv7(),
     old1: uuidv7(),
@@ -183,7 +185,13 @@ describeDb('claims (DATABASE_URL)', () => {
     id: string,
     invoiceDate: string,
     state: 'issued' | 'cancelled',
-    lines: { id: string; variantId: string; qtyPcs: number; rules: unknown[] }[],
+    lines: {
+      id: string
+      variantId: string
+      qtyPcs: number
+      freeQtyPcs?: number
+      rules: unknown[]
+    }[],
   ): Promise<void> {
     await db.insert(invoices).values({
       id,
@@ -210,7 +218,8 @@ describeDb('claims (DATABASE_URL)', () => {
         description: 'line',
         hsnCode: '2202',
         qtyPcs: l.qtyPcs,
-        ratePaise: 1000,
+        freeQtyPcs: l.freeQtyPcs ?? 0,
+        ratePaise: l.qtyPcs === 0 ? 0 : 1000,
         taxablePaise: 1000 * l.qtyPcs,
         gstBps: 1200,
         lineTotalPaise: 1120 * l.qtyPcs,
@@ -425,6 +434,15 @@ describeDb('claims (DATABASE_URL)', () => {
         qtyPcs: 12,
         rules: [rule(sch.pct, { rewardKind: 'line_pct', amountPaise: 1200 })],
       },
+      // DOS-185: the two free X2 that `a1` earned are a real line of the bill (qty 0, free 2, rate 0) whose
+      // applied_rules carries ONLY the marker back to the rule — never the rule's freeQty a second time.
+      {
+        id: line.a1free,
+        variantId: vx2,
+        qtyPcs: 0,
+        freeQtyPcs: 2,
+        rules: [rule(sch.free, { reward: true })],
+      },
     ])
     await seedInvoice(inv.b, '2026-08-20', 'issued', [
       {
@@ -597,7 +615,8 @@ describeDb('claims (DATABASE_URL)', () => {
       id: claim1,
     })
     expect(built.status).toBe(200)
-    // free goods (a1 × sch.free) and the two pct lines (a2, b1); the cancelled bill and June are outside
+    // free goods (a1 × sch.free) and the two pct lines (a2, b1); the cancelled bill and June are outside.
+    // DOS-185: the reward line `a1free` points at the same rule but is NOT a second gift — three lines, not four.
     expect(built.body.added).toBe(3)
     expect(built.body.outOfWindow).toBe(0)
     expect(built.body.skipped).toBe(0)
@@ -620,6 +639,8 @@ describeDb('claims (DATABASE_URL)', () => {
     expect(bySource.has(`${line.a1}:${sch.cash}`)).toBe(false)
     expect(bySource.has(`${line.a1}:${sch.dms}`)).toBe(false)
     expect(bySource.has(`${line.c1}:${sch.pct}`)).toBe(false)
+    // the reward line is the gift's goods, not a claim of its own: one gift, claimed once, at the trigger
+    expect(bySource.has(`${line.a1free}:${sch.free}`)).toBe(false)
     expect(built.body.item.claimedPaise).toBe(2 * PTD_X1 + 1200 + 600)
 
     const before = await claimNext()
