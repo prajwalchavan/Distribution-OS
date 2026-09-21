@@ -39,10 +39,10 @@ import {
 import { paise } from '@dos/domain'
 import { haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { deviceId } from '../src/api'
-import { checkInBlock, dayEndCash, deviceMoney } from '../src/lib/check-in'
+import { checkInBlock, dayEndCash, dayEndReadKey, deviceMoney } from '../src/lib/check-in'
 import { longDate } from '../src/lib/dates'
 import { keepKey } from '../src/lib/keep'
 import {
@@ -117,6 +117,24 @@ export default function DaySummary(): React.JSX.Element {
     () => api.api.delivery.trips.settlementPreview({ id: tripId ?? '' }),
     { enabled: signedIn && tripId !== null },
   )
+
+  /*
+   * S-168 — the office's figures are re-read when the office's answer could have changed: the signal
+   * returns, the outbox reaches empty, a delta pull lands (a desk settling arrives that way). Held in
+   * a ref so the mount's own read is not doubled, and keyed on `dayEndReadKey` so an upload that only
+   * moves the count 3 → 2 costs nothing. Without it the figure went blank on the same mount beside an
+   * enabled check-in button and came back only on a re-open.
+   */
+  const readKey = dayEndReadKey(status)
+  const lastRead = useRef<string | null>(null)
+  const refetchPreview = preview.refetch
+  const mayRead = signedIn && tripId !== null
+  useEffect(() => {
+    const previous = lastRead.current
+    lastRead.current = readKey
+    if (previous === null || previous === readKey || !mayRead) return
+    void refetchPreview()
+  }, [readKey, refetchPreview, mayRead])
 
   const [odometer, setOdometer] = useState('')
   const [confirming, setConfirming] = useState(false)

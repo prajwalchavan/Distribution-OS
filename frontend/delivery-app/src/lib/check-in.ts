@@ -86,6 +86,30 @@ export function deviceMoney(rows: readonly DeviceReceipt[]): {
   }
 }
 
+/**
+ * WHEN D8 MUST READ THE OFFICE'S FIGURES AGAIN, as one value an effect can be keyed on (S-168).
+ *
+ * `useQuery` reads once per mount and again only on an invalidation, and this screen invalidated
+ * `['settlement']` only after `trips.return`. So nothing re-read when the outbox drained, when the
+ * signal came back, or when the desk settled the trip — and measured on web at both widths, once the
+ * queue drained on the same mount "Cash the office expects" read "—" beside an ENABLED check-in
+ * button, the right figure returning only on a re-open (money-web.md §5(A), phase 3).
+ *
+ * Three things can change what the office would answer, and each changes this key: the signal, the
+ * outbox reaching empty, and a delta pull landing (a desk settling arrives that way). A count going
+ * 3 → 2 does not: the answer cannot change until the queue is empty, and a read per upload is a read
+ * per upload on every phone in the field (docs/20 rule 1).
+ */
+export function dayEndReadKey(status: {
+  readonly online: boolean
+  readonly pending: number
+  readonly lastPulledAt: string | null
+}): string {
+  const signal = status.online ? 'on' : 'off'
+  const outbox = status.pending === 0 ? 'clear' : 'holding'
+  return `${signal}|${outbox}|${status.lastPulledAt ?? 'never'}`
+}
+
 /** Why "Check the vehicle in" is refused, or `null` when it is not. */
 export type CheckInBlock = 'notActive' | 'offline' | 'pending' | 'odometer'
 
