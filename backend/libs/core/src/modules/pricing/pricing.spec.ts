@@ -42,10 +42,18 @@ describeDb('pricing (DATABASE_URL)', () => {
   const v2 = uuidv7() // ₹20 default only, case 24
   const vUnrated = uuidv7() // its HSN has no GST rate on any date (DOS-096)
   const vCess = uuidv7() // DOS-079: 28% GST + 12% compensation cess, ₹22.97 a piece
+  const vAerated = uuidv7() // S-176: on the CURATED heading 2202, whose rate the demo catalogue ships
   // Per-run HSN codes so no other spec's rate row can answer for them (8 and 9 are orders' and ai's prefixes).
   const hsn = `7${Date.now().toString().slice(-6)}` // 18% from 2020-04-01
   const hsnNoRate = `6${Date.now().toString().slice(-6)}` // never given an hsn_rates row
   const hsnCess = `5${Date.now().toString().slice(-6)}` // 28% + 12% cess from 2020-04-01 (DOS-079)
+  /**
+   * The CURATED heading of aerated waters with added sugar, whose one live rate the demo catalogue
+   * ships (`seed-demo/catalog.ts`) — not a per-run fixture code. S-176 was that this heading carried
+   * THREE live rates, so the rate a case of Campa bore was the query plan's choice and changed with
+   * the rest of the order; the spec below prices against the real table the app prices against.
+   */
+  const AERATED_HSN = '2202'
   const shopA = uuidv7() // tier A, has the final override
   const shopC = uuidv7() // tier C, gets the scheme; linked to the retailer-role user
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
@@ -113,6 +121,15 @@ describeDb('pricing (DATABASE_URL)', () => {
         netUnit: 'ml',
         defaultCaseSize: 12,
         hsnCode: hsnCess,
+      },
+      {
+        id: vAerated,
+        productId,
+        name: `Aerated 600 ml ${run}`,
+        netQty: 600,
+        netUnit: 'ml',
+        defaultCaseSize: 24,
+        hsnCode: AERATED_HSN,
       },
     ])
     // The quote carries GST (DOS-096), so every item it prices needs a dated rate for its HSN.
@@ -676,6 +693,45 @@ describeDb('pricing (DATABASE_URL)', () => {
       (await quoteFor(rep, shopA, [{ lineId: 'l2', variantId: v2, qtyPcs: 10 }])).body.lines[0]
         ?.gstBps,
     ).toBe(1800)
+  })
+
+  it('S-176: prices an aerated drink at the ONE rate its HSN carries — 28% plus 12% cess — alone on the order and beside another HSN', async () => {
+    await db.insert(priceListItems).values({
+      id: uuidv7(),
+      tenantId,
+      priceListId: defaultListId,
+      variantId: vAerated,
+      ratePaise: 2_500,
+    })
+    /*
+     * THE WALK'S FINDING, IN A SPEC. `hsn_rates` held three live rows for heading 2202 — aerated
+     * waters at 28% + 12% cess, packaged drinking water at 18%, fruit-juice based drinks at 12% —
+     * and every caller takes "the first row" of `effective_from DESC`, which with equal dates is the
+     * query PLAN's choice. It was not even a stable wrong answer: `hsn_code IN ('2202')` came back
+     * 12% with no cess and `IN ('2202', <another>)` came back 28% + 12%, so a rep who put only
+     * aerated drinks on an order quoted the shopkeeper a quarter under the bill he would be handed.
+     * One heading now names one rate (migration 0058) and a second live row is refused (0059).
+     */
+    const alone = await quoteFor(rep, shopA, [{ lineId: 'a1', variantId: vAerated, qtyPcs: 24 }])
+    expect(alone.status).toBe(200)
+    expect(alone.body.lines[0]).toMatchObject({
+      lineNetPaise: 60_000,
+      gstBps: 2_800,
+      cessBps: 1_200,
+      cessPaise: 7_200,
+      taxPaise: 24_000, // 28% GST ₹168.00 + 12% cess ₹72.00, cess INSIDE the tax (DOS-079)
+    })
+
+    // Beside a line of another HSN — the case that used to resolve differently.
+    const beside = await quoteFor(rep, shopA, [
+      { lineId: 'a1', variantId: vAerated, qtyPcs: 24 },
+      { lineId: 'a2', variantId: v2, qtyPcs: 10 },
+    ])
+    expect(beside.status).toBe(200)
+    const aerated = beside.body.lines.find((l) => l.lineId === 'a1')
+    expect(aerated?.gstBps).toBe(alone.body.lines[0]?.gstBps)
+    expect(aerated?.cessBps).toBe(alone.body.lines[0]?.cessBps)
+    expect(aerated?.taxPaise).toBe(alone.body.lines[0]?.taxPaise)
   })
 
   it('DOS-079: a quote for a cess item carries cessBps/cessPaise inside taxPaise and the rupee-rounded payable', async () => {

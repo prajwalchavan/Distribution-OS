@@ -407,6 +407,20 @@
       "when": 1789964866379,
       "tag": "0057_role_election_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1789964866380,
+      "tag": "0058_hsn_rate_subheadings",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1789971334907,
+      "tag": "0059_hsn_rate_unique_expand",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   businessDate,
   invoiceMachine,
@@ -8,7 +8,6 @@ import {
   type InvoiceState,
 } from '@dos/domain'
 import {
-  hsnRates,
   productVariants,
   retailerIdentities,
   retailers,
@@ -206,49 +205,13 @@ export async function loadVariantBilling(
 }
 
 /**
- * The GST and cess rate that applied to an HSN ON THE INVOICE DATE. A rate change is a new `hsn_rates`
- * row with its own `effective_from`, so a reprint of an old bill always shows the old rate. A missing
- * rate is a 400 naming the HSN — never a silent 0%, which would under-declare tax.
+ * THE RATE IS PRICING'S, NOT BILLING'S OWN COPY (QA S-176). The bill must charge the GST and the cess
+ * the order quoted for the same variant on the same day (docs/22 §4, §6): two copies of one lookup
+ * over a table that held two live rows for a heading priced the same case at 12% on the order and at
+ * 28% + 12% cess on the invoice. One function now answers both, and migration 0059 makes a second
+ * live row a database error.
  */
-export interface HsnRate {
-  gstBps: number
-  cessBps: number
-}
-
-export async function loadHsnRates(
-  tx: Db,
-  hsnCodes: readonly string[],
-  on: string,
-): Promise<Map<string, HsnRate>> {
-  const wanted = [...new Set(hsnCodes)]
-  if (wanted.length === 0) return new Map()
-  const rows = await tx
-    .select({
-      hsnCode: hsnRates.hsnCode,
-      gstBps: hsnRates.gstBps,
-      cessBps: hsnRates.cessBps,
-      effectiveFrom: hsnRates.effectiveFrom,
-    })
-    .from(hsnRates)
-    .where(
-      and(
-        inArray(hsnRates.hsnCode, wanted),
-        lte(hsnRates.effectiveFrom, on),
-        or(isNull(hsnRates.effectiveTo), gte(hsnRates.effectiveTo, on)),
-      ),
-    )
-    .orderBy(desc(hsnRates.effectiveFrom))
-  const map = new Map<string, HsnRate>()
-  for (const row of rows)
-    if (!map.has(row.hsnCode)) map.set(row.hsnCode, { gstBps: row.gstBps, cessBps: row.cessBps })
-  const missing = wanted.filter((code) => !map.has(code))
-  if (missing.length > 0)
-    throw new ORPCError('BAD_REQUEST', {
-      message: `no GST rate for HSN ${missing.join(', ')} on ${on}; add an hsn_rates row`,
-      data: { hsnCodes: missing, on },
-    })
-  return map
-}
+export { loadHsnRates, type HsnRate } from '../pricing/index.js'
 
 // ---------------------------------------------------------------------------------------------------------------
 // the parties on the document

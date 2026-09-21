@@ -103,6 +103,7 @@ import {
   vehiclePositions,
   vehicles,
   whatsappWindows,
+  hsnRates,
   manufacturers,
   products,
   productVariants,
@@ -7727,6 +7728,68 @@ describeDb('row level security and ledger guarantees', () => {
           }
         })
       }
+    })
+  })
+
+  /**
+   * THE TAX RATE OF AN HSN IS ONE NUMBER, NOT A CHOICE (QA S-176). `hsn_rates` is the only place a
+   * GST and cess rate comes from, and every caller reads it the same way: the rows live on the date,
+   * newest `effective_from` first, take the first. That is a TOTAL order only while one HSN has one
+   * row per date — with two, "the first" is heap order, and the order path and the invoice path can
+   * price the same case at 12% and at 28% + 12% cess on the same day. The index below is unique so
+   * that a second live rate is a database error at insert, not a silent 25% hole in a bill.
+   */
+  describe('the curated tax table (hsn_rates)', () => {
+    const code = `99${run.slice(-4)}`
+
+    it('S-176: refuses a second rate for the same HSN on the same effective date', async () => {
+      await db.insert(hsnRates).values({
+        id: uuidv7(),
+        hsnCode: code,
+        description: 'Aerated waters, containing added sugar',
+        gstBps: 2800,
+        cessBps: 1200,
+        effectiveFrom: '2017-07-01',
+      })
+      await rejectsWith(
+        db.insert(hsnRates).values({
+          id: uuidv7(),
+          hsnCode: code,
+          description: 'Fruit pulp / fruit juice based drinks',
+          gstBps: 1200,
+          cessBps: 0,
+          effectiveFrom: '2017-07-01',
+        }),
+        /hsn_rates_code_from_idx|duplicate key/,
+      )
+      // A RATE CHANGE is still a new row with its own date: an old bill re-prints at the old rate.
+      await db.insert(hsnRates).values({
+        id: uuidv7(),
+        hsnCode: code,
+        description: 'Aerated waters, after the rate change',
+        gstBps: 4000,
+        cessBps: 1200,
+        effectiveFrom: '2030-04-01',
+      })
+      const live = await db.execute<{ n: number }>(sql`
+        SELECT count(*)::int AS n FROM hsn_rates
+         WHERE hsn_code = ${code} AND effective_from <= current_date
+           AND (effective_to IS NULL OR effective_to >= current_date)`)
+      expect(live.rows[0]?.n, 'one rate is live today').toBe(1)
+    })
+
+    it('S-176: leaves every HSN the catalogue sells under with one live rate, not a choice', async () => {
+      const ambiguous = await db.execute<{ hsn_code: string; n: number }>(sql`
+        SELECT r.hsn_code, count(*)::int AS n
+          FROM hsn_rates r
+         WHERE r.effective_from <= current_date
+           AND (r.effective_to IS NULL OR r.effective_to >= current_date)
+           AND EXISTS (SELECT 1 FROM product_variants v WHERE v.hsn_code = r.hsn_code)
+         GROUP BY r.hsn_code
+        HAVING count(*) > 1`)
+      expect(ambiguous.rows, 'HSNs whose rate depends on which row the plan returns first').toEqual(
+        [],
+      )
     })
   })
 })
