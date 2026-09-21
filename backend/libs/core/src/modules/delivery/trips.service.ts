@@ -42,6 +42,7 @@ import { businessDate, type StopState as MachineStopState } from '@dos/domain'
 import {
   deliveries,
   deliveryLines,
+  departedEarly,
   memberships,
   trips,
   tripStops,
@@ -557,6 +558,9 @@ export class TripsService {
             state: to,
             tripDate: next.tripDate,
             startedAt: now.toISOString(),
+            // QA DOS-043: an early departure is recorded, not refused — the day it was planned for is
+            // right beside it, so the audit says what was planned as well as what happened.
+            departedEarly: departedEarly(next),
             startOdometerKm: next.startOdometerKm,
             openingCashPaise: next.openingCashPaise,
           },

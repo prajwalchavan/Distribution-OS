@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import { businessDate } from '@dos/domain'
 import {
   boolean,
   date,
@@ -219,6 +220,17 @@ export const trips = pgTable(
     deletePolicy('trips_delete', MANAGEMENT_ROLES),
   ],
 ).enableRLS()
+
+/**
+ * A trip LEFT EARLY when the vehicle rolled on an IST day before the date it was planned for (QA DOS-043;
+ * founder, 2026-09-20). An early departure is allowed and RECORDED, never refused: refusing one only pushes
+ * the desk to rewrite the plan, which destroys the record of what was planned. So this is DERIVED from the
+ * two columns the trip already carries — `trip_date` and `started_at` — and reads true of old rows as well;
+ * a trip still standing at the godown has left early of nothing.
+ */
+export function departedEarly(trip: { tripDate: string; startedAt: Date | null }): boolean {
+  return trip.startedAt !== null && businessDate(trip.startedAt).date < trip.tripDate
+}
 
 export const stopState = pgEnum('stop_state', [
   'pending',

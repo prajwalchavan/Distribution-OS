@@ -399,6 +399,13 @@ export const TripSchema = z.object({
   openingCashPaise: PaiseSchema,
   startedAt: z.string().nullable(),
   endedAt: z.string().nullable(),
+  /**
+   * The vehicle left BEFORE `tripDate` (QA DOS-043; founder, 2026-09-20). An early departure is allowed and
+   * RECORDED rather than refused — refusing one only pushes the desk to rewrite the plan, which destroys the
+   * record of what was planned — so a reader sees the date the trip was planned for and this beside it.
+   * Derived from `startedAt` against `tripDate` in IST, never a second stored fact; false until the trip leaves.
+   */
+  departedEarly: z.boolean(),
   createdAt: z.string(),
 })
 export type Trip = z.infer<typeof TripSchema>
