@@ -45,7 +45,13 @@ random() {
 # `pnpm auth:keygen` when the repo is on the box (it is: the runbook clones it for compose and these
 # scripts); otherwise the same generator out of the image, which carries @dos/core already.
 keygen() {
-  if command -v pnpm >/dev/null 2>&1 && [ -f "$HERE/../package.json" ]; then
+  if [ -x "$HERE/../node_modules/.bin/tsx" ]; then
+    # The same command `pnpm auth:keygen` runs, without pnpm in the middle. pnpm re-checks whether
+    # the workspace's dependencies are current before running a script, and a re-install triggered
+    # from inside a test run (this script is exercised by the DEP-06 spec) would remove the
+    # node_modules the run is standing on.
+    (cd "$HERE/.." && ./node_modules/.bin/tsx tools/auth-keygen.mts)
+  elif command -v pnpm >/dev/null 2>&1 && [ -f "$HERE/../package.json" ]; then
     (cd "$HERE/.." && pnpm --silent auth:keygen)
   elif command -v docker >/dev/null 2>&1 && [ -n "${DOS_IMAGE:-}" ]; then
     docker run --rm --entrypoint node "$DOS_IMAGE" -e '
@@ -55,7 +61,7 @@ keygen() {
       console.log("AUTH_JWT_PUBLIC_KEY=" + encodeJwk(k.publicJwk));
     '
   else
-    echo "cannot generate auth keys: need either pnpm and the repo, or docker and DOS_IMAGE" >&2
+    echo "cannot generate auth keys: need the repo's node_modules, or pnpm and the repo, or docker and DOS_IMAGE" >&2
     exit 1
   fi
 }
