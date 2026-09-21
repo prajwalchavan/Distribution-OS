@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { businessDate, uuidv7 } from '@dos/domain'
 import {
@@ -113,9 +113,13 @@ describeDb('billing (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
   const run = String(Date.now()).slice(-8)
-  const hsn = `9${run.slice(-6)}`
+  // Per-run codes, deleted in `afterAll`: `hsn_rates` is global and unique on (code, date) since
+  // S-176, so a code built from six digits of the clock came round again as a hard INSERT failure on
+  // a long-lived database. Eight digits is the contract's ceiling (`HsnCodeSchema`, which the
+  // brand-DMS invoice below is validated against), so the prefix takes the run's last SEVEN.
+  const hsn = `9${run.slice(-7)}`
   /** DOS-079: aerated waters — 28% GST plus 12% compensation cess. */
-  const cessHsn = `7${run.slice(-6)}`
+  const cessHsn = `7${run.slice(-7)}`
 
   const tenantId = uuidv7()
   const otherTenantId = uuidv7()
@@ -488,6 +492,8 @@ describeDb('billing (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app?.close()
+    // The rate rows this run wrote into the GLOBAL table go with it (owner connection, no RLS).
+    await db.delete(hsnRates).where(inArray(hsnRates.hsnCode, [hsn, cessHsn]))
     await pool.end()
   })
 
