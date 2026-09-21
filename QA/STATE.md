@@ -8,12 +8,24 @@ Last updated: 2026-09-20, 20:15 IST
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_9b6e45a1-701` | `wn824zk7e` | **The ruling, then the whole walk debt** — runner `QA/tools/batch2/workflows/ruling-and-walks.js`. Fable rules the list-order question the founder handed to the architect seat on 2026-09-21 ("go as per your (FABLE's) recommendation"), the ruling is built and merged if it needs code, and then six walk blocks run as ONE strictly serial device queue, closed by Fable's judgement. |
-| `wf_af0335fb-a15` | `w0d4utpmt` | `fix-seed-harness` (S-149, S-156, S-157) — in integration. `founder-answers` already merged `9386d14`. |
+| `wf_2dc93b47-727` | `ws0x0dyo9` | **Web first** — runner `QA/tools/batch2/workflows/web-first.js`. The architect's list-order ruling built and merged, then five blocks: the smoke run and its failures triaged, the money ruling legs read out of the ledger, the doorstep money findings, every wave-3 walk a browser can settle, and ONE basic Android sanity pass. Closed by Fable's judgement under the new terms. |
+| `wf_af0335fb-a15` | `w0d4utpmt` | `fix-seed-harness` (S-149, S-156, S-157) — in integration. |
 
-**The walk queue, in order.** (1) the smoke that re-arms the main-health gate — a fresh seed, a replay and a destructive run, and the sentence "0 BROKEN on commit X" is the thing that re-arms it; (2) the money ruling's web legs, DOS-168/169/170, read out of the journal and the trial balance rather than off a screen; (3) its Android and iOS legs, which only a device can prove; (4) DOS-172, DOS-174, DOS-175/176/177; (5) the delivery and manager wave-3 walks; (6) the owner, sales and retailer ones. Then Fable judges, finding by finding, what may be CLOSED — and answers two programme questions in writing: is the smoke gate re-armed, and is iOS proven to the standard this programme has been claiming.
+## The founder re-ordered this work on 2026-09-21 — read docs/22 §8, not this summary
 
-Why serial: there is one Pixel 7 and one simulator, and a measurement taken while turbo saturates the cores and swap is full is not a measurement. Each block checks `vm_stat` and `sysctl vm.swapusage` before booting anything and is told to return device legs as not-proven, with the reading quoted, rather than thrash — which is exactly what a wave-3 lane did, correctly.
+Three sentences, and they change what "done" means for the rest of Stage 1:
+
+- **"Smoke gate to be done for failed ones."** No all-or-nothing bar. `pnpm smoke` runs and every BROKEN is triaged on its own merits into one of three kinds — a real fault (a finding), no demo row that qualifies (a harness fault: it must say SKIPPED), or a wrong published example. Nothing waits for a perfect run. The old "0 BROKEN re-arms the main-health gate" framing is gone.
+- **"IOS and andriod to be validated completely in the end / For now basics can be done."** One complete device pass, at the end, on both platforms. Until then a device walk is a short sanity check and **no finding stays open waiting for a phone** — it closes on its browser evidence and is listed for the end pass. This folds up the per-lane "platform proof follows" debt of 2026-09-14 and turns the standing iOS gap (open since 2026-09-06) into scheduled work instead of a running debt. NO iOS in the current run, deliberately.
+- **"As working and user tests and all other are more imp that can be done on system it self."** What a browser on this Mac can exercise comes first. That is the cross-role end-to-end phase and the full regression, and they now outrank device time.
+
+**The architect's ruling on list order, which the founder delegated ("go as per your (FABLE's) recommendation"):** one rule, not a rule plus an exception — *every list orders newest first on the same column its own from/to window filters: server time `created_at` for a queue of work, the document's own stamped date for a dated register, the row id only ever breaking a tie.* `QA/evidence/batch2/verdicts/DOS-009-list-order-ruling.md`. Its code cost is one stale comment and one client-side re-sort to delete in `frontend/delivery-app/app/trips.tsx` — a screen that silently re-sorts is exactly the second rule the ruling forbids.
+
+## Queued next, and it is now the priority
+
+1. **Full A.12 regression** — 7 apps in a browser, at desk and phone widths, against the running services.
+2. **Phase 2 — the cross-role end-to-end business flow.** This is the "working and user tests" the founder means: one order carried by real people through every app, end to end.
+3. **The complete device validation**, Android and iOS, once the product is otherwise right.
 
 ## Wave 3 is closed — all 21 lean groups on main, 153 of 158 findings merged
 
