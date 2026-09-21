@@ -17,7 +17,32 @@ Two questions, asked of every phase:
    endpoint × every role), and a smoke run of 1 618 calls that now ends 0 BROKEN on a fresh seed. A phase
    whose content is "check the thing those already check" is re-verification, not verification.
 
-## The five days (founder, 2026-09-21: "Possibly cut it down to 4-5 days")
+## The plan as of 2026-09-21 evening — seven days, because two things moved before go-live
+
+Founder: *"make sure of role election and one store app for both APPS and website before go live."*
+Both were designed for after launch (docs/29); they now come first, and the simulation runs on the one
+merged app so that what is proven is what ships. That is the right order for a product and it costs
+about two days. Said now, not on Friday.
+
+| Day | What runs |
+|---|---|
+| 1 (Sun 21) | The cross-role chain on the seven apps as they are (running) · Welcome + landing (running) · **role election** starts (auth contract, election table, `extra_roles`, staff screen) · deployment plumbing starts in parallel (Dockerfile, compose, Caddy, migrate step, backups, secrets, Pages pipeline) |
+| 2 (Mon 22) | Role election lands after Fable's review · **the one app** starts: `frontend/dos-app`, six role groups, `serviceFor(role)`, one website + one Android + one iOS |
+| 3 (Tue 23) | The one app finishes and is gated (lint, typecheck, kit parity extended to it, the seven per-role web apps retired) · smoke + the chain re-walked ON the one app · Fable reviews its layout |
+| 4–5 (Wed 24 – Thu 25) | **The seven-day business simulation, on the one app** — two full days, blind auditor, arithmetic verdict |
+| 6 (Fri 26) | Fix what it found; check only where it pointed |
+| 7 (Sat 27) | Android basics on the one app · the security slice public URLs require · **go live**: `app.distributionos.in` and `api.distributionos.in` · Fable's audit with the handover |
+
+**Live by Saturday 27 September, if Thursday evening's books balance.** If they do not, the unknown is
+the repair — the same honest shape as before, shifted by the two days the founder chose to spend on
+shipping one thing instead of seven.
+
+Fable's sittings: role election review (day 2), one-app layout review (day 3), audit (day 7). The main
+session runs on Fable 5.1 today, so the reviews are done directly rather than by a separate agent.
+
+## The five days as first cut (kept as the record)
+
+: "Possibly cut it down to 4-5 days")
 
 The ten-day plan below this section is kept as the record of what was cut and why; the schedule itself is
 now FIVE days. Two things went, and both were genuine duplication or genuine deferral rather than a

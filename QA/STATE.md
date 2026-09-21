@@ -4,13 +4,20 @@ Last updated: 2026-09-20, 20:15 IST
 
 **This file is CURRENT STATE ONLY.** Every history — what was found, what was ruled, what was merged and why — lives in `QA/13-change-log.md`. Findings live in `QA/findings/12-batch2-new-findings.md`. Founder decisions live in `docs/22-source-of-truth.md` §8; **read docs/22, never a note in here, for what the founder has decided.** Twice on 2026-09-19 a stale note in this file sent work down a wrong path (eleven "open" questions docs/22 had already answered on 09-13, and a Q3 money repair on a database that holds no real money). If this file and docs/22 disagree, docs/22 wins and this file is wrong.
 
-## Running right now — DAY 1 of five (Mon 22 Sep in the plan; started Sun 21 Sep 08:30 IST)
+## Running right now — DAY 1 of seven (Sun 21 Sep)
 
 | Run | Task | What it is |
 |---|---|---|
-| `day1-chain.js` | `whj7hepvd` | **Phase 2 — the cross-role chain**: one order through all seven apps as the people who carry it, hop by hop, then the eight days that go wrong, then a blind verifier against the database. Own DB `dos_test_chain`, all-in-one on :3200, apps on :5273–5279. Output `QA/09-cross-role-workflows.md`. (A first launch did nothing — a founder question relayed mid-turn was taken as the agent's brief and it rightly refused to drop a database on it; relaunched.) |
-| `welcome-and-landing.js` | see /workflows | **docs/29 §1** — a Welcome screen before sign-in and a landing after it, in every app, built once in `@dos/ui` through the template. UI only; Opus in the review seat on purpose. Own DB `dos_test_b2_welcome`. |
-| `web-first.js` | `ws0x0dyo9` | Still on the walk blocks; holds :3000–3007, :3100, :5173–5179 and the emulator. |
+| `day1-chain.js` | `whj7hepvd` | Phase 2 — the cross-role chain on the seven apps as they are, then the eight days that go wrong, then a blind verifier. Output `QA/09-cross-role-workflows.md`. |
+| `welcome-and-landing.js` | `w69pcps5i` | docs/29 §1 — Welcome before sign-in, landing after, all seven apps through the template. UI only. |
+| `role-election.js` | `wgar6wy16` | **docs/29 §2 — role election, downward only** + `extra_roles` + staff screens. **Stops after integration**: the architect (this session, Fable 5.1) reads the branch and merges by hand, because it changes a contract and a permission surface. |
+| `deploy-plumbing.js` | `wk3sezrl3` | The path from repo to server, which did not exist: Dockerfile that builds (arm64 via colima), compose for the VM, Caddy + TLS, migrate + bootstrapTenant step, backups to R2, secrets, Pages pipeline, `docs/30-deploy-runbook.md`. |
+| `one-app-layout-plan` | see /workflows | **docs/29 §3, planning only, read-only**: six inventories → one move plan (`docs/31-one-app-layout.md`) with every string collision, the device-store rule for one phone holding two roles, guards, the retirement list → two skeptics. **The architect approves it tomorrow morning before a single screen moves.** |
+| `web-first.js` | `ws0x0dyo9` | The walk blocks; holds :3000–3007, :3100, :5173–5179 and the emulator. |
+
+**The plan is now SEVEN days (founder, 2026-09-21 evening): role election and the one app land BEFORE go-live, website included, and the simulation runs on the merged app.** Live by Sat 27 Sep if Thursday's books balance. `QA/10-DAY-PLAN.md` top section; page https://claude.ai/artifact/5c7mWeutvCDtEEsiujS1ei. **The seven per-role web apps are retired at the merge** — founder confirmed.
+
+**Tomorrow's first act (day 2):** read `wgar6wy16`'s branch as the architect, merge role election; read `docs/31-one-app-layout.md` and the skeptics' amendments, approve; launch the one-app merge lanes (one per group, then the root layout + strings, then guards and gates).
 
 **Three sign-in decisions today, designed in `docs/29-sign-in-roles-and-one-store-app.md`, recorded in docs/22 §8:** (1) Welcome + landing — building now; (2) **role election at sign-in, downward only** (owner may act as any staff role, manager as the field roles, others as their own plus owner/manager-set *extra roles*; the token carries the elected role so nothing on the server changes) — **not before the simulation**, day 4 if free, else after go-live, Fable reviews it; (3) **one store app** that becomes the right app after sign-in — after go-live, after (2). The seven web apps stay for the browser.
 
