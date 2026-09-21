@@ -70,7 +70,11 @@ interface StopBody {
 interface TripBody {
   id: string
   tripNo: string | null
+  tripDate: string
   state: string
+  startedAt: string | null
+  /** DOS-043: the vehicle left before `tripDate`. */
+  departedEarly: boolean
   plannedStops: number
   stopsCompleted: number
   vehicleRegNo: string
@@ -2755,6 +2759,154 @@ describeDb('delivery (DATABASE_URL)', () => {
       ]),
     ).toEqual([[driverId, 'delivery', 'active', 41_900]])
   }, 180_000)
+
+  /*
+   * QA DOS-043, founder 2026-09-20: a trip MAY depart before its planned date, and the early departure is
+   * RECORDED — the trip carries the date it was planned for and "departed early" beside it. Refusing an
+   * early departure only pushes the desk to rewrite the plan, which destroys the record of what was
+   * planned. Two van-sales runs carrying no bills, so the load-out gates of the test above are not what is
+   * measured here: one leaves two days early, one leaves on the day it was planned for.
+   */
+  it('DOS-043: a trip leaves before its planned date, the date it was planned for stands, and the trip says it departed early', async () => {
+    const day = (offset: number): string =>
+      new Date(Date.parse(today) + offset * 86_400_000).toISOString().slice(0, 10)
+    const plan = async (id: string, tripDate: string, tag: string): Promise<TripBody> => {
+      const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+        idempotencyKey: `dos043e-plan-${tag}-${run}`,
+        id,
+        tripDate,
+        vehicleId,
+        driverId,
+        // no stops and no bills: a van-sales round, so only the DATE stands between it and the road
+        vanSalesEnabled: true,
+        openingCashPaise: 0,
+        stops: [],
+      })
+      expect(created.status, JSON.stringify(created.body)).toBe(200)
+      // planned -> loading -> active: the godown puts the vehicle on the dock, as on any other trip
+      const loading = await call(app, packer, 'POST', `/delivery/trips/${id}/start-loading`, {
+        idempotencyKey: `dos043e-loading-${tag}-${run}`,
+      })
+      expect(loading.status, JSON.stringify(loading.body)).toBe(200)
+      return created.body.item
+    }
+    const depart = (id: string, tag: string, occurredAt?: string) =>
+      call<{ item: TripBody; data?: { code?: string } }>(
+        app,
+        driver,
+        'POST',
+        `/delivery/trips/${id}/depart`,
+        {
+          idempotencyKey: `dos043e-depart-${tag}-${run}`,
+          ...(occurredAt === undefined ? {} : { occurredAt }),
+        },
+      )
+
+    const earlyId = uuidv7()
+    const planned = await plan(earlyId, day(2), 'early')
+    expect(planned.tripDate).toBe(day(2))
+    // Nothing has left yet, so nothing has left early.
+    expect(planned.departedEarly).toBe(false)
+
+    // Two days early, standing at the godown today: the vehicle goes.
+    const left = await depart(earlyId, 'early')
+    expect(left.status, JSON.stringify(left.body)).toBe(200)
+    expect(left.body.item.state).toBe('active')
+    // The plan is not rewritten to fit the departure: the date it was planned for stands...
+    expect(left.body.item.tripDate).toBe(day(2))
+    // ...and every reader is told it left early, not only the reply that sent it.
+    expect(left.body.item.departedEarly).toBe(true)
+    const read = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${earlyId}`)
+    expect(read.status).toBe(200)
+    expect(read.body.item.tripDate).toBe(day(2))
+    expect(read.body.item.departedEarly).toBe(true)
+    const listed = await call<{
+      items: { id: string; tripDate: string; departedEarly: boolean }[]
+    }>(app, manager, 'GET', '/delivery/trips', { from: day(2), to: day(2), limit: 50 })
+    expect(listed.status).toBe(200)
+    expect(listed.body.items.find((t) => t.id === earlyId)).toMatchObject({
+      tripDate: day(2),
+      departedEarly: true,
+    })
+
+    // The audit row carries it too, beside the date the trip was planned for.
+    const audited = (
+      await db.execute(
+        sql`select after from audit_log
+             where tenant_id = ${tenantId} and entity_type = 'trip' and entity_id = ${earlyId}
+               and action = 'trip.depart'
+             order by occurred_at, id`,
+      )
+    ).rows as { after: Record<string, unknown> }[]
+    expect(audited.map((r) => [r.after.tripDate, r.after.departedEarly])).toEqual([[day(2), true]])
+
+    // The control: a trip that leaves ON the day it was planned for left early of nothing.
+    const onDayId = uuidv7()
+    const onDayPlan = await plan(onDayId, day(3), 'onday')
+    expect(onDayPlan.tripDate).toBe(day(3))
+    const onDay = await depart(onDayId, 'onday', `${day(3)}T06:00:00.000Z`)
+    expect(onDay.status, JSON.stringify(onDay.body)).toBe(200)
+    expect(onDay.body.item.state).toBe('active')
+    expect(onDay.body.item.departedEarly).toBe(false)
+  }, 120_000)
+
+  /*
+   * QA DOS-023, founder 2026-09-20: "every list in every app orders by SERVER time, newest first, with the
+   * record id only as a tie-break". A stop id is minted on the device that planned it, which offline is not
+   * when the office saw it, so the two orders are made to disagree here: the stop added SECOND carries the
+   * LOWER id. The route order of one trip is `sequence` and is read from the trip, never from this list.
+   */
+  it('DOS-023: stops.list is newest first by the time the office saw the stop, the row id only breaking a tie', async () => {
+    const tripS = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos023-trip-${run}`,
+      id: tripS,
+      tripDate: new Date(Date.parse(today) + 4 * 86_400_000).toISOString().slice(0, 10),
+      vehicleId,
+      driverId,
+      vanSalesEnabled: true,
+      openingCashPaise: 0,
+      stops: [],
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+
+    // Minted in this order, so `lowerId < higherId`; ADDED the other way round, one call each, so the
+    // office saw `lowerId` LAST.
+    const lowerId = uuidv7()
+    const higherId = uuidv7()
+    expect(lowerId < higherId).toBe(true)
+    const addStop = async (stopId: string, retailerId: string, tag: string) => {
+      const res = await call(app, manager, 'POST', `/delivery/trips/${tripS}/stops`, {
+        idempotencyKey: `dos023-stop-${tag}-${run}`,
+        id: tripS,
+        stop: { id: stopId, retailerId },
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+    }
+    await addStop(higherId, retailerA, 'first')
+    await addStop(lowerId, retailerB, 'second')
+
+    interface StopPage {
+      items: { id: string }[]
+      nextCursor: string | null
+    }
+    const page = (query: Record<string, unknown>) =>
+      call<StopPage>(app, manager, 'GET', '/delivery/stops', query)
+
+    // The stop the office saw LAST is on top, though its id is the lower of the two.
+    const both = await page({ tripId: tripS, limit: 50 })
+    expect(both.status, JSON.stringify(both.body)).toBe(200)
+    expect(both.body.items.map((s) => s.id)).toEqual([lowerId, higherId])
+
+    // and the cursor walks that same order, each stop once
+    const first = await page({ tripId: tripS, limit: 1 })
+    expect(first.body.items.map((s) => s.id)).toEqual([lowerId])
+    expect(first.body.nextCursor).toBe(lowerId)
+    const second = await page({ tripId: tripS, limit: 1, cursor: first.body.nextCursor })
+    expect(second.body.items.map((s) => s.id)).toEqual([higherId])
+    const third = await page({ tripId: tripS, limit: 1, cursor: second.body.nextCursor })
+    expect(third.body.items).toEqual([])
+  }, 120_000)
 
   // ---------------------------------------------------------------------------------------------------------------
   // QA DOS-131: the godown and the desk plan a trip from one planning board, and the double-plan guard is role-proof

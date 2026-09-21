@@ -18581,6 +18581,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -18794,6 +18795,7 @@ curl "http://localhost:3004/delivery/trips?state=planned&vehicleId=01a06d9c-98d8
       "openingCashPaise": 4000,
       "startedAt": "2026-09-04T10:30:00.000Z",
       "endedAt": null,
+      "departedEarly": true,
       "createdAt": "2026-09-04T10:30:00.000Z"
     }
   ],
@@ -19009,6 +19011,7 @@ curl "http://localhost:3004/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b"
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -19226,6 +19229,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -19459,6 +19463,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -19690,6 +19695,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -19917,6 +19923,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -20691,6 +20698,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
@@ -20925,6 +20933,7 @@ request.json
     "openingCashPaise": 4000,
     "startedAt": "2026-09-04T10:30:00.000Z",
     "endedAt": null,
+    "departedEarly": true,
     "createdAt": "2026-09-04T10:30:00.000Z",
     "stops": [
       {
