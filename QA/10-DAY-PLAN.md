@@ -19,21 +19,45 @@ Two questions, asked of every phase:
 
 ## The ten days
 
+**Revised 2026-09-21 on the founder's word: "Business simulation is imp."** It was on day 7 with three days
+behind it. It is now on days 4-5 with FIVE days behind it, because it is both the most valuable test in the
+programme and the one most likely to find something structural — and a structural fault found on day 7
+cannot be fixed by day 10. The riskiest test goes early, where there is room to answer what it finds.
+
 | Day | What runs | Why it earns a day |
 |---|---|---|
 | 1 | Batch 2 closes; the full 7-app regression starts (browser, both widths) | 153 findings changed the product; nothing is trustworthy until the apps are walked once more together |
-| 2 | **Phase 2 — the cross-role end-to-end business flow** | One order carried by real people through every app. The single best answer to "does it work" |
-| 3 | **Fable designs the Stage 2 essentials run** (1 of 3 Fable sittings) | The architecture seat decides what "safe" means here, once, instead of per lane |
-| 4–5 | Money reconciliation · pricing, schemes & GST · inventory lifecycle · tenant isolation — as PARALLEL lanes, not sequential phases | These are the four where a fault costs rupees, stock, or another distributor's data |
-| 6 | Fix what days 4–5 found | Finding is cheap; fixing is the real cost. This day is the honest one |
-| 7 | **The business simulation, compressed** — a fortnight of trading driven fast against the real services | Replaces most of phases 9, 13 and 14: real sequences break what unit tests do not |
-| 8 | Device validation — Android in full, iOS basics (founder, 2026-09-21) + fixes | The apps are universal; Android is the pilot platform |
-| 9 | The security slice that hosting needs (authz, signed file URLs, secrets) + **host it and hand over URLs** | Public URLs change the threat model; this is the part of Phase 16 that cannot wait |
+| 2 | **Phase 2 — the cross-role end-to-end business flow** | One order carried by real people through every app. The simulation cannot start until this holds |
+| 3 | **Fable designs the simulation AND the Stage 2 essentials in one sitting** (1 of 3 Fable sittings) | One architect design covering both, because Fable days are the scarce resource |
+| 4–5 | **THE BUSINESS SIMULATION — all seven trading days, run properly** | See below. This is the centre of the plan, not a checkbox at the end |
+| 6 | Fix what the simulation found | This is where the P0s land, if there are any. The day exists because the simulation is expected to find things |
+| 7–8 | Money reconciliation · pricing, schemes & GST · inventory lifecycle · tenant isolation — PARALLEL lanes, aimed at what the simulation exposed | Running these AFTER the simulation means they hunt where the evidence points, instead of guessing |
+| 9 | Android in full, iOS basics · the security slice hosting needs · **host it and hand over URLs** | |
 | 10 | **Fable's final audit** (1 of 3 Fable sittings) | "I am satisfied" is the founder's word, and the audit is what earns it |
 
-**Fable's remaining budget is the binding constraint, so it is spent on exactly three things:** the day-3
-design, the merge reviews of anything that changes a contract, a permission or the schema, and the day-10
-audit. Everything else runs on Opus. No Fable time goes to work an Opus lane can do.
+### The simulation, in full (QA/PHASES.md Phase 21)
+
+Seven simulated trading days driven against the running services, with real people doing real jobs in
+seven apps — not a script calling endpoints:
+
+1. Onboard retailers, add inventory, configure products, prices and schemes, create employees
+2. Reps create orders · the manager approves · the warehouse processes
+3. Deliveries, payments, outstanding updated
+4. New stock received, a price change, a scheme introduced
+5. Returns, damaged goods, a failed delivery, a partial payment
+6. High-volume orders, concurrent operations, network failures
+7. Reconciliation, reports, outstanding, inventory, revenue, operational review
+
+**It ends in arithmetic, and the arithmetic is the verdict:**
+- **opening stock + receipts − sales − damage − returns = closing stock**, per SKU per batch
+- **revenue = payments + outstanding**
+
+Any drift is a P0. Not a discussion, not a rounding note — a P0. That is what makes this the one test worth
+protecting, and why day 6 exists behind it.
+
+Its day 6 also absorbs most of what phase 13 would have done (concurrency, idempotency, network failure)
+and its day 7 most of phase 7's reconciliation — which is why those cuts below are honest rather than
+convenient.
 
 ## What is cut, and what it costs
 
@@ -59,8 +83,14 @@ end for real people. It does not buy: performance under load, accessibility, obs
 language, or a hardened public surface. For a pilot with one distributor the founder knows personally,
 that is the right trade. For the second paying customer it is not, and the rows above say what returns.
 
-**The one risk that could break the ten days:** day 7. A business simulation is the test most likely to
+**The one risk that could break the ten days:** days 4-5. A business simulation is the test most likely to
 find something structural, because it is the first time the whole product is asked to behave like a
-business rather than like a screen. If it finds something deep, the fix is not a day. Every other day here
-is predictable; that one is not, and pretending otherwise would be the kind of report this programme has
-spent three weeks refusing to write.
+business rather than like a screen. If it finds something deep, the fix is not a day. It now runs early, so
+there are five days behind it instead of three — that is the whole reason it moved. Every other day here is
+predictable; that one is not, and pretending otherwise would be the kind of report this programme has spent
+three weeks refusing to write.
+
+**The simulation runs on the DEMO data** — three distributors, staff under each, shops linked to more than
+one — because that is what exists today and it is domain-true. If the founder's real extract arrives before
+day 4 and turns out to be a Distribution OS book, a second pass on a COPY of it is worth a day and would be
+the strongest evidence this programme could produce. That is his call, not a default.
