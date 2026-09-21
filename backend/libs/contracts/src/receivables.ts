@@ -639,10 +639,16 @@ export const CreditCheckOutput = z.object({
   creditLimitBills: z.number().int(),
   creditDays: z.number().int(),
   outstandingPaise: PaiseSchema,
+  /**
+   * The open value of the shop's bills riding a van after a failed or refused stop (DOS-197). Not the
+   * shop's dues, but its exposure: `headroomPaise` and the breach reasons count it, the dues do not.
+   */
+  undeliveredPaise: PaiseSchema,
   openBills: z.number().int(),
   oldestDueDate: z.string().nullable(),
   overdueDays: z.number().int(),
   orderTotalPaise: PaiseSchema,
+  /** `creditLimitPaise − (outstandingPaise + undeliveredPaise) − orderTotalPaise`. */
   headroomPaise: PaiseSchema,
   /** `indicate` annotates and never breaches; `strict` and `stop` do. */
   breached: z.boolean(),

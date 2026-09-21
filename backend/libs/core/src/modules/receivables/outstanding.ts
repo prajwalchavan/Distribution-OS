@@ -15,7 +15,9 @@ import { currentTenant } from '../../platform/index.js'
  *  - money paid on account and not yet matched to a bill sits in `unallocated_credit_paise`.
  *  - a bill that came back on a van (`invoices.undelivered_at`) is NOT the shop's money yet (QA
  *    DOS-197): it is out of `outstanding_paise`, out of every ageing bucket and out of the FIFO
- *    allocation, and its open value is carried beside them in `undelivered_paise`.
+ *    allocation, and its open value is carried beside them in `undelivered_paise`. The ONE reader that
+ *    adds it back is the credit gate (`credit.ts`): the goods are on their way back to the shop, so
+ *    its exposure is `outstanding_paise + undelivered_paise`.
  * So the identity that holds against the books is
  *     Σ(outstanding_paise + undelivered_paise − unallocated_credit_paise) == the AR balance in
  *     `journal_lines`, NOT `Σ outstanding_paise == AR`.

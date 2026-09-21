@@ -5,13 +5,22 @@ import type { CreditBreachReason, CreditCheckOutput } from '@dos/contracts'
 import { businessDate, daysBetween } from '@dos/domain'
 import { retailers, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import { loadOutstanding } from './outstanding.js'
+import { loadOpenBills, loadOutstanding, openPaiseOf } from './outstanding.js'
 
 /**
  * Credit control (§6, ADR 0004). This file moved here from `modules/orders/credit.ts` at the receivables
  * slice (docs/plans/00-coordination.md §3.1): the raw join over billing and receivables tables that lived
  * there is gone, because receivables now maintains `retailer_outstanding_summary` and one rollup row is
  * both correct and O(1) — scale rule 9, and the same number the rep's shop card shows.
+ *
+ * THE CREDIT GATE COUNTS UNDELIVERED BILLS (QA DOS-197, architect ruling 2026-09-21). A bill that came
+ * back on the van (`invoices.undelivered_at`) is out of the shop's dues, its ageing buckets, the
+ * pending-bills file, pay-online and the FIFO allocation — the shop is not yet owed for goods it has
+ * not received — but the goods are on their way back to that shop, so its credit EXPOSURE is
+ * `outstanding_paise + undelivered_paise`, and where the number of open bills is a limit the bills on
+ * the van count too. A shop at its limit must not regain headroom, or a free bill slot, because its
+ * bill is waiting for re-delivery; it regains both only when that bill is delivered and paid, or
+ * cancelled. `overdue_days` stays on the dues alone: a bill the shop has not received is not late.
  *
  * `orders/index.ts` re-exports `checkCredit` so every call site inside the order aggregate is unchanged.
  * Nothing in this file writes.
@@ -55,12 +64,22 @@ export async function outstandingPaise(tx: Db, retailerId: string): Promise<numb
 export type CreditVerdict = z.infer<typeof CreditCheckOutput>
 
 /**
+ * How many of the shop's open bills are riding a van (DOS-197). Asked only when the bill count is a
+ * limit and the rollup says something is out there: one shop's open bills, never a tenant scan.
+ */
+async function undeliveredBillCount(tx: Db, retailerId: string): Promise<number> {
+  const bills = await loadOpenBills(tx, { retailerIds: [retailerId], includeUndelivered: true })
+  return bills.filter((bill) => bill.undelivered && openPaiseOf(bill) > 0).length
+}
+
+/**
  * `indicate` only annotates the rep's screen; `strict` opens an approval; `stop` blocks without an owner
  * override. Both enforcing modes raise the same `credit_limit` approval — the difference is what the owner
  * is allowed to do with it, which is an approvals-queue decision, not a submit-time one.
  *
  * Three ways to breach (docs/plans/receivables.md §4.14): past the rupee limit, past the number of open
- * bills, or the oldest bill is older than the agreed credit days.
+ * bills, or the oldest bill is older than the agreed credit days. The first two count the bills on the
+ * van as well as the dues (the doc block above); the third reads the dues alone.
  */
 export async function checkCredit(
   tx: Db,
@@ -74,11 +93,20 @@ export async function checkCredit(
     ? Math.max(0, daysBetween(summary.oldestDueDate, today))
     : 0
   const enforcing = credit.creditMode === 'strict' || credit.creditMode === 'stop'
+  // What the shop is exposed for: its dues plus the bills on their way back to it.
+  const exposurePaise = summary.outstandingPaise + summary.undeliveredPaise
+  const undeliveredBills =
+    credit.creditLimitBills > 0 && summary.undeliveredPaise > 0
+      ? await undeliveredBillCount(tx, retailerId)
+      : 0
   const reasons: CreditBreachReason[] = []
-  if (summary.outstandingPaise + orderTotalPaise > credit.creditLimitPaise) {
+  if (exposurePaise + orderTotalPaise > credit.creditLimitPaise) {
     reasons.push('limit_exceeded')
   }
-  if (credit.creditLimitBills > 0 && summary.openBills >= credit.creditLimitBills) {
+  if (
+    credit.creditLimitBills > 0 &&
+    summary.openBills + undeliveredBills >= credit.creditLimitBills
+  ) {
     reasons.push('bill_count_exceeded')
   }
   if (credit.creditDays > 0 && overdueDays > credit.creditDays) {
@@ -92,11 +120,12 @@ export async function checkCredit(
     creditLimitBills: credit.creditLimitBills,
     creditDays: credit.creditDays,
     outstandingPaise: summary.outstandingPaise,
+    undeliveredPaise: summary.undeliveredPaise,
     openBills: summary.openBills,
     oldestDueDate: summary.oldestDueDate,
     overdueDays,
     orderTotalPaise,
-    headroomPaise: credit.creditLimitPaise - summary.outstandingPaise - orderTotalPaise,
+    headroomPaise: credit.creditLimitPaise - exposurePaise - orderTotalPaise,
     breached: enforcing && reasons.length > 0,
     reasons,
   }

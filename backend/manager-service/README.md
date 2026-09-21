@@ -14757,6 +14757,7 @@ curl "http://localhost:3002/receivables/credit-check?retailerId=01a06dbc-35ed-77
   "creditLimitBills": 1,
   "creditDays": 7,
   "outstandingPaise": 2680000,
+  "undeliveredPaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
   "overdueDays": 7,

@@ -1279,6 +1279,112 @@ describeDb('receivables (DATABASE_URL)', () => {
     expect(tooManyBills.body.reasons).toEqual(['bill_count_exceeded', 'overdue_days_exceeded'])
   })
 
+  /*
+   * DOS-197, architect ruling: THE CREDIT GATE COUNTS UNDELIVERED BILLS. A bill that came back on the
+   * van is out of the shop's dues, its ageing, the pending-bills file, pay-online and the FIFO
+   * allocation (the shop is not yet owed for goods it has not received) — but the goods are on their
+   * way back to that shop, so its credit exposure is outstanding PLUS undelivered. A shop at its limit
+   * must not regain headroom, or a free bill slot, because its bill is waiting for re-delivery; it
+   * regains both only when the bill is cancelled.
+   */
+  it('DOS-197: a shop at its limit whose bill came back undelivered still fails the credit check, passes once that bill is cancelled, and the rollup identity holds throughout', async () => {
+    const shopJ = uuidv7()
+    const bill = uuidv7()
+    await db.insert(retailers).values({
+      id: shopJ,
+      tenantId,
+      code: `S13-${run}`,
+      name: `Shop 10 ${run}`,
+      phone: `+9195${run}7`,
+      stateCode: '27',
+      tier: 'C',
+      creditDays: 15,
+      // stop mode, ₹500 limit and ONE open bill allowed: a ₹500 bill fills both
+      creditMode: 'stop',
+      creditLimitPaise: 50_000,
+      creditLimitBills: 1,
+    })
+    await seedInvoice({ id: bill, retailerId: shopJ, totalPaise: 50_000, dueOffsetDays: 5 })
+
+    type Verdict = {
+      breached: boolean
+      reasons: string[]
+      outstandingPaise: number
+      undeliveredPaise: number
+      openBills: number
+      headroomPaise: number
+    }
+    type Rollup = { outstandingPaise: number; undeliveredPaise: number; unallocatedCreditPaise: number }
+    const verdict = async (): Promise<Verdict> =>
+      (
+        await call<Verdict>(app, owner, 'GET', '/receivables/credit-check', {
+          retailerId: shopJ,
+          orderTotalPaise: 1_000,
+        })
+      ).body
+    const rollup = async (): Promise<Rollup> =>
+      (await call<Rollup>(app, owner, 'GET', `/receivables/outstanding/${shopJ}`)).body
+    const identityHolds = async (): Promise<void> => {
+      const r = await rollup()
+      expect(r.outstandingPaise + r.undeliveredPaise - r.unallocatedCreditPaise).toBe(
+        await arBalance(shopJ),
+      )
+    }
+
+    // At the limit, and at the bill count: a ₹10 order breaches on both.
+    const atLimit = await verdict()
+    expect(atLimit.breached).toBe(true)
+    expect(atLimit.reasons).toEqual(['limit_exceeded', 'bill_count_exceeded'])
+    await identityHolds()
+
+    // The bill comes back on the van (what a failed or refused stop does through billing.markUndelivered).
+    await db.update(invoices).set({ undeliveredAt: new Date() }).where(eq(invoices.id, bill))
+    await asOwner((tx) => receivables.refreshOutstanding(tx, shopJ))
+    const onTheVan = await rollup()
+    expect(onTheVan.outstandingPaise).toBe(0)
+    expect(onTheVan.undeliveredPaise).toBe(50_000)
+    await identityHolds()
+
+    // The shop is not owed for it, but it has not regained a rupee of headroom or a bill slot.
+    const waiting = await verdict()
+    expect(
+      waiting.breached,
+      'a bill waiting for re-delivery is still the shop\'s exposure: it must not free credit headroom',
+    ).toBe(true)
+    expect(waiting.reasons).toEqual(['limit_exceeded', 'bill_count_exceeded'])
+    expect(waiting.outstandingPaise).toBe(0)
+    expect(waiting.undeliveredPaise).toBe(50_000)
+    expect(waiting.headroomPaise).toBe(50_000 - 50_000 - 1_000)
+
+    // The desk cancels the bill: the AR entry is mirrored and the row keeps its number (as billing does).
+    await asOwner((tx) =>
+      receivables.postEntry(tx, {
+        entryDate: day(0),
+        refType: 'invoice_cancel',
+        refId: bill,
+        narration: `cancels ${bill}`,
+        idempotencyKey: `journal:invoice-cancel:${bill}`,
+        lines: [
+          { accountCode: 'AR', amountPaise: -50_000, partyType: 'retailer', partyId: shopJ },
+          { accountCode: 'SALES', amountPaise: 50_000 },
+        ],
+      }),
+    )
+    await db
+      .update(invoices)
+      .set({ state: 'cancelled', cancelledAt: new Date(), cancelReason: 'shop closed down' })
+      .where(eq(invoices.id, bill))
+    await asOwner((tx) => receivables.refreshOutstanding(tx, shopJ))
+    expect(await arBalance(shopJ)).toBe(0)
+    await identityHolds()
+
+    const freed = await verdict()
+    expect(freed.breached).toBe(false)
+    expect(freed.reasons).toEqual([])
+    expect(freed.undeliveredPaise).toBe(0)
+    expect(freed.headroomPaise).toBe(50_000 - 1_000)
+  })
+
   // -------------------------------------------------------------------------------------------------------------
   // roles and row level security
 
