@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   AddPodInput,
@@ -64,6 +64,9 @@ type GetOut = z.infer<typeof DeliveryGetOutput>
 
 /** At most this much proof per delivery: a photo of the bill, a signature, an OTP, a geo check, and spares. */
 const MAX_POD_PER_DELIVERY = 10
+
+/** How many bills the desk's Undelivered register reaches back over (QA DOS-196). */
+const UNDELIVERED_BILLS_MAX = 500
 
 /**
  * THE doorstep write and everything that reads it back.
@@ -300,11 +303,23 @@ export class DeliveriesService {
     return { item: toPod(row) }
   }
 
-  /** The owner's register and the shop's proof list; RLS narrows the shop to its own bills. */
+  /**
+   * The owner's register, the shop's proof list, and THE DESK'S UNDELIVERED REGISTER (QA DOS-196); RLS
+   * narrows the shop to its own bills.
+   *
+   * `undeliveredOnly` answers the last attempt on every bill still waiting to be delivered. Which bills
+   * those are is billing's fact (`invoices.undelivered_at`, and the bill not cancelled since), asked of
+   * billing rather than joined here; which ATTEMPT carries the reason and the trip is this module's, and
+   * is the failed row with no later row for the same bill.
+   */
   async list(input: ListIn): Promise<ListOut> {
     requireRole(MONEY_READERS)
     const db = requireDb(this.db)
     return withTenant(db, currentTenant(), async (tx) => {
+      const waiting = input.undeliveredOnly
+        ? await this.billing.undeliveredInvoiceIds(tx, UNDELIVERED_BILLS_MAX)
+        : null
+      if (waiting !== null && waiting.length === 0) return { items: [], nextCursor: null }
       const filters: (SQL | undefined)[] = [
         input.tripId ? eq(deliveries.tripId, input.tripId) : undefined,
         input.stopId ? eq(deliveries.stopId, input.stopId) : undefined,
@@ -312,6 +327,14 @@ export class DeliveriesService {
         input.retailerId ? eq(deliveries.retailerId, input.retailerId) : undefined,
         input.outcome ? eq(deliveries.outcome, input.outcome) : undefined,
         input.attemptedOnly ? sql`${deliveries.outcome} is not null` : undefined,
+        waiting === null ? undefined : inArray(deliveries.invoiceId, waiting),
+        waiting === null ? undefined : eq(deliveries.outcome, 'failed'),
+        waiting === null
+          ? undefined
+          : sql`not exists (select 1 from deliveries later
+                             where later.tenant_id = ${deliveries.tenantId}
+                               and later.invoice_id = ${deliveries.invoiceId}
+                               and later.id > ${deliveries.id})`,
         ...dayWindow(deliveries.deliveredAt, input.from, input.to),
         input.cursor ? lt(deliveries.id, input.cursor) : undefined,
       ]

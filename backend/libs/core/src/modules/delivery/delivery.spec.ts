@@ -4140,6 +4140,46 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(events[0]?.payload.retailerId).toBe(retailerA)
   }, 240_000)
 
+  it('DOS-196: the desk reads one Undelivered register — the bill, the shop, the reason, the note and the trip it is still riding', async () => {
+    interface UndeliveredRow {
+      invoiceId: string
+      invoiceNo: string | null
+      invoiceTotalPaise: number
+      retailerId: string
+      retailerName: string
+      outcome: string | null
+      tripId: string
+      tripNo: string | null
+      tripState: string
+      stopFailureReason: string | null
+      stopFailureNote: string | null
+    }
+    const res = await call<{ items: UndeliveredRow[]; nextCursor: string | null }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { undeliveredOnly: true, limit: 50 },
+    )
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const row = res.body.items.find((r) => r.invoiceId === billU.invoiceId)
+    expect(row, 'the bill that came back is not on the desk register').toBeDefined()
+    expect(row?.invoiceNo).not.toBeNull()
+    expect(row?.invoiceTotalPaise).toBe(billU.totalPaise)
+    expect(row?.retailerName).toContain('Van Shop A')
+    expect(row?.outcome).toBe('failed')
+    // the reason and the note the crew gave, and the trip the bill is still riding
+    expect(row?.stopFailureReason).toBe('shop_closed')
+    expect(row?.stopFailureNote).toBe('Shutter down at 11, neighbour says back after 4.')
+    expect(row?.tripId).toBe(undeliveredTrip)
+    expect(row?.tripNo).not.toBeNull()
+    expect(row?.tripState).toBe('active')
+    // a bill that was handed over is not on this register
+    expect(res.body.items.some((r) => r.invoiceId === billA1.invoiceId)).toBe(false)
+    // and every row on it is a failed attempt
+    expect(res.body.items.every((r) => r.outcome === 'failed')).toBe(true)
+  })
+
   it('DOS-197: delivering it on the next trip puts the bill back into the shop’s dues', async () => {
     expect(
       (
@@ -4210,5 +4250,15 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(after.undeliveredPaise).toBe(duesBefore.undeliveredPaise)
     expect(after.outstandingPaise).toBe(duesBefore.outstandingPaise)
     expect(after.bills.some((b) => b.id === billU.invoiceId)).toBe(true)
+    // DOS-196: and it leaves the desk's Undelivered register the moment it is handed over
+    const register = await call<{ items: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { undeliveredOnly: true, limit: 50 },
+    )
+    expect(register.status).toBe(200)
+    expect(register.body.items.some((r) => r.invoiceId === billU.invoiceId)).toBe(false)
   }, 240_000)
 })

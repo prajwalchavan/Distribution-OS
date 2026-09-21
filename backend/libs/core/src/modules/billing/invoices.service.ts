@@ -1325,6 +1325,32 @@ export class BillingService {
     await this.receivables.refreshOutstanding(tx, row.retailerId)
   }
 
+  /**
+   * The bills waiting to be delivered, newest first (QA DOS-196): what delivery's Undelivered register
+   * is a register OF. Asked here rather than joined there because `invoices` is billing's table and a
+   * module reads another's only through its service. A cancelled bill drops out on its state, so the
+   * desk's only other move — cancel the bill — empties the row rather than leaving a ghost.
+   *
+   * Bounded by `limit`: a distributor with more bills on vans than this has a bigger problem than a
+   * register page, and the caller pages within what it is given.
+   */
+  async undeliveredInvoiceIds(tx: Db, limit: number): Promise<string[]> {
+    const { tenantId } = currentTenant()
+    const rows = await tx
+      .select({ id: invoices.id })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.tenantId, tenantId),
+          sql`${invoices.undeliveredAt} is not null`,
+          inArray(invoices.state, ['issued', 'partially_paid']),
+        ),
+      )
+      .orderBy(desc(invoices.undeliveredAt))
+      .limit(limit)
+    return rows.map((r) => r.id)
+  }
+
   /** The bill and its lines for the doorstep (`InvoiceForDelivery`); a bill the caller may not see is NOT_FOUND. */
   async invoiceForDelivery(tx: Db, invoiceId: string): Promise<InvoiceForDelivery> {
     const row = await this.findInvoice(tx, invoiceId)
