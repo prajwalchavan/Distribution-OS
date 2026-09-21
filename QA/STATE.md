@@ -1,26 +1,21 @@
 Stage: 1
-Current phase: 4 — Implement approved changes (batch 2). Phase 2 (cross-role chain) follows.
+Current phase: 2 — Cross-role end-to-end business flow (day 1 of QA/10-DAY-PLAN.md, five-day form). Batch 2 (Phase 4) is merged: 153 of 158.
 Last updated: 2026-09-20, 20:15 IST
 
 **This file is CURRENT STATE ONLY.** Every history — what was found, what was ruled, what was merged and why — lives in `QA/13-change-log.md`. Findings live in `QA/findings/12-batch2-new-findings.md`. Founder decisions live in `docs/22-source-of-truth.md` §8; **read docs/22, never a note in here, for what the founder has decided.** Twice on 2026-09-19 a stale note in this file sent work down a wrong path (eleven "open" questions docs/22 had already answered on 09-13, and a Q3 money repair on a database that holds no real money). If this file and docs/22 disagree, docs/22 wins and this file is wrong.
 
-## Running right now
+## Running right now — DAY 1 of five (Mon 22 Sep in the plan; started Sun 21 Sep 08:30 IST)
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_2dc93b47-727` | `ws0x0dyo9` | **Web first** — runner `QA/tools/batch2/workflows/web-first.js`. The architect's list-order ruling built and merged, then five blocks: the smoke run and its failures triaged, the money ruling legs read out of the ledger, the doorstep money findings, every wave-3 walk a browser can settle, and ONE basic Android sanity pass. Closed by Fable's judgement under the new terms. |
-| `wf_af0335fb-a15` | `w0d4utpmt` | `fix-seed-harness` (S-149, S-156, S-157) — in integration. |
+| `day1-chain.js` | see /workflows | **Phase 2 — the cross-role chain**: one order through all seven apps as the people who carry it, hop by hop with what the next person saw, then the eight "days that go wrong", then a blind verifier against the database. Own DB `dos_test_chain`, all-in-one on :3200, apps on :5273–5279. Output `QA/09-cross-role-workflows.md`, evidence `QA/evidence/chain/`. |
+| `web-first.js` | `ws0x0dyo9` | Still running the walk blocks (smoke done: see its report in `QA/evidence/batch2/walks/smoke-failures.md`), then the money legs, doorstep, wave-3 web walks, Android basics, and a judgement under the new terms. Holds :3000–3007, :3100, :5173–5179 and the emulator. |
 
-## The smoke run that was said to be impossible: 0 BROKEN, observed
+**The simulation design is written: `QA/24-simulation-design.md` (Fable, the architect seat — the main session runs on Fable 5.1 since 08:20 today).** It is binding for days 2–3. The founder should read §4 (the seven days) and §7 (the blind auditor) — those are the two things that make it a test rather than a demo.
 
-`fix-seed-harness` merged `17491e2` and recorded the run: **1 618 calls · 934 OK · 585 expected · 0 BROKEN · 99 skipped, exit 0**, on a database dropped, migrated and seeded immediately before it. The baseline on the same fresh seed was 4 BROKEN. The skipped count is identical either side (99), so the harness change cost no coverage.
+**The five-day plan** (`QA/10-DAY-PLAN.md`, page https://claude.ai/artifact/5c7mWeutvCDtEEsiujS1ei): day 1 chain · days 2–3 simulation · day 4 fix + aimed checks · day 5 Android basics, security slice, go-live, audit with the handover. Four days scheduled, one unknown; the founder hears on day 3 evening whether the five hold.
 
-Three things in that lane are worth keeping:
-- **S-149 was not what the note said.** The tenant holds 961 messages and only 12 are own-notices; the collector's `order by id desc limit 500` window happened to exclude the two accounts `pnpm smoke` signs in as. The fix filters in SQL before the limit. A fourth BROKEN (`notifications.messages.get` on the warehouse lane) had the same root cause and was fixed with it.
-- **S-156's premise was inverted.** The note said the seed leaves a PARKED pack; the data says it leaves ZERO unbilled packs, which is exactly why the sampler invented a uuid. The lane followed the data, fixed the example rather than the demo data, and said so.
-- **The harness rule was redesigned mid-work and the discarded design was reported.** The first version probed the id before the call and skipped it — an observed run showed that silenced 10 calls of real coverage, including a 403 role-gate proof. The shipped version still makes every call and only withdraws a BROKEN verdict on a 404 when the document-supplied id names no row.
-
-Under the founder's 2026-09-21 rule this is not a gate being re-armed — it is the failures being worked, and there are none left in that run.
+**Owed by the founder for day 5:** an AWS account with `aws configure` done on this Mac (an IAM user; the keys never pass through the assistant), a domain name, public-or-gated, and the data extract if it is coming (before day 2).
 
 ## The founder re-ordered this work on 2026-09-21 — read docs/22 §8, not this summary
 
