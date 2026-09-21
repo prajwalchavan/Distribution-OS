@@ -32,6 +32,7 @@ export {
   clearWelcomeSeen,
   landingStarts,
   markWelcomeSeen,
+  sessionEnded,
   useLandingGate,
   welcomeSeen,
 } from './welcome.js'

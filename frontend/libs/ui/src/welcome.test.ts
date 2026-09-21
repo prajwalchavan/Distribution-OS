@@ -135,8 +135,9 @@ describe('docs/29 §1 Welcome — cleared on the sign-out, not on every signed-o
 
   it('both renderers hold the same rule, written out in each half', () => {
     const body = (file: string): string =>
-      /export function sessionEnded\([\s\S]*?\n\}/.exec(readFileSync(join(here, file), 'utf8'))?.[0] ??
-      ''
+      /export function sessionEnded\([\s\S]*?\n\}/.exec(
+        readFileSync(join(here, file), 'utf8'),
+      )?.[0] ?? ''
     expect(body('web/welcome.tsx')).not.toBe('')
     expect(body('native/welcome.tsx')).toBe(body('web/welcome.tsx'))
   })

@@ -896,9 +896,18 @@ export interface LandingProps extends Testable {
   holdMs?: number | undefined
 }
 
-/** What `useLandingGate` answers: whether the landing is up, and how to take it down. */
+/**
+ * What `useLandingGate` answers about the render it was asked on.
+ *
+ * Both flags are about a CHANGE, never about the state a device is in. `show` is "a session has
+ * just arrived", `signedOut` is "a session that was there has gone" — which is the only moment the
+ * welcome may be re-armed. A settled render with no session is a launch as often as it is a
+ * sign-out, and on the launch it must leave the flag alone (docs/29 §1: once per device).
+ */
 export interface LandingGate {
   readonly show: boolean
+  /** True on the one render where a session ended. False on every signed-out launch. */
+  readonly signedOut: boolean
   readonly done: () => void
 }
 

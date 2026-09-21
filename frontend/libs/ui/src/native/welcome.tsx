@@ -124,25 +124,45 @@ export function landingStarts(previous: string | null | undefined, next: string 
 }
 
 /**
+ * Has a session just GONE? — the sibling rule, and the only moment the welcome may be re-armed.
+ *
+ * "There is no session" is NOT that moment. That is the state a device sits in for the whole of a
+ * launch nobody has signed into, for a sign-in somebody opened and walked away from, and for every
+ * launch after a sign-out. Clearing the flag whenever that state is seen deletes it on those
+ * launches too, so the welcome comes back on the next launch, and on the one after — exactly what
+ * docs/29 §1's "shown once per device, not on every launch" forbids. Only a `previous` holding a
+ * real session with `next` holding none is somebody signing out.
+ */
+export function sessionEnded(previous: string | null | undefined, next: string | null): boolean {
+  return previous !== undefined && previous !== null && next === null
+}
+
+/**
  * The gate every root layout asks. `sessionKey` identifies the open distributorship AND the person
  * (`${tenantId}:${userId}`), so a switch and a different sign-in both count as an arrival.
  *
  * The state is adjusted DURING the render that sees the change, not in an effect afterwards: React
  * re-renders before committing, so the home never paints for a frame behind the landing that was
- * about to cover it.
+ * about to cover it. `signedOut` rides that same state, so it is true on the one render that saw
+ * the session go and false on every render after it — a transition, not a condition.
  */
 export function useLandingGate(hydrating: boolean, sessionKey: string | null): LandingGate {
-  const [state, setState] = useState<{ key: string | null | undefined; show: boolean }>({
-    key: undefined,
-    show: false,
-  })
+  const [state, setState] = useState<{
+    key: string | null | undefined
+    show: boolean
+    signedOut: boolean
+  }>({ key: undefined, show: false, signedOut: false })
   if (!hydrating && state.key !== sessionKey) {
-    setState({ key: sessionKey, show: landingStarts(state.key, sessionKey) })
+    setState({
+      key: sessionKey,
+      show: landingStarts(state.key, sessionKey),
+      signedOut: sessionEnded(state.key, sessionKey),
+    })
   }
   const done = useCallback(() => {
-    setState((previous) => ({ key: previous.key, show: false }))
+    setState((previous) => ({ ...previous, show: false }))
   }, [])
-  return { show: state.show, done }
+  return { show: state.show, signedOut: state.signedOut, done }
 }
 
 /**

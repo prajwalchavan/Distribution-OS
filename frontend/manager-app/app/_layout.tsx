@@ -199,15 +199,21 @@ function Shell(): React.JSX.Element {
    *
    * The welcome flag is cleared HERE rather than on each sign-out button, so every way out of this
    * app — the account menu, a settings screen, an expired session — gives the next person on this
-   * device the welcome back. Clearing a flag that is already absent costs nothing.
+   * device the welcome back.
+   *
+   * On the gate's `signedOut`, which is the RENDER A SESSION WENT AWAY ON, never on the condition
+   * "there is no session". That condition is also true on a launch nobody has signed into, on a
+   * sign-in somebody abandoned, and on every launch after the sign-out that already cleared the
+   * flag — clear it there and the welcome returns on the next launch and on every launch after it,
+   * which is the one thing docs/29 §1 rules out.
    */
   const landing = useLandingGate(
     hydrating,
     session === null ? null : `${session.tenant.id}:${session.user.id}`,
   )
   useEffect(() => {
-    if (!hydrating && session === null) clearWelcomeSeen()
-  }, [hydrating, session])
+    if (landing.signedOut) clearWelcomeSeen()
+  }, [landing.signedOut])
   const landingPanel =
     landing.show && session !== null ? (
       <Landing
