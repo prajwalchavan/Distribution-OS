@@ -300,6 +300,14 @@ export const OrderGetOutput = OrderItemOutput
 export const LastPlacedOrderInput = z.object({ retailerId: IdSchema })
 export const LastPlacedOrderOutput = z.object({ item: OrderDetailSchema.nullable() })
 
+/**
+ * NEWEST FIRST by `created_at`, the server time the order was taken, the row id only breaking a tie —
+ * the same column `from`/`to` filter, so the window and the order never disagree (QA DOS-009; founder,
+ * 2026-09-21, the register reading of his 2026-09-20 rule). An order queue is work waiting to be done,
+ * so its date IS the server's clock; ids are minted on the device and the demo seed's are hashes, so id
+ * order is not age. `cursor` is the id of the last order of the page and walks that same
+ * (`created_at`, id) order.
+ */
 export const OrdersListInput = z.object({
   state: OrderStateSchema.optional(),
   /** Several states in one call (bracket notation on the query string: `states[0]=confirmed&states[1]=packed`). */
@@ -308,7 +316,7 @@ export const OrdersListInput = z.object({
   openOnly: QueryBoolSchema.optional(),
   retailerId: IdSchema.optional(),
   salespersonId: IdSchema.optional(),
-  /** Created on or after / on or before this IST calendar date. */
+  /** On `created_at`, IST calendar dates: taken on or after / on or before this day. */
   from: IsoDateSchema.optional(),
   to: IsoDateSchema.optional(),
   /** Matches the order number or the note. */

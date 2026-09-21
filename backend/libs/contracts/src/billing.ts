@@ -523,6 +523,15 @@ export const CancelInvoiceOutput = InvoiceItemOutput
 export const InvoiceGetInput = z.object({ id: IdSchema })
 export const InvoiceGetOutput = InvoiceItemOutput
 
+/**
+ * NEWEST FIRST by `invoice_date`, the row id only breaking a tie — the same column `from`/`to` filter,
+ * so the window and the order never disagree (QA DOS-009; founder, 2026-09-21, the register reading of
+ * his 2026-09-20 rule). A bill book is a DATED REGISTER, read against GSTR-1 by bill date: a 14 Aug
+ * brand bill typed on 21 Sep sits under 14 Aug, where the return has it, not on top of August. Ids are
+ * minted by the client, and an imported or opening bill is minted long after the date it carries, so id
+ * order is not age. `cursor` is the id of the last bill of the page and walks that same
+ * (`invoice_date`, id) order.
+ */
 export const InvoicesListInput = z.object({
   retailerId: IdSchema.optional(),
   orderId: IdSchema.optional(),
