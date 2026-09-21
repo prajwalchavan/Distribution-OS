@@ -852,4 +852,63 @@ export interface AppShellProps extends Testable {
   children: ReactNode
 }
 
+// ---------------------------------------------------------------------------
+// 6.17 Welcome (docs/29 §1)
+// ---------------------------------------------------------------------------
+
+/**
+ * The first screen of every app on a device with no session: the Distribution OS wordmark, one line
+ * saying what the product is, this app's own name, and one button that opens the sign-in form.
+ *
+ * It WRAPS the form rather than replacing it, so every app's `sign-in.tsx` wires it with the same
+ * two characters-for-character lines and the form itself is untouched. Shown once per device: the
+ * flag is set when "Sign in" is pressed and cleared when the session goes away.
+ */
+export interface WelcomeProps extends Testable {
+  /** `APP.title` — "Distribution OS - Delivery". The app's own name is the part after the dash. */
+  appTitle: string
+  /** `APP.role`. Only `platform_admin` changes the line under the wordmark: it is a console. */
+  role: string
+  /** The app's own sign-in form, rendered in place of the welcome once this device is past it. */
+  children: ReactNode
+}
+
+/**
+ * The two seconds after a fresh sign-in (and after a distributor switch), before the home renders:
+ * whose distributorship this is, who is signed in, and which app this is. Not a route, nothing to
+ * tap, and never shown on a launch that restored a session.
+ *
+ * It COVERS the app rather than replacing it, so the navigator underneath stays mounted and a
+ * redirect that is still settling is not stranded behind two seconds of introduction.
+ */
+export interface LandingProps extends Testable {
+  /** The distributor's display name — "Distribution OS" in the console, which is our own. */
+  tenantName: string
+  /** The signed read URL for the distributor's logo; absent falls back to the initials mark. */
+  logoUrl?: (string | null) | undefined
+  /** The signed-in person, by name. */
+  personName: string
+  /** `APP.title`; the app's own name is the part after the dash ("Delivery app"). */
+  appTitle: string
+  /** Called once the hold is over. The caller stops rendering the landing. */
+  onDone: () => void
+  /** The hold, in ms. Defaults to `LANDING_HOLD_MS`; a test passes a short one. */
+  holdMs?: number | undefined
+}
+
+/**
+ * What `useLandingGate` answers about the render it was asked on.
+ *
+ * Both flags are about a CHANGE, never about the state a device is in. `show` is "a session has
+ * just arrived", `signedOut` is "a session that was there has gone" — which is the only moment the
+ * welcome may be re-armed. A settled render with no session is a launch as often as it is a
+ * sign-out, and on the launch it must leave the flag alone (docs/29 §1: once per device).
+ */
+export interface LandingGate {
+  readonly show: boolean
+  /** True on the one render where a session ended. False on every signed-out launch. */
+  readonly signedOut: boolean
+  readonly done: () => void
+}
+
 export type { SeriesPoint, Series, CompareGroup, MixSlice }
