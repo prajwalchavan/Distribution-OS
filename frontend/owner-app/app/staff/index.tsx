@@ -5,10 +5,12 @@
  * to look at it. Creating a person and setting a password are real writes with real consequences, so
  * both go through a confirmation that prints exactly what will happen.
  */
-import type { Beat, BeatAssignmentView, RepBound, StaffMember } from '@dos/contracts'
+import type { Beat, BeatAssignmentView, ExtraRole, RepBound, StaffMember } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
+import { GRANTABLE_EXTRA_ROLES, isGrantableExtraRole } from '@dos/domain'
 import {
   Button,
+  Chips,
   Dialog,
   Register,
   Screen,
@@ -20,7 +22,7 @@ import {
   useStrings,
   type RegisterColumn,
 } from '@dos/ui'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Async, Panel, moneyColumn, textColumn } from '../../src/lib/ui'
 import { Refusal, stayOpen } from '../../src/lib/refusal'
@@ -38,6 +40,14 @@ export default function StaffScreen(): React.JSX.Element {
   const [selected, setSelected] = useState<StaffMember | null>(null)
   const [dialog, setDialog] = useState<'password' | 'status' | null>(null)
   const [password, setPassword] = useState('')
+  /**
+   * docs/29 §2: the OTHER roles this person's own login may sign in as — the godown keeper who drives
+   * the second van on Tuesdays opens the delivery app as himself instead of borrowing a password. The
+   * chips start from what the server says and are saved as a whole set, so clearing them all is a
+   * thing the owner can do. Only the four staff roles can carry extras; the desk already signs in
+   * downward from its own role, so their rows show no chips at all.
+   */
+  const [extraRoles, setExtraRoles] = useState<readonly ExtraRole[]>([])
 
   const staff = useQuery(['tenancy', 'staff'], () => api.api.tenancy.staff.list({}))
   const beats = useQuery(['retailers', 'beats'], () => api.api.retailers.beats.list({}))
@@ -69,7 +79,24 @@ export default function StaffScreen(): React.JSX.Element {
     { invalidates: [['tenancy', 'staff'], ['names']] },
   )
 
+  const setExtraRolesFor = useMutation(
+    (input: { userId: string; extraRoles: readonly ExtraRole[] }, meta) =>
+      api.api.tenancy.memberships.update({
+        userId: input.userId,
+        idempotencyKey: meta.idempotencyKey,
+        extraRoles: [...input.extraRoles],
+      }),
+    { invalidates: [['tenancy', 'staff']] },
+  )
+
+  // The chips follow the selection, and follow the server after a save: never a stale set left over
+  // from the person looked at before.
+  useEffect(() => {
+    setExtraRoles(selected?.extraRoles ?? [])
+  }, [selected])
+
   const staffRows = staff.data?.items ?? []
+  const mayCarryExtras = selected !== null && isGrantableExtraRole(selected.role)
   const beatRows = beats.data?.items ?? []
 
   const nameOfUser = (id: string): string =>
@@ -213,6 +240,48 @@ export default function StaffScreen(): React.JSX.Element {
         {selected === null || view !== 'staff' ? null : (
           <Panel title={selected.name} testID="staff-actions">
             <Stack gap={3}>
+              {mayCarryExtras ? (
+                <Stack gap={2}>
+                  <Txt field="label" desk="meta">
+                    {t('o7.extraRoles')}
+                  </Txt>
+                  <Chips
+                    testID="staff-extra-roles"
+                    items={GRANTABLE_EXTRA_ROLES.filter((role) => role !== selected.role).map(
+                      (role) => ({
+                        id: role,
+                        label: word(role),
+                        selected: extraRoles.includes(role),
+                      }),
+                    )}
+                    onToggle={(id) => {
+                      if (!isGrantableExtraRole(id)) return
+                      setExtraRoles((held) =>
+                        held.includes(id) ? held.filter((r) => r !== id) : [...held, id],
+                      )
+                    }}
+                  />
+                  <Txt field="label" desk="meta">
+                    {t('o7.extraRolesHelp')}
+                  </Txt>
+                  <Refusal
+                    of={[setExtraRolesFor]}
+                    scope={selected.userId}
+                    testID="staff-extra-roles-refusal"
+                  />
+                  <Button
+                    label={t('o7.saveRoles')}
+                    variant="secondary"
+                    loading={setExtraRolesFor.status === 'pending'}
+                    onPress={() => {
+                      void setExtraRolesFor
+                        .mutateAsync({ userId: selected.userId, extraRoles })
+                        .catch(stayOpen)
+                    }}
+                    testID="staff-save-extra-roles"
+                  />
+                </Stack>
+              ) : null}
               <Button
                 label={t('o7.resetPassword')}
                 variant="secondary"

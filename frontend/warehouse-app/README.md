@@ -37,6 +37,7 @@ Full request/response samples for each are in `backend-services/warehouse-servic
 | POST | `/tenancy/staff/update` | Edit a staff member's name, phone or locale | owner, manager |
 | POST | `/tenancy/staff/set-password` | Reset a staff password; they must change it at next sign-in | owner, manager |
 | POST | `/tenancy/staff/set-status` | Enable or disable a staff membership (disabling revokes their sessions) | owner, manager |
+| POST | `/tenancy/memberships/update` | Set the extra roles a staff login may also sign in as | owner, manager |
 | GET | `/tenancy/branding` | The distributor's own name, logo and footer for every screen and document | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/tenancy/settings` | Tenant settings (secret.* keys to the owner only) | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/tenancy/settings` | Set tenant settings (owner only, audited per key) | owner |

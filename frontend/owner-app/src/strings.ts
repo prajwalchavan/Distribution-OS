@@ -280,6 +280,10 @@ export const strings = {
   'o7.resetPassword': 'Set password',
   'o7.disable': 'Disable',
   'o7.enable': 'Enable',
+  // docs/29 §2: the other roles one staff login may also sign in as.
+  'o7.extraRoles': 'Also signs in as',
+  'o7.extraRolesHelp': 'They open that app with their own username. You can take it back any time.',
+  'o7.saveRoles': 'Save roles',
   'o7.maxDiscount': 'Most a rep may give',
   'o7.needsApproval': 'Above this, ask the owner',
 

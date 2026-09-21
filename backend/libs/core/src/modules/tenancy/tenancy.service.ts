@@ -4,6 +4,7 @@ import { ORPCError } from '@orpc/server'
 import type {
   MeOutput,
   MembershipRole,
+  MembershipUpdateIn,
   StaffCreateIn,
   StaffCreateOut,
   StaffList,
@@ -13,7 +14,7 @@ import type {
   StaffSetStatusIn,
   StaffUpdateIn,
 } from '@dos/contracts'
-import { uuidv7 } from '@dos/domain'
+import { isGrantableExtraRole, uuidv7 } from '@dos/domain'
 import {
   authEvents,
   authSessions,
@@ -113,6 +114,7 @@ export class TenancyService {
           name: users.name,
           phone: users.phone,
           role: memberships.role,
+          extraRoles: memberships.extraRoles,
           status: memberships.status,
         })
         .from(memberships)
@@ -131,6 +133,7 @@ export class TenancyService {
       name: row.name,
       phone: row.phone,
       role: row.role,
+      extraRoles: row.extraRoles.filter(isGrantableExtraRole),
       status: row.status,
       lastLoginAt: lastLogins.get(row.userId) ?? null,
     }))
@@ -221,6 +224,62 @@ export class TenancyService {
    * only lets a person edit itself under app_rw, so the write escalates once the membership and the
    * manager's remit have been checked inside the tenant transaction. A phone is unique platform-wide.
    */
+  /**
+   * THE EXTRA ROLES on one membership (docs/29 §2, founder 2026-09-21) — what this login may ALSO
+   * sign in as, so the warehouse man who delivers on Tuesdays opens the delivery app with his own
+   * username instead of borrowing the owner's.
+   *
+   * The whole set is sent, so `[]` takes every one away. Three narrowings, none of which the schema
+   * alone can make: only the four staff roles may CARRY extras (the desk already elects downward from
+   * the fixed table, and a shopkeeper never elects anything); a manager may hand out only the three
+   * roles it already administers; and a manager may still only touch the people it already
+   * administers. Taking a role away bites at the person's next refresh, which re-checks the election.
+   */
+  async updateMembership(input: MembershipUpdateIn): Promise<StaffOk> {
+    requireRole(ONBOARDERS)
+    const ctx = currentTenant()
+    const db = requireDb(this.db)
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const target = await loadMember(tx, ctx.tenantId, input.userId)
+        assertMayAdminister(ctx.actorRole, target.role)
+        if (!isGrantableExtraRole(target.role)) {
+          throw new ORPCError('FORBIDDEN', {
+            message: `A ${target.role} membership carries no extra roles: it already signs in downward from its own role.`,
+          })
+        }
+        if (ctx.actorRole === 'manager') {
+          const beyond = input.extraRoles.filter((r) => !MANAGER_MAY_ADMINISTER.includes(r))
+          if (beyond.length > 0) {
+            throw new ORPCError('FORBIDDEN', {
+              message: `A manager may only grant ${MANAGER_MAY_ADMINISTER.join(', ')}. Ask the owner for ${beyond.join(', ')}.`,
+            })
+          }
+        }
+        // The membership's own role is not an "extra": keeping it out means the column always reads
+        // as the list of OTHER jobs this person may do.
+        const next = [...new Set(input.extraRoles)].filter((r) => r !== target.role)
+        const [before] = await tx
+          .select({ extraRoles: memberships.extraRoles })
+          .from(memberships)
+          .where(eq(memberships.id, target.id))
+          .limit(1)
+        await tx
+          .update(memberships)
+          .set({ extraRoles: next, updatedAt: new Date() })
+          .where(eq(memberships.id, target.id))
+        await writeAudit(tx, {
+          action: 'membership.extraRoles',
+          entityType: 'membership',
+          entityId: target.id,
+          before: { extraRoles: before?.extraRoles ?? [] },
+          after: { extraRoles: next },
+        })
+        return { ok: true as const }
+      }),
+    )
+  }
+
   async updateStaff(input: StaffUpdateIn): Promise<StaffOk> {
     requireRole(ONBOARDERS)
     const ctx = currentTenant()
