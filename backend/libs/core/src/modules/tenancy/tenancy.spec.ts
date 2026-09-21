@@ -385,14 +385,12 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
     const accountant: Actor = { tenantId, actorId: accountantId, role: 'accountant' }
 
     beforeAll(async () => {
-      await db
-        .insert(users)
-        .values({
-          id: accountantId,
-          phone: `+919${run}0`,
-          name: 'Accountant',
-          username: `x${run}.acc`,
-        })
+      await db.insert(users).values({
+        id: accountantId,
+        phone: `+919${run}0`,
+        name: 'Accountant',
+        username: `x${run}.acc`,
+      })
       await db
         .insert(memberships)
         .values({ id: uuidv7(), tenantId, userId: accountantId, role: 'accountant' })
