@@ -198,7 +198,17 @@ export const productAliases = pgTable(
   ],
 ).enableRLS()
 
-/** Dated GST rates per HSN so an old invoice re-prints with the rate that applied on its date. */
+/**
+ * Dated GST rates per HSN so an old invoice re-prints with the rate that applied on its date.
+ *
+ * ONE LIVE RATE PER HSN (QA S-176). Every caller resolves a rate the same way — the rows live on the
+ * date, newest `effective_from` first, take the first — which is a TOTAL order only while one HSN has
+ * one row per date. With two, "the first" is heap order: the order path priced a case of Campa at 12%
+ * and the invoice path at 28% + 12% cess, a 25% hole between what the rep quoted and what the bill
+ * said. `hsn_rates_code_from_idx` is therefore UNIQUE, so goods of one heading that bear different
+ * rates must carry their own sub-heading (2202 aerated / 22029920 fruit-juice based / 22029930 milk
+ * based) instead of a second row. A rate CHANGE is still a new row with a later `effective_from`.
+ */
 export const hsnRates = pgTable(
   'hsn_rates',
   {
@@ -212,7 +222,7 @@ export const hsnRates = pgTable(
     ...timestamps,
   },
   (t) => [
-    index('hsn_rates_code_from_idx').on(t.hsnCode, t.effectiveFrom),
+    uniqueIndex('hsn_rates_code_from_idx').on(t.hsnCode, t.effectiveFrom),
     ...globalCuratedPolicies('hsn_rates'),
   ],
 ).enableRLS()

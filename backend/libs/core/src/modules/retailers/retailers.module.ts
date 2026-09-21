@@ -11,9 +11,10 @@ import { RetailersService } from './retailers.service.js'
  * module registers their PULL readers on `SyncRegistry` (docs/23 §8.11): a salesperson receives the
  * shops of the beats currently assigned to it and its own assignments; the desk and the crew the
  * whole tenant. The shop holds two of these — `retailers` and `retailer_links` — since the READ half
- * of the protocol was opened to the retailer role (docs/07 §0). `retailers` carries credit terms, and
- * RLS (`tenantOrOwnRetailerPolicy`) already narrows it to the shop's OWN row, which is the row whose
- * limit and terms the shop is entitled to see; a rep sees it only on rows it may read anyway.
+ * of the protocol was opened to the retailer role (docs/07 §0). `retailers` carries credit terms:
+ * RLS (`tenantOrOwnRetailerPolicy`) narrows the rows to the shop's OWN, and the `omit` below narrows
+ * the COLUMNS, because a shop is never shown its own limit or credit headroom (docs/22 §8, S-177);
+ * a rep sees them, on rows it may read anyway, because it quotes against the limit offline.
  */
 @Module({
   imports: [TenancyModule],
@@ -40,11 +41,35 @@ export class RetailersModule implements OnModuleInit {
      * the columns re-snapshots on the new schema hash instead of keeping a stale copy.
      */
     const CREDIT_TERMS = ['credit_limit_paise', 'credit_limit_bills', 'credit_days', 'tier']
+    /*
+     * AND THE SHOP'S OWN COPY CARRIES NO CREDIT POLICY AT ALL (QA S-177). RLS narrows `retailers` to
+     * the shopkeeper's OWN row, and for a long time that was read as "which is the row whose limit
+     * and terms the shop is entitled to see". It is not: docs/22 §8 (DOS-100, ADR 0006) says the
+     * shop's screen shows the overdue amount with a Pay button "and never a credit limit or
+     * credit-available figure", and the oRPC door has always agreed — `toView` hands the retailer
+     * role the PUBLIC record, with no code, no tier and no credit. `tablePull` is `select *`, so the
+     * sync door was serving through the wall the other door holds; QA found it open before the
+     * retailer app grew an offline client, which is the only reason nothing was on a phone yet. The
+     * crew's omission keeps `credit_mode` (may this shop take goods on credit at the door); the shop
+     * does not get even that. What the shop IS owed — what it owes today — still reaches it through
+     * `retailer_outstanding_summary` and `receivables.outstanding`. The TIER goes with the policy:
+     * the shop's slab is the desk's rate decision about it, and the oRPC door's `toPublic` has never
+     * handed the retailer role its tier either, so the two doors agree. The manifest is built from
+     * this same `omit`, so a device that held the columns re-snapshots on the new schema hash.
+     */
+    const CREDIT_POLICY = [
+      'credit_limit_paise',
+      'credit_limit_bills',
+      'credit_days',
+      'credit_mode',
+      'tier',
+    ]
     this.registry.registerPull(
       'retailers',
       tablePull(retailers, {
         extra: (r) => (r.ctx.actorRole === 'salesperson' ? ownBeats(r.ctx.actorId) : undefined),
-        omit: (role) => (role === 'delivery' ? CREDIT_TERMS : []),
+        omit: (role) =>
+          role === 'delivery' ? CREDIT_TERMS : role === 'retailer' ? CREDIT_POLICY : [],
       }),
     )
     this.registry.registerPull('beats', tablePull(beats))

@@ -148,7 +148,10 @@ describeDb('ai (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
   const run = String(Date.now()).slice(-8)
-  const hsn = `9${Date.now().toString().slice(-6)}`
+  // The run's FULL suffix, and deleted in `afterAll`: `hsn_rates` is global and unique on (code, date)
+  // since S-176, so a code built from the clock's last six digits came round again as a hard INSERT
+  // failure on a long-lived database.
+  const hsn = `9${run}`
   const tenantId = uuidv7()
   const otherTenantId = uuidv7()
 
@@ -498,6 +501,8 @@ describeDb('ai (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app.close()
+    // The rate row this run wrote into the GLOBAL table goes with it (owner connection, no RLS).
+    await db.delete(hsnRates).where(eq(hsnRates.hsnCode, hsn))
     await pool.end()
   })
 

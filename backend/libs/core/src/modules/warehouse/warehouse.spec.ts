@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { uuidv7 } from '@dos/domain'
 import {
@@ -133,7 +133,10 @@ describeDb('warehouse (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
   const run = uuidv7().slice(-8)
-  const hsn = `8${run.slice(-6)}`
+  // The run's FULL suffix, and deleted in `afterAll`: `hsn_rates` is global and unique on (code, date)
+  // since S-176, so a six-character code came round again as a hard INSERT failure on a long-lived
+  // database.
+  const hsn = `8${run}`
 
   const tenantId = uuidv7()
   const ownerId = uuidv7()
@@ -453,6 +456,8 @@ describeDb('warehouse (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app?.close()
+    // The rate row this run wrote into the GLOBAL table goes with it (owner connection, no RLS).
+    await db.delete(hsnRates).where(eq(hsnRates.hsnCode, hsn))
     await pool.end()
   })
 
