@@ -184,6 +184,7 @@ export const PLATFORM_TEMPLATE_KEYS = [
   'order_confirmed',
   'order_cancelled',
   'order_needs_approval',
+  'order_refused',
   'invoice_issued',
   'pod_delivered',
   'delivery_failed',

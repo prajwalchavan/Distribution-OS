@@ -1,0 +1,1 @@
+ALTER TABLE "sales_orders" ADD COLUMN "refused_at" timestamp with time zone;

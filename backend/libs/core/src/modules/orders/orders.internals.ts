@@ -276,6 +276,13 @@ export async function emitOrderEvent(
       retailerId: order.retailerId,
       state: order.state,
       totalPaise: order.totalPaise,
+      /**
+       * Who booked it and what the office said (QA DOS-191). Notifications reads the event and never
+       * `sales_orders`, so the rep it has to tell, and the sentence to tell them, travel on it.
+       */
+      salespersonId: order.salespersonId,
+      cancelReason: order.cancelReason,
+      refused: order.refusedAt !== null,
     },
   })
 }

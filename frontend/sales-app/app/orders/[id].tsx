@@ -266,7 +266,13 @@ export default function OrderDetail(): React.JSX.Element {
         )}
 
         {/*
-          DOS-142 — WHY, not just that it is off.
+          DOS-142 — WHY, not just that it is off. DOS-191 — and WHO, when the office refused it.
+
+          A refusal at an approval gate is not "cancelled": somebody at the desk read the order and
+          said no, in a sentence the dialog made them type, and the rep is standing in the shop that
+          placed it. `cancel_reason` now carries that sentence — "Refused by <name>: <note>" — where
+          it used to carry the machine's own `approval_rejected`, and `refused_at` is the fact that
+          tells this panel which of the two things happened.
           The manager's own cancel dialog promises the rep will be told, and `cancel_reason` has
           always come down with the row (`tablePull(salesOrders)` omits nothing). The rep stands in
           the shop that placed it, so the sentence belongs here, above the lines, and not in a chip:
@@ -274,16 +280,22 @@ export default function OrderDetail(): React.JSX.Element {
           schema has `cancelled_at` and `cancel_reason` and no `cancelled_by` — so it is not claimed.
         */}
         {order.state === 'cancelled' ? (
-          <Panel title={t('s5.cancelled')}>
+          <Panel title={order.refused_at === null ? t('s5.cancelled') : t('s5.refused')}>
             <Stack gap={2}>
               <Txt field="body" desk="body" color={colors.status.brick.fg}>
                 {order.cancel_reason === null || order.cancel_reason.trim() === ''
                   ? t('s5.cancelledNoReason')
                   : t('s5.cancelledReason', { reason: order.cancel_reason })}
               </Txt>
-              {order.cancelled_at === null ? null : (
+              {order.refused_at === null ? (
+                order.cancelled_at === null ? null : (
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('s5.cancelledAt', { when: instantWithClock(order.cancelled_at) })}
+                  </Txt>
+                )
+              ) : (
                 <Txt field="label" desk="meta" color={colors.text.secondary}>
-                  {t('s5.cancelledAt', { when: instantWithClock(order.cancelled_at) })}
+                  {t('s5.refusedAt', { when: instantWithClock(order.refused_at) })}
                 </Txt>
               )}
             </Stack>
@@ -462,6 +474,7 @@ type OrderView = Pick<
   | 'submitted_at'
   | 'cancelled_at'
   | 'cancel_reason'
+  | 'refused_at'
   | 'created_at'
 > & { _pending?: LocalOrder['_pending'] }
 
@@ -491,6 +504,7 @@ function viewOfServerOrder(item: OrderDetailWire): OrderView {
     submitted_at: item.submittedAt,
     cancelled_at: item.cancelledAt,
     cancel_reason: item.cancelReason,
+    refused_at: item.refusedAt,
     created_at: item.createdAt,
   }
 }

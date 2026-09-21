@@ -123,6 +123,63 @@ async function shopMessageFor(
   })
 }
 
+/**
+ * `OrderCancelled` where the office REFUSED the order at a gate (QA DOS-191): the rep who booked it is
+ * told, on the same two channels the submit used to wake the desk — a push to every device it has
+ * registered, and one in-app row so the message survives a phone that was off.
+ *
+ * The rep used to be told nothing at all: the only row written for that minute was a WhatsApp to the
+ * shop, and the rep's "Needs you" screen means writes the server bounced, not orders the office
+ * refused. The words are the manager's own, carried on the event as `cancelReason`.
+ */
+export async function handleOrderRefused(db: Db, event: NotificationEvent): Promise<HandledEvent> {
+  const p = payloadOf(event)
+  if (p.refused !== true) return { outcome: 'ignored', reason: 'not a refusal' }
+  const repId = str(p.salespersonId)
+  const reason = str(p.cancelReason)
+  if (!repId) return { outcome: 'ignored', reason: 'no salesperson booked this order' }
+  if (!reason) return { outcome: 'skipped', reason: 'the refusal has no words' }
+  const orderId = str(p.orderId) ?? event.aggregateId
+  const variables = {
+    orderNo: str(p.orderNo) ?? orderId.slice(-8).toUpperCase(),
+    totalRupees: rupees(num(p.totalPaise) ?? 0),
+    reason,
+  }
+  return asTenantSystem(db, event.tenantId, async (tx) => {
+    const sender = await senderIdentity(tx)
+    const notice = (channel: 'in_app' | 'push', to: string, key: string) =>
+      queueStaffNotice(
+        tx,
+        { sender },
+        {
+          userId: repId,
+          channel,
+          to,
+          templateKey: 'order_refused',
+          refType: 'order',
+          refId: orderId,
+          variables,
+          idempotencyKey: key,
+        },
+      )
+    const inApp = await notice('in_app', repId, `OrderRefused:${orderId}`)
+    let queued = inApp.kind === 'queued' && inApp.created ? 1 : 0
+    const devices = await tx
+      .select({ id: pushTokens.id })
+      .from(pushTokens)
+      .where(and(eq(pushTokens.tenantId, event.tenantId), eq(pushTokens.userId, repId)))
+      .limit(20)
+    for (const device of devices) {
+      const push = await notice('push', device.id, `OrderRefused:${orderId}:${device.id}`)
+      if (push.kind === 'queued' && push.created) queued += 1
+    }
+    return {
+      outcome: queued > 0 ? 'queued' : 'replayed',
+      reason: `${String(devices.length)} device(s)`,
+    }
+  })
+}
+
 /** `OrderConfirmed` / `OrderCancelled` (orders): the shop hears its order went through, or did not. */
 export async function handleOrderEvent(db: Db, event: NotificationEvent): Promise<HandledEvent> {
   const p = payloadOf(event)
@@ -357,8 +414,13 @@ export async function handleNotificationEvent(
 ): Promise<HandledEvent> {
   switch (event.eventType) {
     case 'OrderConfirmed':
-    case 'OrderCancelled':
       return handleOrderEvent(db, event)
+    // The shop hears its order was cancelled; a rep whose order the OFFICE refused hears it too.
+    case 'OrderCancelled': {
+      const shop = await handleOrderEvent(db, event)
+      const rep = await handleOrderRefused(db, event)
+      return rep.outcome === 'ignored' ? shop : rep
+    }
     case 'OrderSubmitted':
       return handleOrderSubmitted(db, event)
     case 'InvoiceIssued':

@@ -133,6 +133,19 @@ export const PLATFORM_TEMPLATES: readonly PlatformTemplate[] = [
     body: 'Order {{orderNo}} of {{totalRupees}} is waiting for your approval.',
     variables: ['orderNo', 'totalRupees'],
   },
+  // QA DOS-191: the rep who booked the order hears the office's decision in the manager's own words.
+  {
+    key: 'order_refused',
+    channel: 'push',
+    body: 'Order {{orderNo}} of {{totalRupees}} — {{reason}}',
+    variables: ['orderNo', 'totalRupees', 'reason'],
+  },
+  {
+    key: 'order_refused',
+    channel: 'in_app',
+    body: 'Order {{orderNo}} of {{totalRupees}} — {{reason}}',
+    variables: ['orderNo', 'totalRupees', 'reason'],
+  },
   {
     key: 'invoice_issued',
     channel: 'whatsapp',

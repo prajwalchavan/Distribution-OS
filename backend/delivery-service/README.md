@@ -8582,6 +8582,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -8807,6 +8808,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9039,6 +9041,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9255,6 +9258,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9481,6 +9485,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9718,6 +9723,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -9931,6 +9937,7 @@ curl "http://localhost:3005/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10124,6 +10131,7 @@ curl "http://localhost:3005/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -10337,6 +10345,7 @@ curl "http://localhost:3005/orders?state=draft&openOnly=true&retailerId=01a06dbc
       "confirmedAt": "2026-09-04T10:30:00.000Z",
       "cancelledAt": null,
       "cancelReason": null,
+      "refusedAt": "2026-09-04T10:30:00.000Z",
       "createdAt": "2026-09-04T10:30:00.000Z"
     }
   ],
@@ -10604,6 +10613,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -25129,6 +25139,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
@@ -33502,6 +33513,7 @@ request.json
     "confirmedAt": "2026-09-04T10:30:00.000Z",
     "cancelledAt": null,
     "cancelReason": null,
+    "refusedAt": "2026-09-04T10:30:00.000Z",
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lines": [
       {
