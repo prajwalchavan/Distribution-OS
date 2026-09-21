@@ -6,7 +6,7 @@
 | ------------ | ------------------ |
 | Document     | Apps & Workflows   |
 | Product      | Distribution OS    |
-| Version      | 3.0                |
+| Version      | 3.1                |
 | Status       | Active             |
 | Owner        | Product Management |
 | Last Updated | 21 September 2026  |
@@ -17,7 +17,7 @@
 
 This page is the map of the product: what each person does, what they get when they sign in, which end-to-end flows they take part in, and — just as important — what they must never be able to do.
 
-**The shape changed on 2026-09-21.** Six business roles are delivered as **one app**: one website at `app.distributionos.in`, one Android app and one iOS app, listed once in each store as "Distribution OS". The person signs in and the app **becomes** the right app — the owner's desk, the rep's beat, the driver's trip — from the role their sign-in elects. Distribution OS staff use a **separate console**, which is not a distributor's app and never appears beside one.
+**The shape changed on 2026-09-21.** Six business roles are delivered as **one app**: one website at `www.distributionos.in`, one Android app and one iOS app, listed once in each store as "Distribution OS". The person signs in and the app **becomes** the right app — the owner's desk, the rep's beat, the driver's trip — from the role their sign-in elects. Distribution OS staff use a **separate console**, which is not a distributor's app and never appears beside one.
 
 What did not change is the part that keeps distributors safe from each other: **each role still talks to its own backend service**, so a role can only reach the endpoints its service mounts, and a per-endpoint permission matrix then decides what that role may call inside it. The one app changes what a *device* asks for; it changes nothing about what the *server* allows. `docs/22-source-of-truth.md` in the repository is the single source of truth; this page mirrors it.
 
@@ -295,7 +295,7 @@ The intake pipeline and the module that hosts these are built and run on determi
 | 3 (Tue 23) | The one app finishes and is gated; the seven per-role web apps retired; the chain re-walked on the one app      |
 | 4–5 (Wed–Thu) | **The seven-day business simulation, on the one app** — two full days, a blind auditor, an arithmetic verdict |
 | 6 (Fri 26) | Fix what it found; check only where it pointed                                                                  |
-| 7 (Sat 27) | Android basics · the security slice public URLs require · **go live** at `app.distributionos.in` · audit and handover |
+| 7 (Sat 27) | Android basics · the security slice public URLs require · **go live** at `www.distributionos.in` · audit and handover |
 
 **Live by Saturday 27 September if Thursday evening's books balance.** The verdict is arithmetic, not opinion: opening stock + receipts − sales − damage − returns = closing stock per SKU per batch, and revenue = payments + outstanding. Any drift is a P0. The honest shape is six days of scheduled work and one day of unknown — day 6 is the only day set aside for repairing what days 4–5 find, and the founder hears on Thursday night whether the date holds.
 

@@ -6,7 +6,7 @@
 | ------------ | ----------------------------- |
 | Document     | Phase 2 & Future Enhancements |
 | Product      | Distribution OS               |
-| Version      | 3.0                           |
+| Version      | 3.1                           |
 | Status       | Active                        |
 | Owner        | Prajwal Chavan (Founder)      |
 | Last Updated | 21 September 2026             |
@@ -21,7 +21,7 @@ This page is the **parking lot with a process**, not a roadmap. A row here has a
 
 **Source of truth.** `docs/22-source-of-truth.md` in the repository is the master; its §8 dated decisions and §9 non-negotiables win over anything on this page. The deferral evidence comes from `docs/24-confluence-alignment.md` (the audit of every statement in this space against the build), the screen-and-gap inventory `docs/23-app-screens-and-api-gaps.md`, the scope document `docs/03-scope-and-must-not-build.md`, the design system `docs/design/UX-00-design-system.md`, the sign-in and one-app design `docs/29-sign-in-roles-and-one-store-app.md`, and the programme plan `QA/10-DAY-PLAN.md` with the live quality record `QA/STATE.md`. Where this page and the repository disagree, **the repository wins** and this page is corrected.
 
-**Build context — 21 September 2026.** Both halves of the product are built. **Backend complete** (2026-09-06): 23 modules, eight services, 139 tables, ~2,400 automated tests. **Frontend complete** (2026-09-07): all seven apps — owner, manager (with the accountant on it), sales, warehouse, delivery, retailer and the admin console — each one Expo codebase serving website, Android and iOS, each passed by an independent gate that walked every screen at desk and phone widths. Since then the work has been **quality assurance, not construction**: QA batch 1 (34 findings) and QA batch 2 (158 findings, 153 merged as at 20 September), and `pnpm smoke` exercises **1,618 endpoint calls ending 0 BROKEN on a freshly seeded database**. The remaining plan is **seven days — live by Saturday 27 September 2026** at `app.distributionos.in` and `api.distributionos.in`, if Thursday evening's books balance (`QA/10-DAY-PLAN.md`). The "no app screen is built yet" of version 2.0 of this page is obsolete.
+**Build context — 21 September 2026.** Both halves of the product are built. **Backend complete** (2026-09-06): 23 modules, eight services, 139 tables, ~2,400 automated tests. **Frontend complete** (2026-09-07): all seven apps — owner, manager (with the accountant on it), sales, warehouse, delivery, retailer and the admin console — each one Expo codebase serving website, Android and iOS, each passed by an independent gate that walked every screen at desk and phone widths. Since then the work has been **quality assurance, not construction**: QA batch 1 (34 findings) and QA batch 2 (158 findings, 153 merged as at 20 September), and `pnpm smoke` exercises **1,618 endpoint calls ending 0 BROKEN on a freshly seeded database**. The remaining plan is **seven days — live by Saturday 27 September 2026** at `www.distributionos.in` and `api.distributionos.in`, if Thursday evening's books balance (`QA/10-DAY-PLAN.md`). The "no app screen is built yet" of version 2.0 of this page is obsolete.
 
 **What moved on 21 September, in one line.** Three things came **into** v1 ahead of go-live — a Welcome and a landing screen, role election at sign-in, and one store app instead of six — and eight went **out** of v1 for the pilot. Nothing was dropped: every cut is a row below with the event that brings it back.
 
