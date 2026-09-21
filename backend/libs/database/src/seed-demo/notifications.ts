@@ -12,12 +12,13 @@
  * (it points at their orders, bills, stops and receipts); before it, the legacy rows the reporting seed
  * once wrote (Hindi wording, no sender) are removed by id, since a message row is immutable.
  */
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne } from 'drizzle-orm'
 import { insertMany } from './db-helpers.js'
 import {
   broadcasts,
   deliveries,
   inboundMessages,
+  memberships,
   messages,
   pushTokens,
   receipts,
@@ -723,7 +724,16 @@ export async function seedNotifications(
       )
     }
   }
-  for (const [key, person] of [
+  //     The scheme goes to the WHOLE team, not to the nine the roster names. `/docs` publishes the
+  //     signed-in account's OWN in-app notice as the `markRead` example, and the account it is read
+  //     as on a database nobody has signed into yet is the OLDEST membership of each role — the
+  //     bootstrap `pilot.owner`, who is in no roster, and the roster's `extra` bench. A staff member
+  //     with no own notice made that example fall back to a shop's WhatsApp row, which `markRead`
+  //     answers 404 on (QA S-149; architect blocker 2026-09-21). The roster's nine keep their
+  //     original `demoId` keys so an already-seeded database is untouched; everyone else is keyed by
+  //     user id. `idempotencyKey` stays `TeamNotice:${broadcastId}:${person.id}`, so a re-seed adds
+  //     nothing either way.
+  const rosterTeam = [
     ['rep-rahul', people.salespeople.rahul],
     ['rep-amit', people.salespeople.amit],
     ['rep-pooja', people.salespeople.pooja],
@@ -733,16 +743,35 @@ export async function seedNotifications(
     ['delivery-raju', people.delivery.raju],
     ['delivery-santosh', people.delivery.santosh],
     ['delivery-iqbal', people.delivery.iqbal],
-  ] as const) {
+  ] as const
+  const rosterIds = new Set(rosterTeam.map(([, person]) => person.id))
+  const everyStaffMember = await db
+    .select({ userId: memberships.userId })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.tenantId, tenantId),
+        eq(memberships.status, 'active'),
+        ne(memberships.role, 'retailer'),
+      ),
+    )
+    .orderBy(asc(memberships.createdAt))
+  const team: { key: string; id: string }[] = [
+    ...rosterTeam.map(([key, person]) => ({ key: `offer:${key}`, id: person.id })),
+    ...everyStaffMember
+      .filter((row) => !rosterIds.has(row.userId))
+      .map((row) => ({ key: `offer:${row.userId}`, id: row.userId })),
+  ]
+  for (const member of team) {
     rows.push(
       staffNotice({
-        key: `offer:${key}`,
-        person,
+        key: member.key,
+        person: { id: member.id },
         templateKey: 'scheme_announcement',
         variables: { schemeName: 'Campa 750 ml: buy 12 get 1 free', validTill: '30 Sep 2026' },
         refType: null,
         refId: null,
-        idempotencyKey: `TeamNotice:${broadcastId}:${person.id}`,
+        idempotencyKey: `TeamNotice:${broadcastId}:${member.id}`,
         at: new Date(broadcastAt.getTime() + 120_000),
       }),
     )

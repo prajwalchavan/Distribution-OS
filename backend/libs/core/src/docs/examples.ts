@@ -520,8 +520,13 @@ export interface ExampleContext {
    */
   allocationId?: string | undefined
   challanId?: string | undefined
-  /** A pack confirmed with `issueInvoice: false` and still unbilled — the one `issueForPack` takes. */
+  /**
+   * The pack `issueForPack` is documented with: one confirmed with `issueInvoice: false` and still
+   * unbilled where the godown has left one, else the newest pack there is — a real row either way.
+   */
   parkedPackId?: string | undefined
+  /** True when `parkedPackId` really is waiting for a bill; false when it is already invoiced. */
+  parkedPackUnbilled?: boolean | undefined
   /** A draft load sheet the manager has NOT approved yet (`loadSheets.approve`), else any draft. */
   approvableLoadSheetId?: string | undefined
   loadSheetId?: string | undefined
@@ -1089,14 +1094,29 @@ async function collectNotifications(tx: Db, tenantId: string, ctx: ExampleContex
   }
   out.failedMessageId =
     rows.find((r) => r.status === 'failed')?.id ?? rows.find((r) => r.status === 'queued')?.id
-  for (const r of rows) {
-    if ((r.channel !== 'in_app' && r.channel !== 'push') || !r.recipientUserId) continue
-    if (r.recipientRetailerId) continue
-    const held = out.ownNotices[r.recipientUserId]
-    // prefer an unread one, so the example really marks something
-    if (!held || (r.readAt === null && rows.find((x) => x.id === held)?.readAt !== null))
-      out.ownNotices[r.recipientUserId] = r.id
-  }
+  /*
+   * S-149. THE FILTER RUNS IN SQL, BEFORE ANY LIMIT. This used to sift the `rows` window above for
+   * own-notices, and that window is the newest 500 rows of the WHOLE TENANT — on a distributor whose
+   * log is mostly shop WhatsApp and SMS (the pilot: 961 rows, 12 of them own-notices) the manager's
+   * and the godown's notices fell outside it. The example then fell back to a shop's WhatsApp row,
+   * which `markRead` refuses (it takes only `recipientUserId = the caller`, and only push / in_app)
+   * and which a warehouse login may not even read (`MessagesService.scope`, QA DOS-052).
+   *
+   * `distinct on` takes ONE row per staff member — an unread one first, then the newest — so the
+   * pick is bounded by the number of staff, never by how loud the shop correspondence is.
+   */
+  const ownNotices = (
+    await tx.execute(
+      sql`select distinct on (m.recipient_user_id) m.id, m.recipient_user_id
+            from messages m
+           where m.tenant_id = ${tenantId}
+             and m.channel in ('in_app', 'push')
+             and m.recipient_user_id is not null
+             and m.recipient_retailer_id is null
+           order by m.recipient_user_id, (m.read_at is null) desc, m.id desc`,
+    )
+  ).rows as { id: string; recipient_user_id: string }[]
+  for (const r of ownNotices) out.ownNotices[r.recipient_user_id] = r.id
   out.broadcastId = first(
     await tx
       .select({ id: broadcasts.id })
@@ -1655,21 +1675,34 @@ async function collectPlatformGaps(tx: Db, tenantId: string, ctx: ExampleContext
       .orderBy(desc(deliveryChallans.id))
       .limit(1),
   )?.id
-  // A parked pack that MOVED stock comes first: `issueForPack` rebuilds the bill from the pack's
-  // `pack` ledger rows, and a pack of an order nothing was ever held for (a 100 % short pack) has
-  // none to bill. Any parked pack is still the fallback, so the note can say why the call refuses.
-  ctx.parkedPackId = first(
+  /*
+   * A parked pack that MOVED stock comes first: `issueForPack` rebuilds the bill from the pack's
+   * `pack` ledger rows, and a pack of an order nothing was ever held for (a 100 % short pack) has
+   * none to bill. Then any parked pack.
+   *
+   * S-156: and then ANY pack at all. A freshly seeded database has none parked — the seed bills
+   * every pack at confirm — and the `where invoice_id is null` this used to carry left the field
+   * empty, so the schema sampler filled the path parameter with a well-formed uuid that names no
+   * row. That breaks the promise printed above every document ("every example below is real"), it
+   * 404s under a reader's finger, and `pnpm smoke` cannot tell it from a real id, so it reported a
+   * correct 404 as a broken endpoint. A billed pack is a real row: pressing Execute answers 409
+   * `already_invoiced`, and `parkedPackUnbilled` lets the note say exactly that.
+   */
+  const pack = first(
     (
       await tx.execute(
-        sql`select p.id from pack_confirmations p
-             where p.tenant_id = ${tenantId} and p.invoice_id is null
-             order by exists (select 1 from stock_ledger sl
+        sql`select p.id, (p.invoice_id is null) as unbilled from pack_confirmations p
+             where p.tenant_id = ${tenantId}
+             order by (p.invoice_id is null) desc,
+                      exists (select 1 from stock_ledger sl
                                where sl.tenant_id = p.tenant_id
                                  and sl.ref_type = 'pack' and sl.ref_id = p.order_id) desc,
                       p.id limit 1`,
       )
-    ).rows as { id: string }[],
-  )?.id
+    ).rows as { id: string; unbilled: boolean }[],
+  )
+  ctx.parkedPackId = pack?.id
+  ctx.parkedPackUnbilled = pack?.unbilled ?? false
   const sheets = await tx
     .select({ id: loadSheets.id, status: loadSheets.status, approvedBy: loadSheets.approvedBy })
     .from(loadSheets)
@@ -2965,6 +2998,16 @@ function servesOnlyRetailer(options: BuildExamplesOptions): boolean {
   return roles.length > 0 && roles.every((role) => role === 'retailer')
 }
 
+/**
+ * True only for the godown's own service. A warehouse login reads ONLY the messages addressed to the
+ * person signed in (`MessagesService.scope`, QA DOS-052: the godown's "inbox" was the distributor's
+ * outbox), so the shop-facing bill notice every other document shows is a 404 there.
+ */
+function servesOnlyWarehouse(options: BuildExamplesOptions): boolean {
+  const roles = options.roles ?? []
+  return roles.length > 0 && roles.every((role) => role === 'warehouse')
+}
+
 /** Field name → the demo row it should show. Applied at every depth, arrays included. */
 function byFieldName(key: string, ctx: ExampleContext): unknown {
   switch (key) {
@@ -3257,6 +3300,23 @@ function spareStaffFor(ctx: ExampleContext, options: BuildExamplesOptions): stri
 function ownNoticeFor(ctx: ExampleContext, options: BuildExamplesOptions): string | undefined {
   const user = signInUser(ctx, options)
   return user ? ctx.notifications?.ownNotices[user.id] : undefined
+}
+
+/*
+ * S-149, the second half. When the signed-in account has no own in-app notice these two examples
+ * used to fall back to `ctx.notifications.messageId` — the newest row of the WHOLE tenant, which on
+ * this distributor is a shop's WhatsApp message. `markRead` takes only `recipientUserId = the
+ * caller` and only push / in_app, so that id is a 404 the reader can press and believe; the godown
+ * may not even READ it (`MessagesService.scope`, QA DOS-052). A shop's row is never the answer.
+ *
+ * The seed now gives every active staff membership its own notice, so this is unreachable on seeded
+ * demo data (`examples.spec.ts` asserts the census). If it is ever reached, the document publishes a
+ * deterministic id that names no row rather than a real row the caller may not touch: `pnpm smoke`
+ * reports it as SKIPPED ("names no row in this database"), never as a passing call and never as a
+ * silent 404.
+ */
+function noOwnNotice(procedurePath: string): string {
+  return docUuid(`${procedurePath}#no-own-notice`)
 }
 
 function signInUser(ctx: ExampleContext, options: BuildExamplesOptions): DemoUser | undefined {
@@ -4460,7 +4520,9 @@ const OVERRIDES: Record<
   'notifications.messages.get': (ctx, options) => ({
     id: servesOnlyRetailer(options)
       ? (ctx.notifications?.linkedMessageId ?? ctx.notifications?.messageId)
-      : ctx.notifications?.messageId,
+      : servesOnlyWarehouse(options)
+        ? (ownNoticeFor(ctx, options) ?? noOwnNotice('notifications.messages.get'))
+        : ctx.notifications?.messageId,
   }),
   'notifications.messages.send': (ctx) => ({
     id: createdMessageId(ctx),
@@ -4487,7 +4549,7 @@ const OVERRIDES: Record<
   'notifications.messages.markRead': (ctx, options) => ({
     id: servesOnlyRetailer(options)
       ? (ctx.notifications?.linkedNoticeId ?? ctx.notifications?.linkedMessageId)
-      : (ownNoticeFor(ctx, options) ?? ctx.notifications?.messageId),
+      : (ownNoticeFor(ctx, options) ?? noOwnNotice('notifications.messages.markRead')),
   }),
   'notifications.templates.list': () => ({ key: DROP, channel: DROP, locale: DROP }),
   'notifications.templates.upsert': (ctx) => ({
@@ -5003,7 +5065,7 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'notifications.messages.resend': () =>
     'Points at the seeded dead-lettered send (five failed attempts): requeues it for one more try, attempts kept. Once the worker has sent it, this answers 409 `already_sent` — a delivered message is never resent.',
   'notifications.messages.markRead': () =>
-    'Marks the signed-in user’s own in-app notice read (idempotent). A WhatsApp / SMS row answers 400 `channel_not_markable`: its read state comes from the provider.',
+    'Marks the signed-in user’s own in-app notice read (idempotent). A WhatsApp / SMS row answers 400 `channel_not_markable`: its read state comes from the provider — so when the signed-in account has no in-app notice yet, the id below names no row at all rather than somebody else’s message.',
   'notifications.templates.upsert': () =>
     'Echoes the tenant’s own WhatsApp bill wording back unchanged (`created: false`). Change `body` to customise it; `{{distributorName}}` must stay — it is the white label.',
   'notifications.broadcasts.create': (ctx) =>
@@ -5106,9 +5168,11 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'files.readUrl': () =>
     'Signs a read URL for the key files.uploadUrl mints; the link answers 404 until bytes were PUT there.',
   'billing.invoices.issueForPack': (ctx) =>
-    ctx.parkedPackId
-      ? 'Bills the one pack that was confirmed with issueInvoice:false. Once billed the same call answers 409 already_invoiced.'
-      : 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm). Confirm one with issueInvoice:false first.',
+    !ctx.parkedPackId
+      ? 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm). Confirm one with issueInvoice:false first.'
+      : ctx.parkedPackUnbilled
+        ? 'Bills the one pack that was confirmed with issueInvoice:false. Once billed the same call answers 409 already_invoiced.'
+        : 'No pack in the demo data is waiting for a bill (every pack was invoiced at confirm), so this names a real pack that already carries its bill: pressing Execute answers 409 already_invoiced. Confirm a pack with issueInvoice:false to see the call succeed.',
   'warehouse.loadSheets.approve': (ctx) =>
     ctx.approvableLoadSheetId
       ? 'The manager app gives the load-out PIN: approves the draft sheet the warehouse phone is waiting on. A second Execute answers 409 already_approved.'
