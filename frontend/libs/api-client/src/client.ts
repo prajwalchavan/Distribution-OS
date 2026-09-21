@@ -83,6 +83,23 @@ export interface CreateApiClientOptions {
   authUrl: string
   /** All-in-one mode: the path this app's service is mounted behind, e.g. `/owner`. */
   prefix?: string
+  /**
+   * SIX SERVICES, ONE CLIENT (docs/31 §2). The one app has no single service of its own: the ELECTED
+   * role in the token decides which one this request belongs to, and this answers with that origin
+   * (`serviceFor(role, base)` in `services.ts`). Returning `undefined` falls back to `apiUrl` +
+   * `prefix`, which is what a call made with no session gets — a request that is a 401 whichever
+   * origin it leaves for.
+   *
+   * ONE PROVIDER, NOT A REBUILT CLIENT. Rebuilding `createApiClient` when the role changes would drop
+   * the in-memory access token and the single-flight refresh with it, so the link's `url` is a
+   * function instead: oRPC types it `Value<Promisable<string | URL>, [options, path, input]>` and
+   * evaluates it per request.
+   *
+   * EVALUATED ONCE PER REQUEST, AND PINNED FOR THAT REQUEST'S REPLAY (architect's ruling): the
+   * interceptor reads it before the first attempt and hands the answer down, so the 401 replay goes
+   * back to the service the call set off for and never to whichever one the app has since elected.
+   */
+  apiUrlFor?: () => string | undefined
   /** All-in-one mode: normally `/auth` is part of the route, so this stays empty. */
   authPrefix?: string
   /** Defaults to `webTokenStorage()` in a browser and to memory anywhere else. */
@@ -90,10 +107,14 @@ export interface CreateApiClientOptions {
   /** Which app this is; sent on login so `auth_sessions` can name the device. */
   platform?: AuthPlatform
   /**
-   * ROLE ELECTION (docs/29 §2, founder 2026-09-21): the role THIS app asks to act as, sent on every
-   * sign-in and every distributor switch. The three field apps declare their own — a van phone must
-   * hold a delivery token and never an owner token, whoever is driving today — and the owner, manager,
-   * retailer and console apps declare none, which signs the person in as their membership's own role.
+   * ROLE ELECTION (docs/29 §2, founder 2026-09-21): the role this app asks to act as when the CALLER
+   * names none. The six per-role apps declare it here — a van phone must hold a delivery token and
+   * never an owner token, whoever is driving today.
+   *
+   * IN THE ONE APP NOTHING IS DECLARED HERE (docs/31 ruling B3): with `APP.role` gone there is no app
+   * to ask on the person's behalf, so the PERSON elects at the Continue-as chooser and the choice
+   * arrives as `SignInOptions.actAs` — and afterwards as `electRole`, which mints a new token. A
+   * per-call `actAs` always wins over this; this is only the default for a caller that passes none.
    *
    * The server grants it only downward from that membership (`ROLE_ELECTION` in `@dos/domain`) and
    * refuses anything else with a sentence the person can act on. Asking is all the device does: it is
@@ -121,6 +142,13 @@ export interface SignInOptions {
   tenantId?: string
   /** "Remember this device": keeps the session across a browser restart. Default true. */
   remember?: boolean
+  /**
+   * THE CHOOSER'S CHOICE (docs/31 ruling B3). The role this PERSON elected at "Continue as …", sent
+   * on this login and remembered for the distributor switches that follow it. Omit it to fall back to
+   * `CreateApiClientOptions.actAs` — the constant the six per-role apps declare — and, with neither,
+   * to sign in as the membership's own role.
+   */
+  actAs?: MembershipRole
 }
 
 /** The id and the idempotency key one user intent carries — the SAME pair on every retry. */
@@ -162,8 +190,24 @@ export interface ApiClient {
   signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
   /** Who am I, in this distributorship. Refreshes the local session snapshot. */
   me: () => Promise<AuthMe>
-  /** Open a session on another membership of the same user. */
-  switchDistributor: (tenantId: string) => Promise<Session>
+  /**
+   * Open a session on another membership of the same user.
+   *
+   * `actAs` carries the election across (docs/29 §2): the other distributor elects against ITS
+   * membership, so the same person asking for `delivery` there is granted it there or refused there.
+   * Omitted, it repeats whatever this session last elected — a driver who switches distributor stays
+   * a driver rather than quietly becoming an owner at the next one.
+   */
+  switchDistributor: (tenantId: string, actAs?: MembershipRole) => Promise<Session>
+  /**
+   * A FRESH ELECTION on this distributor (docs/31 ruling B3): a new token, minted with `role`.
+   *
+   * Changing role is never a client-side group change under the same token — that token would still
+   * reach the old role's service for the life of its refresh. It is `switchTenant` against the tenant
+   * already signed into, carrying `actAs`, which re-validates the election against the membership and
+   * its `extra_roles` as they are NOW and refuses with a sentence the person can act on.
+   */
+  electRole: (role: MembershipRole) => Promise<Session>
   /** Change the password; the server revokes every OTHER session, this device stays signed in. */
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   /** Boot: exchange a surviving refresh token for a live access token. A no-op when there is none. */
@@ -180,9 +224,44 @@ function isUnauthorized(err: unknown): boolean {
   return err instanceof ORPCError && err.status === 401
 }
 
+/**
+ * Where the api link reads the base this request was PINNED to (docs/31 §2, architect's ruling).
+ *
+ * oRPC threads one options object from the interceptor to the codec (`intercept(interceptors,
+ * {...options, path, input}, ({path, input, ...rest}) => codec.encode(path, input, rest))`), so the
+ * interceptor computes `apiUrlFor()` once, hands it down on that object, and the link's `url`
+ * function reads it back. The REPLAY after a 401 therefore leaves for the same service the first
+ * attempt did; it is not re-asked, which is the whole point of pinning it.
+ *
+ * A string key rather than a symbol: the object is spread twice on the way through, and a spread
+ * copies string keys and symbols alike, but the name is what shows up honestly in a debugger.
+ */
+const PINNED_API_BASE = '__dosApiBase'
+
+function pinnedApiBase(callOptions: unknown): string | undefined {
+  if (typeof callOptions !== 'object' || callOptions === null) return undefined
+  const pinned = (callOptions as Record<string, unknown>)[PINNED_API_BASE]
+  return typeof pinned === 'string' ? pinned : undefined
+}
+
 export function createApiClient(options: CreateApiClientOptions): ApiClient {
   const storage = options.storage ?? defaultStorage()
   const session = new SessionStore(storage)
+
+  /**
+   * The election this session is running under, so a distributor switch repeats it (docs/29 §2).
+   * It starts as the app's declared constant — the six per-role apps — and the one app's chooser
+   * replaces it at every sign-in and every `electRole`.
+   */
+  let elected: MembershipRole | undefined = options.actAs
+
+  /** This app's own service when nothing elects one: `apiUrl` + `prefix`, as it always was. */
+  const fallbackApiUrl = join(options.apiUrl, options.prefix)
+
+  /** The service the CURRENT elected role talks to; the fallback when no role has been elected yet. */
+  function currentApiBase(): string {
+    return options.apiUrlFor?.() ?? fallbackApiUrl
+  }
 
   async function headers(): Promise<Record<string, string>> {
     const token = session.accessToken
@@ -311,15 +390,38 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
    * One interceptor for both links. On a 401 it refreshes ONCE and replays the call; every other
    * failure — and a second 401 — leaves as an `ApiError`, so no screen ever sees a raw fetch error.
    */
-  function interceptor(retryable: (path: readonly string[]) => boolean) {
+  function interceptor(
+    retryable: (path: readonly string[]) => boolean,
+    /** The api link pins its base for the request; the auth link has one origin and pins nothing. */
+    pinBase: boolean,
+  ) {
     return async (opts: {
-      next: () => Promise<unknown>
+      /*
+       * Method syntax, not a property: oRPC declares `next(options?: TOptions)` and TypeScript
+       * compares method parameters bivariantly, which is what lets this one name the argument
+       * `unknown` and still satisfy `Interceptor<StandardLinkInterceptorOptions<…>>` without
+       * importing a type out of the library's internals.
+       */
+      next(callOptions?: unknown): Promise<unknown>
       path: readonly string[]
     }): Promise<unknown> => {
       const at = generation
       if (retryable(opts.path)) await refreshBeforeExpiry()
+      /*
+       * ONCE PER REQUEST, HERE — before the first attempt, and the same answer for the replay below.
+       * `next` is oRPC's own: called with an options object it hands THAT one down to the codec, and
+       * `{ next: _, ...rest }` is exactly the object it would have used, so nothing else is changed.
+       */
+      let pinned: Record<string, unknown> | undefined
+      if (pinBase) {
+        // Everything oRPC handed in, minus its own `next` and plus the base this request is pinned
+        // to. Copied rather than destructured: pulling a method off an object is how `this` is lost.
+        pinned = { ...opts, [PINNED_API_BASE]: currentApiBase() }
+        delete pinned['next']
+      }
+      const send = (): Promise<unknown> => (pinned === undefined ? opts.next() : opts.next(pinned))
       try {
-        return await opts.next()
+        return await send()
       } catch (err) {
         if (!isUnauthorized(err) || !retryable(opts.path)) throw toApiError(err)
         // A call made under a session that has since ended is never refreshed, nor replayed under another (problem 1).
@@ -334,7 +436,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
         }
         if (generation !== at) throw toApiError(err)
         try {
-          return await opts.next()
+          return await send()
         } catch (second) {
           throw toApiError(second)
         }
@@ -349,15 +451,20 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
     url: join(options.authUrl, options.authPrefix),
     headers,
     fetch: deadline,
-    interceptors: [interceptor(isBearerAuthPath)],
+    interceptors: [interceptor(isBearerAuthPath, false)],
   })
   const authClient: AuthRouter = createORPCClient<AuthRouter>(authLink)
 
   const apiLink = new OpenAPILink(contract, {
-    url: join(options.apiUrl, options.prefix),
+    /*
+     * The base the INTERCEPTOR pinned for this request (docs/31 §2). `currentApiBase()` is only the
+     * fallback for a call that reached the link without going through it — nothing in this client
+     * does, but a link is not a place to assume.
+     */
+    url: (callOptions) => pinnedApiBase(callOptions) ?? currentApiBase(),
     headers,
     fetch: deadline,
-    interceptors: [interceptor(() => true)],
+    interceptors: [interceptor(() => true, true)],
   })
   const apiClient: ApiRouter = createORPCClient<ApiRouter>(apiLink)
 
@@ -369,6 +476,42 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
   const userAgent = typeof navigator === 'undefined' ? undefined : navigator.userAgent
   const deviceName =
     options.deviceName ?? (typeof userAgent === 'string' ? userAgent.slice(0, 120) : undefined)
+
+  /**
+   * `switchTenant`: the one call that mints a token for an existing session.
+   *
+   * It serves both `switchDistributor` (another distributor, the same election) and `electRole`
+   * (this distributor, a different election) because on the wire they are the same request — and
+   * because ruling B3 says a role changes by MINTING A TOKEN, never by the app deciding to render a
+   * different group under the token it already holds.
+   */
+  async function switchTo(tenantId: string, actAs?: MembershipRole): Promise<Session> {
+    const refreshToken = session.refreshToken
+    if (refreshToken === null) {
+      throw new ApiError({ kind: 'auth', status: 401, message: 'Signed out.' })
+    }
+    // Another session: the old distributor's calls still on their way are never replayed under this one.
+    const at = ++generation
+    const want = actAs ?? elected
+    const pair = await authClient.switchTenant({
+      refreshToken,
+      deviceId: session.deviceId,
+      tenantId,
+      // The other distributor elects against ITS membership (docs/29 §2): the same person asks for
+      // the same role there, and is refused there if that login is not allowed it.
+      ...(want === undefined ? {} : { actAs: want }),
+    })
+    if (generation !== at) {
+      // Signed out while the switch was on its way: nobody's pair, never written.
+      void authClient.logout({ refreshToken: pair.refreshToken }).catch(() => undefined)
+      throw sessionEnded()
+    }
+    elected = want
+    session.applyTokens(pair)
+    const current = session.getSnapshot().session
+    if (!current) throw new ApiError({ kind: 'unknown', message: 'Switch did not settle.' })
+    return current
+  }
 
   return {
     api: apiClient,
@@ -382,6 +525,7 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       // Never on a phone that is still leaving (addendum (y)): the last sign-out finishes on the device first — for at
       // most 25 s (addendum (z2)).
       await waitForLeaving()
+      const want = input.actAs ?? options.actAs
       storage.setDurable?.(input.remember !== false)
       const pair: TokenPair = await authClient.login({
         username: input.username,
@@ -392,9 +536,15 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
         // Sent ONLY for a user with more than one membership: a tenantId they are not a member of is
         // a 403, including the sample value an API console pre-fills (auth contract, LoginInput).
         ...(input.tenantId ? { tenantId: input.tenantId } : {}),
-        // docs/29 §2: the role this app needs. Omitted entirely by the apps that declare none.
-        ...(options.actAs === undefined ? {} : { actAs: options.actAs }),
+        /*
+         * docs/29 §2: the role being asked for. The CHOOSER's choice first (ruling B3), then the
+         * constant a per-role app declares, and nothing at all when neither says anything — which
+         * signs the person in as their membership's own role.
+         */
+        ...(want === undefined ? {} : { actAs: want }),
       })
+      // The election this session runs under, so the switches after it repeat this choice.
+      elected = want
       session.applyTokens(pair)
       const current = session.getSnapshot().session
       if (!current) throw new ApiError({ kind: 'unknown', message: 'Sign-in did not settle.' })
@@ -453,30 +603,16 @@ export function createApiClient(options: CreateApiClientOptions): ApiClient {
       return answer
     },
 
-    async switchDistributor(tenantId: string): Promise<Session> {
-      const refreshToken = session.refreshToken
-      if (refreshToken === null) {
-        throw new ApiError({ kind: 'auth', status: 401, message: 'Signed out.' })
-      }
-      // Another session: the old distributor's calls still on their way are never replayed under this one.
-      const at = ++generation
-      const pair = await authClient.switchTenant({
-        refreshToken,
-        deviceId: session.deviceId,
-        tenantId,
-        // The other distributor elects against ITS membership (docs/29 §2): the same app asks for the
-        // same role there, and is refused there if that login is not allowed it.
-        ...(options.actAs === undefined ? {} : { actAs: options.actAs }),
-      })
-      if (generation !== at) {
-        // Signed out while the switch was on its way: nobody's pair, never written.
-        void authClient.logout({ refreshToken: pair.refreshToken }).catch(() => undefined)
-        throw sessionEnded()
-      }
-      session.applyTokens(pair)
+    switchDistributor: switchTo,
+
+    electRole(role: MembershipRole): Promise<Session> {
       const current = session.getSnapshot().session
-      if (!current) throw new ApiError({ kind: 'unknown', message: 'Switch did not settle.' })
-      return current
+      if (current === null) {
+        return Promise.reject(new ApiError({ kind: 'auth', status: 401, message: 'Signed out.' }))
+      }
+      // The same distributor, a different role: `switchTenant` is what mints a token, and a fresh
+      // token is the ONLY way a role changes (ruling B3).
+      return switchTo(current.tenant.id, role)
     },
 
     async changePassword(currentPassword: string, newPassword: string): Promise<void> {

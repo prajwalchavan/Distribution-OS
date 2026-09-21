@@ -1,0 +1,461 @@
+/**
+ * W8 — stock: balances per lot per location, near expiry, adjustments and moves (docs/23 §4.1).
+ *
+ * `inventory.stock.balances` is STOCK_VIEWERS and carries pieces, a batch, an expiry date and an MRP.
+ * It does NOT carry a purchase rate or a landed cost — those live in `tenant_product_costs`, whose
+ * RLS policy is back-office, so there is no cost column for this screen to leak even by accident
+ * (docs/22 §9 rule 1, `rls.test.ts`).
+ *
+ * Two writes, both `BACK_OFFICE_OR_WAREHOUSE`: an adjustment, which always carries a REASON from the
+ * contract's own five (`AdjustmentReasonSchema`) and never a free-text excuse, and a move between
+ * locations. Both are single append-only ledger rows; there is no edit and no delete, which is why a
+ * damaged case is `damage`, an expired one is `expiry_writeoff`, and a miscount is `cycle_count`.
+ *
+ * The godown only takes stock OFF (DOS-044, docs/22 §8): damaged, expired, a correction or a count
+ * found short. The sheet asks for the pieces going out and sends them negative, and lists only the
+ * reasons `mayPostAdjustment` lets this login send, so never "Opening stock". Adding is the desk's:
+ * more on the rack than the books show is recorded under Counts, and goods arriving come in on a GRN.
+ */
+import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
+import {
+  Button,
+  Group,
+  ListRow,
+  Money,
+  Row,
+  Screen,
+  Search,
+  Segments,
+  Sheet,
+  Stack,
+  StatusChip,
+  TextInput,
+  Toast,
+  Txt,
+  useColors,
+  useGo,
+  useStrings,
+} from '@dos/ui'
+import { mayPostAdjustment, type AdjustmentReason, type StockBalanceRow } from '@dos/contracts'
+import { haptics } from '@dos/ui/platform'
+import { useMemo, useState } from 'react'
+
+import { instantWithClock } from '../../../src/groups/warehouse/lib/dates'
+import { useLotCaseSize } from '../../../src/groups/warehouse/lib/local'
+import {
+  Async,
+  ExpiryChip,
+  PageTabs,
+  Panel,
+  count,
+  qtyLine,
+} from '../../../src/groups/warehouse/lib/ui'
+
+/**
+ * The reasons the sheet can list, in order. "Opening stock" is not one of them: it is the desk's in
+ * both signs (DOS-044), and the component still filters this list through `mayPostAdjustment`.
+ */
+const ADJUSTMENT_REASONS: readonly { id: AdjustmentReason; key: string }[] = [
+  { id: 'adjustment', key: 'w8.reasonAdjustment' },
+  { id: 'damage', key: 'w8.reasonDamage' },
+  { id: 'expiry_writeoff', key: 'w8.reasonExpiry' },
+  { id: 'cycle_count', key: 'w8.reasonCycle' },
+]
+
+export default function Stock(): React.JSX.Element {
+  const t = useStrings()
+  const go = useGo()
+  const api = useApi()
+  const colors = useColors()
+  const { session } = useSession()
+  const signedIn = session !== null
+  // DOS-044: only the reasons this login may send with pieces going OUT (the server reads the same rule).
+  const role = session?.role
+  const reasons = useMemo(
+    () => ADJUSTMENT_REASONS.filter((one) => mayPostAdjustment(role, one.id, -1)),
+    [role],
+  )
+
+  const [locationId, setLocationId] = useState<string | null>(null)
+  const [q, setQ] = useState('')
+  const [nearExpiry, setNearExpiry] = useState(false)
+  const [adjusting, setAdjusting] = useState<StockBalanceRow | null>(null)
+  const [moving, setMoving] = useState<StockBalanceRow | null>(null)
+  const [delta, setDelta] = useState('')
+  const [reason, setReason] = useState<AdjustmentReason>('adjustment')
+  const [note, setNote] = useState('')
+  const [moveQty, setMoveQty] = useState('')
+  const [moveTo, setMoveTo] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const locations = useQuery(
+    ['locations', 'all'],
+    () => api.api.inventory.locations.list({ activeOnly: true }),
+    { enabled: signedIn },
+  )
+  const balances = useQuery(
+    ['balances', locationId ?? 'all', nearExpiry ? 'near' : 'all'],
+    () =>
+      api.api.inventory.stock.balances({
+        limit: 200,
+        ...(locationId === null ? {} : { locationId }),
+        ...(nearExpiry ? { nearExpiryOnly: true } : {}),
+      }),
+    { enabled: signedIn },
+  )
+  const ledger = useQuery(
+    ['ledger', locationId ?? 'all'],
+    () =>
+      api.api.inventory.stock.ledger({
+        limit: 20,
+        ...(locationId === null ? {} : { locationId }),
+      }),
+    { enabled: signedIn },
+  )
+
+  const adjust = useMutation(
+    (input: { lotId: string; locationId: string; qtyDelta: number }, meta) =>
+      api.api.inventory.stock.adjust({
+        idempotencyKey: meta.idempotencyKey,
+        lotId: input.lotId,
+        locationId: input.locationId,
+        qtyDelta: input.qtyDelta,
+        reason,
+        ...(note.trim() === '' ? {} : { note: note.trim() }),
+      }),
+    {
+      invalidates: [['balances'], ['ledger']],
+      onSuccess: () => {
+        haptics.success()
+        setAdjusting(null)
+        setDelta('')
+        setNote('')
+        setToast(t('w8.adjusted'))
+      },
+      onError: () => {
+        haptics.error()
+      },
+    },
+  )
+
+  const transfer = useMutation(
+    (input: { lotId: string; from: string; to: string; qtyPcs: number }, meta) =>
+      api.api.inventory.stock.transfer({
+        idempotencyKey: meta.idempotencyKey,
+        lotId: input.lotId,
+        fromLocationId: input.from,
+        toLocationId: input.to,
+        qtyPcs: input.qtyPcs,
+        ...(note.trim() === '' ? {} : { note: note.trim() }),
+      }),
+    {
+      invalidates: [['balances'], ['ledger']],
+      onSuccess: () => {
+        haptics.success()
+        setMoving(null)
+        setMoveQty('')
+        setMoveTo(null)
+        setToast(t('w8.transferred'))
+      },
+      onError: () => {
+        haptics.error()
+      },
+    },
+  )
+
+  const { caseSizeOf } = useLotCaseSize()
+  const term = q.trim().toLowerCase()
+  const rows = (balances.data?.items ?? []).filter(
+    (row) =>
+      term === '' ||
+      row.variantName.toLowerCase().includes(term) ||
+      row.productName.toLowerCase().includes(term) ||
+      row.batchNo.toLowerCase().includes(term),
+  )
+  const deltaValue = Number.parseInt(delta, 10)
+  // Pieces going OUT: a positive number, sent negative (iOS's decimal pad has no minus key, DOS-044).
+  const deltaOk = Number.isSafeInteger(deltaValue) && deltaValue > 0
+  const moveValue = Number.parseInt(moveQty, 10)
+  const moveOk = Number.isSafeInteger(moveValue) && moveValue > 0 && moveTo !== null
+
+  return (
+    <Screen title={t('w8.title')} context={session?.tenant.displayName} testID="w8-screen">
+      <Stack gap={6}>
+        <PageTabs group={go.href('/')} active={go.href('/stock')} />
+
+        <Panel title={t('w.location')} testID="w8-locations">
+          <Async state={locations} empty={(locations.data?.items.length ?? 0) === 0}>
+            <Group>
+              {(locations.data?.items ?? []).map((location) => (
+                <ListRow
+                  key={location.id}
+                  testID={`w8-location-${location.id}`}
+                  primary={location.name}
+                  secondary={location.kind}
+                  state={location.id === locationId ? 'selected' : 'default'}
+                  onPress={() => {
+                    setLocationId(location.id === locationId ? null : location.id)
+                  }}
+                />
+              ))}
+            </Group>
+          </Async>
+        </Panel>
+
+        <Search
+          testID="w8-search"
+          value={q}
+          onChange={setQ}
+          placeholder={t('w8.search')}
+          state={term === '' ? 'idle' : rows.length === 0 ? 'noResults' : 'results'}
+        />
+
+        <Segments
+          testID="w8-expiry"
+          items={[
+            { id: 'all', label: t('w8.allStock') },
+            { id: 'near', label: t('w8.nearExpiry') },
+          ]}
+          value={nearExpiry ? 'near' : 'all'}
+          onChange={(id) => {
+            setNearExpiry(id === 'near')
+          }}
+        />
+
+        <Panel title={t('w8.rows')} testID="w8-rows">
+          <Async state={balances} empty={rows.length === 0} emptyMessage={t('w8.rowsEmpty')}>
+            <Stack gap={4}>
+              {rows.map((row) => (
+                <Stack
+                  key={`${row.lotId}-${row.locationId}`}
+                  gap={3}
+                  pad={4}
+                  background="surface"
+                  radius="md"
+                  border="all"
+                  borderTone="faint"
+                  testID={`w8-lot-${row.lotId}`}
+                >
+                  <Txt field="bodyStrong" desk="cell">
+                    {row.variantName}
+                  </Txt>
+                  <Row gap={3} wrap align="center">
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {row.batchNo === '' ? t('w.noBatch') : t('w.batch', { batch: row.batchNo })}
+                    </Txt>
+                    <ExpiryChip expiryDate={row.expiryDate} />
+                    <Money value={row.mrpPaise} size="cell" />
+                  </Row>
+                  {/*
+                   * EVERY STOCK FIGURE CARRIES ITS UNIT. `inventory.stock.balances` is pieces and
+                   * says so nowhere in its shape, and these three read "On hand 41 · Held 41 ·
+                   * Free 0" — three bare numbers on a screen where a hand is deciding between
+                   * cartons and packets. The pack comes from the device's own lot (UX-00 §4.5 r7).
+                   */}
+                  <Row gap={4} wrap align="center">
+                    <Txt field="moneyM" desk="cell" numeric>
+                      {`${t('w8.onHand')} ${qtyLine(row.onHand, caseSizeOf(row.lotId), t)}`}
+                    </Txt>
+                    <StatusChip
+                      label={`${t('w8.reserved')} ${t('w.pieces', { pieces: count(row.reserved) })}`}
+                      family={row.reserved > 0 ? 'clay' : 'neutral'}
+                      figure
+                    />
+                    <StatusChip
+                      label={`${t('w8.free')} ${t('w.pieces', { pieces: count(row.onHand - row.reserved) })}`}
+                      family={row.onHand - row.reserved > 0 ? 'moss' : 'brick'}
+                      figure
+                    />
+                  </Row>
+                  <Row gap={8} wrap>
+                    <Button
+                      label={t('w8.adjust')}
+                      variant="secondary"
+                      onPress={() => {
+                        setAdjusting(row)
+                        setDelta('')
+                        setNote('')
+                        setReason('adjustment')
+                      }}
+                      testID={`w8-adjust-${row.lotId}`}
+                    />
+                    <Button
+                      label={t('w8.transfer')}
+                      variant="ghost"
+                      onPress={() => {
+                        setMoving(row)
+                        setMoveQty('')
+                        setMoveTo(null)
+                      }}
+                      testID={`w8-move-${row.lotId}`}
+                    />
+                  </Row>
+                </Stack>
+              ))}
+            </Stack>
+          </Async>
+        </Panel>
+
+        <Panel title={t('w8.ledger')} testID="w8-ledger">
+          <Async
+            state={ledger}
+            empty={(ledger.data?.items.length ?? 0) === 0}
+            emptyMessage={t('w8.ledgerEmpty')}
+          >
+            <Group>
+              {(ledger.data?.items ?? []).map((entry) => (
+                <ListRow
+                  key={entry.id}
+                  testID={`w8-entry-${entry.id}`}
+                  primary={entry.reason}
+                  secondary={instantWithClock(entry.occurredAt)}
+                  trailing={
+                    <StatusChip
+                      label={`${entry.qtyDelta > 0 ? '+' : ''}${String(entry.qtyDelta)}`}
+                      family={entry.qtyDelta > 0 ? 'moss' : 'ochre'}
+                      figure
+                    />
+                  }
+                  {...(entry.note === null ? {} : { reason: entry.note })}
+                />
+              ))}
+            </Group>
+          </Async>
+        </Panel>
+      </Stack>
+
+      <Sheet
+        open={adjusting !== null}
+        onClose={() => {
+          setAdjusting(null)
+        }}
+        title={adjusting === null ? '' : t('w8.adjustTitle', { item: adjusting.variantName })}
+        testID="w8-adjust-sheet"
+      >
+        <Stack gap={4}>
+          <TextInput
+            label={t('w8.adjustQty')}
+            value={delta}
+            onChange={setDelta}
+            keyboard="decimal"
+            helper={t('w8.adjustQtyNeeded')}
+            testID="w8-adjust-qty"
+          />
+          <Group>
+            {reasons.map((one) => (
+              <ListRow
+                key={one.id}
+                testID={`w8-reason-${one.id}`}
+                primary={t(one.key)}
+                state={one.id === reason ? 'selected' : 'default'}
+                onPress={() => {
+                  setReason(one.id)
+                }}
+              />
+            ))}
+          </Group>
+          <TextInput
+            label={t('w8.adjustNote')}
+            value={note}
+            onChange={setNote}
+            capitalize="sentences"
+            testID="w8-adjust-note"
+          />
+          <Txt field="body" desk="body" color={colors.text.secondary} testID="w8-add-is-desk">
+            {t('w8.addIsDesk')}
+          </Txt>
+          {adjust.error === undefined ? null : (
+            <Txt field="body" desk="body" color={colors.status.brick.fg}>
+              {adjust.error.message}
+            </Txt>
+          )}
+          <Button
+            label={t('w8.adjustDo')}
+            variant="primary"
+            loading={adjust.status === 'pending'}
+            disabled={!deltaOk}
+            {...(deltaOk ? {} : { disabledReason: t('w8.adjustQtyNeeded') })}
+            onPress={() => {
+              if (adjusting === null || !deltaOk) return
+              adjust.mutate({
+                lotId: adjusting.lotId,
+                locationId: adjusting.locationId,
+                qtyDelta: -deltaValue,
+              })
+            }}
+            fullWidth
+            testID="w8-adjust-do"
+          />
+        </Stack>
+      </Sheet>
+
+      <Sheet
+        open={moving !== null}
+        onClose={() => {
+          setMoving(null)
+        }}
+        title={moving === null ? '' : t('w8.transferTitle', { item: moving.variantName })}
+        testID="w8-move-sheet"
+      >
+        <Stack gap={4}>
+          <TextInput
+            label={t('w8.transferQty')}
+            value={moveQty}
+            onChange={setMoveQty}
+            keyboard="decimal"
+            helper={t('w8.qtyNeeded')}
+            testID="w8-move-qty"
+          />
+          <Group>
+            {(locations.data?.items ?? [])
+              .filter((one) => one.id !== moving?.locationId)
+              .map((one) => (
+                <ListRow
+                  key={one.id}
+                  testID={`w8-move-to-${one.id}`}
+                  primary={one.name}
+                  secondary={one.kind}
+                  state={one.id === moveTo ? 'selected' : 'default'}
+                  onPress={() => {
+                    setMoveTo(one.id)
+                  }}
+                />
+              ))}
+          </Group>
+          {transfer.error === undefined ? null : (
+            <Txt field="body" desk="body" color={colors.status.brick.fg}>
+              {transfer.error.message}
+            </Txt>
+          )}
+          <Button
+            label={t('w8.transferDo')}
+            variant="primary"
+            loading={transfer.status === 'pending'}
+            disabled={!moveOk}
+            {...(moveOk ? {} : { disabledReason: t('w8.transferTo') })}
+            onPress={() => {
+              if (moving === null || moveTo === null || !moveOk) return
+              transfer.mutate({
+                lotId: moving.lotId,
+                from: moving.locationId,
+                to: moveTo,
+                qtyPcs: moveValue,
+              })
+            }}
+            fullWidth
+            testID="w8-move-do"
+          />
+        </Stack>
+      </Sheet>
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="w8-toast"
+      />
+    </Screen>
+  )
+}

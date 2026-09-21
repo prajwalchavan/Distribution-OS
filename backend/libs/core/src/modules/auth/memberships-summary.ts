@@ -34,6 +34,8 @@ export interface SummaryMembership {
   displayName: string
   logoUrl: string | null
   role: MembershipRole
+  /** Ruling B5: the same `extra_roles` the login pair carries. */
+  extraRoles: readonly MembershipRole[]
   status: 'invited' | 'active' | 'disabled'
 }
 
@@ -73,6 +75,7 @@ export async function membershipsSummary(
       displayName: row.displayName,
       logoUrl: row.logoUrl,
       role: row.role,
+      extraRoles: [...row.extraRoles],
       outstandingPaise: figures.outstandingPaise,
       overduePaise: figures.overduePaise,
       openBills: figures.openBills,

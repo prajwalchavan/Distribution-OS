@@ -26,9 +26,16 @@ DOORSTEP (owner, manager, delivery), CREDIT_NOTE_RAISERS (owner, manager, accoun
 
 ---
 
-## 0. Shared across all six apps
+## 0. Shared across all six groups
 
-Every app has the same four frame screens; they are listed once here and not repeated.
+**Paths, as built (2026-09-21, docs/31).** The six per-role apps were retired at the one-app merge. Section headings below name
+`frontend/dos-app/app/<group>/`, and a screen's own source sits beside it (`frontend/dos-app/src/groups/<group>/`). The role
+segment is visible, so the URL of a screen is `/<group>` + the path under its heading: `/owner/orders`, `/sales/shops/[id]`,
+`/delivery/stop/[id]/collect`. Nothing about which service a screen calls changed — still one service per role.
+
+Every group has the same four frame screens; they are listed once here and not repeated. **X1 and X2 are now ONE copy each, at
+the root of the install** (`frontend/dos-app/app/sign-in.tsx`, `change-password.tsx`), and X1 carries the **Continue as …**
+chooser for a membership that permits more than one role (docs/29 §2, docs/31 ruling B3).
 
 - **X1 Sign-in** — username + password, device id, memberships picker when > 1. Primary action: sign in.
   Calls: `auth.login`, `auth.refresh`, `auth.switchTenant`, `auth.logout`, `auth.jwks` (verify only).
@@ -42,7 +49,7 @@ Every app has the same four frame screens; they are listed once here and not rep
 
 ---
 
-## 1. Owner app (`frontend/owner-app`, owner-service :3001, role `owner`)
+## 1. Owner (`frontend/dos-app/app/owner/`, owner-service :3001, role `owner`)
 
 Desk-primary with graphs, phone-secondary with four zero-tap answers (UX-00 §11). Six rail destinations: Today, Orders, Billing,
 Money, Stock, Reports, Settings (UX-00 §8.1). 26 screens.
@@ -199,7 +206,7 @@ app chrome and settings ✗ (MISSING `tenancy.branding.get`, `tenancy.settings.*
 
 ---
 
-## 2. Manager + accountant app (`frontend/manager-app`, manager-service :3002, roles `manager`, `accountant`)
+## 2. Manager + accountant (`frontend/dos-app/app/manager/`, manager-service :3002, roles `manager`, `accountant`)
 
 The keyboard loop: order queue, GRN review, billing desk, load-out, day-end, registers, Tally export; the accountant is
 read + exports (docs/22 §2). 21 screens; the accountant sees M1–M2, M9–M15, M21 and everything else read-only.
@@ -300,7 +307,7 @@ and receipt have none. Chrome ✗ (MISSING `tenancy.branding.get`).
 
 ---
 
-## 3. Sales app (`frontend/sales-app`, sales-service :3003, role `salesperson`; phone, offline before pilot)
+## 3. Sales (`frontend/dos-app/app/sales/`, sales-service :3003, role `salesperson`; phone, offline before pilot)
 
 Ninety seconds in a doorway: repeat order in 3 taps, modified order ≤ 15 taps. Never sees cost, never collects money. 14 screens,
 4 tabs (Beat, Orders, Shops, Me).
@@ -382,7 +389,7 @@ bill (S12) carries `seller` ✓ once billing is mounted.
 
 ---
 
-## 4. Warehouse app (`frontend/warehouse-app`, warehouse-service :3004, role `warehouse`; phone + desk)
+## 4. Warehouse (`frontend/dos-app/app/warehouse/`, warehouse-service :3004, role `warehouse`; phone + desk)
 
 Put it down, pick it up: 76 dp targets, no Save step, the gate count is a typed keypad. 12 screens, 4 tabs (Inbound, Pick, Pack, Load).
 
@@ -453,7 +460,7 @@ Challan print (W7) carries `seller` ✓; invoice print (W6) ✓ once billing is 
 
 ---
 
-## 5. Delivery app (`frontend/delivery-app`, delivery-service :3005, role `delivery`; phone, offline before pilot, GPS)
+## 5. Delivery (`frontend/dos-app/app/delivery/`, delivery-service :3005, role `delivery`; phone, offline before pilot, GPS)
 
 One hand, the other has cash in it. No tab bar: a single stack that opens on the next stop. 12 screens.
 The whole `delivery` contract is **planned** (docs/plans/delivery.md §2); calls below name the planned procedures.
@@ -534,7 +541,7 @@ note shown or shared at the door carry `seller` ✓; receipt has no seller block
 
 ---
 
-## 6. Retailer app (`frontend/retailer-app`, retailer-service :3006, role `retailer`; phone, online only)
+## 6. Retailer (`frontend/dos-app/app/retailer/`, retailer-service :3006, role `retailer`; phone, online only)
 
 The detail view for a WhatsApp message: no registration form, no permissions, one card per linked distributor, reorder in 2 taps.
 13 screens, no tab bar.
@@ -958,7 +965,7 @@ items rather than new procedures.
 
 These are not screen gaps: every one of them was found by an independent gate while walking a finished app against the live
 services on the founder's machine, and each is recorded here rather than fixed on the spot because it changes a contract the
-other six apps share. **Do them together, in one backend slice, after the frontend chain ends** — a contract change mid-chain
+other five groups share. **Do them together, in one backend slice, after the frontend chain ends** — a contract change mid-chain
 would break the gate that is running.
 
 | #   | Where                                                                                                    | What the app has to do today                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | What the backend should answer                                                                          |
@@ -979,7 +986,7 @@ would break the gate that is running.
 | 13  | `admin.audit.list`                                                                                       | rows carry `tenantSlug` but no `tenantName`, and `actorId` + `actorRole` but no `actorName`, so the audit register prints a handle (`tarsun`) where every other screen prints "M/s. Tarsun Enterprise", and a column headed "Who" that answers "Distribution OS staff" on every row. `support.list` already joins `requestedByName`; there are 100+ platform users in a developer's database, so the app cannot build the directory itself | `tenantName` and `actorName` on the audit row, the same join `support.list` does. **Done (DOS-109):** both are on the row, `actorName` resolved through `dos_support_requester_names()` (migration 0037) and `tenantName` from `tenants.legal_name`; `admin.tenants.get` names each support window's requester the same way |
 | 14  | `admin.users` (`disable`, no enable)                                                                     | the platform kill switch is one-way from the console: nothing in the product sets `users.status` back to `active` (only `pnpm db:seed`'s `restoreDemoAccess`)                                                                                                                                                                                                              | an audited `admin.users.enable`, the same shape as `disable`. **Done (DOS-107):** `POST /admin/users/{id}/enable`, super only, reason mandatory and audited as `user.enabled`; it restores `users.status` only (the sessions the lock ended stay ended; memberships, `platform_admins` and the password-failure lock are untouched) and is a no-op with no audit row on a login that is not locked. The People panel offers "Unlock this login" on a locked person, and both confirmations name every distributorship the press spans |
 | 15  | `tenancy.me` under a support pass                                                                        | answers **401 "No active membership for this tenant"** through a perfectly valid pass — the procedure reads the ACTOR's membership row and a console session has none anywhere. Verified by hand: `GET /tenancy/branding` through the same pass is 200, a write is 403 "this support window is read-only", and the pass on :3007 itself is 403. The console asks for branding and numbering instead                                     | either answer `tenancy.me` from the borrowed owner, or say in the contract that it is not pass-reachable |
-| 16  | owner-app Settings (`frontend/owner-app/app/settings/index.tsx:537-550`)                                  | the owner has no control for `delivery.expense_proof_min_paise`; only `settings.set` moves it and the ₹200 default holds                                                                                                                                                                                                                                                            | lean-retailer-platform (19): a Money field beside `delivery.pod_required`, 0 = every expense (DOS-071)   |
+| 16  | Owner Settings (`frontend/dos-app/app/owner/settings/index.tsx:537-550`)                                  | the owner has no control for `delivery.expense_proof_min_paise`; only `settings.set` moves it and the ₹200 default holds                                                                                                                                                                                                                                                            | lean-retailer-platform (19): a Money field beside `delivery.pod_required`, 0 = every expense (DOS-071)   |
 
 Three data-quality items on the demo database, same slice:
 

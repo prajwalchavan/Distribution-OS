@@ -124,6 +124,17 @@ docs/22 §8) — the one project is the website too, at `www.distributionos.in`;
 two things to prove. The plan and the architect's ruling: `docs/31-one-app-layout.md`. The bundle carries every group's code; that was never the security boundary (the server is), only
 a size cost, and it is paid once.
 
+*As built (2026-09-21, the `qa/one-app` merge; docs/31 §7):* **the six per-role web apps
+(`frontend/{owner,manager,sales,warehouse,delivery,retailer}-app`) are retired at this merge** and
+`frontend/dos-app` is the one install and the website. Its `app/` holds `owner/`, `manager/`, `sales/`,
+`warehouse/`, `delivery/` and `retailer/` as **visible** URL segments (`/owner/orders`,
+`/sales/orders`) — ruling Q1 overturned the parenthesised groups sketched above, because a bare
+`/orders` was claimed by four apps and expo-router would have resolved the collision by tree order.
+The acceptance line below about "the seven web apps and the one store app render the same screens" is
+therefore superseded: there are no per-role web apps left to compare against, and the kit's parity
+guard (`frontend/libs/ui/src/one-app-parity.test.ts`) runs on `dos-app` alone — every screen imports
+only the kit, one route file per URL, no group reaches another group's files, routes or service.
+
 Acceptance: the seven web apps and the one store app render the same screens from the same files (the
 kit's parity guard extends to it); a delivery elected token in the store app cannot reach a single
 owner-service route (the matrix specs already prove the server side; one app spec proves the client

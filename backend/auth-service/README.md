@@ -156,6 +156,9 @@ request.json
       "displayName": "text",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
+      "extraRoles": [
+        "delivery"
+      ],
       "status": "invited"
     }
   ]
@@ -265,6 +268,9 @@ request.json
       "displayName": "text",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
+      "extraRoles": [
+        "delivery"
+      ],
       "status": "invited"
     }
   ]
@@ -455,6 +461,9 @@ request.json
       "displayName": "text",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
+      "extraRoles": [
+        "delivery"
+      ],
       "status": "invited"
     }
   ]
@@ -543,6 +552,9 @@ curl "http://localhost:3000/auth/me" \
       "displayName": "text",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
+      "extraRoles": [
+        "delivery"
+      ],
       "status": "invited"
     }
   ],
@@ -602,6 +614,9 @@ curl "http://localhost:3000/auth/memberships/summary" \
       "displayName": "text",
       "logoUrl": "docs/2026/09/invoice-0042.jpg",
       "role": "owner",
+      "extraRoles": [
+        "delivery"
+      ],
       "outstandingPaise": 2680000,
       "overduePaise": 4000,
       "openBills": 1,

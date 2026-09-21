@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const source = readFileSync(
-  join(here, '..', '..', '..', 'retailer-app', 'app', 'orders', '[id].tsx'),
+  join(here, '..', '..', '..', 'dos-app', 'app', 'retailer', 'orders', '[id].tsx'),
   'utf8',
 )
 

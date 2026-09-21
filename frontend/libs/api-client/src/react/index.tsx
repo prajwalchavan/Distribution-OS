@@ -15,6 +15,8 @@ import {
   type ReactNode,
 } from 'react'
 
+import type { MembershipRole } from '@dos/contracts'
+
 import { QueryCache, type QueryEntry, type QueryKey } from '../cache.js'
 import { toApiError, type ApiError } from '../errors.js'
 import { newMutation, type ApiClient, type MutationMeta, type SignInOptions } from '../client.js'
@@ -144,7 +146,15 @@ export interface UseSession extends SessionState {
    * (y)); the query cache follows through `bindCacheToSession`. See `ApiClient.signOutOnDevice`.
    */
   signOutOnDevice: (leave: (stored: Promise<void>) => Promise<void>) => Promise<void>
-  switchDistributor: (tenantId: string) => Promise<Session>
+  /** Another distributor. `actAs` carries the election across; omitted, it repeats this session's. */
+  switchDistributor: (tenantId: string, actAs?: MembershipRole) => Promise<Session>
+  /**
+   * A FRESH ELECTION on this distributor (docs/31 ruling B3): the Continue-as chooser's second and
+   * later choices. It mints a NEW token — a role is never changed by rendering a different group
+   * under the token already held — and clears the cache, because the next role must never repaint
+   * the last one's rows.
+   */
+  electRole: (role: MembershipRole) => Promise<Session>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
   /** True when the signed-in user works for more than one distributor. */
   hasManyDistributors: boolean
@@ -165,8 +175,18 @@ export function useSession(): UseSession {
     cache.clear()
   }, [client, cache])
   const switchDistributor = useCallback(
-    async (tenantId: string): Promise<Session> => {
-      const next = await client.switchDistributor(tenantId)
+    async (tenantId: string, actAs?: MembershipRole): Promise<Session> => {
+      const next = await client.switchDistributor(tenantId, actAs)
+      cache.clear()
+      return next
+    },
+    [client, cache],
+  )
+  const electRole = useCallback(
+    async (role: MembershipRole): Promise<Session> => {
+      const next = await client.electRole(role)
+      // A different role reads different rows under different permissions: none of the last one's
+      // answers is still true, and one repainted from the cache would be a leak, not a stale figure.
       cache.clear()
       return next
     },
@@ -178,6 +198,7 @@ export function useSession(): UseSession {
     signOut,
     signOutOnDevice: client.signOutOnDevice,
     switchDistributor,
+    electRole,
     changePassword: client.changePassword,
     hasManyDistributors: (state.session?.memberships.length ?? 0) > 1,
   }

@@ -33,16 +33,34 @@ import {
 const here = dirname(fileURLToPath(import.meta.url))
 const frontend = join(here, '..', '..', '..')
 
-/** The seven apps and the skeleton they are generated from — nobody is exempt. */
-const APPS: readonly string[] = [
-  'libs/app-template',
-  'owner-app',
-  'manager-app',
-  'sales-app',
-  'warehouse-app',
-  'delivery-app',
-  'retailer-app',
-  'admin-app',
+/**
+ * Every app in the repo and the skeleton they are generated from — nobody is exempt (docs/31 §7: the six
+ * per-role apps are retired, and their six copies of this wiring became the one app's single copy).
+ *
+ * Two props differ between the one app and a single-role app, and both differences are the merge itself:
+ *
+ * `role` on `<Welcome>` is read only to tell the console's tagline from the product's. A single-role app
+ * has an `APP.role` to hand it; the one app has none by construction (ruling B3 — the PERSON elects, after
+ * the password), so it passes the constant `'member'`. What is pinned is that the prop is there and names
+ * this app's audience, not the spelling of a constant that no longer exists.
+ *
+ * `appTitle` on `<Landing>` is what docs/29 §1 promised would say WHICH APP THIS IS. In the one app that is
+ * the elected GROUP's own title — `GROUPS[group].title` — because one product name for all six would have
+ * read "Distribution OS" to a driver, a picker and an owner alike, which is the sentence §1 exists to avoid.
+ */
+interface AppUnderGuard {
+  /** Path from `frontend/`. */
+  readonly dir: string
+  /** The `role` prop this app's sign-in hands `<Welcome>`. */
+  readonly welcomeRole: string
+  /** The `appTitle` expression this app's root layout hands `<Landing>`. */
+  readonly landingTitle: string
+}
+
+const APPS: readonly AppUnderGuard[] = [
+  { dir: 'libs/app-template', welcomeRole: '{APP.role}', landingTitle: 'appTitle={APP.title}' },
+  { dir: 'dos-app', welcomeRole: '"member"', landingTitle: 'appTitle={GROUPS[group].title}' },
+  { dir: 'admin-app', welcomeRole: '{APP.role}', landingTitle: 'appTitle={APP.title}' },
 ]
 
 function readScreen(app: string, file: string): string {
@@ -145,16 +163,16 @@ describe('docs/29 §1 Welcome — cleared on the sign-out, not on every signed-o
 
 describe('docs/29 §1 Welcome — every app wires it the same way', () => {
   for (const app of APPS) {
-    describe(app, () => {
-      const source = readScreen(app, 'sign-in.tsx')
+    describe(app.dir, () => {
+      const source = readScreen(app.dir, 'sign-in.tsx')
 
       it('imports Welcome from the kit and from nowhere else', () => {
-        const kitImport = /import \{([^}]*)\} from '@dos\/ui'/.exec(source)?.[1] ?? ''
+        const kitImport = /import \{([\s\S]*?)\} from '@dos\/ui'/.exec(source)?.[1] ?? ''
         expect(kitImport.split(',').map((name) => name.trim())).toContain('Welcome')
       })
 
       it('wraps its own sign-in form in the kit Welcome, character for character', () => {
-        expect(source).toContain('    <Welcome appTitle={APP.title} role={APP.role}>\n')
+        expect(source).toContain(`    <Welcome appTitle={APP.title} role=${app.welcomeRole}>\n`)
         expect(source).toContain('    </Welcome>\n')
       })
 
@@ -204,11 +222,13 @@ describe('docs/29 §1 Landing — when it starts, and when it must not', () => {
 
 describe('docs/29 §1 Landing — every root layout wires it the same way', () => {
   for (const app of APPS) {
-    describe(app, () => {
-      const source = stripComments(readScreen(app, '_layout.tsx'))
+    describe(app.dir, () => {
+      const source = stripComments(readScreen(app.dir, '_layout.tsx'))
 
       it('takes the landing and the welcome flag from the kit, not from a second copy', () => {
-        const kitImport = /import \{([\s\S]*?)\} from '@dos\/ui'/.exec(source)?.[1] ?? ''
+        // `[^}]*` and not a lazy `[\s\S]*?`: the one app's root imports two other packages with
+        // braces BEFORE the kit, and a lazy match starts at the first of those and swallows them.
+        const kitImport = /import \{([^}]*)\} from '@dos\/ui'/.exec(source)?.[1] ?? ''
         const names = kitImport.split(',').map((name) => name.trim())
         expect(names).toContain('Landing')
         expect(names).toContain('clearWelcomeSeen')
@@ -222,7 +242,7 @@ describe('docs/29 §1 Landing — every root layout wires it the same way', () =
       it('renders the landing over the app, with the person, the app and the gate’s own done', () => {
         expect(source).toMatch(/<Landing\b/)
         expect(source).toContain('personName={session.user.name}')
-        expect(source).toContain('appTitle={APP.title}')
+        expect(source).toContain(app.landingTitle)
         expect(source).toContain('onDone={landing.done}')
       })
 
@@ -247,7 +267,7 @@ describe('docs/29 §1 Landing — every root layout wires it the same way', () =
 
   it('is not a route: no app has a landing screen to navigate to or bookmark', () => {
     for (const app of APPS) {
-      expect(existsSync(join(frontend, app, 'app', 'landing.tsx'))).toBe(false)
+      expect(existsSync(join(frontend, app.dir, 'app', 'landing.tsx'))).toBe(false)
     }
   })
 })

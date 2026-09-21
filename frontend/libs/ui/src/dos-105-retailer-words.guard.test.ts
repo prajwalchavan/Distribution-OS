@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const retailerApp = join(here, '..', '..', '..', 'retailer-app', 'app')
+const retailerApp = join(here, '..', '..', '..', 'dos-app', 'app', 'retailer')
 
 function read(path: string): string {
   return readFileSync(join(retailerApp, path), 'utf8')

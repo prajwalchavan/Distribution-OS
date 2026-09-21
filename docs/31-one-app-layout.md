@@ -21,7 +21,7 @@ Fourteen resolved paths are claimed by more than one app: `/`, `/sign-in`, `/cha
 `/billing`, `/billing/credit-notes`, `/money/claims`, `/orders/[id]`, `/bills/[id]` (two each). An
 expo-router **group** segment is invisible in the URL, so `(owner)/index.tsx` and `(delivery)/index.tsx`
 both resolve to `/`. expo-router does not reject that — the only duplicate check,
-`frontend/node_modules/expo-router/build/getRoutesCore.js:592`, rejects duplicate group *names* inside
+`frontend/node_modules/expo-router/build/getRoutesCore.js:592`, rejects duplicate group _names_ inside
 array syntax and nothing else — so a bare `/` or `/orders` resolves to whichever branch matched first,
 never to the elected one, and a browser reload (the only front door left after retirement) lands a
 manager on an owner screen.
@@ -43,13 +43,13 @@ frontend/dos-app/src/   config.ts · api.ts · groups/<g>/{nav.ts, strings.ts, l
 
 For each app `A` and its group `g`:
 
-| old | new |
-| --- | --- |
-| `frontend/A-app/app/<path>` (all but the three below) | `frontend/dos-app/app/g/<path>` |
-| `frontend/A-app/app/_layout.tsx` | `frontend/dos-app/app/g/_layout.tsx`, stripped per §1.4 |
-| `frontend/A-app/app/sign-in.tsx`, `change-password.tsx` | deleted — the **template's** copies land at the root |
-| `frontend/A-app/src/{nav.ts,strings.ts,lib/**}` | `frontend/dos-app/src/groups/g/**` |
-| `frontend/A-app/src/{config.ts,api.ts}` | deleted — folded into `src/config.ts` / `src/api.ts` |
+| old                                                     | new                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------- |
+| `frontend/A-app/app/<path>` (all but the three below)   | `frontend/dos-app/app/g/<path>`                         |
+| `frontend/A-app/app/_layout.tsx`                        | `frontend/dos-app/app/g/_layout.tsx`, stripped per §1.4 |
+| `frontend/A-app/app/sign-in.tsx`, `change-password.tsx` | deleted — the **template's** copies land at the root    |
+| `frontend/A-app/src/{nav.ts,strings.ts,lib/**}`         | `frontend/dos-app/src/groups/g/**`                      |
+| `frontend/A-app/src/{config.ts,api.ts}`                 | deleted — folded into `src/config.ts` / `src/api.ts`    |
 
 Owner ships `app/settings/index.tsx` (a directory), the other five `app/settings.tsx` (a file). Under
 visible segments those are `/owner/settings` and `/manager/settings` — different paths, so both shapes
@@ -57,54 +57,180 @@ survive unchanged. Second reason for §1.1.
 
 ### 1.3 The root `_layout.tsx`, in order
 
-1. `boot()` the client, hold the tree (template `app/_layout.tsx:52-60`). 2. `setRouterNavigate` (62-70).
-3. `<ThemeProvider touch="phone" density="desk">` + skeleton while `client === null` — the pre-election
-fallback pair (§5). 4. **Welcome** (docs/29 §1): no session ever on this device → `/welcome`.
-5. The template's session gate unchanged — hydrating skeleton; `mustChangePassword` →
-`/change-password`; no session → `/sign-in`; each renders a bare `<Slot/>`, no chrome.
-6. **Elected role** = `session.role` (docs/29 §2: the token's `role` claim IS the elected role; there is
-no second election on the device). `GROUP_OF[role]` — `accountant → manager`, `salesperson → sales`,
-every other role its own group. 7. **Redirect**: `pathname` outside the elected group → `/<group>`.
-ONE effect, `navigatorReady`, `setTimeout(…, 0)`, `clearTimeout`, `redirectTo === pathname` — the five
-assertions of `libs/ui/src/root-layout-redirects.test.ts:63-91`, satisfied once instead of six times.
-8. `<Slot/>`.
+**Re-derived from HEAD (`frontend/libs/app-template/app/_layout.tsx`, 286 lines, after the Welcome and
+landing merge `9391c17`) by lane 0 on 2026-09-21, per ruling B4.** Line numbers below are that file as
+it stands; the six app layouts are the same file plus their own chrome (owner 474 lines, manager 478,
+sales 583, warehouse 588, delivery 632, retailer 390).
 
-**The wrong-role screen is deleted.** `app.wrongRoleTitle` / `app.wrongRoleBody` exist in sales,
-warehouse, delivery, retailer (e.g. `delivery-app/app/_layout.tsx:125,276-278`). With a group per role
-there is no wrong app to be in; step 7 moves the person to their own group. Those four key pairs go.
+**What the merge changed, and the plan had wrong.** _The Welcome is not a route._ `<Welcome>` is a kit
+component that WRAPS the sign-in screen's own content (`app/sign-in.tsx:49`, `libs/ui/src/web/welcome.tsx:50`);
+it reads `dos.welcome.seen` from `platform.storage` (synchronously on web, awaited on native), renders
+the wordmark until **Sign in** is pressed, and then renders its children — today's form, unchanged.
+There is no `/welcome` file in any app and `dos-app` must not invent one: the pre-election routes are
+`sign-in.tsx` and `change-password.tsx`, and nothing else. The root layout's ONLY welcome duty is to
+re-arm the flag (`clearWelcomeSeen()`) on the one render `landing.signedOut` is true.
 
-**`<StatusBar style="dark" />`** (template `:76`) goes in the root, so owner and manager gain it — a
-fix: without it Android paints a white clock over `#F2F2EF`.
+The file is two components, and the split survives the merge:
+
+**`RootLayout()` — outside the provider (template 38-89).**
+
+1. `boot()` the client into state, and hold the tree while it is `null` (42-50).
+2. `setRouterNavigate` so `<Link>` and the shell can move; torn down on unmount (52-60).
+3. `client === null` → `<ThemeProvider touch density strings>` over `<Screen><Skeleton rows={4}/></Screen>`
+   (62-70). This is the first of three **pre-election** branches: no session, therefore no elected role,
+   therefore the fallback pair of §5 (`phone` / `desk`) and the KIT's own catalogue — **no group
+   strings**, because which group is not yet known.
+4. `<ApiProvider client>` wrapping `<StatusBar style="dark" />` and `<Shell/>` (73-88). ONE provider,
+   ONE client, for the life of the app (§2). **`<StatusBar style="dark" />` is at template `:85`**, and
+   on HEAD it is present in warehouse (`:108`), delivery (`:103`), retailer (`:85`) and the template, and
+   ABSENT in owner and manager — so those two gain it at the merge. Without it Android paints a white
+   clock over `#F2F2EF`.
+
+**`Shell()` — inside the provider (template 95-286), where `useSession()` can be called.**
+
+5. `session`, `hydrating`, `signOut`, `switchDistributor` from `useSession()`; `onSignIn`,
+   `onChangePassword` from `usePathname()`; `mustChangePassword` from
+   `session?.user.mustChangePassword` (96-107).
+6. `tenantBrand` — the distributor's name and `absoluteUrl(session.tenant.logoUrl)` (110-116). In
+   `dos-app` this becomes `absoluteUrl(GROUP_OF[session.role], session.tenant.logoUrl)`: by the time
+   there is a session there IS an elected role, so the group is always known here.
+7. The redirect LADDER, a `const`, not an effect (152-164). Today: `hydrating` → null; no session →
+   `/sign-in` unless already there; `mustChangePassword` → `/change-password` unless already there; on
+   `/sign-in` with a session → `'/'`. In `dos-app` the last arm's `'/'` becomes `/<group>`, and ONE arm
+   is added: a signed-in pathname outside the elected group → `/<group>`. `GROUP_OF` is
+   `Record<MembershipRole, GroupName>`, **total** (ruling Q2); an unmapped role signs out rather than
+   redirecting to `/undefined`.
+8. `navigatorReady` from `useRootNavigationState()?.key !== undefined` (174-175), then the ONE redirect
+   effect (185-193): guard on `!navigatorReady || redirectTo === null || redirectTo === pathname`,
+   `setTimeout(() => router.replace(redirectTo), 0)`, `clearTimeout` on cleanup. These are the five
+   assertions of `libs/ui/src/root-layout-redirects.test.ts:68-89`, satisfied once instead of eight
+   times.
+9. The landing gate (214-230): `useLandingGate(hydrating, sessionKey)` where the key is the tenant id
+   and the user id joined by a colon, so a switch and a different sign-in both count as an arrival;
+   `useEffect` clearing the welcome flag on `landing.signedOut`; and `landingPanel` — a `<Landing
+tenantName logoUrl personName appTitle onDone>` that **covers** (fixed, `zIndex: 60`) rather than
+   replacing, so the navigator underneath stays mounted and the redirect this sign-in started is not
+   stranded behind two seconds of introduction.
+10. Three render branches: `hydrating` → themed skeleton (232-240); `session === null || onSignIn ||
+mustChangePassword` → themed `<Slot/>` + `landingPanel`, **no chrome** (244-251) — the second and
+    third pre-election branches; otherwise `<AppShell …><Slot/></AppShell>` + `landingPanel` (253-285),
+    which in `dos-app` is what the GROUP layout renders instead (§1.4).
+
+**Where lane 0 put the three pieces §1.3 leans on** (landed 2026-09-21, each with its own spec):
+`GROUP_OF` / `groupOf()` / `GroupName` in `frontend/libs/api-client/src/groups.ts` — that package
+links `@dos/contracts`, so the table is `Record<MembershipRole, GroupName>` and a new role is a
+compile error; `routeFor(group, path)`, `<GroupProvider>`, `useGroup()` and `useGo()` in
+`frontend/libs/ui/src/route-for.tsx`, with the kit's router bridge hoisted to
+`frontend/libs/ui/src/router-bridge.ts` so the helper and the platform `<Link>` hold the same router;
+and the shell's home special-case now a `homeHref` prop (`frontend/libs/ui/src/nav-active.ts`),
+default `'/'`, so `/owner` does not light for `/owner/orders`. The kit does NOT learn the six group
+names — it serves the console, which has none.
+
+**Two consequences the move lanes must not decide for themselves.**
+
+- **`<Welcome role>` is a required `string` prop** (`libs/ui/src/types.ts:871`) and its only effect is
+  `role === 'platform_admin' ? 'welcome.console' : 'welcome.tagline'`. `dos-app` is never the console,
+  so the merged `sign-in.tsx` passes a constant; `APP.role` is gone with the six configs (ruling B3).
+- **`<Landing appTitle>` renders `landing.app` with `appShortName(appTitle)`** (`welcome.tsx:193`,
+  `strings.ts:279` — the part after the last `-`). With one `APP.title` of `'Distribution OS'` every
+  group's landing would read the product's name where docs/29 §1 promised "which app this is". The
+  elected group is known at that point, so the root passes that group's own title (`GROUPS[g].title`,
+  e.g. `'Distribution OS - Sales'`) and the line keeps its meaning. **Root lane, one line; flagged
+  here rather than settled, because it is the one place the merge could silently lose a founder
+  requirement.**
+
+**The wrong-role screen is deleted.** `app.wrongRoleTitle` / `app.wrongRoleBody` and a `WrongRole`
+component exist in sales (`_layout.tsx:132,325-345`), warehouse (`:133,176`), delivery (`:128,164`) and
+retailer (`:112,163`). With a group per role there is no wrong app to be in; step 7 moves the person to
+their own group, and ruling B3 puts the refusal at the chooser. Those four key pairs go **in the same
+commit** that re-points `libs/ui/src/docs29-field-app-role.guard.test.ts`.
 
 ### 1.4 Group layouts, and what lifts to the root
 
-| Stays in `app/<g>/_layout.tsx` | Lifts to the root, written once |
-| --- | --- |
-| `ThemeProvider` touch/density (§5) and this group's `strings` (§3) | `boot()`, `setRouterNavigate`, `<ApiProvider>`, `<StatusBar>` |
-| `<AppShell sections>` from `src/groups/g/nav.ts`; `can()` over `PERMISSIONS` | the session gate and redirect ladder (§1.3 4–7) |
-| badge queries (owner 2, manager 2), `<Search>` (owner, manager), `<ConnectionStrip>` source | `tenantBrand`, tenant switcher, account menu, sign-out |
-| `<OfflineProvider storePrefix>` — sales, warehouse, delivery only (§4); `<LeaveSheet>` — sales, delivery | — |
-| the `<Chrome>` sub-component (owner, manager) whose hooks need `useApi()` | — |
+Re-derived from the six layouts on HEAD. Corrections to the table as first written: **all six** apps
+have a `<Chrome>` sub-component (not owner and manager alone), **`<LeaveSheet>` is in three** apps
+(sales `:566`, warehouse `:571`, delivery `:615` — not "sales, delivery"), and retailer carries a badge
+query of its own (`inbox`, `:349`).
+
+| Stays in `app/<g>/_layout.tsx`                                                                                                                                                                                                                      | Lifts to the root, written once                                              |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `<ThemeProvider>` — this group's touch/density (§5), `tenant={tenantBrand}` and its own `strings` (§3)                                                                                                                                              | `boot()`, `setRouterNavigate`, `<ApiProvider>`, `<StatusBar style="dark" />` |
+| the whole `<AppShell>` call: `sections` from `src/groups/g/nav.ts`, `can()` over `PERMISSIONS`, `activeHref`, `onNavigate`, **and its `tenant` switcher and `account` menu / sign-out props**                                                       | the session gate and the redirect ladder (§1.3 steps 7-8)                    |
+| the `<Chrome>` sub-component (all six) and its badge queries — owner 3 + 3 search, manager 2 + 3 search, delivery 1 (`consent`), retailer 1 (`inbox`) — plus `<Search>` (owner `:439`, manager `:433`) and the `<ConnectionStrip>` source (all six) | the landing panel and the welcome re-arm (§1.3 step 9)                       |
+| `<OfflineProvider storePrefix>` — sales, warehouse, delivery only (§4), mounted ABOVE the gate and switched with `enabled`; `<LeaveSheet>` + `sweepIdentityStores` — the same three                                                                 | `tenantBrand`'s `absoluteUrl` for the landing and the change-password branch |
+
+**Why the tenant switcher and the account menu do NOT lift.** They are `tenant=` and `account=` props of
+the single `<AppShell>` (template 262-279), and `<AppShell>` stays with the group because `sections` and
+the badge counts are the group's. `useSession()` is available anywhere under the provider, so the data
+could be read at either level; the ELEMENT cannot be split. Lifting them would mean splitting
+`AppShell`, which this slice does not do.
 
 `src/config.ts`:
 
 ```ts
 export const APP = { title: 'Distribution OS', webPort: 5173 } as const
 export const GROUPS = {
-  owner:     { role: 'owner',       port: 3001, touch: 'phone', density: 'desk',  offline: false },
-  manager:   { role: 'manager',     port: 3002, touch: 'phone', density: 'desk',  offline: false },
-  sales:     { role: 'salesperson', port: 3003, touch: 'field', density: 'field', offline: 'dos-sales' },
-  warehouse: { role: 'warehouse',   port: 3004, touch: 'floor', density: 'field', offline: 'dos-warehouse' },
-  delivery:  { role: 'delivery',    port: 3005, touch: 'field', density: 'field', offline: 'dos-delivery' },
-  retailer:  { role: 'retailer',    port: 3006, touch: 'field', density: 'field', offline: false },
+  owner: {
+    role: 'owner',
+    title: 'Distribution OS - Owner',
+    port: 3001,
+    touch: 'phone',
+    density: 'desk',
+    offline: false,
+  },
+  manager: {
+    role: 'manager',
+    title: 'Distribution OS - Manager',
+    port: 3002,
+    touch: 'phone',
+    density: 'desk',
+    offline: false,
+  },
+  sales: {
+    role: 'salesperson',
+    title: 'Distribution OS - Sales',
+    port: 3003,
+    touch: 'field',
+    density: 'field',
+    offline: 'dos-sales',
+  },
+  warehouse: {
+    role: 'warehouse',
+    title: 'Distribution OS - Warehouse',
+    port: 3004,
+    touch: 'floor',
+    density: 'field',
+    offline: 'dos-warehouse',
+  },
+  delivery: {
+    role: 'delivery',
+    title: 'Distribution OS - Delivery',
+    port: 3005,
+    touch: 'field',
+    density: 'field',
+    offline: 'dos-delivery',
+  },
+  retailer: {
+    role: 'retailer',
+    title: 'Distribution OS - Shop',
+    port: 3006,
+    touch: 'field',
+    density: 'field',
+    offline: false,
+  },
 } as const
 export const AUTH_URL = process.env.EXPO_PUBLIC_AUTH_URL ?? 'http://127.0.0.1:3000'
-export const API_BASE = process.env.EXPO_PUBLIC_API_URL   // undefined locally → per-port (§2)
+export const API_BASE = process.env.EXPO_PUBLIC_API_URL // undefined locally → per-port (§2)
 ```
 
 `absoluteUrl(url)` becomes `absoluteUrl(group, url)`, closing over `serviceFor(GROUPS[group].role)`.
-It has 12 call sites today (6 owner, 6 manager); each gains its group. Getting it wrong 404s tenant
-logos and invoice PDFs silently in five of six groups — R2.
+**Counted on HEAD: 32 call sites across the six apps** — owner 7, manager 9, sales 4, warehouse 5,
+delivery 4, retailer 3 (excluding each app's own `src/config.ts` definition and two comment mentions).
+Twelve of the 32 are the two in each of the six root layouts, which collapse into the merged root's
+two; the other 20 live in screens and `src/lib` and each gains its group. Getting it wrong 404s tenant
+logos and invoice PDFs silently in five of six groups — R2. (The plan first said "12 call sites (6
+owner, 6 manager)": that was the count before the landing merge added one per layout, and it never
+counted the four field apps at all.)
 
 ### 1.5 Project files, from the template
 
@@ -131,15 +257,18 @@ New `frontend/libs/api-client/src/services.ts`, re-exported from `src/index.ts`:
 
 ```ts
 export const SERVICE_OF: Record<MembershipRole, { port: number; prefix: string }> = {
-  owner: { port: 3001, prefix: '/owner' },        manager: { port: 3002, prefix: '/manager' },
-  accountant: { port: 3002, prefix: '/manager' }, salesperson: { port: 3003, prefix: '/sales' },
-  warehouse: { port: 3004, prefix: '/warehouse' },delivery: { port: 3005, prefix: '/delivery' },
+  owner: { port: 3001, prefix: '/owner' },
+  manager: { port: 3002, prefix: '/manager' },
+  accountant: { port: 3002, prefix: '/manager' },
+  salesperson: { port: 3003, prefix: '/sales' },
+  warehouse: { port: 3004, prefix: '/warehouse' },
+  delivery: { port: 3005, prefix: '/delivery' },
   retailer: { port: 3006, prefix: '/retailer' },
 }
 export function serviceFor(role: MembershipRole, base?: string): string {
   return base === undefined
-    ? `http://127.0.0.1:${SERVICE_OF[role].port}`  // split mode, this Mac
-    : `${base}${SERVICE_OF[role].prefix}`           // all-in-one, docs/26 §7
+    ? `http://127.0.0.1:${SERVICE_OF[role].port}` // split mode, this Mac
+    : `${base}${SERVICE_OF[role].prefix}` // all-in-one, docs/26 §7
 }
 ```
 
@@ -169,10 +298,10 @@ all 3 135 keys stay where they are.
 
 Measured, so the alternative is rejected on evidence: of 3 135 distinct keys, **295 are shared by two
 or more apps and 71 of those carry different values** — `word.` 44, `app.` 8, `x4.` 8, `tray.` 6,
-`ai.` 5. They are not drift but audience. `word.POST_FULFILLMENT` is *Credit* to an owner and *Pay
-after delivery* to a shopkeeper; `word.PRE` has four values across four apps; `word.pcs` is *pc* in a
-desk table and *pieces* in a rep's sentence; `tray.waiting` is *Waiting to send* to a driver and
-*WAITING TO SEND* to a godown. One flat record silently picks whichever spread last — a product
+`ai.` 5. They are not drift but audience. `word.POST_FULFILLMENT` is _Credit_ to an owner and _Pay
+after delivery_ to a shopkeeper; `word.PRE` has four values across four apps; `word.pcs` is _pc_ in a
+desk table and _pieces_ in a rep's sentence; `tray.waiting` is _Waiting to send_ to a driver and
+_WAITING TO SEND_ to a godown. One flat record silently picks whichever spread last — a product
 regression in 71 places. Per-group records cost nothing and lose nothing, so there is no "handle
 later": **every colliding key keeps both values, in its own group's file.** The only deletions are the
 four wrong-role keys (§1.3); the only additions are the Welcome/landing keys, which live in `@dos/ui`'s
@@ -242,11 +371,11 @@ website, Android and iOS, and nothing asserts it today.
 `dos-105`, `dos-124`, `dos-144`, `dos-154` (all `retailer-app/app/**`). `document-urls.test.ts` needs
 none (§1.5).
 
-**6.4 The two new guards this design owes.** (a) *No group reaches another*: no file under `app/<g>/`
+**6.4 The two new guards this design owes.** (a) _No group reaches another_: no file under `app/<g>/`
 or `src/groups/<g>/` imports from another group, and no route literal in `app/<g>/` names a path
 outside `/<g>` (the pre-election four — `/`, `/welcome`, `/sign-in`, `/change-password` — allowed).
-This is the client half of docs/29 §3's acceptance: a sales screen never even *asks* for another
-service. (b) *One service per group*: `app/<g>/**` and `src/groups/<g>/**` reference `GROUPS.<g>` and
+This is the client half of docs/29 §3's acceptance: a sales screen never even _asks_ for another
+service. (b) _One service per group_: `app/<g>/**` and `src/groups/<g>/**` reference `GROUPS.<g>` and
 no other key; `serviceFor` is called only from `src/api.ts`.
 
 **6.5 The 98 app tests.** 21 are pure logic on a sibling module and move untouched. **77 assert a file
@@ -333,18 +462,18 @@ services up, `pnpm --filter @dos/dos-app web` on :5173 and a walk of one screen 
 
 ## 9. Risks, ranked
 
-| # | Risk | How the verifier catches it |
-| --- | --- | --- |
-| R1 | **Route ambiguity** if Q1 goes the other way: a reload on `/orders` lands the wrong group. | A spec enumerating every route file, resolving its URL, asserting no duplicate — fails today on 14 paths, must pass after. |
-| R2 | **`absoluteUrl` against the wrong service**: logos and invoice PDFs 404 silently in five groups. | `libs/ui/src/document-urls.test.ts` (exists, globs `*-app`) plus a new case that no call site omits its group. |
-| R3 | **`react-native-maps` in every install.** Owner alone depends on it (`owner-app/package.json:52,57`); it is linked at build time, so a driver's install carries the Google Maps SDK and Android needs a key the repo lacks — which is why `owner-app/app/map.tsx:142` passes `listOnly={process.env.EXPO_OS === 'android'}`. | `expo run:android` must succeed on a clean tree; `/owner/map` renders the list on Android, the map on web. Q3. |
-| R4 | **The `.wasm` block lost** by basing metro on owner's or manager's config — the three offline groups' web store falls back to memory with no error. | `pnpm build` (every group's web export) plus a store-open assertion in the sales web walk; `ConnectionStrip` must not say "not saved on this browser". |
-| R5 | **Strings merged instead of swapped** — 71 keys take another audience's wording. | A spec that each group layout passes its own record and the six are never spread into one object. |
-| R6 | **Store-file collision** if the prefix collapses to one app identity: a shared van phone gives one person one file for sales and delivery. | `libs/offline/src/identity.test.ts:248-252` extended: two elected roles, same person, same distributor → two names. |
-| R7 | **DOS-055 redirect regresses** while six layouts fold into one. | `root-layout-redirects.test.ts` re-pointed (§6.1) + the "no redirect effect in a group layout" case. |
-| R8 | **`pnpm docs:readme:check` fails in CI** because the backend generator still names six frontend apps. | The backend gate command in §8. |
-| R9 | **A group reaches another group's service or files** — the one thing the merge newly allows. | §6.4's two guards. |
-| R10 | **`.env` drift**: one `EXPO_PUBLIC_API_URL` no longer means one service. | `.env.example` documents it as the ALL-IN-ONE base only; `serviceFor`'s spec covers both shapes. |
+| #   | Risk                                                                                                                                                                                                                                                                                                                         | How the verifier catches it                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R1  | **Route ambiguity** if Q1 goes the other way: a reload on `/orders` lands the wrong group.                                                                                                                                                                                                                                   | A spec enumerating every route file, resolving its URL, asserting no duplicate — fails today on 14 paths, must pass after.                             |
+| R2  | **`absoluteUrl` against the wrong service**: logos and invoice PDFs 404 silently in five groups.                                                                                                                                                                                                                             | `libs/ui/src/document-urls.test.ts` (exists, globs `*-app`) plus a new case that no call site omits its group.                                         |
+| R3  | **`react-native-maps` in every install.** Owner alone depends on it (`owner-app/package.json:52,57`); it is linked at build time, so a driver's install carries the Google Maps SDK and Android needs a key the repo lacks — which is why `owner-app/app/map.tsx:142` passes `listOnly={process.env.EXPO_OS === 'android'}`. | `expo run:android` must succeed on a clean tree; `/owner/map` renders the list on Android, the map on web. Q3.                                         |
+| R4  | **The `.wasm` block lost** by basing metro on owner's or manager's config — the three offline groups' web store falls back to memory with no error.                                                                                                                                                                          | `pnpm build` (every group's web export) plus a store-open assertion in the sales web walk; `ConnectionStrip` must not say "not saved on this browser". |
+| R5  | **Strings merged instead of swapped** — 71 keys take another audience's wording.                                                                                                                                                                                                                                             | A spec that each group layout passes its own record and the six are never spread into one object.                                                      |
+| R6  | **Store-file collision** if the prefix collapses to one app identity: a shared van phone gives one person one file for sales and delivery.                                                                                                                                                                                   | `libs/offline/src/identity.test.ts:248-252` extended: two elected roles, same person, same distributor → two names.                                    |
+| R7  | **DOS-055 redirect regresses** while six layouts fold into one.                                                                                                                                                                                                                                                              | `root-layout-redirects.test.ts` re-pointed (§6.1) + the "no redirect effect in a group layout" case.                                                   |
+| R8  | **`pnpm docs:readme:check` fails in CI** because the backend generator still names six frontend apps.                                                                                                                                                                                                                        | The backend gate command in §8.                                                                                                                        |
+| R9  | **A group reaches another group's service or files** — the one thing the merge newly allows.                                                                                                                                                                                                                                 | §6.4's two guards.                                                                                                                                     |
+| R10 | **`.env` drift**: one `EXPO_PUBLIC_API_URL` no longer means one service.                                                                                                                                                                                                                                                     | `.env.example` documents it as the ALL-IN-ONE base only; `serviceFor`'s spec covers both shapes.                                                       |
 
 ---
 
@@ -353,44 +482,44 @@ services up, `pnpm --filter @dos/dos-app web` on :5173 and a walk of one screen 
 **Q1 — visible role segment, or invisible expo-router groups?** docs/29 §3 writes `(owner)/`. Fourteen
 paths collide and expo-router does not reject duplicates (§1.1), so with invisible groups a bare URL —
 which is every URL after a reload, now the only front door — resolves by tree order, not by the elected
-role. *Recommend visible segments (`/owner/orders`).* Cost: the 112 route literals gain a base,
+role. _Recommend visible segments (`/owner/orders`)._ Cost: the 112 route literals gain a base,
 mitigated by a `useGo()` helper whose base comes from a group context, making the edit one rename per
 call site and checkable by §6.4(a). **Settle before lane 3 starts; all six move lanes depend on it.**
 
 **Q2 — does the root mount one group or all six?** docs/29 §3 says "mounts that group's navigation" and
 also "the bundle carries every group's code" — consistent for code-splitting, inconsistent for the
 router if all six trees register, and expo-router registers the whole `app/` tree statically with no
-supported way to hide a branch. *Recommend: all six register (they must); the elected role is enforced
+supported way to hide a branch. _Recommend: all six register (they must); the elected role is enforced
 by the root redirect (§1.3 step 7) and by the server's 403. "Mounts that group" means the shell,
-strings, theme and store — not the route table.* Safe under Q1's recommendation, not otherwise.
+strings, theme and store — not the route table._ Safe under Q1's recommendation, not otherwise.
 
 **Q3 — maps in every install (R3).** (a) ship it and get an Android Maps key before go-live; (b) keep
 `listOnly` on Android for the pilot and ship the native module unused; (c) make the owner live map
-web-only (MapLibre) with a list on native. *Recommend (b): it is today's behaviour, needs no key, and
-is one line to revisit.* A product and cost call, not the planner's.
+web-only (MapLibre) with a list on native. _Recommend (b): it is today's behaviour, needs no key, and
+is one line to revisit._ A product and cost call, not the planner's.
 
 **Q4 — store listing name and bundle id.** §1.5 proposes `Distribution OS` / `dos` /
 `in.distributionos.app`. The six existing ids are unpublished so nothing is orphaned, but the id is
-permanent once submitted. *Recommend as proposed; confirm before the first `eas build`.*
+permanent once submitted. _Recommend as proposed; confirm before the first `eas build`._
 
 **Q5 — does the accountant get its own group?** Today the manager app serves both and the split is
-entirely `PERMISSIONS` (`manager-app/src/nav.ts:12-18`). §1.3 maps `accountant → manager`. *Recommend
-one group; the matrix already hides `/fulfilment` and `/prices`.*
+entirely `PERMISSIONS` (`manager-app/src/nav.ts:12-18`). §1.3 maps `accountant → manager`. _Recommend
+one group; the matrix already hides `/fulfilment` and `/prices`._
 
-**Q6 — the six duplicated helper files (§6.6).** The merge finally makes one copy possible. *Recommend
+**Q6 — the six duplicated helper files (§6.6).** The merge finally makes one copy possible. _Recommend
 not in this slice; follow-up immediately after the gates, and only after checking each copy's strings
-agree (owner's and manager's `bargain-order.ts` differ by ~23 lines).*
+agree (owner's and manager's `bargain-order.ts` differ by ~23 lines)._
 
 **Q7 — Welcome once per device, across six groups.** docs/29 §1 says once per device until a session
-exists. With one install, signing out of sales and in as delivery is the same device. *Recommend
+exists. With one install, signing out of sales and in as delivery is the same device. _Recommend
 device-scoped, not role-scoped — one `dos.welcome.seen` key in `platform.storage`. It is a wordmark,
-not a gate.*
+not a gate._
 
 ---
 
 ## Architect's ruling (Fable, 2026-09-21 evening) — binding on every lane that executes this plan
 
-Both skeptics returned *sound with amendments*; between them they raised four blockers. All four are
+Both skeptics returned _sound with amendments_; between them they raised four blockers. All four are
 upheld. The plan proceeds with the rulings below, which win over any sentence above that disagrees.
 
 ### The four blockers
@@ -399,7 +528,7 @@ upheld. The plan proceeds with the rulings below, which win over any sentence ab
 membership on every refresh and on `switchTenant`, so an elected role would silently revert to the
 membership role fifteen minutes after sign-in. This is a defect in the role-election design as first
 written, not in this plan. Ruling, added to docs/29 §2: `auth_sessions` stores the **elected** role;
-refresh re-validates the election against the membership *and its `extra_roles` as they are now* and
+refresh re-validates the election against the membership _and its `extra_roles` as they are now_ and
 re-mints the elected role — if the election is no longer permitted (the owner removed the extra role),
 the refresh fails closed and the person signs in again; `switchTenant` carries `actAs` and re-validates
 the same way. The role-election lane is held to this at its review before it merges.

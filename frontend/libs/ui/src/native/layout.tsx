@@ -17,6 +17,7 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { getRouterNavigate } from '../router-bridge.js'
 import { useTheme } from '../theme.js'
 import { gap, layout, radius as radii, space, type SemanticColors } from '../tokens.js'
 import type {
@@ -347,7 +348,7 @@ export function Link(props: LinkProps): React.JSX.Element {
       testID={testID}
       accessibilityRole="link"
       onPress={() => {
-        routerNavigate?.(href, replace)
+        getRouterNavigate()?.(href, replace)
       }}
       // `text` is a standalone accent word and IS the tap target, so it carries the floor of UX-00
       // section 5.2; `plain` wraps something that already has its own size. This was the wrong way
@@ -366,16 +367,10 @@ export function Link(props: LinkProps): React.JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
-// Router bridge — the same module-level hand-off the web renderer uses
+// Router bridge — one slot, in `../router-bridge.js`, shared with the web renderer and `useGo()`
 // ---------------------------------------------------------------------------
 
-type Navigate = (href: string, replace: boolean) => void
-
-let routerNavigate: Navigate | null = null
-
-export function setRouterNavigate(navigate: Navigate | null): void {
-  routerNavigate = navigate
-}
+export { setRouterNavigate, type Navigate } from '../router-bridge.js'
 
 // ---------------------------------------------------------------------------
 // Screen
