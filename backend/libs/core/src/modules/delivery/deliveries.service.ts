@@ -10,10 +10,12 @@ import type {
   DeliveriesListOutput,
   DeliveryGetInput,
   DeliveryGetOutput,
+  DeliveryLineReason,
   DeliveryOutcome,
   PodEvidenceIn,
   RecordDeliveryInput,
   RecordDeliveryOutput,
+  StopFailureReason,
 } from '@dos/contracts'
 import { isSaleableReturn } from '@dos/contracts'
 import { orderMachine, uuidv7, type OrderState } from '@dos/domain'
@@ -25,6 +27,7 @@ import {
   acceptObjectKey,
   assertCrewOrDesk,
   dayWindow,
+  declareUndelivered,
   defined,
   DOORSTEP,
   emitDeliveryEvent,
@@ -209,13 +212,37 @@ export class DeliveriesService {
           creditNoteId = note.id
         }
 
-        const nextStop = await this.trips.walkStop(
+        // QA DOS-197 / DOS-203: "Nothing from this bill" is a failed stop like the fail sheet's. The bill
+        // rides back on the van — out of the shop's dues and its ageing until it is delivered, and the
+        // shop told by bill NUMBER — and the stop carries WHY, read off the lines the crew tapped, so no
+        // desk register over it says "failed" with no cause. Anything handed over clears the flag.
+        if (outcome === 'failed')
+          await declareUndelivered(tx, this.billing, {
+            deliveryId: row.id,
+            tripId: trip.id,
+            stopId: stop.id,
+            retailerId: stop.retailerId,
+            invoiceId: invoice.id,
+            invoiceNo: invoice.invoiceNo,
+            failureReason: stopReasonOf(lines),
+            at,
+          })
+        else await this.billing.clearUndelivered(tx, invoice.id)
+
+        let nextStop = await this.trips.walkStop(
           tx,
           stop,
           outcome === 'returned' ? 'delivered' : outcome,
           at,
           null,
         )
+        if (outcome === 'failed')
+          nextStop = await this.trips.recordStopFailure(
+            tx,
+            nextStop,
+            stopReasonOf(lines),
+            input.note?.trim() || null,
+          )
         await emitDeliveryEvent(tx, 'delivery', row.id, 'DeliveryRecorded', {
           deliveryId: row.id,
           tripId: trip.id,
@@ -564,6 +591,27 @@ function assertOnTheVan(
       : `bill ${bill} is not out for delivery on this van. Tell the office before you hand anything over.`,
     data: { code: 'order_not_dispatched', orderState: state, invoiceId: invoice.id },
   })
+}
+
+/**
+ * WHY THE STOP FAILED, read off the lines the crew tapped (QA DOS-203).
+ *
+ * A refusal taken through the deliver screen used to leave `trip_stops.failure_reason` NULL while the two
+ * stops failed through the fail sheet carried `shop_closed` and `other`, so any desk register over the
+ * stop showed a failure with no cause. The word is already in the row — `delivery_lines.reason` — and
+ * this maps it onto the crew's own fail-sheet vocabulary (`StopFailureReason`). A line reason with no
+ * stop equivalent, or none at all, is `other`, which is what the fail sheet itself records for it.
+ */
+function stopReasonOf(
+  lines: readonly { returnedQtyPcs: number; reason?: DeliveryLineReason | null | undefined }[],
+): StopFailureReason {
+  const reasons = new Set(lines.filter((l) => l.returnedQtyPcs > 0).map((l) => l.reason ?? 'other'))
+  if (reasons.size === 1) {
+    const [only] = [...reasons]
+    if (only === 'refused') return 'refused'
+    if (only === 'damaged' || only === 'expired') return 'damaged_goods'
+  }
+  return 'other'
 }
 
 /** Derived, never sent (brief rule 8): every line full → delivered; every line zero → failed; else partial. */

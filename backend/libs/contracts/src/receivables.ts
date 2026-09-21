@@ -217,6 +217,13 @@ export const RetailerOutstandingSchema = z.object({
   retailerId: IdSchema,
   outstandingPaise: PaiseSchema,
   overduePaise: PaiseSchema,
+  /**
+   * The open value of this shop's bills that came back on a van and are NOT counted in
+   * `outstandingPaise`, `overduePaise`, `openBills` or the buckets (QA DOS-197). The shop is not chased
+   * for goods it does not have; the money is still named, and
+   * `outstandingPaise + undeliveredPaise - unallocatedCreditPaise` is the shop's balance in the books.
+   */
+  undeliveredPaise: PaiseSchema,
   unallocatedCreditPaise: PaiseSchema,
   openBills: z.number().int(),
   oldestDueDate: z.string().nullable(),

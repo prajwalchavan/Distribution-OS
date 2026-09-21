@@ -745,6 +745,7 @@ export type DeliveryEventType =
   | 'TripReturned'
   | 'TripCancelled'
   | 'StopFailed'
+  | 'DeliveryFailed'
   | 'DeliveryRecorded'
   | 'CollectionRecorded'
   | 'VanSaleInvoiced'
@@ -766,6 +767,41 @@ export async function emitDeliveryEvent(
     aggregateId,
     eventType,
     payload,
+  })
+}
+
+/**
+ * THE ONE PLACE A BILL IS DECLARED UNDELIVERED (QA DOS-197), shared by the two doorstep paths that can
+ * declare it: the fail sheet (`stops.fail`, and `trips.return` through it) and the deliver screen's
+ * "Nothing from this bill". Both flag the bill so receivables leaves it out of the shop's dues and the
+ * ageing, and both emit ONE `DeliveryFailed` carrying the bill's NUMBER — never an id fragment — so the
+ * shop's message can name it (docs/22: a message to a shop names the bill by its number).
+ *
+ * Keyed by the delivery row, so a replay of either path finds the flag set and the event already there.
+ */
+export async function declareUndelivered(
+  tx: Db,
+  billing: { markUndelivered: (tx: Db, invoiceId: string, at: Date) => Promise<void> },
+  i: {
+    deliveryId: string
+    tripId: string
+    stopId: string
+    retailerId: string
+    invoiceId: string
+    invoiceNo: string | null
+    failureReason: string | null
+    at: Date
+  },
+): Promise<void> {
+  await billing.markUndelivered(tx, i.invoiceId, i.at)
+  await emitDeliveryEvent(tx, 'delivery', i.deliveryId, 'DeliveryFailed', {
+    deliveryId: i.deliveryId,
+    tripId: i.tripId,
+    stopId: i.stopId,
+    retailerId: i.retailerId,
+    invoiceId: i.invoiceId,
+    invoiceNo: i.invoiceNo,
+    failureReason: i.failureReason,
   })
 }
 

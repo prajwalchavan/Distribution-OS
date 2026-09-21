@@ -285,6 +285,12 @@ describeDb('notifications (DATABASE_URL)', () => {
           ['invoiceNo', 'totalRupees', 'dueDate', 'upiLink'],
         ),
         platformTemplate(
+          'delivery_failed',
+          'whatsapp',
+          'Bill {{invoiceNo}} could not be delivered today — we will come again. — {{distributorName}}',
+          ['invoiceNo'],
+        ),
+        platformTemplate(
           'scheme_announcement',
           'whatsapp',
           '{{schemeName}} till {{validTill}}. — {{distributorName}}',
@@ -447,6 +453,59 @@ describeDb('notifications (DATABASE_URL)', () => {
       },
     })
     expect(noPhone).toEqual({ outcome: 'skipped', reason: 'no_phone' })
+  })
+
+  /*
+   * QA DOS-197 — THE SHOP IS TOLD, BY BILL NUMBER, WHEN NOTHING CAME OFF THE VAN.
+   *
+   * The shop had already had "your bill is ready" and "our vehicle is on its way"; the failed stop
+   * answered neither. One message per bill, keyed by the delivery so a relay replay finds it, naming
+   * the bill the way the shop reads it — the NUMBER, never an id fragment (docs/22).
+   */
+  it('DOS-197: a DeliveryFailed event becomes ONE message naming the bill by its number, and none at all for a bill with no number', async () => {
+    const deliveryId = uuidv7()
+    const failedInvoice = uuidv7()
+    const failedEvent = {
+      tenantId,
+      aggregateType: 'delivery',
+      aggregateId: deliveryId,
+      eventType: 'DeliveryFailed',
+      payload: {
+        deliveryId,
+        tripId: uuidv7(),
+        stopId: uuidv7(),
+        retailerId: shopA,
+        invoiceId: failedInvoice,
+        invoiceNo: `INV/26-27/${run}9`,
+        failureReason: 'shop_closed',
+      },
+    }
+    const first = await handleNotificationEvent(db, failedEvent)
+    expect(first.outcome).toBe('queued')
+    expect((await handleNotificationEvent(db, failedEvent)).outcome).toBe('replayed')
+    const rows = await messagesByKey(`DeliveryFailed:${deliveryId}`)
+    expect(rows).toHaveLength(1)
+    const row = rows[0]
+    expect(row?.channel).toBe('whatsapp')
+    expect(row?.to).toBe(shopPhoneA)
+    expect(row?.refType).toBe('invoice')
+    expect(row?.refId).toBe(failedInvoice)
+    const payload = row?.payload as Record<string, unknown>
+    expect(payload.body).toBe(
+      `Bill INV/26-27/${run}9 could not be delivered today — we will come again. — Notify Traders`,
+    )
+    expect(String(payload.body)).not.toContain(failedInvoice.slice(-8).toUpperCase())
+    expect(payload.body).not.toContain('{{')
+
+    // a bill that never got a number is a bill the shop was never told about: nothing is sent
+    const unnumbered = uuidv7()
+    const skipped = await handleNotificationEvent(db, {
+      ...failedEvent,
+      aggregateId: unnumbered,
+      payload: { ...failedEvent.payload, deliveryId: unnumbered, invoiceNo: null },
+    })
+    expect(skipped).toEqual({ outcome: 'skipped', reason: 'the bill has no number' })
+    expect(await messagesByKey(`DeliveryFailed:${unnumbered}`)).toHaveLength(0)
   })
 
   it('a brand-DMS or migrated bill is never announced as a new bill', async () => {

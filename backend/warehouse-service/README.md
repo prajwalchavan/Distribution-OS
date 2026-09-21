@@ -22424,6 +22424,7 @@ request.json
     "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
     "outstandingPaise": 2680000,
     "overduePaise": 4000,
+    "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",

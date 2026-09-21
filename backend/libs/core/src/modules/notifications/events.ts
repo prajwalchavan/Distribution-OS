@@ -41,6 +41,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   'OrderSubmitted',
   'InvoiceIssued',
   'DeliveryRecorded',
+  'DeliveryFailed',
   'ReceiptRecorded',
   'retailer.identity_linked',
 ] as const
@@ -268,6 +269,34 @@ export async function handleDeliveryRecorded(
 }
 
 /**
+ * `DeliveryFailed` (delivery): THE ONE MESSAGE A SHOP GETS WHEN NOTHING CAME OFF THE VAN (QA DOS-197).
+ *
+ * A failed or refused stop used to tell the shop nothing at all, while the "your bill is ready" and
+ * "our vehicle is on its way" messages it had already had stood unanswered. One row per bill, keyed by
+ * the delivery, naming the bill by its NUMBER — the event carries `invoiceNo`, and a bill with no
+ * number is not one a shop was ever told about, so nothing is sent rather than an id fragment.
+ */
+export async function handleDeliveryFailed(
+  db: Db,
+  event: NotificationEvent,
+): Promise<HandledEvent> {
+  const p = payloadOf(event)
+  const retailerId = str(p.retailerId)
+  const invoiceNo = str(p.invoiceNo)
+  if (!retailerId) return { outcome: 'ignored', reason: 'no retailerId in payload' }
+  if (!invoiceNo) return { outcome: 'skipped', reason: 'the bill has no number' }
+  const deliveryId = str(p.deliveryId) ?? event.aggregateId
+  return shopMessageFor(db, event, {
+    retailerId,
+    templateKey: 'delivery_failed',
+    refType: 'invoice',
+    refId: str(p.invoiceId) ?? deliveryId,
+    idempotencyKey: `DeliveryFailed:${deliveryId}`,
+    variables: () => ({ invoiceNo }),
+  })
+}
+
+/**
  * `ReceiptRecorded` (receivables): "payment received" for every rupee that lands — at the door, at the
  * office desk, or online — so the doorstep `CollectionRecorded` (which records the same receipt) is
  * deliberately not a second trigger. Keyed `PaymentReceived:<receiptId>`.
@@ -336,6 +365,8 @@ export async function handleNotificationEvent(
       return handleInvoiceIssued(db, event)
     case 'DeliveryRecorded':
       return handleDeliveryRecorded(db, event)
+    case 'DeliveryFailed':
+      return handleDeliveryFailed(db, event)
     case 'ReceiptRecorded':
       return handleReceiptRecorded(db, event)
     case 'retailer.identity_linked':

@@ -186,6 +186,7 @@ export const PLATFORM_TEMPLATE_KEYS = [
   'order_needs_approval',
   'invoice_issued',
   'pod_delivered',
+  'delivery_failed',
   'payment_received',
   'dues_reminder',
   'statement',

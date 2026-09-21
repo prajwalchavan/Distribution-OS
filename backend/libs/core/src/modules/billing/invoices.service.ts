@@ -1294,6 +1294,37 @@ export class BillingService {
     return live
   }
 
+  /**
+   * THE BILL CAME BACK ON THE VAN (QA DOS-197; docs/22 §4). A failed or refused stop flags the bill
+   * `undelivered_at` instead of touching its state: it is issued, its GST is due and it will be
+   * re-attempted, so `cancelled` would be a lie and the invoice machine has no rung for "issued but
+   * not handed over". Receivables then leaves it out of the shop's dues and its ageing until it is
+   * delivered, so the shop's rollup is refreshed in this same transaction.
+   *
+   * Idempotent: a replayed stop failure finds the flag already set and writes nothing. `undelivered_at`
+   * is not one of the columns `dos_invoice_immutable()` freezes, so an issued bill takes it.
+   */
+  async markUndelivered(tx: Db, invoiceId: string, at: Date): Promise<void> {
+    const row = await this.lockInvoice(tx, invoiceId)
+    if (row.undeliveredAt !== null) return
+    await tx
+      .update(invoices)
+      .set({ undeliveredAt: at, updatedAt: new Date() })
+      .where(eq(invoices.id, row.id))
+    await this.receivables.refreshOutstanding(tx, row.retailerId)
+  }
+
+  /** The shop has the goods: the flag goes and the bill is the shop's money again (QA DOS-197). */
+  async clearUndelivered(tx: Db, invoiceId: string): Promise<void> {
+    const row = await this.lockInvoice(tx, invoiceId)
+    if (row.undeliveredAt === null) return
+    await tx
+      .update(invoices)
+      .set({ undeliveredAt: null, updatedAt: new Date() })
+      .where(eq(invoices.id, row.id))
+    await this.receivables.refreshOutstanding(tx, row.retailerId)
+  }
+
   /** The bill and its lines for the doorstep (`InvoiceForDelivery`); a bill the caller may not see is NOT_FOUND. */
   async invoiceForDelivery(tx: Db, invoiceId: string): Promise<InvoiceForDelivery> {
     const row = await this.findInvoice(tx, invoiceId)

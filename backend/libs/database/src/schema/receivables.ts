@@ -388,6 +388,13 @@ export const retailerOutstandingSummary = pgTable(
       .references(() => retailers.id),
     outstandingPaise: paise('outstanding_paise').notNull().default(0),
     overduePaise: paise('overdue_paise').notNull().default(0),
+    /**
+     * The open value of this shop's bills that came back on a van and are NOT in `outstanding_paise`
+     * (QA DOS-197). The shop is not chased for goods it does not have, and the money is still named:
+     * `outstanding_paise + undelivered_paise - unallocated_credit_paise` is the shop's AR balance in
+     * `journal_lines`, which is the identity receivables.spec.ts holds every shop to.
+     */
+    undeliveredPaise: paise('undelivered_paise').notNull().default(0),
     unallocatedCreditPaise: paise('unallocated_credit_paise').notNull().default(0),
     openBills: integer('open_bills').notNull().default(0),
     oldestDueDate: date('oldest_due_date', { mode: 'string' }),
