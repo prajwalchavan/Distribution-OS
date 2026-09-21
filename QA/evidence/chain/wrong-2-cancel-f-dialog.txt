@@ -1,0 +1,166 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+✓ Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Being picked
+Filters (2)
+Clear
+Order	Shop	Person	Amount ₹	State	Stock	Waiting on	Credit	Placed
+
+SO-0882
+	
+Om Sai Provision Store
+	
+Rahul Deshmukh
+	3,849.00	Being picked		
+—
+	Over limit · warn only	
+21 Sep
+
+SO-0872
+	
+Sahyadri Super Bazar
+	
+Amit Pawar
+	90,319.00	Being picked		
+—
+		
+12 Sep
+
+SO-0874
+	
+Pawar General Store
+	
+Rahul Deshmukh
+	7,690.00	Being picked		
+—
+		
+12 Sep
+
+SO-0868
+	
+Laxmi Narayan Stores
+	
+Rahul Deshmukh
+	17,736.00	Submitted		
+Over credit limit
+		
+12 Sep
+
+SO-0867
+	
+Patil General Store
+	
+Rahul Deshmukh
+	5,367.00	Submitted		
+Below floor price · Over credit limit
+		
+12 Sep
+
+5 rows			1,24,961.00					
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Laxmi Narayan Stores · SO-0868
+Over credit limit
+₹17,736.00
+Approve
+Reject
+Patil General Store · SO-0867
+Below floor price
+₹5,367.00
+Approve
+Reject
+Patil General Store · SO-0867
+Over credit limit
+₹5,367.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Order SO-0882
+Close
+Shop
+Om Sai Provision Store
+Credit
+Owes ₹69,862.50 · limit ₹1,80,000.00 · Clear
+State
+Being picked
+Credit
+Owed ₹69,862.50 against a limit of ₹1,80,000.00 · Warn only
+Bills past the agreed days
+Terms
+Credit
+Wanted by
+—
+Lines
+Campa Orange 2 L
+1 cs · 24 pc
+₹1,695.79
+Konkan Bhajani Chivda 400 g
+1 cs · 20 pc
+₹2,152.79
+Subtotal
+₹3,035.68
+Discount
+₹0.00
+Tax
+₹812.90
+includes cess ₹145.35
+Total
+₹3,849.00
+Held for this order
+44 pc
+across 2 lots
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Cancel order
+2
+Cancel order
+SO-0882
+₹3,849.00
+Owes ₹69,862.50 · limit ₹1,80,000.00 · Clear
+The picker will be told which lines to put back.
+Why is it cancelled? The shop and the rep will read this.
+Cancel
+Cancel order

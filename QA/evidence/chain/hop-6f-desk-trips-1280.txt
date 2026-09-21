@@ -1,0 +1,35 @@
+TE
+Tarsun Enterprise
+accountant
+Today
+Orders
+2
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Trips
+Load-out
+Trips
+Planned and loading
+Trip	Date	Vehicle	Driver	Stops	State
+
+TRIP-NEXT
+	
+14 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+5
+	Planned

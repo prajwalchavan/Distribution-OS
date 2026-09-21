@@ -443,6 +443,13 @@ export const strings = {
     '{count} writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.',
   'd8.failedReturn': 'Could not check the vehicle in',
   'd8.notActive': 'This trip is not out on the road',
+  /*
+   * S-184. D8 used to borrow `d6.online` here — "A van sale needs a signal: it makes a numbered GST
+   * bill." — on a trip with van sales off, while the phone was holding ₹1,544 the office had never
+   * seen. Checking in is its own reason: the office is the one that takes the trip back.
+   */
+  'd8.offlineBlocks':
+    'Checking in needs a signal: the office takes the trip back and counts the van.',
 
   // --- D9 share -----------------------------------------------------------------------------------
   'd9.title': 'Send the papers',

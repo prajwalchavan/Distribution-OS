@@ -6,7 +6,7 @@
 | ------------ | ---------------------- |
 | Document     | Build Status & Roadmap |
 | Product      | Distribution OS        |
-| Version      | 3.0                    |
+| Version      | 3.1                    |
 | Status       | Active                 |
 | Owner        | Prajwal Chavan         |
 | Last Updated | 21 September 2026      |
@@ -146,7 +146,7 @@ Five pieces of work are running on the founder's machine today (Sunday 21 Septem
 | **3 — Tue 23**        | The one app finishes and is gated; the seven per-role web apps are retired · smoke and the chain re-walked **on** the one app                                                |
 | **4–5 — Wed 24 / Thu 25** | **The seven-day business simulation, on the one app** — two full days, a blind auditor, an arithmetic verdict                                                            |
 | **6 — Fri 26**        | Fix what the simulation found; check only where it pointed                                                                                                                  |
-| **7 — Sat 27**        | Android basics · the security slice public URLs require · **go live** at `app.distributionos.in` and `api.distributionos.in` · the architect's audit, folded into the handover |
+| **7 — Sat 27**        | Android basics · the security slice public URLs require · **go live** at `www.distributionos.in` and `api.distributionos.in` · the architect's audit, folded into the handover |
 
 **The honest shape is six days of scheduled work and one day of unknown.** Day 6 is the only day set aside for repairing what days 4–5 find. If Thursday evening's books balance, Saturday is live. If they do not, the unknown is the repair — likely about eight days rather than seven — and the founder hears that on Thursday night, not on Saturday with his URLs half-built.
 
@@ -195,12 +195,12 @@ The earlier plan (2026-09-05) was AWS Lightsail with managed Postgres to follow.
 | Database               | **PostgreSQL 17, self-hosted on that VM**                                                                                    | The schema needs a superuser; no free managed service grants one                                    |
 | Apps (web)             | **Cloudflare Pages**                                                                                                         | Unlimited bandwidth, no card required                                                                |
 | Backups                | **Cloudflare R2**, off the Oracle account                                                                                    | A backup on the same account as the thing it protects is not a backup                               |
-| Domain                 | **`distributionos.in`** — `app.` for the apps, `api.` for the services                                                       | Checked available; about **₹690 a year**                                                             |
+| Domain                 | **`distributionos.in`** — `www.` for the website, `api.` for the services; the bare domain redirects to `www.`                | Bought on **Hostinger, 21 September 2026**, about **₹690 a year**; nameservers moving to Cloudflare   |
 | Monthly cost           | **₹0**                                                                                                                       | The domain is the only recurring spend                                                               |
 
 **The known risk, named:** Oracle reclaims idle Always Free instances, and it halved this shape on 15 June 2026 without announcement. Mitigation is pay-as-you-go inside the free limits plus backups that live off Oracle. **Builds must never run on the free VM** — it will run out of memory; artifacts are built on the Mac or in CI and shipped.
 
-**Owed by the founder before day 7:** an Oracle account (Mumbai region, a **real credit card** — PIN-debit, prepaid and virtual cards are refused) with an API key; a Cloudflare account with an API token; the domain bought with its nameservers left on "custom"; and the answer to whether the pilot URLs are gated or public (gated is recommended).
+**Owed by the founder before day 7:** an Oracle account (Mumbai region, a **real credit card** — PIN-debit, prepaid and virtual cards are refused) with an API key; a Cloudflare account with an API token; and the answer to whether the pilot URLs are gated or public (gated is recommended). The domain is **done** — bought on Hostinger on 21 September 2026, with its nameservers now moving to Cloudflare.
 
 The scale rules remain binding on every module rather than being a later phase: stateless services, cursor-paginated lists with hard caps, idempotent mutations, per-tenant fairness, `tenant_id` leading every index, append-only ledgers ready to partition by month, and two connection pools so reads can move to replicas. The load model to design against is 10,000 distributors, 100,000 staff devices, 2,000,000 retailers.
 

@@ -49,6 +49,37 @@ export function pickCurrentTrip<T extends { id: string; state: string; trip_date
 }
 
 /**
+ * Which trip END OF DAY opens on, when the route names none (S-169).
+ *
+ * Everywhere else in this app "the" trip is `pickCurrentTrip` — the open one. D8 is the one screen
+ * where that is not enough, because it is the screen that says where MONEY goes, and money outlives a
+ * trip's open states. The desk can return and settle a trip while the driver is still holding a
+ * doorstep receipt from it; the receipt is then refused `trip_settled` (founder, 2026-09-14) and the
+ * cash goes to the cashier over the counter — and the settled branch of `dayEndCash` is the only
+ * place in this app that says so, with that trip's own settled figures beside it.
+ *
+ * Measured: the settled row drops out of `useLocalTrips` (open states only), and D8 re-pointed at
+ * another open trip the same person was crew on, reading "Hand ₹5,000.00 to the cashier" — that
+ * trip's float, money the driver was not holding — or, with no other open trip, "Nothing is on the
+ * road yet" over a phone holding ₹1,544 (money-web.md §5(B)).
+ *
+ * So: a trip this phone still owes the office money for wins, whatever state it is in; the open trip
+ * keeps the screen when it is owed for too, and when nothing is owed at all. `owedTripIds` is most
+ * recent first — the caller orders it, this rule only chooses.
+ *
+ * THE TRADE, stated: a crew member holding refused money from a finished trip sees THAT trip here
+ * until they hand it over in the tray (one tap, `_pending = 'kept'`, and it stops being owed). An
+ * open trip's check-in is a tap away in Trip history, whose rows already carry a `tripId`.
+ */
+export function dayEndTripId(
+  current: { id: string } | null,
+  owedTripIds: readonly string[],
+): string | null {
+  if (current !== null && owedTripIds.includes(current.id)) return current.id
+  return owedTripIds[0] ?? current?.id ?? null
+}
+
+/**
  * Where a trip row leads. A trip that can still start loading or depart goes to the Start screen; one
  * that has left (on the road, or checked in and waiting for the office) opens its own end-of-day
  * summary with its stops, the route a Trip history row already takes. The Start screen can do nothing

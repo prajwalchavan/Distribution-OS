@@ -1,0 +1,46 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Trips
+Sheets
+Trips
+Check-in
+Add a bill to TRIP-0001
+Balaji Wholesale Stores
+INV/0838 · Station Road
+₹1,01,531.00
+Ambika Provision Store
+INV/0820 · Station Road
+₹12,569.00
+Nutan Kirana Stores
+INV/0815 · Birla College Road
+₹4,264.00
+TRIPS
+Plan a trip
+TRIP-0001
+loading
+MH-05-CD-5678 · 21 Sep · 0 of 1 stops · Ganesh More
+Close
+The driver starts the trip from the delivery app once the load sheet is counted out.
+TRIP-NEXT
+planned
+MH-05-AB-1234 · 14 Sep · 0 of 5 stops · Ganesh More
+Start loading
+Add a bill
+TRIP-ACTIVE
+active
+MH-05-AB-1234 · 12 Sep · 3 of 10 stops · Ganesh More
+The money side of the trip is settled at the desk.
+Add a bill
+Choose at least one bill

@@ -1,0 +1,37 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+21 Sep
+MH-05-AB-1234
+confirmed
+Approved · 21 Sep, 10:33 am
+ORDERS ON THIS SHEET
+Expected 1
+Sai Baba Kirana
+SO-0885 · Cartons 1
+INV/9011
+WHAT GOES ON THE VEHICLE
+Campa Orange 2 L
+1 cs = 24 pc
+Exp 25 Apr 2027
+Konkan Bhajani Chivda 400 g
+1 cs = 20 pc
+Expires in 66 days
+Count the cartons
+Expected 1
+Counted 1
+Declared value
+₹3,849.00
+Print the challan
+A sheet is cancelled by the manager.
+Close

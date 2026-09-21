@@ -6,7 +6,7 @@
 | ------------ | ----------------- |
 | Document     | Product Home      |
 | Product      | Distribution OS   |
-| Version      | 3.0               |
+| Version      | 3.1               |
 | Status       | Active            |
 | Owner        | Prajwal Chavan    |
 | Last Updated | 21 September 2026 |
@@ -79,7 +79,7 @@ Distribution OS is a multi-tenant SaaS platform for distribution businesses — 
 
 ## Where it will run
 
-**Decided 2026-09-21, on verified terms.** Free *managed* PostgreSQL turned out to be impossible for this schema: creating the worker role that bypasses row-level security needs a superuser, and Neon, Supabase and RDS all withhold it. The isolation model is not bent to fit a hosting bill, so **PostgreSQL 17 is self-hosted** alongside the services on an **Oracle Cloud Always Free** instance (2 OCPU / 12 GB ARM) in the **Mumbai** region, the apps go on **Cloudflare Pages**, backups are kept **off Oracle** on Cloudflare R2, and the domain is **distributionos.in** (about ₹690 a year) — `app.` for the app, `api.` for the services. Running cost at the pilot: ₹0 a month plus the domain.
+**Decided 2026-09-21, on verified terms.** Free *managed* PostgreSQL turned out to be impossible for this schema: creating the worker role that bypasses row-level security needs a superuser, and Neon, Supabase and RDS all withhold it. The isolation model is not bent to fit a hosting bill, so **PostgreSQL 17 is self-hosted** alongside the services on an **Oracle Cloud Always Free** instance (2 OCPU / 12 GB ARM) in the **Mumbai** region, the apps go on **Cloudflare Pages**, backups are kept **off Oracle** on Cloudflare R2, and the domain is **distributionos.in** (about ₹690 a year, bought on Hostinger on 21 September 2026 with its nameservers moving to Cloudflare) — the website is **www.distributionos.in**, the bare domain redirects to it, and `api.` is the services. Running cost at the pilot: ₹0 a month plus the domain.
 
 Stated plainly: **nothing is deployed yet**, and on 21 September there was **no working path from the repository to a server** — no built container image, no TLS front, no migration or backup step. Building that path is one of day 1's lanes. Until it lands, everything runs on the founder's local PostgreSQL.
 
@@ -250,7 +250,7 @@ Cloud-first multi-tenant SaaS; modular design with modules talking only through 
 3. **Sample exports** from the pilot's ERP (party master, item master, outstanding) — the generic importer does not wait for them.
 4. **GST composition scheme**: which pilot shops, if any, are under it.
 5. **Rate requests on drafts that are never placed**: should such a request lapse on its own, and after how long? Today it simply waits and the desk reads "Not placed yet".
-6. **Accounts and choices owed before go-live**: an Oracle Cloud account in the Mumbai region (it requires a real credit card — PIN-debit, prepaid and virtual cards are refused), a Cloudflare account and API token, the domain bought with its nameservers left on "custom", and whether the pilot URL is gated or public (gated recommended).
+6. **Accounts and choices owed before go-live**: an Oracle Cloud account in the Mumbai region (it requires a real credit card — PIN-debit, prepaid and virtual cards are refused), a Cloudflare account and API token, and whether the pilot URL is gated or public (gated recommended). The **domain is done** — `distributionos.in`, bought on Hostinger on 21 September 2026, with its nameservers now moving to Cloudflare.
 
 ---
 

@@ -6,7 +6,7 @@
 | ------------ | ------------------------- |
 | Document     | Architecture & Technology |
 | Product      | Distribution OS           |
-| Version      | 3.0                       |
+| Version      | 3.1                       |
 | Status       | Active                    |
 | Owner        | Product Management        |
 | Last Updated | 21 September 2026         |
@@ -127,10 +127,10 @@ The pilot runs at ₹0 of recurring infrastructure cost, on terms that were veri
 | Compute          | **One arm64 Docker image in all-in-one mode** — all eight services plus the worker in one process, **377 MB of memory measured** — on **Oracle Cloud Always Free, Mumbai** |
 | TLS and routing  | **Caddy** in front, with automatic Let's Encrypt certificates; `api.distributionos.in`                                                                                    |
 | Database         | **PostgreSQL 17 self-hosted on the same VM**, with a named volume                                                                                                         |
-| Web app          | **Cloudflare Pages** (unlimited bandwidth, no card); `app.distributionos.in`                                                                                              |
+| Web app          | **Cloudflare Pages** (unlimited bandwidth, no card); `www.distributionos.in`, with the bare `distributionos.in` redirecting to it                                         |
 | Backups          | **Nightly `pg_dump` plus an object-storage archive to Cloudflare R2**, rotated, with a restore that is actually tested                                                     |
 | Builds           | On the founder's Mac or in CI, **never on the VM** (a free box has too little memory to build); the VM only ever pulls the image                                          |
-| Domain           | `distributionos.in`, about ₹690/year                                                                                                                                      |
+| Domain           | `distributionos.in`, about ₹690/year — bought on **Hostinger, 21 September 2026**; nameservers moving to **Cloudflare**                                                    |
 
 **Why the database is not managed.** The schema creates a `BYPASSRLS` database role for the worker, which requires superuser rights. No free managed tier grants them — Neon, Supabase and RDS all withhold it — so a managed free Postgres cannot host this schema at all. Self-hosting on the same VM is the only shape that works today; managed Postgres returns at roughly ten paying tenants, as `docs/26` already planned.
 
@@ -260,7 +260,7 @@ Document intelligence (supplier-bill extraction), imports and exports, rollups a
 
 **Since 2026-09-12 the work has been quality assurance, not construction.** A structured QA programme found and worked 158 findings in its second batch; **153 are merged** as at 2026-09-20, and the remainder are in flight. What it fixed is not cosmetic — receipts that could be banked twice, day-end that missed cash taken at a door with no signal, a shared phone that showed the next person the previous rep's shops, and a van that could leave with a bill nobody had counted out. Every one of those is now a rule in this architecture (§6, §7, §11) and several became non-negotiables in `docs/22` §9.
 
-**The plan to go live is seven days** (`QA/10-DAY-PLAN.md`, revised 2026-09-21): day 1 the cross-role chain across all seven apps, plus Welcome/landing and the start of role election and the deployment plumbing; day 2 role election lands and the one app starts; day 3 the one app is finished and gated; days 4–5 a **seven-day business simulation** on the merged app, judged by a blind auditor and settled by arithmetic (opening stock + receipts − sales − damage − returns = closing stock, and revenue = payments + outstanding; any drift is a stop-the-line defect); day 6 fixing what it found; day 7 Android basics, the security work public URLs require, **go live** on `app.distributionos.in` and `api.distributionos.in`, and the architect's audit with the handover. **Live by Saturday 27 September if Thursday evening's books balance** — four days of scheduled work and one day of the unknown, and the founder hears that night if the books do not.
+**The plan to go live is seven days** (`QA/10-DAY-PLAN.md`, revised 2026-09-21): day 1 the cross-role chain across all seven apps, plus Welcome/landing and the start of role election and the deployment plumbing; day 2 role election lands and the one app starts; day 3 the one app is finished and gated; days 4–5 a **seven-day business simulation** on the merged app, judged by a blind auditor and settled by arithmetic (opening stock + receipts − sales − damage − returns = closing stock, and revenue = payments + outstanding; any drift is a stop-the-line defect); day 6 fixing what it found; day 7 Android basics, the security work public URLs require, **go live** on `www.distributionos.in` and `api.distributionos.in`, and the architect's audit with the handover. **Live by Saturday 27 September if Thursday evening's books balance** — four days of scheduled work and one day of the unknown, and the founder hears that night if the books do not.
 
 **Where AI sits in this architecture. Decided 2026-09-05:** all AI features are in v1 — LLM vision extraction of supplier bills, WhatsApp free-text and voice order capture parsed into a draft, demand forecasting and reorder suggestions, and route sequencing. Architecturally they are ordinary modules calling an external model from the worker, never a separate system, and **none of them commits on its own**: a human confirms the draft order, the reviewed GRN, the purchase suggestion and the route.
 

@@ -1,0 +1,107 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+21 Sep
+MH-05-CD-5678
+draft
+Approved · 21 Sep, 9:10 am
+Count the cartons
+Blind count: what the bill says is not on this screen.
+Cartons on the vehicle
+1
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+ORDERS ON THIS SHEET
+1 order
+Shree Ganesh Kirana
+SO-0879 · Cartons 1
+INV/9007
+WHAT GOES ON THE VEHICLE
+Campa Cola 1 L
+9 pc
+Exp 4 May 2027
+Campa Cola 1 L
+4 pc
+Exp 9 Mar 2027
+Campa Cola 1 L
+4 pc
+Exp 11 Mar 2027
+Campa Cola 1 L
+4 pc
+Exp 6 Apr 2027
+Campa Cola 1 L
+5 pc
+Exp 23 Feb 2027
+Campa Cola 1 L
+5 pc
+Exp 27 Apr 2027
+Campa Cola 1 L
+2 cs + 9 pc = 57 pc
+Exp 6 Jun 2027
+Campa Cola 1 L
+7 pc
+Exp 2 Mar 2027
+Campa Cola 1 L
+4 pc
+Exp 23 Mar 2027
+Campa Cola 1 L
+6 pc
+Exp 20 Apr 2027
+Campa Cola 1 L
+4 pc
+Exp 13 Apr 2027
+Campa Cola 1 L
+11 pc
+Exp 11 May 2027
+Campa Cola 1 L
+2 pc
+Exp 30 Mar 2027
+Campa Cola 1 L
+4 pc
+Exp 16 Mar 2027
+Godavari Cow Ghee 1 L
+1 pc
+Exp 26 Jul 2027
+Godavari Cow Ghee 1 L
+2 pc
+Exp 6 Aug 2027
+Godavari Cow Ghee 1 L
+1 pc
+Exp 20 Jun 2027
+Godavari Cow Ghee 1 L
+2 pc
+Exp 23 Jul 2027
+Godavari Cow Ghee 1 L
+2 pc
+Exp 14 Jun 2027
+Declared value
+₹10,148.00
+A sheet is cancelled by the manager.
+Close
+Check out MH-05-CD-5678?
+1 cartons leave on MH-05-CD-5678. Stock moves to the vehicle and challan paper is issued. This cannot be undone.
+Cancel
+Send the vehicle out
+MH-05-CD-5678
+Send the vehicle out
