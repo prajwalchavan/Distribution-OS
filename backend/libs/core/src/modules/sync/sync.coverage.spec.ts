@@ -625,9 +625,9 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       'credit_mode',
     ]
     const columns =
-      (await manifestOf(shop)).body.tables.find((t) => t.table === 'retailers')?.columns.map(
-        (c) => c.name,
-      ) ?? []
+      (await manifestOf(shop)).body.tables
+        .find((t) => t.table === 'retailers')
+        ?.columns.map((c) => c.name) ?? []
     expect(columns.length).toBeGreaterThan(0)
     for (const key of SHOP_MUST_NOT_HOLD) expect(columns, key).not.toContain(key)
     // The shop still holds the row: who it is, where it is and what it pays on (payment terms).

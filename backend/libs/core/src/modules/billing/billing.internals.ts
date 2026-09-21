@@ -7,13 +7,7 @@ import {
   type InvoiceEvent,
   type InvoiceState,
 } from '@dos/domain'
-import {
-  productVariants,
-  retailerIdentities,
-  retailers,
-  tenantProducts,
-  type Db,
-} from '@dos/db'
+import { productVariants, retailerIdentities, retailers, tenantProducts, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 
 /**
