@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { inArray, sql } from 'drizzle-orm'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { businessDate, uuidv7 } from '@dos/domain'
 import {
@@ -40,7 +40,10 @@ const describeDb = url ? describe : describe.skip
 
 interface Line {
   id: string
+  lineNo: number
+  orderLineId: string | null
   variantId: string
+  hsnCode: string
   lotId: string | null
   qtyPcs: number
   freeQtyPcs: number
@@ -53,6 +56,7 @@ interface Line {
   cgstPaise: number
   sgstPaise: number
   igstPaise: number
+  cessBps: number
   cessPaise: number
   lineTotalPaise: number
   appliedRules: { ruleId: string }[]
@@ -109,9 +113,13 @@ describeDb('billing (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
   const run = String(Date.now()).slice(-8)
-  const hsn = `9${run.slice(-6)}`
+  // Per-run codes, deleted in `afterAll`: `hsn_rates` is global and unique on (code, date) since
+  // S-176, so a code built from six digits of the clock came round again as a hard INSERT failure on
+  // a long-lived database. Eight digits is the contract's ceiling (`HsnCodeSchema`, which the
+  // brand-DMS invoice below is validated against), so the prefix takes the run's last SEVEN.
+  const hsn = `9${run.slice(-7)}`
   /** DOS-079: aerated waters — 28% GST plus 12% compensation cess. */
-  const cessHsn = `7${run.slice(-6)}`
+  const cessHsn = `7${run.slice(-7)}`
 
   const tenantId = uuidv7()
   const otherTenantId = uuidv7()
@@ -484,6 +492,8 @@ describeDb('billing (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app?.close()
+    // The rate rows this run wrote into the GLOBAL table go with it (owner connection, no RLS).
+    await db.delete(hsnRates).where(inArray(hsnRates.hsnCode, [hsn, cessHsn]))
     await pool.end()
   })
 
@@ -1921,6 +1931,63 @@ describeDb('billing (DATABASE_URL)', () => {
     const searched = await page({ q: `D9/older/${run}`, limit: 50 })
     expect(searched.status).toBe(200)
     expect(searched.body.items.map((i) => i.id)).toEqual([olderId])
+  })
+
+  it('S-176: an order line and its invoice line carry the same HSN, the same GST, the same cess and the same tax', async () => {
+    /*
+     * THE BILL IS THE LEGAL DOCUMENT AND THE QUOTE IS THE PROMISE (docs/22 §4, §6). Both take their
+     * rate from `hsn_rates`, and they used to take it through two copies of one lookup — which, on a
+     * heading that held two live rows, answered differently depending on how many HSNs the query
+     * asked about. One order of aerated drinks was quoted at 12% and billed at 28% + 12% cess. There
+     * is one resolver now (`pricing/hsn-rates.ts`), and this holds the two halves to each other on an
+     * order that carries TWO headings, which is the shape that used to diverge.
+     */
+    type OrderLine = {
+      id: string
+      variantId: string
+      gstBps: number
+      cessBps: number
+      taxPaise: number
+      cessPaise: number
+    }
+    const orderId = await placeOrder(
+      rep,
+      shopMh,
+      [
+        { variantId: variantCess, cases: 2 },
+        { variantId: variantB, cases: 2 },
+      ],
+      's176',
+    )
+    const order = await call<{ item: { lines: OrderLine[] } }>(
+      app,
+      manager,
+      'GET',
+      `/orders/${orderId}`,
+    )
+    expect(order.status).toBe(200)
+    expect(order.body.item.lines).toHaveLength(2)
+
+    const { res } = await issueFor(orderId, 's176')
+    expect(res.status).toBe(200)
+    expect(res.body.item.lines).toHaveLength(2)
+
+    for (const billed of res.body.item.lines) {
+      const ordered = order.body.item.lines.find((l) => l.id === billed.orderLineId)
+      expect(ordered, `invoice line ${billed.lineNo} names its order line`).toBeDefined()
+      expect(billed.variantId).toBe(ordered?.variantId)
+      expect(billed.gstBps, `${billed.hsnCode} GST`).toBe(ordered?.gstBps)
+      expect(billed.cessBps, `${billed.hsnCode} cess`).toBe(ordered?.cessBps)
+      expect(billed.cessPaise, `${billed.hsnCode} cess paise`).toBe(ordered?.cessPaise)
+      // The order's `taxPaise` is GST PLUS cess (DOS-079); the bill splits GST three ways.
+      expect(
+        billed.cgstPaise + billed.sgstPaise + billed.igstPaise + billed.cessPaise,
+        `${billed.hsnCode} tax`,
+      ).toBe(ordered?.taxPaise)
+    }
+    // The cess line is the one the ambiguity bit: it must still be the 28% + 12% one.
+    const cessLine = res.body.item.lines.find((l) => l.variantId === variantCess)
+    expect(cessLine).toMatchObject({ gstBps: 2_800, cessBps: 1_200 })
   })
 
   it('DOS-079: a fully packed invoice for a cess item equals the order total', async () => {
