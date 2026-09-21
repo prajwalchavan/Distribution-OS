@@ -1,0 +1,155 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+✓ Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Being picked
+Filters (2)
+Clear
+Order	Shop	Person	Amount ₹	State	Stock	Waiting on	Credit	Placed
+
+SO-0872
+	
+Sahyadri Super Bazar
+	
+Amit Pawar
+	90,319.00	Being picked		
+—
+		
+12 Sep
+
+
+SO-0874
+	
+Pawar General Store
+	
+Rahul Deshmukh
+	7,690.00	Being picked		
+—
+		
+12 Sep
+
+
+SO-0870
+	
+Nutan Kirana Stores
+	
+Amit Pawar
+	7,361.00	Being picked		
+—
+		
+12 Sep
+
+3 rows			1,05,370.00					
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Order SO-0872
+Close
+Shop
+Sahyadri Super Bazar
+Credit
+Owes ₹4,81,610.00 · limit ₹10,00,000.00 · Clear
+State
+Being picked
+Terms
+Credit
+Wanted by
+—
+Lines
+Godavari Table Butter 500 g
+11 cs · 220 pc
+Off the bill
+₹53,717.86
+Campa Orange 750 ml
+5 cs · 120 pc · 5 pc free
+Free goods · Off the bill
+₹3,725.80
+Campa Cola 750 ml
+7 cs · 168 pc · 7 pc free
+Free goods · Off the bill
+₹5,216.12
+Godavari Cow Ghee 500 ml
+9 pc
+Off the bill
+₹3,103.50
+Campa Lemon 500 ml
+11 cs · 264 pc
+Off the bill
+₹4,006.01
+Campa Cola 500 ml
+13 cs · 312 pc
+Off the bill
+₹4,781.48
+Balaji Chataka Pataka Wafers 45 g
+11 cs · 528 pc
+Off the line · Off the bill
+₹8,487.53
+Annapurna Sunflower Refined Oil 1 L pouch
+5 cs · 60 pc
+Off the bill
+₹7,281.00
+Subtotal
+₹79,412.29
+Discount
+₹1,887.95
+Tax
+₹12,794.96
+Total
+₹90,319.00
+Held for this order
+0 pc
+across 0 lots
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Nothing is held for this order
+Cancel order
+2
+Cancel order
+SO-0872
+₹90,319.00
+Owes ₹4,81,610.00 · limit ₹10,00,000.00 · Clear
+The picker will be told which lines to put back.
+Why is it cancelled? The shop and the rep will read this.
+Cancel
+Cancel order

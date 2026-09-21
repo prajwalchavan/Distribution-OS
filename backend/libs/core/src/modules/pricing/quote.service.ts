@@ -1,11 +1,10 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, gt, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { QuoteInput, QuoteOutput, RateItem, RatesInput, RatesOutput } from '@dos/contracts'
 import {
   bargainRequests,
-  hsnRates,
   priceListItems,
   priceLists,
   productVariants,
@@ -31,6 +30,7 @@ import {
 } from '@dos/domain'
 import { currentTenant, DB, requireDb, requireRole, STAFF } from '../../platform/index.js'
 import { listedVariantIds } from '../tenant-catalog/index.js'
+import { loadHsnRates } from './hsn-rates.js'
 
 type QuoteIn = z.infer<typeof QuoteInput>
 type QuoteOut = z.infer<typeof QuoteOutput>
@@ -465,51 +465,4 @@ export function toSchemeRule(row: typeof schemes.$inferSelect): SchemeRule {
     gstOnFreeGoods: row.gstOnFreeGoods,
     pricingDateMode: row.pricingDateMode,
   }
-}
-
-/** The dated tax rates of one HSN: GST and the compensation cess that rides with it (DOS-079). */
-interface QuotedHsnRate {
-  gstBps: number
-  cessBps: number
-}
-
-/**
- * Dated GST and cess rates per HSN, so a re-print uses the rates that applied on the order's pricing date.
- *
- * Moved here from `orders/pricing-lines.ts` (DOS-096): the quote carries the tax and the order takes it from
- * the quote, so this is the one lookup both use. `hsn_rates` is global and readable by every role. Billing
- * keeps its own copy (`billing.internals.ts`) by design: modules never read each other's helpers.
- */
-async function loadHsnRates(
-  tx: Db,
-  hsnCodes: readonly string[],
-  on: string,
-): Promise<Map<string, QuotedHsnRate>> {
-  if (hsnCodes.length === 0) return new Map()
-  const rows = await tx
-    .select({
-      hsnCode: hsnRates.hsnCode,
-      gstBps: hsnRates.gstBps,
-      cessBps: hsnRates.cessBps,
-      effectiveFrom: hsnRates.effectiveFrom,
-    })
-    .from(hsnRates)
-    .where(
-      and(
-        inArray(hsnRates.hsnCode, [...hsnCodes]),
-        lte(hsnRates.effectiveFrom, on),
-        or(isNull(hsnRates.effectiveTo), gte(hsnRates.effectiveTo, on)),
-      ),
-    )
-    .orderBy(desc(hsnRates.effectiveFrom))
-  const map = new Map<string, QuotedHsnRate>()
-  for (const row of rows)
-    if (!map.has(row.hsnCode)) map.set(row.hsnCode, { gstBps: row.gstBps, cessBps: row.cessBps })
-  const missing = hsnCodes.filter((code) => !map.has(code))
-  if (missing.length > 0)
-    throw new ORPCError('BAD_REQUEST', {
-      message: `No GST rate for HSN ${missing.join(', ')} on ${on}; add an hsn_rates row`,
-      data: { hsnCodes: missing, on },
-    })
-  return map
 }

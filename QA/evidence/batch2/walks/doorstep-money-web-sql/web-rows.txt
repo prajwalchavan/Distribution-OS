@@ -1,0 +1,100 @@
+== DOS-175 web: RCPT-9006, recorded and banked from the manager desk ==
+ receipt_no | mode | amount_paise |  status   | trip_id | deposit_ref  | deposited 
+------------+------+--------------+-----------+---------+--------------+-----------
+ RCPT-9005  | cash |         4000 | deposited |         | WALK-175     | t
+ RCPT-9006  | cash |         5500 | deposited |         | WALK-175-WEB | t
+(2 rows)
+
+-- the deposit entry's lines (amount_paise: + debit, - credit) --
+ code |     name     | amount_paise 
+------+--------------+--------------
+ BANK | Bank         |         5500
+ CASH | Cash in hand |        -5500
+(2 rows)
+
+-- one deposit_ref and one Dr BANK line for RCPT-9006 --
+1
+1
+-- entry balances --
+0
+
+== DOS-172 web: the sheet the godown built with the returned bill SO-0845 ==
+ status |                order_ids                 | expected_packages | load_value_paise | approved |               trip_id                
+--------+------------------------------------------+-------------------+------------------+----------+--------------------------------------
+ draft  | ["03667996-6d91-742f-a8e7-80ca76f6c3b7"] |                 5 |           426400 | t        | 72649337-4c50-7033-a988-ca5cf4406f9c
+(1 row)
+
+ERROR:  operator does not exist: text = uuid
+LINE 1: ...der_no, so.state from sales_orders so where so.id in (select...
+                                                             ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+-- the held bill's stop and the stop that failed --
+ sequence | state  | failure_reason 
+----------+--------+----------------
+        4 | failed | shop_closed
+(1 row)
+
+
+== trial balance, pilot tenant (must be 0) ==
+0
+0
+-- the order on the new sheet --
+ order_no | state  
+----------+--------
+ SO-0845  | packed
+(1 row)
+
+-- its transitions --
+ERROR:  column "at" does not exist
+LINE 1: select event, reason, at from order_state_transitions where ...
+                              ^
+       event        |               reason                |        occurred_at        
+--------------------+-------------------------------------+---------------------------
+ submit             |                                     | 2026-09-10 10:00:00+05:30
+ confirm            |                                     | 2026-09-10 11:00:00+05:30
+ start_picking      |                                     | 2026-09-10 12:00:00+05:30
+ pack               |                                     | 2026-09-10 13:00:00+05:30
+ dispatch           |                                     | 2026-09-10 14:00:00+05:30
+ return_undelivered | Stop failed; goods back on the dock | 2026-09-10 15:00:00+05:30
+(6 rows)
+
+
+== DOS-176 web: the two deliveries recorded from the app ==
+-- the photo objects the pod rows point at --
+  status  | bytes | uploaded |                                                          object_key                                                           
+----------+-------+----------+-------------------------------------------------------------------------------------------------------------------------------
+ uploaded |    85 | t        | tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/pod/ea1e24a2-705a-7125-9c7a-946ae0267afc/01a0c23f-70bf-7257-a834-f578ec6e1971.png
+ uploaded |    85 | t        | tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/pod/760defd2-356e-7e55-865b-842db87b22eb/01a0c242-1f3d-77f1-9b4b-2a87e29e5631.png
+(2 rows)
+
+-- orphan pending objects left by the failed direct PUT --
+2
+                  id                  |  outcome  | receiver_name | pod_rows |   kinds   
+--------------------------------------+-----------+---------------+----------+-----------
+ 760defd2-356e-7e55-865b-842db87b22eb | delivered | Ansari bhai   |        2 | geo,photo
+ ea1e24a2-705a-7125-9c7a-946ae0267afc | delivered | Joshi ji      |        2 | geo,photo
+(2 rows)
+
+
+== DOS-172 web: the second load-out of the returned bill SO-0845 ==
+  status   | expected_packages | counted_packages | load_value_paise | ewb_required | ewb_no | approved | confirmed 
+-----------+-------------------+------------------+------------------+--------------+--------+----------+-----------
+ confirmed |                 5 |                5 |           426400 | f            |        | t        | t
+(1 row)
+
+-- the challan it issued --
+ challan_no | value_paise | line_count |  vehicle_no   | ewb_no 
+------------+-------------+------------+---------------+--------
+ DC-0083    |      426400 |          2 | MH-05-AB-1234 | 
+(1 row)
+
+-- SO-0845 after the second load-out --
+ from_state |  to_state  |       event        |               reason                |           occurred_at            
+------------+------------+--------------------+-------------------------------------+----------------------------------
+ packed     | dispatched | dispatch           |                                     | 2026-09-21 10:11:31.711497+05:30
+ dispatched | packed     | return_undelivered | Stop failed; goods back on the dock | 2026-09-10 15:00:00+05:30
+ packed     | dispatched | dispatch           |                                     | 2026-09-10 14:00:00+05:30
+(3 rows)
+
+-- the two old confirmed sheets are untouched (DC-0080 still holds SO-0845) --
+2

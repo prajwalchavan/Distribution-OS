@@ -1,0 +1,108 @@
+# The VM's compose file (docs/30 is the runbook that drives it). Run it from `backend/infra`:
+#
+#   ./gen-secrets.sh                                  # writes .env.prod, once, never committed
+#   docker compose -f compose.prod.yml pull
+#   docker compose -f compose.prod.yml up -d
+#
+# Four services and nothing else. `migrate` is a one-shot that must SUCCEED before `app` starts;
+# `caddy` is the only thing the internet can reach, and it gets its certificate from Let's Encrypt
+# by itself. The web apps are NOT here — they are on Cloudflare Pages (docs/26 §9), which is why
+# there is no SPA fallback and no static root in the proxy.
+#
+# `infra/docker-compose.yml` beside this file stays what it always was: a bare Postgres for
+# `pnpm db:up` on a developer's machine. It is not this file's smaller sibling; it deploys nothing.
+
+name: dos
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Initdb only; it makes the cluster case-sensitive-sane and dates IST-friendly in psql.
+      TZ: Asia/Kolkata
+    # All-in-one opens one pool per mounted service (eight) plus the worker's, each of
+    # DATABASE_POOL_MAX connections, and the runbook wants psql and a migrate one-shot on top.
+    # 9 x 4 = 36, plus headroom, plus Postgres's three reserved superuser slots.
+    command:
+      - postgres
+      - -c
+      - max_connections=100
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - work_mem=8MB
+    volumes:
+      - dos-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    # Deliberately NO `ports:`. Postgres is reachable only on the compose network; the box exposes
+    # 80 and 443 and nothing else. To look at the data, `docker compose exec db psql`, or an SSH
+    # tunnel — never a published 5432.
+
+  migrate:
+    image: ${DOS_IMAGE}
+    # A one-shot. `restart: no` matters: with any other policy a migration that finishes becomes a
+    # restart loop, and `service_completed_successfully` below would never settle.
+    restart: 'no'
+    command: ['migrate']
+    env_file:
+      - path: .env.prod
+        required: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    image: ${DOS_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - path: .env.prod
+        required: true
+    volumes:
+      # The local object-storage driver writes invoice and challan PDFs, POD photos, claim evidence
+      # and exports here. In a container layer they would disappear at the next `up -d`.
+      - dos-storage:/data/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # No `ports:` either: Caddy reaches it as `app:3100` on the compose network.
+    expose:
+      - '3100'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+      APP_UPSTREAM: ${APP_UPSTREAM}
+      # No CORS_ORIGINS here on purpose: CORS is answered by the services themselves (corsOptions()
+      # reads it from .env.prod inside the app container). A header added at the proxy as well would
+      # either duplicate it or widen what the server decided.
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # The certificates and the ACME account key. Losing this volume means re-issuing on every
+      # restart, and Let's Encrypt rate-limits that.
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  dos-pgdata:
+  dos-storage:
+  caddy-data:
+  caddy-config:

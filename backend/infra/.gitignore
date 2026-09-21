@@ -1,0 +1,8 @@
+# The repo's .gitignore refuses every `.env.*`, which is right — `.env.prod` holds the signing key,
+# the database password and the first owner's password, and `gen-secrets.sh` writes it here. But the
+# EXAMPLE has to be in the repo or nobody knows what to fill in, so re-admit that one file by name.
+!.env.prod.example
+
+# Whatever backup.sh / restore.sh leave behind when they are run from this directory by hand.
+*.dump
+*.tar.gz

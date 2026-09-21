@@ -1,0 +1,21 @@
+ ref_type |                ref_id                |     narration     |   code   | amount_paise 
+----------+--------------------------------------+-------------------+----------+--------------
+ receipt  | 01a0c1e9-6277-7898-89fd-ecd37d398a5c | receipt RCPT-9017 | AR       |      -154400
+ receipt  | 01a0c1e9-6277-7898-89fd-ecd37d398a5c | receipt RCPT-9017 | CASH_VAN |       154400
+(2 rows)
+
+          what           | paise  
+-------------------------+--------
+ CASH_VAN net for trip A | 154400
+(1 row)
+
+ receipt_no | mode |  status   | amount_paise | on_trip | collections_rows_for_trip 
+------------+------+-----------+--------------+---------+---------------------------
+ RCPT-9017  | cash | collected |       154400 | t       |                         0
+(1 row)
+
+  trip_no  |  state  | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance 
+-----------+---------+---------------------+------------------------+---------------------+--------------
+ TRIP-0008 | settled |              204400 |                 204400 |                   0 | f
+(1 row)
+

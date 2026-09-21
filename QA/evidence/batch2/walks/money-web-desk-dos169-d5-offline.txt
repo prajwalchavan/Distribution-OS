@@ -1,0 +1,36 @@
+TE
+Tarsun Enterprise
+delivery
+TRIP
+Today
+Day summary
+Expenses
+Attention
+Trip history
+Me
+Offline since 8:55 am · Not kept in this browser
+RY
+Raju Yadav
+delivery
+Anand Bhavan Provision
+Take money
+Owes ₹38,636.00
+Bills on this stop
+INV/9025
+21 Sep 2026
+₹1,544.00
+The office allocates this receipt when it reaches them — oldest bill first: a tag needs a signal.
+How it was paid
+Cash
+UPI
+Cheque
+Amount taken
+Owed on the bills here
+₹1,544.00
+₹
+Your receipt book number
+The number you wrote in the paper book, so a printed receipt is never re-numbered
+No signal — this is held in this tab only, not saved. Close this tab and it is gone. The office numbers the receipt when this reaches them. Write your book number above so the two can be matched.
+Owed on the bills here
+₹1,544.00
+Hold until there is a signal
