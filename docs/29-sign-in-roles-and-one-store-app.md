@@ -30,8 +30,20 @@ the person's name, and *"Delivery app"* — which app, for whom. Not a screen to
 statement of where you are. The shell already holds all three facts (`session.tenant.displayName`,
 `logoUrl`, `session.role`).
 
-Acceptance: both render at 390 and 1280 in every app; `sign-in.tsx` in every app is byte-identical
-to the template's; a signed-in device never sees Welcome again until sign-out.
+Acceptance: both render at 390 and 1280 in every app; every app's `sign-in.tsx` wraps the form in the
+same two lines (`<Welcome appTitle={APP.title} role={APP.role}>` … `</Welcome>`) with the same import,
+guarded per app in the kit's `welcome.test.ts`; a signed-in device never sees Welcome again until
+sign-out.
+
+*Amended 2026-09-21 by the architect after the build:* the original line asked for `sign-in.tsx` to be
+byte-identical to the template's. It cannot be — the retailer's carries DOS-102 (land where this device
+was last used) and the console's signs in at `/auth/platform/login` — and forcing it would delete decided
+behaviour. The property the line existed to protect is that the Welcome is ONE component wired
+identically everywhere, and the guard above proves exactly that. Two more rulings from the same build:
+the **retailer landing shows the distributor being opened** (its logo and name) and the shopkeeper's
+name, not "the shop's logo" — the tenant on a retailer session IS the distributor, and the shop's
+identity is the person; and **no animation anywhere** on the landing, not only under
+`prefers-reduced-motion`, so the two renderers cannot drift.
 
 ## 2. Role election at sign-in, downward only (build on day 4 or after go-live — touches auth)
 
@@ -69,6 +81,15 @@ refresh token. That throws away what seven services exist for.
 - Nothing else changes. Services keep their role lists; PERMISSIONS keeps its rows; RLS reads
   `app.actor_role` = the elected role, exactly as today.
 
+*Amended 2026-09-21 by the architect (docs/31 ruling B1, B3):* **the election must survive a
+refresh** — `auth_sessions` stores the elected role, refresh re-validates it against the membership and
+its `extra_roles` as they are now and re-mints it, failing closed if it is no longer permitted;
+`switchTenant` carries `actAs` and re-validates the same way. And in the ONE app (§3) **the person is
+the elector**: after username and password, a membership that permits more than one role sees
+"Continue as …" with the last-chosen role on this device preselected; one permitted role goes straight
+in; changing role is a fresh election that mints a new token. "Each field app sends its own role" holds
+only for the seven per-role apps, which are retired at the merge.
+
 Acceptance (test-first): the election table is a single exported constant with one spec that walks
 every (from, to) pair; a delivery app sign-in by `sunil.tarsun` returns a token with `role: delivery`
 and the delivery-service answers 200 on the trip list; the same for a salesperson login without
@@ -98,9 +119,9 @@ service, the all-in-one's prefixes in a deployment — so the sales group talks 
 as now. The console stays a separate app: platform staff are not the distributor's users.
 
 Screens move, they do not change: every screen imports only `@dos/ui`, which is what makes the move
-mechanical. The seven web apps stay as they are for the browser — one subdomain each is free and clear
-— and share every screen file with the store app through the same packages, so nothing is written
-twice. The bundle carries every group's code; that was never the security boundary (the server is), only
+mechanical. *Amended 2026-09-21:* **the seven per-role web apps are retired at the merge** (founder,
+docs/22 §8) — the one project is the website too, at `www.distributionos.in`; two front doors would be
+two things to prove. The plan and the architect's ruling: `docs/31-one-app-layout.md`. The bundle carries every group's code; that was never the security boundary (the server is), only
 a size cost, and it is paid once.
 
 Acceptance: the seven web apps and the one store app render the same screens from the same files (the

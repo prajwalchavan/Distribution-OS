@@ -3,7 +3,7 @@
  * test-library dependency) and asserts what reaches the screen.
  */
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ThemeContextProvider } from '../theme.js'
 import { ThemeProvider } from './ThemeProvider.js'
@@ -18,6 +18,7 @@ import { AppShell, MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
 import { Link, Pressable, Row } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
+import { Landing, Welcome, clearWelcomeSeen, markWelcomeSeen, useLandingGate } from './welcome.js'
 import type { ConnectionState, MapMarker } from '../types.js'
 
 function renderDesk(node: React.ReactNode): string {
@@ -1080,5 +1081,161 @@ describe('<Dialog> below the desk touch floor (DOS-122)', () => {
     expect(html).toContain('flex-direction:column-reverse')
     expect(html).toContain('height:69px')
     expect(html).not.toContain('height:32px')
+  })
+})
+
+/**
+ * docs/29 §1 Welcome — the first screen of every app on a device with no session.
+ *
+ * Rendered at both ends of the range the same build serves: a 390 px phone (`viewport="phone"`, the
+ * field floor) and a 1280 px browser (`viewport="desk"`). What must be on it is four things and no
+ * fifth: the product wordmark, the one line about what the product is, this app's own name, and one
+ * primary button. The console says what IT is instead of the six-app line.
+ */
+describe('docs/29 §1 Welcome', () => {
+  function welcome(role: string, viewport: 'desk' | 'phone'): string {
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={viewport === 'phone' ? 'field' : 'desk'} viewport={viewport}>
+        <Welcome appTitle="Distribution OS - Delivery" role={role}>
+          <span data-testid="the-sign-in-form">the form</span>
+        </Welcome>
+      </ThemeContextProvider>,
+    )
+  }
+
+  beforeEach(() => {
+    clearWelcomeSeen()
+  })
+
+  it('docs/29 §1 Welcome — at 1280: wordmark, the six-app line, the app’s own name, one button', () => {
+    const html = welcome('delivery', 'desk')
+    expect(html).toContain('Distribution OS')
+    expect(html).toContain('Connecting a distribution business through six apps.')
+    expect(html).toContain('Delivery')
+    expect(html).toContain('welcome-sign-in')
+    expect(html).not.toContain('the-sign-in-form')
+  })
+
+  it('docs/29 §1 Welcome — at 390: the same four things, at the field floor', () => {
+    const html = welcome('delivery', 'phone')
+    expect(html).toContain('Distribution OS')
+    expect(html).toContain('Connecting a distribution business through six apps.')
+    expect(html).toContain('Delivery')
+    // One primary button, at the app's own touch floor rather than the 32 px desk one.
+    expect(html).toContain('height:69px')
+  })
+
+  it('docs/29 §1 Welcome — the console names itself, never the six apps a distributor runs', () => {
+    const html = welcome('platform_admin', 'desk')
+    expect(html).toContain('Platform console')
+    expect(html).not.toContain('through six apps')
+  })
+
+  it('docs/29 §1 Welcome — a device that has been past it gets the sign-in form, not a second introduction', () => {
+    markWelcomeSeen()
+    const html = welcome('delivery', 'phone')
+    expect(html).toContain('the-sign-in-form')
+    expect(html).not.toContain('welcome-sign-in')
+  })
+})
+
+/**
+ * docs/29 §1 Landing — two seconds of where you are, after a fresh sign-in or a distributor switch.
+ *
+ * Three facts and nothing to tap: whose distributorship this is (its logo and name, or the initials
+ * mark when no logo has been uploaded), who is signed in, and which app this is. It covers the app
+ * rather than replacing it, so expo-router's navigator stays mounted underneath and a redirect that
+ * is still settling is not stranded.
+ *
+ * NO ANIMATION, for everybody. `prefers-reduced-motion` asks for "no animation, just a short hold";
+ * that is what this is on both renderers, which is why respecting the preference costs nothing and
+ * cannot drift out of step between web and native. The hold IS the effect.
+ */
+describe('docs/29 §1 Landing', () => {
+  function landing(viewport: 'desk' | 'phone', tenantName = 'Tarsun Enterprises'): string {
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={viewport === 'phone' ? 'field' : 'desk'} viewport={viewport}>
+        <Landing
+          tenantName={tenantName}
+          logoUrl={null}
+          personName="Sunil Tarsun"
+          appTitle="Distribution OS - Delivery"
+          onDone={() => undefined}
+          testID="landing"
+        />
+      </ThemeContextProvider>,
+    )
+  }
+
+  it('docs/29 §1 Landing — at 1280: the distributor, the person, and which app this is', () => {
+    const html = landing('desk')
+    expect(html).toContain('Tarsun Enterprises')
+    expect(html).toContain('Sunil Tarsun')
+    expect(html).toContain('Delivery app')
+  })
+
+  it('docs/29 §1 Landing — at 390: the same three facts', () => {
+    const html = landing('phone')
+    expect(html).toContain('Tarsun Enterprises')
+    expect(html).toContain('Sunil Tarsun')
+    expect(html).toContain('Delivery app')
+  })
+
+  it('docs/29 §1 Landing — no logo uploaded falls back to the distributor’s own initials mark', () => {
+    expect(landing('phone')).toContain('TE')
+  })
+
+  it('docs/29 §1 Landing — the console says the product’s own name, because that is whose console it is', () => {
+    expect(landing('desk', 'Distribution OS')).toContain('Distribution OS')
+  })
+
+  it('docs/29 §1 Landing — covers the app rather than replacing it, and is nothing to tap', () => {
+    const html = landing('desk')
+    expect(html).toContain('position:fixed')
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('<a ')
+  })
+
+  it('docs/29 §1 Landing — no animation at all: prefers-reduced-motion has nothing to switch off', () => {
+    const html = landing('phone')
+    expect(html).not.toContain('animation')
+    expect(html).not.toContain('transition')
+  })
+})
+
+/**
+ * docs/29 §1 — what the gate says about a SETTLED render that has no session.
+ *
+ * The gate is asked on every render of every root layout, and two very different things look
+ * identical in a single frame: a device somebody has just signed out of, and a device that is
+ * simply sitting on the sign-in form. Only the first may re-arm the welcome. This renders the real
+ * hook (its state is adjusted during the render that sees the change, so the first settled answer
+ * is observable in static markup) and reads its answer for the launch case.
+ */
+describe('docs/29 §1 — the landing gate on a settled render', () => {
+  function Gate({
+    hydrating,
+    sessionKey,
+  }: {
+    hydrating: boolean
+    sessionKey: string | null
+  }): React.JSX.Element {
+    const gate = useLandingGate(hydrating, sessionKey)
+    return <span>{`show=${String(gate.show)} signedOut=${String(gate.signedOut)}`}</span>
+  }
+
+  it('a signed-out launch is neither an arrival nor a sign-out', () => {
+    const html = renderToStaticMarkup(<Gate hydrating={false} sessionKey={null} />)
+    expect(html).toContain('show=false signedOut=false')
+  })
+
+  it('a launch that restored a session is not an arrival either — no two seconds at 6 am', () => {
+    const html = renderToStaticMarkup(<Gate hydrating={false} sessionKey="tarsun:sunil" />)
+    expect(html).toContain('show=false signedOut=false')
+  })
+
+  it('answers nothing at all while hydration is still running', () => {
+    const html = renderToStaticMarkup(<Gate hydrating sessionKey={null} />)
+    expect(html).toContain('show=false signedOut=false')
   })
 })

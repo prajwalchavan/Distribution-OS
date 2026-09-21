@@ -23,11 +23,14 @@ import {
   Button,
   ConnectionStrip,
   EmptyState,
+  Landing,
   Screen,
   Skeleton,
   Stack,
   ThemeProvider,
+  clearWelcomeSeen,
   setRouterNavigate,
+  useLandingGate,
   useStrings,
 } from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
@@ -190,6 +193,43 @@ function Shell(): React.JSX.Element {
   }, [navigatorReady, redirectTo, router, pathname])
 
   /**
+   * docs/29 §1 — the two seconds after a fresh sign-in, and the welcome the next person gets.
+   *
+   * `useLandingGate` answers one question: has a session just ARRIVED (a sign-in, or a switch to
+   * another distributorship), as against "is there a session". A launch that restored one is never
+   * held up: a driver at 6 am is taken to the trip, not told where he is. The panel COVERS the app
+   * rather than replacing it, so the navigator underneath stays mounted and the redirect this
+   * sign-in started is not stranded behind it.
+   *
+   * The welcome flag is cleared HERE rather than on each sign-out button, so every way out of this
+   * app — the account menu, a settings screen, an expired session — gives the next person on this
+   * device the welcome back.
+   *
+   * On the gate's `signedOut`, which is the RENDER A SESSION WENT AWAY ON, never on the condition
+   * "there is no session". That condition is also true on a launch nobody has signed into, on a
+   * sign-in somebody abandoned, and on every launch after the sign-out that already cleared the
+   * flag — clear it there and the welcome returns on the next launch and on every launch after it,
+   * which is the one thing docs/29 §1 rules out.
+   */
+  const landing = useLandingGate(
+    hydrating,
+    session === null ? null : `${session.tenant.id}:${session.user.id}`,
+  )
+  useEffect(() => {
+    if (landing.signedOut) clearWelcomeSeen()
+  }, [landing.signedOut])
+  const landingPanel =
+    landing.show && session !== null ? (
+      <Landing
+        tenantName={session.tenant.displayName}
+        logoUrl={absoluteUrl(session.tenant.logoUrl)}
+        personName={session.user.name}
+        appTitle={APP.title}
+        onDone={landing.done}
+      />
+    ) : null
+
+  /**
    * ONE `<OfflineProvider>`, ABOVE the gate — not inside it. `hydrating` flips true whenever the
    * client refreshes the access token, and a provider inside the gate would be unmounted for that
    * frame, stopping the engine and throwing away its store — with a driver's unsent deliveries and
@@ -260,6 +300,7 @@ function Shell(): React.JSX.Element {
       <Offline identity={identity} enabled={live}>
         <Tracking enabled={live}>{content}</Tracking>
       </Offline>
+      {landingPanel}
     </ThemeProvider>
   )
 }
