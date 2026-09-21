@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it, onTestFinished } from 'vitest'
-import { and, eq, inArray, isNotNull, ne, or } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, ne, or } from 'drizzle-orm'
 import type { z } from 'zod'
 import {
   bargainRequests,
@@ -7,6 +7,7 @@ import {
   createPool,
   deliveries,
   importJobs,
+  memberships,
   messages,
   packConfirmations,
   podEvidence,
@@ -996,6 +997,118 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       }
     }
     expect(wrong).toEqual([])
+  }, 30_000)
+
+  /**
+   * S-149, the reader's half (architect blocker, 2026-09-21). The lanes above are PINNED to the
+   * accounts `pnpm smoke` signs in as, which proves the harness's view of the document and nothing
+   * else. A founder opening `/docs` on a fresh database is somebody else: `collectPeople` names the
+   * account of each role that signed in most recently, and with no `auth_sessions` at all that is
+   * the OLDEST membership — `pilot.owner` on the owner lane. That account had no own in-app notice,
+   * so the example fell back to a shop's WhatsApp row: `markRead` answers 404 on it, and
+   * `DocExamplesService` caches the pick for the life of the process.
+   */
+  it('S-149: the account the document is READ as publishes its own notice too, on every lane', async () => {
+    const ctx = await context()
+    const lanes: { service: string; roles: readonly string[] }[] = [
+      { service: 'owner', roles: ['owner'] },
+      { service: 'manager', roles: ['manager', 'accountant'] },
+      { service: 'sales', roles: ['salesperson'] },
+      { service: 'warehouse', roles: ['warehouse'] },
+      { service: 'delivery', roles: ['delivery'] },
+    ]
+    const rowOf = async (id: string): Promise<typeof messages.$inferSelect | undefined> =>
+      withSystem(db, async (tx: Db) => {
+        const [row] = await tx.select().from(messages).where(eq(messages.id, id)).limit(1)
+        return row
+      })
+
+    const wrong: string[] = []
+    for (const lane of lanes) {
+      const examples = buildExamples(PROCEDURES, ctx, { roles: lane.roles })
+      const signedIn = lane.roles.map((role) => ctx.users?.[role]).find((u) => u?.username)
+      expect(signedIn?.id, `${lane.service}: a demo sign-in`).toBeTruthy()
+
+      const markReadId = String(examples.get('notifications.messages.markRead')?.pathParams.id)
+      const notice = await rowOf(markReadId)
+      if (!notice)
+        wrong.push(
+          `${lane.service}/markRead (${String(signedIn?.username)}): ${markReadId} is no row of this database`,
+        )
+      else if (notice.channel !== 'in_app' && notice.channel !== 'push')
+        wrong.push(
+          `${lane.service}/markRead (${String(signedIn?.username)}): a ${notice.channel} row is never markable`,
+        )
+      else if (notice.recipientUserId !== signedIn?.id)
+        wrong.push(
+          `${lane.service}/markRead (${String(signedIn?.username)}): addressed to ${String(notice.recipientUserId)}, not to the signed-in account`,
+        )
+      else if (notice.recipientRetailerId !== null)
+        wrong.push(
+          `${lane.service}/markRead (${String(signedIn?.username)}): a shop's row, not the staff member's own`,
+        )
+
+      // The godown reads ONLY the rows addressed to the person signed in (MessagesService.scope,
+      // QA DOS-052), so its `messages.get` example must be one of those too.
+      if (lane.service === 'warehouse') {
+        const getId = String(examples.get('notifications.messages.get')?.pathParams.id)
+        const row = await rowOf(getId)
+        if (row?.recipientUserId !== signedIn?.id)
+          wrong.push(
+            `${lane.service}/messages.get: ${getId} is not addressed to the godown’s own login`,
+          )
+      }
+    }
+    expect(wrong).toEqual([])
+  }, 30_000)
+
+  /**
+   * S-149, the census. Pinning a test to five accounts can only ever prove those five. The demo
+   * distributor's own-notice coverage is the property that makes EVERY lane's example real, whoever
+   * the document is read as, so the seed is asserted directly: every active staff membership of the
+   * pilot tenant carries at least one in-app / push notice addressed to it alone.
+   */
+  it('S-149: every active staff membership of the demo distributor has an own in-app notice', async () => {
+    const ctx = await context()
+    const tenantId = ctx.tenantId ?? ''
+    expect(tenantId, 'the seeded pilot tenant').toBeTruthy()
+
+    const staff = await withSystem(db, (tx: Db) =>
+      tx
+        .select({ userId: memberships.userId, role: memberships.role, username: users.username })
+        .from(memberships)
+        .innerJoin(users, eq(users.id, memberships.userId))
+        .where(
+          and(
+            eq(memberships.tenantId, tenantId),
+            eq(memberships.status, 'active'),
+            ne(memberships.role, 'retailer'),
+          ),
+        ),
+    )
+    expect(staff.length, 'the demo distributor has staff').toBeGreaterThan(10)
+
+    const withNotice = new Set(
+      (
+        await withSystem(db, (tx: Db) =>
+          tx
+            .select({ userId: messages.recipientUserId })
+            .from(messages)
+            .where(
+              and(
+                eq(messages.tenantId, tenantId),
+                inArray(messages.channel, ['in_app', 'push']),
+                isNotNull(messages.recipientUserId),
+                isNull(messages.recipientRetailerId),
+              ),
+            ),
+        )
+      ).map((row) => row.userId),
+    )
+
+    expect(
+      staff.filter((row) => !withNotice.has(row.userId)).map((row) => String(row.username)),
+    ).toEqual([])
   }, 30_000)
 
   /**
