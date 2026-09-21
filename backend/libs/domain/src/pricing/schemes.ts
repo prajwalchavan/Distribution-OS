@@ -367,11 +367,17 @@ export function priceOrder(input: PriceOrderInput): PriceOrderResult {
   let cashDiscountRule: SchemeRule | undefined
   for (const scheme of schemes) {
     if (scheme.rewardKind !== 'cash_discount_pct') continue
-    const scope = lines.filter(
-      (l) => l.schemesAllowed && l.input.qtyPcs > 0 && inScope(scheme, l.input),
-    )
+    /*
+     * DOS-075 (founder, 2026-09-20), the same two steps as 3b: the THRESHOLD counts every line of the
+     * bill in the scheme's scope, so a line on a final retailer price no longer hides the bill's size
+     * from a cash-discount offer that shares a threshold with an order-level one.
+     */
+    const measured = lines.filter((l) => l.input.qtyPcs > 0 && inScope(scheme, l.input))
+    if (measured.length === 0) continue
+    // ...and the figure REPORTED is still the rate on the lines schemes may touch, never on the rest.
+    const scope = measured.filter((l) => l.schemesAllowed)
     if (scope.length === 0) continue
-    const reward = evaluateTrigger(scheme, measure(scheme.triggerUnit, scope))
+    const reward = evaluateTrigger(scheme, measure(scheme.triggerUnit, measured))
     if (!reward) continue
     const value = bps(reward.value, `scheme ${scheme.id} reward`)
     const amount = percentOf(sum(scope.map((l) => netOf.get(l.input.lineId) ?? paise(0))), value)
