@@ -116,6 +116,16 @@ mustChangePassword` → themed `<Slot/>` + `landingPanel`, **no chrome** (244-25
     third pre-election branches; otherwise `<AppShell …><Slot/></AppShell>` + `landingPanel` (253-285),
     which in `dos-app` is what the GROUP layout renders instead (§1.4).
 
+**Where lane 0 put the three pieces §1.3 leans on** (landed 2026-09-21, each with its own spec):
+`GROUP_OF` / `groupOf()` / `GroupName` in `frontend/libs/api-client/src/groups.ts` — that package
+links `@dos/contracts`, so the table is `Record<MembershipRole, GroupName>` and a new role is a
+compile error; `routeFor(group, path)`, `<GroupProvider>`, `useGroup()` and `useGo()` in
+`frontend/libs/ui/src/route-for.tsx`, with the kit's router bridge hoisted to
+`frontend/libs/ui/src/router-bridge.ts` so the helper and the platform `<Link>` hold the same router;
+and the shell's home special-case now a `homeHref` prop (`frontend/libs/ui/src/nav-active.ts`),
+default `'/'`, so `/owner` does not light for `/owner/orders`. The kit does NOT learn the six group
+names — it serves the console, which has none.
+
 **Two consequences the move lanes must not decide for themselves.**
 
 - **`<Welcome role>` is a required `string` prop** (`libs/ui/src/types.ts:871`) and its only effect is

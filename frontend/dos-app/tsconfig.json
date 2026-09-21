@@ -1,0 +1,4 @@
+{
+  "extends": "@dos/config/tsconfig/app.json",
+  "include": ["app", "src", "env.d.ts"]
+}
