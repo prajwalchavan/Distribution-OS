@@ -42,20 +42,14 @@ export function currentMembership(session: Session): MembershipSummary | undefin
 /**
  * The extra roles an owner or manager has put on this membership (docs/29 §2).
  *
- * READ DEFENSIVELY, BECAUSE THE WIRE DOES NOT CARRY THEM YET. `MembershipSummarySchema` in
- * `@dos/contracts` has `role` and no `extraRoles`, so today this is always empty and the chooser is
- * exactly the fixed `ROLE_ELECTION` table — complete for an owner and a manager, who elect from the
- * table and whose extras `electableRoles` ignores by construction, and short by whatever extras a
- * salesperson, warehouse hand, driver or accountant has been granted. That is a BACKEND gap
- * (`MembershipSummary` + the auth service's memberships read), recorded rather than worked around:
- * the day the field lands this reads it with no edit here, and until then the server still grants an
- * extra-role election — it is only the list this device offers that is short.
+ * The wire carries them — `MembershipSummary.extraRoles`, REQUIRED, filled by the auth service from
+ * `memberships.extra_roles` (docs/31 ruling B5) — so this is a typed read and nothing more. For the
+ * four staff roles the extras are the only second row the chooser can offer: a warehouse hand who
+ * drives on Tuesdays sees "warehouse" and "delivery", and the server grants the election from the
+ * same column, so the list offered and the list granted are one list.
  */
-function extraRolesOf(membership: MembershipSummary | undefined): readonly string[] {
-  const extras = (membership as { extraRoles?: unknown } | undefined)?.extraRoles
-  return Array.isArray(extras)
-    ? extras.filter((role): role is string => typeof role === 'string')
-    : []
+function extraRolesOf(membership: MembershipSummary | undefined): readonly MembershipRole[] {
+  return membership?.extraRoles ?? []
 }
 
 /**

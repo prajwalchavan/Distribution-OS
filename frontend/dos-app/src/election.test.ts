@@ -29,7 +29,11 @@ import {
 const TARSUN = '01924f9a-0000-7000-8000-0000000000aa'
 const SAI = '01924f9a-0000-7000-8000-0000000000ab'
 
-function membership(tenantId: string, role: MembershipRole): MembershipSummary {
+function membership(
+  tenantId: string,
+  role: MembershipRole,
+  extraRoles: readonly MembershipRole[] = [],
+): MembershipSummary {
   return {
     tenantId,
     tenantSlug: tenantId === TARSUN ? 'tarsun' : 'sai',
@@ -37,6 +41,7 @@ function membership(tenantId: string, role: MembershipRole): MembershipSummary {
     displayName: tenantId === TARSUN ? 'Tarsun Enterprises' : 'Sai Distributors',
     logoUrl: null,
     role,
+    extraRoles: [...extraRoles],
     status: 'active',
   }
 }
@@ -46,6 +51,7 @@ function session(
   elected: MembershipRole,
   own: MembershipRole,
   extra: MembershipSummary[] = [],
+  extraRoles: readonly MembershipRole[] = [],
 ): Session {
   return {
     user: {
@@ -63,7 +69,7 @@ function session(
       logoUrl: null,
     },
     role: elected,
-    memberships: [membership(TARSUN, own), ...extra],
+    memberships: [membership(TARSUN, own, extraRoles), ...extra],
   }
 }
 
@@ -124,6 +130,43 @@ describe('permittedRoles', () => {
     expect(needsChooser(session('accountant', 'accountant'))).toBe(false)
     expect(needsChooser(session('warehouse', 'warehouse'))).toBe(false)
     expect(needsChooser(session('delivery', 'delivery'))).toBe(false)
+  })
+})
+
+/**
+ * docs/31 ruling B5 — the wire carries `extraRoles`, and the chooser reads it TYPED. For the four
+ * staff roles the extras are the only second row there is: a salesperson granted `delivery` must see
+ * two rows, and one granted nothing must see none (there is nothing to ask).
+ */
+describe('extra roles on the wire (ruling B5)', () => {
+  it('a salesperson granted delivery may continue as either: own role first, then the extra', () => {
+    const rep = session('salesperson', 'salesperson', [], ['delivery'])
+    expect(permittedRoles(rep)).toEqual(['salesperson', 'delivery'])
+    expect(needsChooser(rep)).toBe(true)
+    expect(preselectedRole(rep)).toBe('salesperson')
+  })
+
+  it('a salesperson granted nothing is exactly themselves, and is not asked', () => {
+    const rep = session('salesperson', 'salesperson', [], [])
+    expect(permittedRoles(rep)).toEqual(['salesperson'])
+    expect(needsChooser(rep)).toBe(false)
+  })
+
+  it('reads the field off the membership itself — no defensive cast, so the list is the domain’s', () => {
+    for (const own of ['accountant', 'warehouse', 'delivery', 'salesperson'] as const) {
+      const granted = session(own, own, [], ['delivery', 'salesperson'])
+      expect(permittedRoles(granted)).toEqual(
+        electableRoles(own, ['delivery', 'salesperson']).filter(
+          (role) => role !== 'platform_admin',
+        ),
+      )
+    }
+  })
+
+  it('an owner’s extras change nothing: the owner already elects from the fixed table', () => {
+    expect(permittedRoles(session('owner', 'owner', [], ['delivery']))).toEqual(
+      permittedRoles(session('owner', 'owner')),
+    )
   })
 })
 

@@ -53,6 +53,7 @@ function tokenPair(role: string, accessToken = 'access-1'): unknown {
         displayName: 'Tarsun Enterprises',
         logoUrl: null,
         role: 'owner',
+        extraRoles: [],
         status: 'active',
       },
       {
@@ -62,6 +63,7 @@ function tokenPair(role: string, accessToken = 'access-1'): unknown {
         displayName: 'Sai Distributors',
         logoUrl: null,
         role: 'manager',
+        extraRoles: [],
         status: 'active',
       },
     ],

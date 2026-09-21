@@ -101,6 +101,13 @@ export const MembershipSummarySchema = z.object({
   displayName: z.string().min(1).max(200),
   logoUrl: z.string().nullable(),
   role: MembershipRoleSchema,
+  /**
+   * The roles this membership may ALSO sign in as (`memberships.extra_roles`, docs/29 §2) — REQUIRED
+   * and empty for almost everybody. docs/31 ruling B5: with one app the person is the elector, and
+   * for the four staff roles the extras are the only second row the chooser can offer, so the wire
+   * carries them rather than leaving the device to guess. Always `[]` for a retailer membership.
+   */
+  extraRoles: z.array(MembershipRoleSchema),
   status: z.enum(['invited', 'active', 'disabled']),
 })
 export type MembershipSummary = z.infer<typeof MembershipSummarySchema>
@@ -141,6 +148,8 @@ export const MembershipDuesSchema = z.object({
   displayName: z.string().min(1).max(200),
   logoUrl: z.string().nullable(),
   role: MembershipRoleSchema,
+  /** The same `extra_roles` the login pair carries (ruling B5); `[]` on every shop membership. */
+  extraRoles: z.array(MembershipRoleSchema),
   outstandingPaise: PaiseSchema,
   overduePaise: PaiseSchema,
   openBills: z.number().int().nonnegative(),

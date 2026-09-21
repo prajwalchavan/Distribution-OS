@@ -350,7 +350,7 @@ curl "http://localhost:3006/tenancy/staff" \
       "phone": "+919876543210",
       "role": "owner",
       "extraRoles": [
-        "accountant"
+        "delivery"
       ],
       "status": "invited",
       "lastLoginAt": "2026-09-04T10:30:00.000Z"
@@ -836,7 +836,7 @@ request.json
   "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
   "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
   "extraRoles": [
-    "accountant"
+    "delivery"
   ]
 }
 ```

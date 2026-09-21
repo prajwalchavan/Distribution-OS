@@ -114,6 +114,11 @@ const NAME_HINTS: [RegExp, unknown][] = [
   [/table$/i, 'sales_orders'],
   [/locale|lang/i, 'hi-IN'],
   [/fy$/i, '2026-27'],
+  // A membership's extra roles (docs/29 §2, ruling B5). Left to the sampler an array of the role enum
+  // reads `["owner"]` — a value the contract refuses (only the four staff roles are grantable). The
+  // seed's real case is a warehouse hand who drives: `delivery`, on the login pair's summary and on
+  // the staff screen's grant alike. The one array hint; `sample()` honours it before recursing.
+  [/^extraRoles$/, ['delivery']],
 ]
 
 function byName(key: string): unknown {
@@ -166,8 +171,11 @@ export function sample(schema: ZodLike, key = '', depth = 0): unknown {
       }
       return out
     }
-    case 'array':
+    case 'array': {
+      const named = byName(key)
+      if (Array.isArray(named)) return named
       return [sample(def.element as ZodLike, key.replace(/s$/, ''), depth + 1)]
+    }
     case 'optional': {
       // keep optional fields visible in examples unless they are pagination plumbing
       return sample(def.innerType as ZodLike, key, depth + 1)
