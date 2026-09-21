@@ -323,7 +323,9 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     ]
     await db
       .insert(users)
-      .values(staff.map(([id, n, name]) => ({ id, phone: `+91981${run}${n}`, name })))
+      // Own phone prefixes (984 staff / 985 shops): vansales.spec.ts builds +91981/+91982 from the same
+      // eight clock digits, and the two files start in the same millisecond under vitest's workers.
+      .values(staff.map(([id, n, name]) => ({ id, phone: `+91984${run}${n}`, name })))
     await db
       .insert(memberships)
       .values(staff.map(([userId, , , role]) => ({ id: uuidv7(), tenantId, userId, role })))
@@ -373,7 +375,7 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     for (const [retailerId, tag, gstin] of shops) {
       const shopUser = uuidv7()
       const identityId = uuidv7()
-      const phone = `+91983${run}${tag === 'A' ? 1 : tag === 'B' ? 2 : 3}`
+      const phone = `+91985${run}${tag === 'A' ? 1 : tag === 'B' ? 2 : 3}`
       await db.insert(users).values({ id: shopUser, phone, name: `Shopkeeper ${tag}` })
       await db
         .insert(memberships)
