@@ -55,6 +55,9 @@ describe('DEP-07 the Pages pipeline and the image pipeline', () => {
     // at build time the way the seven are.
     const one = plan('dos')
     expect(one).toMatch(/pnpm --filter @dos\/dos-app (run )?export:web/)
+    // S-192: the cache must go with the URL. The first publish shipped the previous build's inlined
+    // 127.0.0.1:3210 because the export reused Metro's cache; --clear is what stops that.
+    expect(one).toMatch(/export:web --clear\b/)
     expect(one).toMatch(/EXPO_PUBLIC_API_URL=https:\/\/api\.distributionos\.in\b/)
     expect(one).not.toMatch(/EXPO_PUBLIC_API_PREFIX=\/dos\b/)
   })

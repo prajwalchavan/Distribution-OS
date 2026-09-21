@@ -78,7 +78,10 @@ else
 fi
 say "EXPO_PUBLIC_AUTH_URL=$AUTH_URL"
 
-step "EXPO_PUBLIC_API_URL='$API_URL' EXPO_PUBLIC_API_PREFIX='$PREFIX' EXPO_PUBLIC_AUTH_URL='$AUTH_URL' pnpm --filter $PACKAGE run export:web"
+# --clear is not optional (QA S-192): Expo inlines EXPO_PUBLIC_* at build time and Metro caches the
+# result, so an export after a change of API URL otherwise ships the PREVIOUS build's URL — the first
+# publish of the one app went out carrying http://127.0.0.1:3210 and said "No connection" to everyone.
+step "EXPO_PUBLIC_API_URL='$API_URL' EXPO_PUBLIC_API_PREFIX='$PREFIX' EXPO_PUBLIC_AUTH_URL='$AUTH_URL' pnpm --filter $PACKAGE run export:web --clear"
 
 # expo exports a single-page bundle (`web.output: single` in every app.json). Without this rule
 # Cloudflare Pages answers 404 for /orders/123 on a hard refresh or a shared link — every deep link
