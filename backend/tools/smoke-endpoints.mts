@@ -325,7 +325,10 @@ class Fixtures {
     ).map((row) => String(row.table_name))
     if (this.idTables.length === 0) return true // no schema to check against: never accuse an endpoint
     const probe = this.idTables
-      .map((table) => `exists (select 1 from "${table}" where id = $1)`)
+      // `id::text`, not `id`: the day one table's id is uuid-typed, one untyped $1 compared against
+      // both a text and a uuid column is "inconsistent types deduced for parameter $1", and this
+      // throw sits inside the operation loop where nothing catches it — the whole run would die.
+      .map((table) => `exists (select 1 from "${table}" where id::text = $1)`)
       .join(' or ')
     const [row] = await this.rows(`select (${probe}) as found`, [id])
     const found = row?.found === true

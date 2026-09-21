@@ -3302,6 +3302,23 @@ function ownNoticeFor(ctx: ExampleContext, options: BuildExamplesOptions): strin
   return user ? ctx.notifications?.ownNotices[user.id] : undefined
 }
 
+/*
+ * S-149, the second half. When the signed-in account has no own in-app notice these two examples
+ * used to fall back to `ctx.notifications.messageId` — the newest row of the WHOLE tenant, which on
+ * this distributor is a shop's WhatsApp message. `markRead` takes only `recipientUserId = the
+ * caller` and only push / in_app, so that id is a 404 the reader can press and believe; the godown
+ * may not even READ it (`MessagesService.scope`, QA DOS-052). A shop's row is never the answer.
+ *
+ * The seed now gives every active staff membership its own notice, so this is unreachable on seeded
+ * demo data (`examples.spec.ts` asserts the census). If it is ever reached, the document publishes a
+ * deterministic id that names no row rather than a real row the caller may not touch: `pnpm smoke`
+ * reports it as SKIPPED ("names no row in this database"), never as a passing call and never as a
+ * silent 404.
+ */
+function noOwnNotice(procedurePath: string): string {
+  return docUuid(`${procedurePath}#no-own-notice`)
+}
+
 function signInUser(ctx: ExampleContext, options: BuildExamplesOptions): DemoUser | undefined {
   const byRole = ctx.users ?? {}
   for (const role of options.roles ?? []) {
@@ -4504,7 +4521,7 @@ const OVERRIDES: Record<
     id: servesOnlyRetailer(options)
       ? (ctx.notifications?.linkedMessageId ?? ctx.notifications?.messageId)
       : servesOnlyWarehouse(options)
-        ? (ownNoticeFor(ctx, options) ?? ctx.notifications?.messageId)
+        ? (ownNoticeFor(ctx, options) ?? noOwnNotice('notifications.messages.get'))
         : ctx.notifications?.messageId,
   }),
   'notifications.messages.send': (ctx) => ({
@@ -4532,7 +4549,7 @@ const OVERRIDES: Record<
   'notifications.messages.markRead': (ctx, options) => ({
     id: servesOnlyRetailer(options)
       ? (ctx.notifications?.linkedNoticeId ?? ctx.notifications?.linkedMessageId)
-      : (ownNoticeFor(ctx, options) ?? ctx.notifications?.messageId),
+      : (ownNoticeFor(ctx, options) ?? noOwnNotice('notifications.messages.markRead')),
   }),
   'notifications.templates.list': () => ({ key: DROP, channel: DROP, locale: DROP }),
   'notifications.templates.upsert': (ctx) => ({
@@ -5048,7 +5065,7 @@ const NOTES: Record<string, (ctx: ExampleContext) => string | undefined> = {
   'notifications.messages.resend': () =>
     'Points at the seeded dead-lettered send (five failed attempts): requeues it for one more try, attempts kept. Once the worker has sent it, this answers 409 `already_sent` — a delivered message is never resent.',
   'notifications.messages.markRead': () =>
-    'Marks the signed-in user’s own in-app notice read (idempotent). A WhatsApp / SMS row answers 400 `channel_not_markable`: its read state comes from the provider.',
+    'Marks the signed-in user’s own in-app notice read (idempotent). A WhatsApp / SMS row answers 400 `channel_not_markable`: its read state comes from the provider — so when the signed-in account has no in-app notice yet, the id below names no row at all rather than somebody else’s message.',
   'notifications.templates.upsert': () =>
     'Echoes the tenant’s own WhatsApp bill wording back unchanged (`created: false`). Change `body` to customise it; `{{distributorName}}` must stay — it is the white label.',
   'notifications.broadcasts.create': (ctx) =>
