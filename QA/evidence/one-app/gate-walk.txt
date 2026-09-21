@@ -1,0 +1,94 @@
+one-app merge GATE — browser walk, 2026-09-21 13:56 IST
+app: fresh expo export of frontend/dos-app (EXPO_PUBLIC_API_URL=http://127.0.0.1:3210, EXPO_PUBLIC_AUTH_URL=http://127.0.0.1:3210/auth), served on 127.0.0.1:5190
+backend: pnpm --filter @dos/all-in-one (dist) on ALL_IN_ONE_PORT=3210, DATABASE_URL=dos_test_one_app
+browser: Chrome headless via CDP, fresh profile per role, 1280x900 then 390x844
+
+--- walk-owner.txt ---
+owner: chooser shown = true (expected true)
+owner: landed at /owner (group /owner)
+owner: rail(1280) = ["TE","Tarsun Enterprise","owner","Today","5","Orders","Money","Shops","Billing","Stock","Reports","SETUP","Prices","Staff","Settings","Updated just now"]
+owner: desk screen lines = 112; first data lines = ["TE","Tarsun Enterprise","owner","Today","5","Orders","Money","Shops","Billing","Stock","Reports","SETUP","Prices","Staff"]
+owner: calls to http://127.0.0.1:3210/owner/* = 18; to any OTHER service = 0 []
+owner: sample reads = ["GET /owner/retailers?limit=500&activeOnly=true -> 200","GET /owner/tenancy/staff -> 200","GET /owner/beats -> 200","GET /owner/reporting/dashboard/owner -> 200","GET /owner/reporting/series/sales?grain=day&from=2026-08-23&to=2026-09-21&compare=previousPeriod -> 200","GET /owner/reporting/series/brand-mix?from=2026-09-01&to=2026-09-21&topGroups=4 -> 200"]
+owner: tabs(390) = ["Today","Orders","Money","Shops"]
+owner: typed /sales/orders -> /owner; calls off own service while there = 0
+owner: OK
+
+--- walk-delivery2.txt ---
+delivery2: chooser shown = true (expected true)
+delivery2: landed at /delivery (group /delivery)
+delivery2: during sign-in+election, calls off /delivery = 1 ["/owner/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg"]
+delivery2: after reload, url = /delivery
+delivery2: rail(1280) = ["TE","Tarsun Enterprise","delivery","TRIP","Today","Day summary","Expenses","Attention","Trip history","Me","Updated just now"]
+delivery2: desk screen lines = 18; first data lines = ["TE","Tarsun Enterprise","delivery","TRIP","Today","Day summary","Expenses","Attention","Trip history","Me","Updated just now","ST","Sunil Tarsun","delivery"]
+delivery2: calls to http://127.0.0.1:3210/delivery/* = 7; to any OTHER service = 0 []
+delivery2: sample reads = ["GET /delivery/delivery/consents -> 200","GET /delivery/sync/manifest?knownSchemaVersion=ec145468cb8d6e6a -> 200","GET /delivery/sync/pull?deviceId=01a0c30e-4a54-73f3-b613-10e17f9dcf93&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0yMVQwODoyMTozNS4zNzlaIn0 -> 200","GET /delivery/sync/errors?deviceId=01a0c30e-4a54-73f3-b613-10e17f9dcf93&unresolvedOnly=true&limit=50 -> 200"]
+delivery2: tabs(390) = null
+delivery2: typed /owner/orders -> /delivery; calls off own service while there = 0
+delivery2: OK
+
+--- walk-manager.txt ---
+manager: chooser shown = true (expected true)
+manager: landed at /manager (group /manager)
+manager: during sign-in+election, calls off /manager = 0 []
+manager: after reload, url = /manager
+manager: rail(1280) = ["TE","Tarsun Enterprise","manager","Today","Orders","2","Fulfilment","Billing","1","Inbound","Money","Registers","Shops","Stock","SETUP","Prices","Staff","Messages","Updated just now"]
+manager: desk screen lines = 98; first data lines = ["TE","Tarsun Enterprise","manager","Today","Orders","2","Fulfilment","Billing","1","Inbound","Money","Registers","Shops","Stock"]
+manager: calls to http://127.0.0.1:3210/manager/* = 10; to any OTHER service = 0 []
+manager: sample reads = ["GET /manager/reporting/dashboard/owner -> 200","GET /manager/orders?state=submitted&limit=100 -> 200","GET /manager/billing/queue?limit=100 -> 200","GET /manager/procurement/grns?status=counting&limit=100 -> 200","GET /manager/docint/queue?limit=100 -> 200","GET /manager/receipts?status=collected&mode=cash&withCrew=false&limit=200 -> 200"]
+manager: tabs(390) = ["Today","Orders","Fulfilment","Billing"]
+manager: typed /owner/orders -> /manager; calls off own service while there = 0
+manager: OK
+
+--- walk-sales.txt ---
+sales: chooser shown = false (expected false)
+sales: landed at /sales (group /sales)
+sales: during sign-in+election, calls off /sales = 0 []
+sales: after reload, url = /sales
+sales: rail(1280) = ["TE","Tarsun Enterprise","salesperson","Beat","Orders","Shops","Me","SETUP","Settings","Updated just now"]
+sales: desk screen lines = 61; first data lines = ["TE","Tarsun Enterprise","salesperson","Beat","Orders","Shops","Me","SETUP","Settings","Updated just now","RD","Rahul Deshmukh","salesperson","Station Road"]
+sales: calls to http://127.0.0.1:3210/sales/* = 6; to any OTHER service = 0 []
+sales: sample reads = ["GET /sales/sync/manifest?knownSchemaVersion=955439886bad2f2f -> 200","GET /sales/sync/pull?deviceId=01a0c310-2f6c-73c0-9187-4c2550963f52&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0yMVQwODoyMzozMi45ODdaIn0 -> 200","GET /sales/sync/errors?deviceId=01a0c310-2f6c-73c0-9187-4c2550963f52&unresolvedOnly=true&limit=50 -> 200"]
+sales: tabs(390) = ["Beat","Orders","Shops","Me"]
+sales: typed /owner/orders -> /sales; calls off own service while there = 0
+sales: OK
+
+--- walk-warehouse.txt ---
+warehouse: chooser shown = false (expected false)
+warehouse: landed at /warehouse (group /warehouse)
+warehouse: during sign-in+election, calls off /warehouse = 0 []
+warehouse: after reload, url = /warehouse
+warehouse: rail(1280) = ["TE","Tarsun Enterprise","warehouse","Inbound","Pick","Pack","Load","SETUP","Settings","Updated just now"]
+warehouse: desk screen lines = 50; first data lines = ["TE","Tarsun Enterprise","warehouse","Inbound","Pick","Pack","Load","SETUP","Settings","Updated just now","DP","Dinesh Patil","warehouse","Tarsun Enterprise"]
+warehouse: calls to http://127.0.0.1:3210/warehouse/* = 15; to any OTHER service = 0 []
+warehouse: sample reads = ["GET /warehouse/procurement/grns?status=counting&limit=20 -> 200","GET /warehouse/warehouse/picklists?status=picking&limit=20 -> 200","GET /warehouse/warehouse/picklists?status=open&limit=20 -> 200","GET /warehouse/warehouse/packs?invoiced=false&limit=20 -> 200","GET /warehouse/warehouse/load-sheets?status=draft&limit=20 -> 200","GET /warehouse/inventory/locations?activeOnly=true -> 200"]
+warehouse: tabs(390) = ["Inbound","Pick","Pack","Load"]
+warehouse: typed /owner/orders -> /warehouse; calls off own service while there = 0
+warehouse: OK
+
+--- walk-delivery.txt ---
+delivery: chooser shown = false (expected false)
+delivery: landed at /delivery (group /delivery)
+delivery: during sign-in+election, calls off /delivery = 0 []
+delivery: after reload, url = /delivery
+delivery: rail(1280) = ["TE","Tarsun Enterprise","delivery","TRIP","Today","Day summary","Expenses","Attention","Trip history","Me","Updated just now"]
+delivery: desk screen lines = 91; first data lines = ["TE","Tarsun Enterprise","delivery","TRIP","Today","Day summary","Expenses","Attention","Trip history","Me","Updated just now","GM","Ganesh More","delivery"]
+delivery: calls to http://127.0.0.1:3210/delivery/* = 7; to any OTHER service = 0 []
+delivery: sample reads = ["GET /delivery/delivery/consents -> 200","GET /delivery/sync/manifest?knownSchemaVersion=ec145468cb8d6e6a -> 200","GET /delivery/sync/pull?deviceId=01a0c311-5fac-71f0-8b84-6028f3affeae&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0yMVQwODoyNDo1MC45MzlaIn0 -> 200","GET /delivery/sync/errors?deviceId=01a0c311-5fac-71f0-8b84-6028f3affeae&unresolvedOnly=true&limit=50 -> 200"]
+delivery: tabs(390) = null
+delivery: typed /owner/orders -> /delivery; calls off own service while there = 0
+delivery: OK
+
+--- walk-retailer.txt ---
+retailer: chooser shown = false (expected false)
+retailer: landed at /retailer (group /retailer)
+retailer: during sign-in+election, calls off /retailer = 0 []
+retailer: after reload, url = /retailer
+retailer: rail(1280) = ["TE","Tarsun Enterprise","retailer","▾","SHOP","Home","Place order","My orders","Offers","MONEY","Money due","My bills","Receipts","Statement","Returns","YOU","Messages","My shop","My account","Updated just now"]
+retailer: desk screen lines = 84; first data lines = ["TE","Tarsun Enterprise","retailer","▾","SHOP","Home","Place order","My orders","Offers","MONEY","Money due","My bills","Receipts","Statement"]
+retailer: calls to http://127.0.0.1:3210/retailer/* = 8; to any OTHER service = 0 []
+retailer: sample reads = ["GET /retailer/retailers?limit=5&activeOnly=true -> 200","GET /retailer/orders?limit=20&states%5B0%5D=submitted&states%5B1%5D=confirmed&states%5B2%5D=picking&states%5B3%5D=packed&states%5B4%5D=dispatched&states%5B5%5D=partially_delivered&states%5B6%5D=delivered&states%5B7%5D=closed -> 200","GET /retailer/invoices?limit=50 -> 200","GET /retailer/tenancy/branding -> 200","GET /retailer/notifications/messages?limit=1 -> 200","GET /retailer/receivables/outstanding/34191c43-f0bc-70ab-a39d-fcbe8f94ae36?includeBills=false -> 200"]
+retailer: tabs(390) = null
+retailer: typed /owner/orders -> /retailer; calls off own service while there = 0
+retailer: OK
+

@@ -1,7 +1,7 @@
 {
   "name": "dos-frontend",
   "private": true,
-  "description": "Distribution OS frontend: one app per role (owner, manager, sales, warehouse, delivery, retailer), each pointed at its own backend service.",
+  "description": "Distribution OS frontend: ONE app (dos-app) whose six route groups serve owner, manager, sales, warehouse, delivery and retailer, each group pointed at its own backend service, plus the platform console (admin-app).",
   "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=24.0.0",

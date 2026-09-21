@@ -42,6 +42,7 @@ function tokenPair(accessToken: string, refreshToken: string, accessExpiresIn = 
         displayName: 'Tarsun Enterprises',
         logoUrl: null,
         role: 'owner',
+        extraRoles: [],
         status: 'active',
       },
     ],

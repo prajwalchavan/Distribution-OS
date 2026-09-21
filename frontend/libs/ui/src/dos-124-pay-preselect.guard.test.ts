@@ -1,6 +1,6 @@
 /**
- * DOS-124: "Pay this bill" → "Start the payment" has to carry the bill it was raised from. Today
- * `dues.tsx` and `bills/[id].tsx` both `router.push('/pay')` with no id, and `pay.tsx` reads no route
+ * DOS-124: "Pay this bill" → "Start the payment" has to carry the bill it was raised from. Once
+ * `dues.tsx` and `bills/[id].tsx` both pushed `/pay` with no id, and `pay.tsx` reads no route
  * params, so the Pay screen opens with nothing ticked and the shop's WHOLE dues prefilled — one tap
  * away from minting a payment intent for every bill instead of the one the shop chose.
  *
@@ -14,22 +14,26 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const here = dirname(fileURLToPath(import.meta.url))
-const retailerApp = join(here, '..', '..', '..', 'retailer-app', 'app')
+const retailerApp = join(here, '..', '..', '..', 'dos-app', 'app', 'retailer')
 
 function read(path: string): string {
   return readFileSync(join(retailerApp, path), 'utf8')
 }
 
 /**
- * The argument of the LAST `router.push(...)` call before a given `testID`, a plain string or a
- * ternary — `dues.tsx` pushes `/pay` from two buttons (its own "Pay everything", which has no one
- * bill to carry, and the QR sheet's "Start the payment", which does), so the guard has to find the
- * one beside the button it is actually about rather than the first `/pay` push in the file.
+ * The argument of the LAST push before a given `testID`, a plain string or a ternary — `dues.tsx`
+ * pushes `/pay` from two buttons (its own "Pay everything", which has no one bill to carry, and the
+ * QR sheet's "Start the payment", which does), so the guard has to find the one beside the button it
+ * is actually about rather than the first `/pay` push in the file.
+ *
+ * `go.push` as well as `router.push`: in the one app a screen never writes its own group's base, so
+ * every move goes through `useGo()` (docs/31 ruling Q1) and `/pay` here means `/retailer/pay`. What
+ * is pinned is unchanged — the id travels with the tap.
  */
 function pushBefore(source: string, testId: string): string {
   const at = source.indexOf(`testID="${testId}"`)
   expect(at).toBeGreaterThan(-1)
-  const calls = [...source.slice(0, at).matchAll(/router\.push\(([\s\S]*?)\)/g)]
+  const calls = [...source.slice(0, at).matchAll(/(?:router|go)\.push\(([\s\S]*?)\)/g)]
   return calls.at(-1)?.[1] ?? ''
 }
 

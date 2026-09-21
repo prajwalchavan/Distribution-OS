@@ -68,6 +68,26 @@ const STORE_APP_LETTERS: ReadonlyMap<string, string> = new Map([
 const STORE_APP_PREFIXES: ReadonlyMap<string, string> = new Map(
   [...STORE_APP_LETTERS].map(([prefix, letter]) => [letter, prefix]),
 )
+
+/**
+ * THE THREE STORES ONE INSTALL CAN HOLD (docs/31 §4, architect's amendment on DOS-167).
+ *
+ * The prefixes already named a ROLE rather than a codebase, so the merge into one app changed
+ * nothing about the file names: the owner who drives on Tuesdays elects `delivery` and gets a clean
+ * `dos-delivery` file beside his morning's `dos-sales` one. What the merge DID change is sign-out:
+ * with six installs, signing out of the delivery app could only ever have reached the delivery
+ * store. With one install it is one device, and "sign out" has to mean the device — so the leave
+ * flow sweeps all three prefixes for this person, not only the engine that happens to be running.
+ *
+ * The harness prefix (`dos-harness`) is deliberately not here: it is a development surface, and a
+ * sign-out in a real app has no business deleting it.
+ *
+ * Derived from `STORE_APP_LETTERS` so a fourth field app cannot be added to one table and forgotten
+ * in the other — a store that no sign-out sweeps is a person's work left on a shared phone.
+ */
+export const FIELD_STORE_PREFIXES: readonly string[] = [...STORE_APP_LETTERS.keys()].filter(
+  (prefix) => prefix !== 'dos-harness',
+)
 /** Every id in this system is a UUID; a file name never carries an unchecked string. Any case goes in. */
 const CANONICAL_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** 36^24 < 2^128 < 36^25: twenty-five base-36 digits hold every UUID, zero-padded to a fixed width. */
@@ -958,6 +978,35 @@ export class SyncEngine {
       if (identity !== undefined) kept.push({ identity, pending: file.pending })
     }
     return { destroyed: swept.destroyed, kept }
+  }
+
+  /**
+   * SIGN-OUT IS DEVICE-WIDE (docs/31 §4, architect's amendment on DOS-167).
+   *
+   * One install now holds every role this person can elect, so a sign-out that swept only the
+   * running engine's prefix would leave a rep's morning `dos-sales` file on a van phone he handed
+   * over at lunch. This runs the sibling rule over EVERY field prefix for EVERY identity handed in —
+   * this distributor and the person's others — and the rule is unchanged: a file with nothing
+   * queued, sending or refused is deleted; a file still holding unsent work is kept and reported, so
+   * nobody's work is ever thrown away to tidy a device.
+   *
+   * Best effort, file by file: a prefix or an identity that cannot make a name is logged and
+   * skipped, never allowed to stop the rest of the sweep.
+   */
+  static async sweepDeviceStores(
+    storeFactory: StoreFactory,
+    prefixes: readonly string[],
+    identities: readonly SyncIdentity[],
+    onLog?: (line: string, detail?: unknown) => void,
+  ): Promise<{ destroyed: number; kept: { identity: SyncIdentity; pending: number }[] }> {
+    let destroyed = 0
+    const kept: { identity: SyncIdentity; pending: number }[] = []
+    for (const prefix of prefixes) {
+      const swept = await SyncEngine.sweepIdentityStores(storeFactory, prefix, identities, onLog)
+      destroyed += swept.destroyed
+      kept.push(...swept.kept)
+    }
+    return { destroyed, kept }
   }
 
   /**

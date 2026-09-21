@@ -48,6 +48,10 @@ export {
 
 export { readEveryPage, type CursorPage, type EveryPage } from './pages.js'
 
+export { GROUP_NAMES, GROUP_OF, groupOf, type GroupName } from './groups.js'
+
+export { SERVICE_OF, serviceFor, type ServiceOf } from './services.js'
+
 export {
   identityKey,
   PlatformSessionStore,

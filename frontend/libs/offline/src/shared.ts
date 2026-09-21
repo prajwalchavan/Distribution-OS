@@ -13,6 +13,7 @@ export {
   SyncEngine,
   SyncEngineEndedError,
   CLIENT_SYNC_PROTOCOL,
+  FIELD_STORE_PREFIXES,
   interimStoreName,
   legacyStoreName,
   parseStoreName,

@@ -27,7 +27,7 @@ function read(path: string): string {
 }
 
 describe('DOS-068: the delivery app never puts an error kind in front of a driver', () => {
-  const source = read('delivery-app/src/lib/ui.tsx')
+  const source = read('dos-app/src/groups/delivery/lib/ui.tsx')
   const failure = /if \(failed\?\.error !== undefined\) \{[\s\S]*?\n {2}\}/.exec(source)?.[0] ?? ''
 
   it('the Async failure branch is where this is decided, once', () => {

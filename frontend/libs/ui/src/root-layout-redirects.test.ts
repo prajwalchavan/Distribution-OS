@@ -10,11 +10,17 @@
  * twice on the launch where the session restores a frame after `hydrating` clears.
  *
  * `useRootNavigationState()` answers the first half — does the navigator EXIST — and the app template and the
- * delivery, retailer and admin apps already answer the second with a zero timer: do the work after the mount,
+ * delivery, retailer and admin apps already answered the second with a zero timer: do the work after the mount,
  * which is exactly what the message asks for. The owner, manager, sales and warehouse layouts still replaced
  * inside the commit. This is the whole rule, kept in one place so a new app generated from the template cannot
  * quietly drop it: every root layout waits for the navigator, moves out of the commit, and cancels the move if
  * the answer changes before the timer fires.
+ *
+ * THE ONE APP (docs/31 §6.1). The six per-role apps are retired; the ladder that used to be written six times
+ * is written ONCE, in `dos-app/app/_layout.tsx`, and the five assertions below are satisfied once instead of
+ * six times. The second half of the guard is the other side of that: a GROUP layout (`app/<g>/_layout.tsx`)
+ * must carry no redirect effect at all. A group that redirects is a second ladder — two effects racing to
+ * `router.replace` on the same commit is how DOS-055 comes back wearing a different name.
  *
  * Read as source: a root layout pulls in expo-router and `react-native`, neither of which resolves outside
  * Metro, so there is no render to assert on (same reason as `dos-105-retailer-words.guard.test.ts`).
@@ -28,23 +34,23 @@ import { describe, expect, it } from 'vitest'
 const here = dirname(fileURLToPath(import.meta.url))
 const frontend = join(here, '..', '..', '..')
 
-/** The seven apps and the skeleton they are generated from — nobody is exempt. */
-const LAYOUTS: readonly string[] = [
-  'libs/app-template',
-  'owner-app',
-  'manager-app',
-  'sales-app',
-  'warehouse-app',
-  'delivery-app',
-  'retailer-app',
-  'admin-app',
-]
+/** Every ROOT layout in the repo, and the skeleton they are generated from — nobody is exempt. */
+const LAYOUTS: readonly string[] = ['libs/app-template', 'dos-app', 'admin-app']
 
-/** The layout with its comments taken out: a comment may TALK about the timer it does not have. */
+/** The six groups of the one app. Each has a layout, and none of them may redirect. */
+const GROUPS: readonly string[] = ['owner', 'manager', 'sales', 'warehouse', 'delivery', 'retailer']
+
+/** A file with its comments taken out: a comment may TALK about the timer it does not have. */
+function strip(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+}
+
 function read(app: string): string {
-  return readFileSync(join(frontend, app, 'app', '_layout.tsx'), 'utf8')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '')
+  return strip(readFileSync(join(frontend, app, 'app', '_layout.tsx'), 'utf8'))
+}
+
+function readGroup(group: string): string {
+  return strip(readFileSync(join(frontend, 'dos-app', 'app', group, '_layout.tsx'), 'utf8'))
 }
 
 /**
@@ -87,6 +93,24 @@ describe('every root layout redirects after the commit, never inside it', () => 
       it('DOS-055 does not redirect to the route it is already on', () => {
         expect(effect).toMatch(/redirectTo === pathname/)
       })
+    })
+  }
+})
+
+/**
+ * docs/31 §6.1 — and the ladder lives in ONE place.
+ *
+ * Before the merge each app owned its own root layout and its own redirect; after it, six group layouts sit
+ * UNDER one root that has already decided where this person belongs. A group layout that redirects as well is
+ * a second decider on the same commit: the two disagree for one frame on every launch, and the person is
+ * bounced. The group's job is the chrome — the rail, the strings, the theme, the store — and nothing else.
+ */
+describe('docs/31 §6.1 no group layout of the one app redirects: the root decides once', () => {
+  for (const group of GROUPS) {
+    it(`${group} has no redirect effect of its own`, () => {
+      const source = readGroup(group)
+      expect(redirectEffect(source)).toBe('')
+      expect(source).not.toMatch(/router\.replace\(/)
     })
   }
 })

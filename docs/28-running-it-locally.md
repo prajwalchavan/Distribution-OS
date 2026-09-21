@@ -101,34 +101,44 @@ cd backend && pnpm smoke        # signs in per role and calls every operation of
 
 It must end **0 BROKEN**. It writes as it goes, so re-run `pnpm db:seed` afterwards to clear its leftovers.
 
-## 5. Start an app
+## 5. Start the app
 
-Seven apps, one Expo codebase each, serving website + Android + iOS.
+**TWO apps now, not seven** (docs/31): one for the six business roles, and the platform console. One Expo
+codebase each, serving website + Android + iOS.
 
 ```bash
 cd frontend
-pnpm --filter @dos/owner-app web       # http://localhost:5173
+pnpm --filter @dos/dos-app web         # http://localhost:5173 — all six roles
+pnpm --filter @dos/admin-app web       # http://localhost:5179 — the platform console
 ```
 
-| App       | URL                     | Service | Sign in as       |
-| --------- | ----------------------- | ------- | ---------------- |
-| Owner     | <http://localhost:5173> | :3001   | `sunil.tarsun`   |
-| Manager   | <http://localhost:5174> | :3002   | `vikas.kadam`    |
-| Sales     | <http://localhost:5175> | :3003   | `rahul.deshmukh` |
-| Warehouse | <http://localhost:5176> | :3004   | `dinesh.patil`   |
-| Delivery  | <http://localhost:5177> | :3005   | `ganesh.more`    |
-| Retailer  | <http://localhost:5178> | :3006   | `ramesh.gupta`   |
-| Admin     | <http://localhost:5179> | :3007   | `dos.admin`      |
+The role you sign in as decides which group opens; the URL carries it, so a reload lands where you were.
+
+| Group     | Where it opens                     | Service | Sign in as       |
+| --------- | ---------------------------------- | ------- | ---------------- |
+| Owner     | <http://localhost:5173/owner>      | :3001   | `sunil.tarsun`   |
+| Manager   | <http://localhost:5173/manager>    | :3002   | `vikas.kadam`    |
+| Sales     | <http://localhost:5173/sales>      | :3003   | `rahul.deshmukh` |
+| Warehouse | <http://localhost:5173/warehouse>  | :3004   | `dinesh.patil`   |
+| Delivery  | <http://localhost:5173/delivery>   | :3005   | `ganesh.more`    |
+| Retailer  | <http://localhost:5173/retailer>   | :3006   | `ramesh.gupta`   |
+| Admin     | <http://localhost:5179>            | :3007   | `dos.admin`      |
 
 **Password for every demo account: `Dos@1234`.** Leave the distributor field empty unless the person belongs to
 more than one — `ramesh.gupta` (a shop buying from all three) and the admin accounts are the interesting ones.
+
+Ports 5174-5178 are gone with the six apps. **One session per browser profile**: the whole install is one origin,
+so signing in as a second person means a second browser profile — or `switch distributor` / a fresh role election
+in the one you have. If your membership permits more than one role the app asks **Continue as …** right after the
+password, and the row you picked last time on this device is preselected; a membership with one role goes
+straight in.
 
 The platform console signs in somewhere else on purpose: `dos.admin` and `dos.support` hold no membership, so
 `/auth/login` refuses them and they go to `POST /auth/platform/login`. The other two distributorships sign in
 normally with their own owners, `prakash.salunkhe` (Sai) and `nitin.bhoir` (Kalyan Agencies).
 
 In the Claude desktop app, `.claude/launch.json` has an entry for each of these (`owner-service`, `worker`,
-`owner-app`, …) so the Browser pane can start them by name.
+`dos-app`, `admin-app`, …) so the Browser pane can start them by name.
 
 ## 6. The same app on a phone
 
@@ -136,11 +146,11 @@ Android — the SDK is installed, no Android Studio project needed:
 
 ```bash
 export ANDROID_HOME=$HOME/Library/Android/sdk
-export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home
 export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$JAVA_HOME/bin:$PATH"
 emulator -avd Pixel_7_API_36 -memory 3072 -no-snapshot-save &
 adb wait-for-device && adb shell getprop sys.boot_completed        # 1 = ready
-cd frontend && pnpm --filter @dos/owner-app android
+cd frontend && pnpm --filter @dos/dos-app android
 ```
 
 `-memory 3072` is not optional: at the default 2 GB the emulator thrashes on a dev bundle this size and throws
