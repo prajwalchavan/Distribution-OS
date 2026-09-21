@@ -11,6 +11,7 @@
  */
 import { useCallback, useMemo, useState } from 'react'
 
+import { isActive } from '../nav-active.js'
 import { useStrings, useTheme } from '../theme.js'
 import { layout, motion, size, space } from '../tokens.js'
 import type { AppShellProps, NavItem, TenantSwitcherProps } from '../types.js'
@@ -153,11 +154,6 @@ export function TenantSwitcher(props: TenantSwitcherProps): React.JSX.Element {
 // AppShell
 // ---------------------------------------------------------------------------
 
-function isActive(activeHref: string, href: string): boolean {
-  if (href === '/') return activeHref === '/'
-  return activeHref === href || activeHref.startsWith(`${href}/`)
-}
-
 export function AppShell(props: AppShellProps): React.JSX.Element {
   const viewport = useViewport()
   const allowed = useCallback((item: NavItem) => (props.can ? props.can(item) : true), [props.can])
@@ -196,6 +192,7 @@ function initial(label: string): string {
 function DeskShell({
   sections,
   activeHref,
+  homeHref,
   onNavigate,
   tenant,
   connection,
@@ -261,7 +258,7 @@ function DeskShell({
               ) : null}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                 {section.items.map((item) => {
-                  const active = isActive(activeHref, item.href)
+                  const active = isActive(activeHref, item.href, homeHref)
                   return (
                     <li key={item.href}>
                       <a
@@ -491,6 +488,7 @@ export function MenuRow({
 function PhoneShell({
   sections,
   activeHref,
+  homeHref,
   onNavigate,
   tenant,
   connection,
@@ -612,7 +610,7 @@ function PhoneShell({
           }}
         >
           {tabs.map((item) => {
-            const active = isActive(activeHref, item.href)
+            const active = isActive(activeHref, item.href, homeHref)
             return (
               <a
                 key={item.href}

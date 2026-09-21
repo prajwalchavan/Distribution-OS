@@ -993,6 +993,74 @@ describe('<AppShell> — the no-tab-bar declaration', () => {
   })
 })
 
+/**
+ * docs/31 §1.1 (ruling Q1) — the one app gives every group a visible segment, so a group's HOME is
+ * `/owner`, not `/`. `/owner` is a prefix of every route in the group, so without `homeHref` the
+ * rail would mark Home as the current page on Orders, on Shops and on everything else. Asserted
+ * through the shell rather than on the helper alone, because `aria-current` is what a screen reader
+ * reads out and what a person sees highlighted.
+ */
+describe('<AppShell> — the group home lights only on the group home', () => {
+  const sections = [
+    {
+      items: [
+        { href: '/owner', label: 'Home' },
+        { href: '/owner/orders', label: 'Orders' },
+      ],
+    },
+  ]
+
+  function rail(activeHref: string): string {
+    return renderDesk(
+      <AppShell
+        sections={sections}
+        activeHref={activeHref}
+        homeHref="/owner"
+        onNavigate={() => undefined}
+      >
+        <span>body</span>
+      </AppShell>,
+    )
+  }
+
+  it('marks Home on /owner', () => {
+    expect(rail('/owner')).toContain('href="/owner" aria-current="page"')
+  })
+
+  it('does NOT mark Home on /owner/orders — Orders is the current page', () => {
+    const html = rail('/owner/orders')
+    expect(html).not.toContain('href="/owner" aria-current="page"')
+    expect(html).toContain('href="/owner/orders" aria-current="page"')
+  })
+
+  it('keeps a section lit on its own descendants', () => {
+    const html = rail('/owner/orders/01J9')
+    expect(html).toContain('href="/owner/orders" aria-current="page"')
+    expect(html).not.toContain('href="/owner" aria-current="page"')
+  })
+
+  it('without homeHref the default home is `/`, exactly as today', () => {
+    const html = renderDesk(
+      <AppShell
+        sections={[
+          {
+            items: [
+              { href: '/', label: 'Home' },
+              { href: '/orders', label: 'Orders' },
+            ],
+          },
+        ]}
+        activeHref="/orders"
+        onNavigate={() => undefined}
+      >
+        <span>body</span>
+      </AppShell>,
+    )
+    expect(html).not.toContain('href="/" aria-current="page"')
+    expect(html).toContain('href="/orders" aria-current="page"')
+  })
+})
+
 describe('<Segments> at the field floor', () => {
   it('gives a short segment the floor in BOTH axes', () => {
     const html = renderField(
