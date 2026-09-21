@@ -1,0 +1,156 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+0 of 19 picked
+PICK-0079
+picking
+Campa Cola 1 L
+Batch RCP20260529
+Exp 23 Feb 2027
+₹50.00
+5 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260605
+Exp 2 Mar 2027
+₹50.00
+7 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260612
+Exp 9 Mar 2027
+₹50.00
+4 pc
+Picked
+Short
+Campa Cola 1 L
+Batch B20260614
+Exp 11 Mar 2027
+₹50.00
+4 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260619
+Exp 16 Mar 2027
+₹50.00
+4 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260626
+Exp 23 Mar 2027
+₹50.00
+4 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260703
+Exp 30 Mar 2027
+₹50.00
+2 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260710
+Exp 6 Apr 2027
+₹50.00
+4 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260717
+Exp 13 Apr 2027
+₹50.00
+4 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260724
+Exp 20 Apr 2027
+₹50.00
+6 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260731
+Exp 27 Apr 2027
+₹50.00
+5 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260807
+Exp 4 May 2027
+₹50.00
+9 pc
+Picked
+Short
+Campa Cola 1 L
+Batch RCP20260814
+Exp 11 May 2027
+₹50.00
+11 pc
+Picked
+Short
+Campa Cola 1 L
+Batch B20260909
+Exp 6 Jun 2027
+₹50.00
+2 cs + 9 pc = 57 pc
+Picked
+Short
+Godavari Cow Ghee 1 L
+Batch GD20260614
+Exp 14 Jun 2027
+₹770.00
+2 pc
+Picked
+Short
+Godavari Cow Ghee 1 L
+Batch GD20260620
+Exp 20 Jun 2027
+₹770.00
+1 pc
+Picked
+Short
+Godavari Cow Ghee 1 L
+Batch GD20260723
+Exp 23 Jul 2027
+₹770.00
+2 pc
+Picked
+Short
+Godavari Cow Ghee 1 L
+Batch GD20260726
+Exp 26 Jul 2027
+₹770.00
+1 pc
+Picked
+Short
+Godavari Cow Ghee 1 L
+Batch GD20260806
+Exp 6 Aug 2027
+₹770.00
+2 pc
+Picked
+Short
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+0 of 19 picked
+Scan
+Take it to packing
+19 lines not yet picked

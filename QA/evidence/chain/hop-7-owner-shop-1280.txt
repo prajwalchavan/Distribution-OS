@@ -1,0 +1,73 @@
+TE
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Shops
+1 rows
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Code	Shop	Beat	Tier	Limit ₹	Terms	Phone
+
+R-0001
+	
+Shree Ganesh Kirana
+	
+Station Road
+	C	50,000.00	
+Credit
+	
++919892000001
+
+	1 rows					
+Shree Ganesh Kirana
+Close
+Code
+R-0001
+Phone
++919892000001
+Beat
+Station Road
+GSTIN
+—
+Outstanding ₹
+₹35,843.00
+Overdue ₹
+₹35,843.00
+Open bills
+6
+12 weeks
+Behaviour
+Last order
+12 Sep, 12:00 pm
+Average days to pay
+25
+Visits
+20
+Credit
+Credit limit
+₹50,000.00
+Credit days
+7
+When it is crossed
+Needs approval
+Set credit
+Send statement

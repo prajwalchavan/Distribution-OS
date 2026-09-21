@@ -1,0 +1,126 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+Order	Shop	Person	Amount ₹	State	Stock	Waiting on	Credit	Placed
+
+SO-0868
+	
+Laxmi Narayan Stores
+	
+Rahul Deshmukh
+	17,736.00	Submitted		
+Over credit limit
+		
+12 Sep
+
+SO-0867
+	
+Patil General Store
+	
+Rahul Deshmukh
+	5,367.00	Submitted		
+Below floor price · Over credit limit
+		
+12 Sep
+
+2 rows			23,103.00					
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Laxmi Narayan Stores · SO-0868
+Over credit limit
+₹17,736.00
+Approve
+Reject
+Patil General Store · SO-0867
+Below floor price
+₹5,367.00
+Approve
+Reject
+Patil General Store · SO-0867
+Over credit limit
+₹5,367.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Order SO-0880
+Close
+Shop
+Mahalaxmi General Stores
+Credit
+Owes ₹36,259.00 · limit ₹50,000.00 · This order takes it ₹0.00 over the limit
+State
+Cancelled
+Credit
+Owed ₹36,259.00 against a limit of ₹50,000.00 · Needs approval
+Bills past the agreed days
+Terms
+Credit
+Wanted by
+—
+Lines
+Campa Cola 750 ml
+1 cs · 24 pc · 1 pc free
+Free goods
+₹617.43
+Subtotal
+₹551.28
+Discount
+₹0.00
+Tax
+₹66.15
+Total
+₹617.00
+Held for this order
+0 pc
+across 0 lots
+Confirm order
+1
+Only a submitted order can be confirmed
+Free the held stock
+Nothing is held for this order
+Cancel order
+2
+This order is already cancelled or closed
