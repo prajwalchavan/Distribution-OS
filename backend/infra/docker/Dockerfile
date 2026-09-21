@@ -1,7 +1,16 @@
 # syntax=docker/dockerfile:1.7
 #
-# One image, four ways to run it (founder decision 2026-09-05, docs/26 §7; built and run for the
-# first time 2026-09-21 on colima/linux-arm64, which is the Oracle VM's architecture).
+# One image, four ways to run it (founder decision 2026-09-05, docs/26 §7).
+#
+# NOT YET BUILT HERE as of this commit. This file has never been through `docker build` on any
+# machine: the faults it fixes were found by reading it against what Docker does, and the checks
+# that hold its shape are `backend/all-in-one/src/deploy/dockerfile.spec.ts`. The build-and-run
+# proof is `backend/all-in-one/src/deploy/docker-image.proof.spec.ts`, opt-in behind
+# DOS_DOCKER_PROOF=1, and `docs/30-deploy-runbook.md` records the date it first ran — until that
+# line says otherwise, nothing here has been observed working in a container.
+#
+# It is built `--platform linux/arm64` because that is the Oracle VM's architecture; an amd64 image
+# will not start there.
 #
 # Build context is `backend/`:
 #     cd backend && docker build --platform linux/arm64 -f infra/docker/Dockerfile -t dos:local .
