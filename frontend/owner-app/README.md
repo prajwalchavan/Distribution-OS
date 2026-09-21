@@ -93,6 +93,7 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/pricing/schemes` | Schemes (the single table the engine reads; the field and the shop get the public shape) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -320,7 +321,8 @@ Full request/response samples for each are in `backend-services/owner-service/RE
 | GET | `/notifications/broadcasts/{id}` | One broadcast with counts and every recipient’s outcome | owner, manager, accountant |
 | POST | `/notifications/push-tokens` | Register or refresh this device’s push token for the signed-in staff member | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/notifications/push-tokens/{id}/unregister` | Remove my own device’s push token (sign-out) | owner, manager, accountant, salesperson, warehouse, delivery |
-| GET | `/notifications/inbound` | Texts and photos shops sent us, for triage (a rep sees its own beats’ shops) | owner, manager, accountant, salesperson |
+| POST | `/notifications/inbound` | A shop reports a problem or asks for a return; it lands in the office queue | retailer |
+| GET | `/notifications/inbound` | Texts and reports shops sent us, for triage (a rep sees its own beats’ shops; a shop sees only what it sent) | owner, manager, accountant, salesperson, retailer |
 | POST | `/notifications/inbound/{id}/handled` | Mark an inbound message handled (the text itself is never edited) | owner, manager, accountant, salesperson |
 | GET | `/reporting/dashboard/owner` | The owner's home: today, dues by ageing, MTD margin, stock at cost, sparklines | owner, manager, accountant |
 | GET | `/reporting/dashboard/rep` | A rep's day: visits, orders, strike rate (a salesperson: its own) | owner, manager, accountant, salesperson |

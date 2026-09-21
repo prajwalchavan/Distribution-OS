@@ -22,7 +22,7 @@
  * placed order — in the pieces that order carried, and placed through the same two calls.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
-import type { OrderLine, QuotedLine, TenantProduct } from '@dos/contracts'
+import type { OrderLine, QuotedLine, RateItem, TenantProduct } from '@dos/contracts'
 import {
   Button,
   Group,
@@ -266,33 +266,27 @@ export default function PlaceOrder(): React.JSX.Element {
    * the basket, so a shop opening this screen saw a list of names, pack sizes and MRPs and not one
    * rate it would actually pay — on the screen whose whole job is the price.
    *
-   * So the catalogue is quoted ONCE at one piece per item, through the same engine: at a quantity of
-   * one, no quantity scheme triggers, and what comes back is exactly the shop's own standing rate —
-   * its tier price, with its retailer override and any rate its distributor has agreed applied.
-   * `listRatePaise` beside it is the distributor's list rate, so a shop can see it is getting
-   * something better. Schemes then show themselves on the row as soon as a quantity is chosen,
-   * because the order quote takes over from there.
+   * `pricing.rates` (DOS-104) is that list: the SAME engine at one piece, projected to the four
+   * numbers a row needs. At a quantity of one no quantity scheme triggers, so what comes back is
+   * exactly the shop's own standing rate — its tier price with its retailer override and any rate its
+   * distributor has agreed — and `listRatePaise` beside it, so the shop can see it is getting
+   * something better. Schemes show themselves on the row as soon as a quantity is chosen, because the
+   * order quote takes over from there.
+   *
+   * It used to be `pricing.quote` over all 171 listed items. That answered the same two numbers inside
+   * ~55 KB of applied rules, free items and GST per row, on a counter phone's data, before the
+   * shopkeeper had touched anything — and it grew every time the quote payload grew.
    */
-  const listVariants = items.map((item) => item.variantId)
-  const listKey = JSON.stringify(listVariants)
-  const listQuote = useQuery(
-    ['list-quote', retailerId, listKey],
-    () =>
-      api.api.pricing.quote({
-        retailerId: retailerId ?? '',
-        pricingDate: today(),
-        lines: listVariants.map((variantId) => ({ lineId: variantId, variantId, qtyPcs: 1 })),
-      }),
-    {
-      enabled: signedIn && retailerId !== null && listVariants.length > 0,
-      staleTime: 300_000,
-    },
+  const listRatesQuery = useQuery(
+    ['rates', retailerId, today()],
+    () => api.api.pricing.rates({ retailerId: retailerId ?? '', pricingDate: today() }),
+    { enabled: signedIn && retailerId !== null, staleTime: 300_000 },
   )
   const listRates = useMemo(() => {
-    const map = new Map<string, QuotedLine>()
-    for (const line of listQuote.data?.lines ?? []) map.set(line.variantId, line)
+    const map = new Map<string, RateItem>()
+    for (const item of listRatesQuery.data?.items ?? []) map.set(item.variantId, item)
     return map
-  }, [listQuote.data])
+  }, [listRatesQuery.data])
 
   // --- writing ---------------------------------------------------------------------------------
   /*
@@ -402,7 +396,7 @@ export default function PlaceOrder(): React.JSX.Element {
    * the missing rate stands where the list was, and an order quote refused for the same reason does not
    * call every item in it unpriced.
    */
-  const listGstMissing = unratedHsnCodes(listQuote.error)
+  const listGstMissing = unratedHsnCodes(listRatesQuery.error)
   const orderGstMissing = unratedHsnCodes(quote.error)
   const unpricedNames =
     orderGstMissing !== null
@@ -470,7 +464,7 @@ export default function PlaceOrder(): React.JSX.Element {
                   {t('r7.repeatPartial', { count: String(leftOut) })}
                 </Txt>
               )}
-              {listQuote.error === undefined || listGstMissing !== null ? null : (
+              {listRatesQuery.error === undefined || listGstMissing !== null ? null : (
                 <Txt
                   field="body"
                   desk="body"
@@ -788,8 +782,8 @@ function TotalRow({
 /**
  * One item of the price list, with the rate this shop pays, its stock hint and the stepper.
  *
- * TWO RATES, TWO DIFFERENT FACTS. `standing` is the item quoted at one piece — this shop's own rate
- * before any quantity scheme, which is what a price list is for. `quoted` is the line as the engine
+ * TWO RATES, TWO DIFFERENT FACTS. `standing` is the item priced at one piece by `pricing.rates` — this
+ * shop's own rate before any quantity scheme, which is what a price list is for. `quoted` is the line as the engine
  * priced it AT THE CHOSEN QUANTITY, so once there is a quantity the scheme and the line total come
  * from that instead. Neither is worked out here.
  */
@@ -807,7 +801,7 @@ function OrderRow({
   pieces: number
   availablePieces: number | null
   quoted: QuotedLine | undefined
-  standing: QuotedLine | undefined
+  standing: RateItem | undefined
   onChange: (pieces: number) => void
   onOpenPieces: () => void
   onAsk: (() => void) | undefined

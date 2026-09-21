@@ -35,6 +35,12 @@ export {
   type CollectionsRegisterRow,
 } from './collections-register.js'
 export { ageingHistory } from './ageing-history.js'
+/**
+ * DOS-102: the caller's OWN totals in this tenant, scoped by RLS and not by an id, for the shop's
+ * cross-distributor home (`auth.memberships.summary`). A plain function, so auth composes it without
+ * touching receivables' tables.
+ */
+export { loadOutstandingTotals, type OutstandingTotals } from './outstanding.js'
 export { listOutstanding } from './receivables.queries.js'
 /**
  * What one staff member collected in a window (coordination §3.1, slice 10): the source of a

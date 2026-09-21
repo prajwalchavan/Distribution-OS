@@ -17,6 +17,7 @@ import type {
   ForgotPasswordIn,
   LoginIn,
   LogoutIn,
+  MembershipsSummary,
   MembershipSummary,
   RefreshIn,
   ResetPasswordIn,
@@ -55,6 +56,7 @@ import {
 } from '../../platform/index.js'
 import { createObjectStorage, ObjectStorageError } from '../../platform/object-storage.js'
 import { SIGN_IN_REQUIRED, type AuthClaims } from './auth-context.js'
+import { membershipsSummary, type SummaryMembership } from './memberships-summary.js'
 import {
   authTtl,
   hashRefreshToken,
@@ -608,6 +610,34 @@ export class AuthService {
         session: toAuthSession(session),
       }
     })
+  }
+
+  /**
+   * DOS-102: what each of this login's distributors is owed, last billed and is sending.
+   *
+   * The membership list is read as the system actor (the same cross-tenant read `me` does); every
+   * FIGURE is then read inside `withTenant` under the caller's own id and that membership's role, so
+   * RLS narrows it exactly as it would after `switchTenant`. Nothing here mints a token, opens a
+   * session or writes an `auth_events` row: it is a read.
+   */
+  async membershipsSummary(auth: AuthClaims): Promise<MembershipsSummary> {
+    const db = requireDb(this.db)
+    const rows = await withSystem(db, async (tx) => {
+      const now = new Date()
+      await liveSession(tx, auth, now)
+      const user = await findUserById(tx, auth.userId)
+      if (!user) throw signInRequired()
+      if (user.status !== 'active') throw noAccess()
+      return (await loadMemberships(tx, user.id)).map((row): SummaryMembership => ({
+        tenantId: row.membership.tenantId,
+        tenantSlug: row.tenant.slug,
+        displayName: row.branding.displayName,
+        logoUrl: row.branding.logoUrl,
+        role: row.membership.role,
+        status: row.membership.status,
+      }))
+    })
+    return membershipsSummary(db, auth.userId, rows)
   }
 
   async sessions(auth: AuthClaims): Promise<SessionsList> {

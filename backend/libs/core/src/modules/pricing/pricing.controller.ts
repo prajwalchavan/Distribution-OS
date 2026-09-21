@@ -72,6 +72,12 @@ export class PricingController {
     return implement(contract.pricing.quote).handler(({ input }) => this.quotes.quote(input))
   }
 
+  /** DOS-104: the same engine at one piece, projected — the price list a shop or a rep opens. */
+  @Implement(contract.pricing.rates)
+  rates(@OwnsReply() _reply: unknown) {
+    return implement(contract.pricing.rates).handler(({ input }) => this.quotes.rates(input))
+  }
+
   @Implement(contract.pricing.bargains.request)
   requestBargain(@OwnsReply() _reply: unknown) {
     return implement(contract.pricing.bargains.request).handler(({ input }) =>

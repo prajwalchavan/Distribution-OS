@@ -11,13 +11,24 @@ import { uuidv7 } from '@dos/domain'
 import { os, storage } from '@dos/ui/platform'
 
 import { API_PREFIX, API_URL, AUTH_URL } from './config'
+import { LAST_TENANT_KEY } from './lib/last-distributor'
 
 const REFRESH_KEY = 'dos.auth.refresh'
 const DEVICE_KEY = 'dos.device'
 const SNAPSHOT_KEY = 'dos.auth.session'
 
-/** Everything that must survive a restart. The ACCESS token is not here, and never is. */
-export const PERSISTED_KEYS = [REFRESH_KEY, DEVICE_KEY, SNAPSHOT_KEY] as const
+/**
+ * Everything that must survive a restart. The ACCESS token is not here, and never is.
+ *
+ * THIS LIST IS WHAT `getItemSync` CAN SEE. On a phone the synchronous read is a cache lookup and that
+ * cache is filled only by `prime()` or by a write in the same process — SecureStore itself is
+ * asynchronous — so a key read synchronously and left off this list reads null on every launch and
+ * silently behaves as if nothing was ever stored. `dos.lastTenantId` was that key: it is what opens
+ * the distributor this device was last used with (DOS-102), and on the web it worked because
+ * `localStorage` reads synchronously, while on Android and iOS it never did
+ * (`src/lib/dos-102-last-distributor-restart.guard.test.ts`).
+ */
+export const PERSISTED_KEYS = [REFRESH_KEY, DEVICE_KEY, SNAPSHOT_KEY, LAST_TENANT_KEY] as const
 
 export async function boot(): Promise<ApiClient> {
   await storage.prime(PERSISTED_KEYS)

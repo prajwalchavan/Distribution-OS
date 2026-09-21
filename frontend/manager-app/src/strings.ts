@@ -867,6 +867,16 @@ export const strings = {
   'm18.markHandled': 'Mark it handled',
   'm18.received': 'Received',
   'm18.text': 'What they wrote',
+  // DOS-103: what a shop filed from its own app. A captured WhatsApp text has neither, and reads as
+  // the register's em dash.
+  'm18.kind': 'Kind',
+  'm18.kind.return_request': 'Wants goods taken back',
+  'm18.kind.complaint': 'Something is wrong',
+  'm18.kind.question': 'A question',
+  'm18.ref': 'About',
+  'm18.ref.invoice': 'Bill',
+  'm18.ref.delivery': 'Delivery',
+  'm18.ref.order': 'Order',
   'm18.empty': 'Nothing here yet',
   'm18.defaultWording': 'Platform wording',
   'm18.ownWording': 'Our own wording',

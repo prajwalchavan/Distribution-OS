@@ -38,6 +38,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/auth/logout` | Revoke this device session | public |
 | POST | `/auth/switch-tenant` | Open a session on another membership of the same user | public |
 | GET | `/auth/me` | The signed-in user, the active membership and this session | any signed-in role |
+| GET | `/auth/memberships/summary` | What each of this login’s distributors is owed, its last bill and any van on the way | any signed-in role |
 | POST | `/auth/platform/login` | Sign in as Distribution OS platform staff (no distributor) | public |
 | POST | `/auth/platform/refresh` | Exchange a platform refresh token for a new pair (rotates the refresh token) | public |
 | GET | `/auth/platform/me` | The signed-in platform user and this session | platform_admin |
@@ -549,6 +550,73 @@ curl "http://localhost:3000/auth/me" \
     "createdAt": "2026-09-04T10:30:00.000Z",
     "lastUsedAt": "2026-09-04T10:30:00.000Z"
   }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/auth/memberships/summary`
+
+What each of this login’s distributors is owed, its last bill and any van on the way · contract `auth.memberships.summary`
+
+**Roles:** any signed-in role
+
+**Example request**
+
+```bash
+curl "http://localhost:3000/auth/memberships/summary" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+      "tenantSlug": "text",
+      "displayName": "text",
+      "logoUrl": "docs/2026/09/invoice-0042.jpg",
+      "role": "owner",
+      "outstandingPaise": 2680000,
+      "overduePaise": 4000,
+      "openBills": 1,
+      "lastReceiptAt": "2026-09-04T10:30:00.000Z",
+      "lastReceiptPaise": 4000,
+      "lastBill": {
+        "invoiceNo": "SO-0042",
+        "invoiceDate": "2026-09-04",
+        "totalPaise": 2680000
+      },
+      "onTheWay": {
+        "stops": 1,
+        "state": "pending",
+        "etaAt": "2026-09-04T10:30:00.000Z"
+      }
+    }
+  ],
+  "totalOutstandingPaise": 2680000,
+  "totalOverduePaise": 4000
 }
 ```
 
@@ -1365,6 +1433,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `auth.logout` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.switchTenant` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.me` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `auth.memberships.summary` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.platformLogin` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.platformRefresh` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `auth.platformMe` | – | – | – | – | – | – | – |

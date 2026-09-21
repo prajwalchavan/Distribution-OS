@@ -21,10 +21,12 @@ import {
   type Series,
 } from '../charts/geometry.js'
 import { abbreviateMoney } from '../money.js'
+import { qrPath } from '../qr.js'
 import { useTheme } from '../theme.js'
 import { chart as chartTokens, space } from '../tokens.js'
 import type {
   CompareBarsProps,
+  QrCodeProps,
   SparklineProps,
   StackedMixProps,
   TrendChartProps,
@@ -382,5 +384,23 @@ export function Sparkline({
         strokeLinecap="round"
       />
     </Svg>
+  )
+}
+
+/**
+ * DOS-125 — the same QR as the web renderer, from the same path (`../qr.ts`), on `react-native-svg`.
+ *
+ * ALWAYS BLACK ON WHITE, in both themes: a scanner needs contrast, not a palette. No colour token,
+ * no variant, four modules of quiet zone, one path of one-module squares.
+ */
+export function QrCode({ value, size = 216, label, testID }: QrCodeProps): React.JSX.Element {
+  const { modules, d } = qrPath(value)
+  return (
+    <View testID={testID} accessibilityRole="image" accessibilityLabel={label}>
+      <Svg viewBox={`0 0 ${String(modules)} ${String(modules)}`} width={size} height={size}>
+        <Rect x={0} y={0} width={modules} height={modules} fill="#fff" />
+        <Path d={d} fill="#000" />
+      </Svg>
+    </View>
   )
 }

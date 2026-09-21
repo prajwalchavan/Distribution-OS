@@ -6,9 +6,14 @@
  * platform (`ramesh.gupta` buys from three in the pilot data), and every read below — catalog,
  * prices, orders, bills, ledger — is scoped to the distributor that is OPEN. So the cards sit at the
  * top, the open one names itself in words rather than by colour alone, and switching goes through
- * `auth.switchTenant`, which mints a token for the other tenant. The dues on a card that is not open
- * are deliberately NOT fetched: reading them would mean switching the session behind the reader's
- * back, three times, on the screen that opens the app.
+ * `auth.switchTenant`, which mints a token for the other tenant.
+ *
+ * WHAT EVERY CARD SHOWS (DOS-102). Each distributor's dues, its last bill and any van on the way, plus
+ * the total owed across all of them — from ONE call, `auth.memberships.summary`. That read lives on
+ * auth-service because it is cross-tenant by nature; it reads each tenant under this login's own
+ * membership role inside `withTenant`, so nothing appears that a switch would not have shown, and the
+ * session is never switched behind the reader's back. It carries no credit limit and no credit
+ * available: ADR 0006 keeps both off this app.
  *
  * "REORDER IN 2 TAPS" (docs/23 §6). Tap one is "Order again", which opens the order screen on the basket
  * of the shop's most recently PLACED order — whoever placed it, never a draft — RE-PRICED today, so the
@@ -35,11 +40,14 @@ import {
   useStrings,
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
+import { links } from '@dos/ui/platform'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
+import { acrossTotal } from '../src/lib/across'
 import { absoluteUrl } from '../src/config'
 import { instantWithClock, longInstant, shortDate } from '../src/lib/dates'
+import { rememberDistributor } from '../src/lib/last-distributor'
 import { useMyShop } from '../src/lib/shop'
 import { Async, Panel, duesFamily, orderFamily } from '../src/lib/ui'
 import { useWord } from '../src/lib/words'
@@ -116,6 +124,42 @@ export default function Home(): React.JSX.Element {
     { enabled: signedIn && retailerId !== null },
   )
 
+  /**
+   * DOS-102: every distributor's dues, last bill and van, in one call.
+   *
+   * `api.auth`, NOT `api.api.auth`. The client builds two links: `api.api` over the full contract at
+   * `apiUrl` (this app's own service, :3006) and `api.auth` over the auth contract at `authUrl`
+   * (:3000). retailer-service serves no `auth` route at all, so the tenant-client spelling — which
+   * typechecks, because the full contract re-exports `auth` — 404s and leaves this panel quoting
+   * ₹0.00 to a shop that owes lakhs (`src/lib/dos-102-summary-service.guard.test.ts`).
+   */
+  const across = useQuery(['memberships', 'summary'], () => api.auth.memberships.summary(), {
+    enabled: signedIn,
+    staleTime: 60_000,
+  })
+  const acrossBy = new Map((across.data?.items ?? []).map((item) => [item.tenantId, item]))
+  /*
+   * A SUMMARY THE DEVICE DID NOT READ IS NOT A MONEY FIGURE (`src/lib/across.ts`).
+   *
+   * This line used to be `formatMoney(across.data?.totalOutstandingPaise ?? 0)` and the cards below
+   * used to read their dues and their last bill through the same `?? 0`, so a read still in flight
+   * and a read that was refused both came out as "You owe ₹0.00" under a green chip. `acrossTotal`
+   * names the three states and each one is rendered as what it is.
+   */
+  const total = acrossTotal(across)
+  const acrossKnown = total.kind === 'known'
+
+  /**
+   * DOS-103: the office number, so the shop can call or WhatsApp the distributor it is looking at.
+   * ABSENT means the owner has set none, and then there is no button at all — a Call button that
+   * dials nothing is worse than no button.
+   */
+  const branding = useQuery(['tenancy', 'branding'], () => api.api.tenancy.branding.get(), {
+    enabled: signedIn,
+    staleTime: 300_000,
+  })
+  const officePhone = branding.data?.phone ?? null
+
   const [switching, setSwitching] = useState<string | null>(null)
 
   const summary = dues.data
@@ -175,12 +219,28 @@ export default function Home(): React.JSX.Element {
         {/* --- the distributor cards ------------------------------------------------------- */}
         <Panel
           title={t('r2.distributors')}
-          meta={memberships.length > 1 ? t('r2.duesElsewhere') : t('r2.oneOnly')}
+          meta={memberships.length > 1 ? undefined : t('r2.oneOnly')}
           testID="r2-distributors"
         >
           <Stack gap={3}>
+            {memberships.length > 1 ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="r2-total">
+                {total.kind === 'known'
+                  ? t('r2.owedAcross', {
+                      total: formatMoney(total.totalPaise),
+                      count: String(memberships.length),
+                    })
+                  : total.kind === 'reading'
+                    ? t('r2.owedAcrossReading', { count: String(memberships.length) })
+                    : t('r2.owedAcrossUnread', { count: String(memberships.length) })}
+              </Txt>
+            ) : null}
             {memberships.map((membership) => {
               const open = membership.tenantId === openTenantId
+              const card = acrossBy.get(membership.tenantId)
+              // The open card's dues come from its own `receivables.outstanding` read; the others'
+              // from the summary. Either may be missing, and then there is no chip colour to claim.
+              const figures = open ? summary : card
               return (
                 <Box
                   key={membership.tenantId}
@@ -201,27 +261,89 @@ export default function Home(): React.JSX.Element {
                         open ? t('r2.openHere', { name: membership.displayName }) : undefined
                       }
                     />
-                    {open ? (
+                    {/*
+                      DOS-102: the dues line is on EVERY card now, open or not — that is the whole
+                      point of one home for a shop that buys from three distributors. The open card
+                      prefers its own `receivables.outstanding.get` (the same figure the KPI strip and
+                      the bottom bar show, refreshed with them); the others read the summary.
+                    */}
+                    <Row gap={3} wrap>
+                      <StatusChip
+                        label={t('r2.owes')}
+                        family={
+                          figures === undefined
+                            ? 'neutral'
+                            : duesFamily(figures.overduePaise, figures.outstandingPaise)
+                        }
+                      />
+                      <Money value={figures?.outstandingPaise ?? null} size="moneyM" />
+                    </Row>
+                    <Txt
+                      field="label"
+                      desk="meta"
+                      color={colors.text.secondary}
+                      testID={`r2-card-${membership.tenantSlug}-bills`}
+                    >
+                      {!acrossKnown
+                        ? t('r2.cardUnread')
+                        : card?.lastBill === undefined || card.lastBill === null
+                          ? t('r2.noBillsYet')
+                          : t('r2.cardLastBill', {
+                              no: card.lastBill.invoiceNo ?? t('app.none'),
+                              date: shortDate(card.lastBill.invoiceDate),
+                              amount: formatMoney(card.lastBill.totalPaise),
+                            })}
+                    </Txt>
+                    {card?.onTheWay === undefined || card.onTheWay === null ? null : (
+                      <Txt
+                        field="label"
+                        desk="meta"
+                        color={colors.text.primary}
+                        testID={`r2-card-${membership.tenantSlug}-coming`}
+                      >
+                        {card.onTheWay.state === 'arrived'
+                          ? t('r2.vanHere')
+                          : card.onTheWay.etaAt !== null
+                            ? t('r2.vanEta', { when: instantWithClock(card.onTheWay.etaAt) })
+                            : t('r2.vanComing', { count: String(card.onTheWay.stops) })}
+                      </Txt>
+                    )}
+                    {/* DOS-103: only on the distributor that is OPEN — `tenancy.branding.get` is
+                        scoped by the token, so the other cards' numbers are simply not known here. */}
+                    {open && officePhone !== null ? (
                       <Row gap={3} wrap>
-                        <StatusChip
-                          label={t('r2.owes')}
-                          family={duesFamily(
-                            summary?.overduePaise ?? 0,
-                            summary?.outstandingPaise ?? 0,
-                          )}
+                        <Button
+                          label={t('rt.call', { name: membership.displayName })}
+                          variant="secondary"
+                          onPress={() => {
+                            void links.open(`tel:${dialable(officePhone)}`)
+                          }}
+                          testID={`r2-card-${membership.tenantSlug}-call`}
                         />
-                        <Money value={summary?.outstandingPaise ?? null} size="moneyM" />
+                        <Button
+                          label={t('rt.whatsapp')}
+                          variant="secondary"
+                          onPress={() => {
+                            void links.open(`https://wa.me/${digitsOnly(officePhone)}`)
+                          }}
+                          testID={`r2-card-${membership.tenantSlug}-whatsapp`}
+                        />
                       </Row>
-                    ) : (
+                    ) : null}
+                    {open ? null : (
                       <Button
                         label={t('r2.switch', { name: membership.displayName })}
                         variant="secondary"
                         loading={switching === membership.tenantId}
                         onPress={() => {
                           setSwitching(membership.tenantId)
-                          void switchDistributor(membership.tenantId).finally(() => {
-                            setSwitching(null)
-                          })
+                          void switchDistributor(membership.tenantId)
+                            .then((next) => {
+                              rememberDistributor(next.tenant.id)
+                            })
+                            .finally(() => {
+                              setSwitching(null)
+                            })
                         }}
                         testID={`r2-switch-${membership.tenantSlug}`}
                       />
@@ -380,4 +502,21 @@ export default function Home(): React.JSX.Element {
       </Stack>
     </Screen>
   )
+}
+
+/**
+ * DOS-103: the office number as a phone will accept it. The owner types whatever they like in
+ * Settings ("0251 234 5678", "+91 251 234 5678"); a `tel:` URI wants digits and at most a leading
+ * plus, and `wa.me` wants digits alone with the country code. A bare ten-digit Indian number gets
+ * `91` in front — the shop and the distributor are in the same country, and a number that is already
+ * international is left exactly as it is.
+ */
+function digitsOnly(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  return digits.length === 10 ? `91${digits}` : digits
+}
+
+function dialable(phone: string): string {
+  const digits = digitsOnly(phone)
+  return `+${digits}`
 }

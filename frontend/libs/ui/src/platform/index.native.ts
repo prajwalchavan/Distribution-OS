@@ -2,10 +2,11 @@
  * `@dos/ui/platform` on Android and iOS. Metro resolves this through the `react-native` export
  * condition; the web half is `index.web.ts` and exports exactly these names.
  *
- * The names below are the same seven the web half exports, against the same interfaces in
+ * The names below are the same set the web half exports, against the same interfaces in
  * `types.ts` — `parity.test.ts` fails the build if a capability grows on one side only.
  */
 export { camera } from './camera.native.js'
+export { clipboard } from './clipboard.native.js'
 export { installCrypto } from './crypto.native.js'
 export { documents } from './documents.native.js'
 export { files } from './files.native.js'
@@ -18,6 +19,7 @@ export { storage } from './storage.native.js'
 import { Platform as RNPlatform } from 'react-native'
 
 import { camera } from './camera.native.js'
+import { clipboard } from './clipboard.native.js'
 import { installCrypto } from './crypto.native.js'
 import { documents } from './documents.native.js'
 import { files } from './files.native.js'
@@ -49,6 +51,7 @@ export const platform: Platform = {
   haptics,
   share,
   links,
+  clipboard,
 }
 
 export type * from './types.js'

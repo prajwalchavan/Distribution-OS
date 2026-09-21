@@ -158,6 +158,11 @@ export const SellerBrandingSchema = z.object({
   /** The tenant's own terms/footer line printed under the totals. */
   invoiceFooter: z.string().nullable(),
   upiVpa: z.string().nullable(),
+  /**
+   * DOS-103: the office number a shop may call or WhatsApp (`branding.phone`). Null when the owner has
+   * not set one, and then the retailer app shows no Call and no WhatsApp button — never a dead one.
+   */
+  phone: z.string().nullable(),
 })
 export type SellerBranding = z.infer<typeof SellerBrandingSchema>
 

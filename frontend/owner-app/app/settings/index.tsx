@@ -487,6 +487,18 @@ export default function Settings(): React.JSX.Element {
                       value={valueOf('upi_vpa')}
                       onChange={edit('upi_vpa')}
                     />
+                    {/*
+                      DOS-103: the number shops call or WhatsApp from their own app. Leave it empty
+                      and their app shows no Call button at all — never a button that dials nothing.
+                    */}
+                    <TextInput
+                      label={t('o24.phone')}
+                      value={valueOf('branding.phone')}
+                      onChange={edit('branding.phone')}
+                      helper={t('o24.phoneHelp')}
+                      keyboard="phone"
+                      testID="settings-phone"
+                    />
                     <TextInput
                       label={t('o24.fssai')}
                       value={valueOf('seller_fssai')}

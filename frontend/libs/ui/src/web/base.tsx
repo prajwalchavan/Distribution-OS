@@ -45,6 +45,7 @@ export function Txt({
   as = 'span',
   numeric,
   numberOfLines,
+  wrap,
 }: TxtProps): React.JSX.Element {
   const { colors } = useTheme()
   const base = useTypeStyle(field, desk)
@@ -58,11 +59,25 @@ export function Txt({
           WebkitLineClamp: numberOfLines,
           overflow: 'hidden',
         }
+  /*
+   * DOS-125: a `upi://pay?pa=…&am=…&tr=…` intent is ONE word to a browser, so at 390 px its middle
+   * ran off the right edge — unreadable and unselectable. `overflow-wrap: anywhere` breaks it at the
+   * character; `word-break: break-all` is the older name the same browsers still honour.
+   */
+  const breaking: CSSProperties =
+    wrap === 'anywhere' ? { overflowWrap: 'anywhere', wordBreak: 'break-all' } : {}
   return (
     <Tag
       data-testid={testID}
       className={numeric ? 'dos-num' : undefined}
-      style={{ color: color ?? colors.text.primary, margin: 0, ...base, ...clamp, ...style }}
+      style={{
+        color: color ?? colors.text.primary,
+        margin: 0,
+        ...base,
+        ...clamp,
+        ...breaking,
+        ...style,
+      }}
     >
       {children}
     </Tag>

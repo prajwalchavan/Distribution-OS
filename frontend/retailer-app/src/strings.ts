@@ -68,6 +68,18 @@ export const strings = {
   'r2.switching': 'Opening',
   'r2.oneOnly': 'You buy from one distributor on this app.',
   'r2.duesElsewhere': 'Open a distributor to see what is owed there.',
+  // DOS-102: one home for a shop that buys from several distributors — every card carries its own
+  // dues, its last bill and any van on the way, and this is the total across all of them.
+  'r2.owedAcross': 'You owe {total} across {count} distributors',
+  // A read that has not landed is never ₹0.00: these two sentences are what stands in its place.
+  'r2.owedAcrossReading': 'Adding up what you owe across {count} distributors…',
+  'r2.owedAcrossUnread': 'What you owe across {count} distributors could not be read just now',
+  'r2.cardLastBill': 'Last bill {no} · {date} · {amount}',
+  'r2.noBillsYet': 'No bills yet',
+  'r2.cardUnread': 'Not read just now',
+  'r2.vanHere': 'A van is at your shop',
+  'r2.vanEta': 'On the way, expected {when}',
+  'r2.vanComing': '{count} deliveries coming',
   'r2.shop': 'Your shop',
   'r2.owes': 'You owe',
   'r2.overdue': 'Past its date',
@@ -195,6 +207,8 @@ export const strings = {
   'r3.qr': 'SCAN TO PAY',
   'r3.qrBody': 'Scan this in any UPI app. The money reaches {name}.',
   'r3.qrNone': '{name} has not set up UPI yet. Pay them the way you usually do.',
+  // DOS-125: the accessible name of the QR tile — the image itself says nothing to a reader.
+  'r3.qrLabel': 'UPI QR for {amount}',
 
   // --- R5 pay online --------------------------------------------------------------------------------
   'r5.title': 'Pay',
@@ -219,6 +233,12 @@ export const strings = {
   // DOS-154: the reason Start is disabled when dues are outstanding but the amount field reads 0 —
   // never "Nothing is pending", which is only true when there is nothing owed at all.
   'r5.enterAmount': 'Enter an amount',
+  // DOS-125: the shop had nothing to scan on a counter PC and no way to read or copy the intent.
+  'r5.qrLabel': 'UPI QR for {amount}',
+  'r5.copy': 'Copy',
+  'r5.copied': 'Copied',
+  'r5.webHint':
+    'On a computer, scan the QR with your phone’s UPI app, or pay {vpa} and quote the reference below.',
 
   // --- R4 bill detail -------------------------------------------------------------------------------
   'r4.title': 'My bills',
@@ -250,6 +270,9 @@ export const strings = {
   'r4.seeReceipts': 'See your receipts',
   'r4.pod': 'PROOF OF DELIVERY',
   'r4.noPod': 'No delivery record yet',
+  // DOS-103: the one thing this screen never had — a way to say "this is wrong" to the office.
+  'r4.problem': 'SOMETHING WRONG WITH THIS BILL?',
+  'r4.problemBody': 'Tell {name}. Your message reaches their office with this bill attached.',
   'r4.podPhoto': 'Photograph taken at your shop',
   'r4.podSigned': 'Signed for by {name}',
   'r4.deliveredOn': 'Delivered {when}',
@@ -330,7 +353,7 @@ export const strings = {
   'r9.expired': 'That rate has run out',
 
   // --- returns ------------------------------------------------------------------------------------------
-  'rt.title': 'Returns and credits',
+  'rt.title': 'Returns and help',
   'rt.notes': 'CREDIT NOTES IN YOUR NAME',
   'rt.none': 'Nothing has been returned',
   'rt.no': 'Credit note {no}',
@@ -342,6 +365,26 @@ export const strings = {
   'rt.credited': 'Credited',
   'rt.notIssued': 'Not yet issued',
   'rt.cancelled': 'Cancelled',
+  // DOS-103: the shop asks the office for a return, reports a problem or asks a question, and reads
+  // its own requests back. It never decides anything — the desk does, and the credit note follows.
+  'rt.ask': 'ASK {name}',
+  'rt.askBody': 'Tell {name} what is wrong. It goes to their office.',
+  'rt.askAboutBill': 'This is about the bill you came from. It goes to {name}’s office.',
+  'rt.askWhat': 'What would you like to say',
+  'rt.askSend': 'Send to the office',
+  'rt.askSent': 'Sent to {name}',
+  'rt.askFailed': 'That was not sent. Try again.',
+  'rt.askWaiting': 'Waiting',
+  'rt.askSeen': 'Seen by {name}',
+  'rt.mine': 'YOUR REQUESTS',
+  'rt.mineNone': 'You have not asked for anything yet',
+  'rt.kind.return_request': 'Take goods back',
+  'rt.kind.complaint': 'Something is wrong',
+  'rt.kind.question': 'A question',
+  'rt.reportBill': 'Report a problem with this bill',
+  // The distributor's own number, from Settings. Absent = no button at all, never a dead one.
+  'rt.call': 'Call {name}',
+  'rt.whatsapp': 'WhatsApp',
 
   // --- R12 messages ---------------------------------------------------------------------------------------
   'r12.title': 'Messages from {name}',

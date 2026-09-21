@@ -18,6 +18,7 @@ import {
   KpiStrip,
   Money,
   Pressable,
+  QrCode,
   Row,
   Screen,
   Sheet,
@@ -28,6 +29,7 @@ import {
   useColors,
   useStrings,
 } from '@dos/ui'
+import { clipboard } from '@dos/ui/platform'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
@@ -47,6 +49,8 @@ export default function Dues(): React.JSX.Element {
   const retailerId = my.retailerId
 
   const [qrBillId, setQrBillId] = useState<string | null>(null)
+  /** DOS-125: the inline "Copied" word after a real clipboard write, never before one. */
+  const [copied, setCopied] = useState(false)
 
   const dues = useQuery(
     ['outstanding', retailerId, 'bills'],
@@ -228,6 +232,7 @@ export default function Dues(): React.JSX.Element {
         open={qrBillId !== null}
         onClose={() => {
           setQrBillId(null)
+          setCopied(false)
         }}
         title={t('r3.qr')}
         testID="r3-qr-sheet"
@@ -243,10 +248,51 @@ export default function Dues(): React.JSX.Element {
                 <Txt field="body" desk="body">
                   {t('r3.qrBody', { name: qr.data.payeeName })}
                 </Txt>
+                {/*
+                  DOS-125: the sheet is titled SCAN TO PAY and said "scan this in any UPI app" over a
+                  line of TEXT — there was nothing to scan. This is the amount still due now, which is
+                  exactly what a counter PC should show a paying phone.
+                */}
+                <Row justify="center">
+                  <QrCode
+                    value={qr.data.payload}
+                    size={216}
+                    label={t('r3.qrLabel', { amount: formatMoney(qr.data.amountPaise) })}
+                    testID="r3-qr-image"
+                  />
+                </Row>
                 <Money value={qr.data.amountPaise} size="hero" />
-                <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
+                <Txt
+                  field="label"
+                  desk="meta"
+                  color={colors.text.secondary}
+                  numeric
+                  wrap="anywhere"
+                  testID="r3-qr-payload"
+                >
                   {qr.data.payload}
                 </Txt>
+                {!clipboard.available ? null : (
+                  <Row gap={3} align="center" wrap>
+                    <Button
+                      label={t('r5.copy')}
+                      variant="secondary"
+                      onPress={() => {
+                        const payload = qr.data?.payload
+                        if (payload === null || payload === undefined) return
+                        void clipboard.copy(payload).then((ok) => {
+                          if (ok) setCopied(true)
+                        })
+                      }}
+                      testID="r3-qr-copy"
+                    />
+                    {copied ? (
+                      <Txt field="label" desk="meta" color={colors.status.moss.fg}>
+                        {t('r5.copied')}
+                      </Txt>
+                    ) : null}
+                  </Row>
+                )}
                 <Button
                   label={t('r5.start')}
                   variant="primary"

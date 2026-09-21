@@ -125,6 +125,12 @@ export const TENANT_SETTING_KEYS = {
   brandingLogoObjectKey: 'branding.logo_object_key',
   brandingInvoiceFooter: 'branding.invoice_footer',
   brandingAddress: 'branding.address',
+  /**
+   * DOS-103: the number a shop calls or WhatsApps. ABSENT means the retailer app shows no Call and no
+   * WhatsApp button at all — a dead button is worse than none — so it is deliberately NOT seeded by
+   * bootstrap; the owner sets it in Settings.
+   */
+  brandingPhone: 'branding.phone',
   sellerFssai: 'seller_fssai',
   upiVpa: 'upi_vpa',
   ewbIntraStateThreshold: 'ewb_intra_state_threshold',

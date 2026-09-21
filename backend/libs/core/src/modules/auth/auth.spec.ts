@@ -7,10 +7,19 @@ import {
   createDb,
   createPool,
   hashPassword,
+  invoices,
+  locations,
   memberships,
+  retailerIdentities,
+  retailerLinks,
+  retailerOutstandingSummary,
+  retailers,
   tenants,
   tenantSettings,
+  tripStops,
+  trips,
   users,
+  vehicles,
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -489,6 +498,398 @@ describeDb('auth (DATABASE_URL)', () => {
     })
     expect(again.status).toBe(401)
     expect((await login(carol, 'Another123')).status).toBe(200)
+  })
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-102 — one home for every distributor this login buys from
+
+  interface DuesRow {
+    tenantId: string
+    tenantSlug: string
+    displayName: string
+    role: string
+    outstandingPaise: number
+    overduePaise: number
+    openBills: number
+    lastReceiptAt: string | null
+    lastReceiptPaise: number | null
+    lastBill: { invoiceNo: string | null; invoiceDate: string; totalPaise: number } | null
+    onTheWay: { stops: number; state: string; etaAt: string | null } | null
+  }
+  interface SummaryBody {
+    items: DuesRow[]
+    totalOutstandingPaise: number
+    totalOverduePaise: number
+  }
+
+  const shopUser = `shop.${run}`
+  const shopId = uuidv7()
+  const tP = uuidv7()
+  const tQ = uuidv7()
+  const tR = uuidv7()
+  const tS = uuidv7()
+  const tX = uuidv7()
+  const rP = uuidv7()
+  const rP2 = uuidv7()
+  const rQ = uuidv7()
+  const rX = uuidv7()
+
+  /**
+   * DOS-102 fixtures: one shopkeeper login that buys from two distributors (P and Q), works at a
+   * third (R, as a manager), was cut off by a fourth (S, membership disabled) and has nothing at all
+   * to do with a fifth (X, which carries its own dues for its own shop).
+   *
+   * Inside P there is also a SECOND shop (rP2) this login is not linked to — the neighbour on the
+   * same street, on the same distributor's book and even on the same van. Everything about it is
+   * bigger and newer than this shop's, so any read that forgot to scope WITHIN the tenant shows up
+   * as a wrong number rather than as nothing at all.
+   */
+  async function seedMembershipsSummaryFixtures(): Promise<void> {
+    const passwordHash = await hashPassword(password)
+    const base = Date.now() - 300_000
+    await db.insert(tenants).values([
+      { id: tP, slug: `ms-p-${run}`, legalName: 'Pilot Distributors', stateCode: '27' },
+      { id: tQ, slug: `ms-q-${run}`, legalName: 'Quay Traders', stateCode: '27' },
+      { id: tR, slug: `ms-r-${run}`, legalName: 'Rampart Agencies', stateCode: '27' },
+      { id: tS, slug: `ms-s-${run}`, legalName: 'Sunset Traders', stateCode: '27' },
+      { id: tX, slug: `ms-x-${run}`, legalName: 'Xavier Stores', stateCode: '27' },
+    ])
+    await db.insert(users).values({
+      id: shopId,
+      phone: `+919${run}7`,
+      name: 'Ramesh',
+      username: shopUser,
+      passwordHash,
+    })
+    await db.insert(memberships).values([
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        userId: shopId,
+        role: 'retailer',
+        createdAt: new Date(base),
+      },
+      {
+        id: uuidv7(),
+        tenantId: tQ,
+        userId: shopId,
+        role: 'retailer',
+        createdAt: new Date(base + 1_000),
+      },
+      {
+        id: uuidv7(),
+        tenantId: tR,
+        userId: shopId,
+        role: 'manager',
+        createdAt: new Date(base + 2_000),
+      },
+      {
+        id: uuidv7(),
+        tenantId: tS,
+        userId: shopId,
+        role: 'retailer',
+        status: 'disabled',
+        createdAt: new Date(base + 3_000),
+      },
+    ])
+    await db.insert(retailers).values([
+      {
+        id: rP,
+        tenantId: tP,
+        code: `MS${run}P`,
+        name: 'Ramesh Kirana',
+        phone: `+919${run}7`,
+        stateCode: '27',
+      },
+      {
+        id: rP2,
+        tenantId: tP,
+        code: `MS${run}P2`,
+        name: 'Neighbour Stores',
+        phone: `+919${run}9`,
+        stateCode: '27',
+      },
+      {
+        id: rQ,
+        tenantId: tQ,
+        code: `MS${run}Q`,
+        name: 'Ramesh Kirana',
+        phone: `+919${run}7`,
+        stateCode: '27',
+      },
+      {
+        id: rX,
+        tenantId: tX,
+        code: `MS${run}X`,
+        name: 'Someone else',
+        phone: `+919${run}8`,
+        stateCode: '27',
+      },
+    ])
+    const identity = uuidv7()
+    await db
+      .insert(retailerIdentities)
+      .values({ id: identity, phone: `+919${run}7`, userId: shopId, shopName: 'Ramesh Kirana' })
+    await db.insert(retailerLinks).values([
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        identityId: identity,
+        retailerId: rP,
+        userId: shopId,
+        role: 'owner',
+        linkedBy: 'rep_onboarding',
+        status: 'active',
+      },
+      {
+        id: uuidv7(),
+        tenantId: tQ,
+        identityId: identity,
+        retailerId: rQ,
+        userId: shopId,
+        role: 'owner',
+        linkedBy: 'rep_onboarding',
+        status: 'active',
+      },
+    ])
+    await db.insert(retailerOutstandingSummary).values([
+      {
+        tenantId: tP,
+        retailerId: rP,
+        outstandingPaise: 3_584_300,
+        overduePaise: 2_000_000,
+        openBills: 4,
+        lastReceiptAt: new Date('2026-09-09T06:30:00.000Z'),
+        lastReceiptPaise: 500_000,
+        asOf: '2026-09-13',
+      },
+      // The neighbour's book, inside the SAME distributor. Nothing of it may reach this login.
+      {
+        tenantId: tP,
+        retailerId: rP2,
+        outstandingPaise: 7_777_700,
+        overduePaise: 7_777_700,
+        openBills: 9,
+        lastReceiptAt: new Date('2026-09-12T06:30:00.000Z'),
+        lastReceiptPaise: 900_000,
+        asOf: '2026-09-13',
+      },
+      {
+        tenantId: tQ,
+        retailerId: rQ,
+        outstandingPaise: 2_647_000,
+        overduePaise: 0,
+        openBills: 7,
+        asOf: '2026-09-13',
+      },
+      // The tenant this login has nothing to do with: its dues must never reach the summary.
+      {
+        tenantId: tX,
+        retailerId: rX,
+        outstandingPaise: 9_999_900,
+        overduePaise: 9_999_900,
+        openBills: 11,
+        asOf: '2026-09-13',
+      },
+    ])
+    await db.insert(invoices).values([
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        invoiceNo: `MS/${run}/1`,
+        fy: '2026-27',
+        invoiceDate: '2026-09-10',
+        retailerId: rP,
+        state: 'issued',
+        buyerName: 'Ramesh Kirana',
+        placeOfSupplyState: '27',
+        totalPaise: 123_400,
+      },
+      // A draft bill is not a bill the shop has: newer, and it must NOT be answered as the last one.
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        invoiceNo: null,
+        fy: '2026-27',
+        invoiceDate: '2026-09-12',
+        retailerId: rP,
+        state: 'draft',
+        buyerName: 'Ramesh Kirana',
+        placeOfSupplyState: '27',
+        totalPaise: 777_700,
+      },
+      // The neighbour's bill: issued, newer and larger, so an unscoped "latest bill" answers IT.
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        invoiceNo: `MS/${run}/2`,
+        fy: '2026-27',
+        invoiceDate: '2026-09-11',
+        retailerId: rP2,
+        state: 'issued',
+        buyerName: 'Neighbour Stores',
+        placeOfSupplyState: '27',
+        totalPaise: 4_560_000,
+      },
+    ])
+    const locationId = uuidv7()
+    const vehicleId = uuidv7()
+    const tripId = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: locationId, tenantId: tP, kind: 'vehicle', name: `Tempo ${run}` })
+    await db
+      .insert(vehicles)
+      .values({ id: vehicleId, tenantId: tP, regNo: `MH-${run}`, locationId })
+    await db
+      .insert(trips)
+      .values({ id: tripId, tenantId: tP, tripDate: '2026-09-13', vehicleId, state: 'active' })
+    await db.insert(tripStops).values([
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        tripId,
+        sequence: 1,
+        retailerId: rP,
+        state: 'started',
+        etaAt: new Date('2026-09-13T09:00:00.000Z'),
+      },
+      // A stop that has already been delivered is not "on the way".
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        tripId,
+        sequence: 2,
+        retailerId: rP,
+        state: 'delivered',
+      },
+      // The neighbour is on the SAME van and further along ('arrived' beats 'started'), so an
+      // unscoped read would tell this shop a van is at its door.
+      {
+        id: uuidv7(),
+        tenantId: tP,
+        tripId,
+        sequence: 3,
+        retailerId: rP2,
+        state: 'arrived',
+        etaAt: new Date('2026-09-13T08:00:00.000Z'),
+      },
+    ])
+  }
+
+  it('DOS-102: memberships.summary answers dues, last bill and on-the-way per active membership, totals them, answers zeros for a staff membership, omits a disabled membership, and never a tenant the user does not belong to', async () => {
+    await seedMembershipsSummaryFixtures()
+    const pair = await login(shopUser, password, { deviceId: deviceTwo })
+    expect(pair.status).toBe(200)
+    const res = await bearer<SummaryBody>(pair.body.accessToken, 'GET', '/auth/memberships/summary')
+    expect(res.status).toBe(200)
+    const slugs = res.body.items.map((i) => i.tenantSlug)
+    expect(slugs).toEqual([`ms-p-${run}`, `ms-q-${run}`, `ms-r-${run}`])
+
+    const p = res.body.items.find((i) => i.tenantId === tP)
+    expect(p?.displayName).toBe('Pilot Distributors')
+    expect(p?.role).toBe('retailer')
+    expect(p?.outstandingPaise).toBe(3_584_300)
+    expect(p?.overduePaise).toBe(2_000_000)
+    expect(p?.openBills).toBe(4)
+    expect(p?.lastReceiptPaise).toBe(500_000)
+    expect(p?.lastBill).toEqual({
+      invoiceNo: `MS/${run}/1`,
+      invoiceDate: '2026-09-10',
+      totalPaise: 123_400,
+    })
+    expect(p?.onTheWay?.stops).toBe(1)
+    expect(p?.onTheWay?.state).toBe('started')
+    expect(p?.onTheWay?.etaAt).not.toBeNull()
+
+    const q = res.body.items.find((i) => i.tenantId === tQ)
+    expect(q?.outstandingPaise).toBe(2_647_000)
+    expect(q?.openBills).toBe(7)
+    expect(q?.lastBill).toBeNull()
+    expect(q?.onTheWay).toBeNull()
+    expect(q?.lastReceiptAt).toBeNull()
+
+    // A membership that is not a shop's answers nothing about money: a manager does not "owe" its tenant.
+    const r = res.body.items.find((i) => i.tenantId === tR)
+    expect(r?.role).toBe('manager')
+    expect(r?.outstandingPaise).toBe(0)
+    expect(r?.overduePaise).toBe(0)
+    expect(r?.openBills).toBe(0)
+    expect(r?.lastBill).toBeNull()
+    expect(r?.onTheWay).toBeNull()
+
+    // The totals are the shop's own, across its distributors, and nothing else's.
+    expect(res.body.totalOutstandingPaise).toBe(3_584_300 + 2_647_000)
+    expect(res.body.totalOverduePaise).toBe(2_000_000)
+    expect(res.body.items.some((i) => i.tenantId === tX)).toBe(false)
+    expect(res.body.items.some((i) => i.tenantId === tS)).toBe(false)
+  })
+
+  it("DOS-102: inside one distributor the summary reads only this login's own shop — the neighbour's dues, bill and van never leak", async () => {
+    /*
+     * THE GUARANTEE THE WHOLE READ RESTS ON.
+     *
+     * `membershipsSummary` runs each tenant's three reads under the caller's own actor id and the
+     * role of THAT membership, so RLS (tenantOrOwnRetailerPolicy via retailer_links.user_id) narrows
+     * them to the shops this login is actually linked to. Tenant isolation is not enough here: the
+     * neighbour shop lives in the SAME tenant, on the same book and the same van. If the composer
+     * ever passed a back-office role, or a helper took the tenant's totals instead of the caller's,
+     * every assertion below moves — the shop would be shown someone else's money.
+     */
+    const pair = await login(shopUser, password, { deviceId: deviceTwo })
+    expect(pair.status).toBe(200)
+    const res = await bearer<SummaryBody>(pair.body.accessToken, 'GET', '/auth/memberships/summary')
+    expect(res.status).toBe(200)
+
+    // The neighbour's rows really are there to be leaked — otherwise this test passes on nothing.
+    const neighbour = await db
+      .select()
+      .from(retailerOutstandingSummary)
+      .where(
+        and(
+          eq(retailerOutstandingSummary.tenantId, tP),
+          eq(retailerOutstandingSummary.retailerId, rP2),
+        ),
+      )
+    expect(neighbour).toHaveLength(1)
+    expect(neighbour[0]?.outstandingPaise).toBe(7_777_700)
+
+    const p = res.body.items.find((i) => i.tenantId === tP)
+    // Money: this shop's own book, not the two shops summed (which would read 1,13,620.00).
+    expect(p?.outstandingPaise).toBe(3_584_300)
+    expect(p?.overduePaise).toBe(2_000_000)
+    expect(p?.openBills).toBe(4)
+    expect(p?.lastReceiptPaise).toBe(500_000)
+    // The last bill is this shop's, not the neighbour's newer, larger one.
+    expect(p?.lastBill?.invoiceNo).toBe(`MS/${run}/1`)
+    expect(p?.lastBill?.totalPaise).toBe(123_400)
+    // The van: one stop, still on its way — not the neighbour's 'arrived'.
+    expect(p?.onTheWay?.stops).toBe(1)
+    expect(p?.onTheWay?.state).toBe('started')
+    // And the totals carry the same narrowed figures.
+    expect(res.body.totalOutstandingPaise).toBe(3_584_300 + 2_647_000)
+    expect(res.body.totalOverduePaise).toBe(2_000_000)
+  })
+
+  it('DOS-102: the summary needs a Bearer access token (401 without) and writes no session or auth event', async () => {
+    const anonymous = await bearer<ErrorBody>(null, 'GET', '/auth/memberships/summary')
+    expect(anonymous.status).toBe(401)
+    const pair = await login(shopUser, password, { deviceId: deviceTwo })
+    const sessionsBefore = await db
+      .select()
+      .from(authSessions)
+      .where(eq(authSessions.userId, shopId))
+    const eventsBefore = await db.select().from(authEvents).where(eq(authEvents.userId, shopId))
+    expect((await bearer(pair.body.accessToken, 'GET', '/auth/memberships/summary')).status).toBe(
+      200,
+    )
+    const sessionsAfter = await db
+      .select()
+      .from(authSessions)
+      .where(eq(authSessions.userId, shopId))
+    const eventsAfter = await db.select().from(authEvents).where(eq(authEvents.userId, shopId))
+    expect(sessionsAfter).toHaveLength(sessionsBefore.length)
+    expect(eventsAfter).toHaveLength(eventsBefore.length)
   })
 
   it('publishes the verifying key at /.well-known/jwks.json', async () => {

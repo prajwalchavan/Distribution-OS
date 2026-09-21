@@ -41,6 +41,7 @@ export async function sellerBranding(tx: Db): Promise<SellerBranding> {
     TENANT_SETTING_KEYS.brandingLogoObjectKey,
     TENANT_SETTING_KEYS.brandingInvoiceFooter,
     TENANT_SETTING_KEYS.brandingAddress,
+    TENANT_SETTING_KEYS.brandingPhone,
     TENANT_SETTING_KEYS.sellerFssai,
     TENANT_SETTING_KEYS.upiVpa,
   ])
@@ -57,6 +58,9 @@ export async function sellerBranding(tx: Db): Promise<SellerBranding> {
       logoObjectKey === null ? null : await signedObjectUrl(logoObjectKey, LOGO_URL_TTL_SECONDS),
     invoiceFooter: asText(settings.get(TENANT_SETTING_KEYS.brandingInvoiceFooter)),
     upiVpa: asText(settings.get(TENANT_SETTING_KEYS.upiVpa)),
+    // DOS-103: the office number the shop may call or WhatsApp. Null when unset, and the app then
+    // shows no Call button at all.
+    phone: asText(settings.get(TENANT_SETTING_KEYS.brandingPhone)),
   }
 }
 

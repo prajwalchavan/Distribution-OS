@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type { AgeingBucket, OpenBill, RetailerOutstanding } from '@dos/contracts'
 import { businessDate, daysBetween } from '@dos/domain'
 import { ageingSnapshots, retailerOutstandingSummary, retailers, type Db } from '@dos/db'
@@ -453,4 +453,56 @@ export async function rebuildAgeingPage(
     overduePaise += row.overduePaise ?? 0
   }
   return { retailers, outstandingPaise, overduePaise }
+}
+
+/** What one caller's shops owe this distributor in total (DOS-102). */
+export interface OutstandingTotals {
+  outstandingPaise: number
+  overduePaise: number
+  openBills: number
+  /** The most recent payment across those shops, and the amount of that payment. */
+  lastReceiptAt: Date | null
+  lastReceiptPaise: number | null
+}
+
+/**
+ * The CALLER'S OWN totals over `retailer_outstanding_summary` — no ids, because RLS supplies the
+ * scope: `tenantOrOwnRetailerPolicy` narrows a `retailer` actor to the shops linked to its login
+ * (`retailer_links.user_id`), and for staff the predicate is the whole tenant. Summed in SQL, never
+ * row by row, so a login linked to many shops still costs one query (scale rule 9).
+ *
+ * Used by `auth.memberships.summary` (the shop's home across its distributors); it never writes, so a
+ * retailer actor may call it.
+ */
+export async function loadOutstandingTotals(tx: Db): Promise<OutstandingTotals> {
+  const { tenantId } = currentTenant()
+  const [totals] = await tx
+    .select({
+      outstandingPaise: sql<string>`coalesce(sum(${retailerOutstandingSummary.outstandingPaise}), 0)::bigint`,
+      overduePaise: sql<string>`coalesce(sum(${retailerOutstandingSummary.overduePaise}), 0)::bigint`,
+      openBills: sql<string>`coalesce(sum(${retailerOutstandingSummary.openBills}), 0)::bigint`,
+    })
+    .from(retailerOutstandingSummary)
+    .where(eq(retailerOutstandingSummary.tenantId, tenantId))
+  const [latest] = await tx
+    .select({
+      lastReceiptAt: retailerOutstandingSummary.lastReceiptAt,
+      lastReceiptPaise: retailerOutstandingSummary.lastReceiptPaise,
+    })
+    .from(retailerOutstandingSummary)
+    .where(
+      and(
+        eq(retailerOutstandingSummary.tenantId, tenantId),
+        isNotNull(retailerOutstandingSummary.lastReceiptAt),
+      ),
+    )
+    .orderBy(desc(retailerOutstandingSummary.lastReceiptAt))
+    .limit(1)
+  return {
+    outstandingPaise: Number(totals?.outstandingPaise ?? 0),
+    overduePaise: Number(totals?.overduePaise ?? 0),
+    openBills: Number(totals?.openBills ?? 0),
+    lastReceiptAt: latest?.lastReceiptAt ?? null,
+    lastReceiptPaise: latest?.lastReceiptPaise ?? null,
+  }
 }

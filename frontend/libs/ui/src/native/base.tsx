@@ -58,6 +58,10 @@ export function Txt({
   numberOfLines,
   accessibilityLabel,
   as,
+  // DOS-125: a documented no-op. React Native's <Text> already breaks an over-long unbreakable word
+  // at any character, so the web half's `overflow-wrap: anywhere` has nothing to match here — the
+  // prop exists on the ONE contract so a screen writes the same file for three targets.
+  wrap: _wrap,
 }: TxtProps): React.JSX.Element {
   const { colors } = useTheme()
   const base = useTypeStyle(field, desk)
