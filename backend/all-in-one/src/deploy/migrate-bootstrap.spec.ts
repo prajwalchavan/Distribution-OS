@@ -1,5 +1,13 @@
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { createDb, createPool } from '@dos/db'
@@ -200,6 +208,13 @@ function deployTree(): string {
   if (reuse && existsSync(join(reuse, 'node_modules/@dos/db/dist/migrate.js'))) return reuse
   const out = join(mkdtempSync(join(tmpdir(), 'dos-deploy-')), 'app')
   rmSync(out, { recursive: true, force: true })
+  // `pnpm deploy --prod` rewrites the WORKSPACE's own node_modules/.pnpm-workspace-state-v1.json to
+  // say the last install was production-only. node_modules itself is untouched, but every later
+  // `pnpm <script>` in this checkout then decides the tree is stale, tries to re-install with
+  // --prod, and aborts with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY. Putting the file back is the
+  // whole repair, and doing it here means the trap is never left armed for the next person.
+  const state = resolve(BACKEND_ROOT, 'node_modules/.pnpm-workspace-state-v1.json')
+  const before = existsSync(state) ? readFileSync(state, 'utf8') : null
   const run = spawnSync(
     'pnpm',
     ['--filter', '@dos/all-in-one', 'deploy', '--prod', '--legacy', out],
@@ -209,6 +224,7 @@ function deployTree(): string {
       env: { ...process.env, CI: 'true' },
     },
   )
+  if (before !== null) writeFileSync(state, before)
   if (run.status !== 0) throw new Error(`pnpm deploy failed:\n${run.stdout}\n${run.stderr}`)
   return out
 }
