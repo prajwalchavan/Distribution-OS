@@ -8,13 +8,12 @@ Last updated: 2026-09-20, 20:15 IST
 
 | Run | Task | What it is |
 |---|---|---|
-| `wf_af0335fb-a15` | `w0d4utpmt` | **Two code lanes**, runner `QA/tools/batch2/workflows/seed-and-founder-answers.js`: `fix-seed-harness` (S-149, S-156, S-157 — the three faults that disarmed the main-health gate) and `founder-answers` (DOS-075, DOS-043, and the rest of the DOS-023 list convention). Both code-only, so the devices stay free for the walks. |
+| `wf_9b6e45a1-701` | `wn824zk7e` | **The ruling, then the whole walk debt** — runner `QA/tools/batch2/workflows/ruling-and-walks.js`. Fable rules the list-order question the founder handed to the architect seat on 2026-09-21 ("go as per your (FABLE's) recommendation"), the ruling is built and merged if it needs code, and then six walk blocks run as ONE strictly serial device queue, closed by Fable's judgement. |
+| `wf_af0335fb-a15` | `w0d4utpmt` | `fix-seed-harness` (S-149, S-156, S-157) — in integration. `founder-answers` already merged `9386d14`. |
 
-**Queued next, and it is the big one: the owed platform walks.** Fable's merge-gate ruling
-(`QA/evidence/batch2/verdicts/DOS-168-170-merge-gate-ruling.md`) items 1–7 for DOS-168/169/170 and DOS-172,
-plus DOS-174, DOS-175/176/177, plus the walks every wave-3 lane recorded as owed. Run it as ONE device
-queue — there is one Pixel 7 and one simulator — and not while a gate is hammering the CPU, or the
-measurements are worth nothing. 25 worktrees are gone, so there is disk for it now.
+**The walk queue, in order.** (1) the smoke that re-arms the main-health gate — a fresh seed, a replay and a destructive run, and the sentence "0 BROKEN on commit X" is the thing that re-arms it; (2) the money ruling's web legs, DOS-168/169/170, read out of the journal and the trial balance rather than off a screen; (3) its Android and iOS legs, which only a device can prove; (4) DOS-172, DOS-174, DOS-175/176/177; (5) the delivery and manager wave-3 walks; (6) the owner, sales and retailer ones. Then Fable judges, finding by finding, what may be CLOSED — and answers two programme questions in writing: is the smoke gate re-armed, and is iOS proven to the standard this programme has been claiming.
+
+Why serial: there is one Pixel 7 and one simulator, and a measurement taken while turbo saturates the cores and swap is full is not a measurement. Each block checks `vm_stat` and `sysctl vm.swapusage` before booting anything and is told to return device legs as not-proven, with the reading quoted, rather than thrash — which is exactly what a wave-3 lane did, correctly.
 
 ## Wave 3 is closed — all 21 lean groups on main, 153 of 158 findings merged
 
