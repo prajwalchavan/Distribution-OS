@@ -1089,14 +1089,29 @@ async function collectNotifications(tx: Db, tenantId: string, ctx: ExampleContex
   }
   out.failedMessageId =
     rows.find((r) => r.status === 'failed')?.id ?? rows.find((r) => r.status === 'queued')?.id
-  for (const r of rows) {
-    if ((r.channel !== 'in_app' && r.channel !== 'push') || !r.recipientUserId) continue
-    if (r.recipientRetailerId) continue
-    const held = out.ownNotices[r.recipientUserId]
-    // prefer an unread one, so the example really marks something
-    if (!held || (r.readAt === null && rows.find((x) => x.id === held)?.readAt !== null))
-      out.ownNotices[r.recipientUserId] = r.id
-  }
+  /*
+   * S-149. THE FILTER RUNS IN SQL, BEFORE ANY LIMIT. This used to sift the `rows` window above for
+   * own-notices, and that window is the newest 500 rows of the WHOLE TENANT — on a distributor whose
+   * log is mostly shop WhatsApp and SMS (the pilot: 961 rows, 12 of them own-notices) the manager's
+   * and the godown's notices fell outside it. The example then fell back to a shop's WhatsApp row,
+   * which `markRead` refuses (it takes only `recipientUserId = the caller`, and only push / in_app)
+   * and which a warehouse login may not even read (`MessagesService.scope`, QA DOS-052).
+   *
+   * `distinct on` takes ONE row per staff member — an unread one first, then the newest — so the
+   * pick is bounded by the number of staff, never by how loud the shop correspondence is.
+   */
+  const ownNotices = (
+    await tx.execute(
+      sql`select distinct on (m.recipient_user_id) m.id, m.recipient_user_id
+            from messages m
+           where m.tenant_id = ${tenantId}
+             and m.channel in ('in_app', 'push')
+             and m.recipient_user_id is not null
+             and m.recipient_retailer_id is null
+           order by m.recipient_user_id, (m.read_at is null) desc, m.id desc`,
+    )
+  ).rows as { id: string; recipient_user_id: string }[]
+  for (const r of ownNotices) out.ownNotices[r.recipient_user_id] = r.id
   out.broadcastId = first(
     await tx
       .select({ id: broadcasts.id })
@@ -2965,6 +2980,16 @@ function servesOnlyRetailer(options: BuildExamplesOptions): boolean {
   return roles.length > 0 && roles.every((role) => role === 'retailer')
 }
 
+/**
+ * True only for the godown's own service. A warehouse login reads ONLY the messages addressed to the
+ * person signed in (`MessagesService.scope`, QA DOS-052: the godown's "inbox" was the distributor's
+ * outbox), so the shop-facing bill notice every other document shows is a 404 there.
+ */
+function servesOnlyWarehouse(options: BuildExamplesOptions): boolean {
+  const roles = options.roles ?? []
+  return roles.length > 0 && roles.every((role) => role === 'warehouse')
+}
+
 /** Field name → the demo row it should show. Applied at every depth, arrays included. */
 function byFieldName(key: string, ctx: ExampleContext): unknown {
   switch (key) {
@@ -4460,7 +4485,9 @@ const OVERRIDES: Record<
   'notifications.messages.get': (ctx, options) => ({
     id: servesOnlyRetailer(options)
       ? (ctx.notifications?.linkedMessageId ?? ctx.notifications?.messageId)
-      : ctx.notifications?.messageId,
+      : servesOnlyWarehouse(options)
+        ? (ownNoticeFor(ctx, options) ?? ctx.notifications?.messageId)
+        : ctx.notifications?.messageId,
   }),
   'notifications.messages.send': (ctx) => ({
     id: createdMessageId(ctx),

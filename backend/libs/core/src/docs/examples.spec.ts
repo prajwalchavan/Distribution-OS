@@ -7,6 +7,7 @@ import {
   createPool,
   deliveries,
   importJobs,
+  messages,
   podEvidence,
   retailerLinks,
   salesOrders,
@@ -918,4 +919,56 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
       "the example delivery's own proof id is a replay, not a spent slot",
     ).toBe(baseline.evidenceId)
   }, 90_000)
+  /**
+   * S-149. `collectNotifications` used to take the newest 500 rows of the TENANT and only then look
+   * for in-app notices, so on a distributor whose log is mostly shop WhatsApp the manager's and the
+   * godown's own notice fell outside the window; the example then fell back to a shop's WhatsApp row,
+   * which `markRead` refuses (`recipientUserId !== actorId`) and the godown may not even read.
+   */
+  it('S-149: every service lane publishes the signed-in staff member’s OWN in-app notice for markRead, never a shop’s WhatsApp row', async () => {
+    const ctx = await context()
+    const lanes: { service: string; roles: readonly string[] }[] = [
+      { service: 'owner', roles: ['owner'] },
+      { service: 'manager', roles: ['manager', 'accountant'] },
+      { service: 'sales', roles: ['salesperson'] },
+      { service: 'warehouse', roles: ['warehouse'] },
+      { service: 'delivery', roles: ['delivery'] },
+    ]
+    const rowOf = async (id: string): Promise<typeof messages.$inferSelect | undefined> =>
+      withSystem(db, async (tx: Db) => {
+        const [row] = await tx.select().from(messages).where(eq(messages.id, id)).limit(1)
+        return row
+      })
+
+    const wrong: string[] = []
+    for (const lane of lanes) {
+      const examples = buildExamples(PROCEDURES, ctx, { roles: lane.roles })
+      const signedIn = lane.roles.map((role) => ctx.users?.[role]).find((u) => u?.username)
+      expect(signedIn?.id, `${lane.service}: a demo sign-in`).toBeTruthy()
+
+      const markReadId = String(examples.get('notifications.messages.markRead')?.pathParams.id)
+      const notice = await rowOf(markReadId)
+      if (!notice) wrong.push(`${lane.service}/markRead: ${markReadId} is no row of this database`)
+      else if (notice.channel !== 'in_app' && notice.channel !== 'push')
+        wrong.push(`${lane.service}/markRead: a ${notice.channel} row is never markable`)
+      else if (notice.recipientUserId !== signedIn?.id)
+        wrong.push(
+          `${lane.service}/markRead: addressed to ${String(notice.recipientUserId)}, not to ${String(signedIn?.id)}`,
+        )
+      else if (notice.recipientRetailerId !== null)
+        wrong.push(`${lane.service}/markRead: a shop's row, not the staff member's own`)
+
+      // The godown reads ONLY the rows addressed to the person signed in (MessagesService.scope,
+      // QA DOS-052), so its `messages.get` example must be one of those too.
+      if (lane.service === 'warehouse') {
+        const getId = String(examples.get('notifications.messages.get')?.pathParams.id)
+        const row = await rowOf(getId)
+        if (row?.recipientUserId !== signedIn?.id)
+          wrong.push(
+            `${lane.service}/messages.get: ${getId} is not addressed to the godown’s own login`,
+          )
+      }
+    }
+    expect(wrong).toEqual([])
+  }, 30_000)
 })
