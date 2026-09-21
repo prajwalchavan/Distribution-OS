@@ -1,5 +1,10 @@
 # Environments, configuration and the least-cost deployment
 
+**Read §9 first if you are deploying.** §§1–8 are the plan of 2026-09-05 and are kept as written;
+**§9 is the as-built record of 2026-09-21** and wins wherever the two disagree (Oracle in place of
+Lightsail, Cloudflare Pages in place of S3 + CloudFront, R2 in place of S3 for backups). The ordered
+procedure is `docs/30-deploy-runbook.md`.
+
 Written 2026-09-05 for a solo founder with no funding. Constraint from the founder: least cost, real cloud (AWS), nothing that depends on a local machine or a small regional cloud. Numbers are list prices in USD/month, Mumbai (ap-south-1), to be re-checked at sign-up. docs/11 keeps the target shape at scale (RDS, Fargate, ALB); this file is the way in.
 
 ## 1. Local configuration (today, done)
@@ -137,3 +142,39 @@ No app code changes: the client prefixes every route with its base URL already, 
 6. ~~Lightsail Mumbai as the starting compute; docs/11 shape (Fargate, ALB, RDS) only with revenue.~~ **Decided yes, 2026-09-05 ("light as much in the beginning, then scale").**
 
 All six confirmed; this file is the deployment plan. docs/07 (PowerSync) and docs/11 (RDS/Fargate from day one) are superseded on those points.
+
+## 9. As-built, 2026-09-21 — what changed and why
+
+§§1–8 above are the plan of 2026-09-05 and stay readable as such. This section is what the
+deploy-plumbing lane actually built, and every substitution below was forced by something checked,
+not preferred. `docs/30-deploy-runbook.md` is the ordered procedure; this is the reasoning.
+
+| §5 planned | As built | Why it changed |
+| --- | --- | --- |
+| AWS Lightsail Mumbai, ~$12–24/mo | **Oracle Cloud Always Free**, Ampere A1 (arm64), home region Mumbai | ₹0 rather than ~₹2,000/mo at a stage with no revenue. The cost: the free tier can reclaim an idle instance, so backups live off Oracle (below) and the shape is 2 OCPU / 12 GB, halved on 2026-06-15 without announcement. **arm64 is not optional** — the image is built `linux/arm64` and an amd64 build simply will not start there. |
+| Managed Postgres later; container now | **Postgres 17 in a container, and it cannot be managed** | The schema creates `app_worker` with `BYPASSRLS` (ADR 0002). Neon, Supabase and RDS all withhold the superuser that needs, so a managed Postgres is not "later" for this schema — it is impossible until the role model changes. Self-hosting is the only path, which makes §8's backups load-bearing rather than prudent. |
+| Web apps on S3 + CloudFront | **Cloudflare Pages** | Unlimited bandwidth on the free plan with no card on file, against CloudFront's always-free 1 TB and an AWS account. Pages also removes the CloudFront invalidation step from every deploy. The apps and the API are then different origins on purpose: `CORS_ORIGINS` lists the Pages hostname, and the services answer CORS themselves (the Caddyfile deliberately adds no such header). |
+| Nightly `pg_dump` to S3 | **Cloudflare R2**, S3-compatible | Zero egress fees, 10 GB free, and — the reason that matters — the backups are then on a different provider from the box. A free VM that gets reclaimed takes its own disk with it. `backend/infra/backup.sh` speaks plain S3, so R2, S3, Backblaze or MinIO are all one endpoint variable apart. |
+| GitHub Actions deploys on push | **`image.yml` builds and pushes; nothing deploys** | The runbook is the deploy. A workflow with SSH access to production is a credential in a shared repository and an unreviewed path to the only database; the box only ever pulls a `sha-` tagged image from GHCR, and the rollback is one line of `.env.prod`. |
+| `pnpm db:seed` after `db:migrate` | **`bootstrap`, never the seed** | The seed writes three demo distributors, ~30 demo accounts on one shared password, a demo catalogue and a month of demo orders, and `pnpm smoke` leaves its calls behind (docs/23 §10). Production runs `bootstrapTenant()` plus one tenant, one owner and one membership — `backend/infra/docker/bootstrap.mjs`. |
+| Domain `<domain>` | **`distributionos.in`** (founder, 2026-09-21) | `api.<domain>` is the VM behind Caddy; `app.<domain>` is Pages. |
+
+**The all-in-one base URLs in §7, corrected to what the apps read.** That table put the prefix inside
+`EXPO_PUBLIC_API_URL`. Every app's `src/config.ts` reads an ORIGIN in `EXPO_PUBLIC_API_URL` and the
+prefix separately in `EXPO_PUBLIC_API_PREFIX`, which is what `frontend/scripts/pages-deploy.sh` sets:
+
+| Variable | Value for a production web build |
+| --- | --- |
+| `EXPO_PUBLIC_API_URL` | `https://api.distributionos.in` |
+| `EXPO_PUBLIC_API_PREFIX` | `/owner`, `/manager`, `/sales`, `/warehouse`, `/delivery`, `/retailer`, `/admin` — and unset for the merged app, which elects its role and its service at sign-in |
+| `EXPO_PUBLIC_AUTH_URL` | `https://api.distributionos.in/auth` |
+
+Expo inlines every `EXPO_PUBLIC_*` variable at BUILD time, so these are not runtime configuration: a
+bundle built without them carries `http://127.0.0.1:3001` and works only on the founder's Mac.
+`pages-deploy.sh` refuses to run without `DOMAIN` for exactly that reason.
+
+**What §9 does not claim.** No image has been built, no VM exists, and no Pages project exists. The
+Dockerfile's faults were found and fixed against what Docker does, and everything checkable without a
+daemon is checked (`backend/all-in-one/src/deploy/*.spec.ts`, DEP-01 … DEP-09); the build-and-run
+proof is written and opt-in, waiting on memory this Mac did not have on the day. docs/30 §12 lists
+every one of those gaps by name.
