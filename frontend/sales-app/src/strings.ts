@@ -45,7 +45,7 @@ export const strings = {
    */
   'app.wrongRoleTitle': 'This app is for the sales team',
   'app.wrongRoleBody':
-    'You are signed in as {role}. Nothing here will load. Use the app your distributor gave you for that job, or sign in with a salesperson account.',
+    'Your login at {distributor} is a {role}; ask the owner to add salesperson to it.',
   'app.signOut': 'Sign out',
   /*
    * DOS-167: signing out, or switching distributor, while this phone still holds changes the office has

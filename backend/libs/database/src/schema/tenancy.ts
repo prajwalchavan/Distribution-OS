@@ -183,6 +183,18 @@ export const memberships = pgTable(
       .notNull()
       .references(() => users.id),
     role: membershipRole('role').notNull(),
+    /**
+     * EXTRA ROLES this membership may also sign in as (docs/29 §2, founder 2026-09-21). Empty for
+     * almost everyone. It is read ONLY for the four staff roles — accountant, salesperson, warehouse,
+     * delivery — because the owner and the manager already elect downward from the fixed table in
+     * `@dos/domain`; `owner`, `manager`, `retailer` and `platform_admin` are refused by the contract
+     * before this column is written, so a row here can never be a way UP. Set by the owner (any of
+     * the four) or the manager (warehouse, delivery, salesperson) on the staff screen.
+     */
+    extraRoles: membershipRole('extra_roles')
+      .array()
+      .notNull()
+      .default(sql`'{}'::membership_role[]`),
     status: membershipStatus('status').notNull().default('active'),
     ...timestamps,
   },

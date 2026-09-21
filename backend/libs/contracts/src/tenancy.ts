@@ -517,12 +517,23 @@ export const supportContract = {
 export const StaffRoleSchema = MembershipRoleSchema.exclude(['retailer'])
 export type StaffRole = z.infer<typeof StaffRoleSchema>
 
+/**
+ * EXTRA ROLES a staff login may also sign in as (docs/29 §2, founder 2026-09-21). Exactly the four
+ * staff roles and nothing else: `owner`, `manager`, `retailer` and `platform_admin` are absent by
+ * construction, so a request that names one is refused by the schema before any handler, any role
+ * check or the database is reached. Extras are a sideways grant between staff jobs, never a way up.
+ */
+export const ExtraRoleSchema = MembershipRoleSchema.exclude(['owner', 'manager', 'retailer'])
+export type ExtraRole = z.infer<typeof ExtraRoleSchema>
+
 export const StaffMemberSchema = z.object({
   userId: IdSchema,
   username: UsernameSchema.nullable(),
   name: z.string().min(1).max(120),
   phone: PhoneSchema,
   role: MembershipRoleSchema,
+  /** What this login may ALSO sign in as (docs/29 §2). Empty for almost everyone. */
+  extraRoles: z.array(ExtraRoleSchema),
   status: z.enum(['invited', 'active', 'disabled']),
   lastLoginAt: z.iso.datetime().nullable(),
 })
@@ -580,6 +591,32 @@ export type StaffSetStatusIn = z.infer<typeof StaffSetStatusInput>
 export const StaffOkOutput = z.object({ ok: z.literal(true) })
 export type StaffOk = z.infer<typeof StaffOkOutput>
 
+/**
+ * Set the extra roles on ONE membership — the whole set, so sending `[]` takes every one away.
+ *
+ * The owner may grant any of the four; a manager may grant only the three roles it already
+ * administers (salesperson, warehouse, delivery) and only to the people it already administers. A
+ * desk membership — owner, manager, accountant — takes no extras: those roles already elect downward
+ * from the fixed table in `@dos/domain`, and a shopkeeper's membership takes none ever.
+ */
+export const MembershipUpdateInput = MutationBase.extend({
+  userId: IdSchema,
+  /** The complete set, not a delta. Duplicates are ignored; order is not meaningful. */
+  extraRoles: z.array(ExtraRoleSchema).max(4),
+})
+export type MembershipUpdateIn = z.infer<typeof MembershipUpdateInput>
+
+export const membershipsContract = {
+  update: oc
+    .route({
+      method: 'POST',
+      path: '/tenancy/memberships/update',
+      summary: 'Set the extra roles a staff login may also sign in as',
+    })
+    .input(MembershipUpdateInput)
+    .output(StaffOkOutput),
+}
+
 export const staffContract = {
   list: oc
     .route({
@@ -630,6 +667,7 @@ export const tenancyContract = {
     .route({ method: 'GET', path: '/tenancy/me', summary: 'Current user, tenant and membership' })
     .output(MeOutputSchema),
   staff: staffContract,
+  memberships: membershipsContract,
   branding: {
     get: oc
       .route({

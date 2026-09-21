@@ -66,7 +66,7 @@ export const strings = {
   'app.settings': 'Me',
   'app.wrongRoleTitle': 'This app is for the godown',
   'app.wrongRoleBody':
-    'You are signed in as {role}. The warehouse service answers only the warehouse role — sign out and use your own app.',
+    'Your login at {distributor} is a {role}; ask the owner to add warehouse to it.',
 
   // X4 profile and devices
   'x4.title': 'Me',

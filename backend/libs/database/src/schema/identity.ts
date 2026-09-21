@@ -177,6 +177,13 @@ export const authEvents = pgTable(
     usernameAttempted: text('username_attempted'),
     tenantId: text('tenant_id'),
     kind: authEventKind('kind').notNull(),
+    /**
+     * The role this sign-in ELECTED (docs/29 §2), when it is not the membership's own role: the owner
+     * who signed the van phone in as `delivery` this morning. Null for every ordinary sign-in and for
+     * every event that is not one. It is what makes a downward election visible to the owner in the
+     * audit trail — `user_id` already says who, this says as what.
+     */
+    actedAs: membershipRole('acted_as'),
     ip: text('ip'),
     userAgent: text('user_agent'),
     createdAt: tz('created_at').notNull().defaultNow(),

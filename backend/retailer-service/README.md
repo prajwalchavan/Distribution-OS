@@ -33,6 +33,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/tenancy/staff/update` | Edit a staff member's name, phone or locale | owner, manager |
 | POST | `/tenancy/staff/set-password` | Reset a staff password; they must change it at next sign-in | owner, manager |
 | POST | `/tenancy/staff/set-status` | Enable or disable a staff membership (disabling revokes their sessions) | owner, manager |
+| POST | `/tenancy/memberships/update` | Set the extra roles a staff login may also sign in as | owner, manager |
 | GET | `/tenancy/branding` | The distributor's own name, logo and footer for every screen and document | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/tenancy/settings` | Tenant settings (secret.* keys to the owner only) | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/tenancy/settings` | Set tenant settings (owner only, audited per key) | owner |
@@ -348,6 +349,9 @@ curl "http://localhost:3006/tenancy/staff" \
       "name": "Sharma Kirana Store",
       "phone": "+919876543210",
       "role": "owner",
+      "extraRoles": [
+        "accountant"
+      ],
       "status": "invited",
       "lastLoginAt": "2026-09-04T10:30:00.000Z"
     }
@@ -759,6 +763,108 @@ request.json
 {
   "statusCode": 403,
   "message": "the retailer role may not call POST /tenancy/staff/set-status",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/tenancy/memberships/update`
+
+Set the extra roles a staff login may also sign in as · contract `tenancy.memberships.update`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `userId` | uuid | yes |
+| `extraRoles` | accountant | salesperson | warehouse | delivery[] | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/tenancy/memberships/update" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "userId": "01a06d02-3731-7b6d-8798-5c7c2b7bf340",
+  "extraRoles": [
+    "accountant"
+  ]
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "ok": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /tenancy/memberships/update",
   "error": "Forbidden"
 }
 ```
@@ -25721,6 +25827,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `tenancy.staff.update` | – | – | – | – | – | – | – |
 | `tenancy.staff.setPassword` | – | – | – | – | – | – | – |
 | `tenancy.staff.setStatus` | – | – | – | – | – | – | – |
+| `tenancy.memberships.update` | – | – | – | – | – | – | – |
 | `tenancy.branding.get` | – | – | – | – | – | – | ✓ |
 | `tenancy.settings.get` | – | – | – | – | – | – | – |
 | `tenancy.settings.set` | – | – | – | – | – | – | – |
