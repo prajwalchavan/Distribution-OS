@@ -905,6 +905,12 @@ export const SettleTripOutput = z.object({
 // ---------------------------------------------------------------------------------------------------------------
 // inputs — stops
 
+/**
+ * NEWEST FIRST by the server time the stop was planned, the row id only breaking a tie (QA DOS-023;
+ * founder, 2026-09-20 — one convention across the seven apps). `cursor` is the id of the last stop of the
+ * page and walks that same (planned-at, id) order. This is the flat list a shop reads for its own stops;
+ * the ROUTE order of one trip is `sequence`, and comes from the trip itself (`trips.get`), never from here.
+ */
 export const StopsListInput = z.object({
   tripId: IdSchema.optional(),
   retailerId: IdSchema.optional(),

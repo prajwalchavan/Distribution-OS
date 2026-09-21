@@ -2850,6 +2850,64 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(onDay.body.item.departedEarly).toBe(false)
   }, 120_000)
 
+  /*
+   * QA DOS-023, founder 2026-09-20: "every list in every app orders by SERVER time, newest first, with the
+   * record id only as a tie-break". A stop id is minted on the device that planned it, which offline is not
+   * when the office saw it, so the two orders are made to disagree here: the stop added SECOND carries the
+   * LOWER id. The route order of one trip is `sequence` and is read from the trip, never from this list.
+   */
+  it('DOS-023: stops.list is newest first by the time the office saw the stop, the row id only breaking a tie', async () => {
+    const tripS = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos023-trip-${run}`,
+      id: tripS,
+      tripDate: new Date(Date.parse(today) + 4 * 86_400_000).toISOString().slice(0, 10),
+      vehicleId,
+      driverId,
+      vanSalesEnabled: true,
+      openingCashPaise: 0,
+      stops: [],
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+
+    // Minted in this order, so `lowerId < higherId`; ADDED the other way round, one call each, so the
+    // office saw `lowerId` LAST.
+    const lowerId = uuidv7()
+    const higherId = uuidv7()
+    expect(lowerId < higherId).toBe(true)
+    const addStop = async (stopId: string, retailerId: string, tag: string) => {
+      const res = await call(app, manager, 'POST', `/delivery/trips/${tripS}/stops`, {
+        idempotencyKey: `dos023-stop-${tag}-${run}`,
+        id: tripS,
+        stop: { id: stopId, retailerId },
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(200)
+    }
+    await addStop(higherId, retailerA, 'first')
+    await addStop(lowerId, retailerB, 'second')
+
+    interface StopPage {
+      items: { id: string }[]
+      nextCursor: string | null
+    }
+    const page = (query: Record<string, unknown>) =>
+      call<StopPage>(app, manager, 'GET', '/delivery/stops', query)
+
+    // The stop the office saw LAST is on top, though its id is the lower of the two.
+    const both = await page({ tripId: tripS, limit: 50 })
+    expect(both.status, JSON.stringify(both.body)).toBe(200)
+    expect(both.body.items.map((s) => s.id)).toEqual([lowerId, higherId])
+
+    // and the cursor walks that same order, each stop once
+    const first = await page({ tripId: tripS, limit: 1 })
+    expect(first.body.items.map((s) => s.id)).toEqual([lowerId])
+    expect(first.body.nextCursor).toBe(lowerId)
+    const second = await page({ tripId: tripS, limit: 1, cursor: first.body.nextCursor })
+    expect(second.body.items.map((s) => s.id)).toEqual([higherId])
+    const third = await page({ tripId: tripS, limit: 1, cursor: second.body.nextCursor })
+    expect(third.body.items).toEqual([])
+  }, 120_000)
+
   // ---------------------------------------------------------------------------------------------------------------
   // QA DOS-131: the godown and the desk plan a trip from one planning board, and the double-plan guard is role-proof
 

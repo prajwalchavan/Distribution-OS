@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, gte, inArray, lt, lte, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lte, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   AddStopInput,
@@ -640,21 +640,35 @@ export class TripsService {
   async listStops(input: StopsIn): Promise<StopsOut> {
     requireRole(ANY_MEMBER)
     const db = requireDb(this.db)
-    return withTenant(db, currentTenant(), async (tx) => {
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
       const filters: (SQL | undefined)[] = [
+        eq(tripStops.tenantId, ctx.tenantId),
         input.tripId ? eq(tripStops.tripId, input.tripId) : undefined,
         input.retailerId ? eq(tripStops.retailerId, input.retailerId) : undefined,
         input.state ? eq(tripStops.state, input.state) : undefined,
         input.date
           ? sql`${tripStops.tripId} in (select t.id from trips t where t.trip_date = ${input.date})`
           : undefined,
-        input.cursor ? lt(tripStops.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor stop's own (created_at, id), read inside this tenant's transaction with its
+         * own tenant fence, so no other distributor's row can anchor a page and an unknown cursor matches
+         * nothing (the DOS-023 convention, as in `trips.list`).
+         */
+        input.cursor
+          ? sql`(${tripStops.createdAt}, ${tripStops.id}) < (select c.created_at, c.id from trip_stops c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(tripStops)
         .where(and(...defined(filters)))
-        .orderBy(desc(tripStops.id))
+        /*
+         * Newest first by SERVER time (QA DOS-023; founder, 2026-09-20), the row id only breaking a tie:
+         * a stop id is minted on the device that planned it, which offline is not when the office saw it.
+         * A trip's own route order is `sequence`, and is read from the trip (`stopsOf`), never from here.
+         */
+        .orderBy(desc(tripStops.createdAt), desc(tripStops.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const items = await stopsWithVehicles(tx, page, this.deps())
