@@ -11,6 +11,17 @@ Last updated: 2026-09-20, 20:15 IST
 | `wf_2dc93b47-727` | `ws0x0dyo9` | **Web first** — runner `QA/tools/batch2/workflows/web-first.js`. The architect's list-order ruling built and merged, then five blocks: the smoke run and its failures triaged, the money ruling legs read out of the ledger, the doorstep money findings, every wave-3 walk a browser can settle, and ONE basic Android sanity pass. Closed by Fable's judgement under the new terms. |
 | `wf_af0335fb-a15` | `w0d4utpmt` | `fix-seed-harness` (S-149, S-156, S-157) — in integration. |
 
+## The smoke run that was said to be impossible: 0 BROKEN, observed
+
+`fix-seed-harness` merged `17491e2` and recorded the run: **1 618 calls · 934 OK · 585 expected · 0 BROKEN · 99 skipped, exit 0**, on a database dropped, migrated and seeded immediately before it. The baseline on the same fresh seed was 4 BROKEN. The skipped count is identical either side (99), so the harness change cost no coverage.
+
+Three things in that lane are worth keeping:
+- **S-149 was not what the note said.** The tenant holds 961 messages and only 12 are own-notices; the collector's `order by id desc limit 500` window happened to exclude the two accounts `pnpm smoke` signs in as. The fix filters in SQL before the limit. A fourth BROKEN (`notifications.messages.get` on the warehouse lane) had the same root cause and was fixed with it.
+- **S-156's premise was inverted.** The note said the seed leaves a PARKED pack; the data says it leaves ZERO unbilled packs, which is exactly why the sampler invented a uuid. The lane followed the data, fixed the example rather than the demo data, and said so.
+- **The harness rule was redesigned mid-work and the discarded design was reported.** The first version probed the id before the call and skipped it — an observed run showed that silenced 10 calls of real coverage, including a 403 role-gate proof. The shipped version still makes every call and only withdraws a BROKEN verdict on a 404 when the document-supplied id names no row.
+
+Under the founder's 2026-09-21 rule this is not a gate being re-armed — it is the failures being worked, and there are none left in that run.
+
 ## The founder re-ordered this work on 2026-09-21 — read docs/22 §8, not this summary
 
 Three sentences, and they change what "done" means for the rest of Stage 1:
