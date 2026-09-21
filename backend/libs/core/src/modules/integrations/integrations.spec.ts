@@ -734,7 +734,11 @@ describeDb('integrations (DATABASE_URL)', () => {
   })
 
   it('item master: matches by EAN, lists the variant for the tenant, never proposes a product', async () => {
-    const before = await count('product_variants')
+    // product_variants is a GLOBAL table and vitest runs spec files in parallel: eighteen other spec
+    // files insert into it, so a whole-table count here measures them, not this import. Scope it to this
+    // run's own EAN prefix, which is what the claim is actually about — the import proposed no product.
+    const ownVariants = sql`ean like ${'890' + run + '%'}`
+    const before = await count('product_variants', ownVariants)
     const job = await createImport(manager, {
       source: 'tradeezee',
       target: 'item_master',
@@ -773,7 +777,7 @@ describeDb('integrations (DATABASE_URL)', () => {
         sql`tenant_id = ${tenantId} and local_alias = 'Campa Cola 750'`,
       ),
     ).toBe(1)
-    expect(await count('product_variants')).toBe(before)
+    expect(await count('product_variants', ownVariants)).toBe(before)
     const rows = await rowsOf(manager, job.id, { status: 'skipped' })
     expect(rows.map((r) => r.rowNo)).toEqual([6])
     expect((await confirm(manager, job.id, 'items')).body.item.status).toBe('confirmed')
