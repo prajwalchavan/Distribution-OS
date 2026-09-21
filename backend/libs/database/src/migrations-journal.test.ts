@@ -19,7 +19,7 @@
  * reviewer to notice a number.
  *
  * The index must climb, but it need not be dense: two lanes in flight at once are given DIFFERENT
- * numbers up front (S-176's pair was ruled 0060/0061 while another lane held 0058/0059) precisely so
+ * numbers up front (S-176's pair was ruled 0060/0061 while another lane held 0058/0059, since renumbered 0063–0065) precisely so
  * that neither collides with the other, and whichever merges first leaves a gap until the second
  * lands. Drizzle never reads `idx` — only the journal's order and `when` decide what runs — so a gap
  * costs nothing, while a repeated or backwards index is the collision this file exists to catch.

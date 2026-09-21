@@ -186,7 +186,7 @@ export class StockService {
    * SELLABLE MEANS SELLABLE (QA DOS-140). A rep and a shop were once offered the damaged / expiry bin
    * as stock they could order — 32 pieces of Marie Light in the bin read as available, and the bin
    * grows with every doorstep return. Goods in transit and a customer's own floor are the same kind of
-   * lie. That predicate now lives IN THE VIEW (migration 0059, QA DOS-204): `damaged`, `in_transit`
+   * lie. That predicate now lives IN THE VIEW (migration 0063, QA DOS-204): `damaged`, `in_transit`
    * and `customer` are not in `sellable_stock` at all, not even when a caller names one, so the name
    * no longer has to be defended by every reader.
    *

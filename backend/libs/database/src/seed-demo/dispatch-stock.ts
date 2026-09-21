@@ -104,9 +104,9 @@ export async function seedDispatchStock(
     value === null || value === undefined ? fallback : new Date(value)
 
   // What each (sheet, lot) already carries on the van — under the service's own key, the back-fill's
-  // (migration 0062 stages a database migrated from the old model, but loads its DISPATCHED bills
+  // (migration 0064 stages a database migrated from the old model, but loads its DISPATCHED bills
   // only) or an earlier seed's top-up. The seed sizes every load by the whole sheet and writes the
-  // difference under its own stem, `load:<sheetId>:<lotId>:pack:seed:out|in`, exactly as 0062 tops up
+  // difference under its own stem, `load:<sheetId>:<lotId>:pack:seed:out|in`, exactly as 0064 tops up
   // a sheet the service already loaded; a second run finds nothing left to add and writes no row.
   const loaded = new Map<string, number>()
   const loadedRows = (

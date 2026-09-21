@@ -34,7 +34,7 @@ import { users } from './tenancy.js'
  * shop's ATP hint reads `stock_balances`, `stock_lots` and `locations` as the retailer role — and only
  * STAFF writes it.
  *
- * `sellable_stock` holds the SELLABLE locations only (migration 0059, QA DOS-204): a godown or a vehicle.
+ * `sellable_stock` holds the SELLABLE locations only (migration 0063, QA DOS-204): a godown or a vehicle.
  * The damaged / expiry bin, goods in transit and a customer's own floor are stock, and are in
  * `stock_balances`, but they are never in the view — not even when a caller names one. Readers that name
  * a single location id (`stock.availability`, `inventory.reserve`, `orders.availablePcs`,

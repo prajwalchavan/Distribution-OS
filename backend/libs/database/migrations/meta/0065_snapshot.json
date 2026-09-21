@@ -1,6 +1,6 @@
 {
-  "id": "9afd3420-b2e6-407d-9605-8043954bac47",
-  "prevId": "06840d9b-bdb0-4e9d-8372-ad46f1d5cc06",
+  "id": "37ac49db-0432-4e0b-a4c7-252967950b28",
+  "prevId": "662ee498-3557-43c1-8cdd-351ecb084f79",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3520,7 +3520,7 @@
               "nulls": "last"
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -11843,6 +11843,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "refused_at": {
+          "name": "refused_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -16692,6 +16698,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "undelivered_at": {
+          "name": "undelivered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "cancelled_at": {
           "name": "cancelled_at",
           "type": "timestamp with time zone",
@@ -16944,6 +16956,28 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "invoices_undelivered_idx": {
+          "name": "invoices_undelivered_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "undelivered_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "undelivered_at IS NOT NULL",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -18821,6 +18855,13 @@
         },
         "overdue_paise": {
           "name": "overdue_paise",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "undelivered_paise": {
+          "name": "undelivered_paise",
           "type": "bigint",
           "primaryKey": false,
           "notNull": true,

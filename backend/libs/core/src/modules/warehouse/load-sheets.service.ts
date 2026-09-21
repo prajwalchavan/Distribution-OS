@@ -506,7 +506,7 @@ export class LoadSheetsService {
         // challan, no order dispatched; the transaction rolls back. A quiet `min()` here once issued a
         // full challan for an empty van and sent the crew to an open shop with a 400 (the bill that came
         // back undelivered and was never staged again). Every packed bill is on the dock since the
-        // check-in stages undelivered bills there and migration 0062 staged the ones packed before.
+        // check-in stages undelivered bills there and migration 0064 staged the ones packed before.
         const packedByLot = new Map<string, number>()
         for (const entries of (await packedLotsByOrder(tx, sheet.orderIds)).values()) {
           for (const entry of entries) {

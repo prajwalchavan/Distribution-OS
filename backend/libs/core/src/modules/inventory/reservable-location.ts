@@ -47,7 +47,7 @@ export async function reservableLocationId(tx: Db): Promise<string> {
  * A pack relieves the godown — the cartons are taped shut and off the shelf — but the goods have not been
  * sold yet, and they have not left the business: they wait on the dock for a load sheet. `bootstrapTenant`
  * gives every distributor exactly one `kind = 'in_transit'` location for this, and `sellable_stock` leaves
- * that kind out (migration 0059), so staged goods are stock the owner can see and nobody can promise.
+ * that kind out (migration 0063), so staged goods are stock the owner can see and nobody can promise.
  *
  * Without it the packed pieces were relieved as a `sale` at pack and existed nowhere until a shop took
  * them — so a refused or failed delivery's goods were in no location at all and the van check-in built to

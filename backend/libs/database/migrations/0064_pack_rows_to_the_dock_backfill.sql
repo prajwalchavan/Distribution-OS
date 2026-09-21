@@ -23,7 +23,7 @@
 --   the godown (loading / active / closing)
 --     → dock → that sheet's vehicle per (sheet, lot), keys `load:<sheetId>:<lotId>:pack:out|in`, sized so
 --       the vehicle holds the whole of what the sheet's dispatched orders packed (a sheet the clamped code
---       partly loaded is topped up under `…:pack:0062:out|in`);
+--       partly loaded is topped up under `…:pack:0064:out|in`);
 --   a delivered, partially delivered or closed order, or a cancelled bill → nothing: sold or credited
 --   under the old model, its pieces are accounted for.
 --
@@ -90,7 +90,7 @@ BEGIN
        idempotency_key, note)
     SELECT gen_random_uuid()::text, b.tenant_id, b.occurred_at, b.lot_id, b.dock_id, b.qty,
            'transfer_in', 'pack', b.order_id, b.actor_id, b.idempotency_key || ':in',
-           'staged on the dock by migration 0062: packed before the dock existed'
+           'staged on the dock by migration 0064: packed before the dock existed'
       FROM backfill_pack b
     ON CONFLICT (tenant_id, idempotency_key) DO NOTHING
     RETURNING tenant_id, lot_id, location_id, qty_delta)
@@ -127,7 +127,7 @@ BEGIN
          coalesce((SELECT sum(l.qty_delta) FROM stock_ledger l
                     WHERE l.tenant_id = n.tenant_id
                       AND l.idempotency_key IN ('load:' || n.sheet_id || ':' || n.lot_id || ':pack:in',
-                                                'load:' || n.sheet_id || ':' || n.lot_id || ':pack:0062:in')), 0)
+                                                'load:' || n.sheet_id || ':' || n.lot_id || ':pack:0064:in')), 0)
            AS already
     FROM need n;
 
@@ -137,7 +137,7 @@ BEGIN
            CASE WHEN EXISTS (SELECT 1 FROM stock_ledger e
                               WHERE e.tenant_id = l.tenant_id
                                 AND e.idempotency_key = 'load:' || l.sheet_id || ':' || l.lot_id || ':pack:in')
-                THEN 'load:' || l.sheet_id || ':' || l.lot_id || ':pack:0062'
+                THEN 'load:' || l.sheet_id || ':' || l.lot_id || ':pack:0064'
                 ELSE 'load:' || l.sheet_id || ':' || l.lot_id || ':pack' END AS stem,
            l.dock_id, l.to_location_id
       FROM backfill_load l
@@ -148,7 +148,7 @@ BEGIN
        idempotency_key, note)
     SELECT gen_random_uuid()::text, p.tenant_id, p.at, p.lot_id, leg.location_id, leg.qty_delta, leg.reason,
            'load_sheet', p.sheet_id, p.actor_id, p.stem || leg.suffix,
-           'loaded dock → vehicle by migration 0062: dispatched before the dock existed'
+           'loaded dock → vehicle by migration 0064: dispatched before the dock existed'
       FROM pairs p
       CROSS JOIN LATERAL (VALUES
         (p.dock_id, -p.qty, 'transfer_out'::stock_reason, ':out'),
@@ -177,7 +177,7 @@ BEGIN
    WHERE NOT EXISTS (SELECT 1 FROM stock_balances b
                       WHERE b.tenant_id = d.tenant_id AND b.lot_id = d.lot_id AND b.location_id = d.location_id);
 
-  RAISE NOTICE '0062: staged % pack legs on the dock and wrote % load legs dock → vehicle', staged, loaded;
+  RAISE NOTICE '0064: staged % pack legs on the dock and wrote % load legs dock → vehicle', staged, loaded;
 
   ---------------------------------------------------------------------------------------------------
   -- 5. The guarantee is armed: no packed or dispatched order is left with pieces in no location, and
@@ -192,13 +192,13 @@ BEGIN
      AND NOT EXISTS (SELECT 1 FROM stock_ledger s
                       WHERE s.tenant_id = p.tenant_id AND s.idempotency_key = p.idempotency_key || ':in');
   IF unstaged > 0 THEN
-    RAISE EXCEPTION '0062: % pack rows of packed/dispatched orders still have no IN leg onto the dock', unstaged
+    RAISE EXCEPTION '0064: % pack rows of packed/dispatched orders still have no IN leg onto the dock', unstaged
       USING ERRCODE = 'integrity_constraint_violation';
   END IF;
 
   SELECT count(*) INTO negatives FROM stock_balances WHERE on_hand < 0 AND NOT negative_allowed;
   IF negatives > 0 THEN
-    RAISE EXCEPTION '0062: % stock balances are negative where the location forbids it', negatives
+    RAISE EXCEPTION '0064: % stock balances are negative where the location forbids it', negatives
       USING ERRCODE = 'integrity_constraint_violation';
   END IF;
 END;

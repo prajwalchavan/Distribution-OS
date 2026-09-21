@@ -44,10 +44,10 @@ DECLARE
 BEGIN
   SELECT pg_get_viewdef('sellable_stock'::regclass, true) INTO def;
   IF def IS NULL THEN
-    RAISE EXCEPTION '0059: sellable_stock is missing' USING ERRCODE = 'undefined_table';
+    RAISE EXCEPTION '0063: sellable_stock is missing' USING ERRCODE = 'undefined_table';
   END IF;
   IF position('kind' IN def) = 0 OR position('warehouse' IN def) = 0 THEN
-    RAISE EXCEPTION '0059: sellable_stock must filter on the location kind; found %', def
+    RAISE EXCEPTION '0063: sellable_stock must filter on the location kind; found %', def
       USING ERRCODE = 'insufficient_privilege';
   END IF;
   SELECT coalesce((
@@ -56,7 +56,7 @@ BEGIN
     INTO invoker
     FROM pg_class c WHERE c.oid = 'sellable_stock'::regclass;
   IF invoker <> 'security_invoker=true' THEN
-    RAISE EXCEPTION '0059: sellable_stock must stay security_invoker so RLS is the reader''s, not the owner''s; found %',
+    RAISE EXCEPTION '0063: sellable_stock must stay security_invoker so RLS is the reader''s, not the owner''s; found %',
       invoker USING ERRCODE = 'insufficient_privilege';
   END IF;
 END;
