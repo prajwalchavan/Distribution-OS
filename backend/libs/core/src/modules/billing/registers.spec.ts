@@ -71,7 +71,6 @@ describeDb('DOS-185 scheme-spend register counts a gift once (DATABASE_URL)', ()
   const packerId = uuidv7()
   const repId = uuidv7()
 
-  const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
   const packer: Actor = { tenantId, actorId: packerId, role: 'warehouse' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
 
