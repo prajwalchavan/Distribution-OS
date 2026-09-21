@@ -45,6 +45,7 @@ export function toOrder(row: OrderRow, office: boolean): Order {
     confirmedAt: iso(row.confirmedAt),
     cancelledAt: iso(row.cancelledAt),
     cancelReason: row.cancelReason,
+    refusedAt: iso(row.refusedAt),
     createdAt: row.createdAt.toISOString(),
   }
 }

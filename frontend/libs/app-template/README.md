@@ -1,27 +1,33 @@
 # `@dos/app-template` — the universal-app skeleton
 
-Every Distribution OS role app is generated from this package, and then diverges only in its screens.
-It is a **working Expo app in its own right** (that is the point: `pnpm build` here runs
-`expo export --platform web`, so the skeleton cannot rot), pointed at owner-service on :3001 and
-served on port 5170.
+The skeleton an app is generated from. It is a **working Expo app in its own right** (that is the point:
+`pnpm build` here runs `expo export --platform web`, so the skeleton cannot rot), pointed at
+owner-service on :3001 and served on port 5170.
 
-## Make an app
+## A business role is a GROUP, not an app
+
+Since the one-app merge (docs/31 §7) the six business roles are six route groups of `frontend/dos-app`,
+not six installs. Adding one is a directory under `dos-app/app/<g>/`, a row in `dos-app/src/config.ts`
+`GROUPS`, and `dos-app/src/groups/<g>/` — docs/31 §1 is the shape. Generating a seventh app instead would
+give it its own root layout, its own session and its own sign-in, which is exactly what the merge
+removed. `new-app.mjs` no longer knows the six roles; it knows the console.
+
+## Make an app (a genuinely separate install)
 
 ```bash
 cd frontend
-pnpm --filter @dos/app-template new owner       # -> frontend/owner-app, web 5173, api :3001
+pnpm --filter @dos/app-template new admin       # -> frontend/admin-app, web 5179, api :3007
 pnpm install                                    # the new package joins the workspace
-pnpm --filter @dos/owner-app web                # http://localhost:5173
+pnpm --filter @dos/admin-app web                # http://localhost:5179
 ```
 
 > **After generating an app, run `pnpm docs:readme` in `backend/`.** The backend's README generator
-> (`backend/tools/generate-readmes.mts`) OWNS `frontend/<role>-app/README.md` for the seven known roles —
-> it writes the endpoint table from the contract — and `pnpm docs:readme:check` is part of the backend CI
-> job. The README this generator writes is a placeholder that the backend's will replace.
+> (`backend/tools/generate-readmes.mts`) OWNS the README of every app it knows — it writes the endpoint
+> table from the contract — and `pnpm docs:readme:check` is part of the backend CI job. The README this
+> generator writes is a placeholder that the backend's will replace.
 
-Roles and ports the generator knows (docs/22 §8, 2026-09-06): owner 5173/:3001 · manager 5174/:3002 ·
-sales 5175/:3003 · warehouse 5176/:3004 · delivery 5177/:3005 · retailer 5178/:3006 · admin 5179/:3007.
-Pass a port to override. It refuses to overwrite an app that already exists.
+Ports in use: the one app 5173 (its groups reach :3001-:3006) · the console 5179/:3007 · this skeleton 5170. 5174-5178 were released with the six retired apps. Pass a port to override. The generator refuses
+to overwrite an app that already exists.
 
 The generator rewrites **six** things and copies everything else byte-identical: the package name and
 its `web` port; `app.json` (name, slug, scheme, bundle ids); `src/config.ts` (role, title, ports, the

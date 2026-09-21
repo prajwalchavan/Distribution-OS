@@ -3917,8 +3917,95 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(notes?.n).toBe(0)
     // …and no stock was restocked from a van it was never on.
     expect(await ledgerFor(plannedId)).toEqual([])
-    expect(await outboxTypes(plannedId)).toEqual(['DeliveryRecorded'])
+    // QA DOS-197: and the shop is not billed for goods that never left the godown — the bill is flagged
+    // undelivered and one message goes out naming it.
+    expect(await outboxTypes(plannedId)).toEqual(['DeliveryFailed', 'DeliveryRecorded'])
   })
+
+  /*
+   * QA DOS-203 — A REFUSAL AT THE DOOR LEAVES THE STOP WITH A CAUSE.
+   *
+   * Two stops failed through the fail sheet carried `shop_closed` and `other`; a shop that refused the
+   * whole bill on the deliver screen — "Nothing from this bill" — left `trip_stops.failure_reason` and
+   * `failure_note` NULL, so the word "refused" existed only on the delivery line and every desk register
+   * over the stop showed a failure with no cause. The words are read off the lines the crew tapped.
+   */
+  it('DOS-203: "Nothing from this bill" writes the stop\u2019s reason and the crew\u2019s note, the same as the fail sheet', async () => {
+    const refusedBill = await billedOrder(retailerA, variantA, 'dos203')
+    const trip = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos203-trip-${run}`,
+      id: trip,
+      tripDate: new Date(Date.parse(today) + 59 * 86_400_000).toISOString().slice(0, 10),
+      vehicleId,
+      driverId,
+      vanSalesEnabled: true,
+      openingCashPaise: 0,
+      stops: [],
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    for (const step of ['start-loading', 'depart']) {
+      const moved = await call(app, driver, 'POST', `/delivery/trips/${trip}/${step}`, {
+        idempotencyKey: `dos203-${step}-${run}`,
+      })
+      expect(moved.status, `${step} \u2192 ${JSON.stringify(moved.body)}`).toBe(200)
+    }
+    const stopId = uuidv7()
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${trip}/stops`, {
+          idempotencyKey: `dos203-stop-${run}`,
+          id: trip,
+          stop: { id: stopId, retailerId: retailerA, invoiceIds: [refusedBill.invoiceId] },
+        })
+      ).status,
+    ).toBe(200)
+    const onTheRoad = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
+    const plannedId =
+      onTheRoad.body.item.stops.find((s) => s.id === stopId)?.deliveries[0]?.id ?? ''
+    expect(plannedId).not.toBe('')
+
+    const note =
+      'Owner says he never ordered soft drink this week; refused the whole bill at the door.'
+    const recorded = await call<{ item: DeliveryDetailBody; stop: StopBody }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/deliveries',
+      {
+        idempotencyKey: `dos203-record-${run}`,
+        id: plannedId,
+        tripId: trip,
+        stopId,
+        invoiceId: refusedBill.invoiceId,
+        receiverName: 'Laxmi Narayan',
+        note,
+        lines: [
+          {
+            id: uuidv7(),
+            invoiceLineId: refusedBill.lineId,
+            deliveredQtyPcs: 0,
+            returnedQtyPcs: 12,
+            returnedSaleable: true,
+            reason: 'refused',
+          },
+        ],
+        pod: [],
+      },
+    )
+    expect(recorded.status, JSON.stringify(recorded.body)).toBe(200)
+    expect(recorded.body.item.outcome).toBe('failed')
+    // the stop the desk reads says WHY, in the crew's own words, on the reply and in the row
+    expect(recorded.body.stop.state).toBe('failed')
+    expect(recorded.body.stop.failureReason).toBe('refused')
+    const [row] = (
+      await db.execute(
+        sql`select failure_reason::text as reason, failure_note from trip_stops where id = ${stopId}`,
+      )
+    ).rows as { reason: string | null; failure_note: string | null }[]
+    expect(row?.reason).toBe('refused')
+    expect(row?.failure_note).toBe(note)
+  }, 240_000)
 
   it('DOS-009: trips.list is newest first by trip_date then id — a trip planned for a later day tops a trip for an earlier day created after it; the cursor walks each once; the crew’s list is still forced to its own trips', async () => {
     interface TripPage {
@@ -4007,4 +4094,285 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(crewSees.length).toBeGreaterThan(0)
     expect(crewSees.every((t) => t.driverId === driverId || t.helperId === driverId)).toBe(true)
   })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-197 — a bill that came back undelivered is not the shop's money yet
+
+  const undeliveredTrip = uuidv7()
+  const undeliveredStop = uuidv7()
+  const redeliveryTrip = uuidv7()
+  const redeliveryStop = uuidv7()
+  /**
+   * Two days nobody else in this file plans on, so the "driver already on a trip" check never fires,
+   * and INSIDE the 69/70 the DOS-009 ordering test reserves as the furthest out of every trip here.
+   */
+  const failDay = new Date(Date.parse(today) + 57 * 86_400_000).toISOString().slice(0, 10)
+  const againDay = new Date(Date.parse(today) + 58 * 86_400_000).toISOString().slice(0, 10)
+
+  interface DuesBody {
+    outstandingPaise: number
+    overduePaise: number
+    undeliveredPaise: number
+    openBills: number
+    unallocatedCreditPaise: number
+    buckets: Record<string, number>
+    bills: { id: string; invoiceNo: string | null }[]
+  }
+  const duesOf = async (retailerId: string): Promise<DuesBody> => {
+    const res = await call<DuesBody>(
+      app,
+      manager,
+      'GET',
+      `/receivables/outstanding/${retailerId}`,
+      { includeBills: true },
+    )
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    return res.body
+  }
+  /** The debtor balance the books hold for one shop: the number the rollup must still account for. */
+  const arOf = async (retailerId: string): Promise<number> =>
+    Number(
+      (
+        (
+          await db.execute(sql`
+        select coalesce(sum(jl.amount_paise), 0) as ar
+          from journal_lines jl join accounts a on a.id = jl.account_id
+         where jl.tenant_id = ${tenantId} and a.code = 'AR'
+           and jl.party_type = 'retailer' and jl.party_id = ${retailerId}`)
+        ).rows[0] as { ar: string }
+      ).ar,
+    )
+  const undeliveredAtOf = async (invoiceId: string): Promise<string | null> =>
+    (
+      (
+        await db.execute(
+          sql`select undelivered_at from invoices where tenant_id = ${tenantId} and id = ${invoiceId}`,
+        )
+      ).rows[0] as { undelivered_at: string | null } | undefined
+    )?.undelivered_at ?? null
+
+  let billU: Awaited<ReturnType<typeof billedOrder>>
+  let duesBefore: DuesBody
+
+  it('DOS-197: a stop that fails takes its bill out of the shop’s dues and out of the ageing, and says so by bill number', async () => {
+    billU = await billedOrder(retailerA, variantA, 'u197')
+    duesBefore = await duesOf(retailerA)
+    expect(duesBefore.bills.some((b) => b.id === billU.invoiceId)).toBe(true)
+    const arBefore = await arOf(retailerA)
+
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `u197-trip-${run}`,
+      id: undeliveredTrip,
+      tripDate: failDay,
+      vehicleId,
+      driverId,
+      openingCashPaise: 0,
+      stops: [
+        {
+          id: undeliveredStop,
+          sequence: 1,
+          retailerId: retailerA,
+          invoiceIds: [billU.invoiceId],
+        },
+      ],
+    })
+    expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${undeliveredTrip}/start-loading`, {
+          idempotencyKey: `u197-loading-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: undeliveredTrip, orderIds: [billU.orderId], tag: `u197-${run}` },
+    )
+    expect(
+      (
+        await call(app, driver, 'POST', `/delivery/trips/${undeliveredTrip}/depart`, {
+          idempotencyKey: `u197-depart-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+
+    const failed = await call<{ item: StopBody; deliveries: DeliveryBody[] }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/stops/${undeliveredStop}/fail`,
+      {
+        idempotencyKey: `u197-fail-${run}`,
+        failureReason: 'shop_closed',
+        failureNote: 'Shutter down at 11, neighbour says back after 4.',
+      },
+    )
+    expect(failed.status, JSON.stringify(failed.body)).toBe(200)
+    expect(failed.body.item.state).toBe('failed')
+
+    // the bill is issued and will be re-attempted: it is NOT cancelled, it is flagged undelivered
+    const state = (
+      (
+        await db.execute(
+          sql`select state::text as state from invoices where id = ${billU.invoiceId}`,
+        )
+      ).rows[0] as { state: string }
+    ).state
+    expect(state).toBe('issued')
+    expect(await undeliveredAtOf(billU.invoiceId)).not.toBeNull()
+
+    // the shop's dues and its ageing leave it out, and its own bill list no longer carries it
+    const after = await duesOf(retailerA)
+    expect(after.outstandingPaise).toBe(duesBefore.outstandingPaise - billU.totalPaise)
+    expect(after.openBills).toBe(duesBefore.openBills - 1)
+    expect(after.undeliveredPaise).toBe(duesBefore.undeliveredPaise + billU.totalPaise)
+    expect(after.bills.some((b) => b.id === billU.invoiceId)).toBe(false)
+    const bucketTotal = (d: DuesBody): number => Object.values(d.buckets).reduce((s, n) => s + n, 0)
+    expect(bucketTotal(after)).toBe(bucketTotal(duesBefore) - billU.totalPaise)
+
+    // and the books are still provable: the debtor stands, and the rollup names where it went
+    expect(await arOf(retailerA)).toBe(arBefore)
+    expect(after.outstandingPaise + after.undeliveredPaise - after.unallocatedCreditPaise).toBe(
+      await arOf(retailerA),
+    )
+
+    // ONE event for the shop's message, carrying the bill NUMBER and never an id fragment
+    const events = (
+      await db.execute(sql`
+        select payload from outbox_events
+         where tenant_id = ${tenantId} and event_type = 'DeliveryFailed'
+           and payload->>'invoiceId' = ${billU.invoiceId}`)
+    ).rows as { payload: Record<string, unknown> }[]
+    expect(events).toHaveLength(1)
+    expect(events[0]?.payload.invoiceNo).toBe(
+      (
+        (await db.execute(sql`select invoice_no from invoices where id = ${billU.invoiceId}`))
+          .rows[0] as { invoice_no: string }
+      ).invoice_no,
+    )
+    expect(events[0]?.payload.retailerId).toBe(retailerA)
+  }, 240_000)
+
+  it('DOS-196: the desk reads one Undelivered register — the bill, the shop, the reason, the note and the trip it is still riding', async () => {
+    interface UndeliveredRow {
+      invoiceId: string
+      invoiceNo: string | null
+      invoiceTotalPaise: number
+      retailerId: string
+      retailerName: string
+      outcome: string | null
+      tripId: string
+      tripNo: string | null
+      tripState: string
+      stopFailureReason: string | null
+      stopFailureNote: string | null
+    }
+    const res = await call<{ items: UndeliveredRow[]; nextCursor: string | null }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { undeliveredOnly: true, limit: 50 },
+    )
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const row = res.body.items.find((r) => r.invoiceId === billU.invoiceId)
+    expect(row, 'the bill that came back is not on the desk register').toBeDefined()
+    expect(row?.invoiceNo).not.toBeNull()
+    expect(row?.invoiceTotalPaise).toBe(billU.totalPaise)
+    expect(row?.retailerName).toContain('Van Shop A')
+    expect(row?.outcome).toBe('failed')
+    // the reason and the note the crew gave, and the trip the bill is still riding
+    expect(row?.stopFailureReason).toBe('shop_closed')
+    expect(row?.stopFailureNote).toBe('Shutter down at 11, neighbour says back after 4.')
+    expect(row?.tripId).toBe(undeliveredTrip)
+    expect(row?.tripNo).not.toBeNull()
+    expect(row?.tripState).toBe('active')
+    // a bill that was handed over is not on this register
+    expect(res.body.items.some((r) => r.invoiceId === billA1.invoiceId)).toBe(false)
+    // and every row on it is a failed attempt
+    expect(res.body.items.every((r) => r.outcome === 'failed')).toBe(true)
+  })
+
+  it('DOS-197: delivering it on the next trip puts the bill back into the shop’s dues', async () => {
+    expect(
+      (
+        await call(app, driver, 'POST', `/delivery/trips/${undeliveredTrip}/return`, {
+          idempotencyKey: `u197-return-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `u197-trip2-${run}`,
+      id: redeliveryTrip,
+      tripDate: againDay,
+      vehicleId,
+      driverId,
+      openingCashPaise: 0,
+      stops: [
+        { id: redeliveryStop, sequence: 1, retailerId: retailerA, invoiceIds: [billU.invoiceId] },
+      ],
+    })
+    expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${redeliveryTrip}/start-loading`, {
+          idempotencyKey: `u197-loading2-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: redeliveryTrip, orderIds: [billU.orderId], tag: `u197b-${run}` },
+    )
+    expect(
+      (
+        await call(app, driver, 'POST', `/delivery/trips/${redeliveryTrip}/depart`, {
+          idempotencyKey: `u197-depart2-${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    const delivered = await call<{ item: DeliveryDetailBody; stop: StopBody }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/deliveries',
+      {
+        idempotencyKey: `u197-deliver-${run}`,
+        id: uuidv7(),
+        tripId: redeliveryTrip,
+        stopId: redeliveryStop,
+        invoiceId: billU.invoiceId,
+        receiverName: 'Owner A',
+        lines: [
+          { id: uuidv7(), invoiceLineId: billU.lineId, deliveredQtyPcs: 12, returnedQtyPcs: 0 },
+        ],
+        pod: [
+          {
+            id: uuidv7(),
+            kind: 'signature',
+            inline: { mimeType: 'image/png', contentBase64: TINY_PNG },
+          },
+        ],
+      },
+    )
+    expect(delivered.status, JSON.stringify(delivered.body)).toBe(200)
+    expect(delivered.body.item.outcome).toBe('delivered')
+    expect(await undeliveredAtOf(billU.invoiceId)).toBeNull()
+    const after = await duesOf(retailerA)
+    expect(after.undeliveredPaise).toBe(duesBefore.undeliveredPaise)
+    expect(after.outstandingPaise).toBe(duesBefore.outstandingPaise)
+    expect(after.bills.some((b) => b.id === billU.invoiceId)).toBe(true)
+    // DOS-196: and it leaves the desk's Undelivered register the moment it is handed over
+    const register = await call<{ items: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { undeliveredOnly: true, limit: 50 },
+    )
+    expect(register.status).toBe(200)
+    expect(register.body.items.some((r) => r.invoiceId === billU.invoiceId)).toBe(false)
+  }, 240_000)
 })

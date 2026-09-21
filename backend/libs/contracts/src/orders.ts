@@ -170,6 +170,13 @@ export const OrderSchema = z.object({
   confirmedAt: z.string().nullable(),
   cancelledAt: z.string().nullable(),
   cancelReason: z.string().nullable(),
+  /**
+   * The office turned this order down at an approval gate (QA DOS-191), as against a desk, a rep or the
+   * shop calling it off. Both end `cancelled`; only a refusal carries this, and `cancelReason` then
+   * carries the decision in words — "Refused by <name>: <note>" — so the rep reads a sentence and its
+   * own list can hold a Refused filter without matching on text.
+   */
+  refusedAt: z.string().nullable(),
   createdAt: z.string(),
 })
 export type Order = z.infer<typeof OrderSchema>

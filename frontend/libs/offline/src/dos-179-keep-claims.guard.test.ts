@@ -27,10 +27,17 @@
  * judgement of WHICH kind a sentence is stays human — but it is made once, here, in the open, instead of
  * seven times in seven screens.
  *
- * It lives in `@dos/offline` because `keepClaim` does: this package owns the rule, and all seven apps
- * are read from here rather than the rule being copied into each of them. Read as SOURCE — importing an
- * app pulls in `react-native`, which resolves only under Metro — and `@types/node` is deliberately not a
- * dependency of this package, so the Node functions come in through non-literal specifiers.
+ * It lives in `@dos/offline` because `keepClaim` does: this package owns the rule, and every catalogue in
+ * the repo is read from here rather than the rule being copied into each of them. Read as SOURCE —
+ * importing an app pulls in `react-native`, which resolves only under Metro — and `@types/node` is
+ * deliberately not a dependency of this package, so the Node functions come in through non-literal
+ * specifiers.
+ *
+ * WHERE THE CATALOGUES ARE NOW (docs/31 §7). The six per-role apps are retired. Their six `src/strings.ts`
+ * are the one app's six GROUP catalogues — swapped, never merged (docs/31 §3), so this guard still reads
+ * six separate registers and not one flattened object — plus a seventh, `dos-app/src/strings.ts`, which is
+ * the pre-election catalogue the root layout holds up while nobody has chosen a role yet. The console keeps
+ * its own. `PATHS` below is the only thing the merge changed here; the rule is untouched.
  */
 import { describe, expect, it } from 'vitest'
 
@@ -86,8 +93,8 @@ function keepPairs(source: string): Map<string, string> {
   return pairs
 }
 
-/** Every `.ts`/`.tsx` of an app that a person can see the output of: no tests, no `keep.ts` itself. */
-async function screenSources(root: string): Promise<{ path: string; code: string }[]> {
+/** Every `.ts`/`.tsx` under these roots that a person can see the output of: no tests, no `keep.ts`. */
+async function screenSources(roots: readonly string[]): Promise<{ path: string; code: string }[]> {
   const node = await fs()
   const out: { path: string; code: string }[] = []
   const walk = (dir: string, shown: string): void => {
@@ -102,13 +109,61 @@ async function screenSources(root: string): Promise<{ path: string; code: string
       if (!entry.isFile()) continue
       if (!/\.tsx?$/.test(entry.name)) continue
       if (/\.test\.tsx?$/.test(entry.name)) continue
-      if (label.endsWith('/src/lib/keep.ts')) continue
+      if (label.endsWith('/lib/keep.ts')) continue
       out.push({ path: label, code: withoutComments(node.readFileSync(next, 'utf8')) })
     }
   }
-  walk(`${root}/app`, 'app')
-  walk(`${root}/src`, 'src')
+  for (const root of roots) walk(await at(root), root)
   return out
+}
+
+/**
+ * Where each register lives, one entry per catalogue. `keep` and `leave` are the paths the three field
+ * groups own; the other four name them too, so that the day one of them grows a keep claim the pair it
+ * needs is looked for in a place that is written down rather than guessed.
+ */
+interface Where {
+  readonly strings: string
+  readonly keep: string
+  readonly leave: string
+  readonly screens: readonly string[]
+}
+
+function groupPaths(group: string): Where {
+  const src = `../../../dos-app/src/groups/${group}`
+  return {
+    strings: `${src}/strings.ts`,
+    keep: `${src}/lib/keep.ts`,
+    leave: `${src}/lib/leave.ts`,
+    screens: [`../../../dos-app/app/${group}`, src],
+  }
+}
+
+const PATHS: Readonly<Record<string, Where>> = {
+  delivery: groupPaths('delivery'),
+  sales: groupPaths('sales'),
+  warehouse: groupPaths('warehouse'),
+  owner: groupPaths('owner'),
+  manager: groupPaths('manager'),
+  retailer: groupPaths('retailer'),
+  /*
+   * The one app's PRE-ELECTION catalogue: welcome, sign-in, the Continue-as chooser and
+   * change-password, which stand before anybody has a group. It holds no keep and can hold none —
+   * there is no store open yet — so what this entry buys is rule 1: the first claim anyone writes
+   * into it fails here instead of shipping.
+   */
+  shared: {
+    strings: '../../../dos-app/src/strings.ts',
+    keep: '../../../dos-app/src/lib/keep.ts',
+    leave: '../../../dos-app/src/lib/leave.ts',
+    screens: ['../../../dos-app/src'],
+  },
+  admin: {
+    strings: '../../../admin-app/src/strings.ts',
+    keep: '../../../admin-app/src/lib/keep.ts',
+    leave: '../../../admin-app/src/lib/leave.ts',
+    screens: ['../../../admin-app/app', '../../../admin-app/src'],
+  },
 }
 
 /** The words that say a machine is holding something. Broad on purpose: a claim is born in the words. */
@@ -117,9 +172,10 @@ const DEVICE_WORDS = /\b(this|the)\s+(phone|device|browser)\b/i
 type Kind = 'keep' | 'store' | 'leave' | 'absent' | 'hardware' | 'progress'
 
 /**
- * Every string in the seven apps that names a phone, a device or a browser, and what kind of sentence it
- * is. The three field apps write offline and carry the keeps; the other four write nothing offline, and
- * are here so that the first keep claim anyone adds to them fails this test instead of shipping.
+ * Every string in every catalogue that names a phone, a device or a browser, and what kind of sentence it
+ * is. The three field groups write offline and carry the keeps; the other four registers — and the
+ * pre-election one — write nothing offline, and are here so that the first keep claim anyone adds to them
+ * fails this test instead of shipping.
  */
 const CLASSIFIED: Readonly<Record<string, Readonly<Partial<Record<Kind, readonly string[]>>>>> = {
   delivery: {
@@ -238,9 +294,15 @@ const CLASSIFIED: Readonly<Record<string, Readonly<Partial<Record<Kind, readonly
     hardware: ['x4.revoke', 'word.phone'],
   },
   admin: { hardware: ['p9.thisDevice'] },
+  /*
+   * `app.rememberDevice` is the sign-in tick; `elect.lastTime` is the line under the role this device
+   * chose last time (docs/31 ruling B3). Both are about the MACHINE and the session on it, and neither
+   * says anything is being held here.
+   */
+  shared: { hardware: ['app.rememberDevice', 'elect.lastTime'] },
 }
 
-/** The three apps that write offline: they own a `keep.ts` and a leave sheet. */
+/** The three groups that write offline: they own a `keep.ts` and a leave sheet. */
 const FIELD_APPS = ['delivery', 'sales', 'warehouse'] as const
 
 interface Problem {
@@ -255,11 +317,13 @@ describe('DOS-179 no app claims a keep without asking keepClaim', () => {
     const problems: Problem[] = []
 
     for (const [app, kinds] of Object.entries(CLASSIFIED)) {
-      const root = await at(`../../../${app}-app`)
-      const strings = catalogue(
-        withoutComments(node.readFileSync(`${root}/src/strings.ts`, 'utf8')),
-      )
-      const keepFile = `${root}/src/lib/keep.ts`
+      const where = PATHS[app]
+      if (where === undefined) {
+        problems.push({ app, key: '-', wrong: 'classified with no catalogue in PATHS' })
+        continue
+      }
+      const strings = catalogue(withoutComments(node.readFileSync(await at(where.strings), 'utf8')))
+      const keepFile = await at(where.keep)
       const pairs = node.existsSync(keepFile)
         ? keepPairs(withoutComments(node.readFileSync(keepFile, 'utf8')))
         : new Map<string, string>()
@@ -288,7 +352,7 @@ describe('DOS-179 no app claims a keep without asking keepClaim', () => {
           problems.push({ app, key, wrong: 'classified but no longer a string' })
       }
 
-      const sources = await screenSources(root)
+      const sources = await screenSources(where.screens)
       for (const [key, kind] of declared) {
         if (kind !== 'keep') continue
 
@@ -337,8 +401,7 @@ describe('DOS-179 no app claims a keep without asking keepClaim', () => {
     const node = await fs()
     const seen: Record<string, unknown>[] = []
     for (const app of FIELD_APPS) {
-      const root = await at(`../../../${app}-app`)
-      const leave = withoutComments(node.readFileSync(`${root}/src/lib/leave.ts`, 'utf8'))
+      const leave = withoutComments(node.readFileSync(await at(PATHS[app]?.leave ?? ''), 'utf8'))
       seen.push({
         app,
         // The rule comes from the library, not from a second copy of `persistent === false || null`.

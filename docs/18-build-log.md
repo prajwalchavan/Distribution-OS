@@ -1,5 +1,38 @@
 # Build log — where we are, what is next
 
+## RESUME HERE (updated 2026-09-21, one-app merge) — THE SEVEN APPS ARE TWO
+
+**The six per-role apps are retired.** `frontend/{owner,manager,sales,warehouse,delivery,retailer}-app`
+are deleted; their screens are the six VISIBLE route groups of **`frontend/dos-app`** — `/owner/orders`,
+`/sales/shops/[id]`, `/delivery/stop/[id]/collect` — one Expo project serving website + Android + iOS on
+**:5173**, and `frontend/admin-app` (:5179) stays a separate install. Ports 5174-5178 are released.
+docs/31 is the plan and the architect's ruling; docs/22 §2 is the as-built table.
+
+**What this changes for anyone opening the tree:**
+
+- **Run it:** `cd frontend && pnpm --filter @dos/dos-app web` → <http://localhost:5173>. Sign in as any
+  of the six demo users (docs/28 §5); the elected role in the token decides which group opens. A
+  membership that permits more than one role is asked **Continue as …** right after the password.
+  ONE session per browser profile — a second person means a second profile.
+- **Where a screen lives:** `frontend/dos-app/app/<group>/…` for the route, `src/groups/<group>/…` for
+  its nav, strings and lib. `src/config.ts` `GROUPS` is the one table of role → service port → touch
+  floor → density → store prefix; `src/api.ts` is the one client, whose origin is chosen per request.
+- **A new business role is a GROUP, not an app.** `new-app.mjs` no longer knows the six; it generates a
+  separate INSTALL, which is what the console is and what a role must not be.
+- **The guards that hold it** (`frontend/libs/ui/src/`): `one-app-parity.test.ts` (every file under
+  `dos-app/app/**` imports only the kit, the frame and its own `src/`), `one-app-groups.guard.test.ts`
+  (no group imports another group, writes a route literal outside its own base, or calls `serviceFor`),
+  `one-app-routes.test.ts` (no two route files resolve to the same URL — and the same checker still
+  reports the thirteen collisions the invisible-group spelling would have shipped).
+- **Still true and still queued:** `docs/23` §10's fifteen backend gaps, the two demo-data items and the
+  two UX-00 questions below. iOS is still the one unproven target.
+
+**NOT done in this slice, and deliberately:** `docs/29` §3 still reads "the seven web apps stay" — the
+sentence docs/22 §8 (line 345) superseded. It was left because the retirement brief did not name
+docs/29 as a file this lane may edit; the next session that touches docs/29 should add the note.
+
+---
+
 ## RESUME HERE (updated 2026-09-07 22:05 IST, session 4) — FRONTEND CHAIN COMPLETE
 
 **ALL SEVEN APPS ARE BUILT AND GATED GREEN, and the backend was already complete.** owner, manager
@@ -2089,21 +2122,27 @@ Sign in first: `POST http://localhost:3000/auth/login` with `{"username":"sunil.
 | delivery  | http://localhost:3005/swagger | http://localhost:3005/docs | http://localhost:3005/docs/openapi.json | delivery            |
 | retailer  | http://localhost:3006/swagger | http://localhost:3006/docs | http://localhost:3006/docs/openapi.json | retailer            |
 
-Apps (universal — website + Android + iOS from one Expo codebase each; docs/08 §0). Generate one from the
-skeleton first: `cd frontend && pnpm --filter @dos/app-template new <role>` then `pnpm install`.
+Apps (universal — website + Android + iOS from one Expo codebase each; docs/08 §0). **Two apps since the
+one-app merge of 2026-09-21** (docs/31): `dos-app` on 5173 for all six business roles, and the console.
 
-| App          | Web                   | Command (`cd frontend`)                | Service | Demo sign-in (`Dos@1234`) | Status                                           |
-| ------------ | --------------------- | -------------------------------------- | ------- | ------------------------- | ------------------------------------------------ |
-| app-template | http://localhost:5170 | `pnpm --filter @dos/app-template web`  | :3001   | —                         | the skeleton every app is generated from         |
-| owner        | http://localhost:5173 | `pnpm --filter @dos/owner-app web`     | :3001   | `sunil.tarsun`            | ✅ gated green (2026-09-06)                      |
-| manager      | http://localhost:5174 | `pnpm --filter @dos/manager-app web`   | :3002   | `vikas.kadam`             | ✅ gated green (2026-09-06, accountant on it)    |
-| sales        | http://localhost:5175 | `pnpm --filter @dos/sales-app web`     | :3003   | `rahul.deshmukh`          | ✅ gated green (2026-09-07)                      |
-| warehouse    | http://localhost:5176 | `pnpm --filter @dos/warehouse-app web` | :3004   | `dinesh.patil`            | ✅ gated green (2026-09-07)                      |
-| delivery     | http://localhost:5177 | `pnpm --filter @dos/delivery-app web`  | :3005   | `ganesh.more`             | ✅ gated green (2026-09-07)                      |
-| retailer     | http://localhost:5178 | `pnpm --filter @dos/retailer-app web`  | :3006   | `ramesh.gupta`            | ✅ gated green (2026-09-07 17:45, web + Android) |
-| admin        | http://localhost:5179 | `pnpm --filter @dos/admin-app web`     | :3007   | `dos.admin`               | ✅ gated green (2026-09-07 21:20, web + Android) |
+```bash
+cd frontend && pnpm --filter @dos/dos-app web     # http://localhost:5173
+```
 
-`… ios` and `… android` run the same app on a simulator or a device. The kit's gallery (every component,
+| Where                       | Group / app  | Service | Demo sign-in (`Dos@1234`) | Status                                           |
+| --------------------------- | ------------ | ------- | ------------------------- | ------------------------------------------------ |
+| http://localhost:5173/owner | owner        | :3001   | `sunil.tarsun`            | ✅ gated green (2026-09-06)                      |
+| …/manager                   | manager      | :3002   | `vikas.kadam`             | ✅ gated green (2026-09-06, accountant on it)    |
+| …/sales                     | sales        | :3003   | `rahul.deshmukh`          | ✅ gated green (2026-09-07)                      |
+| …/warehouse                 | warehouse    | :3004   | `dinesh.patil`            | ✅ gated green (2026-09-07)                      |
+| …/delivery                  | delivery     | :3005   | `ganesh.more`             | ✅ gated green (2026-09-07)                      |
+| …/retailer                  | retailer     | :3006   | `ramesh.gupta`            | ✅ gated green (2026-09-07 17:45, web + Android) |
+| http://localhost:5179       | admin-app    | :3007   | `dos.admin`               | ✅ gated green (2026-09-07 21:20, web + Android) |
+| http://localhost:5170       | app-template | :3001   | —                         | the skeleton; a business role is a GROUP, not an app |
+
+The group is chosen by the ELECTED role in the token, not by the URL you open: sign in as `ganesh.more`
+and the app takes you to `/delivery` whatever you typed. Ports 5174-5178 are retired with the six apps.
+`pnpm --filter @dos/dos-app ios` / `… android` run the same app on a simulator or a device. The kit's gallery (every component,
 every state) is `pnpm --filter @dos/ui gallery` → http://localhost:5199.
 Database in DBeaver / pgAdmin: 127.0.0.1:5439, db `dos`, user `dos`, password `dos` (steps in `docs/21-local-database-setup.md`).
 

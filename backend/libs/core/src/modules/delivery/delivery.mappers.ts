@@ -32,6 +32,7 @@ import {
   tripExpenses,
   trips,
   tripSettlements,
+  tripStops,
   type Db,
 } from '@dos/db'
 import { BACK_OFFICE, currentTenant } from '../../platform/index.js'
@@ -282,17 +283,24 @@ export function toDelivery(
   podKinds: PodRow['kind'][],
   invoice: InvoiceRef | undefined,
   creditNoteId: string | null,
+  context: DeliveryContext,
 ): Delivery {
   const shop = isRetailer()
   const returned = lines.reduce((n, l) => n + l.returnedQtyPcs, 0)
   return {
     id: row.id,
     tripId: row.tripId,
+    tripNo: context.tripNo,
+    tripState: context.tripState,
     stopId: row.stopId,
+    stopFailureReason: context.stopFailureReason,
+    stopFailureNote: shop ? null : context.stopFailureNote,
     orderId: row.orderId,
     invoiceId: row.invoiceId,
     invoiceNo: invoice?.invoiceNo ?? null,
+    invoiceTotalPaise: invoice?.totalPaise ?? 0,
     retailerId: row.retailerId,
+    retailerName: context.retailerName,
     outcome: row.outcome,
     deliveredBy: shop ? null : row.deliveredBy,
     deliveredAt: iso(row.deliveredAt),
@@ -413,6 +421,26 @@ export interface StopDeps {
   invoiceRefs: (tx: Db, ids: readonly string[]) => Promise<Map<string, InvoiceRef>>
 }
 
+/**
+ * What a delivery row cannot tell on its own and every register over it needs (QA DOS-196): the shop's
+ * name, the trip it rode and how that trip is doing, and why its stop failed. Read once per page.
+ */
+export interface DeliveryContext {
+  retailerName: string
+  tripNo: string | null
+  tripState: Trip['state']
+  stopFailureReason: Stop['failureReason']
+  stopFailureNote: string | null
+}
+
+const UNKNOWN_CONTEXT: DeliveryContext = {
+  retailerName: '',
+  tripNo: null,
+  tripState: 'planned',
+  stopFailureReason: null,
+  stopFailureNote: null,
+}
+
 /** Stops with their planned/attempted bills, for a trip screen or a stop list page. */
 export async function mapStops(
   tx: Db,
@@ -458,7 +486,7 @@ export async function mapDeliveries(
 ): Promise<Delivery[]> {
   if (rows.length === 0) return []
   const ids = rows.map((r) => r.id)
-  const [lines, kinds, invoices, notes] = await Promise.all([
+  const [lines, kinds, invoices, notes, context] = await Promise.all([
     linesByDelivery(tx, ids),
     podKindsByDelivery(tx, ids),
     deps.invoiceRefs(
@@ -466,6 +494,7 @@ export async function mapDeliveries(
       rows.map((r) => r.invoiceId),
     ),
     creditNotesByDelivery(tx, ids),
+    deliveryContext(tx, rows),
   ])
   return rows.map((row) =>
     toDelivery(
@@ -474,7 +503,49 @@ export async function mapDeliveries(
       kinds.get(row.id) ?? [],
       invoices.get(row.invoiceId),
       notes.get(row.id) ?? null,
+      context.get(row.id) ?? UNKNOWN_CONTEXT,
     ),
+  )
+}
+
+/** The shop, the trip and the stop behind each delivery of a page: three batch reads, never per row. */
+async function deliveryContext(
+  tx: Db,
+  rows: readonly DeliveryRow[],
+): Promise<Map<string, DeliveryContext>> {
+  const names = await retailerNames(
+    tx,
+    rows.map((r) => r.retailerId),
+  )
+  const tripRows = await tx
+    .select({ id: trips.id, tripNo: trips.tripNo, state: trips.state })
+    .from(trips)
+    .where(inArray(trips.id, [...new Set(rows.map((r) => r.tripId))]))
+  const byTrip = new Map(tripRows.map((t) => [t.id, t]))
+  const stopRows = await tx
+    .select({
+      id: tripStops.id,
+      failureReason: tripStops.failureReason,
+      failureNote: tripStops.failureNote,
+    })
+    .from(tripStops)
+    .where(inArray(tripStops.id, [...new Set(rows.map((r) => r.stopId))]))
+  const byStop = new Map(stopRows.map((s) => [s.id, s]))
+  return new Map(
+    rows.map((row) => {
+      const trip = byTrip.get(row.tripId)
+      const stop = byStop.get(row.stopId)
+      return [
+        row.id,
+        {
+          retailerName: names.get(row.retailerId) ?? '',
+          tripNo: trip?.tripNo ?? null,
+          tripState: trip?.state ?? UNKNOWN_CONTEXT.tripState,
+          stopFailureReason: stop?.failureReason ?? null,
+          stopFailureNote: stop?.failureNote ?? null,
+        },
+      ]
+    }),
   )
 }
 

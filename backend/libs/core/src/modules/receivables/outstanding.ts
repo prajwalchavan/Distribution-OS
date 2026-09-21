@@ -10,12 +10,17 @@ import { currentTenant } from '../../platform/index.js'
  * "my dues" all read ONE row and never scan the ledger. It is refreshed inside the same transaction as
  * every posting, so it cannot drift.
  *
- * TWO DEFINITIONS THAT EVERY READER MUST SHARE (they are what `seed-demo/receivables.ts` asserts):
+ * THREE DEFINITIONS THAT EVERY READER MUST SHARE (they are what `seed-demo/receivables.ts` asserts):
  *  - `outstanding_paise` is GROSS: the sum of the open balances of the shop's bills.
  *  - money paid on account and not yet matched to a bill sits in `unallocated_credit_paise`.
+ *  - a bill that came back on a van (`invoices.undelivered_at`) is NOT the shop's money yet (QA
+ *    DOS-197): it is out of `outstanding_paise`, out of every ageing bucket and out of the FIFO
+ *    allocation, and its open value is carried beside them in `undelivered_paise`. The ONE reader that
+ *    adds it back is the credit gate (`credit.ts`): the goods are on their way back to the shop, so
+ *    its exposure is `outstanding_paise + undelivered_paise`.
  * So the identity that holds against the books is
- *     Σ(outstanding_paise − unallocated_credit_paise) == the AR balance in `journal_lines`,
- * NOT `Σ outstanding_paise == AR`.
+ *     Σ(outstanding_paise + undelivered_paise − unallocated_credit_paise) == the AR balance in
+ *     `journal_lines`, NOT `Σ outstanding_paise == AR`.
  *
  * Ageing buckets are 0-7 / 8-15 / 16-30 / 31-60 / 61-90 / 90+ days past the bill's due date, measured on
  * IST business dates. A bill that is not due yet counts as current (bucket 0-7).
@@ -67,7 +72,13 @@ export function bucketsOf(values: readonly number[]): RetailerOutstanding['bucke
   }
 }
 
-/** An open bill with its due date already resolved (`due_date`, else invoice date + the shop's credit days). */
+/**
+ * An open bill with its due date already resolved (`due_date`, else invoice date + the shop's credit
+ * days). `undelivered` is set for a bill sitting on a van after a failed or refused stop: every caller
+ * of `loadOpenBills` leaves those out of what it does (the shop's pending-bills file, the pay-online
+ * total, the FIFO allocation), so the one place that must count them — `computeOutstanding` — asks for
+ * them explicitly.
+ */
 export interface OpenBillRow {
   id: string
   retailerId: string
@@ -80,6 +91,7 @@ export interface OpenBillRow {
   cashDiscountBps: number
   cashDiscountUntil: string | null
   upiQrPayload: string | null
+  undelivered: boolean
 }
 
 interface RawBill {
@@ -94,6 +106,7 @@ interface RawBill {
   cash_discount_bps: number
   cash_discount_until: string | null
   upi_qr_payload: string | null
+  undelivered: boolean
 }
 
 const num = (v: string | number | null): number => (v === null ? 0 : Number(v))
@@ -104,12 +117,15 @@ const num = (v: string | number | null): number => (v === null ? 0 : Number(v))
  */
 export async function loadOpenBills(
   tx: Db,
-  filter: { retailerIds?: readonly string[] } = {},
+  filter: { retailerIds?: readonly string[]; includeUndelivered?: boolean } = {},
 ): Promise<OpenBillRow[]> {
   const { tenantId } = currentTenant()
   const scope = filter.retailerIds
     ? sql`and i.retailer_id in (${idList(filter.retailerIds)})`
     : sql``
+  // QA DOS-197: goods still on the distributor's van are not the shop's debt. One clause, in the one
+  // query every "open bill" surface goes through, so no screen can disagree with another.
+  const onTheVan = filter.includeUndelivered ? sql`` : sql`and i.undelivered_at is null`
   const result = await tx.execute(sql`
     select i.id, i.retailer_id, i.invoice_no,
            i.invoice_date::text as invoice_date,
@@ -117,7 +133,8 @@ export async function loadOpenBills(
            coalesce(i.due_date, (i.invoice_date + make_interval(days => r.credit_days)))::text as due,
            i.total_paise, coalesce(a.allocated, 0) as allocated,
            i.cash_discount_bps, i.cash_discount_until::text as cash_discount_until,
-           i.upi_qr_payload
+           i.upi_qr_payload,
+           (i.undelivered_at is not null) as undelivered
       from invoices i
       join retailers r on r.id = i.retailer_id and r.tenant_id = i.tenant_id
       left join lateral (
@@ -126,6 +143,7 @@ export async function loadOpenBills(
          where al.tenant_id = i.tenant_id and al.invoice_id = i.id) a on true
      where i.tenant_id = ${tenantId}
        and i.state in ('issued', 'partially_paid')
+       ${onTheVan}
        ${scope}
      order by due asc, i.invoice_date asc, i.invoice_no asc nulls last, i.id asc`)
   return (result.rows as unknown as RawBill[]).map((row) => ({
@@ -140,6 +158,7 @@ export async function loadOpenBills(
     cashDiscountBps: row.cash_discount_bps,
     cashDiscountUntil: row.cash_discount_until,
     upiQrPayload: row.upi_qr_payload,
+    undelivered: row.undelivered,
   }))
 }
 
@@ -221,11 +240,14 @@ export async function computeOutstanding(
   asOf: string = businessDate().date,
 ): Promise<Map<string, OutstandingRow>> {
   const { tenantId } = currentTenant()
-  const bills = await loadOpenBills(tx, { retailerIds })
+  // The ONE reader that asks for the undelivered bills too: they are split out below, never summed in.
+  const bills = await loadOpenBills(tx, { retailerIds, includeUndelivered: true })
   const credit = await loadCredit(tx, retailerIds)
   const out = new Map<string, OutstandingRow>()
   for (const retailerId of retailerIds) {
-    const mine = bills.filter((b) => b.retailerId === retailerId && openPaiseOf(b) > 0)
+    const open = bills.filter((b) => b.retailerId === retailerId && openPaiseOf(b) > 0)
+    const mine = open.filter((b) => !b.undelivered)
+    const undelivered = open.filter((b) => b.undelivered).reduce((s, b) => s + openPaiseOf(b), 0)
     const buckets = [0, 0, 0, 0, 0, 0]
     let overdue = 0
     let oldestDue: string | null = null
@@ -244,6 +266,7 @@ export async function computeOutstanding(
       retailerId,
       outstandingPaise: mine.reduce((s, b) => s + openPaiseOf(b), 0),
       overduePaise: overdue,
+      undeliveredPaise: undelivered,
       unallocatedCreditPaise: c?.unallocated ?? 0,
       openBills: mine.length,
       oldestDueDate: oldestDue,
@@ -273,6 +296,7 @@ export async function writeOutstanding(tx: Db, rows: OutstandingRow[]): Promise<
       set: {
         outstandingPaise: sql`excluded.outstanding_paise`,
         overduePaise: sql`excluded.overdue_paise`,
+        undeliveredPaise: sql`excluded.undelivered_paise`,
         unallocatedCreditPaise: sql`excluded.unallocated_credit_paise`,
         openBills: sql`excluded.open_bills`,
         oldestDueDate: sql`excluded.oldest_due_date`,
@@ -296,6 +320,7 @@ export function toRetailerOutstanding(row: OutstandingRow): RetailerOutstanding 
     retailerId: row.retailerId,
     outstandingPaise: row.outstandingPaise ?? 0,
     overduePaise: row.overduePaise ?? 0,
+    undeliveredPaise: row.undeliveredPaise ?? 0,
     unallocatedCreditPaise: row.unallocatedCreditPaise ?? 0,
     openBills: row.openBills ?? 0,
     oldestDueDate: row.oldestDueDate ?? null,

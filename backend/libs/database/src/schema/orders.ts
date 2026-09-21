@@ -64,6 +64,8 @@ export interface AppliedRule {
   amountPaise?: number
   freeQty?: number
   freeVariantId?: string
+  /** DOS-185: the reward line's single entry — a pointer to the rule; `freeQty` lives on the trigger line only. */
+  reward?: boolean
 }
 
 /**
@@ -149,6 +151,13 @@ export const salesOrders = pgTable(
     closedAt: tz('closed_at'),
     cancelledAt: tz('cancelled_at'),
     cancelReason: text('cancel_reason'),
+    /**
+     * THE OFFICE TURNED THIS ORDER DOWN AT AN APPROVAL GATE (QA DOS-191), as against a desk, a rep or a
+     * shop calling it off — both end at `cancelled`, and `cancel_reason` is free text in both, so a rep's
+     * "Refused" filter needs a fact and not a string match. Set only by `approvals.decide` with a
+     * rejection; null for every other cancel. The words the manager typed go into `cancel_reason`.
+     */
+    refusedAt: tz('refused_at'),
     ...timestamps,
   },
   (t) => [

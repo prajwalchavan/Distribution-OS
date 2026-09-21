@@ -41,6 +41,7 @@ export const NOTIFICATION_EVENT_TYPES = [
   'OrderSubmitted',
   'InvoiceIssued',
   'DeliveryRecorded',
+  'DeliveryFailed',
   'ReceiptRecorded',
   'retailer.identity_linked',
 ] as const
@@ -119,6 +120,63 @@ async function shopMessageFor(
       },
     )
     return fromOutcome(outcome)
+  })
+}
+
+/**
+ * `OrderCancelled` where the office REFUSED the order at a gate (QA DOS-191): the rep who booked it is
+ * told, on the same two channels the submit used to wake the desk — a push to every device it has
+ * registered, and one in-app row so the message survives a phone that was off.
+ *
+ * The rep used to be told nothing at all: the only row written for that minute was a WhatsApp to the
+ * shop, and the rep's "Needs you" screen means writes the server bounced, not orders the office
+ * refused. The words are the manager's own, carried on the event as `cancelReason`.
+ */
+export async function handleOrderRefused(db: Db, event: NotificationEvent): Promise<HandledEvent> {
+  const p = payloadOf(event)
+  if (p.refused !== true) return { outcome: 'ignored', reason: 'not a refusal' }
+  const repId = str(p.salespersonId)
+  const reason = str(p.cancelReason)
+  if (!repId) return { outcome: 'ignored', reason: 'no salesperson booked this order' }
+  if (!reason) return { outcome: 'skipped', reason: 'the refusal has no words' }
+  const orderId = str(p.orderId) ?? event.aggregateId
+  const variables = {
+    orderNo: str(p.orderNo) ?? orderId.slice(-8).toUpperCase(),
+    totalRupees: rupees(num(p.totalPaise) ?? 0),
+    reason,
+  }
+  return asTenantSystem(db, event.tenantId, async (tx) => {
+    const sender = await senderIdentity(tx)
+    const notice = (channel: 'in_app' | 'push', to: string, key: string) =>
+      queueStaffNotice(
+        tx,
+        { sender },
+        {
+          userId: repId,
+          channel,
+          to,
+          templateKey: 'order_refused',
+          refType: 'order',
+          refId: orderId,
+          variables,
+          idempotencyKey: key,
+        },
+      )
+    const inApp = await notice('in_app', repId, `OrderRefused:${orderId}`)
+    let queued = inApp.kind === 'queued' && inApp.created ? 1 : 0
+    const devices = await tx
+      .select({ id: pushTokens.id })
+      .from(pushTokens)
+      .where(and(eq(pushTokens.tenantId, event.tenantId), eq(pushTokens.userId, repId)))
+      .limit(20)
+    for (const device of devices) {
+      const push = await notice('push', device.id, `OrderRefused:${orderId}:${device.id}`)
+      if (push.kind === 'queued' && push.created) queued += 1
+    }
+    return {
+      outcome: queued > 0 ? 'queued' : 'replayed',
+      reason: `${String(devices.length)} device(s)`,
+    }
   })
 }
 
@@ -268,6 +326,34 @@ export async function handleDeliveryRecorded(
 }
 
 /**
+ * `DeliveryFailed` (delivery): THE ONE MESSAGE A SHOP GETS WHEN NOTHING CAME OFF THE VAN (QA DOS-197).
+ *
+ * A failed or refused stop used to tell the shop nothing at all, while the "your bill is ready" and
+ * "our vehicle is on its way" messages it had already had stood unanswered. One row per bill, keyed by
+ * the delivery, naming the bill by its NUMBER — the event carries `invoiceNo`, and a bill with no
+ * number is not one a shop was ever told about, so nothing is sent rather than an id fragment.
+ */
+export async function handleDeliveryFailed(
+  db: Db,
+  event: NotificationEvent,
+): Promise<HandledEvent> {
+  const p = payloadOf(event)
+  const retailerId = str(p.retailerId)
+  const invoiceNo = str(p.invoiceNo)
+  if (!retailerId) return { outcome: 'ignored', reason: 'no retailerId in payload' }
+  if (!invoiceNo) return { outcome: 'skipped', reason: 'the bill has no number' }
+  const deliveryId = str(p.deliveryId) ?? event.aggregateId
+  return shopMessageFor(db, event, {
+    retailerId,
+    templateKey: 'delivery_failed',
+    refType: 'invoice',
+    refId: str(p.invoiceId) ?? deliveryId,
+    idempotencyKey: `DeliveryFailed:${deliveryId}`,
+    variables: () => ({ invoiceNo }),
+  })
+}
+
+/**
  * `ReceiptRecorded` (receivables): "payment received" for every rupee that lands — at the door, at the
  * office desk, or online — so the doorstep `CollectionRecorded` (which records the same receipt) is
  * deliberately not a second trigger. Keyed `PaymentReceived:<receiptId>`.
@@ -328,14 +414,21 @@ export async function handleNotificationEvent(
 ): Promise<HandledEvent> {
   switch (event.eventType) {
     case 'OrderConfirmed':
-    case 'OrderCancelled':
       return handleOrderEvent(db, event)
+    // The shop hears its order was cancelled; a rep whose order the OFFICE refused hears it too.
+    case 'OrderCancelled': {
+      const shop = await handleOrderEvent(db, event)
+      const rep = await handleOrderRefused(db, event)
+      return rep.outcome === 'ignored' ? shop : rep
+    }
     case 'OrderSubmitted':
       return handleOrderSubmitted(db, event)
     case 'InvoiceIssued':
       return handleInvoiceIssued(db, event)
     case 'DeliveryRecorded':
       return handleDeliveryRecorded(db, event)
+    case 'DeliveryFailed':
+      return handleDeliveryFailed(db, event)
     case 'ReceiptRecorded':
       return handleReceiptRecorded(db, event)
     case 'retailer.identity_linked':

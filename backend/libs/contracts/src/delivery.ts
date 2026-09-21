@@ -545,11 +545,24 @@ export type DeliveryLine = z.infer<typeof DeliveryLineSchema>
 export const DeliverySchema = z.object({
   id: IdSchema,
   tripId: IdSchema,
+  /** The trip's own number and state, so the desk's Undelivered register (QA DOS-196) reads in one call. */
+  tripNo: z.string().nullable(),
+  tripState: TripStateSchema,
   stopId: IdSchema,
+  /**
+   * Why the stop this attempt belongs to failed, and the crew's words for it (QA DOS-196 / DOS-203).
+   * Null for a stop that did not fail. The note is office-only, like `note`: it is the crew's sentence
+   * about the shop, not the shop's own record.
+   */
+  stopFailureReason: StopFailureReasonSchema.nullable(),
+  stopFailureNote: z.string().nullable(),
   orderId: IdSchema.nullable(),
   invoiceId: IdSchema,
   invoiceNo: z.string().nullable(),
+  /** The bill's own total, so a register names the money without a second read. */
+  invoiceTotalPaise: PaiseSchema,
   retailerId: IdSchema,
+  retailerName: z.string(),
   outcome: DeliveryOutcomeSchema.nullable(),
   deliveredBy: IdSchema.nullable(),
   deliveredAt: z.string().nullable(),
@@ -1094,6 +1107,13 @@ export const DeliveriesListInput = z.object({
   outcome: DeliveryOutcomeSchema.optional(),
   /** Only rows with an outcome (skips the planned, not-yet-attempted ones). */
   attemptedOnly: QueryBoolSchema.default(false),
+  /**
+   * THE DESK'S UNDELIVERED REGISTER (QA DOS-196): the LAST attempt on every bill that is still waiting
+   * to be delivered — the bill is flagged `undelivered_at` by billing, and this is the failed attempt
+   * that carries the reason, the note and the trip it is riding. A bill delivered since, or cancelled
+   * at the desk, is not on it. Bounded to the bills currently undelivered, newest attempt first.
+   */
+  undeliveredOnly: QueryBoolSchema.default(false),
   /** Delivered on or after / on or before this IST calendar date. */
   from: IsoDateSchema.optional(),
   to: IsoDateSchema.optional(),

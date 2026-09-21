@@ -103,6 +103,23 @@ const RESTOCKING_REASONS = new Set<CreditNoteReason>([
   'cancellation',
 ])
 
+/**
+ * Whether an issued note has anything for the book. Every component is checked, not just the total: a note
+ * that nets to zero out of non-zero parts still has entries to post. Only a note made entirely of free goods
+ * (DOS-185) — nothing charged, so nothing taxed and nothing to refund — is zero all the way through.
+ */
+function carriesMoney(note: CreditNoteRow): boolean {
+  return (
+    note.taxablePaise !== 0 ||
+    note.cgstPaise !== 0 ||
+    note.sgstPaise !== 0 ||
+    note.igstPaise !== 0 ||
+    note.cessPaise !== 0 ||
+    note.roundOffPaise !== 0 ||
+    note.totalPaise !== 0
+  )
+}
+
 /** What the delivery crew hands over from the doorstep (coordination §4: delivery → billing). */
 export interface RaiseForDeliveryInput {
   id: string
@@ -427,23 +444,30 @@ export class CreditNotesService {
       .returning()
     const row = issued ?? note
     await this.restock(tx, row, restockLocationId)
-    // Same reason as the invoice's own AR entry: a role that may raise the document is not always a
-    // role that may write the book (coordination §5.3, see `asLedgerPoster`).
-    await asLedgerPoster(tx, () =>
-      this.receivables.postCreditNoteIssued(tx, {
-        id: row.id,
-        invoiceId: row.invoiceId,
-        retailerId: row.retailerId,
-        noteDate: row.noteDate,
-        taxablePaise: row.taxablePaise,
-        cgstPaise: row.cgstPaise,
-        sgstPaise: row.sgstPaise,
-        igstPaise: row.igstPaise,
-        cessPaise: row.cessPaise,
-        roundOffPaise: row.roundOffPaise,
-        totalPaise: row.totalPaise,
-      }),
-    )
+    /*
+     * QA DOS-185: free goods that come back are a note about GOODS with no money in it — the shop paid
+     * nothing for them, so nothing is refunded and nothing is owed back. The book stays out of it (a
+     * journal entry with no money in it is a caller's bug, and `postJournalEntry` says so); the pieces
+     * have already gone back on the rack above, and the bill's payment state is unchanged because there
+     * is nothing to allocate. Same reason as the invoice's own AR entry for the rest: a role that may
+     * raise the document is not always a role that may write the book (coordination §5.3, `asLedgerPoster`).
+     */
+    if (carriesMoney(row))
+      await asLedgerPoster(tx, () =>
+        this.receivables.postCreditNoteIssued(tx, {
+          id: row.id,
+          invoiceId: row.invoiceId,
+          retailerId: row.retailerId,
+          noteDate: row.noteDate,
+          taxablePaise: row.taxablePaise,
+          cgstPaise: row.cgstPaise,
+          sgstPaise: row.sgstPaise,
+          igstPaise: row.igstPaise,
+          cessPaise: row.cessPaise,
+          roundOffPaise: row.roundOffPaise,
+          totalPaise: row.totalPaise,
+        }),
+      )
     await tx.insert(outboxEvents).values({
       id: uuidv7(),
       tenantId,

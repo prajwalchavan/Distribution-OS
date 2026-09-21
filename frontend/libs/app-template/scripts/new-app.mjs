@@ -2,6 +2,10 @@
 /**
  * `pnpm --filter @dos/app-template new <role> <port>`
  *
+ * Kept generatable for the console and for a future app that really is a separate install; the six
+ * business roles are ROUTE GROUPS of `frontend/dos-app` now, not apps (docs/31 §7 — read §1 before
+ * reaching for this script).
+ *
  * Copies the skeleton into `frontend/<role>-app` and rewrites the six places a role's identity is
  * written down: the package name and its `web` port, `app.json` (name, slug, scheme, bundle ids),
  * `src/config.ts` (role, title, ports, touch floor, density), the `.env.example` service URL, and the
@@ -18,35 +22,20 @@ const templateRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const frontendRoot = resolve(templateRoot, '../..')
 
 /**
- * The seven apps and what each one is. Ports are docs/22 §8 (2026-09-06) and docs/18; the touch floor
- * is UX-00 §5.2 — `field` 69 (sales, retailer) · `floor` 76 (warehouse, delivery stop actions) ·
- * `phone` 63 (owner, manager) · desk buttons are 32 whatever the app.
+ * The apps this generator still knows, and what each one is.
+ *
+ * THE SIX BUSINESS ROLES ARE GONE FROM HERE (docs/31 §7). Owner, manager, sales, warehouse, delivery
+ * and retailer are no longer apps: they are the six ROUTE GROUPS of `frontend/dos-app`, one Expo
+ * project on :5173, and their per-role ports 5174-5178 are released. Adding a business role means
+ * adding a group — a directory under `dos-app/app/`, a row in `dos-app/src/config.ts` GROUPS, a
+ * `src/groups/<g>/` — and docs/31 §1 is how. Generating a seventh app instead would give it its own
+ * root layout, its own session and its own sign-in, which is the thing the merge removed.
+ *
+ * What is left is the CONSOLE (`admin-app`, :5179, :3007 — Distribution OS's own staff, no membership,
+ * a separate install by design) and the bare skeleton on :5170. The touch floor is UX-00 §5.2 —
+ * `field` 69 · `floor` 76 · `phone` 63 · desk buttons are 32 whatever the app.
  */
 const ROLES = {
-  owner: { title: 'Owner', webPort: 5173, servicePort: 3001, touch: 'phone', density: 'desk' },
-  manager: { title: 'Manager', webPort: 5174, servicePort: 3002, touch: 'phone', density: 'desk' },
-  sales: { title: 'Sales', webPort: 5175, servicePort: 3003, touch: 'field', density: 'field' },
-  warehouse: {
-    title: 'Warehouse',
-    webPort: 5176,
-    servicePort: 3004,
-    touch: 'floor',
-    density: 'field',
-  },
-  delivery: {
-    title: 'Delivery',
-    webPort: 5177,
-    servicePort: 3005,
-    touch: 'field',
-    density: 'field',
-  },
-  retailer: {
-    title: 'Retailer',
-    webPort: 5178,
-    servicePort: 3006,
-    touch: 'field',
-    density: 'field',
-  },
   admin: { title: 'Admin', webPort: 5179, servicePort: 3007, touch: 'phone', density: 'desk' },
 }
 

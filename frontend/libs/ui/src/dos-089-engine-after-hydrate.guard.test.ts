@@ -24,27 +24,46 @@ const here = dirname(fileURLToPath(import.meta.url))
 const frontend = join(here, '..', '..', '..')
 
 /** The layout with its comments taken out: a comment may TALK about a wait that is not in the code. */
-function read(app: string): string {
-  return readFileSync(join(frontend, app, 'app', '_layout.tsx'), 'utf8')
+function read(group: string): string {
+  return readFileSync(join(frontend, 'dos-app', 'app', group, '_layout.tsx'), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '')
 }
 
+/**
+ * What `enabled={…}` really says. The group layout names the condition (`const ready = …`) rather
+ * than spelling it inside the prop, so the guard follows a bare identifier to its declaration once —
+ * otherwise it would pass on `enabled={ready}` whatever `ready` turned out to mean.
+ */
+function enabledExpression(source: string): string {
+  const raw = /<Offline\b[^>]*\benabled=\{([^}]*)\}/.exec(source)?.[1]?.trim() ?? ''
+  if (!/^[A-Za-z_$][\w$]*$/.test(raw)) return raw
+  const declared = new RegExp(`\\bconst ${raw}\\s*=([^\n]*)`).exec(source)?.[1] ?? ''
+  return `${raw} =${declared}`
+}
+
 describe('DOS-089: the sales engine waits for the boot refresh', () => {
-  const source = read('sales-app')
-  const mount = /<Offline\b[\s\S]*?>/.exec(source)?.[0] ?? ''
+  const source = read('sales')
 
   it('the engine is mounted through <Offline enabled=…>, once, above the gate', () => {
-    expect(mount).toMatch(/enabled=\{/)
+    expect(/<Offline\b[^>]*>/.exec(source)?.[0] ?? '').toMatch(/enabled=\{/)
     expect(source.match(/<Offline\b/g) ?? []).toHaveLength(1)
   })
 
   it('DOS-089 it is not enabled while the session is still hydrating', () => {
-    expect(mount).toMatch(/!hydrating/)
+    expect(enabledExpression(source)).toMatch(/!hydrating/)
   })
 
   it('DOS-089 the provider itself is still mounted for the life of the app, hydrating or not', () => {
-    // The skeleton is a CHILD of <Offline>, never a branch that returns before it.
-    expect(source).toMatch(/<Offline[\s\S]*?\{content\}[\s\S]*?<\/Offline>/)
+    // The gate is a CHILD of <Offline>, never a branch that returns before it: everything the
+    // layout renders it renders from ONE return, and that return opens with the provider.
+    const inside = /<Offline\b[^>]*>([\s\S]*)<\/Offline>/.exec(source)?.[1] ?? ''
+    expect(inside).toMatch(/hydrating/)
+    expect(inside).toMatch(/<Chrome\b/)
+    const above = source.slice(
+      source.indexOf('export default function'),
+      source.indexOf('<Offline'),
+    )
+    expect(above.match(/\breturn\b/g) ?? []).toHaveLength(1)
   })
 })
