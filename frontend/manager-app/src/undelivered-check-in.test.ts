@@ -71,9 +71,10 @@ describe('M7 Trips: the desk follows the server from check-in', () => {
     ).toEqual(['cancelled', 'closing', 'settled', 'settled_with_variance'])
 
     // The register's action for a trip that has just checked in is the plan action, in words.
-    expect(undeliveredNext('closing'), 'a van in `closing` has checked in: plan the bill again').toBe(
-      'plan',
-    )
+    expect(
+      undeliveredNext('closing'),
+      'a van in `closing` has checked in: plan the bill again',
+    ).toBe('plan')
     expect(catalogue['m7u.backAtTheGodown']).toBe('Back at the godown — plan it again')
     for (const state of ['settled', 'settled_with_variance', 'cancelled'])
       expect(undeliveredNext(state), `${state}: the van is not carrying the bill`).toBe('plan')
@@ -85,7 +86,8 @@ describe('M7 Trips: the desk follows the server from check-in', () => {
 
     // Every state of the machine has an answer; the two sets never overlap.
     for (const state of TRIP_STATES) expect(['plan', 'wait']).toContain(undeliveredNext(state))
-    for (const state of TRIP_TAKES_A_LATE_BILL) expect(TRIP_BACK_AT_THE_GODOWN.has(state)).toBe(false)
+    for (const state of TRIP_TAKES_A_LATE_BILL)
+      expect(TRIP_BACK_AT_THE_GODOWN.has(state)).toBe(false)
   })
 
   it('DOS-196: the Undelivered register draws its action from `undeliveredNext`, off the trip state the server sent', async () => {
@@ -104,7 +106,10 @@ describe('M7 Trips: the desk follows the server from check-in', () => {
         'onTheRoad',
       )
     for (const state of ['planned', 'loading'])
-      expect(tripReach(state, true), `planner, ${state}: the trip still takes a late bill`).toBeNull()
+      expect(
+        tripReach(state, true),
+        `planner, ${state}: the trip still takes a late bill`,
+      ).toBeNull()
 
     // The accountant lacks `delivery.stops.add`: it reads the register and is told nothing, never
     // "on the road — the desk cannot change it" about a van still standing at the godown.

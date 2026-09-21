@@ -65,11 +65,7 @@ import {
   type StopPlan,
   type TripPlan,
 } from '../../src/lib/trip-plan'
-import {
-  TRIP_TAKES_A_LATE_BILL,
-  tripReach,
-  undeliveredNext,
-} from '../../src/lib/trip-reach'
+import { TRIP_TAKES_A_LATE_BILL, tripReach, undeliveredNext } from '../../src/lib/trip-reach'
 import {
   Async,
   PageTabs,
