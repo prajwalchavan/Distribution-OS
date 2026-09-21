@@ -332,7 +332,8 @@ export class AuthService {
         distributor: current.branding.displayName,
       })
       if (!stillElected.ok) {
-        await revokeSession(tx, session.id, 'membership_disabled', now)
+        // Nothing was disabled: the membership stands and the role it may elect changed under it.
+        await revokeSession(tx, session.id, 'election_withdrawn', now)
         return fail(
           electionRefused({
             distributor: current.branding.displayName,

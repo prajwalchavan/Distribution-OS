@@ -64,7 +64,7 @@ export default function ManagerStaffScreen(): React.JSX.Element {
 
   const rows = staff.data?.items ?? []
   /** The floor: the manager administers these three and nobody else (`assertMayAdminister`). */
-  const mine = rows.filter((row) => isGrantableExtraRole(row.role))
+  const mine = rows.filter((row) => (MANAGER_MAY_GRANT as readonly string[]).includes(row.role))
   const mayGrant =
     selected !== null && (MANAGER_MAY_GRANT as readonly string[]).includes(selected.role)
 

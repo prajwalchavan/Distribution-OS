@@ -496,6 +496,48 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
       expect(res.status).toBe(200)
       expect(await extraRolesOf(repId)).toEqual([])
     })
+
+    /**
+     * The manager's remit is the DELTA, not the set. A rep the owner gave `accountant` to is still a
+     * rep on the manager's floor: adding `delivery` to him must save, because the manager touched only
+     * `delivery`. Refusing on the whole submitted set locked the manager out of every person the owner
+     * had ever granted an accountant extra — a 403 naming a role the manager never touched.
+     */
+    it('lets the manager add its own role beside an accountant extra the owner granted', async () => {
+      const granted = await call(app, owner, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-owner-acc-${run}`,
+        userId: repId,
+        extraRoles: ['accountant'],
+      })
+      expect(granted.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual(['accountant'])
+
+      const res = await call(app, manager, 'POST', '/tenancy/memberships/update', {
+        idempotencyKey: `extra-mgr-delta-${run}`,
+        userId: repId,
+        extraRoles: ['accountant', 'delivery'],
+      })
+      expect(res.status).toBe(200)
+      expect(await extraRolesOf(repId)).toEqual(['accountant', 'delivery'])
+    })
+
+    /** The other half of the same rule: the manager may not REVOKE what the owner granted. */
+    it('refuses a manager that drops the owner’s accountant extra', async () => {
+      const res = await call<{ message: string }>(
+        app,
+        manager,
+        'POST',
+        '/tenancy/memberships/update',
+        {
+          idempotencyKey: `extra-mgr-drop-${run}`,
+          userId: repId,
+          extraRoles: ['delivery'],
+        },
+      )
+      expect(res.status).toBe(403)
+      expect(res.body.message).toContain('accountant')
+      expect(await extraRolesOf(repId)).toEqual(['accountant', 'delivery'])
+    })
   })
 
   it('me() reports the signed-in username', async () => {

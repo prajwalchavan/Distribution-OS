@@ -245,16 +245,8 @@ export class TenancyService {
         assertMayAdminister(ctx.actorRole, target.role)
         if (!isGrantableExtraRole(target.role)) {
           throw new ORPCError('FORBIDDEN', {
-            message: `A ${target.role} membership carries no extra roles: it already signs in downward from its own role.`,
+            message: `${target.role === 'owner' ? 'An' : 'A'} ${target.role} membership carries no extra roles: it already signs in downward from its own role.`,
           })
-        }
-        if (ctx.actorRole === 'manager') {
-          const beyond = input.extraRoles.filter((r) => !MANAGER_MAY_ADMINISTER.includes(r))
-          if (beyond.length > 0) {
-            throw new ORPCError('FORBIDDEN', {
-              message: `A manager may only grant ${MANAGER_MAY_ADMINISTER.join(', ')}. Ask the owner for ${beyond.join(', ')}.`,
-            })
-          }
         }
         // The membership's own role is not an "extra": keeping it out means the column always reads
         // as the list of OTHER jobs this person may do.
@@ -264,6 +256,26 @@ export class TenancyService {
           .from(memberships)
           .where(eq(memberships.id, target.id))
           .limit(1)
+        const held: readonly string[] = before?.extraRoles ?? []
+        if (ctx.actorRole === 'manager') {
+          // A manager's remit is the DELTA, not the submitted set. The whole set is sent every time,
+          // so a rep the OWNER gave `accountant` to carries it in every manager save; judging the set
+          // refused all of them, naming a role the manager never touched. Stripping it in the app
+          // would have been worse — a silent revocation of the owner's grant. So compare what
+          // actually moved: the manager may add and take away only the three roles it administers,
+          // and an owner's grant it does not touch passes through untouched.
+          const touched = [...new Set([...held, ...next])].filter(
+            (r) => held.includes(r) !== (next as readonly string[]).includes(r),
+          )
+          const beyond = touched.filter(
+            (r) => !(MANAGER_MAY_ADMINISTER as readonly string[]).includes(r),
+          )
+          if (beyond.length > 0) {
+            throw new ORPCError('FORBIDDEN', {
+              message: `A manager may only grant ${MANAGER_MAY_ADMINISTER.join(', ')}. Ask the owner for ${beyond.join(', ')}.`,
+            })
+          }
+        }
         await tx
           .update(memberships)
           .set({ extraRoles: next, updatedAt: new Date() })
@@ -272,7 +284,7 @@ export class TenancyService {
           action: 'membership.extraRoles',
           entityType: 'membership',
           entityId: target.id,
-          before: { extraRoles: before?.extraRoles ?? [] },
+          before: { extraRoles: held },
           after: { extraRoles: next },
         })
         return { ok: true as const }
