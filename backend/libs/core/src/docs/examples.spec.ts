@@ -1112,6 +1112,44 @@ describeDb('doc examples against the demo database (DATABASE_URL)', () => {
   }, 30_000)
 
   /**
+   * S-149, the fallback itself. The census above makes this unreachable on seeded demo data, which
+   * is exactly why it needs its own test: the old code answered a staff member with no own notice
+   * by publishing `ctx.notifications.messageId` — the newest row of the whole tenant, here a shop's
+   * WhatsApp message. `markRead` answers 404 on it and the godown may not even read it (DOS-052).
+   * With the notices taken away, what comes out must name no row at all: `pnpm smoke` prints that as
+   * SKIPPED, and the reader is never handed somebody else's message.
+   */
+  it('S-149: with no own notice the example names NO row, never a shop’s message', async () => {
+    const loaded = await context()
+    const ctx: ExampleContext = {
+      ...loaded,
+      notifications: { ...loaded.notifications, ownNotices: {} },
+    }
+    const shopRow = loaded.notifications?.messageId
+    expect(shopRow, 'the tenant log the old fallback reached for').toBeTruthy()
+
+    const idsOf = (roles: readonly string[], procedure: string): string => {
+      const examples = buildExamples(PROCEDURES, ctx, { roles })
+      return String(examples.get(procedure)?.pathParams.id)
+    }
+    const suspects = [
+      idsOf(['owner'], 'notifications.messages.markRead'),
+      idsOf(['manager', 'accountant'], 'notifications.messages.markRead'),
+      idsOf(['warehouse'], 'notifications.messages.markRead'),
+      idsOf(['warehouse'], 'notifications.messages.get'),
+    ]
+    for (const id of suspects) expect(id, 'never the shop’s row').not.toBe(shopRow)
+
+    const real = await withSystem(db, (tx: Db) =>
+      tx.select({ id: messages.id }).from(messages).where(inArray(messages.id, suspects)),
+    )
+    expect(
+      real.map((row) => row.id),
+      'an id that names no row of this database',
+    ).toEqual([])
+  }, 30_000)
+
+  /**
    * S-156. On a FRESHLY seeded database no pack is waiting for a bill (the seed invoices every pack
    * at confirm), so the collector's `where invoice_id is null` found nothing, the field-name map
    * answered undefined and the schema sampler filled the path parameter with a well-formed uuid that
