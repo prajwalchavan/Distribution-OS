@@ -873,4 +873,33 @@ export interface WelcomeProps extends Testable {
   children: ReactNode
 }
 
+/**
+ * The two seconds after a fresh sign-in (and after a distributor switch), before the home renders:
+ * whose distributorship this is, who is signed in, and which app this is. Not a route, nothing to
+ * tap, and never shown on a launch that restored a session.
+ *
+ * It COVERS the app rather than replacing it, so the navigator underneath stays mounted and a
+ * redirect that is still settling is not stranded behind two seconds of introduction.
+ */
+export interface LandingProps extends Testable {
+  /** The distributor's display name — "Distribution OS" in the console, which is our own. */
+  tenantName: string
+  /** The signed read URL for the distributor's logo; absent falls back to the initials mark. */
+  logoUrl?: (string | null) | undefined
+  /** The signed-in person, by name. */
+  personName: string
+  /** `APP.title`; the app's own name is the part after the dash ("Delivery app"). */
+  appTitle: string
+  /** Called once the hold is over. The caller stops rendering the landing. */
+  onDone: () => void
+  /** The hold, in ms. Defaults to `LANDING_HOLD_MS`; a test passes a short one. */
+  holdMs?: number | undefined
+}
+
+/** What `useLandingGate` answers: whether the landing is up, and how to take it down. */
+export interface LandingGate {
+  readonly show: boolean
+  readonly done: () => void
+}
+
 export type { SeriesPoint, Series, CompareGroup, MixSlice }

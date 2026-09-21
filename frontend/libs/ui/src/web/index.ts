@@ -25,7 +25,16 @@ export {
   initialsOf,
 } from './feedback.js'
 export { CompareBars, QrCode, Sparkline, StackedMix, TrendChart } from './charts.js'
-export { Welcome, clearWelcomeSeen, markWelcomeSeen, welcomeSeen } from './welcome.js'
+export {
+  LANDING_HOLD_MS,
+  Landing,
+  Welcome,
+  clearWelcomeSeen,
+  landingStarts,
+  markWelcomeSeen,
+  useLandingGate,
+  welcomeSeen,
+} from './welcome.js'
 export { MapView } from './map.js'
 
 // The layout vocabulary of docs/08 §0 — the whole structural surface a screen may use.

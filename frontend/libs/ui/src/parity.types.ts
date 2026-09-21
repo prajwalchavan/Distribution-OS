@@ -34,6 +34,8 @@ import type {
   StackProps,
   StatusChipProps,
   TenantSwitcherProps,
+  LandingGate,
+  LandingProps,
   TxtContract,
   Viewport,
   WelcomeProps,
@@ -148,6 +150,20 @@ export type _StatusChip = [
 export type _Welcome = [
   Implements<ComponentType<WelcomeProps>, WebModule['Welcome']>,
   Implements<ComponentType<WelcomeProps>, NativeModule['Welcome']>,
+]
+export type _Landing = [
+  Implements<ComponentType<LandingProps>, WebModule['Landing']>,
+  Implements<ComponentType<LandingProps>, NativeModule['Landing']>,
+]
+export type _useLandingGate = [
+  Implements<
+    (hydrating: boolean, sessionKey: string | null) => LandingGate,
+    WebModule['useLandingGate']
+  >,
+  Implements<
+    (hydrating: boolean, sessionKey: string | null) => LandingGate,
+    NativeModule['useLandingGate']
+  >,
 ]
 
 // --- the platform pairs -------------------------------------------------------------------------

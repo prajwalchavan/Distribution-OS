@@ -14,7 +14,16 @@
  *    own header.
  */
 import { ApiProvider, usePlatformSession } from '@dos/api-client/react'
-import { AppShell, Screen, Skeleton, ThemeProvider, setRouterNavigate } from '@dos/ui'
+import {
+  AppShell,
+  Landing,
+  Screen,
+  Skeleton,
+  ThemeProvider,
+  clearWelcomeSeen,
+  setRouterNavigate,
+  useLandingGate,
+} from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
 import type { NavItem } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
@@ -127,6 +136,34 @@ function Shell(): React.JSX.Element {
     }
   }, [navigatorReady, redirectTo, router, pathname])
 
+  /**
+   * docs/29 §1 — the two seconds after a fresh sign-in, and the welcome the next person gets.
+   *
+   * `useLandingGate` answers one question: has a session just ARRIVED (a sign-in, or a switch to
+   * another distributorship), as against "is there a session". A launch that restored one is never
+   * held up: a driver at 6 am is taken to the trip, not told where he is. The panel COVERS the app
+   * rather than replacing it, so the navigator underneath stays mounted and the redirect this
+   * sign-in started is not stranded behind it.
+   *
+   * The welcome flag is cleared HERE rather than on each sign-out button, so every way out of this
+   * app — the account menu, a settings screen, an expired session — gives the next person on this
+   * device the welcome back. Clearing a flag that is already absent costs nothing.
+   */
+  const landing = useLandingGate(hydrating, session === null ? null : session.user.id)
+  useEffect(() => {
+    if (!hydrating && session === null) clearWelcomeSeen()
+  }, [hydrating, session])
+  const landingPanel =
+    landing.show && session !== null ? (
+      <Landing
+        tenantName={APP.brand}
+        logoUrl={null}
+        personName={session.user.name}
+        appTitle={APP.title}
+        onDone={landing.done}
+      />
+    ) : null
+
   const account = useMemo(
     () =>
       session === null
@@ -168,6 +205,7 @@ function Shell(): React.JSX.Element {
     return (
       <ThemeProvider touch={APP.touch} density={APP.density} tenant={BRAND} strings={strings}>
         <Slot />
+        {landingPanel}
       </ThemeProvider>
     )
   }
@@ -198,6 +236,7 @@ function Shell(): React.JSX.Element {
       >
         <Slot />
       </AppShell>
+      {landingPanel}
     </ThemeProvider>
   )
 }

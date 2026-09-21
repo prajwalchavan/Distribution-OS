@@ -12,7 +12,16 @@
  * This file is IDENTICAL in all seven apps. What differs is `src/config.ts` and `src/nav.ts`.
  */
 import { ApiProvider, useSession } from '@dos/api-client/react'
-import { AppShell, Screen, Skeleton, ThemeProvider, setRouterNavigate } from '@dos/ui'
+import {
+  AppShell,
+  Landing,
+  Screen,
+  Skeleton,
+  ThemeProvider,
+  clearWelcomeSeen,
+  setRouterNavigate,
+  useLandingGate,
+} from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
 import type { ApiClient } from '@dos/api-client'
 import type { NavItem, TenantChoice } from '@dos/ui'
@@ -183,6 +192,37 @@ function Shell(): React.JSX.Element {
     }
   }, [navigatorReady, redirectTo, router, pathname])
 
+  /**
+   * docs/29 §1 — the two seconds after a fresh sign-in, and the welcome the next person gets.
+   *
+   * `useLandingGate` answers one question: has a session just ARRIVED (a sign-in, or a switch to
+   * another distributorship), as against "is there a session". A launch that restored one is never
+   * held up: a driver at 6 am is taken to the trip, not told where he is. The panel COVERS the app
+   * rather than replacing it, so the navigator underneath stays mounted and the redirect this
+   * sign-in started is not stranded behind it.
+   *
+   * The welcome flag is cleared HERE rather than on each sign-out button, so every way out of this
+   * app — the account menu, a settings screen, an expired session — gives the next person on this
+   * device the welcome back. Clearing a flag that is already absent costs nothing.
+   */
+  const landing = useLandingGate(
+    hydrating,
+    session === null ? null : `${session.tenant.id}:${session.user.id}`,
+  )
+  useEffect(() => {
+    if (!hydrating && session === null) clearWelcomeSeen()
+  }, [hydrating, session])
+  const landingPanel =
+    landing.show && session !== null ? (
+      <Landing
+        tenantName={session.tenant.displayName}
+        logoUrl={absoluteUrl(session.tenant.logoUrl)}
+        personName={session.user.name}
+        appTitle={APP.title}
+        onDone={landing.done}
+      />
+    ) : null
+
   if (hydrating) {
     return (
       <ThemeProvider touch={APP.touch} density={APP.density} strings={strings}>
@@ -199,6 +239,7 @@ function Shell(): React.JSX.Element {
     return (
       <ThemeProvider touch={APP.touch} density={APP.density} tenant={tenantBrand} strings={strings}>
         <Slot />
+        {landingPanel}
       </ThemeProvider>
     )
   }
@@ -233,6 +274,7 @@ function Shell(): React.JSX.Element {
       >
         <Slot />
       </AppShell>
+      {landingPanel}
     </ThemeProvider>
   )
 }

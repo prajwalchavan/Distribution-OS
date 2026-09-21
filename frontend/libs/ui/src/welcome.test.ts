@@ -14,14 +14,20 @@
  * The rendering of both is asserted in `web/render.test.tsx`, where there is a real renderer. What
  * is here is the part no render can see: the flag, the rule, and the wiring every app must share.
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { appShortName } from './strings.js'
-import { clearWelcomeSeen, markWelcomeSeen, welcomeSeen } from './web/welcome.js'
+import {
+  LANDING_HOLD_MS,
+  clearWelcomeSeen,
+  landingStarts,
+  markWelcomeSeen,
+  welcomeSeen,
+} from './web/welcome.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const frontend = join(here, '..', '..', '..')
@@ -40,6 +46,11 @@ const APPS: readonly string[] = [
 
 function readScreen(app: string, file: string): string {
   return readFileSync(join(frontend, app, 'app', file), 'utf8')
+}
+
+/** A comment may TALK about the wiring it does not have; read the code only. */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 }
 
 describe('docs/29 §1 Welcome — this app’s own name', () => {
@@ -98,4 +109,76 @@ describe('docs/29 §1 Welcome — every app wires it the same way', () => {
       })
     })
   }
+})
+
+/**
+ * docs/29 §1 Landing — the two seconds after a fresh sign-in.
+ *
+ * `landingStarts` is the whole rule, written once and read by both renderers: it answers "has a
+ * session just ARRIVED", which is not the same question as "is there a session". A launch that
+ * restored a session must not be held up by two seconds of being told where one already is.
+ */
+describe('docs/29 §1 Landing — when it starts, and when it must not', () => {
+  it('starts on a fresh sign-in: a session where a settled render had none', () => {
+    expect(landingStarts(null, 'tarsun:sunil')).toBe(true)
+  })
+
+  it('starts on a distributor switch: a different distributorship under the same person', () => {
+    expect(landingStarts('tarsun:meena', 'sai:meena')).toBe(true)
+  })
+
+  it('NEVER starts on a launch that restored a session — the first settled render is not an arrival', () => {
+    expect(landingStarts(undefined, 'tarsun:sunil')).toBe(false)
+  })
+
+  it('never starts on a sign-out, and never on a render that changed nothing', () => {
+    expect(landingStarts('tarsun:sunil', null)).toBe(false)
+    expect(landingStarts('tarsun:sunil', 'tarsun:sunil')).toBe(false)
+    expect(landingStarts(undefined, null)).toBe(false)
+  })
+
+  it('holds for two seconds, and both renderers hold for the same two', () => {
+    expect(LANDING_HOLD_MS).toBe(2000)
+    const held = (file: string): string =>
+      /const LANDING_HOLD_MS = (\d+)/.exec(readFileSync(join(here, file), 'utf8'))?.[1] ?? ''
+    expect(held('web/welcome.tsx')).toBe('2000')
+    expect(held('native/welcome.tsx')).toBe('2000')
+  })
+})
+
+describe('docs/29 §1 Landing — every root layout wires it the same way', () => {
+  for (const app of APPS) {
+    describe(app, () => {
+      const source = stripComments(readScreen(app, '_layout.tsx'))
+
+      it('takes the landing and the welcome flag from the kit, not from a second copy', () => {
+        const kitImport = /import \{([\s\S]*?)\} from '@dos\/ui'/.exec(source)?.[1] ?? ''
+        const names = kitImport.split(',').map((name) => name.trim())
+        expect(names).toContain('Landing')
+        expect(names).toContain('clearWelcomeSeen')
+        expect(names).toContain('useLandingGate')
+      })
+
+      it('asks the gate with the hydration flag, so a restored session is never held up', () => {
+        expect(source).toMatch(/useLandingGate\(\s*hydrating,/)
+      })
+
+      it('renders the landing over the app, with the person, the app and the gate’s own done', () => {
+        expect(source).toMatch(/<Landing\b/)
+        expect(source).toContain('personName={session.user.name}')
+        expect(source).toContain('appTitle={APP.title}')
+        expect(source).toContain('onDone={landing.done}')
+      })
+
+      it('gives the welcome back to the next person whichever way this app signs out', () => {
+        expect(source).toContain('clearWelcomeSeen()')
+      })
+    })
+  }
+
+  it('is not a route: no app has a landing screen to navigate to or bookmark', () => {
+    for (const app of APPS) {
+      expect(existsSync(join(frontend, app, 'app', 'landing.tsx'))).toBe(false)
+    }
+  })
 })

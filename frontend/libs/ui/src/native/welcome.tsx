@@ -13,13 +13,16 @@
  * and it is the honest trade: never a flash of a screen this device has already been past.
  */
 import { useCallback, useEffect, useState } from 'react'
+import { View } from 'react-native'
 
 import { storage } from '../platform/storage.native.js'
 import { appShortName } from '../strings.js'
 import { useTheme } from '../theme.js'
-import type { WelcomeProps } from '../types.js'
+import { space } from '../tokens.js'
+import type { LandingGate, LandingProps, WelcomeProps } from '../types.js'
 import { Txt } from './base.js'
 import { Button } from './controls.js'
+import { TenantLogo } from './feedback.js'
 import { Screen, Stack } from './layout.js'
 
 /** One key, one device. Its presence is the whole state; the value is never read. */
@@ -97,5 +100,106 @@ export function Welcome({
         />
       </Stack>
     </Screen>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// docs/29 §1 Landing — two seconds of where you are
+// ---------------------------------------------------------------------------
+
+/** Two seconds: long enough to read three short lines, short enough that nobody waits. */
+const LANDING_HOLD_MS = 2000
+export { LANDING_HOLD_MS }
+
+/**
+ * Has a session just ARRIVED? — which is not the same question as "is there a session".
+ *
+ * `previous` is what the last SETTLED render saw: `undefined` before hydration has ever finished,
+ * `null` for signed out, the session's key otherwise. So the landing starts on a fresh sign-in and
+ * on a distributor switch, and never on the launch that restored a session — a driver who opens the
+ * app at 6 am is not told where he is, he is taken there.
+ */
+export function landingStarts(previous: string | null | undefined, next: string | null): boolean {
+  return previous !== undefined && next !== null && next !== previous
+}
+
+/**
+ * The gate every root layout asks. `sessionKey` identifies the open distributorship AND the person
+ * (`${tenantId}:${userId}`), so a switch and a different sign-in both count as an arrival.
+ *
+ * The state is adjusted DURING the render that sees the change, not in an effect afterwards: React
+ * re-renders before committing, so the home never paints for a frame behind the landing that was
+ * about to cover it.
+ */
+export function useLandingGate(hydrating: boolean, sessionKey: string | null): LandingGate {
+  const [state, setState] = useState<{ key: string | null | undefined; show: boolean }>({
+    key: undefined,
+    show: false,
+  })
+  if (!hydrating && state.key !== sessionKey) {
+    setState({ key: sessionKey, show: landingStarts(state.key, sessionKey) })
+  }
+  const done = useCallback(() => {
+    setState((previous) => ({ key: previous.key, show: false }))
+  }, [])
+  return { show: state.show, done }
+}
+
+/**
+ * NO ANIMATION, and therefore nothing for `prefers-reduced-motion` to switch off. docs/29 asks for
+ * "no animation, just a short hold" under that preference; the hold is the whole effect for
+ * everybody, which is also what keeps this half and the web half saying the same thing. A van phone
+ * spends no frames on a fade.
+ */
+export function Landing({
+  tenantName,
+  logoUrl,
+  personName,
+  appTitle,
+  onDone,
+  holdMs = LANDING_HOLD_MS,
+  testID,
+}: LandingProps): React.JSX.Element {
+  const theme = useTheme()
+  useEffect(() => {
+    const timer = setTimeout(onDone, holdMs)
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [onDone, holdMs])
+
+  return (
+    <View
+      testID={testID}
+      accessibilityLiveRegion="polite"
+      style={{
+        // OVER the app, not instead of it: the navigator underneath stays mounted, so the redirect
+        // this sign-in started is not stranded behind two seconds of introduction.
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+        zIndex: 60,
+        elevation: 60,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: space[6],
+        backgroundColor: theme.colors.bg.ground,
+      }}
+    >
+      <Stack gap={4} align="center" testID="landing-panel">
+        <TenantLogo size="card" name={tenantName} logoUrl={logoUrl} />
+        <Txt field="title" desk="pageTitle" as="h1" testID="landing-tenant">
+          {tenantName}
+        </Txt>
+        <Txt field="body" desk="body" testID="landing-person">
+          {personName}
+        </Txt>
+        <Txt field="label" desk="meta" color={theme.colors.text.secondary} testID="landing-app">
+          {theme.t('landing.app', { name: appShortName(appTitle) })}
+        </Txt>
+      </Stack>
+    </View>
   )
 }

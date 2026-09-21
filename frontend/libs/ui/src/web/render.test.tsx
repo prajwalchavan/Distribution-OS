@@ -18,7 +18,7 @@ import { AppShell, MenuRow, TenantSwitcher } from './shell.js'
 import { Txt } from './base.js'
 import { Link, Pressable, Row } from './layout.js'
 import { FONT_CSS, FONT_URL } from './css.js'
-import { Welcome, clearWelcomeSeen, markWelcomeSeen } from './welcome.js'
+import { Landing, Welcome, clearWelcomeSeen, markWelcomeSeen } from './welcome.js'
 import type { ConnectionState, MapMarker } from '../types.js'
 
 function renderDesk(node: React.ReactNode): string {
@@ -1136,5 +1136,69 @@ describe('docs/29 §1 Welcome', () => {
     const html = welcome('delivery', 'phone')
     expect(html).toContain('the-sign-in-form')
     expect(html).not.toContain('welcome-sign-in')
+  })
+})
+
+/**
+ * docs/29 §1 Landing — two seconds of where you are, after a fresh sign-in or a distributor switch.
+ *
+ * Three facts and nothing to tap: whose distributorship this is (its logo and name, or the initials
+ * mark when no logo has been uploaded), who is signed in, and which app this is. It covers the app
+ * rather than replacing it, so expo-router's navigator stays mounted underneath and a redirect that
+ * is still settling is not stranded.
+ *
+ * NO ANIMATION, for everybody. `prefers-reduced-motion` asks for "no animation, just a short hold";
+ * that is what this is on both renderers, which is why respecting the preference costs nothing and
+ * cannot drift out of step between web and native. The hold IS the effect.
+ */
+describe('docs/29 §1 Landing', () => {
+  function landing(viewport: 'desk' | 'phone', tenantName = 'Tarsun Enterprises'): string {
+    return renderToStaticMarkup(
+      <ThemeContextProvider touch={viewport === 'phone' ? 'field' : 'desk'} viewport={viewport}>
+        <Landing
+          tenantName={tenantName}
+          logoUrl={null}
+          personName="Sunil Tarsun"
+          appTitle="Distribution OS - Delivery"
+          onDone={() => undefined}
+          testID="landing"
+        />
+      </ThemeContextProvider>,
+    )
+  }
+
+  it('docs/29 §1 Landing — at 1280: the distributor, the person, and which app this is', () => {
+    const html = landing('desk')
+    expect(html).toContain('Tarsun Enterprises')
+    expect(html).toContain('Sunil Tarsun')
+    expect(html).toContain('Delivery app')
+  })
+
+  it('docs/29 §1 Landing — at 390: the same three facts', () => {
+    const html = landing('phone')
+    expect(html).toContain('Tarsun Enterprises')
+    expect(html).toContain('Sunil Tarsun')
+    expect(html).toContain('Delivery app')
+  })
+
+  it('docs/29 §1 Landing — no logo uploaded falls back to the distributor’s own initials mark', () => {
+    expect(landing('phone')).toContain('TE')
+  })
+
+  it('docs/29 §1 Landing — the console says the product’s own name, because that is whose console it is', () => {
+    expect(landing('desk', 'Distribution OS')).toContain('Distribution OS')
+  })
+
+  it('docs/29 §1 Landing — covers the app rather than replacing it, and is nothing to tap', () => {
+    const html = landing('desk')
+    expect(html).toContain('position:fixed')
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('<a ')
+  })
+
+  it('docs/29 §1 Landing — no animation at all: prefers-reduced-motion has nothing to switch off', () => {
+    const html = landing('phone')
+    expect(html).not.toContain('animation')
+    expect(html).not.toContain('transition')
   })
 })
