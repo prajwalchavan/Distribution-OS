@@ -89,7 +89,9 @@ services:
       DOMAIN: ${DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
       APP_UPSTREAM: ${APP_UPSTREAM}
-      CORS_ORIGINS: ${CORS_ORIGINS}
+      # No CORS_ORIGINS here on purpose: CORS is answered by the services themselves (corsOptions()
+      # reads it from .env.prod inside the app container). A header added at the proxy as well would
+      # either duplicate it or widen what the server decided.
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       # The certificates and the ACME account key. Losing this volume means re-issuing on every

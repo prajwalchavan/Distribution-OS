@@ -30,6 +30,13 @@ const projectDir = mkdtempSync(join(tmpdir(), 'dos-compose-'))
 writeFileSync(join(projectDir, '.env.prod'), readArtifact('backend/infra/.env.prod.example'))
 const envFile = join(projectDir, '.env.prod')
 
+/**
+ * The Docker CLI is not part of the toolchain CLAUDE.md declares, so a developer without it gets a
+ * clear skip rather than a red on a file they did not touch. CI's ubuntu runner ships Compose v2, so
+ * these really do run there, and `docker compose config` never needs a daemon.
+ */
+const hasCompose = spawnSync('docker', ['compose', 'version'], { encoding: 'utf8' }).status === 0
+
 interface Resolved {
   services: Record<
     string,
@@ -76,7 +83,7 @@ function resolved(): Resolved {
   return JSON.parse(compose(['config', '--format', 'json']).stdout) as Resolved
 }
 
-describe('DEP-02 compose for the VM', () => {
+describe.runIf(hasCompose)('DEP-02 compose for the VM', () => {
   it('DEP-02 resolves with docker compose config, with no unset variable', () => {
     const config = resolved()
     expect(Object.keys(config.services).sort()).toEqual(['app', 'caddy', 'db', 'migrate'])
