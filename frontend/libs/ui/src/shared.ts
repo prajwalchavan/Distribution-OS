@@ -20,6 +20,7 @@ export * from './money.js'
 export * from './qty.js'
 export * from './theme.js'
 export * from './relative-time.js'
+export * from './route-for.js'
 export * from './charts/geometry.js'
 export * from './types.js'
 

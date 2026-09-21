@@ -840,6 +840,15 @@ export interface AppShellProps extends Testable {
   sections: readonly NavSection[]
   /** The current route. The rail and the tab bar mark the item whose `href` prefixes it. */
   activeHref: string
+  /**
+   * The item that is this shell's HOME, which lights only when the person is exactly on it.
+   *
+   * Every other item lights on itself and on its descendants, and the home is a prefix of them all —
+   * so without this the home is lit everywhere. Default `'/'`, which is what the console and the
+   * template use. The one app gives each group a segment of its own (docs/31 §1.1), and the group
+   * layout passes its base: `/owner`, `/delivery`.
+   */
+  homeHref?: string | undefined
   onNavigate: (href: string) => void
   /** Hides the items this signed-in role may not reach. Default: everything is allowed. */
   can?: ((item: NavItem) => boolean) | undefined

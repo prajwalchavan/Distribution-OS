@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ALL_ROLES } from '@dos/contracts'
 import type { ServiceDefinition } from '../service/define.js'
-import { renderAppReadme, renderServiceReadme } from './readme.js'
+import { renderAppReadme, renderOneAppReadme, renderServiceReadme } from './readme.js'
 
 /** Minimal fixture: one public endpoint (health.ping) plus a mix of role-gated ones (tenancy.*). */
 const ownerLike: ServiceDefinition = {
@@ -190,5 +190,63 @@ describe('renderAppReadme', () => {
     const md = renderAppReadme(app)
     expect(md).toContain('| Method | Path | Used for | Roles |')
     expect(md).toMatch(/\| GET \| `\/tenancy\/me` \| [^|]+\| owner, manager,/)
+  })
+})
+
+/**
+ * docs/31 §7 — the six per-role app READMEs became one, whose groups name six services.
+ *
+ * The thing worth pinning is that it is still SIX: a renderer that quietly dropped a group, or folded
+ * the six endpoint tables into one, would read as "this app talks to one API", which is the opposite
+ * of what the merge did on the server side (docs/29 §0: one service per role, unchanged).
+ */
+describe('renderOneAppReadme', () => {
+  const oneApp = {
+    name: '@dos/dos-app',
+    title: 'Distribution OS',
+    blurb: 'Test blurb for the one app.',
+    run: 'cd frontend && pnpm --filter @dos/dos-app web',
+    env: 'EXPO_PUBLIC_AUTH_URL=http://127.0.0.1:3000',
+    groups: [
+      { heading: 'Owner', base: '/owner', service: ownerLike, screens: ['Today'] },
+      {
+        heading: 'Manager and accountant',
+        base: '/manager',
+        service: backOfficeLike,
+        screens: ['Approvals'],
+      },
+    ],
+  }
+
+  it('is deterministic', () => {
+    expect(renderOneAppReadme(oneApp)).toBe(renderOneAppReadme(oneApp))
+  })
+
+  it('names every group, its visible base and the service behind it', () => {
+    const md = renderOneAppReadme(oneApp)
+    expect(md).toContain('| Owner | `/owner/…` | Owner service | 3001 |')
+    expect(md).toContain('| Manager and accountant | `/manager/…` | Manager service | 3002 |')
+  })
+
+  it('lists the screens under a heading per group, never in one flat list', () => {
+    const md = renderOneAppReadme(oneApp)
+    const screens = md.slice(md.indexOf('## Screens'), md.indexOf('## Endpoints'))
+    expect(screens).toContain('### Owner (`/owner`)')
+    expect(screens).toContain('### Manager and accountant (`/manager`)')
+  })
+
+  it('renders ONE endpoint table per service, each with its own Roles column', () => {
+    const md = renderOneAppReadme(oneApp)
+    expect(md.match(/\| Method \| Path \| Used for \| Roles \|/g) ?? []).toHaveLength(2)
+    expect(md).toContain('### Owner → Owner service (:3001)')
+    expect(md).toContain('### Manager and accountant → Manager service (:3002)')
+  })
+
+  it('keeps the Sign in paragraph a single-service app gets, word for word', () => {
+    const md = renderOneAppReadme(oneApp)
+    const signIn = md.slice(md.indexOf('## Sign in'), md.indexOf('## Run'))
+    expect(signIn).toContain('auth-service')
+    expect(signIn).toContain('Authorization: Bearer')
+    expect(signIn).toContain('refresh token')
   })
 })

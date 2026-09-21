@@ -29,7 +29,10 @@ import { describe, expect, it } from 'vitest'
 const here = dirname(fileURLToPath(import.meta.url))
 
 describe('DOS-154: the Pay amount field shows what is actually payable', () => {
-  const pay = readFileSync(join(here, '..', '..', '..', 'retailer-app', 'app', 'pay.tsx'), 'utf8')
+  const pay = readFileSync(
+    join(here, '..', '..', '..', 'dos-app', 'app', 'retailer', 'pay.tsx'),
+    'utf8',
+  )
 
   it('never wires the RupeeInput value to the raw amount, blind to ticked bills', () => {
     expect(pay).not.toMatch(/value=\{amount\s*\?\?\s*owed\}/)

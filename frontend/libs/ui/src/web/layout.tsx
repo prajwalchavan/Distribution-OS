@@ -11,6 +11,7 @@
  */
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
+import { getRouterNavigate, type Navigate } from '../router-bridge.js'
 import { useTheme } from '../theme.js'
 import { gap, layout, radius as radii, space, type SemanticColors } from '../tokens.js'
 import type {
@@ -483,22 +484,15 @@ export function Link(props: LinkProps): React.JSX.Element {
 // Router bridge
 // ---------------------------------------------------------------------------
 
-type Navigate = (href: string, replace: boolean) => void
-
-let routerNavigate: Navigate | null = null
-
 /**
- * expo-router lives in the app, not the kit — `@dos/ui` must stay installable in a plain Vitest run
- * and in the gallery, neither of which has a router. The app's root layout calls this once with
- * `router.push` / `router.replace`; until it does, `<Link>` is an ordinary anchor and a full page
- * load, which is the correct degraded behaviour rather than a dead control.
+ * The bridge itself is `../router-bridge.js` — one slot for both renderers, so `useGo()` and this
+ * `<Link>` cannot end up holding different routers. Re-exported here because every root layout and
+ * `parity.types.ts` know it by this name.
  */
-export function setRouterNavigate(navigate: Navigate | null): void {
-  routerNavigate = navigate
-}
+export { setRouterNavigate, type Navigate } from '../router-bridge.js'
 
 function useRouterNavigate(): Navigate | null {
-  return routerNavigate
+  return getRouterNavigate()
 }
 
 // ---------------------------------------------------------------------------

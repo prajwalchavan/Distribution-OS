@@ -1,13 +1,18 @@
 # Distribution OS — frontend
 
-Seven apps, one per role, each talking to its own backend service. They stand on a shared kit: one design
-system, one API client, one offline library. This workspace installs and builds **separately** from
-`backend/`; the two are linked, not merged.
+**ONE app for the six business roles** (`dos-app`, :5173), plus the platform console (`admin-app`, :5179).
+They stand on a shared kit: one design system, one API client, one offline library. This workspace installs
+and builds **separately** from `backend/`; the two are linked, not merged.
 
-**Every app is universal** — website + Android + iOS from ONE Expo codebase per role (founder,
-2026-09-06; docs/22 §8, docs/08 §0). A screen is written against the `@dos/ui` contract and Metro swaps
-the renderer per platform: a real DOM on the web, React Native views on a phone. The shell is chosen by
-VIEWPORT (desk rail ≥ 1024 px, phone tabs below), not by app.
+The six per-role apps were retired at the one-app merge (docs/31 §7, docs/22 §8): owner, manager, sales,
+warehouse, delivery and retailer are now six visible ROUTE GROUPS of one Expo project — `/owner/orders`,
+`/delivery/stop/[id]/collect` — and the elected role in the token decides which group opens and which
+service each call leaves for. The server is unchanged: still one service per role (docs/29 §0).
+
+**Every app is universal** — website + Android + iOS from ONE Expo codebase (founder, 2026-09-06;
+docs/22 §8, docs/08 §0). A screen is written against the `@dos/ui` contract and Metro swaps the renderer
+per platform: a real DOM on the web, React Native views on a phone. The shell is chosen by VIEWPORT
+(desk rail ≥ 1024 px, phone tabs below), not by app.
 
 ```
 frontend/
@@ -16,24 +21,29 @@ frontend/
                                    primitives, AppShell, and @dos/ui/platform (camera, GPS, print, files, …)
   libs/api-client   @dos/api-client — the typed oRPC client, session, cache, React layer
   libs/offline      @dos/offline — the offline write path (a later slice; untouched by the kit)
-  libs/app-template @dos/app-template — the skeleton every role app is generated from, and a running app itself
-  admin-app         placeholder                          -> admin-service    :3007
-  (owner, manager, sales, warehouse, delivery, retailer apps are generated from the template, one slice at a time)
+  libs/app-template @dos/app-template — the skeleton an app is generated from, and a running app itself
+  dos-app           THE app: app/{owner,manager,sales,warehouse,delivery,retailer}/ -> :3001-:3006
+  admin-app         the platform console                 -> admin-service    :3007
 ```
 
-## Making an app
+## Running the app
 
 ```bash
 cd frontend
-pnpm --filter @dos/app-template new owner    # -> frontend/owner-app, web 5173, api :3001
-pnpm install
-pnpm --filter @dos/owner-app web             # http://localhost:5173
-pnpm --filter @dos/owner-app ios             # the iOS simulator (development build)
-pnpm --filter @dos/owner-app android         # a device or emulator
+pnpm --filter @dos/dos-app web               # http://localhost:5173
+pnpm --filter @dos/dos-app ios               # the iOS simulator (development build)
+pnpm --filter @dos/dos-app android           # Pixel_7_API_36 (boot it with -memory 3072)
 ```
 
-Ports: owner 5173/:3001 · manager 5174/:3002 · sales 5175/:3003 · warehouse 5176/:3004 ·
-delivery 5177/:3005 · retailer 5178/:3006 · admin 5179/:3007.
+Ports: the one app 5173 (its groups reach :3001-:3006) · the console 5179/:3007 · the skeleton 5170.
+5174-5178 are released.
+
+## Adding a business role
+
+It is a GROUP, not an app: a directory under `dos-app/app/<g>/`, a row in `dos-app/src/config.ts`
+`GROUPS`, and `dos-app/src/groups/<g>/{nav.ts,strings.ts,lib/}`. docs/31 §1 is the shape. `pnpm --filter
+@dos/app-template new <role> <port>` still generates a separate INSTALL — which is what the console is,
+and what a business role must not be.
 
 ## How the pieces fit
 
@@ -50,8 +60,9 @@ delivery 5177/:3005 · retailer 5178/:3006 · admin 5179/:3007.
      |  types from @dos/contracts (link: ../../backend/libs/contracts)
      |  money / quantity / date maths from @dos/domain (link: ../../backend/libs/domain)
      v
-  auth-service :3000   +   this app's own service (owner :3001, manager :3002, sales :3003,
-                            warehouse :3004, delivery :3005, retailer :3006, admin :3007)
+  auth-service :3000   +   the ELECTED group's service, chosen per request by `serviceFor(role)`
+                            (owner :3001, manager :3002, sales :3003, warehouse :3004,
+                             delivery :3005, retailer :3006; the console :3007)
      v
   one Postgres, tenant_id + forced RLS
 ```
@@ -98,14 +109,14 @@ username per role (owner `sunil.tarsun`, manager `vikas.kadam`, sales `rahul.des
 
 ## Configuration
 
-One base URL per app, plus the auth origin. Nothing else changes between the two deployment shapes
-(`docs/26` §7):
+One base, plus the auth origin. `EXPO_PUBLIC_API_URL` is the ALL-IN-ONE base and **not** one service's URL
+— that is what the merge removed (docs/31 R10): left unset, each group talks to its own port on this Mac;
+set, each group is a docs/26 §7 prefix under it, and `serviceFor(role, base)` owns the table.
 
-| Variable                 | Split (one service per port) | All-in-one (one port, path prefixes) |
-| ------------------------ | ---------------------------- | ------------------------------------ |
-| `EXPO_PUBLIC_API_URL`    | `http://127.0.0.1:300{1..7}` | `https://api.example.in`             |
-| `EXPO_PUBLIC_API_PREFIX` | unset                        | `/owner`, `/manager`, `/sales`, …    |
-| `EXPO_PUBLIC_AUTH_URL`   | `http://127.0.0.1:3000`      | `https://api.example.in`             |
+| Variable               | Split (one service per port) | All-in-one (one port, path prefixes) |
+| ---------------------- | ---------------------------- | ------------------------------------ |
+| `EXPO_PUBLIC_API_URL`  | unset                        | `https://api.example.in`             |
+| `EXPO_PUBLIC_AUTH_URL` | `http://127.0.0.1:3000`      | `https://api.example.in`             |
 
 Expo inlines every `EXPO_PUBLIC_*` variable at BUILD time, so nothing secret may be named there. In dev the
 services answer any localhost origin (`corsOptions()`), so there is no proxy to configure.
@@ -124,6 +135,9 @@ services answer any localhost origin (`corsOptions()`), so there is no proxy to 
   actions, 63 dp on the owner and manager phone surfaces, 32 px on desk (UX-00 §5.2).
 - **The distributor's own name and logo** appear inside every app and on every document; the Distribution OS
   mark appears on the sign-in screen and nowhere else.
+- **No group reaches another.** A file under `app/<g>/` or `src/groups/<g>/` imports nothing from another
+  group, writes no route literal outside `/<g>`, and never calls `serviceFor`. Guarded by
+  `libs/ui/src/one-app-groups.guard.test.ts`; the route tree's uniqueness by `one-app-routes.test.ts`.
 
 ## Toolchain notes
 
@@ -141,7 +155,9 @@ services answer any localhost origin (`corsOptions()`), so there is no proxy to 
 - The node linker is `hoisted` because Expo expects a flat `node_modules`.
 - Metro does **not** rewrite a `./thing.js` specifier to `./thing.ts` the way `tsc` and Vite do, and the repo
   writes relative imports Node's way because the backend emits real `.js`. Each app's `metro.config.js`
-  carries a `resolveRequest` that tries the extensionless form first; see the comment there.
+  carries a `resolveRequest` that tries the extensionless form first; see the comment there. It also carries
+  the `.wasm` `assetExts` block the three offline groups' web store needs — take it from the template's
+  config, never from an app that had no store (docs/31 R4).
 
 ## Where the design comes from
 

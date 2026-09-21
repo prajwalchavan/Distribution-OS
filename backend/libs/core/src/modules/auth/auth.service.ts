@@ -710,6 +710,7 @@ export class AuthService {
         displayName: row.branding.displayName,
         logoUrl: row.branding.logoUrl,
         role: row.membership.role,
+        extraRoles: wireExtraRoles(row),
         status: row.membership.status,
       }))
     })
@@ -1338,6 +1339,16 @@ function toAuthTenant(row: MembershipRow): AuthTenant {
   }
 }
 
+/**
+ * docs/31 ruling B5 — the membership's `extra_roles`, as the device's chooser lists them. The column
+ * is what `electRole` grants from, so the list the person is offered and the list the server grants
+ * are one list. A retailer membership is always `[]`: the contract refuses an extra role on a shop
+ * before the column is written, and the wire says so rather than leaving the field off.
+ */
+function wireExtraRoles(row: MembershipRow): MembershipSummary['extraRoles'] {
+  return row.membership.role === 'retailer' ? [] : [...row.membership.extraRoles]
+}
+
 function toMembershipSummary(row: MembershipRow): MembershipSummary {
   return {
     tenantId: row.membership.tenantId,
@@ -1346,6 +1357,7 @@ function toMembershipSummary(row: MembershipRow): MembershipSummary {
     displayName: row.branding.displayName,
     logoUrl: row.branding.logoUrl,
     role: row.membership.role,
+    extraRoles: wireExtraRoles(row),
     status: row.membership.status,
   }
 }
