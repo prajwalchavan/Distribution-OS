@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest'
 import {
   TRIP_BACK_AT_THE_GODOWN,
   TRIP_TAKES_A_LATE_BILL,
+  tripReach,
   undeliveredNext,
 } from './lib/trip-reach'
 import { strings } from './strings'
@@ -94,5 +95,28 @@ describe('M7 Trips: the desk follows the server from check-in', () => {
     expect(code).toMatch(/t\('m7u\.backAtTheGodown'\)/)
     // No second copy of either set inside the screen.
     expect(code).not.toMatch(/new Set\(\[/)
+  })
+
+  it("DOS-196: the trips register's reach column is a fact about the trip — 'on the road' once it has left, and nothing at all for a reader who may not add a bill", async () => {
+    // The planner (owner, manager): the van has left ⇒ the row opens nothing, and the column says so.
+    for (const state of ['active', 'closing', 'settled', 'settled_with_variance', 'cancelled'])
+      expect(tripReach(state, true), `planner, ${state}: the van is not at the godown`).toBe(
+        'onTheRoad',
+      )
+    for (const state of ['planned', 'loading'])
+      expect(tripReach(state, true), `planner, ${state}: the trip still takes a late bill`).toBeNull()
+
+    // The accountant lacks `delivery.stops.add`: it reads the register and is told nothing, never
+    // "on the road — the desk cannot change it" about a van still standing at the godown.
+    for (const state of TRIP_STATES)
+      expect(
+        tripReach(state, false),
+        `accountant, ${state}: no sentence — "you may not" is not "the van has left"`,
+      ).toBeNull()
+
+    expect(catalogue['m7t.onTheRoad']).toBe('On the road — the desk cannot change it')
+
+    const code = withoutComments(await readScreen())
+    expect(code).toMatch(/tripReach\(row\.state,\s*mayAdd\)\s*===\s*'onTheRoad'/)
   })
 })

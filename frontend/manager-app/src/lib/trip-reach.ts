@@ -48,5 +48,6 @@ export function undeliveredNext(tripState: string): UndeliveredNext {
 export type TripReach = 'onTheRoad' | null
 
 export function tripReach(tripState: string, mayAdd: boolean): TripReach {
-  return mayAdd && TRIP_TAKES_A_LATE_BILL.has(tripState) ? null : 'onTheRoad'
+  if (!mayAdd) return null
+  return TRIP_TAKES_A_LATE_BILL.has(tripState) ? null : 'onTheRoad'
 }
