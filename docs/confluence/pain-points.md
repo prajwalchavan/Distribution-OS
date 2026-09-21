@@ -6,10 +6,10 @@
 | ------------ | ------------------- |
 | Document     | Pain Point Analysis |
 | Product      | Distribution OS     |
-| Version      | 2.0                 |
+| Version      | 2.1                 |
 | Status       | Active              |
 | Owner        | Business Analysis   |
-| Last Updated | September 2026      |
+| Last Updated | 21 September 2026   |
 
 ---
 
@@ -17,11 +17,11 @@
 
 This document identifies operational pain points observed during distributor research and maps them to their business impact, root causes, and the solution **as actually built or scheduled** in Distribution OS. It serves as the primary justification for product features and helps prioritize development based on customer value rather than assumptions.
 
-**New in version 2.0.** Every "Proposed Solution" from version 1.0 is replaced by **Solution in Distribution OS** — the named module, procedure or table that answers the pain point — plus an honest **Status**. Nothing from version 1.0 has been deleted; where a dated founder decision changed the answer, the sentence says so and carries its date. The product name is **Distribution OS** (decided 2026-09-05); the six role apps are "Distribution OS - Owner", "- Manager", "- Sales", "- Warehouse", "- Delivery", "- Retailer", plus a seventh internal admin console.
+**New in version 2.0.** Every "Proposed Solution" from version 1.0 is replaced by **Solution in Distribution OS** — the named module, procedure or table that answers the pain point — plus an honest **Status**. Nothing from version 1.0 has been deleted; where a dated founder decision changed the answer, the sentence says so and carries its date. The product name is **Distribution OS** (decided 2026-09-05), and since 2026-09-21 that is also the name of the **single app** the six business roles share — it becomes the right app for whoever signs in — alongside a separate internal admin console.
 
 **Status vocabulary.** **BUILT** = every named element exists as a verified backend procedure or table · **BUILT, GAP NAMED** = core built, a named part is missing and stated · **PLANNED (v1)** = not built, a named module in the chain covers it before the pilot · **NOT IN V1** = deliberately out of scope, reason stated.
 
-As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). **No app screen exists yet** — backend first is a deliberate sequencing decision (2026-09-04). Statuses below describe the backend, not the user interface.
+As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and **all seven apps built and gated green** on 2026-09-07. The statuses below describe both the backend and the screens; everything once marked PLANNED (v1) is now built. Nothing is deployed yet — go-live is targeted for **Saturday 27 September 2026** on `distributionos.in`.
 
 **Analysis framework.** Each pain point is analyzed as: Current Situation · Root Cause · Business Impact · Severity · Frequency · Affected Personas · **Solution in Distribution OS** (replaces "Proposed Solution", version 2.0) · **Status** · Related Modules.
 
@@ -41,7 +41,7 @@ As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests
 - **The invoice is never typed** — it is derived from the confirmed pack (`warehouse.packs.confirm` → billing issues the GST invoice). Zero re-keying is structural, not a matter of discipline.
 - **WhatsApp free text and voice capture are in v1, not "future"** (decided 2026-09-05, overriding the version 1.0 "(future)" label): text or speech is parsed against the shop's own SKU history into a **draft** order that a human always confirms.
 
-**Status.** Order capture **BUILT**. WhatsApp and voice intake **PLANNED (v1)** — module 12 `ai`, with inbound message capture in notifications. **Related modules:** orders, pricing, ai, notifications.
+**Status.** Order capture **BUILT**. WhatsApp and voice intake **BUILT** — the `ai` module, with inbound message capture in notifications. **Related modules:** orders, pricing, ai, notifications.
 
 # Pain Point 2 – WhatsApp-Based Order Management
 
@@ -51,7 +51,7 @@ As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests
 
 **Solution in Distribution OS.** Structured order creation in the Sales app (`orders.create` / `setLines` / `submit`), searchable history through `orders.list` filtered by shop, salesperson, state and date range, and `pricing.bargains.request` for a price the rep cannot give alone. **Refinement, decided 2026-09-05:** the goal is no longer to _replace_ WhatsApp but to _absorb_ it. Shops and reps keep the channel they already use; a free-text message becomes a draft order through the `ai` intake parser, always human-confirmed before it counts. Removing WhatsApp was never realistic; making it structured is.
 
-**Status.** Structured capture and history **BUILT**. WhatsApp absorption **PLANNED (v1)**. **Related modules:** orders, notifications, ai.
+**Status.** Structured capture and history **BUILT**. WhatsApp absorption **BUILT**. **Related modules:** orders, notifications, ai.
 
 # Pain Point 3 – Invoice Becomes the Entire Workflow
 
@@ -129,7 +129,7 @@ Two further lifecycles run alongside the order: **trip** (`planned` → `loading
 
 **Solution in Distribution OS.** Trips with sequenced stops, a manager-approved load-out (the **manager gives the approval from the Manager app**, decided 2026-09-05 — it is not a PIN typed on the warehouse phone), live vehicle positions (`delivery.vehicles.positions` fed by `/gps/points`), proof of delivery by photo, signature or OTP, partial and failed outcomes with reasons, returns as credit notes, van sales from vehicle stock, and end-of-day settlement with a cash variance the owner must clear. **GPS is trip-scoped:** points are captured during a trip only, under a recorded consent (`location_consents`), retained 90 days. The shop sees an ETA, never a coordinate. **Route optimisation is in v1** (decided 2026-09-05, overriding the earlier "must not build" position): stop sequencing by distance and time window, with the driver always free to override the suggested order.
 
-**Status.** Trips, stops, GPS, POD, collections, van sales and settlement **BUILT** (verified 2026-09-05). Route optimisation **PLANNED (v1)** — module 12 `ai`. **Related modules:** delivery, ai, billing, receivables.
+**Status.** Trips, stops, GPS, POD, collections, van sales and settlement **BUILT** (verified 2026-09-05). Route sequencing **BUILT** — the `ai` module. **Related modules:** delivery, ai, billing, receivables.
 
 # Pain Point 10 – Limited Business Insights
 
@@ -139,7 +139,7 @@ Two further lifecycles run alongside the order: **trip** (`planned` → `loading
 
 **Solution in Distribution OS.** Every operational register is already live — open orders, outstanding by ageing bucket, active trips, the billing queue — so today's answer is a list, not a report run at night. On top of that, the reporting module adds the **owner dashboard** (a rolling summary refreshed every fifteen minutes), drill-down registers (rep productivity, delivery performance, fill rate, stock value, scheme spend), and alerts through notifications (dues reminders, deliveries due today). **Owner graphs are a requirement, not a nice-to-have** (decided 2026-09-04): the Owner app must show growth and performance as charts wherever possible, which is why reporting serves chart-ready series — month grain, year on year, grouped by beat — rather than only tables.
 
-**Status.** Live registers **BUILT**. Dashboard, registers, chart series and alerts **PLANNED (v1)** — modules 9 `reporting` and 8 `notifications`. **Related modules:** reporting, notifications.
+**Status.** Live registers **BUILT**. Dashboard, registers, chart series and alerts **BUILT** — the `reporting` and `notifications` modules. **Related modules:** reporting, notifications.
 
 # Pain Point 11 – Customer Credit Visibility
 
@@ -159,7 +159,7 @@ Two further lifecycles run alongside the order: **trip** (`planned` → `loading
 
 **Solution in Distribution OS.** One database, one API contract, one set of master data: a globally curated catalogue of manufacturers, products and variants with a per-distributor overlay; a global shop identity with per-distributor links, so a shop buying from three distributors is one identity with three relationships and one login. Backend modules never read each other's tables — they talk through published services and an outbox — which is what keeps the audit trail whole. **Legacy systems coexist rather than being switched off** (decided 2026-08, reaffirmed 2026-09-04): a **generic importer** (upload → preview → map columns → save the profile → dry run → commit) takes data from TradeEzee, Marg, Busy, Tally, FieldAssist or plain Excel; Tally export keeps the accountant's existing workflow; a sale already billed in a brand's DMS is imported and linked, **never re-invoiced**.
 
-**Status.** Unified platform and shared master data **BUILT**. Generic importer, FieldAssist import and Tally export **PLANNED (v1)** — module 6 `integrations`. **Related modules:** platform (tenancy), catalog, retailers, integrations.
+**Status.** Unified platform and shared master data **BUILT**. Generic importer, FieldAssist import and Tally export **BUILT** — the `integrations` module; the pilot's own import runs at cut-over. **Related modules:** platform (tenancy), catalog, retailers, integrations.
 
 # Pain Points Added Since the Original Research (2026-09-05)
 
@@ -167,9 +167,9 @@ Field work with the pilot customer, Tarsun Enterprises (Kalyan West), surfaced f
 
 | #   | Pain point                                                                                                                                | Solution in Distribution OS                                                                                                                                                                                                                                              | Severity | Status                                 |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | -------------------------------------- |
-| 13  | **Supplier bills are typed in by hand**, page after page, with pack sizes written six different ways                                      | Zero typing except the blind gate count: e-invoice QR verify → vision extraction of every page → GST and page-completeness validators → SKU match → **human review on the phone** → one idempotent goods-receipt commit. A machine never commits stock on its own.       | Critical | PLANNED (v1) — module 5 `docint`       |
-| 14  | **A brand bills inside its own DMS** (Too Yumm on FieldAssist), so the distributor's system has no record of that sale or that receivable | The brand's sale is imported and linked to the brand's own invoice number as a `brand_dms_import`: **a receivable in; no stock movement** (the brand's field force already moved the goods on its own documents), and **never a second legal invoice** for the same sale | Critical | PLANNED (v1) — module 6 `integrations` |
-| 15  | **Scheme and claim money is lost** because nobody reconciles what the brand owes against what was given away                              | Scheme spend is recorded on every order line as applied rules; claims are raised, tracked and reconciled against the brand                                                                                                                                               | High     | PLANNED (v1) — module 7 `claims`       |
+| 13  | **Supplier bills are typed in by hand**, page after page, with pack sizes written six different ways                                      | Zero typing except the blind gate count: e-invoice QR verify → vision extraction of every page → GST and page-completeness validators → SKU match → **human review on the phone** → one idempotent goods-receipt commit. A machine never commits stock on its own.       | Critical | BUILT — `docint`                       |
+| 14  | **A brand bills inside its own DMS** (Too Yumm on FieldAssist), so the distributor's system has no record of that sale or that receivable | The brand's sale is imported and linked to the brand's own invoice number as a `brand_dms_import`: **a receivable in; no stock movement** (the brand's field force already moved the goods on its own documents), and **never a second legal invoice** for the same sale | Critical | BUILT — `integrations`                 |
+| 15  | **Scheme and claim money is lost** because nobody reconciles what the brand owes against what was given away                              | Scheme spend is recorded on every order line as applied rules; claims are raised, tracked and reconciled against the brand                                                                                                                                               | High     | BUILT — `claims`                       |
 | 16  | **Cash rides on the vehicle** with no accountable close                                                                                   | Expected cash is computed from the day's collections; the crew's check-in counts unsold stock back and settles cash; a variance beyond the owner's tolerance blocks the trip close                                                                                       | High     | BUILT — delivery settlement            |
 
 # Prioritization Matrix
@@ -186,15 +186,15 @@ Revised 2026-09-05. Phase 3 is empty: the founder's decision is that **all AI fe
 | Inventory Visibility                                                                   | High     | Built                                             |                                              |                                          |
 | Shop GPS Locations                                                                     | High     | Built                                             |                                              |                                          |
 | Customer Credit Visibility                                                             | High     | Built                                             |                                              |                                          |
-| Supplier Bill Entry (new)                                                              | Critical | Module 5 `docint`                                 |                                              |                                          |
-| Brand-DMS Coexistence (new)                                                            | Critical | Module 6 `integrations`                           |                                              |                                          |
-| Data Migration from Legacy ERP (new)                                                   | High     | Generic importer (module 6)                       |                                              |                                          |
-| Business Insights and Owner Graphs                                                     | High     | Module 9 `reporting`                              |                                              |                                          |
-| Scheme Claims (new)                                                                    | High     | Module 7 `claims`                                 |                                              |                                          |
-| Incentives for Reps and Crew (new)                                                     | Medium   | Module 10 `incentives`                            |                                              |                                          |
-| **AI Voice Orders · Demand Forecasting / Reorder Suggestions · Smart Recommendations** | Medium   | **Module 12 `ai`** — all three moved from Phase 3 |                                              |                                          |
-| **Delivery Route Optimization**                                                        | High     | **Module 12 `ai`** — moved from Phase 2           |                                              |                                          |
-| Platform Console (onboarding, plans, support access)                                   | Medium   | **Module 13 `platform-admin`** — added 2026-09-05 |                                              |                                          |
+| Supplier Bill Entry (new)                                                              | Critical | Built — `docint`                                  |                                              |                                          |
+| Brand-DMS Coexistence (new)                                                            | Critical | Built — `integrations`                            |                                              |                                          |
+| Data Migration from Legacy ERP (new)                                                   | High     | Built — the generic importer                      |                                              |                                          |
+| Business Insights and Owner Graphs                                                     | High     | Built — `reporting`                               |                                              |                                          |
+| Scheme Claims (new)                                                                    | High     | Built — `claims`                                  |                                              |                                          |
+| Incentives for Reps and Crew (new)                                                     | Medium   | Built — `incentives`                              |                                              |                                          |
+| **AI Voice Orders · Demand Forecasting / Reorder Suggestions · Smart Recommendations** | Medium   | **Built — `ai`**, all three moved from Phase 3    |                                              |                                          |
+| **Delivery Route Optimization**                                                        | High     | **Built — `ai`**, moved from Phase 2              |                                              |                                          |
+| Platform Console (onboarding, plans, support access)                                   | Medium   | **Built — `platform-admin`**, added 2026-09-05    |                                              |                                          |
 | Warehouse Optimization (racks, bins, barcode)                                          | Medium   |                                                   |                                              | Not modelled; revisit on customer demand |
 | Multiple Branches per Distributor                                                      | Medium   |                                                   | v2 — one tenant is one distributorship today |                                          |
 | Multi-language (Hindi, Marathi)                                                        | Medium   |                                                   | English only for now (2026-09-04)            |                                          |
@@ -210,7 +210,7 @@ Module names below are the backend modules that exist in the codebase, not conce
 | ----------------------------------- | ---------------------------- | -------------------------------------------- |
 | Order Entry, WhatsApp Dependency    | `orders`, `pricing`          | sales-service :3003 (Sales app)              |
 | Invoice Workflow, Warehouse Picking | `warehouse`, `billing`       | warehouse-service :3004 (Warehouse app)      |
-| Order Tracking                      | `orders` state machine       | all six apps, read-scoped by role            |
+| Order Tracking                      | `orders` state machine       | every role, read-scoped                      |
 | Inventory Accuracy                  | `inventory`, `procurement`   | warehouse-service, manager-service           |
 | Delivery Tracking, Route            | `delivery`, `ai`             | delivery-service :3005 (Delivery app)        |
 | Payment Collection                  | `delivery`, `receivables`    | delivery-service, manager-service :3002      |
@@ -225,7 +225,7 @@ Module names below are the backend modules that exist in the codebase, not conce
 
 Each implication below is now a property of the built system rather than an intention:
 
-- **Mobile-first workflows for field users.** Six role apps, each web + Android + iOS (decided 2026-09-04). Sales and Delivery work offline before the pilot; an offline upload never returns an error that loses work.
+- **Mobile-first workflows for field users.** One app for the six business roles, which becomes the right app after sign-in, on web + Android + iOS (decided 2026-09-04 as six apps, revised 2026-09-21 to one). Sales and Delivery work offline; an offline upload never returns an error that loses work.
 - **Workflow-based processing instead of paper-driven operations.** State columns move only through coded state machines; the invoice is one record among many, not the workflow itself.
 - **Real-time status tracking across all operational stages,** with every transition attributed to an actor and a device.
 - **Shared master data to eliminate duplicate entry** — one catalogue, one shop identity across distributors.
@@ -238,12 +238,12 @@ Each implication below is now a property of the built system rather than an inte
 
 Distribution OS should demonstrably reduce or eliminate these pain points. Each criterion is measurable from data the system already records; the Success Metrics page names the table or procedure behind each.
 
-- **Minimizing manual data entry** — orders captured digitally as a share of all orders (`sales_orders.source`); supplier bill lines committed without an edit (module `docint`, once built).
+- **Minimizing manual data entry** — orders captured digitally as a share of all orders (`sales_orders.source`); supplier bill lines committed without an edit (`docint`).
 - **Increasing operational visibility** — time from order submitted to invoice issued (`order_state_transitions`); share of the day's orders visible in a live register rather than an end-of-day report.
 - **Improving inventory accuracy** — counted versus expected at cycle count (`cycle_count_lines`); short-pack rate.
 - **Reducing delivery delays** — on-time rate from stop ETA versus arrival; failed-delivery rate and reason mix.
 - **Accelerating payment reconciliation** — average days to allocate a receipt against a bill; cash variance at trip settlement.
-- **Enabling informed, data-driven decision-making** — owner dashboard adoption and the ageing profile trend, once module 9 `reporting` lands.
+- **Enabling informed, data-driven decision-making** — owner dashboard adoption and the ageing profile trend, both served by the `reporting` module.
 
 **Related documents.** Problem Statement · AS-IS Business Process · TO-BE Business Process · Product Goals · Success Metrics (KPIs) · Personas · Product Principles · Founder Decisions Register.
 

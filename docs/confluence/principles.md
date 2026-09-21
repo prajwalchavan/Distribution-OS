@@ -6,10 +6,10 @@
 | ------------ | ------------------ |
 | Document     | Product Principles |
 | Product      | Distribution OS    |
-| Version      | 2.0                |
+| Version      | 2.1                |
 | Status       | Active             |
 | Owner        | Product Management |
-| Last Updated | September 2026     |
+| Last Updated | 21 September 2026  |
 
 ---
 
@@ -55,7 +55,7 @@ Manual and paper processes are replaced with digital workflows wherever practica
 
 Field roles work away from a desk, so their screens are designed for a phone first: sales, delivery, warehouse scanning and the retailer.
 
-**Decided 2026-09-04.** Mobile-first no longer means mobile-only. Every one of the six role apps ships as **web, Android and iOS** from the same codebase; the seventh app, the platform console for Distribution OS staff, is web only (decided 2026-09-05). Desk-heavy work (owner analytics, the billing desk, day-end, imports, settings) is designed for the larger screen and remains usable on a phone.
+**Decided 2026-09-04, revised 2026-09-21.** Mobile-first no longer means mobile-only. The six business roles now share **one** app — "Distribution OS", which becomes the right app after sign-in — shipping as **web, Android and iOS** from the same codebase; the platform console for Distribution OS staff is a separate application built the same way (decided 2026-09-05). Desk-heavy work (owner analytics, the billing desk, day-end, imports, settings) is designed for the larger screen and remains usable on a phone.
 
 # Principle 6 — Real-Time Visibility
 
@@ -146,7 +146,7 @@ Common operations — product search, order creation, dashboards, stock updates 
 
 Critical activity is traceable: who did it, what changed, when, and the previous value where it applies.
 
-**In practice:** stock movements and journal lines are append-only by database trigger, order state transitions are recorded, and settings, price and credit changes are logged. Support access to a distributor's data by Distribution OS staff will be time-boxed, owner-approved and audited when the platform console ships (Decided 2026-09-05).
+**In practice:** stock movements and journal lines are append-only by database trigger, order state transitions are recorded, and settings, price and credit changes are logged. Support access to a distributor's data by Distribution OS staff is time-boxed, owner-approved and audited; the platform console that grants it is built (Decided 2026-09-05).
 
 # Principle 15 — AI as an Assistant, Not a Replacement
 
@@ -171,20 +171,20 @@ The platform grows from one distributor to many without a redesign: stateless se
 
 A small set of intuitive screens beats a large set of complex ones. Every screen minimises clicks, typing, navigation and training.
 
-**Decided 2026-09-05:** one screen layout, **A Ledger**, was chosen from four candidates and applies to all six role apps, so a user who learns one app can read another. **English only for now** (Decided 2026-09-04); additional languages are a later decision, not a v1 scope item. Distribution OS branding appears only on the sign-in screen — inside the app and on every document the distributor sees their own name.
+**Decided 2026-09-05:** one screen layout, **A Ledger**, was chosen from four candidates and applies to every role, so a user who learns one part of the product can read another. **English only for now** (Decided 2026-09-04); additional languages are a later decision, not a v1 scope item. Distribution OS branding appears only on the sign-in screen — inside the app and on every document the distributor sees their own name.
 
 # Principle 18 — Data-Driven Decisions
 
 The platform exposes insight, not just storage: slow-moving stock, outstanding collections, purchase trends, delivery performance, sales growth.
 
-**Decided 2026-09-04:** the owner app carries **graphs wherever they help** — growth and how the distributorship is performing — served as chart-ready series by the reporting module. **Status: not built.** Reporting is one of the queued backend modules; today the underlying data exists and the aggregates do not.
+**Decided 2026-09-04:** the owner app carries **graphs wherever they help** — growth and how the distributorship is performing — served as chart-ready series by the reporting module. **Status: built.** The reporting module and the owner dashboard are live, and the charts were walked on the owner app's verification gate.
 
 # Principle 19 — Extensibility
 
 The platform expands without a redesign. Two extensions moved from "future" into **v1** (Decided 2026-09-05):
 
-- **Retailer self-service** — the shop's own app: bills, outstanding, reorder, online payment, delivery tracking, one card per linked distributor.
-- **Platform console** — a seventh app and service for Distribution OS staff: distributor onboarding, plans and subscription state, time-boxed support access.
+- **Retailer self-service** — the shop's own sign-in: bills, outstanding, reorder, online payment, delivery tracking, one card per linked distributor.
+- **Platform console** — a separate app and service for Distribution OS staff: distributor onboarding, plans and subscription state, time-boxed support access.
 
 Still genuinely future: manufacturer portal, marketplace, ERP connectors beyond Tally export, IoT. Permanently out of scope: **financial services of any kind** — no lending, no payments aggregation, no float. Revenue is the distributor's subscription.
 
@@ -196,7 +196,7 @@ The product evolves through customer feedback, operational observation, product 
 
 # Non-negotiables
 
-These ten rules override every principle above, every roadmap item and every customer request. Each is enforced in the database or the domain layer with tests, not by a reviewer remembering it. Source: `docs/22-source-of-truth.md` §9.
+These thirteen rules override every principle above, every roadmap item and every customer request. Each is enforced in the database or the domain layer with tests, not by a reviewer remembering it. Three were added in September 2026 after quality testing found ways to break them. Source: `docs/22-source-of-truth.md` §9.
 
 | #   | Rule                                                                                                                                          | Enforced by                                                  |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -210,6 +210,9 @@ These ten rules override every principle above, every roadmap item and every cus
 | 8   | An offline upload never answers 4xx; rejections are recorded and shown, never lost                                                            | Sync module contract                                         |
 | 9   | A tenant never sees another tenant's rows; a retailer sees only rows linked to its own shop                                                   | Forced row-level security, isolation tests                   |
 | 10  | Distribution OS branding never appears inside a distributor's documents                                                                       | White-label settings; branding is read, never hard-coded     |
+| 11  | Sign-out leaves nothing of the previous person or distributor on a device; the next person to sign in sees only their own data (added September 2026) | Per-person device store, measured on Android, iOS and the browser |
+| 12  | The app never says work is saved on the device when it is not, and never says an order reached the office before it did (added 2026-09-19)     | Honest offline status on every screen, not only the first    |
+| 13  | Money a person has entered is never offered for deletion; a payment the office refuses is kept and routed to the cashier (added 2026-09-19)    | Delivery and receipts contracts                              |
 
 ---
 
@@ -236,7 +239,7 @@ If several answers are "no", the proposal is reconsidered. If the answer to 3 is
 
 These principles define how Distribution OS evolves, and give product, engineering, design and support one framework for deciding. The shortest form: **configure what is safe, fix what protects money, stock, tax and privacy, and never let a principle override a non-negotiable.**
 
-They are partly a description of what exists and partly a commitment about what will be built, and the pages say which is which. As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). The permission matrix covers every procedure and is tested endpoint × role. **No app screen is built yet** — backend first is a deliberate sequencing decision (2026-09-04). The build log is the honest scoreboard.
+They are partly a description of what exists and partly a commitment about what will be built, and the pages say which is which. As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and **all seven apps are built and gated green** (2026-09-07). The permission matrix covers every procedure and is tested endpoint × role. What is left before the pilot is proof, not construction — a cross-role walk, a seven-day business simulation, then go-live on `distributionos.in`, targeted for **Saturday 27 September 2026**. The build log is the honest scoreboard.
 
 ---
 
@@ -246,3 +249,4 @@ They are partly a description of what exists and partly a commitment about what 
 | ------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.0     | August 2026    | Original twenty principles, written before implementation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | 2.0     | September 2026 | Principle 8 rewritten as fixed-versus-configurable with the actual permission matrix, state machines, approval kinds and tenant settings; Non-negotiables section added from the source of truth; Principle 5 restated as six role apps on web, Android and iOS from one codebase with the admin console web only; Principle 6 online-first with offline for sales and delivery; Principle 11 one tenant = one distributorship, branches v2; Principle 12 username and password now, OTP later; Principle 15 all AI in v1 with human confirmation; Principle 17 layout A Ledger and English only; Principle 19 retailer app and platform console moved into v1, fintech ruled out; enforcement and build status added throughout |
+| 2.1     | 21 September 2026 | Re-synced to `docs/22-source-of-truth.md`: Principle 5 restated again as **one app for the six business roles**, elected at sign-in (decided 2026-09-21), with the console separate; the build-status paragraph replaced with what the backend and the seven apps actually measured; owner graphs marked built rather than queued; the non-negotiables list grown from ten to thirteen |

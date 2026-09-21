@@ -6,9 +6,9 @@
 | ------------ | ------------------ |
 | Document     | Product Mission    |
 | Product      | Distribution OS    |
-| Version      | 2.0                |
+| Version      | 2.1                |
 | Status       | Active             |
-| Last Updated | September 2026     |
+| Last Updated | 21 September 2026  |
 | Owner        | Product Management |
 
 ---
@@ -29,7 +29,7 @@ Version 2.0 rewrites the August 2026 draft against the product as decided and bu
 
 > **To simplify and modernize distribution businesses by providing a unified, intelligent, and scalable platform that digitizes operations, improves visibility, automates repetitive work, and empowers every stakeholder across the distribution ecosystem.**
 
-The mission statement is unchanged from version 1.0. What changed is our account of how it is delivered: **one app per role**, a single order-to-cash loop that every app works on, and ledgers that make every rupee and every piece of stock traceable.
+The mission statement is unchanged from version 1.0. What changed is our account of how it is delivered: **one app that becomes the right app for the role signing in** (decided 2026-09-21, replacing one app per role), a single order-to-cash loop that every role works on, and ledgers that make every rupee and every piece of stock traceable.
 
 ---
 
@@ -52,22 +52,22 @@ The unit of sale and the unit of isolation is the **distributorship**. Decided 2
 
 # Who We Serve
 
-Distribution OS is built for every participant in the distribution ecosystem. Decided 2026-09-04: **every role gets its own app**, and the manager and the accountant share one. Decided 2026-09-05: a seventh application, the platform console, serves Distribution OS staff. Each app is delivered on web, Android and iOS; the admin console is web only.
+Distribution OS is built for every participant in the distribution ecosystem. Decided 2026-09-04, **revised 2026-09-21**: the six business roles share **one** app, named "Distribution OS", which becomes the right app after sign-in — the role is elected at sign-in and the app mounts that role's screens and its backend service. The manager and the accountant share one set of screens as before. The platform console for Distribution OS staff stays a separate application (decided 2026-09-05). Everything is delivered on web, Android and iOS from one codebase.
 
-| #   | Application                 | Who signs in          | Day-to-day value                                                                                            |
-| --- | --------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1   | Distribution OS - Owner     | Owner                 | Knows the day before the day ends; clears approvals in seconds; sets prices, schemes and credit             |
-| 2   | Distribution OS - Manager   | Manager, Accountant   | Runs the desk: order queue, goods received, billing, load-out approval, day-end, registers, Tally export    |
-| 3   | Distribution OS - Sales     | Salesperson           | Ninety seconds in a doorway: a repeat order in three taps, priced and credit-checked before it is submitted |
-| 4   | Distribution OS - Warehouse | Warehouse staff       | Counts, picks, packs and loads without typing; the invoice comes out of the pack                            |
-| 5   | Distribution OS - Delivery  | Delivery crew         | One-handed trip screen; proof of delivery and money collected at the door                                   |
-| 6   | Distribution OS - Retailer  | Retailer              | One login across every distributor they buy from: bills, outstanding, reorder, pay online, track delivery   |
-| 7   | Distribution OS - Admin     | Distribution OS staff | Onboards distributors, holds plans and subscription state, grants time-boxed audited support access         |
+| #   | What the app becomes    | Who signs in          | Day-to-day value                                                                                            |
+| --- | ----------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | Owner                   | Owner                 | Knows the day before the day ends; clears approvals in seconds; sets prices, schemes and credit             |
+| 2   | Manager                 | Manager, Accountant   | Runs the desk: order queue, goods received, billing, load-out approval, day-end, registers, Tally export    |
+| 3   | Sales                   | Salesperson           | Ninety seconds in a doorway: a repeat order in three taps, priced and credit-checked before it is submitted |
+| 4   | Warehouse               | Warehouse staff       | Counts, picks, packs and loads without typing; the invoice comes out of the pack                            |
+| 5   | Delivery                | Delivery crew         | One-handed trip screen; proof of delivery and money collected at the door                                   |
+| 6   | Retailer                | Retailer              | One login across every distributor they buy from: bills, outstanding, reorder, pay online, track delivery   |
+| 7   | Distribution OS - Admin (a separate console) | Distribution OS staff | Onboards distributors, holds plans and subscription state, grants time-boxed audited support access         |
 
 Three persona corrections against version 1.0:
 
 - **Sales Manager, Warehouse Manager, Delivery Manager and Data Entry Operator do not get apps.** Decided 2026-09-04: the first three are the `manager` role in the manager app; the fourth is designed away, because orders arrive from the rep or the shop and the invoice is derived from the pack rather than re-keyed.
-- **The Retailer is not a future persona.** Decided 2026-09-04 the retailer gets an app of their own; **decided 2026-09-05** that the retailer may place orders, not only view them.
+- **The Retailer is not a future persona.** Decided 2026-09-04 the retailer signs in to the product in their own right; **decided 2026-09-05** that the retailer may place orders, not only view them.
 - **The Super Administrator now has a product.** Decided 2026-09-05: the platform console is in v1. Until then, tenants existed only through seed scripts.
 
 The **Manufacturer** remains a future persona. No manufacturer surface is planned for v1.
@@ -114,7 +114,7 @@ Decided 2026-09-05: onboarding a new distributor, plan and subscription state, a
 
 # The Loop Every Order Travels
 
-One loop connects all six role apps. Everything else in the product exists to serve it.
+One loop connects all six roles. Everything else in the product exists to serve it.
 
 1. **Captured** — by the rep in the shop, by the shop in the retailer app, or from free text on WhatsApp or by voice. Decided 2026-09-05: WhatsApp and voice capture are in v1, and the parsed result is **always confirmed by a human** before it becomes an order.
 2. **Priced and credit-checked at capture.** Inside the limits it confirms; a bargain or an over-limit order raises an approval for the owner.
@@ -136,7 +136,7 @@ We are committed to building a platform that is:
 
 ### Simple
 
-Business software should be intuitive and easy to adopt. Decided 2026-09-04: English only for now, one visual system across all six apps, and phone screens sized for a doorway rather than a desk.
+Business software should be intuitive and easy to adopt. Decided 2026-09-04: English only for now, one visual system across every role, and phone screens sized for a doorway rather than a desk.
 
 ### Reliable
 
@@ -184,7 +184,7 @@ Decided 2026-09-04: the distributor's own name and logo appear inside the apps a
 Distribution OS fulfills its mission by providing:
 
 - End-to-end distribution management on one order-to-cash loop.
-- Six role applications plus a platform console, each on web, Android and iOS (console on web).
+- One application for the six business roles, plus a separate platform console, all on web, Android and iOS (decided 2026-09-21).
 - One backend service per application, so a role can only reach the endpoints its own service serves.
 - Real-time registers today and chart-ready dashboards for the owner as reporting lands.
 - Workflow automation where the rule is unambiguous: auto-confirmation inside limits, oldest-expiry picking, oldest-bill allocation.
@@ -219,13 +219,14 @@ Stating the boundary is part of the mission. We will not build payments aggregat
 
 # Where the Mission Stands Today
 
-Honest status as of 5 September 2026, from the build log:
+Honest status as of 21 September 2026, from the build log and `QA/STATE.md`:
 
-- **Backend:** As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). Modules for document intake, integrations, claims, notifications, reporting, incentives, the AI module and the platform console are in progress or queued.
-- **Applications:** no app screen is built yet. The founder's sequence is backend first, then the six apps one at a time. The screen inventory (26 owner, 21 manager, 14 sales, 12 warehouse, 12 delivery, 13 retailer) and the visual system are settled.
-- **Reporting and graphs:** registers are live; the owner dashboard and chart series are planned, not built.
-- **AI features:** decided for v1 on 2026-09-05; not yet built.
-- **Pilot:** Tarsun Enterprises, Kalyan West. Demo data will cover three distributors, staff under each, and shops linked to more than one distributor.
+- **Backend: complete.** 23 business modules across 8 independently running services, 139 tables, 646 module specs, and 1,618 endpoint calls exercised ending 0 broken.
+- **Applications: built.** All seven apps were gated green on 2026-09-07 — every screen of the inventory (26 owner, 21 manager, 14 sales, 12 warehouse, 12 delivery, 13 retailer, plus the console) walked at desk and phone widths against the live services. The six business apps merge into **one** app, and role election lands with it, before go-live (decided 2026-09-21).
+- **Reporting and graphs:** built, including the owner dashboard and its chart series.
+- **Quality:** QA batch 1 (34 findings) fixed; batch 2 has 153 of 158 findings merged. A seven-day business simulation on the merged app is the last verdict before launch.
+- **Pilot:** Tarsun Enterprises, Kalyan West. The demonstration data covers three distributors, staff under each, and shops linked to more than one distributor — 174 SKUs across 13 brands and 90 / 60 / 45 days of trading history.
+- **Live:** nothing is deployed yet. Decided 2026-09-21: Oracle Cloud Always Free (Mumbai) with self-hosted PostgreSQL 17, Cloudflare Pages for the web, domain `distributionos.in`; **go-live target Saturday 27 September 2026**.
 
 ---
 

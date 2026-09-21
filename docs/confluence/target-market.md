@@ -6,10 +6,10 @@
 | ------------ | --------------------------------- |
 | Document     | Target Market & Customer Segments |
 | Product      | Distribution OS                   |
-| Version      | 2.0                               |
+| Version      | 2.1                               |
 | Status       | Active                            |
 | Owner        | Product Management                |
-| Last Updated | September 2026                    |
+| Last Updated | 21 September 2026                 |
 
 **Decided 2026-09-05:** the product name is **Distribution OS** (two words); earlier drafts of this space used "DistributionOS". `docs/22-source-of-truth.md` in the repository is the single source of truth for product shape and founder decisions; this page mirrors it, and where the two disagree docs/22 wins.
 
@@ -155,17 +155,17 @@ The architecture keeps international expansion open — multiple currencies, mul
 
 **Influencers:** accountant (or the external CA), warehouse in-charge, sales manager.
 
-**Daily users map one-to-one to the role apps** (decided 2026-09-04, six role apps; a seventh admin app added 2026-09-05). Each app is web, Android, and iOS; the admin console is web.
+**Daily users map one-to-one to the roles, and since 2026-09-21 they all share one app.** The distributor's staff install **one** application, "Distribution OS", and it becomes the right app for whoever signs in (decided 2026-09-04 as six role apps, revised 2026-09-21 to one). Everything is web, Android and iOS; the platform console for Distribution OS staff stays a separate application.
 
-| App                         | Who signs in                            | What they do                                                                                       |
+| What the app becomes        | Who signs in                            | What they do                                                                                       |
 | --------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Distribution OS - Owner     | Owner                                   | Day numbers with graphs, approvals, live map, prices, schemes, credit, settings, branding, imports |
-| Distribution OS - Manager   | Manager, accountant                     | Order queue, GRN review, billing desk, load-out approval, day-end, registers, Tally export         |
-| Distribution OS - Sales     | Salesperson                             | Beat, shop check-in, order entry, bargain requests, own targets                                    |
-| Distribution OS - Warehouse | Warehouse staff                         | Gate count, supplier bill capture, pick, pack, load sheets, challans                               |
-| Distribution OS - Delivery  | Delivery crew                           | Trip, stops, proof of delivery, returns, collections, van sales, settlement                        |
-| Distribution OS - Retailer  | Retailer (one login, many distributors) | Bills and outstanding, reorder, pay online, track delivery                                         |
-| Distribution OS - Admin     | Distribution OS staff                   | Onboard distributors, plans and subscription state, time-boxed support access                      |
+| Owner                       | Owner                                   | Day numbers with graphs, approvals, live map, prices, schemes, credit, settings, branding, imports |
+| Manager                     | Manager, accountant                     | Order queue, GRN review, billing desk, load-out approval, day-end, registers, Tally export         |
+| Sales                       | Salesperson                             | Beat, shop check-in, order entry, bargain requests, own targets                                    |
+| Warehouse                   | Warehouse staff                         | Gate count, supplier bill capture, pick, pack, load sheets, challans                               |
+| Delivery                    | Delivery crew                           | Trip, stops, proof of delivery, returns, collections, van sales, settlement                        |
+| Retailer                    | Retailer (one login, many distributors) | Bills and outstanding, reorder, pay online, track delivery                                         |
+| Distribution OS - Admin (separate console) | Distribution OS staff    | Onboard distributors, plans and subscription state, time-boxed support access                      |
 
 Two corrections to the earlier persona list:
 
@@ -234,7 +234,7 @@ Each stage builds on the existing capability set rather than introducing a separ
 
 # Build Status Behind These Claims
 
-The backend is being built ahead of the apps. As at 2026-09-05 13:45 IST: **14 backend modules verified, 1,442 automated tests, 1,004 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`). The six role apps and the admin console are built after the backend is complete. Capabilities described on this page as v1 are decided and specified; Build Status & Roadmap carries the current module-by-module status.
+**The product is built.** As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and all seven apps were built and gated green on 2026-09-07. Every capability described on this page as v1 exists and has a screen. What remains before a customer can be signed is proof and launch: the six apps merge into one with role election at sign-in, a seven-day business simulation whose verdict is arithmetic, and go-live on `distributionos.in` — targeted for **Saturday 27 September 2026** on Oracle Cloud Always Free (Mumbai) with Cloudflare Pages for the web. Build Status & Roadmap carries the current detail.
 
 # Open Questions
 
