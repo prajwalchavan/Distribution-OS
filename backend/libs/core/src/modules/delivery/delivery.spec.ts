@@ -3896,6 +3896,91 @@ describeDb('delivery (DATABASE_URL)', () => {
     expect(await outboxTypes(plannedId)).toEqual(['DeliveryFailed', 'DeliveryRecorded'])
   })
 
+  /*
+   * QA DOS-203 — A REFUSAL AT THE DOOR LEAVES THE STOP WITH A CAUSE.
+   *
+   * Two stops failed through the fail sheet carried `shop_closed` and `other`; a shop that refused the
+   * whole bill on the deliver screen — "Nothing from this bill" — left `trip_stops.failure_reason` and
+   * `failure_note` NULL, so the word "refused" existed only on the delivery line and every desk register
+   * over the stop showed a failure with no cause. The words are read off the lines the crew tapped.
+   */
+  it('DOS-203: "Nothing from this bill" writes the stop\u2019s reason and the crew\u2019s note, the same as the fail sheet', async () => {
+    const refusedBill = await billedOrder(retailerA, variantA, 'dos203')
+    const trip = uuidv7()
+    const created = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `dos203-trip-${run}`,
+      id: trip,
+      tripDate: new Date(Date.parse(today) + 59 * 86_400_000).toISOString().slice(0, 10),
+      vehicleId,
+      driverId,
+      vanSalesEnabled: true,
+      openingCashPaise: 0,
+      stops: [],
+    })
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    for (const step of ['start-loading', 'depart']) {
+      const moved = await call(app, driver, 'POST', `/delivery/trips/${trip}/${step}`, {
+        idempotencyKey: `dos203-${step}-${run}`,
+      })
+      expect(moved.status, `${step} \u2192 ${JSON.stringify(moved.body)}`).toBe(200)
+    }
+    const stopId = uuidv7()
+    expect(
+      (
+        await call(app, manager, 'POST', `/delivery/trips/${trip}/stops`, {
+          idempotencyKey: `dos203-stop-${run}`,
+          id: trip,
+          stop: { id: stopId, retailerId: retailerA, invoiceIds: [refusedBill.invoiceId] },
+        })
+      ).status,
+    ).toBe(200)
+    const onTheRoad = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
+    const plannedId =
+      onTheRoad.body.item.stops.find((s) => s.id === stopId)?.deliveries[0]?.id ?? ''
+    expect(plannedId).not.toBe('')
+
+    const note =
+      'Owner says he never ordered soft drink this week; refused the whole bill at the door.'
+    const recorded = await call<{ item: DeliveryDetailBody; stop: StopBody }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/deliveries',
+      {
+        idempotencyKey: `dos203-record-${run}`,
+        id: plannedId,
+        tripId: trip,
+        stopId,
+        invoiceId: refusedBill.invoiceId,
+        receiverName: 'Laxmi Narayan',
+        note,
+        lines: [
+          {
+            id: uuidv7(),
+            invoiceLineId: refusedBill.lineId,
+            deliveredQtyPcs: 0,
+            returnedQtyPcs: 12,
+            returnedSaleable: true,
+            reason: 'refused',
+          },
+        ],
+        pod: [],
+      },
+    )
+    expect(recorded.status, JSON.stringify(recorded.body)).toBe(200)
+    expect(recorded.body.item.outcome).toBe('failed')
+    // the stop the desk reads says WHY, in the crew's own words, on the reply and in the row
+    expect(recorded.body.stop.state).toBe('failed')
+    expect(recorded.body.stop.failureReason).toBe('refused')
+    const [row] = (
+      await db.execute(
+        sql`select failure_reason::text as reason, failure_note from trip_stops where id = ${stopId}`,
+      )
+    ).rows as { reason: string | null; failure_note: string | null }[]
+    expect(row?.reason).toBe('refused')
+    expect(row?.failure_note).toBe(note)
+  }, 240_000)
+
   it('DOS-009: trips.list is newest first by trip_date then id — a trip planned for a later day tops a trip for an earlier day created after it; the cursor walks each once; the crew’s list is still forced to its own trips', async () => {
     interface TripPage {
       items: { id: string; tripDate: string; driverId: string | null; helperId: string | null }[]
@@ -3991,9 +4076,12 @@ describeDb('delivery (DATABASE_URL)', () => {
   const undeliveredStop = uuidv7()
   const redeliveryTrip = uuidv7()
   const redeliveryStop = uuidv7()
-  /** Two days nobody else in this file plans on, so the "driver already on a trip" check never fires. */
-  const failDay = new Date(Date.parse(today) + 80 * 86_400_000).toISOString().slice(0, 10)
-  const againDay = new Date(Date.parse(today) + 81 * 86_400_000).toISOString().slice(0, 10)
+  /**
+   * Two days nobody else in this file plans on, so the "driver already on a trip" check never fires,
+   * and INSIDE the 69/70 the DOS-009 ordering test reserves as the furthest out of every trip here.
+   */
+  const failDay = new Date(Date.parse(today) + 57 * 86_400_000).toISOString().slice(0, 10)
+  const againDay = new Date(Date.parse(today) + 58 * 86_400_000).toISOString().slice(0, 10)
 
   interface DuesBody {
     outstandingPaise: number
