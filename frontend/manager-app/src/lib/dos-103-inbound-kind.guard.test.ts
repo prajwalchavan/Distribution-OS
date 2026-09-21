@@ -45,7 +45,7 @@ function withoutComments(code: string): string {
 async function inboundColumns(): Promise<string> {
   const code = withoutComments(await read('../../app/messages/index.tsx'))
   const block =
-    /const inboundColumns: readonly RegisterColumn<InboundMessage>\[\] = \[([\s\S]*?)\n  \]/.exec(
+    /const inboundColumns: readonly RegisterColumn<InboundMessage>\[\] = \[([\s\S]*?)\n {2}\]/.exec(
       code,
     )?.[1]
   expect(block, "M18's inbound register is gone").toBeDefined()
@@ -76,7 +76,9 @@ describe('DOS-103 the desk sees what the shop filed', () => {
     )
     expect(block, 'the reference column ignores refType').toMatch(/row\.refType/)
     expect(block, 'the reference column ignores refId').toMatch(/row\.refId/)
-    expect(block, 'a reference with no id is still rendered as a link').toMatch(/row\.refId === null/)
+    expect(block, 'a reference with no id is still rendered as a link').toMatch(
+      /row\.refId === null/,
+    )
 
     const href = /href={`([^`]*)`}/.exec(block)?.[1] ?? ''
     expect(href, 'a bill reference does not lead to the Billing desk').toMatch(/^\/billing\?/)
