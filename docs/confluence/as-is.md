@@ -6,10 +6,10 @@
 | ------------ | ---------------------- |
 | Document     | AS-IS Business Process |
 | Product      | Distribution OS        |
-| Version      | 2.0                    |
+| Version      | 2.1                    |
 | Status       | Active                 |
 | Owner        | Business Analysis      |
-| Last Updated | September 2026         |
+| Last Updated | 21 September 2026      |
 
 ---
 
@@ -62,7 +62,7 @@ In a distributorship of this size these are **hats, not departments** — three 
 | Accounts    | Owner or a part-time accountant | Post collections, track outstanding, file GST               |
 | Management  | Owner                           | Watches everything, usually after the fact                  |
 
-**What changes in the TO-BE.** These become seven roles across six role apps plus an internal platform console: owner; manager and accountant sharing one app; sales; warehouse; delivery; retailer; and "Distribution OS - Admin" for onboarding, plans and support access (six apps decided 2026-09-04, the seventh decided 2026-09-05). The **Billing Operator hat is deliberately not carried forward** — the invoice is issued by the warehouse at pack time from what was actually packed, so nobody re-types an order (decided 2026-09-04).
+**What changes in the TO-BE.** These become seven roles inside **one app** that becomes the right app after sign-in — owner; manager and accountant sharing one set of screens; sales; warehouse; delivery; retailer — plus a separate internal console, "Distribution OS - Admin", for onboarding, plans and support access (six role apps decided 2026-09-04, the console added 2026-09-05, the six merged into one on 2026-09-21). The **Billing Operator hat is deliberately not carried forward** — the invoice is issued by the warehouse at pack time from what was actually packed, so nobody re-types an order (decided 2026-09-04).
 
 ---
 
@@ -204,10 +204,10 @@ The invoice is printed and becomes the operational document for everything downs
 | Billing       | Keyed by hand, twice, into two systems                | Yes — invoice derived from what was packed; brand-DMS bills imported, never re-invoiced                 |
 | Inventory     | Updated a day late from a typed invoice               | Yes — append-only stock ledger per movement                                                             |
 | Warehouse     | Manual picking, no batch record, no verification      | Partly — FEFO picklists and pack confirmation; **no bins, no barcode**                                  |
-| Delivery      | No tracking, no proof, no sequence                    | Partly — trips, stops, GPS and proof of delivery built; route sequencing planned in v1 (module 12 `ai`) |
+| Delivery      | No tracking, no proof, no sequence                    | Yes — trips, stops, GPS, proof of delivery and route sequencing all built                              |
 | Payments      | Cash written on paper; outstanding in a physical file | Yes — receipts, allocation oldest bill first, double-entry journal                                      |
-| Claims        | Reconstructed monthly in Excel; 30–50% missed         | Planned in v1 — claims module, queued behind the core modules                                           |
-| Reports       | End-of-day at best, month-end in practice             | Planned in v1 — reporting module with owner graphs                                                      |
+| Claims        | Reconstructed monthly in Excel; 30–50% missed         | Yes — the claims module is built: raised, evidenced, tracked against the brand                          |
+| Reports       | End-of-day at best, month-end in practice             | Yes — the reporting module and the owner's graphs are built                                             |
 | Communication | Phone and WhatsApp dependency                         | Partly — outbound documents on WhatsApp, inbound capture                                                |
 
 ---
@@ -230,7 +230,7 @@ The invoice is printed and becomes the operational document for everything downs
 
 **Operational knowledge lives in people, not systems.** Beat knowledge, stock locations, scheme interpretation and which retailer pays late are all held by individuals. That is the ceiling on growth and the cost of attrition.
 
-**The field is not a desktop.** Everyone except the billing operator works on a phone, standing up, often on poor signal, while the current stack is a Windows desktop in the office. Distribution OS ships every role app on web, Android and iOS (decided 2026-09-04), in **English only for now** (decided 2026-09-04) — an honest constraint for staff who work in Marathi and Hindi, and the first candidate for a post-pilot enhancement.
+**The field is not a desktop.** Everyone except the billing operator works on a phone, standing up, often on poor signal, while the current stack is a Windows desktop in the office. Distribution OS ships on web, Android and iOS (decided 2026-09-04) as one app that becomes the right app for the role signing in (decided 2026-09-21), in **English only for now** (decided 2026-09-04) — an honest constraint for staff who work in Marathi and Hindi, and the first candidate for a post-pilot enhancement.
 
 ---
 
