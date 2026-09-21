@@ -269,7 +269,7 @@ export default function DaySummary(): React.JSX.Element {
               blocked === 'notActive'
                 ? t('d8.notActive')
                 : blocked === 'offline'
-                  ? t('d6.online')
+                  ? t('d8.offlineBlocks')
                   : blocked === 'pending'
                     ? t(keepKey('pendingBlocks', status.persistent), { count: status.pending })
                     : t('d2.odometer')

@@ -88,8 +88,17 @@ describe('D8 End of day: checking the vehicle in, and what the office is owed', 
       'odometer',
     )
 
-    // No signal is asked about before the outbox: check-in itself needs the office.
+    // S-184 reordered this pair. The outbox is asked about BEFORE the signal: with records waiting,
+    // a signal is not a reason of its own, only how they leave — and answering `offline` first made
+    // the sentence this screen is supposed to print unreachable in the very state it exists for. The
+    // gate is unmoved either way; only the sentence under the button changes. See
+    // s184-checkin-reason.test.ts.
     expect(checkInBlock({ onTheRoad: true, online: false, pending: 2, odometerBad: true })).toBe(
+      'pending',
+    )
+
+    // With the outbox empty the signal is the reason, and check-in itself does need the office.
+    expect(checkInBlock({ onTheRoad: true, online: false, pending: 0, odometerBad: false })).toBe(
       'offline',
     )
 

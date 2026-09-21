@@ -94,10 +94,19 @@ export interface DayEndCash {
 /**
  * Whether the vehicle can be checked in, and the first reason it cannot.
  *
- * The order is the order the driver can act on. The trip and the signal come first because neither
- * is about this phone's records. Then the OUTBOX: `trips.return` closes the trip to the office, and
+ * The order is the order the driver can act on, and the reason has to be the one that will STILL be
+ * there when the thing above it clears. The trip comes first: a van that is not on the road is not
+ * checked in from here at all. Then the OUTBOX — `trips.return` closes the trip to the office, and
  * the office settles what has reached it, so a queued doorstep receipt has to go first or it is
- * refused when it finally lands. The odometer is last — it is the one thing the driver fixes here.
+ * refused when it finally lands. Only then the signal, which is not a reason of its own while
+ * records are waiting: it is merely HOW they leave. The odometer is last — the one thing the driver
+ * fixes on this screen.
+ *
+ * S-184 reordered those two. `offline` answered first, so `pending` was unreachable with no signal —
+ * the state D8 exists for — and the driver holding ₹1,544 the office had never seen was told about a
+ * van sale instead (day.tsx borrowed `d6.online` for it). Measured 3/3 on web at both widths,
+ * money-web.md §5(A); `d8.pendingBlocks` was never once observed. Both orders refuse the button, so
+ * nothing about the gate itself moves: a van still cannot leave with money on the phone.
  *
  * `pending` is queued + sending (docs/27 §10). A REJECTED write does not block: it will never leave
  * on its own, the Needs-attention tray owns it, and blocking on it would strand the vehicle.
@@ -109,8 +118,8 @@ export function checkInBlock(input: {
   readonly odometerBad: boolean
 }): CheckInBlock | null {
   if (!input.onTheRoad) return 'notActive'
-  if (!input.online) return 'offline'
   if (input.pending > 0) return 'pending'
+  if (!input.online) return 'offline'
   if (input.odometerBad) return 'odometer'
   return null
 }
