@@ -34,7 +34,10 @@ interface JournalEntry {
  * Pure on purpose: the second test below feeds it the arrangement this lane actually carried, which
  * cannot be reproduced on disk without breaking the repository.
  */
-export function journalFaults(entries: readonly JournalEntry[], sqlFiles: readonly string[]): string[] {
+export function journalFaults(
+  entries: readonly JournalEntry[],
+  sqlFiles: readonly string[],
+): string[] {
   const faults: string[] = []
 
   entries.forEach((entry, position) => {
@@ -59,14 +62,14 @@ export function journalFaults(entries: readonly JournalEntry[], sqlFiles: readon
     }
   })
 
-  const tagged = new Set(entries.map(entry => entry.tag))
+  const tagged = new Set(entries.map((entry) => entry.tag))
   for (const file of sqlFiles) {
     const tag = file.replace(/\.sql$/, '')
     if (!tagged.has(tag)) {
       faults.push(`${file} is in the folder but no journal entry names it, so it never runs`)
     }
   }
-  const present = new Set(sqlFiles.map(file => file.replace(/\.sql$/, '')))
+  const present = new Set(sqlFiles.map((file) => file.replace(/\.sql$/, '')))
   for (const entry of entries) {
     if (!present.has(entry.tag)) {
       faults.push(`the journal names "${entry.tag}" but migrations/${entry.tag}.sql does not exist`)
@@ -84,7 +87,7 @@ describe('migration journal', () => {
     const journal = JSON.parse(
       readFileSync(resolve(migrationsDir, 'meta/_journal.json'), 'utf8'),
     ) as { entries: JournalEntry[] }
-    const sqlFiles = readdirSync(migrationsDir).filter(name => name.endsWith('.sql'))
+    const sqlFiles = readdirSync(migrationsDir).filter((name) => name.endsWith('.sql'))
 
     expect(sqlFiles.length).toBeGreaterThan(50)
     expect(journal.entries[0]?.idx).toBe(0)
@@ -111,7 +114,7 @@ describe('migration journal', () => {
 
     const faults = journalFaults(
       collided,
-      collided.map(entry => `${entry.tag}.sql`),
+      collided.map((entry) => `${entry.tag}.sql`),
     )
     expect(faults).toHaveLength(1)
     expect(faults[0]).toContain('0055_inbound_reports_expand')

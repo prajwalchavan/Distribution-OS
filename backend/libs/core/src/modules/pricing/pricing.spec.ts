@@ -19,6 +19,7 @@ import {
   users,
 } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
+import { eq } from 'drizzle-orm'
 import type { Bargain, PriceList, Quote, Scheme } from '@dos/contracts'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { PricingModule } from './index.js'
@@ -920,7 +921,14 @@ describeDb('pricing (DATABASE_URL)', () => {
       pricingDate: string
       items: { variantId: string; caseSize: number; listRatePaise: number; ratePaise: number }[]
     }
-    // Nothing is listed yet: the rate list IS the listed catalogue, so it is empty, never an error.
+    /*
+     * The rate list IS the listed catalogue, so an empty catalogue is an empty list and never an
+     * error. The DOS-013 test above lists v1 under the tenant's own alias, so this clause clears
+     * the tenant's listings first and rebuilds them below: the claim being proven is about a
+     * distributor who has listed nothing, not about which test happened to run before this one.
+     * (`tenant_products_idx` is unique on (tenant, variant), so the rebuild would collide anyway.)
+     */
+    await db.delete(tenantProducts).where(eq(tenantProducts.tenantId, tenantId))
     const empty = await call<Rates>(app, rep, 'GET', '/pricing/rates', {
       retailerId: shopC,
       pricingDate: today,
