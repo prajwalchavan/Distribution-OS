@@ -120,7 +120,7 @@ as now. The console stays a separate app: platform staff are not the distributor
 
 Screens move, they do not change: every screen imports only `@dos/ui`, which is what makes the move
 mechanical. *Amended 2026-09-21:* **the seven per-role web apps are retired at the merge** (founder,
-docs/22 §8) — the one project is the website too, at `app.distributionos.in`; two front doors would be
+docs/22 §8) — the one project is the website too, at `www.distributionos.in`; two front doors would be
 two things to prove. The plan and the architect's ruling: `docs/31-one-app-layout.md`. The bundle carries every group's code; that was never the security boundary (the server is), only
 a size cost, and it is paid once.
 
