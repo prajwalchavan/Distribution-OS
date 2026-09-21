@@ -1,0 +1,125 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+1 left to bill
+Billing desk
+Billing desk
+Bills issued
+7 days
+30 days
+90 days
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Any date, matching "INV/0366"
+Filters (1)
+Clear
+Bill no.	Date	Shop	Taxable ₹	GST ₹	Total ₹	Still due ₹	Payment
+
+INV/0366
+	
+23 Jul 2026
+	
+Balaji Wholesale Stores
+	35,995.05	9,516.40	45,511.00	0.00	Paid
+1					45,511.00	0.00	
+j / k move · Enter open · p print
+Bill INV/0366
+Close
+Shop
+Balaji Wholesale Stores
+Date
+23 Jul 2026
+Payment
+Paid
+Total ₹
+₹45,511.00
+Still due ₹
+₹0.00
+Lines
+Balaji Ratlami Sev 200 g
+8 cs · 240 pc · 8 pc free
+·
+at
+₹58.27
+·
+less
+₹827.90
+₹15,525.14
+Sunbake Bourbon Cream 300 g
+2 inner · 24 pc
+·
+at
+₹36.83
+·
+less
+₹17.68
+₹1,022.16
+Campa Cola 750 ml
+10 cs · 240 pc · 10 pc free
+·
+at
+₹22.51
+·
+less
+₹108.05
+₹7,412.09
+Campa Cola 2 L
+7 cs · 168 pc
+·
+at
+₹50.40
+·
+less
+₹418.28
+₹11,268.49
+Godavari Fresh Paneer 500 g
+10 pc
+·
+at
+₹189.63
+·
+less
+₹37.93
+₹1,951.29
+Campa Lemon 500 ml
+6 cs · 144 pc
+·
+at
+₹11.06
+·
+less
+₹31.85
+₹2,185.10
+Balaji Simply Salted Wafers 45 g
+8 cs · 384 pc
+·
+at
+₹14.42
+·
+less
+₹327.80
+₹6,147.18
+Print the bill
+p
+Record the e-way bill
+Get the IRN
+Cancel the bill

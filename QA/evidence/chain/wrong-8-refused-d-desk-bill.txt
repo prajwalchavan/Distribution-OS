@@ -1,0 +1,69 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+1 left to bill
+Billing desk
+Billing desk
+Bills issued
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+Billing desk
+1 packed, no bill yet
+Order	Shop	Lines	Amount ₹	State	Wanted by
+
+SO-9001
+	
+Mahalaxmi General Stores
+	
+1
+	2,327.00	Packed	
+—
+
+1			2,327.00		
+Packed, not billed
+0 packs already gone out
+Nothing waiting to be billed
+Bill INV/9012
+Close
+Shop
+Laxmi Narayan Stores
+Date
+21 Sep 2026
+Payment
+Issued
+Total ₹
+₹614.00
+Still due ₹
+₹614.00
+Lines
+Campa Cola 750 ml
+1 cs · 24 pc · 1 pc free
+·
+at
+₹22.86
+₹614.48
+Print the bill
+p
+Record the e-way bill
+Get the IRN
+Cancel the bill

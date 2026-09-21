@@ -1,0 +1,19 @@
+# BuildKit reads `<dockerfile path>.dockerignore` in preference to the context root's `.dockerignore`,
+# so the ignore rules for this image live beside the image that needs them.
+#
+# Keeping node_modules out is not an optimisation: the host's tree is a macOS/arm64 install with a
+# darwin-arm64 argon2 binding in it, and copying it into the build context would shadow the linux
+# install the build makes.
+**/node_modules
+**/dist
+**/.turbo
+**/*.tsbuildinfo
+**/coverage
+.env
+.env.*
+!.env.example
+.storage
+.smoke
+.pgdata
+**/*.log
+.DS_Store

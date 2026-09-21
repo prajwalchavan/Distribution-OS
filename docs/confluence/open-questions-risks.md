@@ -6,7 +6,7 @@
 | ------------ | ---------------------- |
 | Document     | Open Questions & Risks |
 | Product      | Distribution OS        |
-| Version      | 3.0                    |
+| Version      | 3.1                    |
 | Status       | Active                 |
 | Owner        | Prajwal Chavan         |
 | Last Updated | 21 September 2026      |
@@ -15,7 +15,7 @@
 
 **Reference point for every "today" in this page — 21 September 2026.** Both halves of the product are built. **Backend complete** (2026-09-06): 23 modules, eight services, 139 tables, 57 migrations, ~2,400 tests. **Frontend complete** (2026-09-07): all seven apps — owner, manager (with the accountant on it), sales, warehouse, delivery, retailer and the admin console — each one Expo codebase serving website + Android + iOS, each passed by an independent gate that walked every screen at desk and phone widths and drove it on a real Android device. Since then the work has been **quality assurance, not construction**: QA batch 1 (34 findings) and QA batch 2 (158 findings, 153 merged as of 20 September) changed the product in places the build never reached. `pnpm smoke` now exercises **1,618 endpoint calls ending 0 BROKEN on a freshly seeded database**.
 
-**What has changed since version 2.0 of this page, in one line:** the "no app screen exists yet" of 5 September is obsolete, and the programme now has a **date** — the founder has cut the remaining plan to **seven days, live by Saturday 27 September 2026** at `app.distributionos.in` and `api.distributionos.in`, if Thursday evening's books balance.
+**What has changed since version 2.0 of this page, in one line:** the "no app screen exists yet" of 5 September is obsolete, and the programme now has a **date** — the founder has cut the remaining plan to **seven days, live by Saturday 27 September 2026** at `www.distributionos.in` and `api.distributionos.in`, if Thursday evening's books balance.
 
 ---
 

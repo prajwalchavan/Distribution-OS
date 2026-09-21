@@ -1,0 +1,148 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Load
+Sheets
+Trips
+Check-in
+LOAD SHEETS
+1 sheet not sent out yet
+MH-05-AB-1234
+12 Sep · Expected 38
+draft
+MH-05-CD-5678
+28 Jul · Expected 39
+confirmed
+MH-05-EF-9012
+4 Aug · Expected 48
+confirmed
+MH-05-EF-9012
+3 Sep · Expected 54
+confirmed
+MH-05-AB-1234
+21 Jul · Expected 49
+confirmed
+MH-05-AB-1234
+17 Jul · Expected 65
+confirmed
+MH-05-AB-1234
+7 Sep · Expected 86
+confirmed
+MH-05-EF-9012
+25 Aug · Expected 59
+confirmed
+MH-05-AB-1234
+24 Jun · Expected 47
+confirmed
+MH-05-EF-9012
+29 Jun · Expected 108
+confirmed
+MH-05-CD-5678
+24 Aug · Expected 74
+confirmed
+MH-05-EF-9012
+14 Jul · Expected 91
+confirmed
+MH-05-EF-9012
+23 Jul · Expected 59
+confirmed
+MH-05-CD-5678
+8 Sep · Expected 74
+confirmed
+MH-05-AB-1234
+10 Sep · Expected 74
+confirmed
+MH-05-AB-1234
+30 Jul · Expected 63
+confirmed
+MH-05-EF-9012
+23 Jun · Expected 62
+confirmed
+MH-05-CD-5678
+12 Aug · Expected 65
+confirmed
+MH-05-AB-1234
+26 Aug · Expected 67
+confirmed
+MH-05-EF-9012
+29 Jul · Expected 62
+confirmed
+MH-05-EF-9012
+13 Aug · Expected 83
+confirmed
+MH-05-AB-1234
+30 Jun · Expected 67
+confirmed
+MH-05-CD-5678
+2 Sep · Expected 67
+confirmed
+MH-05-CD-5678
+16 Jul · Expected 42
+confirmed
+MH-05-AB-1234
+9 Jul · Expected 58
+confirmed
+MH-05-CD-5678
+25 Jul · Expected 67
+confirmed
+MH-05-EF-9012
+22 Aug · Expected 61
+confirmed
+MH-05-CD-5678
+21 Aug · Expected 56
+confirmed
+MH-05-CD-5678
+31 Jul · Expected 112
+confirmed
+MH-05-AB-1234
+1 Sep · Expected 80
+confirmed
+MH-05-AB-1234
+10 Jul · Expected 57
+confirmed
+Trip
+TRIP-0003 · MH-05-AB-1234
+21 Sep · loading
+TRIP-0002 · MH-05-CD-5678
+21 Sep · loading
+TRIP-NEXT · MH-05-AB-1234
+14 Sep · planned
+PACKED ORDERS
+8
+Laxmi Narayan Stores
+SO-0886 · Cartons 1 · Packed 21 Sep, 10:21 am
+INV/9012
+Sai Baba Kirana
+Not on TRIP-0002. Add the bill to the trip under Trips first. · SO-0885 · Cartons 1 · Packed 21 Sep, 10:21 am
+INV/9011
+Balaji Wholesale Stores
+SO-0884 · Cartons 1 · Packed 21 Sep, 10:21 am
+INV/9010
+Ganesh General Store
+SO-0881 · Cartons 1 · Packed 21 Sep, 10:21 am
+INV/9009
+Sai Krupa Super Bazar
+SO-0883 · Cartons 1 · Packed 21 Sep, 10:21 am
+INV/9008
+City Light Provision
+Not on TRIP-0002. Add the bill to the trip under Trips first. · SO-0862 · Cartons 2 · Packed 11 Sep, 11:30 am
+INV/0831
+Ambika Provision Store
+Not on TRIP-0002. Add the bill to the trip under Trips first. · SO-0850 · Cartons 7 · Packed 10 Sep, 11:30 am
+INV/0820
+Nutan Kirana Stores
+Not on TRIP-0002. Add the bill to the trip under Trips first. · SO-0845 · Cartons 5 · Packed 10 Sep, 11:30 am
+INV/0815
+4 selected · 0 pc
+Build a sheet

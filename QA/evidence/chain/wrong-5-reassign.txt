@@ -1,0 +1,51 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Trips
+Waves
+Pick & pack
+Load-out
+Trips
+Planned and loading
+Plan a trip
+Trip	Date	Vehicle	Driver	Stops	State
+
+TRIP-0004
+	
+21 Sep
+	
+MH-05-EF-9012
+	
+Raju Yadav
+	
+1
+	Planned
+
+TRIP-NEXT
+	
+14 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+5
+	Planned

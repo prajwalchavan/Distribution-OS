@@ -1,0 +1,48 @@
+== D8 walk phone-b 390x844 driver=sachin.dalvi settle=true ==
+signed in, url=http://127.0.0.1:5177/
+device filled after ~2s
+home stops: 10
+  8a5687c8-5316-7b52-8610-4bb453d63e24 :: 1. Milan Provision MartShop 23, Nandivali, Dombivli East, Dombivli, 421201₹5,707.00Delivered
+  6c38fc46-bf70-7405-bf2f-6a3d0771940c :: 2. Balaji Wholesale StoresShop 28, Tilak Nagar, Dombivli East, Dombivli, 421201₹1,07,906.00Delivered
+  b1ce2bd9-5d52-7c97-ac9d-743f05e05bc1 :: 3. Nandivali Super BazarShop 16, Nandivali, Dombivli East, Dombivli, 421201₹44,645.00Delivered
+  034fa4d2-c09d-7a9d-8e84-90ed0109cd97 :: 4. Jain Kirana MartSomething else₹11,546.00Not delivered
+  b3cd5226-2b8f-7019-9b5f-6b5b3523d645 :: 5. Dombivli Fresh MartSomething else₹32,368.00Not delivered
+  3577e966-2975-7511-a1ba-0fad7bae0012 :: 6. Sanjivani General StoreSomething else₹3,794.00Not delivered
+  8d62c707-1fc1-749e-b460-9cd5a7c01584 :: 7. Vaishnavi ProvisionSomething else₹4,866.00Not delivered
+  01aa7774-c6e8-734c-b5db-52031c1d25f1 :: 8. Nandivali Corner StoreSomething else₹5,044.00Not delivered
+  8fbd547e-b4fb-74ee-80dd-f1ed109447a7 :: 9. Vighnaharta KiranaSomething else₹22,962.00Not delivered
+  93867b58-bc68-7db5-9926-2773fb2c196c :: 10. Anand General StoreSomething else₹4,727.00Not delivered
+  -> Day summary (home button)
+PHASE 1 online, no money held:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] phone-b-p1-online-baseline.png
+  -> Today (via More)
+opened Take money on stop 8a5687c8-5316-7b52-8610-4bb453d63e24
+offline: true
+  [shot] phone-b-p2a-recorded-offline.png
+  -> Day summary (offline) (via More)
+PHASE 2 offline, holding ₹1544:
+  d8-expected  = ₹8,088.00
+  d8-hand-over = Hand ₹8,088.00 to the cashier
+  d8-uncounted = This tab holds ₹1,544.00 in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.
+  d8-pending   = 1 writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.
+  disabled     = true  reason = 1 records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.
+  [shot] phone-b-p2-offline-holding.png
+desk trips.return  -> 200 {"item":{"id":"f352817e-1069-71a5-8321-c2f6c18d529e","tripNo":"TRIP-ACTIVE","tripDate":"2026-09-12","vehicleId":"cb86c938-94c1-7117-8c21-0ac2a7365b1e","vehicleR
+desk settlementPreview -> 200 state=closing expected=654400
+desk trips.settle  -> 200 {"item":{"id":"8d616473-d499-48ab-875a-4345184a8e4d","tripId":"f352817e-1069-71a5-8321-c2f6c18d529e","expectedCashPaise":654400,"handedOverCashPaise":654400,"cashVariancePaise":0,"upiCollectedPaise":0
+offline: false — the held op goes now, and the office refuses it
+  -> Needs attention (via More)
+  [shot] phone-b-p5-tray.png
+TRAY: You need to enable JavaScript to run this app. SDSai Distributors, Dombivlidelivery⋯1 need attention · Not kept in this browserNeeds attentionWaiting: 0Refused: 1Held in memory only — a reload empties this deviceWaiting to sendNothing is waitingThe office could not accept thesethis trip has already settled; hand this money to the cashier and record it at the office, not on the tripTake money · trip_settled · 21 Sep, 12:23 pm₹1,544.00 Cash from Milan Provision Mart · 21 Sep, 12:23 pmThe office could not take this on the trip. Hand the money and the slip to the cashier, who records it at the office.Handed to the cashierToday's trip
+  -> Day summary (re-opened after the settle) (via More)
+PHASE 5(B) D8 re-opened after the desk settled the trip:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = The office expected ₹6,544.00 from this trip
+  d8-uncounted = This tab holds ₹1,544.00 in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.
+  d8-no-trip   = null
+  screen       = You need to enable JavaScript to run this app. SDSai Distributors, Dombivlidelivery⋯1 need attention · Not kept in this browserTRIP-ACTIVE · 12 Sep 2026End of dayClosed10 of 10 stops doneCash taken₹1,544.00UPI taken₹0.00Cheques taken₹0.00Spent₹0.00Cash the office expectsFloat ₹5,000.00 + cash taken ₹1,544.00 − spent ₹0.00Float at start₹5,000.00Cash taken₹1,544.00Spent₹0.00The office expected ₹6,544.00 from this tripThis tab holds ₹1,544.00 in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.The cashier counts the money and the godown counts the van. The trip closes at the office, not here.StopsDelivered 3 · Part delivered 0 · Not delivered 71. Milan Provision MartShop 23, Nandivali, Dombivli East, Dombivli, 421201₹5,707.00Delivered2. Balaji Wholesale StoresShop 28, Tilak Nagar, Dombivli East, Dombivli, 421201₹1,07,906.00Delivered3. Nandivali Super BazarShop 16, Nandivali, Dombivli East, Dombivli, 421201₹44,645.00Delivered4. Jain Kirana MartSomething else₹11,546.00Not delivered5. Dombivli Fresh MartSomething else₹32,368.00Not delivered6. Sanjivani General StoreSomething else₹3,794.00Not delivered7. Vaishnavi ProvisionSomething else₹4,866.00Not delivered8. Nandivali Corner StoreSomething else₹5,044.00Not delivered9. Vighnaharta KiranaSomething else₹22,962.00Not delivered10. Anand General Sto
+  [shot] phone-b-p5-d8-after-settle.png

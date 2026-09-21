@@ -1,0 +1,32 @@
+TE
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+0 of 2 picked
+PICK-0080
+open
+This sheet has not been started
+Campa Orange 2 L
+Batch B20260729
+Exp 25 Apr 2027
+₹90.00
+1 cs = 24 pc
+Konkan Bhajani Chivda 400 g
+Batch B20260729
+Expires in 66 days
+₹120.00
+1 cs = 20 pc
+A wave is cancelled by the manager.
+0 waiting to send
+Refresh
+0 of 2 picked
+Start picking

@@ -1,0 +1,11 @@
+  trip_no  | receipt_no | amount_paise |  status   | client_receipt_no | from_device 
+-----------+------------+--------------+-----------+-------------------+-------------
+ TRIP-0012 | RCPT-9025  |       154400 | collected |                   | t
+ TRIP-0013 | RCPT-9026  |       154400 | collected |                   | t
+(2 rows)
+
+  trip_no  | receipts_for_trip | paise  
+-----------+-------------------+--------
+ TRIP-0013 |                 1 | 154400
+(1 row)
+

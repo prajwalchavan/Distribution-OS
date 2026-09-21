@@ -1,0 +1,36 @@
+    ref_type     |          narration           |   code   | amount_paise 
+-----------------+------------------------------+----------+--------------
+ receipt         | receipt RCPT-9017            | AR       |      -154400
+ receipt         | receipt RCPT-9017            | CASH_VAN |       154400
+ trip_settlement | settlement of trip TRIP-0008 | CASH     |       154400
+ trip_settlement | settlement of trip TRIP-0008 | CASH_VAN |      -154400
+(4 rows)
+
+        what         | paise 
+---------------------+-------
+ trip A CASH_VAN net |     0
+(1 row)
+
+  trip_no  |  state  | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance 
+-----------+---------+---------------------+------------------------+---------------------+--------------
+ TRIP-0008 | settled |              204400 |                 204400 |                   0 | f
+ TRIP-0009 | closing |                     |                        |                     | 
+(2 rows)
+
+ERROR:  column ap.ref_id does not exist
+LINE 2: select ap.kind, ap.status, ap.ref_id, ap.payload->>'expected...
+                                   ^
+HINT:  Perhaps you meant to reference the column "ap.order_id".
+ trial_balance_tenant 
+----------------------
+                    0
+(1 row)
+
+ERROR:  column "subject_id" does not exist
+LINE 1: select kind, status, subject_id, payload::text from approval...
+                             ^
+      kind       | status  | entity_type |              entity_id               |                                                                                                        payload                                                                                                        
+-----------------+---------+-------------+--------------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ trip_settlement | pending | trip        | 01a0c1e9-63cb-7380-a74e-01e4ed9a6d75 | {"note": "float only", "settlementId": "01a0c1e9-6469-7546-b74d-b1981aad5026", "stockVariance": [], "tolerancePaise": 10000, "cashVariancePaise": -154400, "expectedCashPaise": 174400, "handedOverCashPaise": 20000}
+(1 row)
+

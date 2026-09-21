@@ -1,0 +1,93 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Trips
+Waves
+Pick & pack
+Load-out
+Trips
+Planned and loading
+Close
+Trip	Date	Vehicle	Driver	Stops	State
+
+TRIP-NEXT
+	
+14 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+5
+	Planned
+Plan a trip
+Date
+Today
+Tomorrow
+Vehicle
+MH-05-AB-1234
+Tempo 1
+MH-05-CD-5678
+Loader 1
+MH-05-EF-9012
+Loader 2
+Driver
+Ganesh More
+On TRIP-0002
+Iqbal Shaikh
+Mahesh Sutar
+On TRIP-0003
+Raju Yadav
+Santosh Kamble
+Tanaji Bhosale
+Helper
+No helper
+Ganesh More
+On TRIP-0002
+Iqbal Shaikh
+Mahesh Sutar
+On TRIP-0003
+Raju Yadav
+Santosh Kamble
+Tanaji Bhosale
+Cash float
+₹
+Packed bills not on a trip
+Balaji Wholesale Stores
+INV/0838 · Station Road
+₹1,01,531.00
+Ambika Provision Store
+INV/0820 · Station Road
+₹12,569.00
+Nutan Kirana Stores
+INV/0815 · Birla College Road
+₹4,264.00
+Laxmi Narayan Stores
+INV/9012 · Kalyan West Market
+₹614.00
+Balaji Wholesale Stores
+INV/9010 · Station Road
+₹605.00
+Ganesh General Store
+INV/9009 · Station Road
+₹614.00
+Plan the trip
+Choose a vehicle
