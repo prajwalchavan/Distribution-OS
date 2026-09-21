@@ -138,6 +138,12 @@ describeDb('row level security and ledger guarantees', () => {
   const pool = createPool(url ?? '')
   const db: Db = createDb(pool)
   const run = uuidv7().slice(-8)
+  /**
+   * The HSN the S-176 guarantee below writes into the GLOBAL `hsn_rates`: the run's full suffix, and
+   * deleted in `afterAll`, because the index it proves is unique and a code that came round again on
+   * a long-lived database was a hard INSERT failure, not a flake.
+   */
+  const s176HsnCode = `99${run}`
   const tenantA = uuidv7()
   const tenantB = uuidv7()
   const owner = uuidv7()
@@ -1655,6 +1661,7 @@ describeDb('row level security and ledger guarantees', () => {
   })
 
   afterAll(async () => {
+    await db.delete(hsnRates).where(eq(hsnRates.hsnCode, s176HsnCode))
     await pool.end()
   })
 
@@ -7740,7 +7747,7 @@ describeDb('row level security and ledger guarantees', () => {
    * that a second live rate is a database error at insert, not a silent 25% hole in a bill.
    */
   describe('the curated tax table (hsn_rates)', () => {
-    const code = `99${run.slice(-4)}`
+    const code = s176HsnCode
 
     it('S-176: refuses a second rate for the same HSN on the same effective date', async () => {
       await db.insert(hsnRates).values({

@@ -19,7 +19,7 @@ import {
   users,
 } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { Bargain, PriceList, Quote, Scheme } from '@dos/contracts'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { PricingModule } from './index.js'
@@ -43,10 +43,13 @@ describeDb('pricing (DATABASE_URL)', () => {
   const vUnrated = uuidv7() // its HSN has no GST rate on any date (DOS-096)
   const vCess = uuidv7() // DOS-079: 28% GST + 12% compensation cess, ₹22.97 a piece
   const vAerated = uuidv7() // S-176: on the CURATED heading 2202, whose rate the demo catalogue ships
-  // Per-run HSN codes so no other spec's rate row can answer for them (8 and 9 are orders' and ai's prefixes).
-  const hsn = `7${Date.now().toString().slice(-6)}` // 18% from 2020-04-01
-  const hsnNoRate = `6${Date.now().toString().slice(-6)}` // never given an hsn_rates row
-  const hsnCess = `5${Date.now().toString().slice(-6)}` // 28% + 12% cess from 2020-04-01 (DOS-079)
+  // Per-run HSN codes so no other spec's rate row can answer for them (8 and 9 are orders' and ai's
+  // prefixes). They carry the run's FULL suffix and are deleted in `afterAll`: `hsn_rates` is global,
+  // `hsn_rates_code_from_idx` is unique (S-176), and a code built from the clock's last six digits
+  // came round again on a long-lived database as a hard INSERT failure, not a flake.
+  const hsn = `7${run}` // 18% from 2020-04-01
+  const hsnNoRate = `6${run}` // never given an hsn_rates row
+  const hsnCess = `5${run}` // 28% + 12% cess from 2020-04-01 (DOS-079)
   /**
    * The CURATED heading of aerated waters with added sugar, whose one live rate the demo catalogue
    * ships (`seed-demo/catalog.ts`) — not a per-run fixture code. S-176 was that this heading carried
@@ -174,6 +177,9 @@ describeDb('pricing (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app.close()
+    // The rate rows this run wrote into the GLOBAL table go with it (the pool is the owner connection,
+    // and RLS does not apply to `hsn_rates`), so a re-run on the same database inserts them afresh.
+    await db.delete(hsnRates).where(inArray(hsnRates.hsnCode, [hsn, hsnNoRate, hsnCess]))
     await pool.end()
   })
 
