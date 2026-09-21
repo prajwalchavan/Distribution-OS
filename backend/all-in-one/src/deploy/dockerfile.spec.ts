@@ -89,4 +89,19 @@ describe('DEP-01 the image builds and runs', () => {
     expect(dockerfile).toMatch(/ENTRYPOINT \["\/usr\/local\/bin\/dos"\]/)
     expect(dockerfile).toMatch(/^\s*CMD \["serve"\]\s*$/m)
   })
+
+  it('DEP-01 does not claim a build the runbook has not recorded (never-list #12)', () => {
+    // The lie never-list #12 names was written in this file's header — "built and run for the first
+    // time … on colima" over an image no machine had built — and none of the checks above would
+    // have caught it. docs/30 §12 is where the first real build gets its date; until that sentence
+    // goes, the header says NOT YET BUILT and nothing else, and when it goes the header must follow.
+    const runbook = readArtifact('docs/30-deploy-runbook.md')
+    const header = dockerfile.slice(0, dockerfile.indexOf('\nFROM '))
+    if (/`docker build` has never been run/.test(runbook)) {
+      expect(header).toMatch(/NOT YET BUILT/)
+      expect(header).not.toMatch(/built and r(u|a)n\b|first (built|ran) (on|here)\b/i)
+    } else {
+      expect(header).not.toMatch(/NOT YET BUILT/)
+    }
+  })
 })

@@ -109,7 +109,7 @@ cd /opt/dos/backend/infra && ./gen-secrets.sh
 ```
 
 [run here] Proves: `gen-secrets.sh` writes a real `.env.prod` and fills every secret in it.
-Observed 2026-09-21, into a temporary file that was deleted afterwards: mode `600`, 55 variables, a
+Observed 2026-09-21, into a temporary file that was deleted afterwards: mode `600`, 52 variables, a
 fresh Ed25519 pair whose public half carries `x` and no private `d` (the private half carries both),
 `POSTGRES_PASSWORD` appearing inside `DATABASE_URL` so the two places that must agree do, and a
 20-character `OWNER_PASSWORD` — and the password itself is not printed to the terminal, only its
