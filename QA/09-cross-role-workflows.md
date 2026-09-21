@@ -608,6 +608,7 @@ in; the distributor's stock on hand is 75 pieces light until someone notices.
 > and refused goods vanish from inventory and the van check-in built to count them back has nothing to show.
 > Evidence `wrong-4-failed-f-checkin-cd.png`, `wrong-5-reassign-h-day.png`, the balances query above.
 > (This is the ledger half of S-172 from the first half, which only noted that no transfer rows are written.)
+> **Status (2026-09-21):** FIXED — merged `5032b31` (lane `qa/p2-stock`, verified pass): pack stages rack → dock, the load-out loads dock → vehicle and refuses (409) rather than short-load, a refused door leaves the pieces on the van, check-in stages an undelivered bill back on the dock; the seed writes the model; back-fill 0064 for old databases. Carried: S-193.
 
 **(b) The desk cannot tell a failed bill from a delivered one.** `vikas.kadam` opened INV/9009 in Billing:
 
@@ -716,6 +717,7 @@ broken stock, and the name will not warn its author.
 > **DOS-204 · tech-debt · P2** — `sellable_stock` includes the damaged / expiry bin (85 rows, 1 241 pieces) and
 > every consumer must remember a location filter. Evidence: `pg_get_viewdef('sellable_stock')` (no location
 > predicate) and the two queries above.
+> **Status (2026-09-21):** FIXED — merged `5032b31`: `sellable_stock` joins `locations` and holds only warehouse and vehicle kinds (0063).
 
 Two things the desk did not get.
 

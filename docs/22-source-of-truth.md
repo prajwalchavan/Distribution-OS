@@ -451,3 +451,4 @@ Future Enhancements"); the Confluence space mirrors this file page by page from 
 | 2026-09-21 | §2 as built (retire lane), §8 B5 as built: **the one app is on main** (`a75e13b`) — `frontend/dos-app` with six role groups as visible segments and the Continue-as chooser; the six per-role apps deleted; extra roles on the wire; the D8 fixes ported to the delivery group | architect (Fable), one-app merge |
 | 2026-09-21 | §8 as built: one gift counted once (DOS-185) merged `3cbaa34`; S-190/S-191 carried | architect (Fable), Phase 2 P1 merge |
 | 2026-09-21 | §8 as built: the undelivered flow (DOS-196/197/191/203) merged `bee8a37` — credit gate counts undelivered bills, register follows check-in; migration 0062 | architect (Fable), Phase 2 P1 merge |
+| 2026-09-21 | §8 as built: the dock model (DOS-195/204/186) merged `5032b31` — migrations 0063/0064/0065; **all six Phase 2 P1s are on main; the business simulation is next** | architect (Fable), Phase 2 P1 merge |
