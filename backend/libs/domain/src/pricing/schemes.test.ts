@@ -884,6 +884,168 @@ describe('priceOrder', () => {
     expect(tooHigh.orderRules).toEqual([])
   })
 
+  /*
+   * Founder, 2026-09-20 (QA DOS-075): "a scheme threshold counts EVERY line on the bill, including lines
+   * already under an exclusive scheme". The bill below is ₹26,000 of which ₹24,000 sits under a `final`
+   * scheme; "2% off on bills over ₹25,000" must fire on it, and the exclusive line must earn nothing from it.
+   */
+  it('DOS-075: a line under an exclusive scheme counts toward a bill threshold and still earns nothing from it', () => {
+    const over25k = scheme({
+      id: 's-order-25k',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 2_500_000,
+      rewardKind: 'order_pct',
+      rewardValue: 200,
+      priority: 30,
+    })
+    const finalOnV1 = scheme({
+      id: 's-final-v1',
+      scope: { variantIds: [V1] },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 1,
+      rewardKind: 'line_pct',
+      rewardValue: 1000,
+      final: true,
+      priority: 10,
+    })
+    // l1 = 2,400 pcs × ₹10 = ₹24,000 under the exclusive scheme; l2 = 100 pcs × ₹20 = ₹2,000 free to earn.
+    const bill = order({
+      lines: [
+        { lineId: 'l1', variantId: V1, qtyPcs: 2_400, caseSize: 12 },
+        { lineId: 'l2', variantId: V2, qtyPcs: 100, caseSize: 24 },
+      ],
+      schemes: [over25k, finalOnV1],
+    })
+    const r = priceOrder(bill)
+    expect(r.totals.grossPaise).toBe(fromRupees('26000'))
+
+    // half 1 — counted: the bill is over ₹25,000 only because the exclusive line is counted, and the
+    // scheme fires. Its 2% is worth 2% of what may still earn (l2's ₹2,000), never of the locked line.
+    const share = {
+      ruleId: 's-order-25k',
+      version: 1,
+      kind: 'scheme',
+      rewardKind: 'order_pct',
+      amountPaise: fromRupees('40'),
+    }
+    expect(r.orderRules).toEqual([share])
+
+    // half 2 — earns nothing: the exclusive line keeps its own rule alone, no share, no extra discount.
+    const l1 = line(r, 'l1')
+    expect(l1.appliedRules).toEqual([
+      {
+        ruleId: 's-final-v1',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'line_pct',
+        amountPaise: fromRupees('2400'),
+      },
+    ])
+    expect(l1.discountPaise).toBe(fromRupees('2400'))
+
+    const l2 = line(r, 'l2')
+    expect(l2.appliedRules).toEqual([share])
+    expect(l2.discountPaise).toBe(fromRupees('40'))
+    expect(r.totals.discountPaise).toBe(fromRupees('2440'))
+
+    // the control: take the exclusive line off the bill and ₹2,000 is nowhere near the threshold.
+    const alone = priceOrder({ ...bill, lines: bill.lines.filter((l) => l.lineId === 'l2') })
+    expect(alone.orderRules).toEqual([])
+    expect(alone.totals.discountPaise).toBe(0)
+  })
+
+  /*
+   * The same rule for a line the shop has a FINAL price on (ADR 0008 step 2): no scheme stacks on that
+   * line, but it is still goods on the bill, so it counts toward "bills over ₹X" (QA DOS-075).
+   */
+  it('DOS-075: a line on a final retailer override counts toward a bill threshold and earns nothing from it', () => {
+    const over25k = scheme({
+      id: 's-order-25k',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 2_500_000,
+      rewardKind: 'order_pct',
+      rewardValue: 200,
+    })
+    const r = priceOrder(
+      order({
+        lines: [
+          { lineId: 'l1', variantId: V1, qtyPcs: 3_000, caseSize: 12 },
+          { lineId: 'l2', variantId: V2, qtyPcs: 100, caseSize: 24 },
+        ],
+        // ₹8 instead of ₹10, final: 3,000 × ₹8 = ₹24,000 on the bill and nothing may stack on it.
+        overrides: [{ id: 'ov-final', variantId: V1, ratePaise: fromRupees('8'), final: true }],
+        schemes: [over25k],
+      }),
+    )
+    expect(r.totals.grossPaise).toBe(fromRupees('26000'))
+    expect(r.orderRules).toEqual([
+      {
+        ruleId: 's-order-25k',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'order_pct',
+        amountPaise: fromRupees('40'),
+      },
+    ])
+    expect(line(r, 'l1').appliedRules.map((a) => a.ruleId)).toEqual(['ov-final'])
+    expect(line(r, 'l1').discountPaise).toBe(0)
+    expect(line(r, 'l2').discountPaise).toBe(fromRupees('40'))
+  })
+  /*
+   * The SAME threshold, read by the other path in this file: a cash discount is a scheme too, so
+   * "2% on bills over ₹25,000" must measure the whole bill. ₹26,000 of which ₹24,000 sits on a final
+   * retailer price is a bill over ₹25,000; before this, step 5 measured only the ₹2,000 that schemes
+   * may touch and reported nothing, so the pilot tenant's two thresholds disagreed on one bill.
+   * The final line still earns nothing: the figure reported is 2% of the ₹2,000 (QA DOS-075).
+   */
+  it('DOS-075: the cash-discount threshold counts a final-override line, which still earns nothing from it', () => {
+    const cd25k = scheme({
+      id: 's-cd-25k',
+      scope: { all: true },
+      triggerKind: 'value',
+      triggerUnit: 'inr',
+      triggerMin: 2_500_000,
+      rewardKind: 'cash_discount_pct',
+      rewardValue: 200,
+    })
+    const bill = order({
+      lines: [
+        { lineId: 'l1', variantId: V1, qtyPcs: 3_000, caseSize: 12 },
+        { lineId: 'l2', variantId: V2, qtyPcs: 100, caseSize: 24 },
+      ],
+      // ₹8 instead of ₹10, final: 3,000 × ₹8 = ₹24,000 on the bill and nothing may stack on it.
+      overrides: [{ id: 'ov-final', variantId: V1, ratePaise: fromRupees('8'), final: true }],
+      schemes: [cd25k],
+    })
+    const r = priceOrder(bill)
+    expect(r.totals.grossPaise).toBe(fromRupees('26000'))
+
+    // half 1 — counted: the bill clears ₹25,000 only because the final line counts, so the offer fires.
+    expect(r.cashDiscountBps).toBe(200)
+    // half 2 — earns nothing: 2% of the ₹2,000 that schemes may still touch, never of the ₹24,000.
+    expect(r.cashDiscountPaise).toBe(fromRupees('40'))
+    expect(r.orderRules).toEqual([
+      {
+        ruleId: 's-cd-25k',
+        version: 1,
+        kind: 'scheme',
+        rewardKind: 'cash_discount_pct',
+        amountPaise: fromRupees('40'),
+      },
+    ])
+
+    // the control: the ₹2,000 line alone is nowhere near the threshold and reports nothing.
+    const alone = priceOrder({ ...bill, lines: bill.lines.filter((l) => l.lineId === 'l2') })
+    expect(alone.cashDiscountBps).toBe(0)
+    expect(alone.cashDiscountPaise).toBe(0)
+    expect(alone.orderRules).toEqual([])
+  })
+
   it('rejects an unpriced variant, bad dates and duplicate line ids', () => {
     expect(() => priceOrder(order({ tierPrices: { [V1]: 1000 } }))).toThrow(PricingError)
     expect(() => priceOrder(order({ pricingDate: '04/09/2026' }))).toThrow(PricingError)

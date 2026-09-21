@@ -26,6 +26,7 @@ import {
   creditNotes,
   deliveries,
   deliveryLines,
+  departedEarly,
   type locationConsents,
   podEvidence,
   tripExpenses,
@@ -139,6 +140,8 @@ export function toTrip(
     openingCashPaise: row.openingCashPaise,
     startedAt: iso(row.startedAt),
     endedAt: iso(row.endedAt),
+    // QA DOS-043: derived from the two columns above, so the planned date and "it left early" read together.
+    departedEarly: departedEarly(row),
     createdAt: row.createdAt.toISOString(),
   }
 }
