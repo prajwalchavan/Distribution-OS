@@ -6,14 +6,19 @@ pushes it to GHCR; a human or an agent runs the steps below.
 
 **How to read a step.** Every command block carries a marker and what it proves:
 
-- `[run here]` — this exact command was run on the founder's Mac while writing this file, and what
-  it proves is what was observed.
+- `[run here]` — this exact command, as written in the block, was run on the founder's Mac, and
+  what it proves is what was observed. Not a paraphrase of it, not a test that covers it: the
+  command in the block.
 - `[not run here: needs the VM]` — it needs an Oracle VM, a Cloudflare account or a domain, none of
   which exist yet. It has not been run and is not claimed to work.
-- `[not run here: needs a Docker daemon]` — this Mac has colima and the Docker CLI installed, but at
-  the time of writing free memory sat under 100 MB with three other runs live (QA/STATE.md sizes
-  work to this machine), so no Linux VM was started. Everything about the image that can be checked
-  without a daemon was checked; the build itself has not been run anywhere yet.
+- `[not run here: needs a Docker daemon]` — docker and colima are installed here
+  (`/opt/homebrew/bin`), but colima is not running and free memory measured 326 MB on the last
+  check, against the ~1.5 GB an arm64 build of this image wants. Everything about the image that can
+  be checked without a daemon is checked; the build itself has not been run anywhere yet.
+
+Several steps have BOTH forms: the command as it will be run on the box, marked not-run, and beside
+it the command that was actually run here and what it proved. They are separate blocks on purpose —
+a proof on this Mac is not a proof on the VM, and collapsing the two is how a runbook starts lying.
 
 Nothing below is a summary of something else: `backend/infra/` holds the files, and
 `backend/all-in-one/src/deploy/*.spec.ts` holds the tests named DEP-01 … DEP-09.
@@ -95,12 +100,23 @@ cd /opt/dos/backend/infra && ls compose.prod.yml Caddyfile gen-secrets.sh backup
 
 ## 4. Secrets
 
-[run here] Proves: a real `.env.prod` appears, mode 600, with a fresh EdDSA pair whose public half
-carries no private `d`, the database password in both the places that must agree, and an owner
-password of at least 12 characters. Observed on this Mac into a temporary directory.
+[not run here: needs the VM] Proves: the box gets its own secrets, once. `/opt/dos` is the VM's
+path — the clone of §3 — so this exact line cannot have run here. The script itself did; the block
+below is what was run.
 
 ```bash
 cd /opt/dos/backend/infra && ./gen-secrets.sh
+```
+
+[run here] Proves: `gen-secrets.sh` writes a real `.env.prod` and fills every secret in it.
+Observed 2026-09-21, into a temporary file that was deleted afterwards: mode `600`, 55 variables, a
+fresh Ed25519 pair whose public half carries `x` and no private `d` (the private half carries both),
+`POSTGRES_PASSWORD` appearing inside `DATABASE_URL` so the two places that must agree do, and a
+20-character `OWNER_PASSWORD` — and the password itself is not printed to the terminal, only its
+location. `secrets.spec.ts` makes the same checks unattended (5 passed).
+
+```bash
+ENV_OUT=/tmp/envprod.test bash backend/infra/gen-secrets.sh
 ```
 
 [not run here: needs the VM] Proves: the values only a human knows are in. The script prints this
@@ -157,15 +173,27 @@ docker compose -f compose.prod.yml --env-file .env.prod logs migrate | tail -5  
 docker compose -f compose.prod.yml --env-file .env.prod ps
 ```
 
-[run here] Proves: 57 migrations apply to an empty database and `bootstrapTenant()` leaves exactly
-one tenant, one user and one membership — and none of the dev seed. Observed on
-`dos_test_b2_deploy` after `DROP DATABASE`: 57 rows in `drizzle.__drizzle_migrations`, 140 tables,
-30 accounts, 3 locations, 10 numbering series, 5 feature flags, 10 tenant settings, and zero rows in
-`sales_orders`, `invoices`, `retailers`, `retailer_identities`, `tenant_products` and
-`auth_sessions`. Run it once, from the image, on the box.
+[not run here: needs the VM] Proves: the box gets one tenant and one owner, from the image. Run it
+once. No `docker compose` command in this file has ever run anywhere (§12), so this is the image's
+half of the step; what runs INSIDE it was run here, in the block below.
 
 ```bash
 docker compose -f compose.prod.yml --env-file .env.prod run --rm app bootstrap
+```
+
+[run here] Proves: 57 migrations apply to an empty database and `bootstrapTenant()` leaves exactly
+one tenant, one user and one membership — and none of the dev seed. Same migrate entry point and
+same `bootstrap.mjs` the image's entrypoint runs, out of a real `pnpm deploy --prod --legacy` tree,
+against a database dropped and recreated first. What it does NOT exercise is Docker, compose or the
+image itself. Observed 2026-09-21 on `dos_test_b2_deploy`: 57 rows in
+`drizzle.__drizzle_migrations`, 140 tables, 1 tenant, 1 user, 1 membership, 30 accounts, 3
+locations, 10 numbering series, 5 feature flags, 10 tenant settings, and zero rows in
+`sales_orders`, `invoices`, `retailers`, `retailer_identities`, `tenant_products` and
+`auth_sessions`. Re-running the bootstrap changed nothing.
+
+```bash
+cd backend && DOS_DEPLOY_PROOF=1 DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_deploy \
+  pnpm --filter @dos/all-in-one exec vitest run src/deploy/migrate-bootstrap.spec.ts
 ```
 
 **Never `pnpm db:seed` on this database.** The seed writes three demo distributors, roughly thirty
@@ -206,15 +234,30 @@ cd /opt/dos/backend/infra && ./backup.sh          # once by hand first; it must 
 ( crontab -l 2>/dev/null; echo '0 2 * * * cd /opt/dos/backend/infra && ./backup.sh >> /var/log/dos-backup.log 2>&1' ) | crontab -
 ```
 
-[run here] Proves: a restore really restores. Observed on `dos_test_b2_deploy`: backup, then
-`DROP DATABASE` + `CREATE DATABASE` (0 tables), then restore — 140 tables back and every counted row
-identical (tenants 1, users 1, memberships 1, accounts 30, locations 3, numbering_series 10,
-feature_flags 5, tenant_settings 10). Do the drill on the box too, against a scratch database, the
-same week the box goes live; a restore nobody has run is not a restore.
+[not run here: needs the VM] Proves: the drill on the box itself. `/var/backups/dos` is the VM's
+path and `<stamp>` is one of the VM's own files, so this line could not have run here. Do it the
+same week the box goes live, against a scratch database; a restore nobody has run is not a restore.
+The round trip the two scripts perform WAS run here — the block below.
 
 ```bash
 RESTORE_CONFIRM=dos ./restore.sh /var/backups/dos/daily/db-<stamp>.dump \
                                  /var/backups/dos/daily/storage-<stamp>.tar.gz
+```
+
+[run here] Proves: `backup.sh` and `restore.sh` make a round trip that loses nothing — not the rows,
+and not the privileges that make the rows readable. Observed 2026-09-21 on `dos_test_b2_deploy`:
+backup.sh wrote the custom-format dump, the cluster globals and the storage tar; then
+`DROP DATABASE` + `CREATE DATABASE` left 0 tables; then restore.sh brought back 140 tables with
+every counted row identical (tenants 1, users 1, memberships 1, accounts 30, locations 3,
+numbering_series 10, feature_flags 5, tenant_settings 10) — and `app_rw` could still read `accounts`
+through `withTenant`, with the table's GRANTs to `app_rw` and `app_worker` intact. The second half
+is load-bearing: adding `--no-acl` to backup.sh's `pg_dump` makes this same run fail on the
+privileges — "permission denied for table accounts" — with every row count still matching to the
+row. That mutation was made, the failure observed, and backup.sh put back.
+
+```bash
+cd backend && DOS_DEPLOY_PROOF=1 DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_b2_deploy \
+  pnpm --filter @dos/all-in-one exec vitest run src/deploy/backup.spec.ts
 ```
 
 `restore.sh` applies `globals-<stamp>.sql` first without being asked: `app_rw` and `app_worker` are
@@ -233,13 +276,16 @@ pnpm dlx wrangler pages project create dos-web --production-branch main
 ```
 
 [run here, as a dry run] Proves: the build is pointed at `api.<domain>` with the right prefix before
-Metro runs, the SPA redirect is written, and wrangler is called with the named project. Observed:
-`EXPO_PUBLIC_API_URL=https://api.distributionos.in`, `EXPO_PUBLIC_API_PREFIX=/owner`,
-`EXPO_PUBLIC_AUTH_URL=https://api.distributionos.in/auth`. The real `expo export` has NOT been run
-here — see §12.
+Metro runs, the SPA redirect is written, and wrangler is called with the named project. Observed
+2026-09-21 for `dos`: `EXPO_PUBLIC_API_URL=https://api.distributionos.in`,
+`EXPO_PUBLIC_API_PREFIX=` — the empty string, exported as one, because the merged app elects its
+role and its service at sign-in — `EXPO_PUBLIC_AUTH_URL=https://api.distributionos.in/auth`, and
+`wrangler pages deploy … --project-name dos-web --branch main`. The same script run with `owner`
+prints `EXPO_PUBLIC_API_PREFIX=/owner` and `--project-name dos-owner`. `PAGES_DRY_RUN=1` is what
+makes it print instead of build: the real `expo export` has NOT been run here — see §12.
 
 ```bash
-cd frontend && DOMAIN=distributionos.in PAGES_PROJECT=dos-web ./scripts/pages-deploy.sh dos
+cd frontend && PAGES_DRY_RUN=1 DOMAIN=distributionos.in PAGES_PROJECT=dos-web ./scripts/pages-deploy.sh dos
 ```
 
 [not run here: needs a Cloudflare account] Proves: the site answers on the website hostname and a
@@ -296,18 +342,25 @@ there is nothing new.
 
 Said plainly so nobody reads this file as a record of a working deployment:
 
-1. **`docker build` has never been run.** The Dockerfile's faults were found by reading it against
-   what Docker does and by reproducing the pieces outside a daemon — the `pnpm deploy --prod
-   --legacy` tree, its `node_modules/@dos/db/migrations`, the missing musl prebuild for argon2 — and
-   the fixes are checked by `dockerfile.spec.ts`. The build-and-run proof exists as
-   `docker-image.proof.spec.ts` and is one command away the moment this Mac has 1.5 GB free:
-   `colima start --cpu 2 --memory 4 --arch aarch64` then `DOS_DOCKER_PROOF=1 … vitest run`.
-   Until then the 377 MB idle figure in docs/26 §7 is a measurement of the process, not of a
-   container.
-2. **No `expo export` was run for a Pages build.** `pages-deploy.sh` was exercised as a dry run only;
-   Metro on a machine with 60 MB free would have taken the other runs down with it.
+1. **`docker build` has never been run** — not here, not anywhere, and the Dockerfile's own header
+   says so. Its faults were found by reading it against what Docker does and by reproducing the
+   pieces outside a daemon — the `pnpm deploy --prod --legacy` tree, its
+   `node_modules/@dos/db/migrations`, the missing musl prebuild for argon2 — and the fixes are
+   checked by `dockerfile.spec.ts`. The build-and-run proof is written and opt-in:
+   `docker-image.proof.spec.ts`. Checked 2026-09-21: `docker` and `colima` are both on PATH at
+   `/opt/homebrew/bin`, colima is NOT running, and free memory measured 326 MB against the ~1.5 GB
+   an arm64 build of this image wants. So it is one command away only once the machine is quiet:
+   `colima start --cpu 2 --memory 4 --arch aarch64` then `DOS_DOCKER_PROOF=1 … vitest run`. Until
+   that has been done, the 377 MB idle figure in docs/26 §7 is a measurement of the process, not of
+   a container, and no line in this file may say the image was built.
+2. **No `expo export` was run for a Pages build.** `pages-deploy.sh` was exercised with
+   `PAGES_DRY_RUN=1` only, which prints the commands and builds nothing; Metro on this machine
+   would have taken the other runs down with it.
 3. **Nothing has touched Oracle, Cloudflare or a domain.** None of the three accounts exist yet.
-4. **`image.yml` has never run**, because it only triggers on a push to `main`.
+4. **`image.yml` has never run.** It triggers on a push to `main` (and `workflow_dispatch`), and
+   the file does not exist on `main` or on `origin/main` — it arrives with this branch.
+5. **No `docker compose` command in this file has ever run**, here or anywhere: §6, §10 and §11 are
+   all the box's, and there is no box.
 
 ## 13. The tests behind this file
 
@@ -318,7 +371,7 @@ Said plainly so nobody reads this file as a record of a working deployment:
 | DEP-02 | `compose.prod.yml` resolves, orders migrate before app, publishes only 80/443 | `backend/all-in-one/src/deploy/compose.spec.ts` |
 | DEP-03 | The Caddyfile is one `caddy validate` accepts, with automatic TLS and no CORS of its own | `backend/all-in-one/src/deploy/caddy.spec.ts` |
 | DEP-04 | 57 migrations on a fresh database, then one tenant and one owner and no demo rows | `backend/all-in-one/src/deploy/migrate-bootstrap.spec.ts` |
-| DEP-05 | Dump, drop, restore, and every row count comes back the same | `backend/all-in-one/src/deploy/backup.spec.ts` |
+| DEP-05 | Dump, drop, restore: every row count comes back AND `app_rw` can still read them (the `--no-acl` failure mode) | `backend/all-in-one/src/deploy/backup.spec.ts` |
 | DEP-06 | Every variable is declared, every secret is generated, `.env.prod` is refused by git | `backend/all-in-one/src/deploy/secrets.spec.ts` |
-| DEP-07 | The Pages build is pointed at `api.<domain>`; `image.yml` builds arm64 and deploys nothing | `backend/all-in-one/src/deploy/pages.spec.ts` |
+| DEP-07 | The Pages build is pointed at `api.<domain>`, the banner prints the prefix it exports; `image.yml` builds arm64 and deploys nothing | `backend/all-in-one/src/deploy/pages.spec.ts` |
 | DEP-08/09 | This runbook marks every command, and docs/26 records what changed | `backend/all-in-one/src/deploy/runbook.spec.ts` |
