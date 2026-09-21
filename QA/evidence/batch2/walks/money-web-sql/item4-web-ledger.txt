@@ -1,0 +1,28 @@
+   code   | net_paise_for_trip_c 
+----------+----------------------
+ AR       |                    0
+ CASH     |                    0
+ CASH_VAN |                    0
+(3 rows)
+
+ invoice_no | state  | total_paise | allocated | outstanding 
+------------+--------+-------------+-----------+-------------
+ INV/9022   | issued |      154400 |         0 |      154400
+(1 row)
+
+  trip_no  |  state  | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance |          settled_at           
+-----------+---------+---------------------+------------------------+---------------------+--------------+-------------------------------
+ TRIP-0010 | settled |              204400 |                 204400 |                   0 | f            | 2026-09-21 08:42:10.678+05:30
+(1 row)
+
+ receipt_no |  status   | amount_paise 
+------------+-----------+--------------
+ RCPT-9022  | cancelled |       154400
+ RCPT-9024  | cancelled |      -154400
+(2 rows)
+
+ trial_balance_tenant | _ 
+----------------------+---
+                    0 | 0
+(1 row)
+

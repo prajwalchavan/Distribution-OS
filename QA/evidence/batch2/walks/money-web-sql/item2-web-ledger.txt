@@ -1,0 +1,29 @@
+ receipt_no | mode |  status   | amount_paise | deposit_ref |         deposited_at          
+------------+------+-----------+--------------+-------------+-------------------------------
+ RCPT-9020  | cash | deposited |       250000 | DEP-B-w2    | 2026-09-21 08:37:34.484+05:30
+(1 row)
+
+ ref_type |    deposit_ref    | code | amount_paise 
+----------+-------------------+------+--------------
+ receipt  | receipt RCPT-9020 | AR   |      -250000
+ receipt  | receipt RCPT-9020 | CASH |       250000
+ deposit  | DEP-B-w2          | BANK |       250000
+ deposit  | DEP-B-w2          | CASH |      -250000
+(4 rows)
+
+   event_type    | count 
+-----------------+-------
+ ChequeDeposited |     1
+ ReceiptRecorded |     1
+(2 rows)
+
+ deposit_entries_naming_this_batch 
+-----------------------------------
+                                 1
+(1 row)
+
+ trial_balance_tenant 
+----------------------
+                    0
+(1 row)
+

@@ -1,0 +1,40 @@
+     ref_type     |           narration            | code | amount_paise 
+------------------+--------------------------------+------+--------------
+ receipt_reversal | entered against the wrong shop | AR   |       154400
+ receipt_reversal | entered against the wrong shop | CASH |      -154400
+(2 rows)
+
+ receipt_no | mode | amount_paise |  status   | on_trip 
+------------+------+--------------+-----------+---------
+ RCPT-9015  | cash |       154400 | collected | t
+ RCPT-9016  | cash |       154400 | collected | t
+ RCPT-9017  | cash |       154400 | cancelled | t
+ RCPT-9019  | cash |      -154400 | cancelled | t
+(4 rows)
+
+ERROR:  relation "receipt_allocations" does not exist
+LINE 3:  (select coalesce(sum(ra.amount_paise),0) from receipt_alloc...
+                                                       ^
+ERROR:  column ts.created_at does not exist
+LINE 2: ...h_paise, ts.cash_variance_paise, ts.has_variance, ts.created...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "t.created_at".
+ trial_balance_tenant 
+----------------------
+                    0
+(1 row)
+
+ invoice_no | state  | total_paise | allocated_paise | outstanding_paise 
+------------+--------+-------------+-----------------+-------------------
+ INV/9020   | issued |      154400 |               0 |            154400
+(1 row)
+
+ receipt_id | receipt_no | amount_paise 
+------------+------------+--------------
+(0 rows)
+
+  trip_no  | expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance |          settled_at           | approved_by 
+-----------+---------------------+------------------------+---------------------+--------------+-------------------------------+-------------
+ TRIP-0008 |              204400 |                 204400 |                   0 | f            | 2026-09-21 08:31:33.019+05:30 | 
+(1 row)
+

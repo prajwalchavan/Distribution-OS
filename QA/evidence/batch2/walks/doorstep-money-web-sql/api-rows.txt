@@ -1,0 +1,42 @@
+== DOS-175a/b: nothing written for a trip the office cannot settle ==
+0
+0
+0
+
+== DOS-175c: RCPT-9005, the office receipt, banked ==
+ receipt_no | mode | amount_paise |  status   | trip_id | deposit_ref | deposited 
+------------+------+--------------+-----------+---------+-------------+-----------
+ RCPT-9005  | cash |         4000 | deposited |         | WALK-175    | t
+(1 row)
+
+-- the deposit journal entry and its lines (amount_paise: + is a debit) --
+ account |     name     | amount_paise 
+---------+--------------+--------------
+ BANK    | Bank         |         4000
+ CASH    | Cash in hand |        -4000
+(2 rows)
+
+0
+-- deposit refs on that receipt (must be exactly one) --
+1
+-- Dr BANK lines in that entry (must be exactly one, +4000) --
+1
+
+== DOS-176: the pod_evidence row ==
+                  id                  |             delivery_id              | kind |      payload      |   lat   |   lng   |          captured_at          
+--------------------------------------+--------------------------------------+------+-------------------+---------+---------+-------------------------------
+ 01a0c223-5839-709b-9092-b27d15682fe0 | f2b4e4f9-c083-7fc6-a52b-a093244d23d5 | geo  | {"distanceM": 40} | 19.2437 | 73.1355 | 2026-09-21 09:34:51.411+05:30
+(1 row)
+
+
+== DOS-177: the location_consents row ==
+                  id                  |               user_id                | granted |   policy_version   | locale |          granted_at           | withdrawn_at 
+--------------------------------------+--------------------------------------+---------+--------------------+--------+-------------------------------+--------------
+ 01a0c223-586c-7b9b-b442-b647472d77ef | 7b2db500-02d5-7aa7-a1dc-005a3e89ff63 | t       | gps-notice-2026-09 | en-IN  | 2026-09-21 09:34:51.442+05:30 | 
+(1 row)
+
+
+== trial balance, pilot tenant (must be 0) ==
+0
+== unbalanced entries in the pilot tenant (must be 0) ==
+0

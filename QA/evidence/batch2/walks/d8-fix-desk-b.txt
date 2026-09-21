@@ -1,0 +1,48 @@
+== D8 walk desk-b 1280x800 driver=ganesh.more settle=true ==
+signed in, url=http://127.0.0.1:5177/
+device filled after ~2s
+home stops: 10
+  7dd63add-5883-761e-93d6-88b9e38c81fb :: 1. Prerna Super MarketShop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301₹73,245.00Delivere
+  342af087-7d68-742c-8209-52237c21bb23 :: 2. Metro Kirana BazarShop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301₹4,547.00Del
+  6c4c742c-5445-75ed-8418-049db39f5709 :: 3. Anand Bhavan ProvisionShop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306₹2,843.00Del
+  4a5f6910-67eb-75a3-86b5-1a7d0e5dd623 :: 4. Vaibhav Kirana MartShop 24, Tisgaon Naka, Kolsewadi, Kalyan East, Kalyan, 421306₹7,856.00At the s
+  e82ef7b4-1ec6-792f-b4bc-5378a44bbeeb :: 5. Joshi Kirana StoresShop 22, Dudh Naka, Bazarpeth, Kalyan West, Kalyan, 421301₹14,962.00Not starte
+  74bbfade-4f45-7c41-a3e8-8b53ba8adb2b :: 6. Ansari Kirana StoresShop 30, Rambaug Lane 4, Godrej Hill, Kalyan West, Kalyan, 421301₹2,610.00Not
+  18ac4301-73fb-72fd-9df1-cab54f72a4c4 :: 7. Nakshatra KiranaShop 4, Chinchpada Road, Kolsewadi, Kalyan East, Kalyan, 421306₹4,756.00Not start
+  49acc96c-933b-7f45-b5bb-63d01d3b2e7f :: 8. Laxmi Narayan StoresShop 11, Parnaka, Bazarpeth, Kalyan West, Kalyan, 421301₹22,508.00Not started
+  8fd70ab5-b169-7cc0-9191-fc6083358804 :: 9. Khan General StoreShop 14, Nandivli Road, Kolsewadi, Kalyan East, Kalyan, 421306₹907.00Not starte
+  a53373df-e4c5-7a7a-aeca-833d3fa1f352 :: 10. Rukmini ProvisionShop 34, Syndicate, Godrej Hill, Kalyan West, Kalyan, 421301₹26,581.00Not start
+  -> Day summary
+PHASE 1 online, no money held:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = Hand ₹6,544.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] desk-b-p1-online-baseline.png
+  -> Today
+opened Take money on stop 7dd63add-5883-761e-93d6-88b9e38c81fb
+offline: true
+  [shot] desk-b-p2a-recorded-offline.png
+  -> Day summary (offline)
+PHASE 2 offline, holding ₹1544:
+  d8-expected  = ₹8,088.00
+  d8-hand-over = Hand ₹8,088.00 to the cashier
+  d8-uncounted = This tab holds ₹1,544.00 in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.
+  d8-pending   = 1 writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.
+  disabled     = true  reason = 1 records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.
+  [shot] desk-b-p2-offline-holding.png
+desk trips.return  -> 200 {"item":{"id":"dda35990-f442-7931-8da4-5808f09a33b6","tripNo":"TRIP-ACTIVE","tripDate":"2026-09-12","vehicleId":"ed6a6781-433c-77fe-9319-7da08b1bdd97","vehicleR
+desk settlementPreview -> 200 state=closing expected=654400
+desk trips.settle  -> 200 {"item":{"id":"49a05882-0cf2-459f-baa7-7299db9d0c42","tripId":"dda35990-f442-7931-8da4-5808f09a33b6","expectedCashPaise":654400,"handedOverCashPaise":654400,"cashVariancePaise":0,"upiCollectedPaise":0
+offline: false — the held op goes now, and the office refuses it
+  -> Needs attention
+  [shot] desk-b-p5-tray.png
+TRAY: You need to enable JavaScript to run this app. TETarsun EnterprisedeliveryTRIPTodayDay summaryExpensesAttention1Trip historyMe1 need attention · Not kept in this browserGMGanesh MoredeliveryNeeds attentionWaiting: 0Refused: 1Held in memory only — a reload empties this deviceWaiting to sendNothing is waitingThe office could not accept thesethis trip has already settled; hand this money to the cashier and record it at the office, not on the tripTake money · trip_settled · 21 Sep, 12:21 pm₹1,544.00 Cash from Prerna Super Market · 21 Sep, 12:21 pmThe office could not take this on the trip. Hand the money and the slip to the cashier, who records it at the office.Handed to the cashierToday's trip
+  -> Day summary (re-opened after the settle)
+PHASE 5(B) D8 re-opened after the desk settled the trip:
+  d8-expected  = ₹6,544.00
+  d8-hand-over = The office expected ₹6,544.00 from this trip
+  d8-uncounted = This tab holds ₹1,544.00 in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.
+  d8-no-trip   = null
+  screen       = You need to enable JavaScript to run this app. TETarsun EnterprisedeliveryTRIPTodayDay summaryExpensesAttention1Trip historyMe1 need attention · Not kept in this browserGMGanesh MoredeliveryTRIP-ACTIVE · 12 Sep 2026End of dayClosed10 of 10 stops doneCash taken₹1,544.00UPI taken₹0.00Cheques taken₹0.00Spent₹0.00Cash the office expectsFloat ₹5,000.00 + cash taken ₹1,544.00 − spent ₹0.00Float at start₹5,000.00Cash taken₹1,544.00Spent₹0.00The office expected ₹6,544.00 from this tripThis tab holds ₹1,544.00 in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.The cashier counts the money and the godown counts the van. The trip closes at the office, not here.StopsDelivered 3 · Part delivered 0 · Not delivered 71. Prerna Super MarketShop 23, Gauripada, Godrej Hill, Kalyan West, Kalyan, 421301₹73,245.00Delivered2. Metro Kirana BazarShop 13, Godrej Hill Road, Godrej Hill, Kalyan West, Kalyan, 421301₹4,547.00Delivered3. Anand Bhavan ProvisionShop 31, Kolsewadi Naka, Kolsewadi, Kalyan East, Kalyan, 421306₹2,843.00Delivered4. Vaibhav Kirana MartSomething else₹7,856.00Not delivered5. Joshi Kirana StoresSomething else₹14,962.00Not delivered6. Ansari Kirana StoresSomething else₹2,610.00Not delivered7. Nakshatra KiranaSomething else₹4,756.00Not delivered8. Laxmi Narayan StoresSomething else₹22,508.00Not del
+  [shot] desk-b-p5-d8-after-settle.png

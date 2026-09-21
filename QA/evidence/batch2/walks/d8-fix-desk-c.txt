@@ -1,0 +1,54 @@
+== D8 walk desk-c 1280x800 driver=balu.shirke settle=true ==
+signed in, url=http://127.0.0.1:5177/
+device filled after ~8s
+home stops: 7
+  10bf5aa1-dfde-7b2c-ad3b-eef9d1faa3f7 :: 1. Ambernath Kirana BhandarShop 4, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹7,384.00Delivered
+  e19a411d-6bde-75ca-b75a-41b0331b95d5 :: 2. Guru Nanak ProvisionShop 35, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹15,354.00Delivered
+  21661bd0-dca8-73c4-b02b-e08e69ee9f06 :: 3. Morya Provision StoreShop 18, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹5,114.00Delivered
+  47e4374c-5823-70e8-926f-fa9ad7290b1a :: 4. Shree Ganesh KiranaSomething else₹2,805.00Not delivered
+  5ab75711-2030-774a-b0ac-1cecb6f47acc :: 5. Mahalaxmi General StoresSomething else₹2,247.00Not delivered
+  d28a77a5-7b3f-7ebe-b3e2-07223d972913 :: 6. Camp 3 General StoreSomething else₹9,739.00Not delivered
+  3a7fd0dd-ce5d-7f10-bc97-3891149f249d :: 7. Sai Krupa StoresSomething else₹21,526.00Not delivered
+  -> Day summary
+PHASE 1 online, no money held:
+  d8-expected  = ₹8,088.00
+  d8-hand-over = Hand ₹8,088.00 to the cashier
+  d8-uncounted = null
+  disabled     = false  reason = null
+  [shot] desk-c-p1-online-baseline.png
+  -> Today
+opened Take money on stop 10bf5aa1-dfde-7b2c-ad3b-eef9d1faa3f7
+offline: true
+  [shot] desk-c-p2a-recorded-offline.png
+  -> Day summary (offline)
+PHASE 2 offline, holding ₹1544:
+  d8-expected  = ₹9,632.00
+  d8-hand-over = Hand ₹9,632.00 to the cashier
+  d8-uncounted = This tab holds ₹1,544.00 in receipts that have not reached the office yet, and nothing here is saved. They count into this trip when they arrive; the cash part is already in the figure above.
+  d8-pending   = 1 writes are held in this tab only, not saved. They go before the office can close the trip; close this tab and they are gone.
+  disabled     = true  reason = 1 records held in this tab only have not reached the office yet. They go first; check in when the strip reads Updated.
+  [shot] desk-c-p2-offline-holding.png
+desk trips.return  -> 200 {"item":{"id":"ef3aa4e3-97a3-7a38-93e3-548a917efd06","tripNo":"TRIP-ACTIVE","tripDate":"2026-09-12","vehicleId":"404d88a6-469e-7d33-81e5-a888b2aa757d","vehicleR
+desk settlementPreview -> 200 state=closing expected=808800
+desk trips.settle  -> 200 {"item":{"id":"e0eda9fc-b70a-49c0-bd12-7e34b034f406","tripId":"ef3aa4e3-97a3-7a38-93e3-548a917efd06","expectedCashPaise":808800,"handedOverCashPaise":808800,"cashVariancePaise":0,"upiCollectedPaise":0
+offline: false — the held op goes now, and the office refuses it
+  -> Needs attention
+  [shot] desk-c-p5-tray.png
+TRAY: You need to enable JavaScript to run this app. KAKalyan AgenciesdeliveryTRIPTodayDay summaryExpensesAttention1Trip historyMe1 need attention · Not kept in this browserBSBalu ShirkedeliveryNeeds attentionWaiting: 0Refused: 1Held in memory only — a reload empties this deviceWaiting to sendNothing is waitingThe office could not accept thesethis trip has already settled; hand this money to the cashier and record it at the office, not on the tripTake money · trip_settled · 21 Sep, 12:27 pm₹1,544.00 Cash from Ambernath Kirana Bhandar · 21 Sep, 12:27 pmThe office could not take this on the trip. Hand the money and the slip to the cashier, who records it at the office.Handed to the cashierToday's trip
+  -> Day summary (re-opened after the settle)
+PHASE 5(B) D8 re-opened after the desk settled the trip:
+  d8-expected  = ₹8,088.00
+  d8-hand-over = The office expected ₹8,088.00 from this trip
+  d8-uncounted = This tab holds ₹1,544.00 in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.
+  d8-no-trip   = null
+  screen       = You need to enable JavaScript to run this app. KAKalyan AgenciesdeliveryTRIPTodayDay summaryExpensesAttention1Trip historyMe1 need attention · Not kept in this browserBSBalu ShirkedeliveryTRIP-ACTIVE · 12 Sep 2026End of dayClosed7 of 7 stops doneCash taken₹3,088.00UPI taken₹0.00Cheques taken₹0.00Spent₹0.00Cash the office expectsFloat ₹5,000.00 + cash taken ₹3,088.00 − spent ₹0.00Float at start₹5,000.00Cash taken₹3,088.00Spent₹0.00The office expected ₹8,088.00 from this tripThis tab holds ₹1,544.00 in receipts, none of it saved, that reached the office after this trip was settled. Hand any cash to the cashier; the office records the rest.The cashier counts the money and the godown counts the van. The trip closes at the office, not here.StopsDelivered 3 · Part delivered 0 · Not delivered 41. Ambernath Kirana BhandarShop 4, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹7,384.00Delivered2. Guru Nanak ProvisionShop 35, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹15,354.00Delivered3. Morya Provision StoreShop 18, Ambernath East, Ulhasnagar, Ulhasnagar, 421003₹5,114.00Delivered4. Shree Ganesh KiranaSomething else₹2,805.00Not delivered5. Mahalaxmi General StoresSomething else₹2,247.00Not delivered6. Camp 3 General StoreSomething else₹9,739.00Not delivered7. Sai Krupa StoresSomething else₹21,526.00Not deliveredCash the office expects₹8,088.00Check the vehicle inThis trip is not out 
+  [shot] desk-c-p5-d8-after-settle.png
+  -> Needs attention
+  [shot] desk-c-p6-handed-over.png
+  -> Day summary (after the hand-over)
+PHASE 6 after "Handed to the cashier":
+  d8-expected  = ₹3,000.00
+  d8-hand-over = The office expected ₹3,000.00 from this trip
+  d8-uncounted = null
+  screen       = You need to enable JavaScript to run this app. KAKalyan AgenciesdeliveryTRIPTodayDay summaryExpensesAttentionTrip historyMeUpdated 1 min ago · Not kept in this browserBSBalu ShirkedeliveryTRIP-NEXT · 14 Sep 2026End of dayPlanned0 of 0 stops doneCash taken₹0.00UPI taken₹0.00Cheques taken₹0.00Spent₹0.00Cash the office expectsFloat ₹3,000.00 + cash taken ₹0.00 − spent ₹0.00Float at start₹3,000.00Cash taken₹0.00Spent₹0.0
+  [shot] desk-c-p6-d8-released.png

@@ -1,0 +1,65 @@
+ deposit_ref |  code   | amount_paise 
+-------------+---------+--------------
+ DEP-B-w1-1  | BANK    |        10000
+ DEP-B-w1-1  | CASH    |       -10000
+ DEP-A-w1-2  | BANK    |        10000
+ DEP-A-w1-2  | CHEQUES |       -10000
+ DEP-A-w1-3  | BANK    |        10000
+ DEP-A-w1-3  | CASH    |       -10000
+ DEP-A-w1-4  | BANK    |        10000
+ DEP-A-w1-4  | CHEQUES |       -10000
+ DEP-A-w1-5  | BANK    |        10000
+ DEP-A-w1-5  | CASH    |       -10000
+ DEP-A-w1-6  | BANK    |        10000
+ DEP-A-w1-6  | CHEQUES |       -10000
+ DEP-A-w1-7  | BANK    |        10000
+ DEP-A-w1-7  | CASH    |       -10000
+ DEP-A-w1-8  | BANK    |        10000
+ DEP-A-w1-8  | CHEQUES |       -10000
+ DEP-A-w1-9  | BANK    |        10000
+ DEP-A-w1-9  | CASH    |       -10000
+ DEP-A-w1-10 | BANK    |        10000
+ DEP-A-w1-10 | CHEQUES |       -10000
+(20 rows)
+
+ deposit_entries | receipt_entries 
+-----------------+-----------------
+              10 |              10
+(1 row)
+
+ id | entry_sum 
+----+-----------
+(0 rows)
+
+       code        | balance_paise 
+-------------------+---------------
+ AP                |       3759094
+ AR                |     438829400
+ BAD_DEBTS         |        204700
+ BANK              |     235599155
+ BANK_CHARGES      |        105000
+ CASH              |     394379352
+ CASH_DISCOUNT     |       2220336
+ CASH_VAN          |      15253600
+ CHEQUES           |      17355698
+ CLAIMS_RECEIVABLE |         49488
+ DAMAGES           |        -49488
+ DISCOUNTS         |      21488145
+ OPENING           |     -10617200
+ OUTPUT_CESS       |     -36504625
+ OUTPUT_CGST       |     -96979257
+ OUTPUT_IGST       |       -326027
+ OUTPUT_SGST       |     -96979257
+ ROUND_OFF         |         -1082
+ SALES             |   -1181652810
+ SALES_RETURNS     |       1953413
+ SCHEME_EXPENSE    |     -15775439
+ SCHEME_RECEIVABLE |       7458419
+ UPI               |     300229385
+(23 rows)
+
+ trial_balance_all_accounts 
+----------------------------
+                          0
+(1 row)
+

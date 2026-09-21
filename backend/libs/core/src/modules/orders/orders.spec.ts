@@ -114,9 +114,12 @@ describeDb('orders (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
   const run = uuidv7().slice(-8)
-  const hsn = `8${Date.now().toString().slice(-6)}`
+  // The run's FULL suffix, and deleted in `afterAll`: `hsn_rates` is global and unique on (code, date)
+  // since S-176, so a code built from the clock's last six digits came round again as a hard INSERT
+  // failure on a long-lived database.
+  const hsn = `8${run}`
   /** DOS-079: aerated waters — 28% GST plus 12% compensation cess, the rate Campa Cola is billed at. */
-  const cessHsn = `9${Date.now().toString().slice(-6)}`
+  const cessHsn = `9${run}`
   const tenantId = uuidv7()
   const ownerId = uuidv7()
   const repId = uuidv7()
@@ -335,6 +338,8 @@ describeDb('orders (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app.close()
+    // The rate rows this run wrote into the GLOBAL table go with it (owner connection, no RLS).
+    await db.delete(hsnRates).where(inArray(hsnRates.hsnCode, [hsn, cessHsn]))
     await pool.end()
   })
 

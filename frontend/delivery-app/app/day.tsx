@@ -39,21 +39,24 @@ import {
 import { paise } from '@dos/domain'
 import { haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { deviceId } from '../src/api'
-import { checkInBlock, dayEndCash, deviceMoney } from '../src/lib/check-in'
+import { checkInBlock, dayEndCash, dayEndReadKey, deviceMoney } from '../src/lib/check-in'
 import { longDate } from '../src/lib/dates'
 import { keepKey } from '../src/lib/keep'
 import {
   addressLine,
+  dayEndTripId,
   isStopTerminal,
   pickCurrentTrip,
   useHydrated,
   useLocalRetailers,
   useLocalStops,
+  useLocalTrip,
   useLocalTripReceipts,
   useLocalTrips,
+  useOwedTripIds,
 } from '../src/lib/local'
 import { Async, DeskOnly, Field, FillingNote, LocalAsync, Panel } from '../src/lib/ui'
 
@@ -68,20 +71,27 @@ export default function DaySummary(): React.JSX.Element {
   const hydrated = useHydrated()
 
   /*
-   * WHICH TRIP. With no `tripId` this is today's — the open trip the device holds. D11's history rows
-   * name one, and a settled trip is not in `useLocalTrips` (open states only) and may not be on the
-   * phone at all, so the office's own `trips.get` fills the screen in that case. `settlementPreview`
-   * answers for a settled trip exactly as it does for an open one, which is what makes a crew member
-   * able to look back at what they handed over.
+   * WHICH TRIP. D11's history rows name one. With no `tripId` it is the trip this phone still OWES
+   * the office money for — receipts of its own queued, sending, or refused — and only failing that
+   * today's open trip (`dayEndTripId`; the whole argument is in src/lib/trip-choice.ts).
+   *
+   * S-169: this screen used to take `pickCurrentTrip` alone, over `useLocalTrips`, which is filtered
+   * to the OPEN states. So the moment the desk settled the driver's own trip, that row vanished and
+   * D8 silently re-pointed at another open trip the same person was crew on — "Hand ₹5,000.00 to the
+   * cashier", that trip's float, money he was not holding — or said nothing was on the road at all,
+   * with ₹1,544 of refused cash on the phone. Measured at both widths, money-web.md §5(B).
+   *
+   * The row is read by id and NOT out of the open rows: a settled trip is not in them. It may not be
+   * on the phone at all, and then the office's own `trips.get` fills the screen; `settlementPreview`
+   * answers for a settled trip exactly as it does for an open one, which is what lets a crew member
+   * look back at what they handed over.
    */
   const params = useLocalSearchParams<{ tripId?: string }>()
   const asked = typeof params.tripId === 'string' && params.tripId !== '' ? params.tripId : null
   const local = useLocalTrips()
-  const trip =
-    asked === null
-      ? pickCurrentTrip(local.rows)
-      : (local.rows.find((one) => one.id === asked) ?? null)
-  const tripId = asked ?? trip?.id ?? null
+  const owed = useOwedTripIds()
+  const tripId = asked ?? dayEndTripId(pickCurrentTrip(local.rows), owed.tripIds)
+  const { trip } = useLocalTrip(tripId)
   const stops = useLocalStops(tripId)
   const receipts = useLocalTripReceipts(tripId)
   /*
@@ -107,6 +117,24 @@ export default function DaySummary(): React.JSX.Element {
     () => api.api.delivery.trips.settlementPreview({ id: tripId ?? '' }),
     { enabled: signedIn && tripId !== null },
   )
+
+  /*
+   * S-168 — the office's figures are re-read when the office's answer could have changed: the signal
+   * returns, the outbox reaches empty, a delta pull lands (a desk settling arrives that way). Held in
+   * a ref so the mount's own read is not doubled, and keyed on `dayEndReadKey` so an upload that only
+   * moves the count 3 → 2 costs nothing. Without it the figure went blank on the same mount beside an
+   * enabled check-in button and came back only on a re-open.
+   */
+  const readKey = dayEndReadKey(status)
+  const lastRead = useRef<string | null>(null)
+  const refetchPreview = preview.refetch
+  const mayRead = signedIn && tripId !== null
+  useEffect(() => {
+    const previous = lastRead.current
+    lastRead.current = readKey
+    if (previous === null || previous === readKey || !mayRead) return
+    void refetchPreview()
+  }, [readKey, refetchPreview, mayRead])
 
   const [odometer, setOdometer] = useState('')
   const [confirming, setConfirming] = useState(false)
@@ -192,12 +220,21 @@ export default function DaySummary(): React.JSX.Element {
   /*
    * DOS-178: a refused payment the crew handed to the cashier is no longer this phone's to hand over —
    * it stays on the device for ever as the record that the shop paid, and `deviceMoney` leaves it out.
+   *
+   * S-183: and the money the office has not taken is read from the OUTBOX (`held*`), not from the
+   * difference of two totals — see the rule. With no signal the rule answers from the device rather
+   * than going silent, which is why it is handed the float and told whether the office can be
+   * reached: a read still in flight is not an answer, a failed one is.
    */
-  const { cashPaise: deviceCashPaise, allPaise: deviceAllPaise } = deviceMoney(receipts.rows)
+  const officeUnreachable = preview.error !== undefined || (!status.online && figures === undefined)
+  const { cashPaise: deviceCashPaise, heldCashPaise, heldAllPaise } = deviceMoney(receipts.rows)
   const { handOverPaise, uncountedAllPaise, note } = dayEndCash({
     figures,
+    officeUnreachable,
+    openingCashPaise: trip?.opening_cash_paise ?? 0,
     deviceCashPaise,
-    deviceAllPaise,
+    heldCashPaise,
+    heldAllPaise,
   })
 
   const odometerKm = odometer.trim() === '' ? null : Number.parseInt(odometer.trim(), 10)
@@ -248,14 +285,12 @@ export default function DaySummary(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {t('d8.expected')}
             </Txt>
-            <Money
-              testID="d8-expected"
-              value={
-                handOverPaise ??
-                (status.online ? null : deviceCashPaise + (trip?.opening_cash_paise ?? 0))
-              }
-              size="moneyL"
-            />
+            {/*
+              ONE rule behind this figure (S-183). The bar used to carry its own offline fallback —
+              right by arithmetic, and the reason the driver could be shown ₹1,944 with no sentence
+              anywhere saying ₹1,544 of it was still on the phone. `dayEndCash` owns both now.
+            */}
+            <Money testID="d8-expected" value={handOverPaise} size="moneyL" />
           </Row>
           <Button
             testID="d8-return"
@@ -269,7 +304,7 @@ export default function DaySummary(): React.JSX.Element {
               blocked === 'notActive'
                 ? t('d8.notActive')
                 : blocked === 'offline'
-                  ? t('d6.online')
+                  ? t('d8.offlineBlocks')
                   : blocked === 'pending'
                     ? t(keepKey('pendingBlocks', status.persistent), { count: status.pending })
                     : t('d2.odometer')
@@ -320,8 +355,17 @@ export default function DaySummary(): React.JSX.Element {
           }
           testID="d8-cash"
         >
-          <Async state={preview} rows={3}>
-            <Stack gap={4}>
+          {/*
+            S-183 — THE OFFICE'S THREE FIGURES ARE INSIDE `<Async>`; THE MONEY SENTENCES ARE NOT.
+            `<Async>` paints `d.noConnectionRead` over its children the moment the preview fails,
+            which is every offline mount — and offline is the one state this screen exists for. It
+            took the hand-over line and the uncounted note down with the office's figures, so the
+            driver was shown a rupee in the bottom bar and told nothing about it. Measured 3/3 on web
+            at both widths (money-web.md §5(A)). What the office alone knows can go blank; what the
+            phone knows about its own money must not.
+          */}
+          <Stack gap={4}>
+            <Async state={preview} rows={2}>
               <Row gap={4} wrap>
                 <Field label={t('d1.openingCash')}>
                   <Money value={figures?.openingCashPaise ?? null} size="moneyM" />
@@ -333,31 +377,34 @@ export default function DaySummary(): React.JSX.Element {
                   <Money value={figures?.expensesPaise ?? null} size="moneyM" />
                 </Field>
               </Row>
-              {/*
-                A trip that is already closed is HISTORY, not an instruction. D11's rows open this
-                screen for a settled trip, and "Hand ₹20,085.10 to the cashier" on a trip that was
-                settled four days ago is a job nobody has.
-              */}
+            </Async>
+            {/*
+              A trip that is already closed is HISTORY, not an instruction. D11's rows open this
+              screen for a settled trip, and "Hand ₹20,085.10 to the cashier" on a trip that was
+              settled four days ago is a job nobody has. A null figure is the office read still in
+              flight: the skeleton above stands for it, and no rupee is claimed until there is one.
+            */}
+            {handOverPaise === null ? null : (
               <Txt field="bodyStrong" desk="cell" testID="d8-hand-over">
                 {t(onTheRoad ? 'd8.handOver' : 'd8.handedOver', {
-                  amount: formatINR(paise(handOverPaise ?? 0)),
+                  amount: formatINR(paise(handOverPaise)),
                 })}
               </Txt>
-              {/*
-                DOS-179 — both sentences begin "This phone holds ₹X in receipts", which is false on a
-                browser with no OPFS, where the strip at the top of this screen already reads "· Not kept
-                in this browser". `dayEndCash` picks WHICH sentence; the store picks whose it is.
-              */}
-              {note === null ? null : (
-                <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
-                  {t(keepKey(note, status.persistent), {
-                    amount: formatINR(paise(uncountedAllPaise)),
-                  })}
-                </Txt>
-              )}
-              <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
-            </Stack>
-          </Async>
+            )}
+            {/*
+              DOS-179 — both sentences begin "This phone holds ₹X in receipts", which is false on a
+              browser with no OPFS, where the strip at the top of this screen already reads "· Not kept
+              in this browser". `dayEndCash` picks WHICH sentence; the store picks whose it is.
+            */}
+            {note === null ? null : (
+              <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="d8-uncounted">
+                {t(keepKey(note, status.persistent), {
+                  amount: formatINR(paise(uncountedAllPaise)),
+                })}
+              </Txt>
+            )}
+            <DeskOnly>{t('d8.deskSettles')}</DeskOnly>
+          </Stack>
         </Panel>
 
         <Panel

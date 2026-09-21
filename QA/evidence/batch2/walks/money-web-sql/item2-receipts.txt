@@ -1,0 +1,14 @@
+ receipt_no |  mode  |  status   | amount_paise | deposit_ref | dep_entries | bank_lines | bank_paise | src_paise | events 
+------------+--------+-----------+--------------+-------------+-------------+------------+------------+-----------+--------
+ RCPT-9005  | cash   | deposited |        10000 | DEP-B-w1-1  |           0 |          0 |          0 |         0 |      2
+ RCPT-9006  | cheque | deposited |        10000 | DEP-A-w1-2  |           0 |          0 |          0 |         0 |      2
+ RCPT-9007  | cash   | deposited |        10000 | DEP-A-w1-3  |           0 |          0 |          0 |         0 |      2
+ RCPT-9008  | cheque | deposited |        10000 | DEP-A-w1-4  |           0 |          0 |          0 |         0 |      2
+ RCPT-9009  | cash   | deposited |        10000 | DEP-A-w1-5  |           0 |          0 |          0 |         0 |      2
+ RCPT-9010  | cheque | deposited |        10000 | DEP-A-w1-6  |           0 |          0 |          0 |         0 |      2
+ RCPT-9011  | cash   | deposited |        10000 | DEP-A-w1-7  |           0 |          0 |          0 |         0 |      2
+ RCPT-9012  | cheque | deposited |        10000 | DEP-A-w1-8  |           0 |          0 |          0 |         0 |      2
+ RCPT-9013  | cash   | deposited |        10000 | DEP-A-w1-9  |           0 |          0 |          0 |         0 |      2
+ RCPT-9014  | cheque | deposited |        10000 | DEP-A-w1-10 |           0 |          0 |          0 |         0 |      2
+(10 rows)
+

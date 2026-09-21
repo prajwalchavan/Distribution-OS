@@ -17,6 +17,12 @@
  *
  * These are cheap, total facts about the folder, so assert them on every run rather than trusting a
  * reviewer to notice a number.
+ *
+ * The index must climb, but it need not be dense: two lanes in flight at once are given DIFFERENT
+ * numbers up front (S-176's pair was ruled 0060/0061 while another lane held 0058/0059) precisely so
+ * that neither collides with the other, and whichever merges first leaves a gap until the second
+ * lands. Drizzle never reads `idx` — only the journal's order and `when` decide what runs — so a gap
+ * costs nothing, while a repeated or backwards index is the collision this file exists to catch.
  */
 import { describe, expect, it } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
@@ -47,9 +53,9 @@ export function journalFaults(
     }
     const previous = position > 0 ? entries[position - 1] : undefined
     if (previous !== undefined) {
-      if (entry.idx !== previous.idx + 1) {
+      if (entry.idx <= previous.idx) {
         faults.push(
-          `idx ${entry.idx} follows idx ${previous.idx}: the journal must be a dense, ordered list`,
+          `idx ${entry.idx} follows idx ${previous.idx}: the journal must be a strictly increasing list`,
         )
       }
       if (entry.when <= previous.when) {
@@ -119,6 +125,32 @@ describe('migration journal', () => {
     expect(faults).toHaveLength(1)
     expect(faults[0]).toContain('0055_inbound_reports_expand')
     expect(faults[0]).toContain('SKIPPED')
+  })
+
+  it('allows the gap two lanes numbered apart leave behind, but not a repeated or backwards idx', () => {
+    const gapped: JournalEntry[] = [
+      { idx: 57, when: 1789961540000, tag: '0057_role_election_expand' },
+      { idx: 60, when: 1789979170000, tag: '0060_hsn_rate_subheadings' },
+      { idx: 61, when: 1789979170001, tag: '0061_hsn_rate_unique_expand' },
+    ]
+    expect(
+      journalFaults(
+        gapped,
+        gapped.map((entry) => `${entry.tag}.sql`),
+      ),
+    ).toEqual([])
+
+    const repeated: JournalEntry[] = [
+      { idx: 57, when: 1789961540000, tag: '0057_role_election_expand' },
+      { idx: 58, when: 1789971778028, tag: '0058_stock_expand' },
+      { idx: 58, when: 1789978208509, tag: '0058_undelivered_expand' },
+    ]
+    expect(
+      journalFaults(
+        repeated,
+        repeated.map((entry) => `${entry.tag}.sql`),
+      ),
+    ).toEqual(['idx 58 follows idx 58: the journal must be a strictly increasing list'])
   })
 
   it('reports an SQL file the journal forgot, which is the same defect in another shape', () => {
