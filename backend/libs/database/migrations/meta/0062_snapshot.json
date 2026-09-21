@@ -1,6 +1,6 @@
 {
-  "id": "2ef3e082-0850-4495-8b1a-6b4bb239f441",
-  "prevId": "06840d9b-bdb0-4e9d-8372-ad46f1d5cc06",
+  "id": "662ee498-3557-43c1-8cdd-351ecb084f79",
+  "prevId": "99e8d851-79c2-4db0-bea9-984f3b5553ef",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3520,7 +3520,7 @@
               "nulls": "last"
             }
           ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -11834,6 +11834,12 @@
         "cancel_reason": {
           "name": "cancel_reason",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refused_at": {
+          "name": "refused_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
