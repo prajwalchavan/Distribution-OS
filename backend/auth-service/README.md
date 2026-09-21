@@ -101,6 +101,7 @@ Sign in with username and password · contract `auth.login`
 | `deviceName` | string | no |
 | `platform` | web | android | ios | no |
 | `tenantId` | uuid | no |
+| `actAs` | owner | manager | accountant | salesperson | warehouse | delivery | retailer | no |
 
 **Example request**
 
@@ -118,7 +119,8 @@ request.json
   "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
   "deviceName": "text",
   "platform": "web",
-  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3"
+  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+  "actAs": "owner"
 }
 ```
 
@@ -401,6 +403,7 @@ Open a session on another membership of the same user · contract `auth.switchTe
 | `refreshToken` | string | yes |
 | `deviceId` | uuid | yes |
 | `tenantId` | uuid | yes |
+| `actAs` | owner | manager | accountant | salesperson | warehouse | delivery | retailer | no |
 
 **Example request**
 
@@ -415,7 +418,8 @@ request.json
 {
   "refreshToken": "dvRVefW6iYMCcmo4hNcsaPfXvmANyxisdZd75S-F7Gk",
   "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
-  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3"
+  "tenantId": "01a06d03-67ed-7c68-87e3-25e2fff74cc3",
+  "actAs": "owner"
 }
 ```
 

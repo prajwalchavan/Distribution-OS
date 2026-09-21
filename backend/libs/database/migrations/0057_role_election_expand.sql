@@ -1,0 +1,2 @@
+ALTER TABLE "memberships" ADD COLUMN "extra_roles" "membership_role"[] DEFAULT '{}'::membership_role[] NOT NULL;--> statement-breakpoint
+ALTER TABLE "auth_events" ADD COLUMN "acted_as" "membership_role";
