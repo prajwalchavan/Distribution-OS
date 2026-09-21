@@ -47,13 +47,16 @@ import { longDate } from '../src/lib/dates'
 import { keepKey } from '../src/lib/keep'
 import {
   addressLine,
+  dayEndTripId,
   isStopTerminal,
   pickCurrentTrip,
   useHydrated,
   useLocalRetailers,
   useLocalStops,
+  useLocalTrip,
   useLocalTripReceipts,
   useLocalTrips,
+  useOwedTripIds,
 } from '../src/lib/local'
 import { Async, DeskOnly, Field, FillingNote, LocalAsync, Panel } from '../src/lib/ui'
 
@@ -68,20 +71,27 @@ export default function DaySummary(): React.JSX.Element {
   const hydrated = useHydrated()
 
   /*
-   * WHICH TRIP. With no `tripId` this is today's — the open trip the device holds. D11's history rows
-   * name one, and a settled trip is not in `useLocalTrips` (open states only) and may not be on the
-   * phone at all, so the office's own `trips.get` fills the screen in that case. `settlementPreview`
-   * answers for a settled trip exactly as it does for an open one, which is what makes a crew member
-   * able to look back at what they handed over.
+   * WHICH TRIP. D11's history rows name one. With no `tripId` it is the trip this phone still OWES
+   * the office money for — receipts of its own queued, sending, or refused — and only failing that
+   * today's open trip (`dayEndTripId`; the whole argument is in src/lib/trip-choice.ts).
+   *
+   * S-169: this screen used to take `pickCurrentTrip` alone, over `useLocalTrips`, which is filtered
+   * to the OPEN states. So the moment the desk settled the driver's own trip, that row vanished and
+   * D8 silently re-pointed at another open trip the same person was crew on — "Hand ₹5,000.00 to the
+   * cashier", that trip's float, money he was not holding — or said nothing was on the road at all,
+   * with ₹1,544 of refused cash on the phone. Measured at both widths, money-web.md §5(B).
+   *
+   * The row is read by id and NOT out of the open rows: a settled trip is not in them. It may not be
+   * on the phone at all, and then the office's own `trips.get` fills the screen; `settlementPreview`
+   * answers for a settled trip exactly as it does for an open one, which is what lets a crew member
+   * look back at what they handed over.
    */
   const params = useLocalSearchParams<{ tripId?: string }>()
   const asked = typeof params.tripId === 'string' && params.tripId !== '' ? params.tripId : null
   const local = useLocalTrips()
-  const trip =
-    asked === null
-      ? pickCurrentTrip(local.rows)
-      : (local.rows.find((one) => one.id === asked) ?? null)
-  const tripId = asked ?? trip?.id ?? null
+  const owed = useOwedTripIds()
+  const tripId = asked ?? dayEndTripId(pickCurrentTrip(local.rows), owed.tripIds)
+  const { trip } = useLocalTrip(tripId)
   const stops = useLocalStops(tripId)
   const receipts = useLocalTripReceipts(tripId)
   /*

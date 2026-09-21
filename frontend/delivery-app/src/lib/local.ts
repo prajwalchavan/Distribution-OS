@@ -29,7 +29,7 @@ import { useMemo } from 'react'
 import { today } from './dates'
 import { OPEN_TRIP_STATES, pickCurrentTrip as pickTrip } from './trip-choice'
 
-export { loadPanelTitleKey, loadSheetPackagesKey, tripEntryHref } from './trip-choice'
+export { dayEndTripId, loadPanelTitleKey, loadSheetPackagesKey, tripEntryHref } from './trip-choice'
 
 // ---------------------------------------------------------------------------
 // The rows, exactly as `sync.pull` delivers them (snake_case, SQLite scalars)
@@ -402,6 +402,39 @@ export function useLocalOutstanding(retailerId: string | null): {
     ),
   )
   return { row: rows[0] ?? null, loading }
+}
+
+/**
+ * The trips this phone still owes the office money for, most recent first (S-169).
+ *
+ * `queued` and `sending` are money that has not left the phone; `rejected` is money the office
+ * REFUSED — a doorstep receipt that landed after the desk settled the trip — and until the crew hands
+ * those notes to the cashier it is still theirs to account for. `kept` is exactly that hand-over
+ * (DOS-178) and drops out here, and a landed receipt (`_pending` null) is the office's problem now.
+ *
+ * End of day opens on one of these in preference to the open trip, because a settled trip leaves
+ * `useLocalTrips` and would otherwise take its money's only explanation with it. `trip_id IS NOT NULL`
+ * keeps an office receipt from selecting a trip at all.
+ */
+export function useOwedTripIds(): { tripIds: string[]; loading: boolean } {
+  const { rows, loading } = useTable<Pick<LocalReceipt, 'trip_id'>>(
+    'receipts',
+    useMemo(
+      () => ({
+        where: "_pending IN ('queued', 'sending', 'rejected') AND trip_id IS NOT NULL",
+        orderBy: 'received_at DESC',
+        limit: 50,
+      }),
+      [],
+    ),
+  )
+  return {
+    tripIds: useMemo(
+      () => [...new Set(rows.map((row) => row.trip_id).filter((id): id is string => id !== null))],
+      [rows],
+    ),
+    loading,
+  }
 }
 
 /** Receipts written on this trip — including the ones still in the outbox, which is the point. */
