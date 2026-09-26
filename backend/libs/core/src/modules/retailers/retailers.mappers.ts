@@ -26,6 +26,8 @@ export function pickCredit(row: typeof retailers.$inferSelect) {
     creditLimitBills: row.creditLimitBills,
     creditDays: row.creditDays,
     creditMode: row.creditMode,
+    /* DOS-212: `setCredit` may change the terms too, so the audit row's "before" carries them. */
+    paymentTerms: row.paymentTerms,
   }
 }
 

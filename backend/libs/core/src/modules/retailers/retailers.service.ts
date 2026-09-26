@@ -343,6 +343,8 @@ export class RetailersService {
           creditLimitBills: input.creditLimitBills,
           creditDays: input.creditDays,
           creditMode: input.creditMode,
+          /* DOS-212: omitted = the shop keeps its terms (expand-only). */
+          ...(input.paymentTerms === undefined ? {} : { paymentTerms: input.paymentTerms }),
         }
         const [row] = await tx
           .update(retailers)

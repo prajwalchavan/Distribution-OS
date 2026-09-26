@@ -231,6 +231,79 @@ describeDb('retailers (DATABASE_URL)', () => {
     expect(audit[0]?.n).toBe(1)
   })
 
+  it('DOS-212: setCredit sets the credit mode and the payment terms together; omitted terms stay as they are', async () => {
+    const stop = await call<{ item: RetailerRow }>(
+      app,
+      owner,
+      'POST',
+      `/retailers/${retailerId}/credit`,
+      {
+        idempotencyKey: `credit-dos212-stop-${run}`,
+        tier: 'B',
+        creditLimitPaise: 0,
+        creditLimitBills: 0,
+        creditDays: 0,
+        creditMode: 'stop',
+        paymentTerms: 'ON',
+      },
+    )
+    expect(stop.status).toBe(200)
+    expect(stop.body.item.creditMode).toBe('stop')
+    expect(stop.body.item.paymentTerms).toBe('ON')
+
+    // A later change that does not name the terms keeps them (expand-only: old clients send none).
+    const strict = await call<{ item: RetailerRow }>(
+      app,
+      owner,
+      'POST',
+      `/retailers/${retailerId}/credit`,
+      {
+        idempotencyKey: `credit-dos212-strict-${run}`,
+        tier: 'B',
+        creditLimitPaise: 800_000,
+        creditLimitBills: 0,
+        creditDays: 7,
+        creditMode: 'strict',
+      },
+    )
+    expect(strict.status).toBe(200)
+    expect(strict.body.item.creditMode).toBe('strict')
+    expect(strict.body.item.paymentTerms).toBe('ON')
+
+    const [row] = await withTenant(db, { tenantId, actorId: ownerId, actorRole: 'owner' }, (tx) =>
+      tx.select().from(retailers).where(eq(retailers.id, retailerId)),
+    )
+    expect(row?.creditMode).toBe('strict')
+    expect(row?.paymentTerms).toBe('ON')
+    expect(row?.creditLimitPaise).toBe(800_000)
+
+    // The audit row of the first change names the terms before and after.
+    const audits = (
+      await db.execute(
+        sql`select before->>'paymentTerms' as was, after->>'paymentTerms' as now from audit_log where tenant_id = ${tenantId} and entity_id = ${retailerId} and action = 'retailer.set_credit' order by occurred_at desc, id desc`,
+      )
+    ).rows as { was: string | null; now: string | null }[]
+    expect(audits.some((a) => a.was === 'POST_FULFILLMENT' && a.now === 'ON')).toBe(true)
+
+    // Put the shop back on the terms the rest of this file expects.
+    const back = await call<{ item: RetailerRow }>(
+      app,
+      owner,
+      'POST',
+      `/retailers/${retailerId}/credit`,
+      {
+        idempotencyKey: `credit-dos212-back-${run}`,
+        tier: 'B',
+        creditLimitPaise: 2_500_000,
+        creditLimitBills: 2,
+        creditDays: 7,
+        creditMode: 'strict',
+        paymentTerms: 'POST_FULFILLMENT',
+      },
+    )
+    expect(back.status).toBe(200)
+  })
+
   it('links the retailer to its identity; the shop then sees only itself, without credit fields', async () => {
     const linkInput = { idempotencyKey: `link-${run}`, id: retailerId, phone: shopPhone }
     // a salesperson may not link identities (existence leak, docs/17 item 27)
