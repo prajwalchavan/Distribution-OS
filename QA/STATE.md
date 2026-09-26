@@ -20,7 +20,7 @@ Fixed 2026-09-26 (day1-gaps): DOS-210, DOS-211, DOS-212, DOS-213, DOS-214, DOS-2
 
 **Android (founder, 2026-09-26): the release APK (58 MB, single arch, debug-signed, points at api.distributionos.in; 30-day download link in `~/.config/dos/apk-download.url`) was installed on the founder's phone and "worked". iOS deferred by the founder.**
 
-**INCIDENT to tell the founder (charter: "tell the founder before touching `dos`"):** running the importer's DB spec (`backend/tools/legacy/writer.spec.ts`) auto-loaded `backend/.env` → the founder's own `dos` database (repo convention: `describeDb` specs run on the dev DB) and, because `dos` is at 48 migrations (no `memberships.extra_roles`), it failed after inserting **2 test tenants (`legacy-6f311984`, `legacy-86727951`) and 2 users** there. Nothing else was written. Not deleted (destructive ops only on test/dev DBs) — cleanup needs the founder's word. Do not run any `describeDb` spec without `DATABASE_URL` pointing at a `dos_test_*` database.
+**Incident, closed:** the importer's DB spec ran against the founder's `dos` (no DATABASE_URL → backend/.env) and left 2 test tenants + 2 users there; founder said "Clean it" (2026-09-26 14:05) → deleted in one transaction, 0 left, nothing else had referenced them (scanned every tenant_id / user_id column first). Rule stands: never run a describeDb spec without DATABASE_URL on a `dos_test_*` database.
 
 **SATURDAY, in order (Fable sitting):**
 1. Read this file; `git pull`; `curl https://api.distributionos.in/health`; `ssh … 'systemctl is-active postgresql dos-api@demo dos-tunnel'`.
