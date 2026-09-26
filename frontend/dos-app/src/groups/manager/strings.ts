@@ -606,6 +606,8 @@ export const strings = {
   // --- M7 Trips · went out and was never recorded (QA DOS-237) --------------------------------------
   'm7n.title': 'Went out, never recorded',
   'm7n.count': '{count} bills',
+  'm7n.countOne': '1 bill',
+  'm7n.askDesk': 'The owner or the manager records whether it came back',
   'm7n.body':
     'These bills left on a trip that has come back, and nobody at the door said delivered or refused. If the goods came back, say so here: the bill goes on Came back undelivered and back on the planning board, and its goods are set on the dock for the next load.',
   'm7n.tap': 'Tap a bill to record that it came back',

@@ -498,7 +498,7 @@ export class DeliveriesService {
           })
 
         const at = new Date()
-        const note = input.note?.trim() || 'came back — recorded by the office'
+        const note = input.note?.trim() || 'nothing was recorded at the door'
         await this.trips.failPlannedDelivery(tx, d, {
           failureReason: 'other',
           failureNote: note,

@@ -100,7 +100,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
   const accountantId = uuidv7()
   const packerId = uuidv7()
   const repId = uuidv7()
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
 
@@ -1143,5 +1143,58 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
       { unrecordedOnly: 'true', limit: '50' },
     )
     expect(after.body.items.map((d) => d.invoiceId)).not.toContain(bill2.invoiceId)
+  }, 240_000)
+
+  it('DOS-237 a batch the godown no longer holds free is reported short, never invented', async () => {
+    const driver = driverAt(7)
+    const bill1 = await billedOrder(retailerA, '237c-1')
+    const bill2 = await billedOrder(retailerA, '237c-2')
+    const { tripId, stopIds } = await roadTrip('237c', driver, [
+      { retailerId: retailerA, bills: [bill1, bill2] },
+    ])
+    const stopId = stopIds[0] ?? ''
+    await arrive(driver, stopId, '237c')
+    const first = await deliverAll(driver, tripId, stopId, bill1, '237c-1')
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    await endStopEarly(stopId)
+    await db.execute(sql`update trips set state = 'closing', ended_at = now() where id = ${tripId}`)
+    const settled = await call(app, accountant, 'POST', `/delivery/trips/${tripId}/settle`, {
+      idempotencyKey: `rf-settle-237c-${run}`,
+      id: uuidv7(),
+      tripId,
+      handedOverCashPaise: 0,
+      counted: [{ lotId: lotA, countedPcs: 12 }],
+    })
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    const deliveryId = (await deliveryOf(bill2.invoiceId))?.id ?? ''
+
+    // the godown has since promised all but 5 of this batch to other orders (INV/9017's oil went to Ekta)
+    const [held] = (
+      await db.execute(
+        sql`select on_hand, reserved from stock_balances where lot_id = ${lotA} and location_id = ${godown}`,
+      )
+    ).rows as { on_hand: number; reserved: number }[]
+    await db.execute(
+      sql`update stock_balances set reserved = on_hand - 5 where lot_id = ${lotA} and location_id = ${godown}`,
+    )
+    try {
+      const back = await call<{
+        staged: { lotId: string; neededPcs: number; stagedPcs: number; onVanPcs: number }[]
+      }>(app, owner, 'POST', `/delivery/deliveries/${deliveryId}/came-back`, {
+        idempotencyKey: `rf-came-back-237c-${run}`,
+      })
+      expect(back.status, JSON.stringify(back.body)).toBe(200)
+      expect(back.body.staged).toEqual([
+        expect.objectContaining({ lotId: lotA, neededPcs: 12, stagedPcs: 5, onVanPcs: 0 }),
+      ])
+      // the bill is still said to have come back, so the desk can decide it
+      expect((await deliveryOf(bill2.invoiceId))?.outcome).toBe('failed')
+      expect(await orderState(bill2.orderId)).toBe('packed')
+    } finally {
+      await db.execute(
+        sql`update stock_balances set reserved = ${Number(held?.reserved ?? 0)}
+             where lot_id = ${lotA} and location_id = ${godown}`,
+      )
+    }
   }, 240_000)
 })

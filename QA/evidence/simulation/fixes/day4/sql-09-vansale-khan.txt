@@ -1,0 +1,22 @@
+ invoice_no | state | total_paise | order_no | order_state |  source  |        name        
+------------+-------+-------------+----------+-------------+----------+--------------------
+ INV/9007   | paid  |      131400 | SO-0879  | delivered   | van_sale | Khan General Store
+(1 row)
+
+ receipt_no | mode | amount_paise | alloc  
+------------+------+--------------+--------
+ RCPT-9005  | cash |       131400 | 131400
+(1 row)
+
+               name               | qty_pcs | reason | qty_delta 
+----------------------------------+---------+--------+-----------
+ Balaji Simply Salted Wafers 45 g |      48 |        |          
+ Campa Cola 1 L                   |      12 |        |          
+(2 rows)
+
+               name               | reason | qty_delta | ref_type |       location        
+----------------------------------+--------+-----------+----------+-----------------------
+ Balaji Simply Salted Wafers 45 g | sale   |       -48 | invoice  | Vehicle MH-05-AB-1234
+ Campa Cola 1 L                   | sale   |       -12 | invoice  | Vehicle MH-05-AB-1234
+(2 rows)
+

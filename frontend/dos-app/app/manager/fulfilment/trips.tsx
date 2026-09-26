@@ -321,7 +321,7 @@ export default function DeskTrips(): React.JSX.Element {
     textColumn('shop', t('m7u.shop'), (row) => row.retailerName),
     moneyColumn('value', t('m7u.value'), (row) => row.invoiceTotalPaise),
     textColumn('trip', t('m7u.trip'), (row) => row.tripNo ?? row.tripId.slice(0, 8)),
-    textColumn('next', t('m7u.next'), () => (mayCameBack ? t('m7n.tap') : null)),
+    textColumn('next', t('m7u.next'), () => (mayCameBack ? t('m7n.tap') : t('m7n.askDesk'))),
   ]
   const billOf = (row: Undelivered | null): string =>
     row === null ? '' : (row.invoiceNo ?? row.invoiceId.slice(0, 8))
@@ -467,7 +467,11 @@ export default function DeskTrips(): React.JSX.Element {
         {mayReadUndelivered && unrecordedBills.length > 0 ? (
           <Panel
             title={t('m7n.title')}
-            meta={t('m7n.count', { count: unrecordedBills.length })}
+            meta={
+              unrecordedBills.length === 1
+                ? t('m7n.countOne')
+                : t('m7n.count', { count: unrecordedBills.length })
+            }
             testID="desk-unrecorded"
           >
             <Stack gap={3}>

@@ -1,0 +1,128 @@
+TE
+Tarsun Enterprise
+accountant
+Today
+Orders
+2
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Trips
+Load-out
+Trips
+Went out, never recorded
+1 bill
+These bills left on a trip that has come back, and nobody at the door said delivered or refused. If the goods came back, say so here: the bill goes on Came back undelivered and back on the planning board, and its goods are set on the dock for the next load.
+Bill no.	Shop	Amount ₹	Trip	What happens next
+
+INV/0825
+	
+Vaibhav Kirana Mart
+	7,856.00	
+TRIP-ACTIVE
+	
+The owner or the manager records whether it came back
+Came back undelivered
+6 bills
+Bill no.	Shop	Amount ₹	Why	Crew's note	Trip	What happens next
+
+INV/0826
+	
+Joshi Kirana Stores
+	14,962.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0835
+	
+Rukmini Provision
+	26,581.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0827
+	
+Ansari Kirana Stores
+	2,610.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0830
+	
+Laxmi Narayan Stores
+	22,508.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0829
+	
+Nakshatra Kirana
+	4,756.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0833
+	
+Khan General Store
+	907.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+Planned and loading
+Trip	Date	Vehicle	Driver	Stops	State	What happens next
+
+TRIP-NEXT
+	
+27 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+5
+	Planned	
+—

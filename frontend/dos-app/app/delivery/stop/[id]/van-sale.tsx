@@ -304,6 +304,30 @@ export default function VanSale(): React.JSX.Element {
       bottomBar={
         billed === null ? (
           <Stack gap={2}>
+            {/*
+              The refusal sits HERE, over the button that was pressed, never at the foot of a van list the
+              crew would have to scroll past to find it (walked on the day-4 fix: 40 rows of stock hid it).
+            */}
+            {error === null ? null : (
+              <Stack gap={2}>
+                <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d6-error">
+                  {`${t('d6.failed')} — ${error}`}
+                </Txt>
+                {/* DOS-240: the office said money in hand sells; one tap makes it a cash sale. */}
+                {pay === 'account' && toTake !== null && officeSays?.key === linesKey ? (
+                  <Button
+                    testID="d6-use-cash"
+                    label={t('d6.useCash', { amount: rupees(toTake) })}
+                    variant="secondary"
+                    fullWidth
+                    onPress={() => {
+                      setPay('cash')
+                      setError(null)
+                    }}
+                  />
+                ) : null}
+              </Stack>
+            )}
             <Row justify="between" align="center" gap={3}>
               <Txt field="label" desk="meta" color={colors.text.secondary}>
                 {t('d6.total')}
@@ -588,27 +612,6 @@ export default function VanSale(): React.JSX.Element {
               </Async>
             </Stack>
           </Panel>
-        )}
-
-        {error === null ? null : (
-          <Stack gap={3}>
-            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d6-error">
-              {`${t('d6.failed')} — ${error}`}
-            </Txt>
-            {/* DOS-240: the office said money in hand sells; one tap turns the sale into a cash sale. */}
-            {pay === 'account' && toTake !== null && officeSays?.key === linesKey ? (
-              <Button
-                testID="d6-use-cash"
-                label={t('d6.useCash', { amount: rupees(toTake) })}
-                variant="secondary"
-                fullWidth={false}
-                onPress={() => {
-                  setPay('cash')
-                  setError(null)
-                }}
-              />
-            ) : null}
-          </Stack>
         )}
       </Stack>
 
