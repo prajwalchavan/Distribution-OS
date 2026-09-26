@@ -4153,6 +4153,11 @@ const OVERRIDES: Record<
   'delivery.deliveries.get': (ctx, options) => ({
     id: (options.roles ?? []).includes('retailer') ? ctx.linkedDeliveryId : ctx.deliveryId,
   }),
+  // QA DOS-237: a demo delivery that has an outcome — the desk's "it came back" answers 409 in words
+  'delivery.deliveries.cameBack': (ctx) => ({
+    id: ctx.deliveryId,
+    note: 'Found in the godown after check-in, from the API docs',
+  }),
   'delivery.collections.record': (ctx) => ({
     id: createdId('delivery.collections.record', 'id'),
     receiptId: createdId('delivery.collections.record', 'receiptId'),

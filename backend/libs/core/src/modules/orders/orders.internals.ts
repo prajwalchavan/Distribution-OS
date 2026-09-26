@@ -124,15 +124,34 @@ export function isUniqueViolation(err: unknown): boolean {
  *  - bargain: a rate on this order is still waiting for a decision; `bargainIds` lists the requests it waits on,
  *    and submit raises one gate naming each, so deciding the gate decides that request (DOS-005)
  *  - below_floor: a line is charged under its tier price with nothing approved that explains it
+ *
+ * PAID AT THE DOOR IS NOT CREDIT (QA DOS-240). A van sale whose whole bill is taken there and then in cash
+ * or UPI (`paidAtDoorPaise` ≥ the order total) extends the shop no credit: its exposure after the sale is
+ * what it was before. The credit gate does not trip for it — a strict shop that is overdue, or a
+ * pay-on-delivery counter with credit stopped, may still BUY FOR CASH, which is what "take the money
+ * before the goods go in" means (docs/22 2026-09-13, DOS-066). `creditWaived` says the gate would have
+ * tripped, so the caller can hold the sale to the full bill; the notice is still recorded as it is for
+ * every order. A cheque is not money in hand and never waives the gate; the caller passes nothing for it.
  */
 export async function approvalFlags(
   tx: Db,
   order: OrderRow,
   lines: OrderLineRow[],
-): Promise<{ flags: ApprovalKind[]; bargainIds: string[]; creditNotice: CreditNotice | null }> {
+  options: { paidAtDoorPaise?: number } = {},
+): Promise<{
+  flags: ApprovalKind[]
+  bargainIds: string[]
+  creditNotice: CreditNotice | null
+  creditWaived: boolean
+}> {
   const flags: ApprovalKind[] = []
   const credit = await checkCredit(tx, order.retailerId, order.totalPaise)
-  if (credit.breached) flags.push('credit_limit')
+  const paidInFull =
+    options.paidAtDoorPaise !== undefined &&
+    order.totalPaise > 0 &&
+    options.paidAtDoorPaise >= order.totalPaise
+  const creditWaived = credit.breached && paidInFull
+  if (credit.breached && !paidInFull) flags.push('credit_limit')
   /*
    * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit goes through and
    * the desk sees a NOTICE on it; strict and stop are still held by the gate above and carry the same
@@ -163,7 +182,7 @@ export async function approvalFlags(
       !l.appliedRules.some((r) => r.kind === 'bargain' || r.kind === 'override'),
   )
   if (below) flags.push('below_floor')
-  return { flags, bargainIds, creditNotice }
+  return { flags, bargainIds, creditNotice, creditWaived }
 }
 
 /** Pieces a location can still promise, from the ATP view (on hand − reserved) that reps also see. */

@@ -1,0 +1,20 @@
+ invoice_no | state  | undelivered | order_no | order_state | outcome |                note                | stop_state | trip_state 
+------------+--------+-------------+----------+-------------+---------+------------------------------------+------------+------------
+ INV/0825   | issued | t           | SO-0855  | packed      | failed  | came back — recorded by the office | delivered  | settled
+(1 row)
+
+    reason    | qty_delta |    kind    |    name    |                                     idempotency_key                                     
+--------------+-----------+------------+------------+-----------------------------------------------------------------------------------------
+ transfer_in  |        60 | in_transit | In transit | came-back:666e71ad-13d2-7c80-9980-29728707bff9:3dabe518-d0af-75a0-9ab8-342a63920b80:in
+ transfer_out |       -60 | warehouse  | Godown     | came-back:666e71ad-13d2-7c80-9980-29728707bff9:3dabe518-d0af-75a0-9ab8-342a63920b80:out
+ transfer_in  |       144 | in_transit | In transit | came-back:666e71ad-13d2-7c80-9980-29728707bff9:7cee0e10-e449-737a-a8a2-c212145145b7:in
+ transfer_out |      -144 | warehouse  | Godown     | came-back:666e71ad-13d2-7c80-9980-29728707bff9:7cee0e10-e449-737a-a8a2-c212145145b7:out
+ transfer_in  |        75 | in_transit | In transit | came-back:666e71ad-13d2-7c80-9980-29728707bff9:c24f909f-9770-7be8-9b8f-6a777a3812ba:in
+ transfer_out |       -75 | warehouse  | Godown     | came-back:666e71ad-13d2-7c80-9980-29728707bff9:c24f909f-9770-7be8-9b8f-6a777a3812ba:out
+(6 rows)
+
+       action       |   bill   |                                                                                                                                                     staged                                                                                                                                                     
+--------------------+----------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ delivery.came_back | INV/0825 | [{"lotId": "3dabe518-d0af-75a0-9ab8-342a63920b80", "onVanPcs": 0, "neededPcs": 60, "stagedPcs": 60}, {"lotId": "c24f909f-9770-7be8-9b8f-6a777a3812ba", "onVanPcs": 0, "neededPcs": 75, "stagedPcs": 75}, {"lotId": "7cee0e10-e449-737a-a8a2-c212145145b7", "onVanPcs": 0, "neededPcs": 144, "stagedPcs": 144}]
+(1 row)
+

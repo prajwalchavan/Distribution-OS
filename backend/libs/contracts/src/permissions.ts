@@ -762,6 +762,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.deliveries.addPod': DOORSTEP,
   'delivery.deliveries.list': MONEY_READERS,
   'delivery.deliveries.get': MONEY_READERS,
+  // QA DOS-237: a bill that went out and was never recorded is declared back by the desk that plans the road.
+  'delivery.deliveries.cameBack': PIN_HOLDERS,
   // THE money-collection path of the field (docs/17 §D4). Never the salesperson.
   'delivery.collections.record': MONEY_COLLECTORS,
   'delivery.collections.list': MONEY_COLLECTORS,

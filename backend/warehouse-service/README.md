@@ -186,6 +186,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
 | GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
 | GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/deliveries/{id}/came-back` | The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock | owner, manager |
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
@@ -22217,6 +22218,7 @@ Delivery register (a shop sees only its own bills' deliveries) · contract `deli
 | `outcome` | delivered | partial | returned | failed | no |
 | `attemptedOnly` | boolean | string | no |
 | `undeliveredOnly` | boolean | string | no |
+| `unrecordedOnly` | boolean | string | no |
 | `from` | date | no |
 | `to` | date | no |
 | `limit` | integer | no |
@@ -22225,7 +22227,7 @@ Delivery register (a shop sees only its own bills' deliveries) · contract `deli
 **Example request**
 
 ```bash
-curl "http://localhost:3004/delivery/deliveries?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&stopId=01a06d5c-e42f-7382-88a1-ae0ef12689a5&invoiceId=01a06dea-de0c-7ad3-8a15-120111eb3642&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&outcome=delivered&attemptedOnly=false&undeliveredOnly=false&from=2026-09-04&to=2026-09-04&limit=50" \
+curl "http://localhost:3004/delivery/deliveries?tripId=01a06d0b-bd31-7813-8e79-aa7c39f75385&stopId=01a06d5c-e42f-7382-88a1-ae0ef12689a5&invoiceId=01a06dea-de0c-7ad3-8a15-120111eb3642&retailerId=01a06dbc-35ed-7760-86f2-6c701c68f2dd&outcome=delivered&attemptedOnly=false&undeliveredOnly=false&unrecordedOnly=false&from=2026-09-04&to=2026-09-04&limit=50" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -22454,6 +22456,153 @@ curl "http://localhost:3004/delivery/deliveries/01a06d17-0be7-794a-8dab-9b14cf78
   "code": "NOT_FOUND",
   "status": 404,
   "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/deliveries/{id}/came-back`
+
+The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock · contract `delivery.deliveries.cameBack`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `note` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3004/delivery/deliveries/01a06d17-0be7-794a-8dab-9b14cf78673b/came-back" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "note": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+    "tripNo": "SO-0042",
+    "tripState": "planned",
+    "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+    "stopFailureReason": null,
+    "stopFailureNote": "Confirmed on phone with the shopkeeper",
+    "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+    "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+    "invoiceNo": "SO-0042",
+    "invoiceTotalPaise": 2680000,
+    "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+    "retailerName": "text",
+    "outcome": "delivered",
+    "deliveredBy": "01a06d1a-505a-7aa9-8100-0dada7ed8aa3",
+    "deliveredAt": "2026-09-04T10:30:00.000Z",
+    "receiverName": "text",
+    "note": null,
+    "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+    "shortPcs": 24,
+    "returnedPcs": 24,
+    "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+    "podKinds": [
+      "photo"
+    ],
+    "createdAt": "2026-09-04T10:30:00.000Z"
+  },
+  "staged": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "description": "Confirmed on phone with the shopkeeper",
+      "batchNo": "SO-0042",
+      "neededPcs": 24,
+      "stagedPcs": 24,
+      "onVanPcs": 24
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call POST /delivery/deliveries/{id}/came-back",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
 }
 ```
 
@@ -35064,6 +35213,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.deliveries.addPod` | – | – | – | – | – | – | – |
 | `delivery.deliveries.list` | – | – | – | – | – | – | – |
 | `delivery.deliveries.get` | – | – | – | – | – | – | – |
+| `delivery.deliveries.cameBack` | – | – | – | – | – | – | – |
 | `delivery.collections.record` | – | – | – | – | – | – | – |
 | `delivery.collections.list` | – | – | – | – | – | – | – |
 | `delivery.vanSales.create` | – | – | – | – | – | – | – |

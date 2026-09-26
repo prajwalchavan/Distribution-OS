@@ -5,6 +5,8 @@ import type { z } from 'zod'
 import type {
   AddPodInput,
   AddPodOutput,
+  CameBackInput,
+  CameBackOutput,
   CreditNoteReason,
   DeliveriesListInput,
   DeliveriesListOutput,
@@ -19,10 +21,22 @@ import type {
 } from '@dos/contracts'
 import { isSaleableReturn } from '@dos/contracts'
 import { orderMachine, uuidv7, type OrderState } from '@dos/domain'
-import { deliveries, deliveryLines, podEvidence, withTenant, type Db } from '@dos/db'
-import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
+import { deliveries, deliveryLines, podEvidence, stockBalances, withTenant, type Db } from '@dos/db'
+import {
+  currentTenant,
+  DB,
+  idempotent,
+  requireDb,
+  requireRole,
+  writeAudit,
+} from '../../platform/index.js'
 import { BillingService, CreditNotesService, type InvoiceForDelivery } from '../billing/index.js'
-import { InventoryService } from '../inventory/index.js'
+import {
+  dockLocationId,
+  InventoryService,
+  reservableLocationId,
+  type LedgerEntryInput,
+} from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import {
   acceptObjectKey,
@@ -33,11 +47,13 @@ import {
   DOORSTEP,
   emitDeliveryEvent,
   findRetailer,
+  loadLots,
   loadTripPolicy,
   loadVehicle,
   lockStop,
   lockTrip,
   MONEY_READERS,
+  PIN_HOLDERS,
   STOP_TERMINAL,
   storeInline,
   TRIP_ON_THE_ROAD,
@@ -62,6 +78,11 @@ type ListIn = z.infer<typeof DeliveriesListInput>
 type ListOut = z.infer<typeof DeliveriesListOutput>
 type GetIn = z.infer<typeof DeliveryGetInput>
 type GetOut = z.infer<typeof DeliveryGetOutput>
+type CameBackIn = z.infer<typeof CameBackInput>
+type CameBackOut = z.infer<typeof CameBackOutput>
+
+/** A trip that has come back to the godown: its unrecorded bills are the desk's to decide (QA DOS-237). */
+const CHECKED_IN = new Set(['closing', 'settled', 'settled_with_variance'])
 
 /** At most this much proof per delivery: a photo of the bill, a signature, an OTP, a geo check, and spares. */
 const MAX_POD_PER_DELIVERY = 10
@@ -378,6 +399,14 @@ export class DeliveriesService {
         input.retailerId ? eq(deliveries.retailerId, input.retailerId) : undefined,
         input.outcome ? eq(deliveries.outcome, input.outcome) : undefined,
         input.attemptedOnly ? sql`${deliveries.outcome} is not null` : undefined,
+        // QA DOS-237: went out on a trip that has checked in, and nobody ever said what became of it
+        input.unrecordedOnly
+          ? sql`${deliveries.outcome} is null and exists (
+                  select 1 from trips t
+                   where t.tenant_id = ${deliveries.tenantId}
+                     and t.id = ${deliveries.tripId}
+                     and t.state in ('closing', 'settled', 'settled_with_variance'))`
+          : undefined,
         waiting === null ? undefined : inArray(deliveries.invoiceId, waiting),
         waiting === null ? undefined : eq(deliveries.outcome, 'failed'),
         waiting === null
@@ -408,6 +437,222 @@ export class DeliveriesService {
     return withTenant(db, currentTenant(), async (tx) => ({
       item: await loadDeliveryDetail(tx, await this.findDelivery(tx, input.id), this.trips.deps()),
     }))
+  }
+
+  /**
+   * THE DESK SAYS A BILL CAME BACK (QA DOS-237).
+   *
+   * INV/9017 went out on TRIP-0002 as the second bill of a two-bill stop. Before DOS-232 the first bill walked
+   * the stop to `delivered`, the second could not be recorded at the door, the check-in skipped the ended
+   * stop, and the trip settled with the bill's delivery still NULL: paid, `dispatched`, its 166 pieces
+   * counted back into the godown as free stock, on no register and no planning board. Nothing in the app
+   * could send it again. This is the desk's way out for any such bill:
+   *
+   *   record   the delivery `failed` through `trips.failPlannedDelivery` — the check-in's own effects: the
+   *            order back to `packed`, the bill flagged undelivered (Undelivered register, planning board,
+   *            out of the shop's dues, the shop told);
+   *   stage    the bill's pieces on the DOCK for its next load sheet (docs/22 §4, DOS-195/DOS-172: a bill
+   *            that came back goes out again on a fresh sheet from the dock). While the trip is `closing`
+   *            the pieces still on the van are left there — the settlement's count moves them to the dock
+   *            now that the bill is failed — and only the rest is taken from the godown. After settlement
+   *            they were counted into the godown as free stock, so they are moved godown → dock, as many as
+   *            the godown still holds FREE (on hand less reserved). A batch sold on since is reported short,
+   *            never invented, and the load-out will name it.
+   *
+   * 409 while the trip is still out (the crew or the check-in records it), before it left, once the delivery
+   * has an outcome, or for a bill cancelled since. Audited. One transaction; a replay answers the first reply.
+   */
+  async cameBack(input: CameBackIn): Promise<CameBackOut> {
+    requireRole(PIN_HOLDERS)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const found = await this.findDelivery(tx, input.id)
+        const trip = await lockTrip(tx, found.tripId)
+        const [d] = await tx
+          .select()
+          .from(deliveries)
+          .where(eq(deliveries.id, found.id))
+          .for('update')
+        if (!d) throw new ORPCError('NOT_FOUND', { message: `delivery ${input.id} not found` })
+        const invoice = await this.billing.invoiceForDelivery(tx, d.invoiceId)
+        const bill = invoice.invoiceNo ?? invoice.id
+        const tripName = trip.tripNo ?? trip.id
+        if (d.outcome !== null)
+          throw new ORPCError('CONFLICT', {
+            message: `bill ${bill} has an outcome on trip ${tripName} (${d.outcome}); only a bill nobody recorded can be declared back`,
+            data: { code: 'delivery_recorded', outcome: d.outcome },
+          })
+        if (!CHECKED_IN.has(trip.state))
+          throw new ORPCError('CONFLICT', {
+            message:
+              trip.state === 'active'
+                ? `trip ${tripName} is still out; the crew records bill ${bill} at the door, or the check-in does`
+                : `trip ${tripName} is ${trip.state}; bill ${bill} did not go out on it`,
+            data: { code: 'trip_not_checked_in', tripState: trip.state },
+          })
+        if (invoice.state === 'cancelled' || invoice.state === 'draft')
+          throw new ORPCError('CONFLICT', {
+            message: `bill ${bill} is ${invoice.state}; there is nothing to send again`,
+          })
+
+        const at = new Date()
+        const note = input.note?.trim() || 'nothing was recorded at the door'
+        await this.trips.failPlannedDelivery(tx, d, {
+          failureReason: 'other',
+          failureNote: note,
+          at,
+          deviceId: null,
+        })
+        const staged = await this.stageOnDock(tx, trip, d.id, invoice)
+        await writeAudit(tx, {
+          action: 'delivery.came_back',
+          entityType: 'delivery',
+          entityId: d.id,
+          before: { outcome: null, tripState: trip.state },
+          after: {
+            outcome: 'failed',
+            invoiceId: invoice.id,
+            invoiceNo: invoice.invoiceNo,
+            note,
+            staged: staged.map((s) => ({
+              lotId: s.lotId,
+              neededPcs: s.neededPcs,
+              stagedPcs: s.stagedPcs,
+              onVanPcs: s.onVanPcs,
+            })),
+          },
+          deviceId: null,
+        })
+        // the outbox already carries `DeliveryFailed` (`failPlannedDelivery`): the shop is told by bill number
+        const [row] = await tx.select().from(deliveries).where(eq(deliveries.id, d.id)).limit(1)
+        const [item] = await mapDeliveries(tx, [row ?? d], this.trips.deps())
+        if (!item)
+          throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'delivery row vanished' })
+        return { item, staged }
+      }),
+    )
+  }
+
+  /** Where a bill that came back must stand for its next load sheet: the dock (QA DOS-237, see `cameBack`). */
+  private async stageOnDock(
+    tx: Db,
+    trip: TripRow,
+    deliveryId: string,
+    invoice: InvoiceForDelivery,
+  ): Promise<CameBackOut['staged']> {
+    const { tenantId } = currentTenant()
+    const need = new Map<string, { pcs: number; description: string }>()
+    for (const line of invoice.lines) {
+      const pcs = line.qtyPcs + line.freeQtyPcs
+      if (line.lotId === null || pcs <= 0) continue
+      const held = need.get(line.lotId)
+      need.set(line.lotId, {
+        pcs: (held?.pcs ?? 0) + pcs,
+        description: held?.description ?? line.description,
+      })
+    }
+    if (need.size === 0) return []
+
+    // While the trip is `closing` the settlement still counts the van: what stands on it for this bill (after
+    // the other bills that came back on it) goes to the dock there. Settled, the van is somebody else's now.
+    const onVan = new Map<string, number>()
+    if (trip.state === 'closing') {
+      const vehicle = await loadVehicle(tx, trip.vehicleId)
+      const van = await this.inventory.onHandAt(tx, vehicle.locationId)
+      const others = await this.otherBillsBack(tx, trip.id, invoice.id)
+      for (const [lotId, { pcs }] of need)
+        onVan.set(
+          lotId,
+          Math.min(pcs, Math.max(0, (van.get(lotId) ?? 0) - (others.get(lotId) ?? 0))),
+        )
+    }
+
+    const godown = await reservableLocationId(tx)
+    const dock = await dockLocationId(tx)
+    const lots = await loadLots(tx, [...need.keys()])
+    const entries: LedgerEntryInput[] = []
+    const staged: CameBackOut['staged'] = []
+    for (const [lotId, { pcs, description }] of need) {
+      const fromVan = onVan.get(lotId) ?? 0
+      const wanted = pcs - fromVan
+      let take = 0
+      if (wanted > 0) {
+        const [balance] = await tx
+          .select({ onHand: stockBalances.onHand, reserved: stockBalances.reserved })
+          .from(stockBalances)
+          .where(
+            and(
+              eq(stockBalances.tenantId, tenantId),
+              eq(stockBalances.lotId, lotId),
+              eq(stockBalances.locationId, godown),
+            ),
+          )
+          .for('update')
+        take = Math.min(wanted, Math.max(0, (balance?.onHand ?? 0) - (balance?.reserved ?? 0)))
+      }
+      if (take > 0) {
+        const note = `bill ${invoice.invoiceNo ?? invoice.id} came back: staged for its next trip`
+        entries.push(
+          {
+            lotId,
+            locationId: godown,
+            qtyDelta: -take,
+            reason: 'transfer_out',
+            refType: 'delivery',
+            refId: deliveryId,
+            idempotencyKey: `came-back:${deliveryId}:${lotId}:out`,
+            note,
+          },
+          {
+            lotId,
+            locationId: dock,
+            qtyDelta: take,
+            reason: 'transfer_in',
+            refType: 'delivery',
+            refId: deliveryId,
+            idempotencyKey: `came-back:${deliveryId}:${lotId}:in`,
+            note,
+          },
+        )
+      }
+      const lot = lots.get(lotId)
+      staged.push({
+        lotId,
+        description,
+        batchNo: lot === undefined || lot.batchNo === '' ? null : lot.batchNo,
+        neededPcs: pcs,
+        stagedPcs: take,
+        onVanPcs: fromVan,
+      })
+    }
+    if (entries.length > 0) await this.inventory.post(tx, entries)
+    return staged
+  }
+
+  /** The pieces per lot of the OTHER bills that came back on this trip (the settlement stages those first). */
+  private async otherBillsBack(
+    tx: Db,
+    tripId: string,
+    invoiceId: string,
+  ): Promise<Map<string, number>> {
+    const rows = await tx
+      .select({ invoiceId: deliveries.invoiceId })
+      .from(deliveries)
+      .where(and(eq(deliveries.tripId, tripId), eq(deliveries.outcome, 'failed')))
+    const need = new Map<string, number>()
+    for (const other of new Set(rows.map((r) => r.invoiceId))) {
+      if (other === invoiceId) continue
+      const bill = await this.billing.invoiceForDelivery(tx, other)
+      if (bill.state === 'cancelled') continue
+      for (const line of bill.lines) {
+        const pcs = line.qtyPcs + line.freeQtyPcs
+        if (line.lotId === null || pcs <= 0) continue
+        need.set(line.lotId, (need.get(line.lotId) ?? 0) + pcs)
+      }
+    }
+    return need
   }
 
   // -------------------------------------------------------------------------------------------------------------

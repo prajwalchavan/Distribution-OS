@@ -1347,7 +1347,9 @@ export class BillingService {
         and(
           eq(invoices.tenantId, tenantId),
           sql`${invoices.undeliveredAt} is not null`,
-          inArray(invoices.state, ['issued', 'partially_paid']),
+          // QA DOS-237: a bill PAID before it was handed over — a pay-in-advance shop, or one that paid
+          // at the door for two bills and took one — still came back and still has to go out again.
+          inArray(invoices.state, ['issued', 'partially_paid', 'paid']),
         ),
       )
       .orderBy(desc(invoices.undeliveredAt))

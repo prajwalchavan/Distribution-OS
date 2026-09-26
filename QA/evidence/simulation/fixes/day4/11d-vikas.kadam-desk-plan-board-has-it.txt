@@ -1,0 +1,205 @@
+TE
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Trips
+Waves
+Pick & pack
+Load-out
+Trips
+INV/0825 is back on the planning board
+Done
+Rajwadi Aamras Mango Drink 1 L (B20260902): 60 pc moved to the dock
+Campa Lemon 750 ml (RCP20260814): 75 pc moved to the dock
+Balaji Simply Salted Wafers 45 g (GK20260825): 144 pc moved to the dock
+Plan it on a trip with “Plan a trip” below.
+Came back undelivered
+7 bills
+Bill no.	Shop	Amount ₹	Why	Crew's note	Trip	What happens next
+
+INV/0826
+	
+Joshi Kirana Stores
+	14,962.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0835
+	
+Rukmini Provision
+	26,581.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0827
+	
+Ansari Kirana Stores
+	2,610.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0825
+	
+Vaibhav Kirana Mart
+	7,856.00	
+—
+	
+Office: came back — recorded by the office
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0830
+	
+Laxmi Narayan Stores
+	22,508.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0829
+	
+Nakshatra Kirana
+	4,756.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+
+
+INV/0833
+	
+Khan General Store
+	907.00	
+Other
+	
+trip returned
+	
+TRIP-ACTIVE
+	
+Back at the godown — plan it again
+Planned and loading
+Close
+Trip	Date	Vehicle	Driver	Stops	State	What happens next
+
+TRIP-NEXT
+	
+27 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+5
+	Planned	
+—
+Plan a trip
+Date
+Today
+Tomorrow
+Vehicle
+MH-05-AB-1234
+Tempo 1
+MH-05-CD-5678
+Loader 1
+MH-05-EF-9012
+Loader 2
+Driver
+Ganesh More
+Iqbal Shaikh
+Mahesh Sutar
+Raju Yadav
+Santosh Kamble
+Tanaji Bhosale
+Helper
+No helper
+Ganesh More
+Iqbal Shaikh
+Mahesh Sutar
+Raju Yadav
+Santosh Kamble
+Tanaji Bhosale
+Cash float
+₹
+What the van does
+Deliver bills
+Deliver and sell from the van
+Packed bills not on a trip
+Rukmini Provision
+INV/0835 · Godrej Hill
+₹26,581.00
+Khan General Store
+INV/0833 · Kolsewadi
+₹907.00
+Balaji Wholesale Stores
+INV/0838 · Station Road
+₹1,01,531.00
+Ambika Provision Store
+INV/0820 · Station Road
+₹12,569.00
+Laxmi Narayan Stores
+INV/0830 · Kalyan West Market
+₹22,508.00
+Nakshatra Kirana
+INV/0829 · Kolsewadi
+₹4,756.00
+Ansari Kirana Stores
+INV/0827 · Godrej Hill
+₹2,610.00
+Joshi Kirana Stores
+INV/0826 · Kalyan West Market
+₹14,962.00
+Vaibhav Kirana Mart
+INV/0825 · Kolsewadi
+₹7,856.00
+Nutan Kirana Stores
+INV/0815 · Birla College Road
+₹4,264.00
+Plan the trip
+Choose a vehicle

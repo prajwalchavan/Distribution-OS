@@ -17,6 +17,7 @@ import {
   retailerIdentities,
   retailerLinks,
   retailers,
+  stockLots,
   tenantProducts,
   tenants,
   tenantSettings,
@@ -94,7 +95,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
   // one driver per test: a driver is on one open trip a day, and each test reads its own stop's figure
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -116,6 +117,9 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
 
   const retailerA = uuidv7()
   const retailerB = uuidv7()
+  /** QA DOS-240: Shanti's shape — credit stopped, pays on delivery, no limit at all. */
+  const retailerC = uuidv7()
+  const shopUserC = uuidv7()
   const variantId = uuidv7()
   let godown = ''
   let lot = ''
@@ -137,6 +141,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
       })),
       { id: shopUserA, phone: `+91982${run}1`, name: 'Shopkeeper A' },
       { id: shopUserB, phone: `+91982${run}2`, name: 'Shopkeeper B' },
+      { id: shopUserC, phone: `+91982${run}3`, name: 'Shopkeeper C' },
     ])
     await db.insert(memberships).values([
       { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
@@ -150,6 +155,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
       })),
       { id: uuidv7(), tenantId, userId: shopUserA, role: 'retailer' },
       { id: uuidv7(), tenantId, userId: shopUserB, role: 'retailer' },
+      { id: uuidv7(), tenantId, userId: shopUserC, role: 'retailer' },
     ])
     await bootstrapTenant(db, tenantId)
     await db
@@ -191,10 +197,11 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
     const shops: [string, string, string, string][] = [
       [retailerA, shopUserA, 'A', '27AAXPT9021Q1ZQ'],
       [retailerB, shopUserB, 'B', '27AABCU9603R1ZX'],
+      [retailerC, shopUserC, 'C', ''],
     ]
     for (const [retailerId, userId, tag, gstin] of shops) {
       const identityId = uuidv7()
-      const phone = `+91983${run}${tag === 'A' ? '1' : '2'}`
+      const phone = `+91983${run}${tag === 'A' ? '1' : tag === 'B' ? '2' : '3'}`
       await db
         .insert(retailerIdentities)
         .values({ id: identityId, phone, userId, shopName: `Door Shop ${tag} ${run}` })
@@ -212,6 +219,16 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
         creditDays: 15,
         lat: 19.2437,
         lng: 73.1355,
+        // shop C is the cash counter: credit stopped, pays on delivery, a limit of nothing
+        ...(tag === 'C'
+          ? {
+              creditMode: 'stop' as const,
+              paymentTerms: 'ON' as const,
+              creditLimitPaise: 0,
+              gstRegType: 'unregistered' as const,
+              gstin: null,
+            }
+          : {}),
       })
       await db.insert(retailerLinks).values({
         id: uuidv7(),
@@ -257,6 +274,8 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
         expiryDate: '2028-01-31',
       })
       lot = a.lot.id
+      // QA DOS-239: the supplier packed this batch 24 to a carton; the distributor SELLS it 12 to a case.
+      await tx.update(stockLots).set({ caseSize: 24 }).where(eq(stockLots.id, lot))
       await inventory.post(tx, [
         {
           lotId: lot,
@@ -506,5 +525,118 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
     expect(again.invoice.invoiceNo).toBe(first.invoice.invoiceNo)
     expect(again.invoice.totalPaise).toBe(first.invoice.totalPaise)
     expect(await owedAt(driver, tripId, stopId)).toBe(owed)
+  }, 120_000)
+
+  it('DOS-239 the van-sale list carries the SELL-side case, not the supplier carton', async () => {
+    const driver = driverAt(4)
+    const { tripId } = await roadTrip('case', driver)
+    const res = await call<{
+      items: { lotId: string; caseSize: number | null; availablePcs: number }[]
+    }>(app, driver, 'GET', `/delivery/trips/${tripId}/van-stock`)
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    const row = res.body.items.find((item) => item.lotId === lot)
+    expect(row?.availablePcs).toBe(48)
+    // the lot says 24 a carton; the quote and the bill sell 12 a case, so the stepper must step by 12
+    expect(row?.caseSize).toBe(12)
+    const quote = await call<{ lines: { caseSize: number }[] }>(
+      app,
+      driver,
+      'POST',
+      '/pricing/quote',
+      {
+        retailerId: retailerA,
+        lines: [{ lineId: variantId, variantId, qtyPcs: 12 }],
+      },
+    )
+    expect(quote.status, JSON.stringify(quote.body)).toBe(200)
+    expect(quote.body.lines[0]?.caseSize).toBe(row?.caseSize)
+  }, 120_000)
+
+  it('DOS-240 a pay-on-delivery shop with credit stopped buys from the van for cash, never on credit', async () => {
+    const driver = driverAt(5)
+    const { tripId } = await roadTrip('cash', driver)
+    const quote = await call<QuoteBody>(app, driver, 'POST', '/pricing/quote', {
+      retailerId: retailerC,
+      lines: [{ lineId: variantId, variantId, qtyPcs: 12 }],
+    })
+    expect(quote.status, JSON.stringify(quote.body)).toBe(200)
+    const bill = quote.body.totals.totalPaise
+
+    // on credit: refused, in words — the shop, why, and the one thing that sells
+    const onCredit = await call<{ message: string; data: { code: string; payNowPaise: number } }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/van-sales',
+      d6Sale('cash-credit', tripId, undefined, retailerC, 12),
+    )
+    expect(onCredit.status, JSON.stringify(onCredit.body)).toBe(409)
+    expect(onCredit.body.data.code).toBe('approval_required')
+    expect(onCredit.body.data.payNowPaise).toBe(bill)
+    expect(onCredit.body.message).toContain(`Door Shop C ${run} cannot take this on credit`)
+    expect(onCredit.body.message).toContain('credit is stopped')
+    expect(onCredit.body.message).toContain('pays on delivery')
+    expect(onCredit.body.message).toContain('in cash or UPI')
+    expect(onCredit.body.message).toContain('₹')
+    expect(onCredit.body.message).not.toMatch(/paise|credit_limit/)
+
+    const collect = (
+      mode: 'cash' | 'upi' | 'cheque',
+      amountPaise: number,
+    ): Record<string, unknown> => ({
+      id: uuidv7(),
+      receiptId: uuidv7(),
+      mode,
+      amountPaise,
+      ...(mode === 'cash' ? {} : { reference: `REF${run}` }),
+      ...(mode === 'cheque' ? { chequeDate: today, bankName: 'SBI' } : {}),
+    })
+
+    // a cheque is not money in hand, and a rupee short of the bill is credit: both still refused
+    const cheque = await call(app, driver, 'POST', '/delivery/van-sales', {
+      ...d6Sale('cash-cheque', tripId, undefined, retailerC, 12),
+      collect: collect('cheque', bill),
+    })
+    expect(cheque.status, JSON.stringify(cheque.body)).toBe(409)
+    const short = await call(app, driver, 'POST', '/delivery/van-sales', {
+      ...d6Sale('cash-short', tripId, undefined, retailerC, 12),
+      collect: collect('cash', bill - 100),
+    })
+    expect(short.status, JSON.stringify(short.body)).toBe(409)
+
+    // the whole bill in cash at the door: billed, handed over and paid in the same call
+    const paid = await call<
+      VanSaleBody & {
+        receipt: { receiptNo: string | null; amountPaise: number; mode: string } | null
+        invoice: { state: string }
+      }
+    >(app, driver, 'POST', '/delivery/van-sales', {
+      ...d6Sale('cash-paid', tripId, undefined, retailerC, 12),
+      collect: collect('cash', bill),
+    })
+    expect(paid.status, JSON.stringify(paid.body)).toBe(200)
+    expect(paid.body.invoice.totalPaise).toBe(bill)
+    expect(paid.body.invoice.state).toBe('paid')
+    expect(paid.body.receipt?.amountPaise).toBe(bill)
+    expect(paid.body.receipt?.mode).toBe('cash')
+    expect(paid.body.order.state).toBe('delivered')
+
+    // UPI is money in hand too
+    const upi = await call<VanSaleBody & { invoice: { state: string } }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/van-sales',
+      { ...d6Sale('cash-upi', tripId, undefined, retailerC, 12), collect: collect('upi', bill) },
+    )
+    expect(upi.status, JSON.stringify(upi.body)).toBe(200)
+    expect(upi.body.invoice.state).toBe('paid')
+
+    // the shop's exposure did not grow: nothing of these two bills is owed
+    const owed = await asOwner(async (tx) =>
+      tx.execute(sql`select coalesce(sum(outstanding_paise), 0)::bigint as owed
+                       from retailer_outstanding_summary where retailer_id = ${retailerC}`),
+    )
+    expect(Number((owed.rows[0] as { owed: string | number } | undefined)?.owed ?? 0)).toBe(0)
   }, 120_000)
 })

@@ -166,6 +166,11 @@ export class DeliveryController {
     return implement(d.deliveries.get).handler(({ input }) => this.deliveries.get(input))
   }
 
+  @Implement(d.deliveries.cameBack)
+  deliveryCameBack(@OwnsReply() _reply: unknown) {
+    return implement(d.deliveries.cameBack).handler(({ input }) => this.deliveries.cameBack(input))
+  }
+
   // money
 
   @Implement(d.collections.record)
