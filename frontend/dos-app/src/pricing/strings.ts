@@ -30,6 +30,11 @@ export const PRICING_STRINGS = {
   'px.needDays': 'Enter the days to pay, 0 to 365',
 
   // --- DOS-214 price lists --------------------------------------------------------------------------------------
+  /* The owner's four views, short enough that four tabs fit a 390 px phone without an ellipsis. */
+  'px.tab.lists': 'Lists',
+  'px.tab.schemes': 'Schemes',
+  'px.tab.shopRates': 'Per shop',
+  'px.tab.whatIf': 'What-if',
   'px.changeRate': 'Change the rate',
   'px.addItem': 'Add an item',
   'px.addItemTitle': 'Add an item to {list}',
@@ -43,6 +48,7 @@ export const PRICING_STRINGS = {
   'px.rateApplies':
     'New orders are priced at this rate from now. Orders already placed keep the price they were given.',
   'px.tapToEdit': 'Pick a row to change it.',
+  'px.filterList': 'Filter this list by item name',
   'px.findItem': 'Find the item',
   'px.findItemHelp': 'Type part of the name, then pick it below.',
   'px.noItemMatch': 'No item matches. Check the spelling.',

@@ -193,6 +193,20 @@ export default function Prices(): React.JSX.Element {
 
   const schemeColumns: readonly RegisterColumn<Scheme>[] = [
     textColumn('name', t('o8.scheme'), (row) => row.name, { priority: 'identity' }),
+    {
+      key: 'state',
+      head: t('px.status'),
+      priority: 'chip',
+      cell: (row) => {
+        const state = schemeState(row, day)
+        return (
+          <StatusChip
+            label={t(`px.state.${state}`)}
+            family={state === 'running' ? 'moss' : 'neutral'}
+          />
+        )
+      },
+    },
     textColumn('trigger', t('o8.trigger'), trigger),
     textColumn('reward', t('o8.reward'), reward),
     textColumn('funding', t('o8.funding'), (row) => word(row.fundingSource)),
@@ -210,20 +224,6 @@ export default function Prices(): React.JSX.Element {
           family="neutral"
         />
       ),
-    },
-    {
-      key: 'state',
-      head: t('px.status'),
-      priority: 'chip',
-      cell: (row) => {
-        const state = schemeState(row, day)
-        return (
-          <StatusChip
-            label={t(`px.state.${state}`)}
-            family={state === 'running' ? 'moss' : 'neutral'}
-          />
-        )
-      },
     },
   ]
 
@@ -310,10 +310,10 @@ export default function Prices(): React.JSX.Element {
             setView(id as View)
           }}
           items={[
-            { id: 'lists', label: t('o8.priceLists') },
-            { id: 'schemes', label: t('o8.schemes') },
-            { id: 'overrides', label: t('o8.overrides') },
-            { id: 'quote', label: t('o8.quote') },
+            { id: 'lists', label: t('px.tab.lists') },
+            { id: 'schemes', label: t('px.tab.schemes') },
+            { id: 'overrides', label: t('px.tab.shopRates') },
+            { id: 'quote', label: t('px.tab.whatIf') },
           ]}
           testID="prices-view"
         />
@@ -334,7 +334,7 @@ export default function Prices(): React.JSX.Element {
               testID="prices-search"
               value={q}
               onChange={setQ}
-              placeholder={t('o9.search')}
+              placeholder={t('px.filterList')}
               state={q === '' ? 'idle' : itemRows.length === 0 ? 'noResults' : 'results'}
             />
             {hint(mayRates)}

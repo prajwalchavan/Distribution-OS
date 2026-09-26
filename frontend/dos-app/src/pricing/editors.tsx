@@ -61,6 +61,7 @@ import {
   priceItemPayload,
   schemeDraftOf,
   schemePayload,
+  spokenDate,
   type CreditDraft,
   type CreditMode,
   type OverrideDraft,
@@ -740,7 +741,7 @@ export function OverrideSheet({
                 : t('px.endRateBody', {
                     shop: shopName(row.retailerId),
                     item: catalog.name(row.variantId),
-                    date: ended.backOn,
+                    date: spokenDate(ended.backOn),
                   })}
             </Txt>
             <Problem text={refusal} testID="override-end-problem" />

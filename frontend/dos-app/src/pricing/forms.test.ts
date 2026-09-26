@@ -33,6 +33,7 @@ import {
   schemeDraftOf,
   schemePayload,
   schemeState,
+  spokenDate,
   wholeNumber,
   type CreditShop,
 } from './forms'
@@ -78,6 +79,8 @@ describe('typed numbers and dates', () => {
     expect(isIsoDate('21/09/2026')).toBe(false)
     expect(addDays('2026-09-01', -1)).toBe('2026-08-31')
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01')
+    expect(spokenDate('2026-09-27')).toBe('27 Sep 2026')
+    expect(spokenDate('not a date')).toBe('not a date')
   })
 })
 

@@ -89,6 +89,15 @@ export function addDays(iso: string, days: number): string {
   return at.toISOString().slice(0, 10)
 }
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** `2026-09-27` → `27 Sep 2026`: a sentence says the day the way the desk's registers print it. */
+export function spokenDate(iso: string): string {
+  if (!isIsoDate(iso)) return iso
+  const [y, m, d] = iso.split('-').map((part) => Number.parseInt(part, 10))
+  return `${String(d)} ${MONTHS[(m ?? 1) - 1] ?? ''} ${String(y)}`
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // DOS-212 — a shop's credit
 

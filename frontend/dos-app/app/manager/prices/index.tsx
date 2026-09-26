@@ -54,7 +54,8 @@ import {
   useCan,
   useNames,
 } from '../../../src/groups/manager/lib/ui'
-import { longDate } from '../../../src/groups/manager/lib/dates'
+import { longDate, today } from '../../../src/groups/manager/lib/dates'
+import { schemeState } from '../../../src/pricing/forms'
 import { formatBps, useWord } from '../../../src/groups/manager/lib/words'
 import {
   OverrideSheet,
@@ -73,7 +74,7 @@ interface Scheme {
   rewardKind: string
   rewardValue: number
   validFrom: string
-  validTo: string | null
+  validTo: string
   stackable: boolean
   final: boolean
   fundingSource: string
@@ -104,7 +105,8 @@ export default function Prices(): React.JSX.Element {
   const lists = useQuery(['pricing', 'priceLists'], () => api.api.pricing.priceLists.list({}))
   const schemes = useQuery(
     ['pricing', 'schemes'],
-    () => api.api.pricing.schemes.list({ limit: 200 }),
+    /* DOS-214: paused schemes too, or a scheme the desk pauses here can never be resumed from here. */
+    () => api.api.pricing.schemes.list({ limit: 200, activeOnly: false }),
     { enabled: view === 'schemes' },
   )
   const overrides = useQuery(
@@ -167,6 +169,20 @@ export default function Prices(): React.JSX.Element {
 
   const schemeColumns: readonly RegisterColumn<Scheme>[] = [
     textColumn('name', t('m15.schemeName'), (row) => row.name, { priority: 'identity' }),
+    {
+      /* DOS-214: running, paused, not started or over — the state the editor changes. */
+      key: 'state',
+      head: t('px.status'),
+      cell: (row) => {
+        const state = schemeState(row, today())
+        return (
+          <StatusChip
+            label={t(`px.state.${state}`)}
+            family={state === 'running' ? 'moss' : 'neutral'}
+          />
+        )
+      },
+    },
     textColumn('trigger', t('m15.trigger'), trigger),
     textColumn('reward', t('m15.reward'), reward),
     textColumn('funding', t('m15.funding'), (row) => word(row.fundingSource)),
