@@ -33,6 +33,7 @@ import { haptics } from '@dos/ui/platform'
 import { useState } from 'react'
 
 import type { StockBalanceRow } from '@dos/contracts'
+import { allPages } from '../../../src/groups/warehouse/lib/all-pages'
 import { useLotCaseSize } from '../../../src/groups/warehouse/lib/local'
 import {
   Async,
@@ -64,9 +65,23 @@ export default function VanCheckIn(): React.JSX.Element {
   const vehicles = (locations.data?.items ?? []).filter((one) => one.kind === 'vehicle')
   const godown = (locations.data?.items ?? []).find((one) => one.kind === 'warehouse') ?? null
 
+  /*
+   * DOS-234: EVERY lot still standing on the vehicle, however long its history. A balance row stays at zero
+   * once a lot has ever been on a van, so one page of 200 ordered by lot id was almost all zeros on an older
+   * vehicle: Loader 2 showed 12 of its 166 pieces, then "Nothing is loaded on this vehicle" with 154 still on
+   * it. The server now leaves the zeros out (`nonZero`), and the pages are followed to the end.
+   */
   const balances = useQuery(
-    ['balances', vehicleId ?? 'none'],
-    () => api.api.inventory.stock.balances({ locationId: vehicleId ?? '', limit: 200 }),
+    ['balances', vehicleId ?? 'none', 'on-vehicle'],
+    () =>
+      allPages((cursor) =>
+        api.api.inventory.stock.balances({
+          locationId: vehicleId ?? '',
+          nonZero: true,
+          limit: 500,
+          ...(cursor === null ? {} : { cursor }),
+        }),
+      ),
     { enabled: signedIn && vehicleId !== null },
   )
 
@@ -134,7 +149,18 @@ export default function VanCheckIn(): React.JSX.Element {
         </Panel>
 
         {vehicleId === null ? null : (
-          <Panel title={t('w9.expectedOnVan')} testID="w9-stock">
+          <Panel
+            title={t('w9.expectedOnVan')}
+            {...(rows.length === 0
+              ? {}
+              : {
+                  meta: t('w9.onVan', {
+                    count: rows.reduce((n, row) => n + row.onHand, 0),
+                    lots: rows.length,
+                  }),
+                })}
+            testID="w9-stock"
+          >
             <Async state={balances} empty={rows.length === 0} emptyMessage={t('w9.expectedEmpty')}>
               <Group>
                 {rows.map((row) => (
@@ -154,6 +180,11 @@ export default function VanCheckIn(): React.JSX.Element {
                   />
                 ))}
               </Group>
+              {balances.data?.complete === false ? (
+                <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w9-partial">
+                  {t('w9.partial', { lots: rows.length })}
+                </Txt>
+              ) : null}
             </Async>
           </Panel>
         )}
