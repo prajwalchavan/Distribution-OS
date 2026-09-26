@@ -115,6 +115,12 @@ describe('docs/31 §1.3 the root reads the ELECTED role and takes the person to 
     expect(redirectEffect(root)).not.toMatch(/replace\('\/'\)/)
   })
 
+  it('lets a signed-in person stand on /change-password for a VOLUNTARY change (2026-09-26)', () => {
+    // The account menu's "Change password" opens the root screen without `mustChangePassword`; the
+    // outside-the-group arm must except it, or the item just reopens the group home.
+    expect(root).toMatch(/!inGroup\(pathname, group\) && !onChangePassword/)
+  })
+
   it('moves a signed-in pathname OUTSIDE the elected group back into it', () => {
     expect(root).toMatch(/!inGroup\(pathname, group\)/)
   })

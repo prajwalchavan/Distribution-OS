@@ -169,6 +169,10 @@ function Shell(): React.JSX.Element {
    * `/<group>` rather than `/`, and a signed-in pathname OUTSIDE the elected group is moved into it.
    * That second arm is the whole of route safety on the web, where every URL is typeable and every
    * group's tree is registered (ruling Q2). `choosing` holds the ladder while the chooser is open.
+   * `/change-password` is the one root route a signed-in person may stand on WITHOUT the flag: the
+   * account menu's voluntary change (docs/23 §0 X2, "the same screen serves a voluntary change from
+   * Settings"). Before this exception the ladder read it as "outside the group" and sent the owner
+   * straight back to the home — a Change password item that opened `/owner` (founder, 2026-09-26).
    */
   const redirectTo =
     hydrating || choosing
@@ -183,7 +187,7 @@ function Shell(): React.JSX.Element {
             : '/change-password'
           : group === null
             ? null
-            : onSignIn || !inGroup(pathname, group)
+            : onSignIn || (!inGroup(pathname, group) && !onChangePassword)
               ? routeFor(group, '/')
               : null
 
