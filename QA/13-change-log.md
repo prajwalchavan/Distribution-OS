@@ -917,3 +917,18 @@ The Android prover also built the instrument the measurement needed — a transp
 **A closed P0 is not a finished area.** The architect listed what is NOT DOS-167's, and one is a real defect, now filed as **DOS-184 (P1)**: `react.tsx:275` says the app passes NetInfo through `engine.setNetworkHint`, and **no app does** — the only caller is the offline harness. So on a phone a reconnect while signed in is never announced and the queue waits for the 60-second poll. DOS-183 fixed the engine; nothing on a phone calls it. That is the ordinary case for a rep who drives out of signal and back. Also owed: the kill-with-a-queue relaunch walk on Android, a native iOS build (the standing programme gap — everything on iOS so far is Expo Go on a simulator), and the carried items from judgement 2.
 
 Harness truths worth keeping, learned the hard way: on a dev build **airplane mode is unusable** because it cuts Metro too — the real cut is `adb reverse --remove` plus stopping the service; and Android's LogBox banner swallows the whole bottom bar.
+
+### Day-1 gaps fixed and merged (2026-09-26, workflow `wf_be1f8178-550`)
+
+Three lanes merged `--no-ff` into main in order, no conflicts. Gates on main after the merges: backend lint, typecheck, build, docs:readme:check green; backend tests 2 963 passed / 3 skipped on a seeded copy of the template (`dos_test_integ_day1gaps`, dropped after); frontend lint, typecheck green, tests 1 245 passed; `expo export --platform web` bundled; `pnpm format` changed nothing.
+
+| Date | Id | Fix | Merge commit |
+|---|---|---|---|
+| 2026-09-26 | DOS-212 | `retailers.setCredit` carries the shop's payment terms (expand-only); the desk edits credit mode and terms | cd113ca8 |
+| 2026-09-26 | DOS-214 | The owner/manager desk edits rates, shop rates (overrides) and schemes, with the polish found on the walk | cd113ca8 |
+| 2026-09-26 | DOS-213 | The desk types a supplier bill: `catalog.hsnRates` gives GST from the HSN, the printed per-case rate is kept | b170de3a |
+| 2026-09-26 | DOS-216 | Gate-count review says Saved only after the 2xx; a failed save says why and keeps the count | b170de3a |
+| 2026-09-26 | DOS-217 | The desk posts a counted goods receipt | b170de3a |
+| 2026-09-26 | DOS-210 | The elected role is remembered per person, not per device | a9fd3181 |
+| 2026-09-26 | DOS-211 | A shop just added shows at once on the rep's phone | a9fd3181 |
+| 2026-09-26 | DOS-215 | Book it is offered only on a reviewed document; otherwise the screen says why | a9fd3181 |
