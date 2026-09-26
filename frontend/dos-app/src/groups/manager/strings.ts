@@ -261,6 +261,12 @@ export const strings = {
   'm4.postBody':
     'Posting writes the lots, the stock ledger and the purchase cost. There is no undo.',
   'm4.grnLines': 'Lines on this receipt',
+  // QA DOS-220: what is printed on the carton, so three batches of one item are three different lines
+  'batch.batch': 'Batch {batch}',
+  'batch.expires': 'Expires {date}',
+  'batch.daysLeft': '{count} days left',
+  'batch.daysLeft.one': '{count} day left',
+  'batch.expired': 'Expired',
   'm4.expectedPcs': 'Expected',
   'm4.receivedPcs': 'Received',
   'm4.damagedPcs': 'Damaged',

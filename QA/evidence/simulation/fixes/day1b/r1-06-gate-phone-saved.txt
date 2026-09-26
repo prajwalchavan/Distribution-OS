@@ -1,0 +1,33 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Count what came off the lorry. The bill is not shown.
+Gate count
+reconciled
+Counted and saved. The desk posts it into stock next.
+Received
+Blind count: what the bill says is not on this screen.
+Balaji Masala Masti Wafers 45 g
+Batch FIX-7-A · Expires 20 Oct 2026 · 24 days left
+96 pc
+Saved
+Balaji Masala Masti Wafers 45 g
+Batch FIX-7-B · Expires 20 Feb 2027
+96 pc
+Saved
+Balaji Masala Masti Wafers 45 g
+Batch FIX-7-C · Expires 15 Mar 2027
+94 pc good · 2 pc damaged
+Saved
+FINDINGS
+Damaged
+2 pc
+open
+The desk posts the GRN once the count is in.
+Close
+Count saved
+Inbound
+Pick
+Pack
+Load

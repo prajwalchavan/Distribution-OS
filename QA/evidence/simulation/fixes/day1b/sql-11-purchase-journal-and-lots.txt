@@ -1,0 +1,21 @@
+ entry_date |     ref_type     |         narration          |    code    | amount_paise | party_type 
+------------+------------------+----------------------------+------------+--------------+------------
+ 2026-09-26 | supplier_invoice | purchase GKA/26-27/FIX8981 | AP         |      -419328 | supplier
+ 2026-09-26 | supplier_invoice | purchase GKA/26-27/FIX8981 | INPUT_CGST |        22464 | 
+ 2026-09-26 | supplier_invoice | purchase GKA/26-27/FIX8981 | INPUT_SGST |        22464 | 
+ 2026-09-26 | supplier_invoice | purchase GKA/26-27/FIX8981 | PURCHASES  |       374400 | 
+(4 rows)
+
+ batch_no | expiry_date | on_hand | landed_cost_paise 
+----------+-------------+---------+-------------------
+ FIX-7-A  | 2026-10-20  |      96 |              1300
+ FIX-7-B  | 2027-02-20  |      96 |              1300
+ FIX-7-C  | 2027-03-15  |       2 |              1300
+ FIX-7-C  | 2027-03-15  |      94 |              1300
+(4 rows)
+
+ count 
+-------
+  1882
+(1 row)
+

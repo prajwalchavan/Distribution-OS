@@ -52,7 +52,8 @@ import {
   useCan,
   useNames,
 } from '../../../src/groups/manager/lib/ui'
-import { longDate, shortInstant } from '../../../src/groups/manager/lib/dates'
+import { batchLabel, type BatchLabel } from '../../../src/batch'
+import { longDate, shortInstant, today } from '../../../src/groups/manager/lib/dates'
 import { postReadiness } from '../../../src/groups/manager/lib/grn-post'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
@@ -508,6 +509,12 @@ export default function Inbound(): React.JSX.Element {
                       <Txt field="body" desk="cell" numberOfLines={1}>
                         {line.description}
                       </Txt>
+                      {/* QA DOS-220: the same batch words the receipt lines carry */}
+                      <BatchWords
+                        label={batchLabel(line, t, today())}
+                        testID={`bill-line-batch-${line.id}`}
+                      />
+
                       <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
                         {`${String(line.qtyPcs)} ${word('pcs')} · ${line.variantId === null ? t('m4.matchLine') : word('matched')}`}
                       </Txt>
@@ -567,18 +574,24 @@ export default function Inbound(): React.JSX.Element {
 
               <Panel title={t('m4.grnLines')}>
                 <Stack gap={2}>
-                  {grn.lines.map((line) => (
-                    <Stack key={line.id} gap={1} border="bottom" borderTone="faint" padY={2}>
-                      <Txt field="body" desk="cell" numberOfLines={1}>
-                        {names.variant(line.variantId)}
-                      </Txt>
-                      <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
-                        {line.countedQtyPcs === null
-                          ? t('m4.lineNotCounted')
-                          : `${t('m4.receivedPcs')} ${String(line.countedQtyPcs)} · ${t('m4.expectedPcs')} ${String(line.expectedQtyPcs)} · ${t('m4.damagedPcs')} ${String(line.damagedQtyPcs)}`}
-                      </Txt>
-                    </Stack>
-                  ))}
+                  {grn.lines.map((line) => {
+                    // QA DOS-220: the batch on the carton, so three batches of one item read as three
+                    // different lines before a post that has no undo.
+                    const batch = batchLabel(line, t, today())
+                    return (
+                      <Stack key={line.id} gap={1} border="bottom" borderTone="faint" padY={2}>
+                        <Txt field="body" desk="cell" numberOfLines={1}>
+                          {names.variant(line.variantId)}
+                        </Txt>
+                        <BatchWords label={batch} testID={`grn-line-batch-${line.id}`} />
+                        <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
+                          {line.countedQtyPcs === null
+                            ? t('m4.lineNotCounted')
+                            : `${t('m4.receivedPcs')} ${String(line.countedQtyPcs)} · ${t('m4.expectedPcs')} ${String(line.expectedQtyPcs)} · ${t('m4.damagedPcs')} ${String(line.damagedQtyPcs)}`}
+                        </Txt>
+                      </Stack>
+                    )
+                  })}
                 </Stack>
               </Panel>
 
@@ -716,5 +729,30 @@ export default function Inbound(): React.JSX.Element {
         testID="inbound-dialog"
       />
     </Screen>
+  )
+}
+
+/**
+ * QA DOS-220: the words printed on the carton — batch and expiry — under a line, in ochre with the
+ * days left when the batch is short-life. Nothing when the bill printed neither.
+ */
+function BatchWords({
+  label,
+  testID,
+}: {
+  label: BatchLabel | null
+  testID: string
+}): React.JSX.Element | null {
+  const colors = useColors()
+  if (label === null) return null
+  return (
+    <Txt
+      field="label"
+      desk="meta"
+      color={label.shortLife ? colors.status.ochre.fg : colors.text.secondary}
+      testID={testID}
+    >
+      {label.warning === null ? label.text : `${label.text} · ${label.warning}`}
+    </Txt>
   )
 }

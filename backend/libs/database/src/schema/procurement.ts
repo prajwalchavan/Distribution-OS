@@ -267,6 +267,13 @@ export const grnLines = pgTable(
       .notNull()
       .references(() => productVariants.id),
     lotId: text('lot_id').references(() => stockLots.id),
+    /**
+     * QA DOS-220: the batch and expiry printed on the carton, copied from the supplier line at `open`.
+     * `supplier_invoice_lines` is back-office RLS (it carries the rate), so without these the gate's own
+     * token could not tell three batches of one item apart. Identity only — never a rate or a quantity.
+     */
+    batchNo: text('batch_no'),
+    expiryDate: date('expiry_date', { mode: 'string' }),
     expectedQtyPcs: pieces('expected_qty_pcs').notNull(),
     countedQtyPcs: pieces('counted_qty_pcs'),
     damagedQtyPcs: pieces('damaged_qty_pcs').notNull().default(0),

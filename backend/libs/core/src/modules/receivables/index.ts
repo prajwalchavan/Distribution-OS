@@ -6,7 +6,9 @@ export {
   type InvoiceForPosting,
   type RecordReceiptInput,
   type RecordReceiptResult,
+  type SupplierInvoiceForPosting,
   type TripSettledPredicate,
+  supplierInvoiceJournalKey,
 } from './receivables.service.js'
 /** Moved here from `modules/orders/credit.ts` (docs/plans/00-coordination.md §3.1); orders re-exports it. */
 export {

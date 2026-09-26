@@ -39,6 +39,17 @@ export interface ValuationRow {
   nearExpiryPcs: number
   /** Earliest expiry among the lots that still have pieces here; null when nothing expires. */
   nearestExpiryDate: string | null
+  /**
+   * The same pieces lot by lot (QA DOS-222), so the caller can value each batch at what THAT batch
+   * cost. `onHandPcs` / `nearExpiryPcs` above are the sums of these.
+   */
+  lots: ValuationLot[]
+}
+
+export interface ValuationLot {
+  lotId: string
+  onHandPcs: number
+  nearExpiryPcs: number
 }
 
 export async function valuationByLocation(
@@ -55,7 +66,13 @@ export async function valuationByLocation(
               and l.expiry_date is not null
               and l.expiry_date <= ${filter.nearExpiryBefore ?? null}::date
              then b.on_hand else 0 end), 0)::bigint as near_expiry_pcs,
-           min(l.expiry_date)::text as nearest_expiry_date
+           min(l.expiry_date)::text as nearest_expiry_date,
+           jsonb_agg(jsonb_build_array(b.lot_id, b.on_hand,
+             case
+               when ${filter.nearExpiryBefore ?? null}::date is not null
+                and l.expiry_date is not null
+                and l.expiry_date <= ${filter.nearExpiryBefore ?? null}::date
+               then b.on_hand else 0 end) order by b.lot_id) as lots
       from stock_balances b
       join stock_lots l on l.id = b.lot_id and l.tenant_id = b.tenant_id
       join product_variants v on v.id = l.variant_id
@@ -73,5 +90,19 @@ export async function valuationByLocation(
     onHandPcs: Number(row.on_hand_pcs ?? 0),
     nearExpiryPcs: Number(row.near_expiry_pcs ?? 0),
     nearestExpiryDate: row.nearest_expiry_date ? text(row.nearest_expiry_date) : null,
+    lots: lotsOf(row.lots),
   }))
+}
+
+/** `[[lotId, onHand, nearExpiry], …]` from the jsonb aggregate; anything else reads as no lots. */
+function lotsOf(value: unknown): ValuationLot[] {
+  const raw: unknown = typeof value === 'string' ? JSON.parse(value) : value
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((entry: unknown) => {
+    if (!Array.isArray(entry)) return []
+    const [lotId, onHand, near] = entry as unknown[]
+    return [
+      { lotId: String(lotId), onHandPcs: Number(onHand ?? 0), nearExpiryPcs: Number(near ?? 0) },
+    ]
+  })
 }

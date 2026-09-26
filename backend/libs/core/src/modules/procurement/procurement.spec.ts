@@ -91,6 +91,9 @@ type GrnLine = {
   id: string
   variantId: string
   lotId: string | null
+  /** QA DOS-220: printed on the carton, so the gate can tell batches of one item apart. */
+  batchNo: string | null
+  expiryDate: string | null
   /** Null for a blind counter: the gate is never told the target (QA DOS-045). */
   expectedQtyPcs: number | null
 }
@@ -1157,6 +1160,196 @@ describeDb('procurement (DATABASE_URL)', () => {
     ).rows as { purchase_rate_paise: number }[]
     // cost comes from the taxable value over the pieces, never from the per-case rate
     expect(cost[0]?.purchase_rate_paise).toBe(800)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-220 — the gate can tell batches apart: batch and expiry on every line, still blind
+
+  it('DOS-220: grns.open copies batch and expiry onto each line; a WAREHOUSE token reads them, still without the expected figure or any rate', async () => {
+    const store: Actor = { tenantId, actorId: ownerId, role: 'warehouse' }
+    const supplierInvoiceId = await approvedInvoice('D220')
+    const id = uuidv7()
+    const opened = await call<{ item: Grn }>(app, owner, 'POST', '/procurement/grns', {
+      idempotencyKey: `dos220-grn-${run}`,
+      id,
+      supplierInvoiceId,
+      locationId: godown,
+    })
+    expect(opened.status).toBe(200)
+    const stored = (
+      await db.execute(
+        sql`select variant_id, batch_no, expiry_date::text as expiry_date from grn_lines where grn_id = ${id}`,
+      )
+    ).rows as { variant_id: string; batch_no: string | null; expiry_date: string | null }[]
+    expect(
+      Object.fromEntries(stored.map((r) => [r.variant_id, [r.batch_no, r.expiry_date]])),
+    ).toEqual({
+      [variantA]: ['B1', '2027-03-01'],
+      [variantB]: ['P7', '2027-01-15'],
+    })
+
+    const got = await call<{ item: Grn }>(app, store, 'GET', `/procurement/grns/${id}`)
+    expect(got.status).toBe(200)
+    expect(
+      Object.fromEntries(
+        got.body.item.lines.map((l) => [l.variantId, [l.batchNo, l.expiryDate, l.expectedQtyPcs]]),
+      ),
+    ).toEqual({
+      [variantA]: ['B1', '2027-03-01', null],
+      [variantB]: ['P7', '2027-01-15', null],
+    })
+    expect(JSON.stringify(got.body)).not.toMatch(MONEY_FIELD)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-221 — a received supplier bill writes its purchase journal: AP, Purchases, input tax
+
+  type BookLine = {
+    code: string
+    amount_paise: number
+    party_type: string | null
+    party_id: string | null
+  }
+  const purchaseBook = async (billId: string) => {
+    const entries = (
+      await db.execute(
+        sql`select id, ref_type, entry_date::text as entry_date, idempotency_key
+              from journal_entries where tenant_id = ${tenantId} and ref_id = ${billId}`,
+      )
+    ).rows as { id: string; ref_type: string; entry_date: string; idempotency_key: string }[]
+    const lines = (
+      await db.execute(
+        sql`select a.code, jl.amount_paise::bigint::int as amount_paise, jl.party_type, jl.party_id
+              from journal_lines jl
+              join accounts a on a.id = jl.account_id
+              join journal_entries je on je.id = jl.entry_id
+             where je.tenant_id = ${tenantId} and je.ref_id = ${billId}
+             order by a.code`,
+      )
+    ).rows as BookLine[]
+    return { entries, lines }
+  }
+
+  it('DOS-221: posting the GRN books the bill once — DR Purchases + input CGST/SGST + round off, CR the supplier in AP — and a re-post adds nothing', async () => {
+    // the first GRN of this file was posted by the owner above: invoice GK/<run>, total 3,452.00
+    const { entries, lines } = await purchaseBook(invoiceId)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      ref_type: 'supplier_invoice',
+      entry_date: '2026-09-01',
+      idempotency_key: `journal:supplier_invoice:${invoiceId}`,
+    })
+    expect(lines).toEqual([
+      { code: 'AP', amount_paise: -345200, party_type: 'supplier', party_id: supplierId },
+      { code: 'INPUT_CGST', amount_paise: 18490, party_type: null, party_id: null },
+      { code: 'INPUT_SGST', amount_paise: 18489, party_type: null, party_id: null },
+      // subtotal 3,168.00 − discount 86.40: what the goods cost before tax
+      { code: 'PURCHASES', amount_paise: 308160, party_type: null, party_id: null },
+      { code: 'ROUND_OFF', amount_paise: 61, party_type: null, party_id: null },
+    ])
+    expect(lines.reduce((s, l) => s + l.amount_paise, 0)).toBe(0)
+
+    // the earlier test re-posted twice (same key and a fresh key): still ONE entry
+    const fresh = await call<{ item: Grn }>(app, owner, 'POST', `/procurement/grns/${grnId}/post`, {
+      idempotencyKey: `post-dos221-${run}`,
+    })
+    expect(fresh.status).toBe(200)
+    expect((await purchaseBook(invoiceId)).entries).toHaveLength(1)
+  })
+
+  it('DOS-221: an inter-state bill with cess and freight posts input IGST and input cess, freight lands in Purchases, and the manager may post it', async () => {
+    const billId = uuidv7()
+    const billLine = uuidv7()
+    // 100 pcs x ₹10 = ₹1,000 taxable, IGST 28% ₹280, cess 12% ₹120, freight ₹50, round off −0.20
+    const created = await call<{ item: { status: string } }>(
+      app,
+      owner,
+      'POST',
+      '/procurement/supplier-invoices',
+      {
+        idempotencyKey: `inv-dos221-igst-${run}`,
+        id: billId,
+        supplierId,
+        source: 'manual',
+        invoiceNo: `GK/${run}/IGST`,
+        invoiceDate: '2026-09-03',
+        placeOfSupplyState: '27',
+        subtotalPaise: 100000,
+        igstPaise: 28000,
+        cessPaise: 12000,
+        freightPaise: 5000,
+        roundOffPaise: -20,
+        totalPaise: 144980,
+        lines: [
+          {
+            id: billLine,
+            lineNo: 1,
+            description: 'MOM Makhana 12g - Himalayan Salt',
+            variantId: variantA,
+            hsnCode: '2008',
+            batchNo: 'IG1',
+            expiryDate: '2027-06-30',
+            mrpPaise: 1000,
+            printedQty: 100,
+            printedUnit: 'pcs',
+            qtyPcs: 100,
+            ratePaise: 1000,
+            gstBps: 2800,
+            cessBps: 1200,
+            taxablePaise: 100000,
+            taxPaise: 40000,
+            lineTotalPaise: 140000,
+          },
+        ],
+      },
+    )
+    expect(created.status).toBe(200)
+    expect(created.body.item.status).toBe('approved')
+    const id = uuidv7()
+    const opened = await call<{ item: Grn }>(app, manager, 'POST', '/procurement/grns', {
+      idempotencyKey: `dos221-grn-${run}`,
+      id,
+      supplierInvoiceId: billId,
+      locationId: godown,
+    })
+    expect(opened.status).toBe(200)
+    // no journal before the goods are received: a bill booked but not counted owes nothing yet
+    expect((await purchaseBook(billId)).entries).toHaveLength(0)
+    const lineId = opened.body.item.lines[0]?.id ?? ''
+    expect(
+      (
+        await call(app, manager, 'POST', `/procurement/grns/${id}/count`, {
+          idempotencyKey: `dos221-count-${run}`,
+          lines: [{ grnLineId: lineId, countedQtyPcs: 100 }],
+        })
+      ).status,
+    ).toBe(200)
+    const posted = await call<{ item: Grn }>(app, manager, 'POST', `/procurement/grns/${id}/post`, {
+      idempotencyKey: `dos221-post-${run}`,
+    })
+    expect(posted.status).toBe(200)
+    expect(posted.body.item.status).toBe('posted')
+    const { entries, lines } = await purchaseBook(billId)
+    expect(entries).toHaveLength(1)
+    expect(lines).toEqual([
+      { code: 'AP', amount_paise: -144980, party_type: 'supplier', party_id: supplierId },
+      { code: 'INPUT_CESS', amount_paise: 12000, party_type: null, party_id: null },
+      { code: 'INPUT_IGST', amount_paise: 28000, party_type: null, party_id: null },
+      // ₹1,000 of goods + ₹50 freight inward
+      { code: 'PURCHASES', amount_paise: 105000, party_type: null, party_id: null },
+      { code: 'ROUND_OFF', amount_paise: -20, party_type: null, party_id: null },
+    ])
+  })
+
+  it('DOS-221: a salesperson or the gate cannot read the purchase entry the post wrote (the book stays back office)', async () => {
+    for (const actorRole of ['salesperson', 'warehouse'] as const) {
+      const seen = await withTenant(db, { tenantId, actorId: repId, actorRole }, (tx) =>
+        tx.execute(
+          sql`select count(*)::int as n from journal_entries where ref_type = 'supplier_invoice'`,
+        ),
+      )
+      expect((seen.rows[0] as { n: number }).n).toBe(0)
+    }
   })
 
   it('refuses requests without tenant context', async () => {

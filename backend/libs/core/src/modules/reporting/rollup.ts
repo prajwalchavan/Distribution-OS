@@ -405,58 +405,70 @@ async function rollupRetailerDay(
 }
 
 /**
- * The cost-bearing half of the day (BACK_OFFICE at the database): net sales ex-GST, cost of goods sold
- * at landed cost (else purchase rate), the margin identity the CHECK enforces, closing stock at cost,
- * and scheme spend split by who funds it — never collapsed.
+ * WHAT ONE PIECE COST (QA DOS-222). Two CTEs every cost-bearing rollup query shares:
+ *  - `lot_cost`: the cost the GRN wrote for THAT lot (`tenant_product_costs.lot_id`), latest first. A
+ *    piece of a batch bought at ₹153.96 is worth ₹153.96, whatever an older batch of the SKU cost.
+ *  - `cost`: the SKU's fallback, for a lot no GRN costed (opening stock, a cycle-count find, a lot
+ *    older than per-lot costing): the variant-level default when there is one, else the latest lot cost.
+ * A query joins both and takes `coalesce(lc.unit_cost, c.unit_cost, 0)`. Before this the rollup took
+ * ONE cost per SKU with the variant default winning, so a new purchase at a new price never reached
+ * the owner's stock value, COGS or margin (day 1b: +₹1,53,096.00 on the home for goods that cost
+ * ₹1,50,834.10). Landed cost when set, else the purchase rate — the one definition of "cost".
  */
-async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<void> {
-  const margin = await tx.execute(sql`
-    with cost as (
+function costCtes(tenantId: string): ReturnType<typeof sql> {
+  return sql`lot_cost as (
+      select distinct on (lot_id) lot_id,
+             case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
+        from tenant_product_costs
+       where tenant_id = ${tenantId} and lot_id is not null
+       order by lot_id, effective_from desc
+    ), cost as (
       select distinct on (variant_id) variant_id,
              case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
         from tenant_product_costs
        where tenant_id = ${tenantId}
        order by variant_id, (lot_id is null) desc, effective_from desc
-    )
+    )`
+}
+
+/**
+ * The cost-bearing half of the day (BACK_OFFICE at the database): net sales ex-GST, cost of goods sold
+ * at landed cost (else purchase rate) of the lot each line shipped from, the margin identity the CHECK
+ * enforces, closing stock at cost lot by lot, and scheme spend split by who funds it — never collapsed.
+ */
+async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<void> {
+  const margin = await tx.execute(sql`
+    with ${costCtes(tenantId)}
     select coalesce(sum(l.taxable_paise), 0)::bigint                                    as net_sales,
-           coalesce(sum((l.qty_pcs + l.free_qty_pcs) * coalesce(c.unit_cost, 0)), 0)::bigint as cogs
+           coalesce(sum((l.qty_pcs + l.free_qty_pcs) * coalesce(lc.unit_cost, c.unit_cost, 0)), 0)::bigint as cogs
       from invoice_lines l
       join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
+      left join lot_cost lc on lc.lot_id = l.lot_id
       left join cost c on c.variant_id = l.variant_id
      where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
        and i.state not in ('draft', 'cancelled')`)
   const byBrandResult = await tx.execute(sql`
-    with cost as (
-      select distinct on (variant_id) variant_id,
-             case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
-        from tenant_product_costs
-       where tenant_id = ${tenantId}
-       order by variant_id, (lot_id is null) desc, effective_from desc
-    )
+    with ${costCtes(tenantId)}
     select p.brand_id::text as brand_id,
-           coalesce(sum((l.qty_pcs + l.free_qty_pcs) * coalesce(c.unit_cost, 0)), 0)::bigint as cogs,
+           coalesce(sum((l.qty_pcs + l.free_qty_pcs) * coalesce(lc.unit_cost, c.unit_cost, 0)), 0)::bigint as cogs,
            coalesce(sum(l.taxable_paise), 0)::bigint as net_sales
       from invoice_lines l
       join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
       join product_variants v on v.id = l.variant_id
       join products p on p.id = v.product_id
+      left join lot_cost lc on lc.lot_id = l.lot_id
       left join cost c on c.variant_id = l.variant_id
      where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
        and i.state not in ('draft', 'cancelled') and p.brand_id is not null
      group by 1`)
   const stock = await tx.execute(sql`
-    with cost as (
-      select distinct on (variant_id) variant_id,
-             case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
-        from tenant_product_costs
-       where tenant_id = ${tenantId}
-       order by variant_id, (lot_id is null) desc, effective_from desc
-    )
-    select coalesce(sum(b.on_hand * coalesce(c.unit_cost, 0)), 0)::bigint as stock_value,
+    with ${costCtes(tenantId)}
+    select coalesce(sum(b.on_hand * coalesce(lc.unit_cost, c.unit_cost, 0)), 0)::bigint as stock_value,
            coalesce(sum(case when lo.expiry_date is not null and lo.expiry_date <= (${day}::date + 90)
-                             then b.on_hand * coalesce(c.unit_cost, 0) else 0 end), 0)::bigint as near_expiry_value
+                             then b.on_hand * coalesce(lc.unit_cost, c.unit_cost, 0) else 0 end), 0)::bigint as near_expiry_value
       from stock_balances b
       join stock_lots lo on lo.id = b.lot_id and lo.tenant_id = b.tenant_id
+      left join lot_cost lc on lc.lot_id = b.lot_id
       left join cost c on c.variant_id = lo.variant_id
      where b.tenant_id = ${tenantId} and b.on_hand > 0`)
   const schemes = await tx.execute(sql`

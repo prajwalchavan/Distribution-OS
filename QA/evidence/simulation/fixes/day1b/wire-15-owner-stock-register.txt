@@ -1,0 +1,3 @@
+GET /owner/reporting/registers/stock-value -> 200 totals {"onHandPcs":87833,"valuePaise":238016059,"nearExpiryValuePaise":18924208}
+Balaji Masala Masti Wafers 45 g · Balaji Godown onHand 1210 avgCost 1331 value 1610884
+Balaji Masala Masti Wafers 45 g · Balaji Damaged / expiry bin onHand 2 avgCost 1300 value 2600

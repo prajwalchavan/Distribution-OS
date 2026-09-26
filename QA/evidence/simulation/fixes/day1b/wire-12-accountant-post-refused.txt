@@ -1,0 +1,4 @@
+POST /manager/procurement/grns/01a0dd90-09a4-732c-ad28-34ec2f72747e/post as meena.joshi -> 403 {"message":"the accountant role may not call POST /procurement/grns/:id/post","error":"Forbidden","statusCode":403}
+POST /warehouse/procurement/grns/01a0dd90-09a4-732c-ad28-34ec2f72747e/post as dinesh.patil -> 403 {"message":"the warehouse role may not call POST /procurement/grns/:id/post","error":"Forbidden","statusCode":403}
+journal entries for bill FIX9498: 0
+grn status: reconciled

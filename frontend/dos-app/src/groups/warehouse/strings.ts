@@ -270,6 +270,13 @@ export const strings = {
   'w3.kindPrice': 'Price mismatch',
   'w3.kindExpiry': 'Near expiry',
   'w3.scanToJump': 'Scan a carton to jump to its line',
+  // QA DOS-220: what is printed on the carton, so three batches of one item are three different lines
+  'w3.matchCarton': 'Count only the cartons that show this batch.',
+  'batch.batch': 'Batch {batch}',
+  'batch.expires': 'Expires {date}',
+  'batch.daysLeft': '{count} days left',
+  'batch.daysLeft.one': '{count} day left',
+  'batch.expired': 'Expired',
 
   // ---------------------------------------------------------------- W4 fulfilment queue
   'w4.title': 'Pick',

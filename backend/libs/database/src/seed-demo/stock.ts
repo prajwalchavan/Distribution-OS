@@ -10,10 +10,13 @@
  * equal the ledger whatever the database held before.
  */
 import { paise, percentOf, splitGst } from '@dos/domain'
-import { asc, eq, sql } from 'drizzle-orm'
+import { and, asc, eq, like, sql } from 'drizzle-orm'
 import type { stockLedger } from '../schema/index.js'
 import {
+  accounts,
   grnLines,
+  journalEntries,
+  journalLines,
   grns,
   inboundDiscrepancies,
   locations,
@@ -227,6 +230,8 @@ export async function seedStock(
         variantId: v.id,
         hsnCode: v.hsnCode,
         batchNo: lot.batchNo,
+        mfgDate: isoDate(lot.mfgDate),
+        expiryDate: isoDate(lot.expiryDate),
         printedQty: printedCases,
         printedUnit: 'case',
         qtyPcs,
@@ -253,6 +258,9 @@ export async function seedStock(
         supplierInvoiceLineId: lineId,
         variantId: v.id,
         lotId: lot.id,
+        // QA DOS-220: what the carton says, as `grns.open` copies it from the supplier line.
+        batchNo: lot.batchNo,
+        expiryDate: isoDate(lot.expiryDate),
         expectedQtyPcs: qtyPcs,
         countedQtyPcs: received,
         damagedQtyPcs: damagedPcs,
@@ -340,6 +348,7 @@ export async function seedStock(
   await insertMany(db, grns, grnRows)
   await insertMany(db, grnLines, grnLineRows)
   await insertMany(db, inboundDiscrepancies, discrepancyRows)
+  await seedPurchaseJournals(db, tenantId, invoiceRows, people.manager.id)
   // The GRN counter ends past everything this seed booked, never backwards: `grn_no` carries no
   // unique index, so a counter left at 1 would hand the app's first posted GRN a number the
   // register already shows.
@@ -454,4 +463,91 @@ export async function seedStock(
     profileByVariantId: plan.profileByVariantId,
     plan,
   }
+}
+
+/**
+ * QA DOS-221: every received bill carries its purchase entry, exactly as `grns.post` writes it through
+ * `ReceivablesService.postSupplierInvoiceReceived` — DR Purchases (goods net of discount, plus freight),
+ * DR the input taxes, DR/CR round off, CR the supplier in AP — keyed `journal:supplier_invoice:<id>`,
+ * dated on the bill. A bill that already has its entry (an earlier seed, or migration 0067 on a
+ * database seeded before it) is skipped: the entry's id there is not this seed's, and inserting the
+ * lines against this seed's id would point them at a header that never landed.
+ */
+async function seedPurchaseJournals(
+  db: Db,
+  tenantId: string,
+  bills: readonly (typeof supplierInvoices.$inferInsert)[],
+  postedBy: string,
+): Promise<void> {
+  const received = bills.filter((b) => b.status === 'received')
+  if (received.length === 0) return
+  const accountRows = await db
+    .select({ id: accounts.id, code: accounts.code })
+    .from(accounts)
+    .where(eq(accounts.tenantId, tenantId))
+  const accountId = new Map(accountRows.map((a) => [a.code, a.id]))
+  const acc = (code: string): string => {
+    const id = accountId.get(code)
+    if (!id) throw new Error(`chart of accounts missing ${code}; run bootstrapTenant first`)
+    return id
+  }
+  const done = new Set(
+    (
+      await db
+        .select({ key: journalEntries.idempotencyKey })
+        .from(journalEntries)
+        .where(
+          and(
+            eq(journalEntries.tenantId, tenantId),
+            like(journalEntries.idempotencyKey, 'journal:supplier_invoice:%'),
+          ),
+        )
+    ).map((r) => r.key),
+  )
+  const n = (v: number | null | undefined): number => v ?? 0
+  const entryRows: (typeof journalEntries.$inferInsert)[] = []
+  const lineRows: (typeof journalLines.$inferInsert)[] = []
+  for (const bill of received) {
+    const id = bill.id
+    if (!id) continue
+    const key = `journal:supplier_invoice:${id}`
+    if (done.has(key)) continue
+    const taxes = n(bill.cgstPaise) + n(bill.sgstPaise) + n(bill.igstPaise) + n(bill.cessPaise)
+    const total = n(bill.totalPaise)
+    const entryId = demoId('journal-entry', `supplier-invoice:${id}`)
+    entryRows.push({
+      id: entryId,
+      tenantId,
+      entryDate: bill.invoiceDate,
+      refType: 'supplier_invoice',
+      refId: id,
+      narration: `purchase ${bill.invoiceNo}`,
+      idempotencyKey: key,
+      postedBy,
+      ...(bill.createdAt instanceof Date ? { postedAt: bill.createdAt } : {}),
+    })
+    const lines: readonly [code: string, amountPaise: number, party: boolean][] = [
+      ['PURCHASES', total - taxes - n(bill.roundOffPaise), false],
+      ['INPUT_CGST', n(bill.cgstPaise), false],
+      ['INPUT_SGST', n(bill.sgstPaise), false],
+      ['INPUT_IGST', n(bill.igstPaise), false],
+      ['INPUT_CESS', n(bill.cessPaise), false],
+      ['ROUND_OFF', n(bill.roundOffPaise), false],
+      ['AP', 0 - total, true],
+    ]
+    for (const [code, amountPaise, party] of lines) {
+      if (amountPaise === 0) continue
+      lineRows.push({
+        id: demoId('journal-line', `supplier-invoice:${id}:${code}`),
+        tenantId,
+        entryId,
+        accountId: acc(code),
+        amountPaise,
+        ...(party ? { partyType: 'supplier', partyId: bill.supplierId } : {}),
+        ...(code === 'PURCHASES' || party ? { memo: bill.invoiceNo } : {}),
+      })
+    }
+  }
+  await insertMany(db, journalEntries, entryRows)
+  await insertMany(db, journalLines, lineRows)
 }
