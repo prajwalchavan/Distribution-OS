@@ -401,6 +401,11 @@ describe('both shells clamp themselves to the viewport (UX-00 §8.2)', () => {
 
   it('the desk shell still does', () => {
     expect(shellBody('DeskShell')).toContain("height: '100dvh'")
+    // The ROW, not only the rail: `height: '100%'` on the row resolved to auto under the one app's
+    // nested providers and the desk stopped scrolling (Money owed, 685 shops, 2026-09-26).
+    expect(shellBody('DeskShell')).toMatch(
+      /display: 'flex',\s*height: '100dvh',\s*minHeight: '100dvh'/,
+    )
   })
 })
 

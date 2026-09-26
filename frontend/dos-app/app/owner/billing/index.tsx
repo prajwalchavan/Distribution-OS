@@ -85,11 +85,14 @@ export default function Billing(): React.JSX.Element {
   const api = useApi()
   const names = useNames()
 
-  const params = useLocalSearchParams<{ q?: string }>()
+  /** `bill` arrives from the Money owed panel's "Open bill": that bill's panel opens on arrival. */
+  const params = useLocalSearchParams<{ q?: string; bill?: string }>()
   const [range, setRange] = useState<RangeId>('d30')
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
   const [view, setView] = useState<'bills' | 'gst'>('bills')
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(
+    typeof params.bill === 'string' && params.bill !== '' ? params.bill : null,
+  )
   const [dialog, setDialog] = useState<'cancel' | 'eway' | null>(null)
   const [reason, setReason] = useState('')
   const [ewayNo, setEwayNo] = useState('')

@@ -359,6 +359,7 @@ export const strings = {
   'o10.rebuild': 'Rebuild ageing',
   'o10.rebuilt': 'Ageing rebuilt to {date} — {count} shops',
   'o10.writeOff': 'Write off',
+  'o10.openBill': 'Open bill',
   'o10.writeOffAmount': 'Amount to write off',
   'o10.writeOffReason': 'Reason',
   'o10.cashDiscounts': 'Cash-discount windows',

@@ -211,7 +211,21 @@ function DeskShell({
   return (
     <div
       data-testid={testID}
-      style={{ display: 'flex', height: '100%', minHeight: '100dvh', background: colors.bg.ground }}
+      /*
+       * `height: '100dvh'`, not `'100%'` — the same lesson the phone shell below records. In the one
+       * app this row sits inside two `.dos-root` providers whose height is `min-height: 100%` (auto),
+       * so a percentage height resolved to auto and the row grew to its content: the owner's Money
+       * owed page came out 4 999 px tall in a 768 px window, `<main flex:1 minHeight:0>` had nothing
+       * to shrink into, `<Screen>`'s scroller never engaged, and body's hidden overflow clipped the
+       * 685 shops past the first screenful with no way to reach them (founder, 2026-09-26, on the
+       * real data). The viewport unit is the one length that does not depend on the ancestors.
+       */
+      style={{
+        display: 'flex',
+        height: '100dvh',
+        minHeight: '100dvh',
+        background: colors.bg.ground,
+      }}
     >
       <nav
         className="dos-no-print"

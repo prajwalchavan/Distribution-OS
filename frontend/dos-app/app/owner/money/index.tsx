@@ -16,6 +16,7 @@ import {
   ListRow,
   Money,
   Register,
+  Row,
   RupeeInput,
   Sheet,
   Screen,
@@ -27,7 +28,6 @@ import {
   Txt,
   formatINR,
   paise,
-  useColors,
   useGo,
   useStrings,
   type RegisterColumn,
@@ -67,7 +67,6 @@ export default function OutstandingListItem(): React.JSX.Element {
   const go = useGo()
   const t = useStrings()
   const word = useWord()
-  const colors = useColors()
   const api = useApi()
   const names = useNames()
 
@@ -375,19 +374,34 @@ export default function OutstandingListItem(): React.JSX.Element {
                   ))}
                 </Stack>
               </Panel>
-              <Button
-                label={t('o10.writeOff')}
-                variant="destructive"
-                disabled={billId === null}
-                disabledReason={t('o6.bills')}
-                onPress={() => {
-                  setDialog('writeOff')
-                }}
-                testID="money-write-off"
-              />
-              <Txt field="label" desk="meta" color={colors.text.secondary}>
-                {t('o6.avgDaysToPay')}
-              </Txt>
+              {/*
+                The owner's question at this panel is "what was in that bill?" (founder, 2026-09-26,
+                on the real data): a selected bill opens in the Bills register, whose panel prints its
+                lines, so the trail dues → shop → bill → items is two taps, not a hunt. Write-off keeps
+                its place beside it because it settles the same selected bill.
+              */}
+              <Row gap={2} wrap>
+                <Button
+                  label={t('o10.openBill')}
+                  variant="primary"
+                  disabled={billId === null}
+                  disabledReason={t('o6.bills')}
+                  onPress={() => {
+                    go.push(`/billing?bill=${billId ?? ''}`)
+                  }}
+                  testID="money-open-bill"
+                />
+                <Button
+                  label={t('o10.writeOff')}
+                  variant="destructive"
+                  disabled={billId === null}
+                  disabledReason={t('o6.bills')}
+                  onPress={() => {
+                    setDialog('writeOff')
+                  }}
+                  testID="money-write-off"
+                />
+              </Row>
             </Stack>
           )}
         </Async>
