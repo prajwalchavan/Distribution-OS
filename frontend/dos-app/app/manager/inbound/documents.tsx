@@ -60,7 +60,11 @@ import {
 import { keepIds } from '../../../src/groups/manager/lib/money-intents'
 import { absoluteUrl } from '../../../src/config'
 import { longDate, rangeOf } from '../../../src/groups/manager/lib/dates'
-import { mayStartReview } from '../../../src/groups/manager/lib/review-desk'
+import {
+  approveOffer,
+  mayReject,
+  mayStartReview,
+} from '../../../src/groups/manager/lib/review-desk'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
 const DOC_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -287,6 +291,12 @@ export default function Documents(): React.JSX.Element {
   const failed = (full?.checks ?? latest?.checks ?? []).filter((check) => !check.passed)
   const header = full?.result?.header
   const lines = full?.result?.lines ?? []
+  const offer = approveOffer({
+    status: doc?.status ?? 'uploaded',
+    kind: doc?.kind ?? 'supplier_invoice',
+    reviewing: sessionId !== null,
+    lineCount: lines.length,
+  })
 
   /*
    * One id per approved line, made the first time this document is approved and kept while its panel is
@@ -328,7 +338,11 @@ export default function Documents(): React.JSX.Element {
         .mutateAsync({ id: selected, reason: rejectReason, note: note.trim() })
         .then(done, unknown)
     if (acting === 'submit' && sessionId !== null)
-      void submitReview.mutateAsync(sessionId).then(done, unknown)
+      void submitReview.mutateAsync(sessionId).then(() => {
+        // The review is over once it is submitted: its buttons go, and Book it is what is left.
+        setSessionId(null)
+        done()
+      }, unknown)
   }
 
   return (
@@ -578,26 +592,33 @@ export default function Documents(): React.JSX.Element {
                       testID="docint-rematch"
                     />
                   )}
-                  {mayApprove ? (
+                  {/*
+                    DOS-215: offered only where `documents.approve` can take it (reviewed, with
+                    lines); before that the button says the next step instead of letting the
+                    manager confirm a dialog into the server's 409.
+                  */}
+                  {mayApprove && offer.kind !== 'hidden' ? (
                     <Button
                       label={t('m3.approve')}
                       variant="primary"
-                      disabled={lines.length === 0}
-                      disabledReason={t('m3.noLines')}
+                      disabled={offer.kind === 'disabled'}
+                      disabledReason={offer.kind === 'disabled' ? t(offer.reason) : undefined}
                       onPress={() => {
                         setActing('approve')
                       }}
                       testID="docint-approve"
                     />
                   ) : null}
-                  <Button
-                    label={t('m3.reject')}
-                    variant="destructive"
-                    onPress={() => {
-                      setActing('reject')
-                    }}
-                    testID="docint-reject"
-                  />
+                  {mayReject(doc.status) ? (
+                    <Button
+                      label={t('m3.reject')}
+                      variant="destructive"
+                      onPress={() => {
+                        setActing('reject')
+                      }}
+                      testID="docint-reject"
+                    />
+                  ) : null}
                 </Stack>
               ) : (
                 <Txt field="label" desk="meta" color={colors.text.secondary}>
