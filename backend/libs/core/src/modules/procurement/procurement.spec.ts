@@ -1030,6 +1030,135 @@ describeDb('procurement (DATABASE_URL)', () => {
     expect(got.body.item.lineCount).toBe(2)
   })
 
+  it('DOS-213/217: a bill typed at the desk keeps its per-case rate as printed; once the gate counts every line the receipt is reconciled and the desk posts it', async () => {
+    const billId = uuidv7()
+    const billLine = uuidv7()
+    // 3 cases of 90 at ₹720.00 a case = 270 pc, taxable ₹2,160.00, GST 12 % ₹259.20, round-off 80.
+    const typed = {
+      idempotencyKey: `typed-${run}`,
+      id: billId,
+      supplierId,
+      source: 'manual',
+      invoiceNo: `TYPED/${run}`,
+      invoiceDate: '2026-09-21',
+      placeOfSupplyState: '27',
+      subtotalPaise: 216000,
+      cgstPaise: 12960,
+      sgstPaise: 12960,
+      roundOffPaise: 80,
+      totalPaise: 242000,
+      lines: [
+        {
+          id: billLine,
+          lineNo: 1,
+          description: 'Makhana 12 g Himalayan Salt',
+          variantId: variantA,
+          hsnCode: '2008',
+          batchNo: `T${run}`,
+          expiryDate: '2026-10-15',
+          mrpPaise: 1000,
+          printedQty: 3,
+          printedUnit: 'cs',
+          qtyPcs: 270,
+          ratePaise: 72000,
+          rateBasis: 'case',
+          basisQty: 90,
+          gstBps: 1200,
+          taxablePaise: 216000,
+          taxPaise: 25920,
+          lineTotalPaise: 241920,
+        },
+      ],
+    }
+    // a per-case rate with no case size is refused, never read as per piece
+    const noSize = await call<{ message: string }>(
+      app,
+      manager,
+      'POST',
+      '/procurement/supplier-invoices',
+      {
+        ...typed,
+        idempotencyKey: `typed-nosize-${run}`,
+        id: uuidv7(),
+        lines: [{ ...typed.lines[0], id: uuidv7(), basisQty: undefined }],
+      },
+    )
+    expect(noSize.status).toBe(400)
+    expect(noSize.body.message).toMatch(/case size/)
+
+    const made = await call<{ item: { status: string; source: string } }>(
+      app,
+      manager,
+      'POST',
+      '/procurement/supplier-invoices',
+      typed,
+    )
+    expect(made.status).toBe(200)
+    expect(made.body.item).toMatchObject({ status: 'approved', source: 'manual' })
+    const stored = (
+      await db.execute(
+        sql`select rate_paise::int as rate_paise, rate_basis, basis_qty from supplier_invoice_lines where id = ${billLine}`,
+      )
+    ).rows as { rate_paise: number; rate_basis: string; basis_qty: number }[]
+    expect(stored[0]).toEqual({ rate_paise: 72000, rate_basis: 'case', basis_qty: 90 })
+
+    const receiptId = uuidv7()
+    const opened = await call<{ item: Grn }>(app, manager, 'POST', '/procurement/grns', {
+      idempotencyKey: `typed-grn-${run}`,
+      id: receiptId,
+      supplierInvoiceId: billId,
+      locationId: godown,
+    })
+    expect(opened.status).toBe(200)
+    // still counting: the desk may not post it, and the server says why
+    const early = await call<{ message: string }>(
+      app,
+      manager,
+      'POST',
+      `/procurement/grns/${receiptId}/post`,
+      { idempotencyKey: `typed-post-early-${run}` },
+    )
+    expect(early.status).toBe(400)
+    expect(early.body.message).toMatch(/counting; count every line/)
+
+    const counted = await call<{ item: Grn }>(
+      app,
+      manager,
+      'POST',
+      `/procurement/grns/${receiptId}/count`,
+      {
+        idempotencyKey: `typed-count-${run}`,
+        lines: [{ grnLineId: opened.body.item.lines[0]?.id ?? '', countedQtyPcs: 270 }],
+      },
+    )
+    // the state the manager's Post button now reads (DOS-217): a complete count is `reconciled`
+    expect(counted.body.item.status).toBe('reconciled')
+
+    const posted = await call<{ item: Grn }>(
+      app,
+      manager,
+      'POST',
+      `/procurement/grns/${receiptId}/post`,
+      { idempotencyKey: `typed-post-${run}` },
+    )
+    expect(posted.status).toBe(200)
+    expect(posted.body.item.status).toBe('posted')
+    const lot = posted.body.item.lines[0]?.lotId ?? ''
+    const onHand = (
+      await db.execute(
+        sql`select on_hand::int as on_hand from stock_balances where lot_id = ${lot} and location_id = ${godown}`,
+      )
+    ).rows as { on_hand: number }[]
+    expect(onHand[0]?.on_hand).toBe(270)
+    const cost = (
+      await db.execute(
+        sql`select purchase_rate_paise::int as purchase_rate_paise from tenant_product_costs where lot_id = ${lot}`,
+      )
+    ).rows as { purchase_rate_paise: number }[]
+    // cost comes from the taxable value over the pieces, never from the per-case rate
+    expect(cost[0]?.purchase_rate_paise).toBe(800)
+  })
+
   it('refuses requests without tenant context', async () => {
     expect((await call(app, null, 'GET', '/procurement/grns', {})).status).toBe(401)
   })

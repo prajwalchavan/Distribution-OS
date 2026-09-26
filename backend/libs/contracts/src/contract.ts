@@ -4,6 +4,8 @@ import {
   CatalogSearchOutput,
   CostsListInput,
   CostsListOutput,
+  HsnRatesInput,
+  HsnRatesOutput,
   ManufacturersListOutput,
   ProposeProductInput,
   ProposeProductOutput,
@@ -83,6 +85,15 @@ export const contract = {
       })
       .input(ProposeProductInput)
       .output(ProposeProductOutput),
+    hsnRates: oc
+      .route({
+        method: 'GET',
+        path: '/catalog/hsn-rates',
+        summary:
+          'The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN)',
+      })
+      .input(HsnRatesInput)
+      .output(HsnRatesOutput),
   },
   tenantCatalog: {
     list: oc

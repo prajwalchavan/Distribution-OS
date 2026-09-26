@@ -63,6 +63,13 @@ export const SupplierInvoiceLineInput = z.object({
   qtyPcs: PiecesSchema,
   freeQtyPcs: PiecesSchema.default(0),
   ratePaise: PaiseSchema.nonnegative(),
+  /**
+   * The rate AS PRINTED (docs/17 A4): per piece (the default) or per case of `basisQty` pieces. A desk
+   * typing a bill whose rate is per case keeps it per case (QA DOS-213); cost is still taken from
+   * `taxablePaise` over the pieces at post, never from this rate.
+   */
+  rateBasis: z.enum(['piece', 'case']).optional(),
+  basisQty: z.number().int().positive().max(10_000).optional(),
   discountBps: BpsSchema.default(0),
   discountPaise: PaiseSchema.nonnegative().default(0),
   gstBps: BpsSchema.default(0),

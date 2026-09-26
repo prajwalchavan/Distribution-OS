@@ -49,6 +49,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -2544,6 +2545,93 @@ request.json
   "code": "CONFLICT",
   "status": 409,
   "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/catalog/hsn-rates`
+
+The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) · contract `catalog.hsnRates`
+
+**Roles:** owner, manager, accountant, salesperson, warehouse, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `codes` | string | yes |
+| `on` | date | no |
+
+**Example request**
+
+```bash
+curl "http://localhost:3002/catalog/hsn-rates?codes=22021010&on=2026-09-04" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "on": "2026-09-04",
+  "items": [
+    {
+      "hsnCode": "22021010",
+      "matchedHsnCode": "22021010",
+      "gstBps": 500,
+      "cessBps": 500,
+      "effectiveFrom": "text"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "manager-service does not serve the owner role",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
 }
 ```
 
@@ -8650,6 +8738,8 @@ request.json
       "qtyPcs": 24,
       "freeQtyPcs": 0,
       "ratePaise": 4000,
+      "rateBasis": "piece",
+      "basisQty": 24,
       "discountBps": 0,
       "discountPaise": 0,
       "gstBps": 0,
@@ -48134,6 +48224,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `catalog.search` | – | ✓ | ✓ | – | – | – | – |
 | `catalog.manufacturers` | – | ✓ | ✓ | – | – | – | – |
 | `catalog.propose` | – | ✓ | ✓ | – | – | – | – |
+| `catalog.hsnRates` | – | ✓ | ✓ | – | – | – | – |
 | `tenantCatalog.list` | – | ✓ | ✓ | – | – | – | – |
 | `tenantCatalog.upsertListing` | – | ✓ | – | – | – | – | – |
 | `tenantCatalog.suppliers` | – | ✓ | ✓ | – | – | – | – |
