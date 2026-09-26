@@ -953,3 +953,13 @@ One lane (`worktree-wf_be1f8178-550-18`) merged `--no-ff` into main, no conflict
 | 2026-09-26 | DOS-233 | A van-sales trip can be planned, loaded and sold from | f481be41 |
 | 2026-09-26 | DOS-234 | Van check-in lists every live lot on the vehicle | f481be41 |
 | 2026-09-26 | DOS-235 | The owner's approval of a red trip settlement settles the trip | f481be41 |
+
+### 2026-09-26 — day4 fixes merged to main (6abdba6a)
+
+One lane (`worktree-wf_be1f8178-550-22`) merged `--no-ff` into main, no conflicts, no migrations. Gates on main after the merge: backend lint, typecheck, build, docs:readme:check green; backend tests 2 989 passed / 3 skipped on a seeded copy of the template (`dos_test_integ_day4`, dropped after; an unseeded copy fails the same 4 seed-dependent specs in examples.spec / extra-roles-wire.spec, as before); frontend lint, typecheck green, tests 1 271 passed; `expo export --platform web` bundled (1 307 modules); `pnpm format` changed nothing.
+
+| Date | Id | Fix | Merge commit |
+|---|---|---|---|
+| 2026-09-26 | DOS-237 | A bill that went out and was never recorded comes back onto the register, the board and the dock (check-in fails every unrecorded bill; desk `deliveries.cameBack` for older trips) | 6abdba6a |
+| 2026-09-26 | DOS-239 | The van-sale stepper steps by the item's sell-side case, never past the pieces free on the van | 6abdba6a |
+| 2026-09-26 | DOS-240 | A van sale paid in full at the door in cash or UPI is not credit; a credit refusal says why and offers the cash switch | 6abdba6a |
