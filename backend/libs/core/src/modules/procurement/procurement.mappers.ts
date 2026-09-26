@@ -127,6 +127,8 @@ export function toGrnLine(row: GrnLineRow): GrnLine {
     supplierInvoiceLineId: row.supplierInvoiceLineId,
     variantId: row.variantId,
     lotId: row.lotId,
+    batchNo: row.batchNo,
+    expiryDate: row.expiryDate,
     expectedQtyPcs: row.expectedQtyPcs,
     countedQtyPcs: row.countedQtyPcs,
     damagedQtyPcs: row.damagedQtyPcs,

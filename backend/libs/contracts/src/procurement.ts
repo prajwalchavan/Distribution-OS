@@ -246,6 +246,14 @@ export const GrnLineSchema = z.object({
   variantId: IdSchema,
   lotId: IdSchema.nullable(),
   /**
+   * QA DOS-220: the batch and expiry printed on the carton (from the supplier line, copied at open),
+   * so a receipt carrying three batches of one item names three different lines at the gate. Every
+   * role that reads a GRN sees them — they are what the gate hand reads off the box, never a rate and
+   * never the billed quantity. Null when the bill printed none (migration 0067 fills older receipts).
+   */
+  batchNo: z.string().nullable(),
+  expiryDate: z.string().nullable(),
+  /**
    * Billed + free pieces off the supplier bill. NULL for a blind role (the godown): a gate hand who can
    * read the target is not counting (QA DOS-045), and short/excess findings are withheld with it.
    */

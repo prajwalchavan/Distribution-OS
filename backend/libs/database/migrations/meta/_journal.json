@@ -449,6 +449,20 @@
       "when": 1789988447261,
       "tag": "0065_stock_ledger_time_order_expand",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1790422383950,
+      "tag": "0066_grn_lines_batch_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1790422383951,
+      "tag": "0067_grn_batch_and_purchase_journal_guarantees",
+      "breakpoints": true
     }
   ]
 }

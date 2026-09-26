@@ -46,6 +46,7 @@ import {
   writeAudit,
 } from '../../platform/index.js'
 import { InventoryService, type LedgerEntryInput } from '../inventory/index.js'
+import { ReceivablesService } from '../receivables/index.js'
 import {
   toDiscrepancy,
   toGrn,
@@ -122,6 +123,7 @@ export class GrnService {
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly inventory: InventoryService,
+    private readonly receivables: ReceivablesService,
   ) {}
 
   /** Expected pieces per line = billed + free. One live GRN per invoice. */
@@ -221,6 +223,9 @@ export class GrnService {
                 grnId: grn.id,
                 supplierInvoiceLineId: l.id,
                 variantId: l.variantId,
+                // QA DOS-220: what is printed on the carton, so the gate can tell batches apart.
+                batchNo: l.batchNo,
+                expiryDate: l.expiryDate,
                 expectedQtyPcs: l.qtyPcs + l.freeQtyPcs,
               }
             }),
@@ -314,7 +319,8 @@ export class GrnService {
   /**
    * Commit (docs/05 step 11), all in the caller's transaction: lots from the invoice lines (batch/MRP/expiry),
    * `grn` ledger rows (good pieces to the GRN location, damaged to the damaged bin), per-lot purchase cost,
-   * GRN number, GRN `posted`, invoice `received`. Re-posting a posted GRN returns it unchanged.
+   * GRN number, GRN `posted`, invoice `received`, and the purchase journal (DR Purchases + input tax,
+   * CR the supplier in AP — QA DOS-221). Re-posting a posted GRN returns it unchanged.
    */
   async post(input: PostIn): Promise<PostOut> {
     requireRole(MANAGEMENT)
@@ -335,7 +341,18 @@ export class GrnService {
           .where(eq(supplierInvoiceLines.supplierInvoiceId, grn.supplierInvoiceId))
         const invoiceLineById = new Map(invoiceLines.map((l) => [l.id, l]))
         const [invoice] = await tx
-          .select({ supplierId: supplierInvoices.supplierId })
+          .select({
+            id: supplierInvoices.id,
+            supplierId: supplierInvoices.supplierId,
+            invoiceNo: supplierInvoices.invoiceNo,
+            invoiceDate: supplierInvoices.invoiceDate,
+            cgstPaise: supplierInvoices.cgstPaise,
+            sgstPaise: supplierInvoices.sgstPaise,
+            igstPaise: supplierInvoices.igstPaise,
+            cessPaise: supplierInvoices.cessPaise,
+            roundOffPaise: supplierInvoices.roundOffPaise,
+            totalPaise: supplierInvoices.totalPaise,
+          })
           .from(supplierInvoices)
           .where(eq(supplierInvoices.id, grn.supplierInvoiceId))
         if (!invoice)
@@ -422,6 +439,10 @@ export class GrnService {
           .update(supplierInvoices)
           .set({ status: 'received', updatedAt: now })
           .where(eq(supplierInvoices.id, grn.supplierInvoiceId))
+        // QA DOS-221: the supplier's due and the input tax land with the stock, in this transaction.
+        // The WHOLE bill is owed whatever the gate counted: a short or a damaged case is claimed back
+        // from the supplier (claims settle against AP), never netted off the purchase here.
+        await this.receivables.postSupplierInvoiceReceived(tx, invoice)
         return { item: await this.view(tx, posted ?? grn) }
       }),
     )

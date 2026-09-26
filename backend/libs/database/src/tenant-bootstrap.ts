@@ -48,6 +48,8 @@ export const CHART_OF_ACCOUNTS = [
   { code: 'INPUT_CGST', name: 'Input CGST', kind: 'asset' },
   { code: 'INPUT_SGST', name: 'Input SGST', kind: 'asset' },
   { code: 'INPUT_IGST', name: 'Input IGST', kind: 'asset' },
+  /** QA DOS-221: compensation cess on a supplier's bill is input credit, like the GST beside it. */
+  { code: 'INPUT_CESS', name: 'Input cess', kind: 'asset' },
   { code: 'PURCHASES', name: 'Purchases', kind: 'expense' },
   { code: 'STOCK', name: 'Stock in hand', kind: 'asset' },
   { code: 'DAMAGES', name: 'Damages and expiry write-off', kind: 'expense' },

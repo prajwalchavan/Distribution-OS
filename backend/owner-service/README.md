@@ -9702,6 +9702,8 @@ request.json
         "supplierInvoiceLineId": "01a06dc1-037b-7ca0-8959-cb1a5353806c",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
         "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
         "expectedQtyPcs": 24,
         "countedQtyPcs": 24,
         "damagedQtyPcs": 24
@@ -9849,6 +9851,8 @@ request.json
         "supplierInvoiceLineId": "01a06dc1-037b-7ca0-8959-cb1a5353806c",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
         "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
         "expectedQtyPcs": 24,
         "countedQtyPcs": 24,
         "damagedQtyPcs": 24
@@ -9998,6 +10002,8 @@ request.json
         "supplierInvoiceLineId": "01a06dc1-037b-7ca0-8959-cb1a5353806c",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
         "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
         "expectedQtyPcs": 24,
         "countedQtyPcs": 24,
         "damagedQtyPcs": 24
@@ -10235,6 +10241,8 @@ curl "http://localhost:3001/procurement/grns/01a06d17-0be7-794a-8dab-9b14cf78673
         "supplierInvoiceLineId": "01a06dc1-037b-7ca0-8959-cb1a5353806c",
         "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
         "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+        "batchNo": "SO-0042",
+        "expiryDate": "2026-09-04",
         "expectedQtyPcs": 24,
         "countedQtyPcs": 24,
         "damagedQtyPcs": 24

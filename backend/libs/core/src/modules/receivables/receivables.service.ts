@@ -229,6 +229,28 @@ export interface InvoiceForPosting {
   cashDiscountUntil?: string | null | undefined
 }
 
+/**
+ * What procurement hands over when a supplier's bill is received (QA DOS-221): the booked header, in
+ * paise. `totalPaise` is what the distributor owes the supplier; everything that is not tax or
+ * round-off in it (goods net of discount, plus freight) is the purchase.
+ */
+export interface SupplierInvoiceForPosting {
+  id: string
+  supplierId: string
+  invoiceNo: string
+  invoiceDate: string
+  cgstPaise: number
+  sgstPaise: number
+  igstPaise: number
+  cessPaise: number
+  roundOffPaise: number
+  totalPaise: number
+}
+
+/** The journal key a received supplier bill posts under — one entry per bill, ever. */
+export const supplierInvoiceJournalKey = (supplierInvoiceId: string): string =>
+  `journal:supplier_invoice:${supplierInvoiceId}`
+
 /** What billing hands over when it issues a credit note. */
 export interface CreditNoteForPosting {
   id: string
@@ -504,6 +526,50 @@ export class ReceivablesService {
     }
     await this.refreshOutstanding(tx, invoice.retailerId)
     return posted
+  }
+
+  /**
+   * The purchase side of the book (QA DOS-221, docs/22 §5 "commit once: … AP journal"): DR Purchases,
+   * DR the input-tax accounts, DR/CR Round off, CR Sundry Creditors (AP) under the supplier as party.
+   * Called by procurement inside the GRN post's own transaction, so stock, cost and the supplier's due
+   * land together or not at all. Keyed per bill: a replayed or second post writes nothing twice.
+   *
+   * Purchases is DERIVED as `total − taxes − round-off` rather than summed from the header's subtotal,
+   * discount and freight, so the entry balances by construction whatever the bill printed; with a
+   * consistent header it equals `subtotal − discount + freight` (freight inward is part of what the
+   * goods cost). Dated on the supplier's bill, as GSTR-2 and the Tally purchase voucher date it.
+   */
+  async postSupplierInvoiceReceived(
+    tx: Db,
+    bill: SupplierInvoiceForPosting,
+  ): Promise<{ entryId: string }> {
+    const taxes = bill.cgstPaise + bill.sgstPaise + bill.igstPaise + bill.cessPaise
+    return postJournalEntry(tx, {
+      entryDate: bill.invoiceDate,
+      refType: 'supplier_invoice',
+      refId: bill.id,
+      narration: `purchase ${bill.invoiceNo}`,
+      idempotencyKey: supplierInvoiceJournalKey(bill.id),
+      lines: [
+        {
+          accountCode: 'PURCHASES',
+          amountPaise: bill.totalPaise - taxes - bill.roundOffPaise,
+          memo: bill.invoiceNo,
+        },
+        { accountCode: 'INPUT_CGST', amountPaise: bill.cgstPaise },
+        { accountCode: 'INPUT_SGST', amountPaise: bill.sgstPaise },
+        { accountCode: 'INPUT_IGST', amountPaise: bill.igstPaise },
+        { accountCode: 'INPUT_CESS', amountPaise: bill.cessPaise },
+        { accountCode: 'ROUND_OFF', amountPaise: bill.roundOffPaise },
+        {
+          accountCode: 'AP',
+          amountPaise: -bill.totalPaise,
+          partyType: 'supplier',
+          partyId: bill.supplierId,
+          memo: bill.invoiceNo,
+        },
+      ],
+    })
   }
 
   /**
