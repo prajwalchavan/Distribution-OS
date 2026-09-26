@@ -932,3 +932,13 @@ Three lanes merged `--no-ff` into main in order, no conflicts. Gates on main aft
 | 2026-09-26 | DOS-210 | The elected role is remembered per person, not per device | a9fd3181 |
 | 2026-09-26 | DOS-211 | A shop just added shows at once on the rep's phone | a9fd3181 |
 | 2026-09-26 | DOS-215 | Book it is offered only on a reviewed document; otherwise the screen says why | a9fd3181 |
+
+### Day-1b stock-in fixes merged (2026-09-26, workflow `wf_be1f8178-550`)
+
+One lane (`worktree-wf_be1f8178-550-9`) merged `--no-ff` into main, no conflicts; migrations now end at 0067. Gates on main after the merge: backend lint, typecheck, build, docs:readme:check green; backend tests 2 968 passed / 3 skipped on a seeded copy of the template (`dos_test_integ_day1b`, dropped after); frontend lint, typecheck green, tests 1 249 passed; `expo export --platform web` bundled; `pnpm format` changed nothing.
+
+| Date | Id | Fix | Merge commit |
+|---|---|---|---|
+| 2026-09-26 | DOS-220 | Batch and expiry on every goods-receipt line, named on the gate pad, the review, and the desk's post and bill panels | 10b6f8a9 |
+| 2026-09-26 | DOS-221 | A received supplier bill posts its purchase journal | 10b6f8a9 |
+| 2026-09-26 | DOS-222 | Stock value and COGS use each lot's own GRN cost | 10b6f8a9 |

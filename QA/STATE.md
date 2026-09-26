@@ -11,6 +11,7 @@ Founder (13:30, after switching to Fable): "once everything is done, continue wi
 ## RESUME HERE — Saturday 27 Sep (founder: weekly limits done Mon 21 Sep 22:00 IST; "will resume on sat")
 
 Fixed 2026-09-26 (day1-gaps): DOS-210, DOS-211, DOS-212, DOS-213, DOS-214, DOS-215, DOS-216, DOS-217 merged a9fd3181
+Fixed 2026-09-26 (day1b): DOS-220, DOS-221, DOS-222 merged 10b6f8a9
 
 **Where the product is.** Every fix lane of the programme is on main (`2d5f0e26`+): deploy plumbing, D8 display, S-176/S-177 tax + credit leak, **the one app** (`frontend/dos-app`; the six per-role apps are deleted), DOS-185 free goods, the undelivered flow (DOS-196/197/191/203), the dock model (DOS-195/204/186). Migrations end at **0065**. Findings table runs S-01..S-193; Phase 2 findings carry `Status:` lines in `QA/09` / `QA/findings/12`.
 
