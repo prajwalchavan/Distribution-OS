@@ -1,0 +1,30 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+Tarsun Enterprise
+Van check-in
+Sheets
+Trips
+Check-in
+Count what came back on the vehicle. The settlement itself is desk work.
+Vehicle
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+EXPECTED ON THE VEHICLE
+240 pc in 1 lots
+Rajwadi Jeera Masala Soda 250 ml
+5 cs = 240 pc
+Batch RJ20260830 · 240 pc are INV/0815 · Nutan Kirana Stores — to the dock
+Exp 27 May 2027
+The money side of the trip is settled at the desk.
+16 pc on the dock for INV/0815

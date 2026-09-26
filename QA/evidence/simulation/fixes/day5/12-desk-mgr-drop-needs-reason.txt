@@ -1,0 +1,114 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Trips
+Waves
+Pick & pack
+Load-out
+Trips
+Came back undelivered
+1 bills
+Bill no.	Shop	Amount ₹	Why	Crew's note	Trip	What happens next
+
+INV/0815
+	
+Nutan Kirana Stores
+	4,264.00	
+Shop closed
+	
+FIX D5 walk — shutter down
+	
+TRIP-0001
+	
+Back at the godown — plan it again
+Planned and loading
+Plan a trip
+Trip	Date	Vehicle	Driver	Stops	State	What happens next
+
+TRIP-0004
+	
+27 Sep
+	
+MH-05-EF-9012
+	
+Tanaji Bhosale
+	
+2
+	Loading	
+—
+
+
+TRIP-0003
+	
+27 Sep
+	
+MH-05-CD-5678
+	
+Iqbal Shaikh
+	
+1
+	Loading	
+—
+
+
+TRIP-NEXT
+	
+14 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+5
+	Planned	
+—
+
+
+TRIP-ACTIVE
+	
+12 Sep
+	
+MH-05-AB-1234
+	
+Ganesh More
+	
+10
+	Active	
+On the road — the desk cannot change it
+Bills on TRIP-0004
+2 not loaded or delivered yet
+A bill the godown cannot load — its batch is gone, or the shop cancelled — can come off this trip. It goes back on the planning board; nothing about the bill or the stock changes.
+Nutan Kirana Stores
+INV/0815
+₹4,264.00
+Balaji Wholesale Stores
+INV/0838
+₹1,01,531.00
+Add a bill to TRIP-0004
+Every packed bill is already on a trip
+Add a bill
+Choose at least one bill, or send the van to sell
+Take INV/0838 off the trip
+INV/0838 · Balaji Wholesale Stores · ₹1,01,531.00 comes off TRIP-0004 and goes back on the planning board. The rest of the trip can then load and leave.
+Why is it coming off?
+Say why, in a few words — it goes on the trip’s record
+Cancel
+Take it off
