@@ -40,7 +40,8 @@ import {
   stayOpen,
   useNames,
 } from '../../../src/groups/manager/lib/ui'
-import { instantWithClock } from '../../../src/groups/manager/lib/dates'
+import { batchLabel } from '../../../src/batch'
+import { instantWithClock, today } from '../../../src/groups/manager/lib/dates'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
 interface Counted {
@@ -104,6 +105,8 @@ export default function GateCount(): React.JSX.Element {
   )
 
   const lines = grn?.lines ?? []
+  const padLine = lines.find((line) => line.id === padFor)
+  const padBatch = padLine === undefined ? null : batchLabel(padLine, t, today())
   const done = lines.filter(
     (line) => counts[line.id] !== undefined || line.countedQtyPcs !== null,
   ).length
@@ -220,11 +223,23 @@ export default function GateCount(): React.JSX.Element {
                   const mine = counts[line.id]
                   const already = line.countedQtyPcs
                   const shown = mine?.received ?? already
+                  // QA DOS-220: which cartons this line is — batch and expiry, never the bill's figure
+                  const batch = batchLabel(line, t, today())
                   return (
                     <Stack key={line.id} gap={2} border="bottom" borderTone="faint" padY={3}>
                       <Txt field="body" desk="body" numberOfLines={1}>
                         {names.variant(line.variantId)}
                       </Txt>
+                      {batch === null ? null : (
+                        <Txt
+                          field="label"
+                          desk="meta"
+                          color={batch.shortLife ? colors.status.ochre.fg : colors.text.secondary}
+                          testID={`gate-line-batch-${line.id}`}
+                        >
+                          {batch.warning === null ? batch.text : `${batch.text} · ${batch.warning}`}
+                        </Txt>
+                      )}
                       <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
                         {/*
                          * The expected figure appears only ONCE the line has a count. Before that the
@@ -282,7 +297,13 @@ export default function GateCount(): React.JSX.Element {
         onClose={() => {
           setPadFor(null)
         }}
-        title={t('m19.received')}
+        title={
+          padLine === undefined
+            ? t('m19.received')
+            : [names.variant(padLine.variantId), padBatch?.text]
+                .filter((part): part is string => part !== undefined && part !== '')
+                .join(' · ')
+        }
         testID="gate-pad"
       >
         <NumberPad

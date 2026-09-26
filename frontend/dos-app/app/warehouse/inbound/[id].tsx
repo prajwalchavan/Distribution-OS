@@ -33,12 +33,14 @@ import { camera, haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
+import { batchLabel } from '../../../src/batch'
 import {
   acknowledgedLines,
   lineSaveState,
   unsavedCount,
   type LineSaveState,
 } from '../../../src/groups/warehouse/lib/count-save'
+import { today } from '../../../src/groups/warehouse/lib/dates'
 import { useVariantNames } from '../../../src/groups/warehouse/lib/local'
 import { Async, DeskOnly, Panel, pl, workFamily } from '../../../src/groups/warehouse/lib/ui'
 
@@ -102,6 +104,16 @@ export default function GateCount(): React.JSX.Element {
   const line = lines[index]
   /** A name or an honest blank — never a UUID in front of somebody holding a carton. */
   const nameOf = (variantId: string): string => names.get(variantId)?.name ?? t('w.unknownItem')
+  /*
+   * QA DOS-220: the batch and expiry printed on the carton. A bill with three batches of one item is
+   * three lines with the same name; this is what tells the hand which cartons go on which line.
+   */
+  const day = today()
+  const batchOf = (row: { batchNo: string | null; expiryDate: string | null }) =>
+    batchLabel(row, t, day)
+  /** Another line on this receipt is the same item: the batch is the only thing telling them apart. */
+  const hasSiblings = (row: { id: string; variantId: string }): boolean =>
+    lines.some((other) => other.id !== row.id && other.variantId === row.variantId)
 
   const save = useMutation(
     (
@@ -136,7 +148,19 @@ export default function GateCount(): React.JSX.Element {
         setScanNote(t('w.scanNothing'))
         return
       }
-      const at = lines.findIndex((row) => names.get(row.variantId)?.ean === code.value)
+      // Several batches of one item share a barcode: go to the first of them not counted yet, and
+      // let the batch line on the pad say which cartons it wants (QA DOS-220).
+      const matching = lines
+        .map((row, at) => ({ row, at }))
+        .filter(({ row }) => names.get(row.variantId)?.ean === code.value)
+      const at =
+        (
+          matching.find(
+            ({ row }) =>
+              counted[row.id] === undefined &&
+              (acknowledged.get(row.id)?.countedQtyPcs ?? null) === null,
+          ) ?? matching[0]
+        )?.at ?? -1
       if (at < 0) {
         setScanNote(t('w.noMatch', { code: code.value }))
         return
@@ -168,10 +192,20 @@ export default function GateCount(): React.JSX.Element {
   if (countable && stage !== 'review' && line !== undefined) {
     const isDamaged = stage === 'damaged'
     const value = isDamaged ? (damaged[line.id] ?? null) : (counted[line.id] ?? null)
+    const batch = batchOf(line)
     return (
       <Screen
+        /*
+         * One screen per line (QA DOS-220): the body scrolls, and a scroll carried over from the line
+         * before hid this line's batch above the keypad. A fresh key starts every line at the top.
+         */
+        key={line.id}
         title={nameOf(line.variantId)}
-        context={t('w3.line', { index: index + 1, total: lines.length })}
+        context={
+          batch === null
+            ? t('w3.line', { index: index + 1, total: lines.length })
+            : `${t('w3.line', { index: index + 1, total: lines.length })} · ${batch.text}`
+        }
         testID="w3-pad-screen"
         /*
          * The two ways off this line live in the STICKY bar, and the body scrolls.
@@ -209,6 +243,27 @@ export default function GateCount(): React.JSX.Element {
         }
       >
         <Stack gap={4}>
+          {batch === null ? null : (
+            <Stack gap={2} testID="w3-pad-batch">
+              <Row gap={2} align="center" wrap>
+                <Txt field="title" desk="section" testID="w3-pad-batch-text">
+                  {batch.text}
+                </Txt>
+                {batch.warning === null ? null : (
+                  <StatusChip
+                    label={batch.warning}
+                    family={batch.daysLeft !== null && batch.daysLeft < 0 ? 'brick' : 'ochre'}
+                    testID="w3-pad-short-life"
+                  />
+                )}
+              </Row>
+              {hasSiblings(line) ? (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('w3.matchCarton')}
+                </Txt>
+              ) : null}
+            </Stack>
+          )}
           <Txt field="label" desk="meta" color={colors.text.secondary}>
             {t('w3.blind')}
           </Txt>
@@ -337,11 +392,32 @@ export default function GateCount(): React.JSX.Element {
                 const broken = damaged[row.id] ?? server?.damagedQtyPcs ?? 0
                 const saveState = lineSaveState(counted[row.id], damaged[row.id], server)
                 const chip = SAVE_CHIP[saveState]
+                const batch = batchOf(row)
                 return (
                   <ListRow
                     key={row.id}
                     testID={`w3-line-${row.id}`}
-                    primary={nameOf(row.variantId)}
+                    primary={
+                      batch === null ? (
+                        nameOf(row.variantId)
+                      ) : (
+                        <Stack gap={1}>
+                          <Txt field="bodyStrong" desk="cell">
+                            {nameOf(row.variantId)}
+                          </Txt>
+                          <Txt
+                            field="label"
+                            desk="meta"
+                            color={batch.shortLife ? colors.status.ochre.fg : colors.text.secondary}
+                            testID={`w3-line-batch-${row.id}`}
+                          >
+                            {batch.warning === null
+                              ? batch.text
+                              : `${batch.text} · ${batch.warning}`}
+                          </Txt>
+                        </Stack>
+                      )
+                    }
                     secondary={
                       good === null
                         ? t('w3.countLabel')
