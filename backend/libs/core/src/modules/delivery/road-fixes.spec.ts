@@ -100,7 +100,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
   const accountantId = uuidv7()
   const packerId = uuidv7()
   const repId = uuidv7()
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
 
@@ -929,4 +929,219 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     ).rows as { state: string }[]
     expect(state?.state).toBe('closing')
   }, 180_000)
+
+  // -------------------------------------------------------------------------------------------------------------
+  // DOS-237
+
+  /** The shape DOS-232 left behind before its fix: a two-bill stop walked to `delivered` on its first bill. */
+  const endStopEarly = async (stopId: string): Promise<void> => {
+    await db.execute(sql`update trip_stops set state = 'delivered' where id = ${stopId}`)
+  }
+
+  const deliveryOf = async (
+    invoiceId: string,
+  ): Promise<{ id: string; outcome: string | null } | undefined> =>
+    (
+      await db.execute(
+        sql`select id, outcome::text as outcome from deliveries where invoice_id = ${invoiceId}`,
+      )
+    ).rows[0] as { id: string; outcome: string | null } | undefined
+
+  const balanceAt = async (locationId: string): Promise<number> => {
+    const [row] = (
+      await db.execute(
+        sql`select coalesce(sum(on_hand), 0)::int as on_hand from stock_balances
+             where lot_id = ${lotA} and location_id = ${locationId}`,
+      )
+    ).rows as { on_hand: number }[]
+    return Number(row?.on_hand ?? 0)
+  }
+
+  it('DOS-237 the check-in fails a bill still unrecorded on a stop that had already ended', async () => {
+    const driver = driverAt(5)
+    const bill1 = await billedOrder(retailerA, '237a-1')
+    const bill2 = await billedOrder(retailerA, '237a-2')
+    const { tripId, stopIds } = await roadTrip('237a', driver, [
+      { retailerId: retailerA, bills: [bill1, bill2] },
+    ])
+    const stopId = stopIds[0] ?? ''
+    await arrive(driver, stopId, '237a')
+    const first = await deliverAll(driver, tripId, stopId, bill1, '237a-1')
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    await endStopEarly(stopId)
+
+    const returned = await call(app, driver, 'POST', `/delivery/trips/${tripId}/return`, {
+      idempotencyKey: `rf-return-237a-${run}`,
+    })
+    expect(returned.status, JSON.stringify(returned.body)).toBe(200)
+    // the second bill is said to have come back, whatever the stop had ended as
+    expect((await deliveryOf(bill2.invoiceId))?.outcome).toBe('failed')
+    expect(await orderState(bill2.orderId)).toBe('packed')
+    expect(await orderState(bill1.orderId)).toBe('delivered')
+    const register = await call<{ items: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { undeliveredOnly: 'true', limit: '50' },
+    )
+    expect(register.status).toBe(200)
+    expect(register.body.items.map((d) => d.invoiceId)).toContain(bill2.invoiceId)
+    // and nothing is left unrecorded on the trip for the desk to chase
+    const unrecorded = await call<{ items: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { unrecordedOnly: 'true', tripId, limit: '50' },
+    )
+    expect(unrecorded.status).toBe(200)
+    expect(unrecorded.body.items).toEqual([])
+  }, 180_000)
+
+  it('DOS-237 a paid bill left unrecorded on a settled trip: the desk brings it back, on the register and the board, its goods on the dock', async () => {
+    const driver = driverAt(6)
+    const bill1 = await billedOrder(retailerB, '237b-1')
+    const bill2 = await billedOrder(retailerB, '237b-2')
+    const { tripId, stopIds, tripNo } = await roadTrip('237b', driver, [
+      { retailerId: retailerB, bills: [bill1, bill2] },
+    ])
+    const stopId = stopIds[0] ?? ''
+    await arrive(driver, stopId, '237b')
+    // the shop pays the second bill by UPI at the door (INV/9017 was paid by RCPT-9009)
+    const paid = await call(app, driver, 'POST', '/delivery/collections', {
+      idempotencyKey: `rf-collect-237b-${run}`,
+      id: uuidv7(),
+      receiptId: uuidv7(),
+      tripId,
+      stopId,
+      retailerId: retailerB,
+      mode: 'upi',
+      reference: `UTR237${run}`,
+      amountPaise: bill2.totalPaise,
+      allocations: [{ id: uuidv7(), invoiceId: bill2.invoiceId, amountPaise: bill2.totalPaise }],
+    })
+    expect(paid.status, JSON.stringify(paid.body)).toBe(200)
+    const first = await deliverAll(driver, tripId, stopId, bill1, '237b-1')
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    // what the day-3 database holds: the stop ended on the first bill, and the check-in ran before the fix,
+    // so the trip closed with the second bill's delivery NULL and its 12 pieces still on the van
+    await endStopEarly(stopId)
+    await db.execute(sql`update trips set state = 'closing', ended_at = now() where id = ${tripId}`)
+    expect((await deliveryOf(bill2.invoiceId))?.outcome).toBeNull()
+
+    // the accountant counts the 12 pieces back and settles: they go to the godown as free stock
+    const settled = await call(app, accountant, 'POST', `/delivery/trips/${tripId}/settle`, {
+      idempotencyKey: `rf-settle-237b-${run}`,
+      id: uuidv7(),
+      tripId,
+      handedOverCashPaise: 0,
+      counted: [{ lotId: lotA, countedPcs: 12 }],
+    })
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    expect(await orderState(bill2.orderId)).toBe('dispatched')
+
+    // the desk finds it: went out, never recorded
+    const unrecorded = await call<{
+      items: { id: string; invoiceId: string; tripNo: string | null }[]
+    }>(app, manager, 'GET', '/delivery/deliveries', { unrecordedOnly: 'true', limit: '50' })
+    expect(unrecorded.status, JSON.stringify(unrecorded.body)).toBe(200)
+    const row = unrecorded.body.items.find((d) => d.invoiceId === bill2.invoiceId)
+    expect(row?.tripNo).toBe(tripNo)
+    const deliveryId = row?.id ?? ''
+
+    const dock = (
+      (
+        await db.execute(
+          sql`select id from locations where tenant_id = ${tenantId} and kind = 'in_transit' limit 1`,
+        )
+      ).rows[0] as { id: string }
+    ).id
+    const dockBefore = await balanceAt(dock)
+    const godownBefore = await balanceAt(godown)
+
+    // the accountant reads the road but does not decide it
+    const byAccountant = await call(
+      app,
+      accountant,
+      'POST',
+      `/delivery/deliveries/${deliveryId}/came-back`,
+      { idempotencyKey: `rf-came-back-237b-acc-${run}` },
+    )
+    expect(byAccountant.status).toBe(403)
+
+    const back = await call<{
+      item: { outcome: string; invoiceId: string }
+      staged: { lotId: string; neededPcs: number; stagedPcs: number; onVanPcs: number }[]
+    }>(app, manager, 'POST', `/delivery/deliveries/${deliveryId}/came-back`, {
+      idempotencyKey: `rf-came-back-237b-${run}`,
+      note: 'goods found in the godown after check-in',
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    expect(back.body.item.outcome).toBe('failed')
+    expect(back.body.staged).toEqual([
+      expect.objectContaining({ lotId: lotA, neededPcs: 12, stagedPcs: 12, onVanPcs: 0 }),
+    ])
+    expect(await orderState(bill2.orderId)).toBe('packed')
+    const [invoice] = (
+      await db.execute(
+        sql`select state::text as state, undelivered_at from invoices where id = ${bill2.invoiceId}`,
+      )
+    ).rows as { state: string; undelivered_at: Date | null }[]
+    expect(invoice?.state).toBe('paid')
+    expect(invoice?.undelivered_at).not.toBeNull()
+    // its goods moved godown → dock, ready for the next load sheet
+    expect(await balanceAt(dock)).toBe(dockBefore + 12)
+    expect(await balanceAt(godown)).toBe(godownBefore - 12)
+
+    // the paid bill is on the Undelivered register and back on the planning board
+    const register = await call<{ items: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { undeliveredOnly: 'true', limit: '50' },
+    )
+    expect(register.body.items.map((d) => d.invoiceId)).toContain(bill2.invoiceId)
+    const board = await call<{ bills: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/trip-planning',
+      { date: today, limit: '200' },
+    )
+    expect(board.status, JSON.stringify(board.body)).toBe(200)
+    expect(board.body.bills.map((b) => b.invoiceId)).toContain(bill2.invoiceId)
+
+    // a lost reply retried answers the same; a second decision is refused by name
+    const replay = await call<{ item: { outcome: string } }>(
+      app,
+      manager,
+      'POST',
+      `/delivery/deliveries/${deliveryId}/came-back`,
+      {
+        idempotencyKey: `rf-came-back-237b-${run}`,
+        note: 'goods found in the godown after check-in',
+      },
+    )
+    expect(replay.status).toBe(200)
+    expect(await balanceAt(dock)).toBe(dockBefore + 12)
+    const twice = await call<{ data?: { code?: string } }>(
+      app,
+      owner,
+      'POST',
+      `/delivery/deliveries/${deliveryId}/came-back`,
+      { idempotencyKey: `rf-came-back-237b-2-${run}` },
+    )
+    expect(twice.status).toBe(409)
+    expect(twice.body.data?.code).toBe('delivery_recorded')
+    const after = await call<{ items: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/deliveries',
+      { unrecordedOnly: 'true', limit: '50' },
+    )
+    expect(after.body.items.map((d) => d.invoiceId)).not.toContain(bill2.invoiceId)
+  }, 240_000)
 })

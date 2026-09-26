@@ -30,6 +30,13 @@
  * A VAN THAT SELLS (QA DOS-233). While the distributor's `van_sales` flag is on the plan asks whether the van
  * also carries stock to sell at shops with no order, and says so to the server (`vanSalesEnabled`); such a
  * trip may leave with no bill at all. The godown then picks the stock to sell on the trip's load sheet.
+ *
+ * WENT OUT AND WAS NEVER RECORDED (QA DOS-237). A bill can come back on a trip that has checked in with no
+ * outcome at all — INV/9017, paid and stranded by the pre-DOS-232 two-bill stop, on no register and no board,
+ * its order "Dispatched" with only a credit note on offer. Above Undelivered, and only when there is one, the
+ * desk sees each such bill (`deliveries.list` with `unrecordedOnly`) and, for the owner and the manager, taps it
+ * to record that it came back (`deliveries.cameBack`): the bill joins Came back undelivered and the planning
+ * board, and the reply says in words where each batch now stands — on the dock, still on the van, or short.
  */
 import type { Delivery, PlanningBill, Trip } from '@dos/contracts'
 import { newId } from '@dos/api-client'
@@ -56,6 +63,7 @@ import {
 } from '@dos/ui'
 import { useState } from 'react'
 
+import { stagedLines, type StagedLot } from '../../../src/groups/manager/lib/came-back'
 import { shiftDays, shortDate, today } from '../../../src/groups/manager/lib/dates'
 import {
   addStopBody,
@@ -111,6 +119,7 @@ export default function DeskTrips(): React.JSX.Element {
   const mayAdd = can('delivery.stops.add')
   const mayReadBoard = can('delivery.trips.planning')
   const mayReadUndelivered = can('delivery.deliveries.list')
+  const mayCameBack = can('delivery.deliveries.cameBack')
 
   const [panel, setPanel] = useState<OpenPanel>(null)
   const [date, setDate] = useState(today)
@@ -138,6 +147,22 @@ export default function DeskTrips(): React.JSX.Element {
     () => api.api.delivery.deliveries.list({ undeliveredOnly: true, limit: 50 }),
     { enabled: mayReadUndelivered },
   )
+  /** QA DOS-237: bills that went out on a trip now back, with no outcome — the desk's to decide. */
+  const unrecorded = useQuery(
+    ['deliveries', 'unrecorded'],
+    () => api.api.delivery.deliveries.list({ unrecordedOnly: true, limit: 50 }),
+    { enabled: mayReadUndelivered },
+  )
+  const [cameBackRow, setCameBackRow] = useState<Undelivered | null>(null)
+  const [cameBackDone, setCameBackDone] = useState<{
+    bill: string
+    staged: readonly StagedLot[]
+  } | null>(null)
+  const cameBack = useMutation(
+    (input: { id: string }, meta) =>
+      api.api.delivery.deliveries.cameBack({ idempotencyKey: meta.idempotencyKey, id: input.id }),
+    { invalidates: [['deliveries'], ['trips']] },
+  )
   const vehicles = useQuery(['vehicles', 'all'], () => api.api.delivery.vehicles.list({}))
   /** DOS-233: the van-sales choice exists only while the distributor has van sales switched on. */
   const flags = useQuery(['tenancy', 'flags'], () => api.api.tenancy.featureFlags.list(), {
@@ -147,6 +172,7 @@ export default function DeskTrips(): React.JSX.Element {
     flags.data?.items.some((flag) => flag.flag === 'van_sales' && flag.enabled) ?? false
   const openTrips = trips.data?.items ?? []
   const undeliveredBills = undelivered.data?.items ?? []
+  const unrecordedBills = unrecorded.data?.items ?? []
   const addTrip =
     panel?.kind === 'add' ? openTrips.find((trip) => trip.id === panel.tripId) : undefined
   /** A late bill goes only on a trip that has not left (QA DOS-196); a van on the road is read-only. */
@@ -272,7 +298,13 @@ export default function DeskTrips(): React.JSX.Element {
     textColumn('reason', t('m7u.reason'), (row) =>
       row.stopFailureReason === null ? null : word(row.stopFailureReason),
     ),
-    textColumn('note', t('m7u.note'), (row) => row.stopFailureNote),
+    // QA DOS-237: a bill the office declared back carries the office's note on the delivery, not the stop
+    textColumn(
+      'note',
+      t('m7u.note'),
+      (row) =>
+        row.stopFailureNote ?? (row.note === null ? null : t('m7u.noteDesk', { note: row.note })),
+    ),
     textColumn('trip', t('m7u.trip'), (row) => row.tripNo ?? row.tripId.slice(0, 8)),
     textColumn('next', t('m7u.next'), (row) =>
       undeliveredNext(row.tripState) === 'plan'
@@ -280,6 +312,19 @@ export default function DeskTrips(): React.JSX.Element {
         : t('m7u.onTheRoad', { trip: row.tripNo ?? row.tripId.slice(0, 8) }),
     ),
   ]
+
+  /** QA DOS-237: a bill that went out on a trip now back, with nothing recorded against it. */
+  const unrecordedColumns: readonly RegisterColumn<Undelivered>[] = [
+    textColumn('bill', t('m7u.bill'), (row) => row.invoiceNo ?? row.invoiceId.slice(0, 8), {
+      priority: 'identity',
+    }),
+    textColumn('shop', t('m7u.shop'), (row) => row.retailerName),
+    moneyColumn('value', t('m7u.value'), (row) => row.invoiceTotalPaise),
+    textColumn('trip', t('m7u.trip'), (row) => row.tripNo ?? row.tripId.slice(0, 8)),
+    textColumn('next', t('m7u.next'), () => (mayCameBack ? t('m7n.tap') : null)),
+  ]
+  const billOf = (row: Undelivered | null): string =>
+    row === null ? '' : (row.invoiceNo ?? row.invoiceId.slice(0, 8))
 
   const label = (text: string): React.JSX.Element => (
     <Txt field="label" desk="meta" color={colors.text.secondary}>
@@ -384,6 +429,72 @@ export default function DeskTrips(): React.JSX.Element {
       }
     >
       <Stack gap={6}>
+        {cameBackDone === null ? null : (
+          <Panel
+            title={t('m7n.done', { bill: cameBackDone.bill })}
+            actions={
+              <Button
+                label={t('m7n.dismiss')}
+                variant="ghost"
+                fullWidth={false}
+                onPress={() => {
+                  setCameBackDone(null)
+                }}
+                testID="desk-came-back-dismiss"
+              />
+            }
+            testID="desk-came-back-done"
+          >
+            <Stack gap={2}>
+              {stagedLines(cameBackDone.staged, t).map((line) => (
+                <Txt
+                  key={line.key}
+                  field="body"
+                  desk="body"
+                  {...(line.short ? { color: colors.status.brick.fg } : {})}
+                  testID={`desk-came-back-${line.key}`}
+                >
+                  {line.text}
+                </Txt>
+              ))}
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('m7n.doneNext')}
+              </Txt>
+            </Stack>
+          </Panel>
+        )}
+
+        {mayReadUndelivered && unrecordedBills.length > 0 ? (
+          <Panel
+            title={t('m7n.title')}
+            meta={t('m7n.count', { count: unrecordedBills.length })}
+            testID="desk-unrecorded"
+          >
+            <Stack gap={3}>
+              <Txt field="body" desk="body" color={colors.text.secondary}>
+                {t('m7n.body')}
+              </Txt>
+              <Register
+                testID="desk-unrecorded-register"
+                columns={unrecordedColumns}
+                rows={unrecordedBills}
+                rowKey={(row) => row.id}
+                frozen="bill"
+                selectedKey={cameBackRow?.id ?? null}
+                onSelect={
+                  mayCameBack
+                    ? (row) => {
+                        cameBack.reset()
+                        setCameBackRow(row)
+                      }
+                    : undefined
+                }
+                state="ready"
+              />
+            </Stack>
+          </Panel>
+        ) : null}
+
         {mayReadUndelivered ? (
           <Panel
             title={t('m7u.title')}
@@ -670,6 +781,42 @@ export default function DeskTrips(): React.JSX.Element {
           if (stopPlan !== null) void addStop.mutateAsync(stopPlan).then(planned, stayOpen)
         }}
         testID="trip-add-dialog"
+      />
+
+      <Dialog
+        open={cameBackRow !== null}
+        onClose={() => {
+          setCameBackRow(null)
+        }}
+        title={t('m7n.dialogTitle', { bill: billOf(cameBackRow) })}
+        body={
+          <Stack gap={3}>
+            <Txt field="body" desk="body">
+              {t('m7n.dialogBody', {
+                bill: billOf(cameBackRow),
+                shop: cameBackRow?.retailerName ?? '',
+                amount: formatINR(paise(cameBackRow?.invoiceTotalPaise ?? 0)),
+                trip: cameBackRow?.tripNo ?? cameBackRow?.tripId.slice(0, 8) ?? '',
+              })}
+            </Txt>
+            <Refusal
+              of={[cameBack]}
+              scope={cameBackRow?.id ?? null}
+              testID="desk-came-back-refusal"
+            />
+          </Stack>
+        }
+        confirmLabel={t('m7n.action')}
+        busy={cameBack.status === 'pending'}
+        onConfirm={() => {
+          const row = cameBackRow
+          if (row === null) return
+          void cameBack.mutateAsync({ id: row.id }).then((reply) => {
+            setCameBackRow(null)
+            setCameBackDone({ bill: billOf(row), staged: reply.staged })
+          }, stayOpen)
+        }}
+        testID="desk-came-back-dialog"
       />
     </Screen>
   )

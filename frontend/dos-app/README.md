@@ -294,6 +294,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
 | GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
 | GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/deliveries/{id}/came-back` | The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock | owner, manager |
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
@@ -647,6 +648,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
 | GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
 | GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/deliveries/{id}/came-back` | The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock | owner, manager |
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
@@ -1175,6 +1177,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
 | GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
 | GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/deliveries/{id}/came-back` | The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock | owner, manager |
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
@@ -1455,6 +1458,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
 | GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
 | GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/deliveries/{id}/came-back` | The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock | owner, manager |
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
@@ -1701,6 +1705,7 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | POST | `/delivery/deliveries/{id}/pod` | Attach proof of delivery that arrived after the delivery | owner, manager, delivery |
 | GET | `/delivery/deliveries` | Delivery register (a shop sees only its own bills' deliveries) | owner, manager, accountant, delivery, retailer |
 | GET | `/delivery/deliveries/{id}` | One delivery with its lines, proof (signed read URLs) and credit note | owner, manager, accountant, delivery, retailer |
+| POST | `/delivery/deliveries/{id}/came-back` | The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock | owner, manager |
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |

@@ -577,6 +577,14 @@ export class TripsService {
    * Check-in: `active → closing`. Stops still open become `failed` ("trip returned") and their bills
    * go back to `packed` through `OrdersService`; the pieces stay on the van until the settlement
    * counts them back in.
+   *
+   * EVERY BILL THAT CAME BACK IS SAID TO HAVE COME BACK (QA DOS-237). A planned bill with no outcome on a
+   * stop that is ALREADY terminal — one a stop walked to `delivered` on its first bill before DOS-232, or
+   * any path yet unknown — used to be skipped here, because only open stops were failed. Its delivery stayed
+   * NULL, its order `dispatched`, and nothing ever put it on the Undelivered register or the planning board:
+   * INV/9017 was paid and its goods sat in the godown with no way to send them. Each such bill is failed
+   * too, with the same effects as a stop failure; the stop keeps the state it ended in (a terminal stop has
+   * no way out of it) and the settlement stages the bill's pieces on the dock like any other that came back.
    */
   async return(input: ReturnIn): Promise<ReturnOut> {
     requireRole(DOORSTEP)
@@ -593,6 +601,19 @@ export class TripsService {
           if (STOP_TERMINAL.has(stop.state)) continue
           await this.failStopInTx(tx, stop, 'other', 'trip returned', now, input.deviceId ?? null)
         }
+        // QA DOS-237: the bills still unrecorded on a stop that had already ended
+        const unrecorded = await tx
+          .select()
+          .from(deliveries)
+          .where(and(eq(deliveries.tripId, trip.id), sql`${deliveries.outcome} is null`))
+          .orderBy(asc(deliveries.id))
+        for (const d of unrecorded)
+          await this.failPlannedDelivery(tx, d, {
+            failureReason: 'other',
+            failureNote: 'trip returned',
+            at: now,
+            deviceId: input.deviceId ?? null,
+          })
         const next = await this.updateTrip(tx, trip.id, {
           state: to,
           endedAt: now,
@@ -1144,6 +1165,76 @@ export class TripsService {
       })
   }
 
+  /**
+   * ONE PLANNED BILL THAT DID NOT GO: its delivery `failed` with zero lines, the order back to `packed`
+   * (`return_undelivered`), and the bill flagged undelivered — out of the shop's dues and ageing, onto the
+   * desk's register, the shop told by bill number (QA DOS-197). Stock is not touched: the goods are wherever
+   * they physically are, and the caller says (the van until check-in; `deliveries.cameBack` stages them).
+   * Shared by the fail sheet, the check-in and the desk's "it came back" (QA DOS-237). Idempotent in effect:
+   * a delivery that already has an outcome is left as it is.
+   */
+  async failPlannedDelivery(
+    tx: Db,
+    d: typeof deliveries.$inferSelect,
+    how: {
+      failureReason: StopRow['failureReason']
+      failureNote: string | null
+      at: Date
+      deviceId: string | null
+    },
+  ): Promise<void> {
+    const ctx = currentTenant()
+    if (d.outcome !== null) return
+    await tx
+      .update(deliveries)
+      .set({
+        outcome: 'failed',
+        deliveredBy: ctx.actorRole === 'system' ? null : ctx.actorId,
+        deliveredAt: how.at,
+        deviceId: how.deviceId ?? d.deviceId,
+        note: how.failureNote ?? d.note,
+        updatedAt: new Date(),
+      })
+      .where(eq(deliveries.id, d.id))
+    const invoice = await this.billing.invoiceForDelivery(tx, d.invoiceId)
+    if (invoice.lines.length > 0)
+      await tx
+        .insert(deliveryLines)
+        .values(
+          invoice.lines.map((l) => ({
+            id: deterministicLineId(d.id, l.id),
+            tenantId: ctx.tenantId,
+            deliveryId: d.id,
+            invoiceLineId: l.id,
+            deliveredQtyPcs: 0,
+            returnedQtyPcs: 0,
+            returnedSaleable: true,
+            reason: null,
+          })),
+        )
+        .onConflictDoNothing()
+    if (d.orderId)
+      await this.orders.applyFulfilmentEvent(
+        tx,
+        d.orderId,
+        'return_undelivered',
+        how.deviceId,
+        how.failureReason ?? 'failed',
+      )
+    // QA DOS-197: the bill rides back on the van, so it leaves the shop's dues and the ageing, and
+    // the shop is told by bill NUMBER. docs/22 §4: it waits on the van until check-in.
+    await declareUndelivered(tx, this.billing, {
+      deliveryId: d.id,
+      tripId: d.tripId,
+      stopId: d.stopId,
+      retailerId: d.retailerId,
+      invoiceId: invoice.id,
+      invoiceNo: invoice.invoiceNo,
+      failureReason: how.failureReason,
+      at: how.at,
+    })
+  }
+
   /** The doorstep failure, shared by `stops.fail` and `trips.return`. Stock stays on the van. */
   private async failStopInTx(
     tx: Db,
@@ -1153,7 +1244,6 @@ export class TripsService {
     at: Date,
     deviceId: string | null,
   ): Promise<StopRow> {
-    const ctx = currentTenant()
     // QA DOS-232: a stop where some bill was already handed over did not fail — the rest came back.
     const [handedOver] = await tx
       .select({ id: deliveries.id })
@@ -1180,54 +1270,7 @@ export class TripsService {
     const invoiceIds: string[] = []
     for (const d of planned) {
       invoiceIds.push(d.invoiceId)
-      await tx
-        .update(deliveries)
-        .set({
-          outcome: 'failed',
-          deliveredBy: ctx.actorRole === 'system' ? null : ctx.actorId,
-          deliveredAt: at,
-          deviceId: deviceId ?? d.deviceId,
-          note: failureNote ?? d.note,
-          updatedAt: new Date(),
-        })
-        .where(eq(deliveries.id, d.id))
-      const invoice = await this.billing.invoiceForDelivery(tx, d.invoiceId)
-      if (invoice.lines.length > 0)
-        await tx
-          .insert(deliveryLines)
-          .values(
-            invoice.lines.map((l) => ({
-              id: deterministicLineId(d.id, l.id),
-              tenantId: ctx.tenantId,
-              deliveryId: d.id,
-              invoiceLineId: l.id,
-              deliveredQtyPcs: 0,
-              returnedQtyPcs: 0,
-              returnedSaleable: true,
-              reason: null,
-            })),
-          )
-          .onConflictDoNothing()
-      if (d.orderId)
-        await this.orders.applyFulfilmentEvent(
-          tx,
-          d.orderId,
-          'return_undelivered',
-          deviceId,
-          failureReason ?? 'failed',
-        )
-      // QA DOS-197: the bill rides back on the van, so it leaves the shop's dues and the ageing, and
-      // the shop is told by bill NUMBER. docs/22 §4: it waits on the van until check-in.
-      await declareUndelivered(tx, this.billing, {
-        deliveryId: d.id,
-        tripId: row.tripId,
-        stopId: row.id,
-        retailerId: row.retailerId,
-        invoiceId: invoice.id,
-        invoiceNo: invoice.invoiceNo,
-        failureReason,
-        at,
-      })
+      await this.failPlannedDelivery(tx, d, { failureReason, failureNote, at, deviceId })
     }
     await emitDeliveryEvent(tx, 'trip', row.tripId, 'StopFailed', {
       tripId: row.tripId,

@@ -601,6 +601,25 @@ export const strings = {
   'm7u.next': 'What happens next',
   'm7u.onTheRoad': 'Out on {trip} — back after check-in',
   'm7u.backAtTheGodown': 'Back at the godown — plan it again',
+  'm7u.noteDesk': 'Office: {note}',
+
+  // --- M7 Trips · went out and was never recorded (QA DOS-237) --------------------------------------
+  'm7n.title': 'Went out, never recorded',
+  'm7n.count': '{count} bills',
+  'm7n.body':
+    'These bills left on a trip that has come back, and nobody at the door said delivered or refused. If the goods came back, say so here: the bill goes on Came back undelivered and back on the planning board, and its goods are set on the dock for the next load.',
+  'm7n.tap': 'Tap a bill to record that it came back',
+  'm7n.action': 'It came back',
+  'm7n.dialogTitle': 'Bill {bill} came back',
+  'm7n.dialogBody':
+    '{bill} · {shop} · {amount} went out on {trip} and was never recorded. Recording it as come back puts the order back to packed, takes the bill out of the shop’s dues until it is delivered, and moves its goods to the dock for the next trip. Money already paid on it stays paid.',
+  'm7n.done': '{bill} is back on the planning board',
+  'm7n.doneNext': 'Plan it on a trip with “Plan a trip” below.',
+  'm7n.staged': '{item}: {pieces} pc moved to the dock',
+  'm7n.onVan': '{item}: {pieces} pc still on the van — the check-in count puts them on the dock',
+  'm7n.short':
+    '{item}: only {staged} of {needed} pc are still free in the godown. Put the rest on the dock before loading, or raise a credit note for the bill and bill the shop again.',
+  'm7n.dismiss': 'Done',
 
   // --- M6 Billing desk -----------------------------------------------------------------------------
   'm6.tab': 'Billing desk',

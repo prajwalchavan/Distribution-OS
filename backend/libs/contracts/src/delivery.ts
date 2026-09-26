@@ -1114,6 +1114,13 @@ export const DeliveriesListInput = z.object({
    * at the desk, is not on it. Bounded to the bills currently undelivered, newest attempt first.
    */
   undeliveredOnly: QueryBoolSchema.default(false),
+  /**
+   * WENT OUT AND WAS NEVER RECORDED (QA DOS-237): a bill planned on a trip that has already checked in
+   * (`closing`, `settled`, `settled_with_variance`) whose delivery still has no outcome — nobody at the door
+   * said delivered or refused, and the check-in did not fail it. The desk decides each one with
+   * `deliveries.cameBack`. Oldest trip first is not promised; newest planned row first, like every page here.
+   */
+  unrecordedOnly: QueryBoolSchema.default(false),
   /** Delivered on or after / on or before this IST calendar date. */
   from: IsoDateSchema.optional(),
   to: IsoDateSchema.optional(),
@@ -1126,6 +1133,37 @@ export const DeliveriesListOutput = z.object({
 
 export const DeliveryGetInput = z.object({ id: IdSchema })
 export const DeliveryGetOutput = z.object({ item: DeliveryDetailSchema })
+
+/**
+ * THE DESK SAYS A BILL CAME BACK (QA DOS-237). For a planned delivery with no outcome on a trip that has
+ * already checked in (`deliveries.list` with `unrecordedOnly`): the delivery is recorded `failed` exactly as
+ * the check-in fails an unfinished stop — the order back to `packed`, the bill flagged undelivered (out of the
+ * shop's dues, onto the desk's Undelivered register and the planning board, the shop told) — and its goods
+ * are STAGED ON THE DOCK for the next load sheet: taken off the van while the trip is still `closing`
+ * (the settlement's count does it), else moved godown → dock, as many as the godown still holds free. A
+ * batch the godown no longer holds is reported in `staged` with `stagedPcs` below `neededPcs`, never
+ * invented. Owner and manager only; 409 once the delivery has an outcome or while the trip is still out.
+ */
+export const CameBackInput = MutationBase.extend({
+  /** The planned delivery (outcome still null). */
+  id: IdSchema,
+  note: z.string().trim().max(300).optional(),
+})
+export const CameBackOutput = z.object({
+  item: DeliverySchema,
+  /** Per lot of the bill: what it needs on the dock and what was staged there by this call. */
+  staged: z.array(
+    z.object({
+      lotId: IdSchema,
+      description: z.string(),
+      batchNo: z.string().nullable(),
+      neededPcs: PiecesSchema,
+      stagedPcs: PiecesSchema,
+      /** Pieces the settlement will take off the van onto the dock (a trip still `closing`). */
+      onVanPcs: PiecesSchema,
+    }),
+  ),
+})
 
 // ---------------------------------------------------------------------------------------------------------------
 // inputs — collections (THE money-collection path of the field, docs/17 §D4)
@@ -1643,6 +1681,15 @@ export const deliveryContract = {
       })
       .input(DeliveryGetInput)
       .output(DeliveryGetOutput),
+    cameBack: oc
+      .route({
+        method: 'POST',
+        path: '/delivery/deliveries/{id}/came-back',
+        summary:
+          'The desk records that a bill which went out unrecorded came back: undelivered, re-plannable, goods staged on the dock',
+      })
+      .input(CameBackInput)
+      .output(CameBackOutput),
   },
   collections: {
     record: oc
