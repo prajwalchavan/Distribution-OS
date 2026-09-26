@@ -963,3 +963,14 @@ One lane (`worktree-wf_be1f8178-550-22`) merged `--no-ff` into main, no conflict
 | 2026-09-26 | DOS-237 | A bill that went out and was never recorded comes back onto the register, the board and the dock (check-in fails every unrecorded bill; desk `deliveries.cameBack` for older trips) | 6abdba6a |
 | 2026-09-26 | DOS-239 | The van-sale stepper steps by the item's sell-side case, never past the pieces free on the van | 6abdba6a |
 | 2026-09-26 | DOS-240 | A van sale paid in full at the door in cash or UPI is not credit; a credit refusal says why and offers the cash switch | 6abdba6a |
+
+### 2026-09-26 — day5 fixes merged to main (1afb47d1)
+
+One lane (`worktree-wf_be1f8178-550-26`) merged `--no-ff` into main, no conflicts, no migrations (expand-only contract additions: `delivery.trips.vanReturns`, `delivery.trips.unload`, `delivery.trips.dropBill`, `warehouse.loadSheets.stageDock`). Gates on main after the merge: backend lint, typecheck, build, docs:readme:check green; backend tests 3 018 passed / 3 skipped on a seeded copy of the template (`dos_test_integ_day5`, dropped after; the unseeded copy fails the same 4 seed-dependent specs in examples.spec / extra-roles-wire.spec, as before); frontend lint, typecheck green, tests 1 271 passed; `expo export --platform web` bundled (1 307 modules); `pnpm format` changed nothing.
+
+| Date | Id | Fix | Merge commit |
+|---|---|---|---|
+| 2026-09-26 | DOS-241 | A trip no longer sticks in loading on a bill the dock cannot fill: the load sheet offers Bring them from the godown (`stageDock`), and the desk can take an unloadable bill off the trip (`dropBill`) | 1afb47d1 |
+| 2026-09-26 | DOS-242 | A returned piece is credited at what the shop paid for it (the line's taxable after schemes), never the list rate | 1afb47d1 |
+| 2026-09-26 | DOS-244 | The godown's van check-in names the came-back bill and puts its pieces on the dock (`vanReturns` / `unload`), so they no longer vanish from the van count | 1afb47d1 |
+| 2026-09-26 | DOS-245 | A credit note its own bill cannot take is the shop's money on account, so outstanding + undelivered - on account = AR holds after a return on a paid bill | 1afb47d1 |
