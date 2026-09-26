@@ -1,0 +1,59 @@
+[
+ {
+  "at": "2026-09-26T09:50:10.729Z",
+  "label": "210-desk-vikas",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/auth/auth/login",
+  "status": 200,
+  "request": {
+   "username": "vikas.kadam",
+   "deviceId": "01a0dd1f-464e-774d-b827-0e0ae24b5c5f",
+   "deviceName": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safar",
+   "platform": "web"
+  },
+  "reply": "(redacted: tokens) {}"
+ },
+ {
+  "at": "2026-09-26T09:50:15.400Z",
+  "label": "210-desk-meena",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/auth/auth/login",
+  "status": 200,
+  "request": {
+   "username": "meena.joshi",
+   "deviceId": "01a0dd1f-464e-774d-b827-0e0ae24b5c5f",
+   "deviceName": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safar",
+   "platform": "web"
+  },
+  "reply": "(redacted: tokens) {}"
+ },
+ {
+  "at": "2026-09-26T09:50:22.069Z",
+  "label": "210-desk-meena-demoted",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/auth/auth/login",
+  "status": 403,
+  "request": {
+   "username": "meena.joshi",
+   "deviceId": "01a0dd1f-464e-774d-b827-0e0ae24b5c5f",
+   "deviceName": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safar",
+   "platform": "web",
+   "actAs": "manager"
+  },
+  "reply": "(redacted: tokens) {\"code\": \"FORBIDDEN\", \"message\": \"Your login at Tarsun Enterprise is an accountant; ask the owner to add manager to it.\"}"
+ },
+ {
+  "at": "2026-09-26T09:50:22.101Z",
+  "label": "210-desk-meena-demoted",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/auth/auth/login",
+  "status": 200,
+  "request": {
+   "username": "meena.joshi",
+   "deviceId": "01a0dd1f-464e-774d-b827-0e0ae24b5c5f",
+   "deviceName": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safar",
+   "platform": "web"
+  },
+  "reply": "(redacted: tokens) {}"
+ }
+]

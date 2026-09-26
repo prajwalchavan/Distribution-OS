@@ -1,0 +1,25 @@
+[
+ {
+  "at": "2026-09-26T09:52:59.602Z",
+  "label": "215-phone",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/auth/auth/login",
+  "status": 200,
+  "request": {
+   "username": "vikas.kadam",
+   "deviceId": "01a0dd21-da33-7588-b8bb-e24b2a50cdc5",
+   "deviceName": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safar",
+   "platform": "web"
+  },
+  "reply": "(redacted: tokens) {}"
+ },
+ {
+  "at": "2026-09-26T09:53:02.907Z",
+  "label": "215-phone",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/manager/retailers?limit=500&activeOnly=true",
+  "status": 200,
+  "request": null,
+  "reply": "{\"items\":[{\"id\":\"01a0dd1a-3d8c-775c-8b15-fd25b61e0f43\",\"name\":\"Fix Walk Kirana One\",\"ownerName\":\"Suresh Navale\",\"phone\":\"+919876543291\",\"altPhone\":null,\"address\":{\"line1\":\"Shop 3, Rajaji Path\"},\"lat\":null,\"lng\":null,\"beatId\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"gstRegType\":\"unregistered\",\"gstin\":null,\"stateCode\":\"27\",\"paymentTerms\":\"POST_FULFILLMENT\",\"cashDiscountBps\":0,\"cashDiscountDays\":0,\"active\":true,\"code\":\"R-9025\",\"identityId\":null,\"tier\":\"C\",\"creditLimitPaise\":0,\"creditLimitBills\":0,\"creditDays\":0,\"creditMode\":\"indicate\",\"onboardedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\"},{\"id\":\"01\u2026"
+ }
+]

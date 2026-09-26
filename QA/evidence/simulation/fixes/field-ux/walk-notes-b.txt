@@ -1,0 +1,38 @@
+Phase b (desk 1280x800, vikas.kadam as Manager, Inbound > Documents > REL/26-27/00495), camera run 1 at 15:17,
+lines copied from the camera's console (the run then timed out on the booking dialog's label; run 2 at 15:19 resumed on
+the same, by then Reviewed, bill with ALREADY_REVIEWED=1):
+
+[shot] 215-desk-01-extracted-book-disabled.png
+215 desk extracted: approve disabled=true text="Book it as a supplier bill\nStart reviewing, then press This reading is right to book it"
+215 desk: press on disabled Book it -> dialog open = false
+[shot] 215-desk-02-reviewing-submit-first.png
+215 desk reviewing: "Book it as a supplier bill\nPress This reading is right first, then book it"
+[shot] 215-desk-03-reviewed-book-ready.png
+
+Run 2 (15:19):
+[shot] 215-desk-03-reviewed-book-ready.png
+[shot] 215-desk-04-booked-no-book-no-reject.png
+215 desk after booking: reject offered = 0
+215 desk wire: POST /auth/auth/login 200 | GET /retailers?limit=500&activeOnly=true 200 | POST /docint/documents/7fbb5312-4107-79e1-982c-08d51b49fb34/approve 200
+
+Browser-pane walk (by hand, same build, before the camera runs), GUR/26-27/00496 (the day-1 bill):
+- Extracted: Book it disabled, reason "Start reviewing, then press This reading is right to book it"; a click on it opened no
+  dialog and sent no POST .../approve.
+- Start reviewing (POST .../review 200) -> Needs review, reason "Press This reading is right first, then book it".
+- This reading is right -> Reviewed; review buttons gone; Book it enabled.
+- Book it -> dialog -> Book -> POST .../approve 200 (the only approve on the wire; no 409) -> "Booked"; Book it and
+  Reject hidden. SQL: documents.status committed, supplier_invoices GUR/26-27/00496 approved, source docint.
+
+DOS-210 pane walk (desk): vikas.kadam -> Continue as Manager -> dos.lastRole = {"username":"vikas.kadam","role":"manager"};
+sign out; meena.joshi -> ONE POST /auth/auth/login 200, role accountant (no 403). Failure path: dos.lastRole set to
+{"username":"meena.joshi","role":"manager"} -> POST 403 "Your login at Tarsun Enterprise is an accountant; ask the owner
+to add manager to it." then POST 200 accountant; dos.lastRole rewritten to accountant. vikas.kadam after meena: one POST
+200 and the chooser opened on Manager without a "Last time on this device" row. rahul.deshmukh at phone width (375x812)
+after vikas: one POST 200.
+
+DOS-211 pane walk (phone 375x812, rahul.deshmukh): New shop "Fix Walk Kirana One" -> POST /sales/retailers 200 R-9025 ->
+polled every 150 ms for 4 s: the page went from /sales/shops/new straight to the card showing "Station Road · R-9025 · Fix
+Walk Kirana One"; "not on this phone" never appeared; no GET /sales/retailers/<id> (the card read the seeded entry), then
+GET /sales/sync/manifest and /sales/sync/pull. Reload on the card with an empty memory store: GET /sales/retailers/<id> 200
+and the shop shown, never "not on this phone". Unknown id: "That shop is not on this phone". Refused save (12-digit phone):
+POST 400, form kept its input and said "Input validation failed".

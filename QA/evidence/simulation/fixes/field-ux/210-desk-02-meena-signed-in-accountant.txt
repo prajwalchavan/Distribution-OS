@@ -1,0 +1,94 @@
+Tarsun Enterprise
+accountant
+Today
+Orders
+2
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Today
+Open the queue
+INVOICED TODAY
+₹1,50,147.00
+COLLECTED TODAY
+₹4,49,793.67
+2 trips active
+MONEY OWED
+₹44,24,374.00
+₹26,86,917.00 overdue
+ORDERS TO CONFIRM
+2
+1 bills to issue
+as of 12 Sep, 6:00 pm
+What is waiting
+Orders to confirm
+2 rows
+₹23,103.00
+2
+Bills to issue
+1 rows
+₹2,327.00
+1
+Goods to receive
+0 rows
+0
+Bills to review
+6 rows
+6
+Cash to bank
+more than 200 rows
+₹40,96,329.52
+200+
+Cheques in hand
+6 rows
+₹1,73,556.98
+6
+Invoiced today
+20 Sep — 26 Sep
+Nothing here yet
+Collections by mode
+26 Sep
+Nothing in this window
+Money owed, by age
+₹
+0–7
+23,27,491.00
+8–15
+6,76,326.50
+16–30
+7,86,763.50
+31–60
+5,00,590.00
+61–90
+98,059.00
+90+
+35,144.00
+Cash-discount windows closing
+Gurukrupa Provision
+Pay by 12 Sep
+₹385.72
+Gupta Kirana Stores
+Pay by 12 Sep
+₹161.06
+Joshi Kirana Stores
+Pay by 12 Sep
+₹399.62
+Rameshwar General Store
+Pay by 12 Sep
+₹456.56
+Sai Krupa Super Bazar
+Pay by 13 Sep
+₹66.84
+Rukmini Provision
+Pay by 14 Sep
+₹255.60

@@ -1,0 +1,2 @@
+[shot] 215-phone-02-supplier-bill-needs-review.png
+215 phone needs_review: approve disabled=true text="Book it as a supplier bill\nStart reviewing, then press This reading is right to book it"

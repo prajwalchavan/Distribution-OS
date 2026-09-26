@@ -1,0 +1,7 @@
+[shot] 210-desk-01-vikas-chooser.png
+210 desk: remembered after Vikas = {"username":"vikas.kadam","role":"manager"}
+[shot] 210-desk-02-meena-signed-in-accountant.png
+210 desk: Meena's sign-in on the wire: 200 actAs=(none)
+[shot] 210-desk-03-meena-refused-role-retried.png
+210 desk failure path: 403 actAs=manager | 200 actAs=(none); remembered now {"username":"meena.joshi","role":"accountant"}
+210 refusal sentence: {"defined":true,"code":"FORBIDDEN","status":403,"message":"Your login at Tarsun Enterprise is an accountant; ask the owner to add manager to it.","data":{"code":"role_not_electable","membershipRole":"accountant","actAs":"manager"}}
