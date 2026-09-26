@@ -1,0 +1,22 @@
+-- 2026-09-26T10:07:17.632Z
+-- select g.status, g.counted_at, l.counted_qty_pcs, l.damaged_qty_pcs from grns g join grn_lines l on l.grn_id = g.id where g.id = $1 order by l.id
+[
+ {
+  "status": "counting",
+  "counted_at": null,
+  "counted_qty_pcs": null,
+  "damaged_qty_pcs": 0
+ },
+ {
+  "status": "counting",
+  "counted_at": null,
+  "counted_qty_pcs": null,
+  "damaged_qty_pcs": 0
+ },
+ {
+  "status": "counting",
+  "counted_at": null,
+  "counted_qty_pcs": null,
+  "damaged_qty_pcs": 0
+ }
+]

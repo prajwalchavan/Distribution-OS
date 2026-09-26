@@ -1,0 +1,1580 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Inbound
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+Bills
+✓ Goods received
+Findings
+Purchase orders
+Receipt no.	Supplier	Godown	State	Counted	Posted
+
+Against bill GUR/26-27/00701
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Reconciled	
+26 Sep
+	
+—
+
+
+Against bill GUR/26-27/O2
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Reconciled	
+26 Sep
+	
+—
+
+
+Against bill GUR/26-27/00603
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Reconciled	
+26 Sep
+	
+—
+
+
+Against bill GUR/26-27/F2
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Being counted	
+—
+	
+—
+
+
+Against bill GUR/26-27/P2
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Being counted	
+26 Sep
+	
+—
+
+
+Against bill GUR/26-27/00605
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Being counted	
+—
+	
+—
+
+
+Against bill GUR/26-27/00604
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Being counted	
+26 Sep
+	
+—
+
+
+GRN-0132
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+26 Sep
+	
+26 Sep
+
+
+GRN-0131
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+26 Sep
+	
+26 Sep
+
+
+GRN-0129
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+26 Sep
+	
+26 Sep
+
+
+GRN-0130
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+26 Sep
+	
+26 Sep
+
+
+GRN-0128
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+10 Sep
+	
+10 Sep
+
+
+GRN-0126
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+9 Sep
+	
+9 Sep
+
+
+GRN-0127
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+9 Sep
+	
+9 Sep
+
+
+GRN-0125
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+8 Sep
+	
+8 Sep
+
+
+GRN-0124
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+6 Sep
+	
+6 Sep
+
+
+GRN-0123
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+5 Sep
+	
+5 Sep
+
+
+GRN-0122
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+5 Sep
+	
+5 Sep
+
+
+GRN-0121
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+3 Sep
+	
+3 Sep
+
+
+GRN-0116
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0119
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0114
+	
+Alan's Food Products — Bhiwandi
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0120
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0117
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0115
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0118
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+2 Sep
+	
+2 Sep
+
+
+GRN-0113
+	
+MOM Foods — Bikaner
+	
+Godown
+	Posted	
+1 Sep
+	
+1 Sep
+
+
+GRN-0111
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+29 Aug
+	
+29 Aug
+
+
+GRN-0112
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+29 Aug
+	
+29 Aug
+
+
+GRN-0110
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+29 Aug
+	
+29 Aug
+
+
+GRN-0109
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+27 Aug
+	
+27 Aug
+
+
+GRN-0105
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0106
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0108
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0107
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+26 Aug
+	
+26 Aug
+
+
+GRN-0104
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+24 Aug
+	
+24 Aug
+
+
+GRN-0103
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+21 Aug
+	
+21 Aug
+
+
+GRN-0095
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0096
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0101
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0100
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0098
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0099
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0102
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0097
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+19 Aug
+	
+19 Aug
+
+
+GRN-0094
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+18 Aug
+	
+18 Aug
+
+
+GRN-0093
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+15 Aug
+	
+15 Aug
+
+
+GRN-0089
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0092
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0087
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0091
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0088
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0090
+	
+MOM Foods — Bikaner
+	
+Godown
+	Posted	
+12 Aug
+	
+12 Aug
+
+
+GRN-0084
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+8 Aug
+	
+8 Aug
+
+
+GRN-0085
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+8 Aug
+	
+8 Aug
+
+
+GRN-0086
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+8 Aug
+	
+8 Aug
+
+
+GRN-0083
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+6 Aug
+	
+6 Aug
+
+
+GRN-0081
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0078
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0080
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0079
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0082
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0077
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+5 Aug
+	
+5 Aug
+
+
+GRN-0076
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+3 Aug
+	
+3 Aug
+
+
+GRN-0075
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+31 Jul
+	
+31 Jul
+
+
+GRN-0073
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+30 Jul
+	
+30 Jul
+
+
+GRN-0074
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+30 Jul
+	
+30 Jul
+
+
+GRN-0069
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0070
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0072
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0071
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+29 Jul
+	
+29 Jul
+
+
+GRN-0068
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+28 Jul
+	
+28 Jul
+
+
+GRN-0067
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+25 Jul
+	
+25 Jul
+
+
+GRN-0058
+	
+Alan's Food Products — Bhiwandi
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0065
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0060
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0059
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0061
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0063
+	
+MOM Foods — Bikaner
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0066
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0064
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0062
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+22 Jul
+	
+22 Jul
+
+
+GRN-0056
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+20 Jul
+	
+20 Jul
+
+
+GRN-0057
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+20 Jul
+	
+20 Jul
+
+
+GRN-0055
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+18 Jul
+	
+18 Jul
+
+
+GRN-0054
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+16 Jul
+	
+16 Jul
+
+
+GRN-0050
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0051
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0052
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0053
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+15 Jul
+	
+15 Jul
+
+
+GRN-0049
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+13 Jul
+	
+13 Jul
+
+
+GRN-0046
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+10 Jul
+	
+10 Jul
+
+
+GRN-0047
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+10 Jul
+	
+10 Jul
+
+
+GRN-0048
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+10 Jul
+	
+10 Jul
+
+
+GRN-0044
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0041
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0039
+	
+Alan's Food Products — Bhiwandi
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0045
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0040
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0042
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0043
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+8 Jul
+	
+8 Jul
+
+
+GRN-0038
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+7 Jul
+	
+7 Jul
+
+
+GRN-0037
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+4 Jul
+	
+4 Jul
+
+
+GRN-0031
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0034
+	
+MOM Foods — Bikaner
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0035
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0032
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0033
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0036
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+1 Jul
+	
+1 Jul
+
+
+GRN-0029
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+30 Jun
+	
+30 Jun
+
+
+GRN-0030
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+30 Jun
+	
+30 Jun
+
+
+GRN-0028
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+27 Jun
+	
+27 Jun
+
+
+GRN-0027
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+25 Jun
+	
+25 Jun
+
+
+GRN-0025
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0023
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0022
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0024
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0021
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0020
+	
+Alan's Food Products — Bhiwandi
+	
+Godown
+	Posted	
+24 Jun
+	
+24 Jun
+
+
+GRN-0019
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+22 Jun
+	
+22 Jun
+
+
+GRN-0017
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+20 Jun
+	
+20 Jun
+
+
+GRN-0018
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+20 Jun
+	
+20 Jun
+
+
+GRN-0016
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+19 Jun
+	
+19 Jun
+
+
+GRN-0013
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0012
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0014
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0015
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+17 Jun
+	
+17 Jun
+
+
+GRN-0011
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+16 Jun
+	
+16 Jun
+
+
+GRN-0010
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	
+Godown
+	Posted	
+13 Jun
+	
+13 Jun
+
+
+GRN-0006
+	
+Rajwadi Beverages — Bhiwandi Depot
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0003
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0004
+	
+Konkan Traders, Ratnagiri
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0001
+	
+Annapurna Agro — Kalyan Mill Depot
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0007
+	
+Reliance Consumer Products — Kalyan Depot
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0002
+	
+Guiltfree Industries — Gurugram
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0005
+	
+MOM Foods — Bikaner
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0009
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+
+
+GRN-0008
+	
+Shubhda Consumer Care — Vapi Works
+	
+Godown
+	Posted	
+10 Jun
+	
+10 Jun
+Against bill GUR/26-27/00701
+Close
+Godown
+Godown
+State
+Reconciled
+3 of 3 lines counted
+26 Sep
+Lines on this receipt
+Balaji Masala Masti Wafers 45 g
+Received 180 · Expected 180 · Damaged 0
+Balaji Simply Salted Wafers 45 g
+Received 186 · Expected 186 · Damaged 0
+Balaji Chataka Pataka Wafers 45 g
+Received 90 · Expected 90 · Damaged 0
+Post the receipt
+Post the receipt
+Posting writes the lots, the stock ledger and the purchase cost. There is no undo.
+Lines: 3 · 456 pc good · 0 pc damaged, into Godown
+Cancel
+Post the receipt

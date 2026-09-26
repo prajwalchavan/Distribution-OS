@@ -1,0 +1,84 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+For a bill that cannot be photographed, or whose photo could not be read. Type it as printed; the gate still counts the goods blind before anything is posted.
+Supplier
+Supplier
+Guru Kripa Agencies (Balaji Super-Stockist)
+27AAJFG7845K1ZT · Same state: CGST + SGST
+Change supplier
+The bill
+Bill no.
+Bill date
+DD-MM-YYYY, as printed
+Total printed on the bill
+₹
+Optional. Leave empty to round to the rupee.
+Lines
+Add a line
+One line per item and batch · 0 so far
+No line yet. Add one per item and batch, as the bill prints them.
+Totals
+Taxable value
+₹0.00
+CGST
+₹0.00
+SGST
+₹0.00
+Round-off
+₹0.00
+Bill total
+₹0.00
+Add a line
+Close
+Item
+Balaji Masala Masti Wafers 45 g
+HSN 2106 · this supplier packs 90 pc a case
+Change item
+Batch no.
+Expiry date
+166 days of shelf life
+In cases
+In pieces
+Cases billed
+180 pc
+Free pieces
+Rate per case
+Rate per piece
+Rate per case ₹
+₹
+Before GST, after the supplier discount
+GST %
+From HSN 2106: 18%. Type only if the bill printed another rate.
+MRP ₹
+₹
+As printed on the pack; filled from the catalog
+180 pc · taxable ₹2377.80 · tax ₹428.00
+₹2,805.80
+Keep this line
+Bill total
+₹0.00
+Book the bill
+Add every line, each complete
