@@ -297,6 +297,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| GET | `/delivery/trips/{tripId}/van-stock` | What the crew may sell from the van: its stock less this trip's bills still on board | owner, manager, delivery |
 | POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
@@ -649,6 +650,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| GET | `/delivery/trips/{tripId}/van-stock` | What the crew may sell from the van: its stock less this trip's bills still on board | owner, manager, delivery |
 | POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
@@ -1176,6 +1178,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| GET | `/delivery/trips/{tripId}/van-stock` | What the crew may sell from the van: its stock less this trip's bills still on board | owner, manager, delivery |
 | POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
@@ -1455,6 +1458,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| GET | `/delivery/trips/{tripId}/van-stock` | What the crew may sell from the van: its stock less this trip's bills still on board | owner, manager, delivery |
 | POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
@@ -1700,6 +1704,7 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| GET | `/delivery/trips/{tripId}/van-stock` | What the crew may sell from the van: its stock less this trip's bills still on board | owner, manager, delivery |
 | POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |

@@ -189,6 +189,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/delivery/collections` | Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill first | owner, manager, accountant, delivery |
 | GET | `/delivery/collections` | What the crew collected, with totals by mode | owner, manager, accountant, delivery |
 | POST | `/delivery/van-sales` | Sell from van stock: order, bill on the normal series, delivery and collection in one call | owner, manager, delivery |
+| GET | `/delivery/trips/{tripId}/van-stock` | What the crew may sell from the van: its stock less this trip's bills still on board | owner, manager, delivery |
 | POST | `/delivery/expenses` | Record a trip expense with its proof | owner, manager, accountant, delivery |
 | GET | `/delivery/expenses` | Trip expenses with a total | owner, manager, accountant, delivery |
 | POST | `/gps/points` | A batch of GPS breadcrumbs from one phone (never through the sync queue, never 4xx for a stale batch) | owner, manager, delivery |
@@ -5647,13 +5648,14 @@ On-hand and reserved per lot per location (stock keepers only) · contract `inve
 | `lotId` | uuid | no |
 | `expiringBefore` | date | no |
 | `nearExpiryOnly` | boolean | string | no |
+| `nonZero` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3004/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&limit=200" \
+curl "http://localhost:3004/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&nonZero=true&limit=200" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -10922,7 +10924,36 @@ curl "http://localhost:3004/approvals?status=pending&orderId=01a06d67-52a6-70c4-
       "orderNo": "SO-0042",
       "orderTotalPaise": 2680000,
       "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
-      "retailerName": "text"
+      "retailerName": "text",
+      "tripSettlement": {
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "tripNo": "SO-0042",
+        "tripDate": "2026-09-04",
+        "tripState": "text",
+        "vehicleRegNo": "SO-0042",
+        "openingCashPaise": 4000,
+        "cashCollectedPaise": 4000,
+        "expensesPaise": 4000,
+        "expectedCashPaise": 4000,
+        "handedOverCashPaise": 4000,
+        "cashVariancePaise": 4000,
+        "tolerancePaise": 4000,
+        "upiCollectedPaise": 4000,
+        "chequeCollectedPaise": 4000,
+        "stockVariance": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "variantName": "Campa Cola 750 ml",
+            "batchNo": null,
+            "caseSize": null,
+            "expectedPcs": 24,
+            "countedPcs": 24,
+            "deltaPcs": 24,
+            "valuePaise": null
+          }
+        ],
+        "stockVarianceValuePaise": 4000
+      }
     }
   ],
   "nextCursor": null
@@ -11155,6 +11186,11 @@ request.json
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
     ]
+  },
+  "trip": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "state": "text"
   }
 }
 ```
@@ -23213,6 +23249,106 @@ request.json
 }
 ```
 
+### GET `/delivery/trips/{tripId}/van-stock`
+
+What the crew may sell from the van: its stock less this trip's bills still on board · contract `delivery.vanSales.stock`
+
+**Roles:** owner, manager, delivery
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `tripId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3004/delivery/trips/01a06d0b-bd31-7813-8e79-aa7c39f75385/van-stock" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "items": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+      "variantName": "Campa Cola 750 ml",
+      "batchNo": "SO-0042",
+      "mrpPaise": 4000,
+      "expiryDate": "2026-09-04",
+      "caseSize": 24,
+      "availablePcs": 24,
+      "heldForBillsPcs": 24
+    }
+  ],
+  "vanSalesAllowed": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the warehouse role may not call GET /delivery/trips/{tripId}/van-stock",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### POST `/delivery/expenses`
 
 Record a trip expense with its proof · contract `delivery.expenses.record`
@@ -34931,6 +35067,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.collections.record` | – | – | – | – | – | – | – |
 | `delivery.collections.list` | – | – | – | – | – | – | – |
 | `delivery.vanSales.create` | – | – | – | – | – | – | – |
+| `delivery.vanSales.stock` | – | – | – | – | – | – | – |
 | `delivery.expenses.record` | – | – | – | – | – | – | – |
 | `delivery.expenses.list` | – | – | – | – | – | – | – |
 | `delivery.gps.points` | – | – | – | – | – | – | – |

@@ -1,0 +1,53 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+26 Sep
+MH-05-CD-5678
+Waiting for the manager
+Waiting for the manager
+A manager approves this sheet from the manager app. This screen unlocks the moment it lands.
+ORDERS ON THIS SHEET
+3 orders
+Ambika Provision Store
+SO-0879
+INV/9007
+Ambika Provision Store
+SO-0850
+INV/0820
+Nutan Kirana Stores
+SO-0845
+INV/0815
+WHAT GOES ON THE VEHICLE
+Annapurna Sulphurless Sugar 1 kg
+2 cs = 40 pc
+Exp 30 May 2027
+Campa Cola 750 ml
+1 cs = 24 pc
+Exp 9 Feb 2027
+Campa Cola 750 ml
+13 cs + 13 pc = 325 pc
+Exp 19 May 2027
+Campa Lemon 750 ml
+1 cs + 1 pc = 25 pc
+Exp 11 May 2027
+Neelam Herbal Toothpaste 200 g
+16 pc
+Exp 17 Jun 2028
+Rajwadi Jeera Masala Soda 250 ml
+5 cs = 240 pc
+Exp 27 May 2027
+Sunbake Bourbon Cream 300 g
+12 pc
+Exp 26 Mar 2027
+Declared value
+₹18,205.00
+A sheet is cancelled by the manager.
+Close
+Waiting for the manager
+Send the vehicle out
+A manager approves this sheet from the manager app. This screen unlocks the moment it lands.
+Inbound
+Pick
+Pack
+Load

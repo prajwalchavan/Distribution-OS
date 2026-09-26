@@ -1,0 +1,126 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Approvals
+All
+Order approvals
+Rate requests
+Today
+Approvals
+Live map
+j / k move · 1 approve · 2 reject
+Kind	What	Order	Person	Value ₹	Asked
+
+Over credit limit
+	
+Laxmi Narayan Stores
+	
+SO-0868
+	
+Rahul Deshmukh
+	17,736.00	
+12 Sep, 10:30 am
+
+
+Below floor price
+	
+Patil General Store
+	
+SO-0867
+	
+Rahul Deshmukh
+	5,367.00	
+12 Sep, 10:30 am
+
+
+Over credit limit
+	
+Patil General Store
+	
+SO-0867
+	
+Rahul Deshmukh
+	5,367.00	
+12 Sep, 10:30 am
+
+
+Bargain
+	
+Mahalaxmi General Stores
+	
+—
+	
+Rahul Deshmukh
+	22.28	
+12 Sep, 11:20 am
+
+
+Bargain
+	
+Om Sai Provision Store
+	
+—
+	
+Rahul Deshmukh
+	39.58	
+12 Sep, 11:20 am
+
+
+Trip settlement
+	
+TRIP-0001 · MH-05-CD-5678
+	
+—
+	
+Meena Joshi
+	-200.00	
+26 Sep, 9:17 pm
+TRIP-0001 · MH-05-CD-5678
+Close
+Kind
+Trip settlement
+Person
+Meena Joshi
+Asked
+26 Sep, 9:17 pm
+Trip
+TRIP-0001 · MH-05-CD-5678 · 26 Sep
+Cash the crew should hand over
+₹13,841.00
+Float ₹500.00 + cash taken ₹13,341.00 − expenses ₹0.00
+Cash handed over
+₹13,641.00
+Difference
+₹200.00 short
+You allow ₹100.00 either way
+Also taken on this trip
+UPI ₹0.00 · cheques ₹0.00
+Van count
+Neelam Herbal Toothpaste 200 g · SC20260618
+Should be 16 pc · counted 0 pc
+16 pc missing · ₹1,107.84 at cost
+Rajwadi Jeera Masala Soda 250 ml · RJ20260830
+Should be 240 pc · counted 0 pc
+240 pc missing · ₹1,864.80 at cost
+Pieces written off the van: 256 · at cost ₹2,972.64
+Note for the person who asked
+Approve
+1
+Reject
+2
+Write a note first — the person who asked will read it.

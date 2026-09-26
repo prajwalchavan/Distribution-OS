@@ -1,0 +1,99 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Approvals
+All
+Order approvals
+Rate requests
+Today
+Approvals
+Live map
+j / k move · 1 approve · 2 reject
+Kind	What	Order	Person	Value ₹	Asked
+
+Over credit limit
+	
+Laxmi Narayan Stores
+	
+SO-0868
+	
+Rahul Deshmukh
+	17,736.00	
+12 Sep, 10:30 am
+
+
+Below floor price
+	
+Patil General Store
+	
+SO-0867
+	
+Rahul Deshmukh
+	5,367.00	
+12 Sep, 10:30 am
+
+
+Over credit limit
+	
+Patil General Store
+	
+SO-0867
+	
+Rahul Deshmukh
+	5,367.00	
+12 Sep, 10:30 am
+
+
+Bargain
+	
+Mahalaxmi General Stores
+	
+—
+	
+Rahul Deshmukh
+	22.28	
+12 Sep, 11:20 am
+
+
+Bargain
+	
+Om Sai Provision Store
+	
+—
+	
+Rahul Deshmukh
+	39.58	
+12 Sep, 11:20 am
+
+
+Trip settlement
+	
+TRIP-0001 · MH-05-CD-5678
+	
+—
+	
+Meena Joshi
+	-200.00	
+26 Sep, 9:19 pm
+Approve TRIP-0001 · MH-05-CD-5678
+Trip settlement
+-₹200.00
+Approving settles TRIP-0001 now: cash ₹200.00 short.
+Then the trip's cash and cheques can be banked.
+Cancel
+Approve
