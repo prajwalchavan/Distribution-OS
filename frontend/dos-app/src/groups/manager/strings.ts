@@ -685,6 +685,7 @@ export const strings = {
   'm8.piecesToCredit': 'Pieces to credit',
   'm8.leftToCredit': '{left} pc left to credit',
   'm8.nothingLeft': 'Already credited in full',
+  'm8.worth': 'Credits {amount} before GST — what the shop paid for these pieces, after its scheme',
   'm8.overLeft': 'Only {left} pc left to credit on this line',
   'm8.wholePieces': 'Type whole pieces, like 5 or 40',
   'm8.fixPieces': 'Fix the pieces marked in red first',

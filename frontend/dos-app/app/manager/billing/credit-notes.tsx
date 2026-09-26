@@ -10,6 +10,11 @@
  * its quantities are the ones the shop was charged, and the person here says how many of each are
  * coming back and whether they are saleable. Nothing is retyped and nothing is derived.
  *
+ * QA DOS-242: a returned piece is worth what the shop PAID for it — the line's taxable after its scheme,
+ * pro rata — never the list rate the bill prints. The server prices it (`creditableTaxable` in
+ * @dos/domain); this screen no longer sends the list rate with every line, and shows the same figure
+ * under each line before anything is drafted.
+ *
  * How many pieces are LEFT to credit on a line is the server's own rule (`piecesLeftToCredit` in
  * @dos/domain): billed plus free, less every note on the bill that is not cancelled. The field says
  * that figure and refuses more before anything is sent; if the server still refuses, its sentence sits
@@ -24,7 +29,13 @@ import {
   type CreditNoteReason,
 } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { creditedPiecesByLine, piecesLeftToCredit } from '@dos/domain'
+import {
+  creditableTaxable,
+  creditedPiecesByLine,
+  creditedTaxableByLine,
+  paise,
+  piecesLeftToCredit,
+} from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -41,6 +52,7 @@ import {
   Txt,
   billLineQty,
   formatCount,
+  formatINR,
   parsePieces,
   useColors,
   useStrings,
@@ -166,7 +178,6 @@ export default function CreditNotes(): React.JSX.Element {
           id: string
           invoiceLineId: string
           qtyPcs: number
-          ratePaise: number
         }[]
       },
       meta,
@@ -182,7 +193,6 @@ export default function CreditNotes(): React.JSX.Element {
           invoiceLineId: line.invoiceLineId,
           qtyPcs: line.qtyPcs,
           saleable: isSaleableCreditNoteReason(input.reason),
-          ratePaise: line.ratePaise,
         })),
       }),
     { invalidates: [['creditNotes'], ['invoices'], ['receivables']] },
@@ -224,6 +234,7 @@ export default function CreditNotes(): React.JSX.Element {
   ]
 
   const credited = creditedPiecesByLine(prior.data ?? [])
+  const creditedValue = creditedTaxableByLine(prior.data ?? [])
   /** Every bill line with what is left to credit on it, what was typed against it and what is wrong. */
   const entries = (bill.data?.item.lines ?? []).map((line) => {
     // Clamped for display only; the server refuses anything above its own figure either way.
@@ -238,7 +249,19 @@ export default function CreditNotes(): React.JSX.Element {
       : parsed.reason === 'unparseable'
         ? t('m8.wholePieces')
         : undefined
-    return { line, left, text, pieces, error }
+    // What these pieces give back before GST: the server's own rule, so the figure here is the note's.
+    const worth =
+      error === undefined && pieces > 0
+        ? creditableTaxable(
+            line,
+            {
+              pcs: credited.get(line.id) ?? 0,
+              taxablePaise: creditedValue.get(line.id) ?? 0,
+            },
+            pieces,
+          )
+        : null
+    return { line, left, text, pieces, error, worth }
   })
   /*
    * One id per bill line, made the first time that line is drafted and kept while this bill's sheet is
@@ -258,7 +281,6 @@ export default function CreditNotes(): React.JSX.Element {
     id: heldLineIds.current.ids[entry.line.id] ?? entry.line.id,
     invoiceLineId: entry.line.id,
     qtyPcs: entry.pieces,
-    ratePaise: entry.line.ratePaise,
   }))
   /** A typed entry that is not a whole count, or is above what is left: nothing is sent until it is fixed. */
   const invalid = entries.some((entry) => entry.error !== undefined)
@@ -481,7 +503,7 @@ export default function CreditNotes(): React.JSX.Element {
               rows={4}
             >
               <Stack gap={4}>
-                {entries.map(({ line, left, text, error }) => (
+                {entries.map(({ line, left, text, error, worth }) => (
                   <Stack key={line.id} gap={2} border="bottom" borderTone="faint" padY={3}>
                     <Txt field="body" desk="body" numberOfLines={1}>
                       {line.description}
@@ -512,6 +534,17 @@ export default function CreditNotes(): React.JSX.Element {
                       error={error}
                       testID={`return-${line.id}`}
                     />
+                    {worth === null ? null : (
+                      <Txt
+                        field="label"
+                        desk="meta"
+                        color={colors.text.secondary}
+                        numeric
+                        testID={`return-worth-${line.id}`}
+                      >
+                        {t('m8.worth', { amount: formatINR(paise(worth)) })}
+                      </Txt>
+                    )}
                   </Stack>
                 ))}
                 {/* The server's refusal sits directly above the button it answers, never below the fold. */}
