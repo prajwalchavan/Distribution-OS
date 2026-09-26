@@ -200,7 +200,7 @@ export class SettlementService {
         const onVan = van.get(input.lotId) ?? 0
         if (onVan < input.qtyPcs)
           throw new ORPCError('CONFLICT', {
-            message: `the vehicle holds ${String(onVan)} pc of this batch; ${String(input.qtyPcs)} were counted — count again`,
+            message: `The vehicle holds ${String(onVan)} pc of this batch and ${String(input.qtyPcs)} were counted: count it again — nothing was moved`,
             data: { code: 'van_short', onVanPcs: onVan, countedPcs: input.qtyPcs },
           })
         const owed = back.owed.filter((o) => o.lotId === input.lotId && o.pcs > 0)
@@ -309,7 +309,8 @@ export class SettlementService {
       )
       .orderBy(asc(trips.id))
     const closing: TripRow[] = []
-    for (const t of found) closing.push(opts.lock ? await lockTrip(tx, t.id) : await findTrip(tx, t.id))
+    for (const t of found)
+      closing.push(opts.lock ? await lockTrip(tx, t.id) : await findTrip(tx, t.id))
     if (closing.length === 0) return { trips: [], owed: [] }
 
     const failed = await asSystemRole(tx, () =>
@@ -328,7 +329,13 @@ export class SettlementService {
         )
         .orderBy(asc(deliveries.id)),
     )
-    const lines: { lotId: string; invoiceId: string; invoiceNo: string | null; retailerId: string; pcs: number }[] = []
+    const lines: {
+      lotId: string
+      invoiceId: string
+      invoiceNo: string | null
+      retailerId: string
+      pcs: number
+    }[] = []
     const seen = new Set<string>()
     for (const row of failed) {
       if (seen.has(row.invoiceId)) continue

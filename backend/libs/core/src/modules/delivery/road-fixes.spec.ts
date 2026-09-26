@@ -1350,9 +1350,15 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     expect(await onHandOf(lotA, dock)).toBe(dockBefore + 12)
     expect(await onHandOf(lotA, godown)).toBe(rackBefore + 10)
     expect(await onHandOf(lotA, vehicleLocationId)).toBe(0)
-    const nothingLeft = await call<{ items: unknown[] }>(app, packer, 'GET', '/delivery/van-returns', {
-      vehicleLocationId,
-    })
+    const nothingLeft = await call<{ items: unknown[] }>(
+      app,
+      packer,
+      'GET',
+      '/delivery/van-returns',
+      {
+        vehicleLocationId,
+      },
+    )
     expect(nothingLeft.body.items).toEqual([])
 
     // the desk settles the empty van: the dock is not staged a second time
@@ -1465,7 +1471,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
       )
     const refused = await confirm(`rf-confirm-244b-1-${run}`)
     expect(refused.status).toBe(409)
-    expect(refused.body.data?.code).toBe('dock_short')
+    expect(refused.body.data).toMatchObject({ code: 'dock_short', onDockPcs: 0, neededPcs: 12 })
 
     // "Put the pieces on the dock": the godown still holds them, so all 12 go
     const byRep = await call(app, rep, 'POST', `/warehouse/load-sheets/${sheetId}/stage-dock`, {
@@ -1510,6 +1516,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     const sent = await confirm(`rf-confirm-244b-2-${run}`)
     expect(sent.status, JSON.stringify(sent.body)).toBe(200)
     expect(sent.body.dispatched).toEqual([bill.orderId])
+    expect(await onHandOf(lotB, dock)).toBe(0)
   }, 240_000)
 
   it('DOS-241 a bill that cannot be loaded comes off the trip, and the rest of the trip leaves', async () => {

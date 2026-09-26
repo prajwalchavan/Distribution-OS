@@ -53,10 +53,7 @@ export function creditedTaxableByLine(
   for (const note of notes) {
     if (note.state === 'cancelled') continue
     for (const line of note.lines) {
-      credited.set(
-        line.invoiceLineId,
-        (credited.get(line.invoiceLineId) ?? 0) + line.taxablePaise,
-      )
+      credited.set(line.invoiceLineId, (credited.get(line.invoiceLineId) ?? 0) + line.taxablePaise)
     }
   }
   return credited
@@ -84,7 +81,6 @@ export function creditableTaxable(
   const left = Math.max(0, line.taxablePaise - already.taxablePaise)
   const upTo = Math.min(pieces, already.pcs + qtyPcs)
   if (upTo >= pieces) return left
-  const worth = (n: number): number =>
-    Math.floor((line.taxablePaise * Math.max(0, n)) / pieces)
+  const worth = (n: number): number => Math.floor((line.taxablePaise * Math.max(0, n)) / pieces)
   return Math.min(left, Math.max(0, worth(upTo) - worth(already.pcs)))
 }

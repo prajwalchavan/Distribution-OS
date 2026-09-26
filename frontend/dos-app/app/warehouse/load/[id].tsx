@@ -141,8 +141,7 @@ export default function LoadSheet(): React.JSX.Element {
   )
 
   /** QA DOS-244: the refusal the check-out answers when the dock is short of a packed batch. */
-  const dockShort =
-    (confirm.error?.data as { code?: unknown } | undefined)?.code === 'dock_short'
+  const dockShort = (confirm.error?.data as { code?: unknown } | undefined)?.code === 'dock_short'
   const stage = useMutation(
     (_input: { go: true }, meta) =>
       api.api.warehouse.loadSheets.stageDock({ id: sheetId, idempotencyKey: meta.idempotencyKey }),
@@ -444,15 +443,18 @@ export default function LoadSheet(): React.JSX.Element {
                         {stage.error.message}
                       </Txt>
                     )}
-                    <Button
-                      label={t('w7.dockStage')}
-                      variant="secondary"
-                      loading={stage.status === 'pending'}
-                      onPress={() => {
-                        stage.mutate({ go: true })
-                      }}
-                      testID="w7-dock-stage"
-                    />
+                    {stage.data !== undefined &&
+                    stage.data.items.every((line) => line.shortPcs === 0) ? null : (
+                      <Button
+                        label={t('w7.dockStage')}
+                        variant="secondary"
+                        loading={stage.status === 'pending'}
+                        onPress={() => {
+                          stage.mutate({ go: true })
+                        }}
+                        testID="w7-dock-stage"
+                      />
+                    )}
                   </Stack>
                 </Panel>
               ) : null}

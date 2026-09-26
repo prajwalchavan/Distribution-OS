@@ -1380,7 +1380,12 @@ describeDb('billing (DATABASE_URL)', () => {
 
   it('DOS-242: a returned piece of a scheme line is credited at what the shop paid for it, never the list rate, and the parts add up to the line', async () => {
     // 2 cases = 24 pc at ₹124.00 less the 3 % scheme: taxable 297 600 − 8 928 = 288 672 (INV/9026's oil line)
-    const orderId = await placeOrder(rep, shopMh, [{ variantId: variantScheme, cases: 2 }], 'dos242')
+    const orderId = await placeOrder(
+      rep,
+      shopMh,
+      [{ variantId: variantScheme, cases: 2 }],
+      'dos242',
+    )
     const { invoiceId, res } = await issueFor(orderId, 'dos242')
     expect(res.status).toBe(200)
     const line = res.body.item.lines.find((l) => l.variantId === variantScheme)
@@ -1398,7 +1403,11 @@ describeDb('billing (DATABASE_URL)', () => {
       lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 12 }],
     })
     expect(half.status).toBe(200)
-    expect(half.body.item).toMatchObject({ taxablePaise: 144_336, cgstPaise: 8_660, sgstPaise: 8_660 })
+    expect(half.body.item).toMatchObject({
+      taxablePaise: 144_336,
+      cgstPaise: 8_660,
+      sgstPaise: 8_660,
+    })
     expect(half.body.item.lines[0]?.ratePaise).toBe(12_028) // the net rate the shop paid a piece
 
     // the desk screen used to send the LIST rate with every line: it is a ceiling, never a price
@@ -1419,13 +1428,19 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(withListRate.body.item.taxablePaise).toBe(60_140) // floor(288 672 × 17 / 24) − 144 336
 
     // the last 7 pieces take exactly what is left of the line: the notes on it sum to 288 672, not a paisa more
-    const rest = await call<{ item: CreditNoteDetailBody }>(app, accountant, 'POST', '/credit-notes', {
-      idempotencyKey: `dos242-rest-${run}`,
-      id: uuidv7(),
-      invoiceId,
-      reason: 'return_saleable',
-      lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 7 }],
-    })
+    const rest = await call<{ item: CreditNoteDetailBody }>(
+      app,
+      accountant,
+      'POST',
+      '/credit-notes',
+      {
+        idempotencyKey: `dos242-rest-${run}`,
+        id: uuidv7(),
+        invoiceId,
+        reason: 'return_saleable',
+        lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 7 }],
+      },
+    )
     expect(rest.status).toBe(200)
     expect(rest.body.item.taxablePaise).toBe(84_196)
     expect(144_336 + 60_140 + rest.body.item.taxablePaise).toBe(288_672)
@@ -1485,7 +1500,12 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(dues.body).toMatchObject({ outstandingPaise: 0, unallocatedCreditPaise: credit })
 
     // the next bill: the desk matches the note to it, and the shop owes the bill less the note
-    const nextOrder = await placeOrder(rep, shopPaid, [{ variantId: variantA, cases: 1 }], 'dos245b')
+    const nextOrder = await placeOrder(
+      rep,
+      shopPaid,
+      [{ variantId: variantA, cases: 1 }],
+      'dos245b',
+    )
     const next = await issueFor(nextOrder, 'dos245b')
     expect(next.res.status).toBe(200)
     const matched = await call<{ sourceUnallocatedPaise: number }>(

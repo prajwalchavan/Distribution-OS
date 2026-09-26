@@ -581,7 +581,7 @@ export const strings = {
   'm7t.needBill': 'Choose at least one bill, or send the van to sell',
   /* QA DOS-241: the bills planned on a trip that has not left, and taking one off it. */
   'm7d.title': 'Bills on {trip}',
-  'm7d.count': '{count} not loaded or delivered yet',
+  'm7d.count': '{count} still to deliver',
   'm7d.body':
     'A bill the godown cannot load — its batch is gone, or the shop cancelled — can come off this trip. It goes back on the planning board; nothing about the bill or the stock changes.',
   'm7d.dialogTitle': 'Take {bill} off the trip',

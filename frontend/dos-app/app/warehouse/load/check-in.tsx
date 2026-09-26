@@ -223,6 +223,7 @@ export default function VanCheckIn(): React.JSX.Element {
                           ? {}
                           : { reason: batch })}
                       onPress={() => {
+                        moveBack.reset()
                         setCounting(row)
                         setPieces(null)
                       }}
@@ -240,12 +241,6 @@ export default function VanCheckIn(): React.JSX.Element {
         )}
 
         <DeskOnly>{t('w9.settlementIsDesk')}</DeskOnly>
-
-        {moveBack.error === undefined ? null : (
-          <Txt field="body" desk="body" color={colors.status.brick.fg}>
-            {moveBack.error.message}
-          </Txt>
-        )}
       </Stack>
 
       <Sheet
@@ -257,6 +252,12 @@ export default function VanCheckIn(): React.JSX.Element {
         testID="w9-sheet"
       >
         <Stack gap={4}>
+          {/* The refusal sits in the sheet, where the count was pressed — never behind it. */}
+          {moveBack.error === undefined ? null : (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w9-refusal">
+              {moveBack.error.message}
+            </Txt>
+          )}
           <NumberPad
             testID="w9-pad"
             mode="count"

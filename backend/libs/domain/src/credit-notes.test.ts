@@ -86,7 +86,13 @@ describe('creditableTaxable (QA DOS-242)', () => {
   })
 
   it('free goods: a gift line is worth nothing, a mixed line spreads its value over every piece', () => {
-    expect(creditableTaxable({ qtyPcs: 0, freeQtyPcs: 6, taxablePaise: 0 }, { pcs: 0, taxablePaise: 0 }, 6)).toBe(0)
+    expect(
+      creditableTaxable(
+        { qtyPcs: 0, freeQtyPcs: 6, taxablePaise: 0 },
+        { pcs: 0, taxablePaise: 0 },
+        6,
+      ),
+    ).toBe(0)
     const mixed = { qtyPcs: 10, freeQtyPcs: 2, taxablePaise: 12_000 }
     expect(creditableTaxable(mixed, { pcs: 0, taxablePaise: 0 }, 6)).toBe(6_000)
     expect(creditableTaxable(mixed, { pcs: 0, taxablePaise: 0 }, 12)).toBe(12_000)

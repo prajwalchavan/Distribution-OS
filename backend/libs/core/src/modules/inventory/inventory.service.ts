@@ -663,7 +663,11 @@ export class InventoryService {
    * rows locked `FOR UPDATE`, so a caller that moves the pieces in the same transaction cannot race a picker
    * or another mover for them (QA DOS-244: rack → dock for a bill's next load).
    */
-  async freeAt(tx: Db, locationId: string, lotIds: readonly string[]): Promise<Map<string, number>> {
+  async freeAt(
+    tx: Db,
+    locationId: string,
+    lotIds: readonly string[],
+  ): Promise<Map<string, number>> {
     const { tenantId } = currentTenant()
     const ids = [...new Set(lotIds)]
     if (ids.length === 0) return new Map()
@@ -683,9 +687,7 @@ export class InventoryService {
       )
       .orderBy(asc(stockBalances.lotId))
       .for('update')
-    return new Map(
-      rows.map((r) => [r.lotId, Math.max(0, Number(r.onHand) - Number(r.reserved))]),
-    )
+    return new Map(rows.map((r) => [r.lotId, Math.max(0, Number(r.onHand) - Number(r.reserved))]))
   }
 
   /**

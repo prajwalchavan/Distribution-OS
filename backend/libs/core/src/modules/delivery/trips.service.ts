@@ -681,7 +681,7 @@ export class TripsService {
         const tripName = trip.tripNo ?? trip.id
         if (trip.state !== 'planned' && trip.state !== 'loading')
           throw new ORPCError('CONFLICT', {
-            message: `trip ${tripName} is ${trip.state}; a bill comes off a trip only before it leaves`,
+            message: `Trip ${tripName} has already left (${trip.state}); a bill comes off a trip only before it leaves. What it brings back is recorded at the door or at the check-in.`,
             data: { code: 'trip_left', tripState: trip.state },
           })
         const planned = await tx
@@ -701,7 +701,7 @@ export class TripsService {
         const bill = invoice.invoiceNo ?? invoice.id
         if (planned.length === 0)
           throw new ORPCError('CONFLICT', {
-            message: `bill ${bill} is not planned on trip ${tripName}`,
+            message: `Bill ${bill} is not planned on trip ${tripName}`,
             data: { code: 'bill_not_on_trip' },
           })
         const orderIds = [
@@ -713,17 +713,40 @@ export class TripsService {
             throw new ORPCError('CONFLICT', {
               message:
                 order.state === 'dispatched'
-                  ? `bill ${bill} was counted out onto the van; it comes off at the door or at the check-in, not here`
-                  : `bill ${bill} is ${order.state}; only a packed bill waiting to be loaded comes off a trip`,
+                  ? `Bill ${bill} is already on the van (the godown counted it out); it comes off at the door or at the check-in, not here`
+                  : `Bill ${bill} is ${order.state}; only a packed bill waiting to be loaded comes off a trip`,
               data: { code: 'bill_loaded', orderState: order.state },
             })
         }
         const onDraft = await this.loadSheets.ordersOnADraftSheet(tx, orderIds)
-        if (onDraft.size > 0)
+        if (onDraft.length > 0) {
+          // Named the way the desk knows a sheet: by its trip and vehicle, never by its id.
+          const tripNos = await tx
+            .select({ id: trips.id, tripNo: trips.tripNo })
+            .from(trips)
+            .where(
+              inArray(
+                trips.id,
+                onDraft.map((s) => s.tripId).filter((id): id is string => id !== null),
+              ),
+            )
+          const tripNo = new Map(tripNos.map((r) => [r.id, r.tripNo]))
+          const where = onDraft
+            .map((s) =>
+              [s.tripId === null ? null : (tripNo.get(s.tripId) ?? null), s.vehicleRegNo]
+                .filter((part): part is string => part !== null)
+                .join(' · '),
+            )
+            .map((name) => (name === '' ? 'a sheet with no trip' : name))
+            .join(', ')
           throw new ORPCError('CONFLICT', {
-            message: `bill ${bill} is on draft load sheet ${[...new Set(onDraft.values())].join(', ')}; cancel or rebuild that sheet without it first`,
-            data: { code: 'bill_on_draft_sheet', loadSheetIds: [...new Set(onDraft.values())] },
+            message: `Bill ${bill} is still on a load sheet the godown has not sent out (${where}). Cancel that sheet under Load-out, or have the godown build it again without this bill, then take it off.`,
+            data: {
+              code: 'bill_on_draft_sheet',
+              loadSheetIds: onDraft.map((s) => s.sheetId),
+            },
           })
+        }
 
         const now = new Date()
         await tx.delete(deliveries).where(

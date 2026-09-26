@@ -530,7 +530,8 @@ export class LoadSheetsService {
           const available = onTheDock.get(lotId) ?? 0
           if (available >= qtyPcs) continue
           throw new ORPCError('CONFLICT', {
-            message: `Only ${String(available)} pc of ${lotLabel.get(lotId) ?? `lot ${lotId}`} are on the dock, the sheet needs ${String(qtyPcs)}; find the cartons or take the bill off the sheet — nothing was loaded`,
+            // QA DOS-244: the sentence names the two ways out that now exist on the screens.
+            message: `Only ${String(available)} pc of ${lotLabel.get(lotId) ?? `lot ${lotId}`} are on the dock, the sheet needs ${String(qtyPcs)}. If they are in the godown, bring them over and press "Bring them from the godown"; if not, the manager takes the bill off the trip — nothing was loaded`,
             data: {
               code: 'dock_short',
               lotId,
@@ -697,6 +698,7 @@ export class LoadSheetsService {
         const items: StageDockOut['items'] = []
         for (const [lotId, neededPcs] of need) {
           const onDockPcs = onDock.get(lotId) ?? 0
+          // The same arithmetic `confirm` refuses on: the dock's pieces of the lot against the sheet's need.
           const short = Math.max(0, neededPcs - onDockPcs)
           const stagedPcs = Math.min(short, free.get(lotId) ?? 0)
           if (stagedPcs > 0) {
@@ -1025,8 +1027,27 @@ export class LoadSheetsService {
    * included), so a change to one changes both.
    */
   /** Which of `orderIds` a DRAFT sheet still carries, as order id → sheet id (delivery's `trips.dropBill`, QA DOS-241). */
-  ordersOnADraftSheet(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
-    return this.onADraftSheet(tx, orderIds)
+  async ordersOnADraftSheet(
+    tx: Db,
+    orderIds: readonly string[],
+  ): Promise<{ sheetId: string; tripId: string | null; vehicleRegNo: string | null }[]> {
+    const onDraft = await this.onADraftSheet(tx, orderIds)
+    const ids = [...new Set(onDraft.values())]
+    if (ids.length === 0) return []
+    const rows = await tx
+      .select({ id: loadSheets.id, tripId: loadSheets.tripId, to: loadSheets.toLocationId })
+      .from(loadSheets)
+      .where(inArray(loadSheets.id, ids))
+      .orderBy(loadSheets.id)
+    const regNos = await vehicleRegNos(
+      tx,
+      rows.map((r) => r.to),
+    )
+    return rows.map((r) => ({
+      sheetId: r.id,
+      tripId: r.tripId,
+      vehicleRegNo: regNos.get(r.to) ?? null,
+    }))
   }
 
   private async onADraftSheet(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
