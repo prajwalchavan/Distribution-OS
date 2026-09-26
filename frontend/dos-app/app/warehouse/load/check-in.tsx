@@ -3,8 +3,12 @@
  *
  * This is the godown's half of the return leg. The crew's unsold cases and the goods a shop refused
  * are still standing on the vehicle's own stock location; the loader counts them, and what he counts
- * is moved back to the godown as a real `transfer_out` / `transfer_in` pair through
- * `inventory.stock.transfer`. The MONEY side of the trip — the cash, the short collections, the
+ * leaves the vehicle through `delivery.trips.unload` (QA DOS-244): the pieces of a bill that came back
+ * undelivered — a shut shop, a refusal — go to the DOCK for that bill's next trip, and only the free van
+ * stock goes back on the rack (docs/22 §8 ruling S1). Before, every piece went to the rack as free stock:
+ * FEFO sold Balaji's returned oil to the next shop (DOS-241) and Patel's bill could never be loaded again
+ * (DOS-244). Each row says which bill its pieces belong to before anything is counted, and the toast says
+ * where they went. The MONEY side of the trip — the cash, the short collections, the
  * settlement — is desk work (`trips.settlementPreview` is MONEY_COLLECTORS and does not include this
  * role, docs/23 §4.1 W9), and this screen says so instead of pretending otherwise.
  *
@@ -63,7 +67,6 @@ export default function VanCheckIn(): React.JSX.Element {
     { enabled: signedIn },
   )
   const vehicles = (locations.data?.items ?? []).filter((one) => one.kind === 'vehicle')
-  const godown = (locations.data?.items ?? []).find((one) => one.kind === 'warehouse') ?? null
 
   /*
    * DOS-234: EVERY lot still standing on the vehicle, however long its history. A balance row stays at zero
@@ -85,22 +88,60 @@ export default function VanCheckIn(): React.JSX.Element {
     { enabled: signedIn && vehicleId !== null },
   )
 
+  /*
+   * QA DOS-244: which of the pieces on this vehicle belong to a bill that came back and must stand on the
+   * dock for its next trip. Asked of the server, which knows the trip, the bills and what is already staged.
+   */
+  const returns = useQuery(
+    ['balances', vehicleId ?? 'none', 'van-returns'],
+    () => api.api.delivery.trips.vanReturns({ vehicleLocationId: vehicleId ?? '' }),
+    { enabled: signedIn && vehicleId !== null },
+  )
+  const forBills = (lotId: string): { pcs: number; line: string } => {
+    const owed = (returns.data?.items ?? []).filter((item) => item.lotId === lotId && item.pcs > 0)
+    return {
+      pcs: owed.reduce((n, item) => n + item.pcs, 0),
+      line: owed
+        .map((item) =>
+          t('w9.forBill', {
+            count: item.pcs,
+            bill: item.invoiceNo ?? t('w9.aBill'),
+            shop: item.retailerName,
+          }),
+        )
+        .join(' · '),
+    }
+  }
+
   const moveBack = useMutation(
     (input: { lotId: string; qtyPcs: number }, meta) =>
-      api.api.inventory.stock.transfer({
+      api.api.delivery.trips.unload({
+        id: meta.id,
         idempotencyKey: meta.idempotencyKey,
+        vehicleLocationId: vehicleId ?? '',
         lotId: input.lotId,
-        fromLocationId: vehicleId ?? '',
-        toLocationId: godown?.id ?? '',
         qtyPcs: input.qtyPcs,
       }),
     {
       invalidates: [['balances']],
-      onSuccess: () => {
+      onSuccess: (reply) => {
         haptics.success()
         setCounting(null)
         setPieces(null)
-        setToast(t('w9.moved'))
+        setToast(
+          reply.dockPcs > 0
+            ? reply.rackPcs > 0
+              ? t('w9.movedBoth', {
+                  dock: reply.dockPcs,
+                  rack: reply.rackPcs,
+                  bills: reply.bills.map((b) => b.invoiceNo ?? b.retailerName).join(', '),
+                })
+              : t('w9.movedDock', {
+                  dock: reply.dockPcs,
+                  bills: reply.bills.map((b) => b.invoiceNo ?? b.retailerName).join(', '),
+                })
+            : t('w9.moved'),
+        )
       },
       onError: () => {
         haptics.error()
@@ -163,22 +204,31 @@ export default function VanCheckIn(): React.JSX.Element {
           >
             <Async state={balances} empty={rows.length === 0} emptyMessage={t('w9.expectedEmpty')}>
               <Group>
-                {rows.map((row) => (
-                  <ListRow
-                    key={`${row.lotId}-${row.locationId}`}
-                    testID={`w9-lot-${row.lotId}`}
-                    primary={row.variantName}
-                    secondary={qtyLine(row.onHand, caseSizeOf(row.lotId), t)}
-                    trailing={<ExpiryChip expiryDate={row.expiryDate} />}
-                    {...(row.batchNo === ''
-                      ? {}
-                      : { reason: t('w.batch', { batch: row.batchNo }) })}
-                    onPress={() => {
-                      setCounting(row)
-                      setPieces(null)
-                    }}
-                  />
-                ))}
+                {rows.map((row) => {
+                  const bills = forBills(row.lotId)
+                  const batch = row.batchNo === '' ? null : t('w.batch', { batch: row.batchNo })
+                  return (
+                    <ListRow
+                      key={`${row.lotId}-${row.locationId}`}
+                      testID={`w9-lot-${row.lotId}`}
+                      primary={row.variantName}
+                      secondary={qtyLine(row.onHand, caseSizeOf(row.lotId), t)}
+                      trailing={<ExpiryChip expiryDate={row.expiryDate} />}
+                      {...(bills.pcs > 0
+                        ? {
+                            state: 'needsAttention' as const,
+                            reason: [batch, bills.line].filter((p) => p !== null).join(' · '),
+                          }
+                        : batch === null
+                          ? {}
+                          : { reason: batch })}
+                      onPress={() => {
+                        setCounting(row)
+                        setPieces(null)
+                      }}
+                    />
+                  )
+                })}
               </Group>
               {balances.data?.complete === false ? (
                 <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w9-partial">
@@ -218,12 +268,21 @@ export default function VanCheckIn(): React.JSX.Element {
               expected: counting?.onHand ?? 0,
             })}
             onChange={setPieces}
-            doneLabel={t('w9.moveBack')}
+            doneLabel={
+              counting !== null && forBills(counting.lotId).pcs > 0
+                ? t('w9.moveBackSplit')
+                : t('w9.moveBack')
+            }
             onDone={() => {
               if (counting === null || pieces === null || pieces <= 0) return
               moveBack.mutate({ lotId: counting.lotId, qtyPcs: pieces })
             }}
           />
+          {counting === null || forBills(counting.lotId).pcs === 0 ? null : (
+            <Txt field="body" desk="body" testID="w9-to-dock">
+              {t('w9.toDock', { line: forBills(counting.lotId).line })}
+            </Txt>
+          )}
           {counting === null || pieces === null ? null : (
             <Row gap={3} wrap>
               <StatusChip

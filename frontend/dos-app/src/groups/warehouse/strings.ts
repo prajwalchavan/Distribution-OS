@@ -426,6 +426,15 @@ export const strings = {
   'w7.confirmBody':
     '{counted} cartons leave on {vehicle}. Stock moves to the vehicle and challan paper is issued. This cannot be undone.',
   'w7.confirmFailed': 'Could not check the vehicle out',
+  /* QA DOS-244: a packed batch missing on the dock — bring it from the godown, or the desk takes the bill off. */
+  'w7.dockTitle': 'Pieces missing on the dock',
+  'w7.dockBody':
+    'Some packed pieces for this sheet are not on the dock. If they are in the godown, bring them over and press the button: the stock moves with you.',
+  'w7.dockStage': 'Bring them from the godown',
+  'w7.dockStaged': '{label}: {staged} pc moved to the dock',
+  'w7.dockStillShort':
+    '{label}: {staged} pc moved, {short} pc are not in the godown. Ask the manager to take that bill off the trip.',
+  'w7.dockReady': 'Everything is on the dock. Send the vehicle out again.',
   'w7.confirmed': 'Vehicle checked out',
   'w7.challan': 'Challan {no}',
   'w7.printChallan': 'Print the challan',
@@ -465,6 +474,14 @@ export const strings = {
   'w9.moveBack': 'Move back to the godown',
   'w9.moveFailed': 'Could not move it back',
   'w9.moved': 'Moved back to the godown',
+  /* QA DOS-244: a came-back bill's pieces go to the dock for its next trip, never back on the rack. */
+  'w9.forBill': '{count} pc are {bill} · {shop} — to the dock',
+  'w9.aBill': 'a bill',
+  'w9.toDock':
+    '{line}. That bill came back and goes out again, so these pieces wait on the dock. Anything more you count goes back to the godown.',
+  'w9.moveBackSplit': 'Move off the vehicle',
+  'w9.movedDock': '{dock} pc on the dock for {bills}',
+  'w9.movedBoth': '{dock} pc on the dock for {bills} · {rack} pc back to the godown',
   'w9.settlementIsDesk': 'The money side of the trip is settled at the desk.',
   'w9.pieces': 'Pieces counted back',
 

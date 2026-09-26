@@ -579,6 +579,18 @@ export const strings = {
   'm7t.needDriver': 'Choose a driver',
   'm7t.sameCrew': 'The helper cannot be the driver',
   'm7t.needBill': 'Choose at least one bill, or send the van to sell',
+  /* QA DOS-241: the bills planned on a trip that has not left, and taking one off it. */
+  'm7d.title': 'Bills on {trip}',
+  'm7d.count': '{count} not loaded or delivered yet',
+  'm7d.body':
+    'A bill the godown cannot load — its batch is gone, or the shop cancelled — can come off this trip. It goes back on the planning board; nothing about the bill or the stock changes.',
+  'm7d.dialogTitle': 'Take {bill} off the trip',
+  'm7d.dialogBody':
+    '{bill} · {shop} · {amount} comes off {trip} and goes back on the planning board. The rest of the trip can then load and leave.',
+  'm7d.reason': 'Why is it coming off?',
+  'm7d.needReason': 'Say why, in a few words — it goes on the trip’s record',
+  'm7d.action': 'Take it off',
+  'm7d.done': '{bill} is off the trip and back on the planning board.',
   /* DOS-233: a trip whose van also carries stock to sell at shops with no order. */
   'm7t.vanSales': 'What the van does',
   'm7t.billsOnly': 'Deliver bills',
