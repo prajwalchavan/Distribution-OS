@@ -3960,6 +3960,10 @@ const OVERRIDES: Record<
     deviceId: DROP,
   }),
   'warehouse.challans.pdf': (ctx) => ({ id: ctx.challanId, copy: 'original', format: 'a4' }),
+  // QA DOS-244: rack → dock for what a draft sheet's bills are short on the dock
+  'warehouse.loadSheets.stageDock': (ctx) => ({
+    id: ctx.approvableLoadSheetId ?? ctx.loadSheetId,
+  }),
   // --- the road (delivery) -------------------------------------------------------------------------
   // Every trip below is one the demo delivery user is crew on. The active trip is TODAY's real one:
   // a doorstep write on it is what the crew would do at the shop door, so the examples record the one
@@ -4048,6 +4052,20 @@ const OVERRIDES: Record<
   'delivery.trips.cancel': (ctx) => ({
     id: ctx.plannedTripId ?? ctx.activeTripId,
     reason: 'Vehicle in the workshop today',
+  }),
+  // QA DOS-241: a bill of the demo that is not planned on the trip — the desk's "take it off" answers 409 in words
+  'delivery.trips.dropBill': (ctx) => ({
+    id: ctx.plannedTripId ?? ctx.activeTripId,
+    invoiceId: ctx.invoiceId,
+    reason: 'Its batch is not in the godown, from the API docs',
+  }),
+  // QA DOS-244: the godown's van check-in — what the van carries back for bills, and one lot counted off it
+  'delivery.trips.vanReturns': (ctx) => ({ vehicleLocationId: ctx.vehicleLocationId }),
+  'delivery.trips.unload': (ctx) => ({
+    id: createdId('delivery.trips.unload', 'id'),
+    vehicleLocationId: ctx.vehicleLocationId,
+    lotId: ctx.lotId,
+    qtyPcs: 1,
   }),
   'delivery.trips.settlementPreview': (ctx) => ({ id: ctx.activeTripId }),
   'delivery.trips.settle': (ctx) => ({

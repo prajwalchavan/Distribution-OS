@@ -1,0 +1,44 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+Trips
+Waves
+Pick & pack
+Load-out
+Trips
+Came back undelivered
+1 bills
+INV/0815
+4,264.00
+Planned and loading
+Plan a trip
+TRIP-0004
+Active
+TRIP-0003
+Loading
+TRIP-NEXT
+Planned
+TRIP-ACTIVE
+Active
+Bills on TRIP-0003
+1 still to deliver
+A bill the godown cannot load — its batch is gone, or the shop cancelled — can come off this trip. It goes back on the planning board; nothing about the bill or the stock changes.
+Ambika Provision Store
+INV/0820
+₹12,569.00
+Add a bill to TRIP-0003
+Balaji Wholesale Stores
+INV/0838 · Station Road
+₹1,01,531.00
+Add a bill
+Choose at least one bill, or send the van to sell
+Take INV/0820 off the trip
+INV/0820 · Ambika Provision Store · ₹12,569.00 comes off TRIP-0003 and goes back on the planning board. The rest of the trip can then load and leave.
+Why is it coming off?
+Cancel
+Take it off
+Today
+Orders
+Fulfilment
+Billing

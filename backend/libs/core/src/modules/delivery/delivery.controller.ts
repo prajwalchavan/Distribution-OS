@@ -95,6 +95,21 @@ export class DeliveryController {
     return implement(d.trips.cancel).handler(({ input }) => this.trips.cancel(input))
   }
 
+  @Implement(d.trips.dropBill)
+  dropBill(@OwnsReply() _reply: unknown) {
+    return implement(d.trips.dropBill).handler(({ input }) => this.trips.dropBill(input))
+  }
+
+  @Implement(d.trips.vanReturns)
+  vanReturns(@OwnsReply() _reply: unknown) {
+    return implement(d.trips.vanReturns).handler(({ input }) => this.settlement.vanReturns(input))
+  }
+
+  @Implement(d.trips.unload)
+  unloadVan(@OwnsReply() _reply: unknown) {
+    return implement(d.trips.unload).handler(({ input }) => this.settlement.unload(input))
+  }
+
   @Implement(d.trips.settlementPreview)
   settlementPreview(@OwnsReply() _reply: unknown) {
     return implement(d.trips.settlementPreview).handler(({ input }) =>

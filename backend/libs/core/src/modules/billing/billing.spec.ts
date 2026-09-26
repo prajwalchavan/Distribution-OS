@@ -17,6 +17,7 @@ import {
   retailerIdentities,
   retailerLinks,
   retailers,
+  schemes,
   tenantProducts,
   tenants,
   tenantSettings,
@@ -139,6 +140,10 @@ describeDb('billing (DATABASE_URL)', () => {
   const variantA = uuidv7()
   const variantB = uuidv7()
   const variantCess = uuidv7() // DOS-079: on `cessHsn`, ₹22.97 a piece
+  /** DOS-242: ₹124.00 a piece under a 3 % line scheme, like the simulation's Annapurna oil. */
+  const variantScheme = uuidv7()
+  /** DOS-245: a shop of its own, so its dues and its AR in the book are exact. */
+  const shopPaid = uuidv7()
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -339,12 +344,23 @@ describeDb('billing (DATABASE_URL)', () => {
         hsnCode: cessHsn,
         mrpPaise: 4000,
       },
+      {
+        id: variantScheme,
+        productId,
+        name: 'Sunflower Oil 1 L',
+        netQty: 1,
+        netUnit: 'l',
+        defaultCaseSize: 12,
+        hsnCode: hsn,
+        mrpPaise: 15000,
+      },
     ])
     // the tenant sells in 12s even though the maker prints 24 (docs/17 B: sell-side pack wins)
     await db.insert(tenantProducts).values([
       { id: uuidv7(), tenantId, variantId: variantA, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantScheme, caseSizeOverride: 12 },
     ])
     await db.insert(hsnRates).values([
       { id: uuidv7(), hsnCode: hsn, gstBps: 1200, cessBps: 0, effectiveFrom: '2020-04-01' },
@@ -387,6 +403,16 @@ describeDb('billing (DATABASE_URL)', () => {
         creditDays: 7,
       },
       {
+        id: shopPaid,
+        tenantId,
+        code: `PAID-${run}`,
+        name: `Patel Provision ${run}`,
+        phone: `+91972${run}4`,
+        stateCode: '27',
+        gstRegType: 'unregistered',
+        creditDays: 7,
+      },
+      {
         id: shopB2c,
         tenantId,
         code: `B2C-${run}`,
@@ -414,7 +440,27 @@ describeDb('billing (DATABASE_URL)', () => {
       { id: uuidv7(), tenantId, priceListId, variantId: variantA, ratePaise: 1000 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantScheme, ratePaise: 12_400 },
     ])
+    await db.insert(schemes).values({
+      id: uuidv7(),
+      tenantId,
+      name: `Oil 3 % ${run}`,
+      scope: { variantIds: [variantScheme] },
+      triggerKind: 'qty',
+      triggerMin: 1,
+      triggerUnit: 'pcs',
+      rewardKind: 'line_pct',
+      rewardValue: 300,
+      applicability: {},
+      validFrom: '2020-01-01',
+      validTo: '2099-12-31',
+      stackable: true,
+      final: false,
+      fundingSource: 'distributor',
+      claimable: false,
+      active: true,
+    })
 
     const locs = await db
       .select()
@@ -457,6 +503,11 @@ describeDb('billing (DATABASE_URL)', () => {
         batchNo: `B3-${run}`,
         mrpPaise: 4000,
       })
+      const oil = await inventory.findOrCreateLot(tx, {
+        variantId: variantScheme,
+        batchNo: `B4-${run}`,
+        mrpPaise: 15000,
+      })
       await inventory.post(tx, [
         {
           lotId: a.lot.id,
@@ -478,6 +529,13 @@ describeDb('billing (DATABASE_URL)', () => {
           qtyDelta: 5_000,
           reason: 'opening',
           idempotencyKey: `open-${run}-c`,
+        },
+        {
+          lotId: oil.lot.id,
+          locationId: godown,
+          qtyDelta: 5_000,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-oil`,
         },
         {
           lotId: a.lot.id,
@@ -1292,6 +1350,185 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(rate.body.item.taxablePaise).toBe(400)
     expect(await ledgerFor(financial)).toHaveLength(0)
     expect(await journalSum('credit_note', financial)).toBe(0)
+  })
+
+  /** AR for one shop in the journal against its rollup: `outstanding + undelivered − on account`. */
+  async function arTie(retailerId: string): Promise<{
+    ar: number
+    rollup: number
+    outstanding: number
+    onAccount: number
+  }> {
+    const [row] = (
+      await db.execute(sql`
+        select (select coalesce(sum(jl.amount_paise), 0) from journal_lines jl
+                  join accounts a on a.id = jl.account_id
+                 where jl.tenant_id = ${tenantId} and a.code = 'AR'
+                   and jl.party_type = 'retailer' and jl.party_id = ${retailerId}) as ar,
+               s.outstanding_paise + s.undelivered_paise - s.unallocated_credit_paise as rollup,
+               s.outstanding_paise as outstanding, s.unallocated_credit_paise as on_account
+          from retailer_outstanding_summary s
+         where s.tenant_id = ${tenantId} and s.retailer_id = ${retailerId}`)
+    ).rows as { ar: string; rollup: string; outstanding: string; on_account: string }[]
+    return {
+      ar: Number(row?.ar ?? 0),
+      rollup: Number(row?.rollup ?? 0),
+      outstanding: Number(row?.outstanding ?? 0),
+      onAccount: Number(row?.on_account ?? 0),
+    }
+  }
+
+  it('DOS-242: a returned piece of a scheme line is credited at what the shop paid for it, never the list rate, and the parts add up to the line', async () => {
+    // 2 cases = 24 pc at ₹124.00 less the 3 % scheme: taxable 297 600 − 8 928 = 288 672 (INV/9026's oil line)
+    const orderId = await placeOrder(
+      rep,
+      shopMh,
+      [{ variantId: variantScheme, cases: 2 }],
+      'dos242',
+    )
+    const { invoiceId, res } = await issueFor(orderId, 'dos242')
+    expect(res.status).toBe(200)
+    const line = res.body.item.lines.find((l) => l.variantId === variantScheme)
+    expect(line).toMatchObject({ qtyPcs: 24, ratePaise: 12_400, taxablePaise: 288_672 })
+    const lineId = line?.id ?? ''
+
+    // the crew brings 12 back from the door: 12 × 12 400 = 148 800 was the old credit, 4 687 too much with GST
+    const half = await call<{ item: CreditNoteDetailBody }>(app, driver, 'POST', '/credit-notes', {
+      idempotencyKey: `dos242-half-${run}`,
+      id: uuidv7(),
+      invoiceId,
+      reason: 'return_saleable',
+      restockLocationId: godown,
+      autoIssue: true,
+      lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 12 }],
+    })
+    expect(half.status).toBe(200)
+    expect(half.body.item).toMatchObject({
+      taxablePaise: 144_336,
+      cgstPaise: 8_660,
+      sgstPaise: 8_660,
+    })
+    expect(half.body.item.lines[0]?.ratePaise).toBe(12_028) // the net rate the shop paid a piece
+
+    // the desk screen used to send the LIST rate with every line: it is a ceiling, never a price
+    const withListRate = await call<{ item: CreditNoteDetailBody }>(
+      app,
+      accountant,
+      'POST',
+      '/credit-notes',
+      {
+        idempotencyKey: `dos242-list-${run}`,
+        id: uuidv7(),
+        invoiceId,
+        reason: 'return_saleable',
+        lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 5, ratePaise: 12_400 }],
+      },
+    )
+    expect(withListRate.status).toBe(200)
+    expect(withListRate.body.item.taxablePaise).toBe(60_140) // floor(288 672 × 17 / 24) − 144 336
+
+    // the last 7 pieces take exactly what is left of the line: the notes on it sum to 288 672, not a paisa more
+    const rest = await call<{ item: CreditNoteDetailBody }>(
+      app,
+      accountant,
+      'POST',
+      '/credit-notes',
+      {
+        idempotencyKey: `dos242-rest-${run}`,
+        id: uuidv7(),
+        invoiceId,
+        reason: 'return_saleable',
+        lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 7 }],
+      },
+    )
+    expect(rest.status).toBe(200)
+    expect(rest.body.item.taxablePaise).toBe(84_196)
+    expect(144_336 + 60_140 + rest.body.item.taxablePaise).toBe(288_672)
+  })
+
+  it('DOS-245: a credit note on a bill already paid is the shop’s money on account, and its dues still match the book', async () => {
+    const orderId = await placeOrder(rep, shopPaid, [{ variantId: variantA, cases: 1 }], 'dos245')
+    const { invoiceId, res } = await issueFor(orderId, 'dos245')
+    expect(res.status).toBe(200)
+    const total = res.body.item.totalPaise
+    const lineId = res.body.item.lines[0]?.id ?? ''
+    const paid = await call<{ item: { id: string } }>(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos245-pay-${run}`,
+      id: uuidv7(),
+      retailerId: shopPaid,
+      mode: 'cash',
+      amountPaise: total,
+      strategy: 'explicit',
+      allocations: [{ id: uuidv7(), invoiceId, amountPaise: total }],
+    })
+    expect(paid.status).toBe(200)
+    const before = await arTie(shopPaid)
+    expect(before).toMatchObject({ ar: 0, rollup: 0, outstanding: 0, onAccount: 0 })
+
+    // the shop sends 6 pc back next week and the desk books it: CN on a bill with nothing left to pay
+    const noteId = uuidv7()
+    const note = await call<{ item: CreditNoteDetailBody }>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `dos245-cn-${run}`,
+      id: noteId,
+      invoiceId,
+      reason: 'return_saleable',
+      lines: [{ id: uuidv7(), invoiceLineId: lineId, qtyPcs: 6 }],
+    })
+    expect(note.status).toBe(200)
+    const issued = await call<{ item: CreditNoteDetailBody }>(
+      app,
+      manager,
+      'POST',
+      `/credit-notes/${noteId}/issue`,
+      { idempotencyKey: `dos245-issue-${run}` },
+    )
+    expect(issued.status).toBe(200)
+    const credit = issued.body.item.totalPaise
+    expect(credit).toBe(6_700)
+
+    const after = await arTie(shopPaid)
+    // AR moved by the note, and the rollup moved with it: the ₹67.00 sits on account
+    expect(after.ar).toBe(-credit)
+    expect(after).toMatchObject({ rollup: -credit, outstanding: 0, onAccount: credit })
+    const dues = await call<{ unallocatedCreditPaise: number; outstandingPaise: number }>(
+      app,
+      accountant,
+      'GET',
+      `/receivables/outstanding/${shopPaid}`,
+    )
+    expect(dues.status).toBe(200)
+    expect(dues.body).toMatchObject({ outstandingPaise: 0, unallocatedCreditPaise: credit })
+
+    // the next bill: the desk matches the note to it, and the shop owes the bill less the note
+    const nextOrder = await placeOrder(
+      rep,
+      shopPaid,
+      [{ variantId: variantA, cases: 1 }],
+      'dos245b',
+    )
+    const next = await issueFor(nextOrder, 'dos245b')
+    expect(next.res.status).toBe(200)
+    const matched = await call<{ sourceUnallocatedPaise: number }>(
+      app,
+      accountant,
+      'POST',
+      '/allocations',
+      {
+        idempotencyKey: `dos245-match-${run}`,
+        id: uuidv7(),
+        sourceType: 'credit_note',
+        sourceId: noteId,
+        lines: [{ id: uuidv7(), invoiceId: next.invoiceId, amountPaise: credit }],
+      },
+    )
+    expect(matched.status).toBe(200)
+    expect(matched.body.sourceUnallocatedPaise).toBe(0)
+    const settled = await arTie(shopPaid)
+    expect(settled).toMatchObject({
+      onAccount: 0,
+      outstanding: next.res.body.item.totalPaise - credit,
+    })
+    expect(settled.rollup).toBe(settled.ar)
   })
 
   type RefusalBody = {

@@ -24,6 +24,8 @@ import type {
   RecordEwbInput,
   RecordEwbOutput,
   SellerBranding,
+  StageDockInput,
+  StageDockOutput,
 } from '@dos/contracts'
 import { businessDate, financialYear } from '@dos/domain'
 import { deliveryChallans, loadSheets, packConfirmations, withTenant, type Db } from '@dos/db'
@@ -89,6 +91,8 @@ type ConfirmIn = z.infer<typeof ConfirmLoadSheetInput>
 type ConfirmOut = z.infer<typeof ConfirmLoadSheetOutput>
 type CancelIn = z.infer<typeof CancelLoadSheetInput>
 type CancelOut = z.infer<typeof CancelLoadSheetOutput>
+type StageDockIn = z.infer<typeof StageDockInput>
+type StageDockOut = z.infer<typeof StageDockOutput>
 type ChallansIn = z.infer<typeof ChallansListInput>
 type ChallansOut = z.infer<typeof ChallansListOutput>
 type ChallanIn = z.infer<typeof ChallanGetInput>
@@ -526,7 +530,8 @@ export class LoadSheetsService {
           const available = onTheDock.get(lotId) ?? 0
           if (available >= qtyPcs) continue
           throw new ORPCError('CONFLICT', {
-            message: `Only ${String(available)} pc of ${lotLabel.get(lotId) ?? `lot ${lotId}`} are on the dock, the sheet needs ${String(qtyPcs)}; find the cartons or take the bill off the sheet — nothing was loaded`,
+            // QA DOS-244: the sentence names the two ways out that now exist on the screens.
+            message: `Only ${String(available)} pc of ${lotLabel.get(lotId) ?? `lot ${lotId}`} are on the dock, the sheet needs ${String(qtyPcs)}. If they are in the godown, bring them over and press "Bring them from the godown"; if not, the manager takes the bill off the trip — nothing was loaded`,
             data: {
               code: 'dock_short',
               lotId,
@@ -649,6 +654,89 @@ export class LoadSheetsService {
           cancelReason: input.reason,
         })
         return { item: await loadSheetDetail(tx, cancelled, this.deps()) }
+      }),
+    )
+  }
+
+  /**
+   * PUT THE SHEET'S MISSING PIECES ON THE DOCK (QA DOS-244). `confirm` refuses a packed lot the dock cannot
+   * cover (`dock_short`, ruling S2: the load-out never short-loads). When those pieces stand in the godown —
+   * a bill that came back was counted onto the rack as free stock before the check-in knew better — the loader
+   * brings them over and this records it: per packed lot of the sheet, `min(short on the dock, free in the
+   * godown)` moves godown → dock (`transfer_out` / `transfer_in`, `load_sheet` rows keyed per sheet, lot and
+   * the call's idempotency key). A batch the godown no longer holds free stays short and is reported, never
+   * invented. The same arithmetic `confirm` uses — the dock's on-hand against the sheet's packed pieces per lot
+   * — so what this call leaves at zero short, `confirm` accepts. Only while the sheet is a draft.
+   */
+  async stageDock(input: StageDockIn): Promise<StageDockOut> {
+    requireRole(WAREHOUSE_DESK)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const sheet = await this.lockSheet(tx, input.id)
+        if (sheet.status !== 'draft')
+          throw new ORPCError('CONFLICT', {
+            message: `load sheet ${sheet.id} is ${sheet.status}; only a draft sheet is staged`,
+          })
+        const need = new Map<string, number>()
+        for (const entries of (await packedLotsByOrder(tx, sheet.orderIds)).values())
+          for (const entry of entries)
+            need.set(entry.lotId, (need.get(entry.lotId) ?? 0) + entry.qtyPcs)
+        if (need.size === 0) return { items: [] }
+        const dock = await dockLocationId(tx)
+        const onDock = await this.inventory.onHandAt(tx, dock)
+        const free = await this.inventory.freeAt(tx, sheet.fromLocationId, [...need.keys()])
+        const lots = await loadSheetLots(tx, sheet)
+        const label = new Map(
+          lots.map((l) => [
+            l.lotId,
+            l.batchNo === null ? l.variantName : `${l.variantName} (batch ${l.batchNo})`,
+          ]),
+        )
+        const moves: Parameters<InventoryService['post']>[1] = []
+        const items: StageDockOut['items'] = []
+        for (const [lotId, neededPcs] of need) {
+          const onDockPcs = onDock.get(lotId) ?? 0
+          // The same arithmetic `confirm` refuses on: the dock's pieces of the lot against the sheet's need.
+          const short = Math.max(0, neededPcs - onDockPcs)
+          const stagedPcs = Math.min(short, free.get(lotId) ?? 0)
+          if (stagedPcs > 0) {
+            const note = `staged for load sheet ${sheet.id}: packed pieces brought from the godown to the dock`
+            moves.push(
+              {
+                lotId,
+                locationId: sheet.fromLocationId,
+                qtyDelta: -stagedPcs,
+                reason: 'transfer_out',
+                refType: 'load_sheet',
+                refId: sheet.id,
+                idempotencyKey: `stage-dock:${sheet.id}:${lotId}:${input.idempotencyKey}:out`,
+                note,
+              },
+              {
+                lotId,
+                locationId: dock,
+                qtyDelta: stagedPcs,
+                reason: 'transfer_in',
+                refType: 'load_sheet',
+                refId: sheet.id,
+                idempotencyKey: `stage-dock:${sheet.id}:${lotId}:${input.idempotencyKey}:in`,
+                note,
+              },
+            )
+          }
+          items.push({
+            lotId,
+            label: label.get(lotId) ?? `lot ${lotId}`,
+            neededPcs,
+            onDockPcs,
+            stagedPcs,
+            shortPcs: short - stagedPcs,
+          })
+        }
+        if (moves.length > 0) await this.inventory.post(tx, moves)
+        return { items }
       }),
     )
   }
@@ -938,6 +1026,30 @@ export class LoadSheetsService {
    * the two (create accepts every row that list offers, the bill returned after its confirmed sheet
    * included), so a change to one changes both.
    */
+  /** Which of `orderIds` a DRAFT sheet still carries, as order id → sheet id (delivery's `trips.dropBill`, QA DOS-241). */
+  async ordersOnADraftSheet(
+    tx: Db,
+    orderIds: readonly string[],
+  ): Promise<{ sheetId: string; tripId: string | null; vehicleRegNo: string | null }[]> {
+    const onDraft = await this.onADraftSheet(tx, orderIds)
+    const ids = [...new Set(onDraft.values())]
+    if (ids.length === 0) return []
+    const rows = await tx
+      .select({ id: loadSheets.id, tripId: loadSheets.tripId, to: loadSheets.toLocationId })
+      .from(loadSheets)
+      .where(inArray(loadSheets.id, ids))
+      .orderBy(loadSheets.id)
+    const regNos = await vehicleRegNos(
+      tx,
+      rows.map((r) => r.to),
+    )
+    return rows.map((r) => ({
+      sheetId: r.id,
+      tripId: r.tripId,
+      vehicleRegNo: regNos.get(r.to) ?? null,
+    }))
+  }
+
   private async onADraftSheet(tx: Db, orderIds: readonly string[]): Promise<Map<string, string>> {
     if (orderIds.length === 0) return new Map()
     const { tenantId } = currentTenant()

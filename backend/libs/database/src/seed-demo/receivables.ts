@@ -954,6 +954,26 @@ async function refreshOutstanding(
       lastReceiptAt: row.last_receipt_at === null ? null : new Date(row.last_receipt_at),
     })
   }
+  // QA DOS-245, the same rule as `computeOutstanding`: what an issued credit note could not settle on its own
+  // bill is the shop's money on account, like an over-payment.
+  const noteCredit = await db.execute(sql`
+    select c.retailer_id, sum(c.total_paise - coalesce(al.allocated, 0)) as unallocated
+      from credit_notes c
+      left join lateral (
+        select sum(a.amount_paise) as allocated
+          from allocations a
+         where a.tenant_id = c.tenant_id and a.credit_note_id = c.id) al on true
+     where c.tenant_id = ${tenantId} and c.state in ('issued', 'applied')
+     group by c.retailer_id`)
+  for (const row of noteCredit.rows as { retailer_id: string; unallocated: string | null }[]) {
+    const onNotes = Number(row.unallocated ?? 0)
+    if (onNotes === 0) continue
+    const held = creditByRetailer.get(row.retailer_id)
+    creditByRetailer.set(row.retailer_id, {
+      unallocated: (held?.unallocated ?? 0) + onNotes,
+      lastReceiptAt: held?.lastReceiptAt ?? null,
+    })
+  }
   const lastReceiptResult = await db.execute(sql`
     select distinct on (retailer_id) retailer_id, amount_paise
       from receipts

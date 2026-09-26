@@ -37,6 +37,11 @@
  * desk sees each such bill (`deliveries.list` with `unrecordedOnly`) and, for the owner and the manager, taps it
  * to record that it came back (`deliveries.cameBack`): the bill joins Came back undelivered and the planning
  * board, and the reply says in words where each batch now stands — on the dock, still on the van, or short.
+ *
+ * TAKE A BILL OFF A TRIP THAT HAS NOT LEFT (QA DOS-241). A bill whose batches the godown no longer holds cannot
+ * be counted out, and the trip carrying it could never depart (`bill_not_loaded`): two shops' goods sat on the
+ * van overnight. The trip's panel now lists the bills planned on it; the owner or the manager taps one to take
+ * it off (`delivery.trips.dropBill`) with a reason, and it goes back on the planning board.
  */
 import type { Delivery, PlanningBill, Trip } from '@dos/contracts'
 import { newId } from '@dos/api-client'
@@ -44,6 +49,7 @@ import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
   Dialog,
+  TextInput,
   formatINR,
   Group,
   ListRow,
@@ -120,6 +126,7 @@ export default function DeskTrips(): React.JSX.Element {
   const mayReadBoard = can('delivery.trips.planning')
   const mayReadUndelivered = can('delivery.deliveries.list')
   const mayCameBack = can('delivery.deliveries.cameBack')
+  const mayDrop = can('delivery.trips.dropBill')
 
   const [panel, setPanel] = useState<OpenPanel>(null)
   const [date, setDate] = useState(today)
@@ -191,6 +198,32 @@ export default function DeskTrips(): React.JSX.Element {
     { enabled: mayReadBoard && panel !== null },
   )
 
+  /** QA DOS-241: the bills planned on the selected trip, and the one the desk is taking off it. */
+  const openTrip = useQuery(
+    ['trips', 'get', panel?.kind === 'add' ? panel.tripId : 'none'],
+    () => api.api.delivery.trips.get({ id: panel?.kind === 'add' ? panel.tripId : '' }),
+    { enabled: panel?.kind === 'add' },
+  )
+  const plannedBills = (openTrip.data?.item.stops ?? []).flatMap((stop) =>
+    stop.deliveries
+      .filter((d) => d.outcome === null)
+      .map((d) => ({ ...d, retailerName: stop.retailerName })),
+  )
+  const [dropping, setDropping] = useState<(typeof plannedBills)[number] | null>(null)
+  const [dropReason, setDropReason] = useState('')
+  const [dropNeedsReason, setDropNeedsReason] = useState(false)
+  const [dropped, setDropped] = useState<string | null>(null)
+  const dropBill = useMutation(
+    (input: { tripId: string; invoiceId: string; reason: string }, meta) =>
+      api.api.delivery.trips.dropBill({
+        id: input.tripId,
+        idempotencyKey: meta.idempotencyKey,
+        invoiceId: input.invoiceId,
+        reason: input.reason,
+      }),
+    { invalidates: [['trips'], ['deliveries']] },
+  )
+
   const createTrip = useMutation(
     (input: TripPlan, meta) =>
       api.api.delivery.trips.create(tripCreateBody(input, meta.idempotencyKey)),
@@ -236,6 +269,7 @@ export default function DeskTrips(): React.JSX.Element {
   }
   const openPanel = (next: OpenPanel): void => {
     setPanel(next)
+    setDropped(null)
     setChosen([])
     setCursor(null)
     setEarlier([])
@@ -699,6 +733,48 @@ export default function DeskTrips(): React.JSX.Element {
           </Panel>
         ) : null}
 
+        {panel?.kind === 'add' && (plannedBills.length > 0 || dropped !== null) ? (
+          <Panel
+            title={t('m7d.title', { trip: tripName(addTrip) })}
+            meta={t('m7d.count', { count: plannedBills.length })}
+            testID="trip-bills-panel"
+          >
+            <Stack gap={3}>
+              {dropped === null ? null : (
+                <Txt field="body" desk="body" testID="trip-drop-done">
+                  {t('m7d.done', { bill: dropped })}
+                </Txt>
+              )}
+              {mayDrop ? (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('m7d.body')}
+                </Txt>
+              ) : null}
+              <Group>
+                {plannedBills.map((bill) => (
+                  <ListRow
+                    key={bill.id}
+                    testID={`trip-planned-${bill.invoiceId}`}
+                    primary={bill.retailerName}
+                    secondary={bill.invoiceNo ?? bill.invoiceId.slice(0, 8)}
+                    trailingMoney={bill.invoiceTotalPaise}
+                    {...(mayDrop
+                      ? {
+                          onPress: () => {
+                            dropBill.reset()
+                            setDropReason('')
+                            setDropNeedsReason(false)
+                            setDropping(bill)
+                          },
+                        }
+                      : {})}
+                  />
+                ))}
+              </Group>
+            </Stack>
+          </Panel>
+        ) : null}
+
         {panel?.kind === 'add' ? (
           <Panel title={t('m7t.addBillTitle', { trip: tripName(addTrip) })} testID="trip-add-panel">
             <Stack gap={4}>
@@ -785,6 +861,63 @@ export default function DeskTrips(): React.JSX.Element {
           if (stopPlan !== null) void addStop.mutateAsync(stopPlan).then(planned, stayOpen)
         }}
         testID="trip-add-dialog"
+      />
+
+      <Dialog
+        open={dropping !== null}
+        onClose={() => {
+          setDropping(null)
+        }}
+        title={t('m7d.dialogTitle', {
+          bill: dropping?.invoiceNo ?? dropping?.invoiceId.slice(0, 8) ?? '',
+        })}
+        body={
+          <Stack gap={3}>
+            <Txt field="body" desk="body">
+              {t('m7d.dialogBody', {
+                bill: dropping?.invoiceNo ?? dropping?.invoiceId.slice(0, 8) ?? '',
+                shop: dropping?.retailerName ?? '',
+                amount: formatINR(paise(dropping?.invoiceTotalPaise ?? 0)),
+                trip: tripName(addTrip),
+              })}
+            </Txt>
+            <TextInput
+              label={t('m7d.reason')}
+              value={dropReason}
+              onChange={(value) => {
+                setDropReason(value)
+                setDropNeedsReason(false)
+              }}
+              capitalize="sentences"
+              {...(dropNeedsReason ? { error: t('m7d.needReason') } : {})}
+              testID="trip-drop-reason"
+            />
+            <Refusal of={[dropBill]} scope={dropping?.id ?? null} testID="trip-drop-refusal" />
+          </Stack>
+        }
+        confirmLabel={t('m7d.action')}
+        destructive
+        busy={dropBill.status === 'pending'}
+        onConfirm={() => {
+          const bill = dropping
+          if (bill === null || panel?.kind !== 'add') return
+          if (dropReason.trim() === '') {
+            setDropNeedsReason(true)
+            return
+          }
+          void dropBill
+            .mutateAsync({
+              tripId: panel.tripId,
+              invoiceId: bill.invoiceId,
+              reason: dropReason.trim(),
+            })
+            .then(() => {
+              setDropping(null)
+              setDropped(bill.invoiceNo ?? bill.invoiceId.slice(0, 8))
+              void openTrip.refetch()
+            }, stayOpen)
+        }}
+        testID="trip-drop-dialog"
       />
 
       <Dialog

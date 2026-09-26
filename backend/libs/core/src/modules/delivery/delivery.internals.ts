@@ -744,6 +744,7 @@ export type DeliveryEventType =
   | 'TripDeparted'
   | 'TripReturned'
   | 'TripCancelled'
+  | 'TripBillDropped'
   | 'StopFailed'
   | 'DeliveryFailed'
   | 'DeliveryRecorded'

@@ -171,6 +171,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
+| GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
+| POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
 | POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -19243,6 +19246,435 @@ request.json
 }
 ```
 
+### POST `/delivery/trips/{id}/drop-bill`
+
+Take a bill that was never loaded off a trip that has not left; it goes back on the planning board · contract `delivery.trips.dropBill`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `invoiceId` | uuid | yes |
+| `reason` | string | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/drop-bill" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+  "reason": "Confirmed on phone with the shopkeeper"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "item": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "tripDate": "2026-09-04",
+    "vehicleId": "01a06d9c-98d8-7445-8ff2-d0ee7a6163da",
+    "vehicleRegNo": "SO-0042",
+    "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+    "driverId": "01a06d0f-6f2a-7a8b-8ee0-f77be48eb068",
+    "helperId": "01a06d08-47e9-7e41-8a85-4960b0fef203",
+    "state": "planned",
+    "vanSalesEnabled": true,
+    "plannedStops": 1,
+    "stopsCompleted": 1,
+    "startOdometerKm": 1,
+    "endOdometerKm": 1,
+    "openingCashPaise": 4000,
+    "startedAt": "2026-09-04T10:30:00.000Z",
+    "endedAt": null,
+    "departedEarly": true,
+    "createdAt": "2026-09-04T10:30:00.000Z",
+    "stops": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "sequence": 1,
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "state": "pending",
+        "failureReason": null,
+        "failureNote": "Confirmed on phone with the shopkeeper",
+        "plannedCollectionPaise": 4000,
+        "etaAt": "2026-09-04T10:30:00.000Z",
+        "startedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedAt": "2026-09-04T10:30:00.000Z",
+        "completedAt": "2026-09-04T10:30:00.000Z",
+        "arrivedLat": 19.2403,
+        "arrivedLng": 73.1305,
+        "vehicleRegNo": "SO-0042",
+        "deliveries": [
+          {
+            "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+            "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+            "invoiceNo": "SO-0042",
+            "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+            "invoiceTotalPaise": 2680000,
+            "outcome": "delivered",
+            "deliveredAt": "2026-09-04T10:30:00.000Z",
+            "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f"
+          }
+        ],
+        "createdAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "collections": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "stopId": "01a06d5c-e42f-7382-88a1-ae0ef12689a5",
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "retailerName": "text",
+        "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+        "receiptNo": "SO-0042",
+        "mode": "cash",
+        "amountPaise": 4000,
+        "reference": "text",
+        "collectedBy": "01a06d90-f260-71d2-8151-232a94bc9840",
+        "collectedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "expenses": [
+      {
+        "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "kind": "diesel",
+        "amountPaise": 4000,
+        "proofObjectKey": "docs/2026/09/invoice-0042.jpg",
+        "note": null,
+        "recordedBy": "01a06d64-7891-76f9-8735-2da1ba5d9e89",
+        "recordedAt": "2026-09-04T10:30:00.000Z"
+      }
+    ],
+    "settlement": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+      "expectedCashPaise": 4000,
+      "handedOverCashPaise": 4000,
+      "cashVariancePaise": 4000,
+      "upiCollectedPaise": 4000,
+      "chequeCollectedPaise": 4000,
+      "expensesPaise": 4000,
+      "stockVariance": [
+        {
+          "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+          "expectedPcs": 24,
+          "countedPcs": 24,
+          "deltaPcs": 24
+        }
+      ],
+      "hasVariance": true,
+      "settledBy": null,
+      "settledAt": "2026-09-04T10:30:00.000Z",
+      "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
+      "approvedAt": "2026-09-04T10:30:00.000Z",
+      "note": null
+    },
+    "loadConfirmedAt": "2026-09-04T10:30:00.000Z",
+    "loadSheetIds": [
+      "01a06d98-960f-708a-8418-7a826a22f050"
+    ],
+    "vanSalesAllowed": true,
+    "expectedCashPaise": 4000,
+    "policy": {
+      "settlementTolerancePaise": 4000,
+      "podRequired": "always",
+      "geofenceMetres": 1,
+      "gpsRetentionDays": 7,
+      "expenseProofMinPaise": 4000
+    }
+  }
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /delivery/trips/{id}/drop-bill",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### GET `/delivery/van-returns`
+
+What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack · contract `delivery.trips.vanReturns`
+
+**Roles:** owner, manager, warehouse
+
+**Query / path parameters**
+
+| Field | Type | Required |
+|---|---|---|
+| `vehicleLocationId` | uuid | yes |
+
+**Example request**
+
+```bash
+curl "http://localhost:3006/delivery/van-returns?vehicleLocationId=01a06d92-0420-74ca-8e10-7dafb9bb9070" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
+```
+
+**Success response** — `200`
+
+```json
+{
+  "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+  "tripNo": "SO-0042",
+  "items": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerName": "text",
+      "pcs": 24
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call GET /delivery/van-returns",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "limit"
+        ],
+        "message": "Too big: expected number to be <=500"
+      }
+    ]
+  }
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/delivery/van-returns/unload`
+
+Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown · contract `delivery.trips.unload`
+
+**Roles:** owner, manager, warehouse
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `vehicleLocationId` | uuid | yes |
+| `lotId` | uuid | yes |
+| `qtyPcs` | integer | yes |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3006/delivery/van-returns/unload" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "vehicleLocationId": "01a06d92-0420-74ca-8e10-7dafb9bb9070",
+  "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+  "qtyPcs": 24
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+  "dockPcs": 24,
+  "rackPcs": 24,
+  "bills": [
+    {
+      "invoiceNo": "SO-0042",
+      "retailerName": "text"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the retailer role may not call POST /delivery/van-returns/unload",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### GET `/delivery/trips/{id}/settlement`
 
 The check-in cockpit: expected cash, collections by mode, expenses, van stock · contract `delivery.trips.settlementPreview`
@@ -26412,6 +26844,9 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `delivery.trips.depart` | – | – | – | – | – | – | – |
 | `delivery.trips.return` | – | – | – | – | – | – | – |
 | `delivery.trips.cancel` | – | – | – | – | – | – | – |
+| `delivery.trips.dropBill` | – | – | – | – | – | – | – |
+| `delivery.trips.vanReturns` | – | – | – | – | – | – | – |
+| `delivery.trips.unload` | – | – | – | – | – | – | – |
 | `delivery.trips.settlementPreview` | – | – | – | – | – | – | – |
 | `delivery.trips.settle` | – | – | – | – | – | – | – |
 | `delivery.stops.list` | – | – | – | – | – | – | ✓ |

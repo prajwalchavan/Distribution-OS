@@ -14,6 +14,8 @@ import type {
   CreateTripOutput,
   DepartTripInput,
   DepartTripOutput,
+  DropBillInput,
+  DropBillOutput,
   FailStopInput,
   FailStopOutput,
   NextStopInput,
@@ -136,6 +138,8 @@ type ReturnIn = z.infer<typeof ReturnTripInput>
 type ReturnOut = z.infer<typeof ReturnTripOutput>
 type CancelIn = z.infer<typeof CancelTripInput>
 type CancelOut = z.infer<typeof CancelTripOutput>
+type DropBillIn = z.infer<typeof DropBillInput>
+type DropBillOut = z.infer<typeof DropBillOutput>
 type StopsIn = z.infer<typeof StopsListInput>
 type StopsOut = z.infer<typeof StopsListOutput>
 type NextIn = z.infer<typeof NextStopInput>
@@ -648,6 +652,159 @@ export class TripsService {
         const next = await this.updateTrip(tx, trip.id, { state: to, endedAt: now })
         await emitDeliveryEvent(tx, 'trip', next.id, 'TripCancelled', {
           ...tripEventPayload(next),
+          reason: input.reason,
+        })
+        return { item: await this.detail(tx, next) }
+      }),
+    )
+  }
+
+  /**
+   * TAKE A BILL THAT WAS NEVER LOADED OFF A TRIP THAT HAS NOT LEFT (QA DOS-241). TRIP-0007 could not depart
+   * (`bill_not_loaded`) because one of its three bills could not be loaded — its batches had been sold — and
+   * nothing but the database could take that bill off it, so two shops' loaded goods sat on the van. The desk
+   * now can: the bill's planned delivery row (outcome null) is deleted, its stop is `skipped` when it carries no
+   * other bill (the same non-machine stop write `cancel` makes), and the bill is back on the planning board for
+   * another trip. Nothing about the bill, the order or the stock changes — none of them had moved.
+   *
+   * 409 once the trip has left (`planned` / `loading` only), when the bill is not planned on this trip, when
+   * its order is not `packed` (dispatched means it is on the van: the trip must go and come back), or while a
+   * DRAFT load sheet still carries it (cancel or rebuild that sheet first — a draft would dispatch it). Audited.
+   */
+  async dropBill(input: DropBillIn): Promise<DropBillOut> {
+    requireRole(PIN_HOLDERS)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const trip = await lockTrip(tx, input.id)
+        const tripName = trip.tripNo ?? trip.id
+        if (trip.state !== 'planned' && trip.state !== 'loading')
+          throw new ORPCError('CONFLICT', {
+            message: `Trip ${tripName} has already left (${trip.state}); a bill comes off a trip only before it leaves. What it brings back is recorded at the door or at the check-in.`,
+            data: { code: 'trip_left', tripState: trip.state },
+          })
+        const planned = await tx
+          .select()
+          .from(deliveries)
+          .where(
+            and(
+              eq(deliveries.tenantId, ctx.tenantId),
+              eq(deliveries.tripId, trip.id),
+              eq(deliveries.invoiceId, input.invoiceId),
+              sql`${deliveries.outcome} is null`,
+            ),
+          )
+          .orderBy(asc(deliveries.id))
+          .for('update')
+        const invoice = await this.billing.invoiceForDelivery(tx, input.invoiceId)
+        const bill = invoice.invoiceNo ?? invoice.id
+        if (planned.length === 0)
+          throw new ORPCError('CONFLICT', {
+            message: `Bill ${bill} is not planned on trip ${tripName}`,
+            data: { code: 'bill_not_on_trip' },
+          })
+        const orderIds = [
+          ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
+        ]
+        for (const orderId of orderIds) {
+          const order = await this.orders.findOrder(tx, orderId)
+          if (order && order.state !== 'packed')
+            throw new ORPCError('CONFLICT', {
+              message:
+                order.state === 'dispatched'
+                  ? `Bill ${bill} is already on the van (the godown counted it out); it comes off at the door or at the check-in, not here`
+                  : `Bill ${bill} is ${order.state}; only a packed bill waiting to be loaded comes off a trip`,
+              data: { code: 'bill_loaded', orderState: order.state },
+            })
+        }
+        const onDraft = await this.loadSheets.ordersOnADraftSheet(tx, orderIds)
+        if (onDraft.length > 0) {
+          // Named the way the desk knows a sheet: by its trip and vehicle, never by its id.
+          const tripNos = await tx
+            .select({ id: trips.id, tripNo: trips.tripNo })
+            .from(trips)
+            .where(
+              inArray(
+                trips.id,
+                onDraft.map((s) => s.tripId).filter((id): id is string => id !== null),
+              ),
+            )
+          const tripNo = new Map(tripNos.map((r) => [r.id, r.tripNo]))
+          const where = onDraft
+            .map((s) =>
+              [s.tripId === null ? null : (tripNo.get(s.tripId) ?? null), s.vehicleRegNo]
+                .filter((part): part is string => part !== null)
+                .join(' · '),
+            )
+            .map((name) => (name === '' ? 'a sheet with no trip' : name))
+            .join(', ')
+          throw new ORPCError('CONFLICT', {
+            message: `Bill ${bill} is still on a load sheet the godown has not sent out (${where}). Cancel that sheet under Load-out, or have the godown build it again without this bill, then take it off.`,
+            data: {
+              code: 'bill_on_draft_sheet',
+              loadSheetIds: onDraft.map((s) => s.sheetId),
+            },
+          })
+        }
+
+        const now = new Date()
+        await tx.delete(deliveries).where(
+          and(
+            eq(deliveries.tenantId, ctx.tenantId),
+            inArray(
+              deliveries.id,
+              planned.map((d) => d.id),
+            ),
+          ),
+        )
+        let skipped = 0
+        for (const stopId of new Set(planned.map((d) => d.stopId))) {
+          const [left] = await tx
+            .select({ n: sql<number>`count(*)::int` })
+            .from(deliveries)
+            .where(and(eq(deliveries.tenantId, ctx.tenantId), eq(deliveries.stopId, stopId)))
+          if (Number(left?.n ?? 0) > 0) continue
+          const done = await tx
+            .update(tripStops)
+            .set({
+              state: 'skipped',
+              failureNote: `bill ${bill} taken off the trip: ${input.reason}`,
+              completedAt: now,
+              updatedAt: now,
+            })
+            .where(
+              and(
+                eq(tripStops.id, stopId),
+                sql`${tripStops.state} not in ('delivered', 'partial', 'failed', 'skipped')`,
+              ),
+            )
+            .returning({ id: tripStops.id })
+          skipped += done.length
+        }
+        const next =
+          skipped > 0
+            ? await this.updateTrip(tx, trip.id, {
+                plannedStops: Math.max(0, trip.plannedStops - skipped),
+              })
+            : trip
+        await writeAudit(tx, {
+          action: 'trip.drop_bill',
+          entityType: 'trip',
+          entityId: trip.id,
+          before: {
+            tripState: trip.state,
+            invoiceId: invoice.id,
+            invoiceNo: invoice.invoiceNo,
+            deliveryIds: planned.map((d) => d.id),
+          },
+          after: { reason: input.reason, stopsSkipped: skipped },
+          deviceId: null,
+        })
+        await emitDeliveryEvent(tx, 'trip', trip.id, 'TripBillDropped', {
+          ...tripEventPayload(next),
+          invoiceId: invoice.id,
+          invoiceNo: invoice.invoiceNo,
           reason: input.reason,
         })
         return { item: await this.detail(tx, next) }

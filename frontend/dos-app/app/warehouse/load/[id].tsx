@@ -15,6 +15,13 @@
  * Check-out is one transaction: the e-way bill gate, the count (a variance needs a note and records
  * `pinVerifiedBy = approvedBy`), a `transfer_out` + `transfer_in` per lot, the Rule 55 challan, and
  * every packed order `packed → dispatched`.
+ *
+ * QA DOS-244: the check-out never short-loads — a packed batch the dock cannot cover is refused
+ * `dock_short`. When that happens this screen no longer leaves the loader with a sentence naming an action
+ * that does not exist: it offers "Bring them from the godown" (`loadSheets.stageDock`), which moves the
+ * missing pieces rack → dock as far as the godown holds them free, and says per batch what moved and what
+ * is still missing. A batch the godown no longer has is the desk's call: the manager takes that bill off
+ * the trip (Trips › the trip › Take a bill off).
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
@@ -129,6 +136,26 @@ export default function LoadSheet(): React.JSX.Element {
       onError: () => {
         haptics.error()
         setAsk(false)
+      },
+    },
+  )
+
+  /** QA DOS-244: the refusal the check-out answers when the dock is short of a packed batch. */
+  const dockShort = (confirm.error?.data as { code?: unknown } | undefined)?.code === 'dock_short'
+  const stage = useMutation(
+    (_input: { go: true }, meta) =>
+      api.api.warehouse.loadSheets.stageDock({ id: sheetId, idempotencyKey: meta.idempotencyKey }),
+    {
+      invalidates: [['loadSheet'], ['balances']],
+      onSuccess: (reply) => {
+        const short = reply.items.some((line) => line.shortPcs > 0)
+        if (short) haptics.error()
+        else haptics.success()
+        // The refusal it answered is spent: the next press of "Send the vehicle out" asks again.
+        confirm.reset()
+      },
+      onError: () => {
+        haptics.error()
       },
     },
   )
@@ -375,10 +402,62 @@ export default function LoadSheet(): React.JSX.Element {
               <DeskOnly>{t('w7.cancelIsManager')}</DeskOnly>
 
               {confirm.error === undefined ? null : (
-                <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w7-refusal">
                   {confirm.error.message}
                 </Txt>
               )}
+
+              {draft && (dockShort || stage.data !== undefined || stage.error !== undefined) ? (
+                <Panel title={t('w7.dockTitle')} testID="w7-dock">
+                  <Stack gap={3}>
+                    <Txt field="body" desk="body" color={colors.text.secondary}>
+                      {t('w7.dockBody')}
+                    </Txt>
+                    {(stage.data?.items ?? [])
+                      .filter((line) => line.stagedPcs > 0 || line.shortPcs > 0)
+                      .map((line) => (
+                        <Txt
+                          key={line.lotId}
+                          field="body"
+                          desk="body"
+                          color={line.shortPcs > 0 ? colors.status.brick.fg : colors.text.primary}
+                          testID={`w7-dock-${line.lotId}`}
+                        >
+                          {line.shortPcs > 0
+                            ? t('w7.dockStillShort', {
+                                label: line.label,
+                                staged: line.stagedPcs,
+                                short: line.shortPcs,
+                              })
+                            : t('w7.dockStaged', { label: line.label, staged: line.stagedPcs })}
+                        </Txt>
+                      ))}
+                    {stage.data !== undefined &&
+                    stage.data.items.every((line) => line.shortPcs === 0) ? (
+                      <Txt field="body" desk="body" testID="w7-dock-ready">
+                        {t('w7.dockReady')}
+                      </Txt>
+                    ) : null}
+                    {stage.error === undefined ? null : (
+                      <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                        {stage.error.message}
+                      </Txt>
+                    )}
+                    {stage.data !== undefined &&
+                    stage.data.items.every((line) => line.shortPcs === 0) ? null : (
+                      <Button
+                        label={t('w7.dockStage')}
+                        variant="secondary"
+                        loading={stage.status === 'pending'}
+                        onPress={() => {
+                          stage.mutate({ go: true })
+                        }}
+                        testID="w7-dock-stage"
+                      />
+                    )}
+                  </Stack>
+                </Panel>
+              ) : null}
 
               <Button
                 label={t('w.close')}

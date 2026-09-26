@@ -1,0 +1,16 @@
+ credit_note_no | total_paise | taxable_paise | allocated | invoice_no |     state      
+----------------+-------------+---------------+-----------+------------+----------------
+ CN/9003        |       39800 |         33707 |     39800 | INV/0839   | partially_paid
+ CN/9004        |        9600 |          8139 |         0 | INV/0838   | paid
+(2 rows)
+
+          name           | outstanding_paise | undelivered_paise | unallocated_credit_paise |  rollup  |    ar    
+-------------------------+-------------------+-------------------+--------------------------+----------+----------
+ Balaji Wholesale Stores |          72080400 |                 0 |                     9600 | 72070800 | 72070800
+(1 row)
+
+  rollup   |    ar     
+-----------+-----------
+ 438880000 | 438880000
+(1 row)
+

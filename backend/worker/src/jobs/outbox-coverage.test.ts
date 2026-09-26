@@ -60,6 +60,8 @@ const AUDIT_ONLY: ReadonlySet<string> = new Set([
   'TripLoading',
   'TripReturned',
   'TripCancelled',
+  // QA DOS-241: a bill taken off a trip before it left — the planning board reads the trip, nothing else to do
+  'TripBillDropped',
   'StopFailed',
   'CollectionRecorded',
   'VanSaleInvoiced',

@@ -18,6 +18,7 @@ import type {
 } from '@dos/contracts'
 import { isSaleableCreditNoteReason } from '@dos/contracts'
 import {
+  creditableTaxable,
   financialYear,
   paise,
   percentOf,
@@ -278,8 +279,9 @@ export class CreditNotesService {
   // =============================================================================================================
 
   /**
-   * A draft note: quantities capped by what the bill still has left to credit, rates capped by the
-   * invoice line's own, tax at the line's FROZEN `gst_bps` / `cess_bps` and the invoice's own
+   * A draft note: quantities capped by what the bill still has left to credit, value capped by what the
+   * shop was charged for those pieces (the line's taxable pro rata, QA DOS-242) and rates by the invoice
+   * line's own, tax at the line's FROZEN `gst_bps` / `cess_bps` and the invoice's own
    * intra/inter split. It writes no stock and no journal — those happen at issue. A line that omits
    * `saleable` takes its disposition from the reason, and a damaged return is never saleable (DOS-116).
    */
@@ -335,7 +337,8 @@ export class CreditNotesService {
         throw new ORPCError('BAD_REQUEST', {
           message: `line ${line.invoiceLineId} does not belong to bill ${invoice.invoiceNo ?? invoice.id}`,
         })
-      const remaining = piecesLeftToCredit(source, credited.get(source.id) ?? 0)
+      const already = credited.get(source.id) ?? { pcs: 0, taxablePaise: 0 }
+      const remaining = piecesLeftToCredit(source, already.pcs)
       if (line.qtyPcs > remaining)
         throw new ORPCError('BAD_REQUEST', {
           message: `only ${String(remaining)} pcs of ${source.description} are left to credit on ${invoice.invoiceNo ?? invoice.id}`,
@@ -349,6 +352,13 @@ export class CreditNotesService {
           message: `a credit note may not exceed the invoiced rate of ${String(source.ratePaise)} paise`,
           data: { invoiceLineId: source.id, invoicedRatePaise: source.ratePaise },
         })
+      // QA DOS-242: what the shop was CHARGED for these pieces — the line's taxable after its schemes and
+      // discounts, pro rata over its pieces, the last piece taking the remainder — is the ceiling of every
+      // note. `rate` is the pre-scheme list rate (`rate_paise`): crediting `rate × pieces` gave the shop the
+      // scheme money back on top of the goods. A rate-difference note below that value keeps its own figure.
+      const worth = creditableTaxable(source, already, line.qtyPcs)
+      const lineTaxable = Math.min(rate * line.qtyPcs, worth)
+      const creditedRate = line.qtyPcs > 0 ? Math.round(lineTaxable / line.qtyPcs) : rate
       // DOS-116: an omitted flag follows the reason, and a damaged return never goes back on sale — the
       // credit-note side of the doorstep rule (DOS-058), read from the one list in @dos/contracts.
       const saleable = line.saleable ?? isSaleableCreditNoteReason(input.reason)
@@ -359,7 +369,6 @@ export class CreditNotesService {
         })
       // Intra-state halves are each `percentOf(taxable, bps/2)`, so the two are exact and their sum is
       // what the line prints — never `percentOf(taxable, bps)`, which can differ by a paisa.
-      const lineTaxable = rate * line.qtyPcs
       const half = invoice.isInterState ? 0 : percentOf(paise(lineTaxable), source.gstBps / 2)
       const lineIgst = invoice.isInterState ? percentOf(paise(lineTaxable), source.gstBps) : 0
       const gstPaise = half + half + lineIgst
@@ -376,7 +385,7 @@ export class CreditNotesService {
         invoiceLineId: source.id,
         qtyPcs: line.qtyPcs,
         saleable,
-        ratePaise: rate,
+        ratePaise: creditedRate,
         taxablePaise: lineTaxable,
         gstBps: source.gstBps,
         taxPaise: gstPaise + cessPaise,
@@ -566,13 +575,17 @@ export class CreditNotesService {
     return row.id
   }
 
-  /** Pieces already credited per invoice line, over every note that is not cancelled. */
-  private async creditedByLine(tx: Db, invoiceId: string): Promise<Map<string, number>> {
+  /** Pieces and taxable already credited per invoice line, over every note that is not cancelled. */
+  private async creditedByLine(
+    tx: Db,
+    invoiceId: string,
+  ): Promise<Map<string, { pcs: number; taxablePaise: number }>> {
     const { tenantId } = currentTenant()
     const rows = await tx
       .select({
         invoiceLineId: creditNoteLines.invoiceLineId,
         qtyPcs: sql<number>`COALESCE(SUM(${creditNoteLines.qtyPcs}), 0)::int`,
+        taxablePaise: sql<number>`COALESCE(SUM(${creditNoteLines.taxablePaise}), 0)::bigint`,
       })
       .from(creditNoteLines)
       .innerJoin(creditNotes, eq(creditNotes.id, creditNoteLines.creditNoteId))
@@ -584,7 +597,12 @@ export class CreditNotesService {
         ),
       )
       .groupBy(creditNoteLines.invoiceLineId)
-    return new Map(rows.map((r) => [r.invoiceLineId, Number(r.qtyPcs)]))
+    return new Map(
+      rows.map((r) => [
+        r.invoiceLineId,
+        { pcs: Number(r.qtyPcs), taxablePaise: Number(r.taxablePaise) },
+      ]),
+    )
   }
 
   private async invoiceNumbers(

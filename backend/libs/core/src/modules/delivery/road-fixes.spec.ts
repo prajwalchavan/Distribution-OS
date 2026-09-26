@@ -100,7 +100,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
   const accountantId = uuidv7()
   const packerId = uuidv7()
   const repId = uuidv7()
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = Array.from({ length: 14 }, () => uuidv7())
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
 
@@ -309,7 +309,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
       { id: repId, phone: `+91961${run}5`, name: 'Rep' },
       ...driverIds.map((id, i) => ({
         id,
-        phone: `+91962${run}${String(i)}`,
+        phone: `+9197${String(10 + i)}${run}`,
         name: `Driver ${String(i + 1)}`,
       })),
       { id: shopUserA, phone: `+91963${run}1`, name: 'Shopkeeper A' },
@@ -1196,5 +1196,415 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
              where lot_id = ${lotA} and location_id = ${godown}`,
       )
     }
+  }, 240_000)
+
+  // -------------------------------------------------------------------------------------------------------------
+  // day 5: DOS-244 (the godown's check-in and the dock) and DOS-241 (a bill that cannot be loaded)
+
+  const dockId = async (): Promise<string> =>
+    (
+      (
+        await db.execute(
+          sql`select id from locations where tenant_id = ${tenantId} and kind = 'in_transit' limit 1`,
+        )
+      ).rows[0] as { id: string }
+    ).id
+  const onHandOf = async (lotId: string, locationId: string): Promise<number> => {
+    const [row] = (
+      await db.execute(
+        sql`select coalesce(sum(on_hand), 0)::int as on_hand from stock_balances
+             where lot_id = ${lotId} and location_id = ${locationId}`,
+      )
+    ).rows as { on_hand: number }[]
+    return Number(row?.on_hand ?? 0)
+  }
+  /** The crew finds the shop shut: nothing delivered, the bill comes back on the van (INV/9028, day 5). */
+  const failAtDoor = async (driver: Actor, stopId: string, tag: string): Promise<void> => {
+    const failed = await call(app, driver, 'POST', `/delivery/stops/${stopId}/fail`, {
+      idempotencyKey: `rf-fail-${tag}-${run}`,
+      failureReason: 'shop_closed',
+      failureNote: 'shutter down',
+    })
+    expect(failed.status, JSON.stringify(failed.body)).toBe(200)
+  }
+  const returnTrip = async (driver: Actor, tripId: string, tag: string): Promise<void> => {
+    const back = await call(app, driver, 'POST', `/delivery/trips/${tripId}/return`, {
+      idempotencyKey: `rf-return-${tag}-${run}`,
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+  }
+  /** A trip for these bills, planned and `loading`, with nothing counted out yet. */
+  async function plannedTrip(
+    tag: string,
+    driver: Actor,
+    stops: { retailerId: string; bills: { invoiceId: string }[] }[],
+  ): Promise<{ tripId: string; stopIds: string[]; vehicleLocationId: string }> {
+    const vehicleId = uuidv7()
+    const tripId = uuidv7()
+    const vehicle = await call(app, owner, 'POST', '/delivery/vehicles', {
+      idempotencyKey: `rf-vehicle-${tag}-${run}`,
+      id: vehicleId,
+      regNo: `MH-05-P${tag}-${run.slice(-4)}`,
+      name: `Loader ${tag}`,
+      kind: 'tempo',
+      capacityCases: 120,
+    })
+    expect(vehicle.status, JSON.stringify(vehicle.body)).toBe(200)
+    const consent = await call(app, driver, 'POST', '/delivery/consents', {
+      idempotencyKey: `rf-consent-${tag}-${run}`,
+      id: uuidv7(),
+      granted: true,
+      noticeVersion: 'gps-2026-09',
+    })
+    expect(consent.status, JSON.stringify(consent.body)).toBe(200)
+    const stopIds = stops.map(() => uuidv7())
+    const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
+      idempotencyKey: `rf-trip-${tag}-${run}`,
+      id: tripId,
+      tripDate: today,
+      vehicleId,
+      driverId: driver.actorId,
+      vanSalesEnabled: false,
+      openingCashPaise: 0,
+      stops: stops.map((stop, i) => ({
+        id: stopIds[i],
+        sequence: i + 1,
+        retailerId: stop.retailerId,
+        invoiceIds: stop.bills.map((b) => b.invoiceId),
+      })),
+    })
+    expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+    const loading = await call(app, manager, 'POST', `/delivery/trips/${tripId}/start-loading`, {
+      idempotencyKey: `rf-loading-${tag}-${run}`,
+    })
+    expect(loading.status, JSON.stringify(loading.body)).toBe(200)
+    return { tripId, stopIds, vehicleLocationId: planned.body.item.vehicleLocationId }
+  }
+
+  it('DOS-244 the godown counts a failed bill back onto the dock, the rest onto the rack, and the bill goes out again', async () => {
+    const driver = driverAt(8)
+    const bill = await billedOrder(retailerA, '244a')
+    const { tripId, stopIds, vehicleLocationId } = await roadTrip(
+      '244a',
+      driver,
+      [{ retailerId: retailerA, bills: [bill] }],
+      [{ lotId: lotA, qtyPcs: 10 }],
+    )
+    const dock = await dockId()
+    await arrive(driver, stopIds[0] ?? '', '244a')
+    await failAtDoor(driver, stopIds[0] ?? '', '244a')
+    await returnTrip(driver, tripId, '244a')
+    expect(await onHandOf(lotA, vehicleLocationId)).toBe(22)
+
+    // the check-in screen asks first: 12 of the 22 are the bill's, and says so on the row
+    const byRep = await call(app, rep, 'GET', '/delivery/van-returns', { vehicleLocationId })
+    expect(byRep.status).toBe(403)
+    const asked = await call<{
+      tripId: string | null
+      items: { lotId: string; invoiceId: string; retailerName: string; pcs: number }[]
+    }>(app, packer, 'GET', '/delivery/van-returns', { vehicleLocationId })
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+    expect(asked.body.tripId).toBe(tripId)
+    expect(asked.body.items).toEqual([
+      expect.objectContaining({
+        lotId: lotA,
+        invoiceId: bill.invoiceId,
+        retailerName: `Road Shop A ${run}`,
+        pcs: 12,
+      }),
+    ])
+
+    // a count above what the van holds is refused by name, and nothing moves
+    const over = await call<{ data?: { code?: string } }>(
+      app,
+      packer,
+      'POST',
+      '/delivery/van-returns/unload',
+      {
+        idempotencyKey: `rf-unload-over-244a-${run}`,
+        id: uuidv7(),
+        vehicleLocationId,
+        lotId: lotA,
+        qtyPcs: 23,
+      },
+    )
+    expect(over.status).toBe(409)
+    expect(over.body.data?.code).toBe('van_short')
+
+    const dockBefore = await onHandOf(lotA, dock)
+    const rackBefore = await onHandOf(lotA, godown)
+    const unloaded = await call<{
+      dockPcs: number
+      rackPcs: number
+      bills: { retailerName: string }[]
+    }>(app, packer, 'POST', '/delivery/van-returns/unload', {
+      idempotencyKey: `rf-unload-244a-${run}`,
+      id: uuidv7(),
+      vehicleLocationId,
+      lotId: lotA,
+      qtyPcs: 22,
+    })
+    expect(unloaded.status, JSON.stringify(unloaded.body)).toBe(200)
+    expect(unloaded.body).toMatchObject({ dockPcs: 12, rackPcs: 10 })
+    expect(unloaded.body.bills.map((b) => b.retailerName)).toEqual([`Road Shop A ${run}`])
+    expect(await onHandOf(lotA, dock)).toBe(dockBefore + 12)
+    expect(await onHandOf(lotA, godown)).toBe(rackBefore + 10)
+    expect(await onHandOf(lotA, vehicleLocationId)).toBe(0)
+    const nothingLeft = await call<{ items: unknown[] }>(
+      app,
+      packer,
+      'GET',
+      '/delivery/van-returns',
+      {
+        vehicleLocationId,
+      },
+    )
+    expect(nothingLeft.body.items).toEqual([])
+
+    // the desk settles the empty van: the dock is not staged a second time
+    const settled = await call(app, accountant, 'POST', `/delivery/trips/${tripId}/settle`, {
+      idempotencyKey: `rf-settle-244a-${run}`,
+      id: uuidv7(),
+      tripId,
+      handedOverCashPaise: 0,
+      counted: [],
+    })
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    expect(await onHandOf(lotA, dock)).toBe(dockBefore + 12)
+
+    // and the bill goes out again on a fresh trip: the load-out finds its pieces on the dock
+    const next = await plannedTrip('244a2', driverAt(9), [{ retailerId: retailerA, bills: [bill] }])
+    const loaded = await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: next.tripId, orderIds: [bill.orderId], tag: `rf-244a2-${run}` },
+    )
+    expect(loaded.dispatched).toEqual([bill.orderId])
+  }, 240_000)
+
+  it('DOS-244 a failed bill already counted onto the rack: the godown puts it on the dock and the sheet goes out', async () => {
+    // A batch of its own, first by expiry, so this bill's lot rides on nobody else's sheet.
+    const lotB = await asOwner(async (tx) => {
+      const inventory = app.get(InventoryService)
+      const b = await inventory.findOrCreateLot(tx, {
+        variantId: variantA,
+        batchNo: `RF-B-${run}`,
+        mrpPaise: 1000,
+        expiryDate: '2027-12-31',
+      })
+      await inventory.post(tx, [
+        {
+          lotId: b.lot.id,
+          locationId: godown,
+          qtyDelta: 30,
+          reason: 'opening',
+          idempotencyKey: `rf-open-b-${run}`,
+        },
+      ])
+      return b.lot.id
+    })
+    const driver = driverAt(10)
+    const bill = await billedOrder(retailerB, '244b')
+    const { tripId, stopIds, vehicleLocationId } = await roadTrip('244b', driver, [
+      { retailerId: retailerB, bills: [bill] },
+    ])
+    await arrive(driver, stopIds[0] ?? '', '244b')
+    await failAtDoor(driver, stopIds[0] ?? '', '244b')
+    await returnTrip(driver, tripId, '244b')
+    expect(await onHandOf(lotB, vehicleLocationId)).toBe(12)
+    // what the check-in screen did before the fix: every piece back to the godown as free stock (day 5, row 30)
+    const moved = await call(app, packer, 'POST', '/inventory/transfers', {
+      idempotencyKey: `rf-old-checkin-244b-${run}`,
+      lotId: lotB,
+      fromLocationId: vehicleLocationId,
+      toLocationId: godown,
+      qtyPcs: 12,
+    })
+    expect(moved.status, JSON.stringify(moved.body)).toBe(200)
+    const settled = await call(app, accountant, 'POST', `/delivery/trips/${tripId}/settle`, {
+      idempotencyKey: `rf-settle-244b-${run}`,
+      id: uuidv7(),
+      tripId,
+      handedOverCashPaise: 0,
+      counted: [],
+    })
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+    const dock = await dockId()
+    expect(await onHandOf(lotB, dock)).toBe(0)
+
+    // TRIP-0008: the sheet is built and approved, and the load-out is refused dock_short
+    const next = await plannedTrip('244b2', driverAt(11), [
+      { retailerId: retailerB, bills: [bill] },
+    ])
+    const sheetId = uuidv7()
+    const created = await call<{ item: { expectedPackages: number } }>(
+      app,
+      packer,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `rf-sheet-244b-${run}`,
+        id: sheetId,
+        toLocationId: next.vehicleLocationId,
+        tripId: next.tripId,
+        orderIds: [bill.orderId],
+        vanStock: [],
+      },
+    )
+    expect(created.status, JSON.stringify(created.body)).toBe(200)
+    const approved = await call(app, manager, 'POST', `/warehouse/load-sheets/${sheetId}/approve`, {
+      idempotencyKey: `rf-approve-244b-${run}`,
+    })
+    expect(approved.status, JSON.stringify(approved.body)).toBe(200)
+    const confirm = (key: string) =>
+      call<{ data?: { code?: string }; dispatched?: string[] }>(
+        app,
+        packer,
+        'POST',
+        `/warehouse/load-sheets/${sheetId}/confirm`,
+        {
+          idempotencyKey: key,
+          countedPackages: created.body.item.expectedPackages,
+          countedVanStock: [],
+          challanId: uuidv7(),
+        },
+      )
+    const refused = await confirm(`rf-confirm-244b-1-${run}`)
+    expect(refused.status).toBe(409)
+    expect(refused.body.data).toMatchObject({ code: 'dock_short', onDockPcs: 0, neededPcs: 12 })
+
+    // "Put the pieces on the dock": the godown still holds them, so all 12 go
+    const byRep = await call(app, rep, 'POST', `/warehouse/load-sheets/${sheetId}/stage-dock`, {
+      idempotencyKey: `rf-stage-rep-244b-${run}`,
+    })
+    expect(byRep.status).toBe(403)
+    const rackBefore = await onHandOf(lotB, godown)
+    const staged = await call<{
+      items: {
+        lotId: string
+        neededPcs: number
+        onDockPcs: number
+        stagedPcs: number
+        shortPcs: number
+      }[]
+    }>(app, packer, 'POST', `/warehouse/load-sheets/${sheetId}/stage-dock`, {
+      idempotencyKey: `rf-stage-244b-${run}`,
+    })
+    expect(staged.status, JSON.stringify(staged.body)).toBe(200)
+    expect(staged.body.items).toEqual([
+      expect.objectContaining({
+        lotId: lotB,
+        neededPcs: 12,
+        onDockPcs: 0,
+        stagedPcs: 12,
+        shortPcs: 0,
+      }),
+    ])
+    expect(await onHandOf(lotB, dock)).toBe(12)
+    expect(await onHandOf(lotB, godown)).toBe(rackBefore - 12)
+    // pressed again: nothing is short, nothing more moves
+    const twice = await call<{ items: { stagedPcs: number; shortPcs: number }[] }>(
+      app,
+      packer,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/stage-dock`,
+      { idempotencyKey: `rf-stage-244b-2-${run}` },
+    )
+    expect(twice.body.items).toEqual([expect.objectContaining({ stagedPcs: 0, shortPcs: 0 })])
+    expect(await onHandOf(lotB, dock)).toBe(12)
+
+    const sent = await confirm(`rf-confirm-244b-2-${run}`)
+    expect(sent.status, JSON.stringify(sent.body)).toBe(200)
+    expect(sent.body.dispatched).toEqual([bill.orderId])
+    expect(await onHandOf(lotB, dock)).toBe(0)
+  }, 240_000)
+
+  it('DOS-241 a bill that cannot be loaded comes off the trip, and the rest of the trip leaves', async () => {
+    const stuck = await billedOrder(retailerA, '241-stuck')
+    const loadedBill = await billedOrder(retailerB, '241-ok')
+    const driver = driverAt(12)
+    const { tripId, stopIds, vehicleLocationId } = await plannedTrip('241', driver, [
+      { retailerId: retailerA, bills: [stuck] },
+      { retailerId: retailerB, bills: [loadedBill] },
+    ])
+    // a draft sheet still carrying the stuck bill holds it on the trip
+    const draftId = uuidv7()
+    const draft = await call(app, packer, 'POST', '/warehouse/load-sheets', {
+      idempotencyKey: `rf-draft-241-${run}`,
+      id: draftId,
+      toLocationId: vehicleLocationId,
+      tripId,
+      orderIds: [stuck.orderId, loadedBill.orderId],
+      vanStock: [],
+    })
+    expect(draft.status, JSON.stringify(draft.body)).toBe(200)
+    const drop = (actor: Actor, key: string, invoiceId = stuck.invoiceId) =>
+      call<{ item?: TripBody; data?: { code?: string } }>(
+        app,
+        actor,
+        'POST',
+        `/delivery/trips/${tripId}/drop-bill`,
+        { idempotencyKey: key, invoiceId, reason: 'SIM D5: its batches were sold on day 4' },
+      )
+    const onDraft = await drop(manager, `rf-drop-241-draft-${run}`)
+    expect(onDraft.status).toBe(409)
+    expect(onDraft.body.data?.code).toBe('bill_on_draft_sheet')
+    const cancelled = await call(app, manager, 'POST', `/warehouse/load-sheets/${draftId}/cancel`, {
+      idempotencyKey: `rf-cancel-241-${run}`,
+      reason: 'rebuild without the stuck bill',
+    })
+    expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+
+    // the godown rebuilds the sheet without it and sends the vehicle out: the trip still cannot start
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId, orderIds: [loadedBill.orderId], tag: `rf-241-${run}` },
+    )
+    const blocked = await call<{ data?: { code?: string } }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/trips/${tripId}/depart`,
+      { idempotencyKey: `rf-depart-241-1-${run}`, startOdometerKm: 1_000 },
+    )
+    expect(blocked.status).toBe(409)
+    expect(blocked.body.data?.code).toBe('bill_not_loaded')
+
+    // the accountant and the godown do not decide the road; a loaded bill does not come off here
+    expect((await drop(accountant, `rf-drop-241-acc-${run}`)).status).toBe(403)
+    expect((await drop(packer, `rf-drop-241-wh-${run}`)).status).toBe(403)
+    const loadedOff = await drop(manager, `rf-drop-241-loaded-${run}`, loadedBill.invoiceId)
+    expect(loadedOff.status).toBe(409)
+    expect(loadedOff.body.data?.code).toBe('bill_loaded')
+
+    const dropped = await drop(manager, `rf-drop-241-${run}`)
+    expect(dropped.status, JSON.stringify(dropped.body)).toBe(200)
+    expect(dropped.body.item?.stops.find((s) => s.id === stopIds[0])?.state).toBe('skipped')
+    expect(await orderState(stuck.orderId)).toBe('packed')
+    // a lost reply retried answers the same; the bill is on the planning board again
+    expect((await drop(manager, `rf-drop-241-${run}`)).status).toBe(200)
+    const board = await call<{ bills: { invoiceId: string }[] }>(
+      app,
+      manager,
+      'GET',
+      '/delivery/trip-planning',
+      { date: today, limit: '200' },
+    )
+    expect(board.body.bills.map((b) => b.invoiceId)).toContain(stuck.invoiceId)
+
+    const departed = await call<{ item: TripBody }>(
+      app,
+      driver,
+      'POST',
+      `/delivery/trips/${tripId}/depart`,
+      { idempotencyKey: `rf-depart-241-2-${run}`, startOdometerKm: 1_000 },
+    )
+    expect(departed.status, JSON.stringify(departed.body)).toBe(200)
+    expect(departed.body.item.state).toBe('active')
+    // once it has left, nothing comes off it here
+    const late = await drop(manager, `rf-drop-241-late-${run}`, loadedBill.invoiceId)
+    expect(late.status).toBe(409)
+    expect(late.body.data?.code).toBe('trip_left')
   }, 240_000)
 })
