@@ -1,0 +1,7 @@
+210 phone: Rahul after Vikas's election: 200 actAs=(none)
+[shot] 210-phone-01-rahul-beat.png
+[shot] 211-phone-01-card-right-after-add.png
+211 211-phone: states seen in 5 s after Add: card=false notOnPhone=false name=false / card=true notOnPhone=false name=true
+211 211-phone: POST /sales/retailers 200 code=R-9028
+[shot] 211-phone-02-save-refused-input-kept.png
+211 phone refused: POST 400; still on /sales/shops/new; name kept = Fix Walk Refused Shop

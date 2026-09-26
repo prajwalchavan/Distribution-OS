@@ -401,6 +401,11 @@ export const strings = {
   'm3.checks': 'Checks',
   'm3.reading': 'What we read',
   'm3.noLines': 'The reading has no lines to book',
+  // DOS-215: why "Book it" is not pressable yet — the next step, not the problem.
+  'm3.approveStartReview': 'Start reviewing, then press This reading is right to book it',
+  'm3.approveSubmitFirst': 'Press This reading is right first, then book it',
+  'm3.approveStillReading': 'Still being read. Book it once the reading is checked',
+  'm3.approveBrandDms': 'A brand-DMS bill is the brand’s own invoice, not a supplier bill',
   'm3.candidates': 'What we think each line is',
   'm3.printed': 'On the bill',
   'm3.ourItem': 'Our item',

@@ -1,0 +1,4 @@
+210 desk: Rahul after Vikas: 200 actAs=(none)
+[shot] 211-desk-01-card-right-after-add.png
+211 211-desk: states seen in 5 s after Add: card=false notOnPhone=false name=false / card=true notOnPhone=false name=true
+211 211-desk: POST /sales/retailers 200 code=R-9026

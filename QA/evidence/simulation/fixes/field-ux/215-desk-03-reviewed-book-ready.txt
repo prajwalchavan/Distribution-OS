@@ -1,0 +1,169 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+3.57 edits per ten lines
+Documents to review
+Supplier bills
+Documents
+Gate count
+Supplier	Bill no.	Bill date	Amount ₹	Lines	Must fix	Unmatched	Waiting	Locked by
+
+Alan's Food Products — Bhiwandi
+	
+ALA/26-27/00491
+	
+12 Sep 2026
+	10,896.00	
+3
+	Needs review	
+0
+	
+342 h
+	
+Being reviewed by Sunil Tarsun
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GKA/26-27/00500
+	
+5 Sep 2026
+	44,218.00	
+4
+	1	
+0
+	
+407 h
+	
+—
+
+
+Guiltfree Industries — Gurugram
+	
+FA/TY/26-27/1187
+	
+12 Sep 2026
+	9,854.00	
+2
+	Needs review	
+0
+	
+343 h
+	
+—
+
+
+Guru Kripa Agencies (Balaji Super-Stockist)
+	
+GUR/26-27/00490
+	
+11 Sep 2026
+	44,218.00	
+4
+	Reviewed	
+0
+	
+366 h
+	
+—
+
+
+Reliance Consumer Products — Kalyan Depot
+	
+REL/26-27/00495
+	
+12 Sep 2026
+	3,45,530.00	
+3
+	1	
+0
+	
+341 h
+	
+—
+
+
+Guiltfree Industries — Gurugram
+	
+GFI/26-27/00489
+	
+12 Sep 2026
+	21,773.00	
+4
+	2	
+2
+	
+343 h
+	
+Being reviewed by Vikas Kadam
+
+
+MOM Foods — Bikaner
+	
+—
+	
+—
+	—	
+—
+	Failed	
+0
+	
+384 h
+	
+—
+
+7 rows								
+Reliance Consumer Products — Kalyan Depot · REL/26-27/00495
+Close
+Supplier
+Reliance Consumer Products — Kalyan Depot
+State
+Reviewed
+QR
+QR read
+Pages
+Checks
+Review hsn dated rate
+What we read
+Bill no.
+Amount ₹
+₹
+Bill date
+12 Sep 2026
+What we think each line is
+On the bill: CAMPA COLA 750 ML
+9696 pc
+₹2,79,904.12
+Our item: Campa Cola 750 ml
+Match 97% · External code
+On the bill: CAMPA ORANGE 750 ML
+2232 pc
+₹64,433.38
+Our item: Campa Orange 750 ml
+Match 97% · Supplier alias
+On the bill: INDEPENDENCE PACKAGED DRINKING WATER 1 L
+48 pc
+₹692.14
+Our item: Independence Packaged Drinking Water 1 L
+Match 97% · Supplier alias
+Match the items again
+Book it as a supplier bill
+Reject the document

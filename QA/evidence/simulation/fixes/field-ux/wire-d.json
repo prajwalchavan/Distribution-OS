@@ -1,0 +1,254 @@
+[
+ {
+  "at": "2026-09-26T09:50:34.264Z",
+  "label": "211-desk",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/auth/auth/login",
+  "status": 200,
+  "request": {
+   "username": "rahul.deshmukh",
+   "deviceId": "01a0dd1f-a244-75e1-a1ff-a0239b11bc75",
+   "deviceName": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safar",
+   "platform": "web"
+  },
+  "reply": "(redacted: tokens) {}"
+ },
+ {
+  "at": "2026-09-26T09:50:34.424Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"tenant_products\",\"rows\":[],\"deleted\":[]},{\"table\":\"retailers\",\"rows\":[{\"id\":\"1037f5e7-7ce4-7045-a181-0668a7fa9188\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"identity_id\":null,\"code\":\"R-0011\",\"name\":\"Sai Baba Kirana\",\"owner_name\":\"Mangesh Gaikwad\",\"phone\":\"+918655015314\",\"alt_phone\":null,\"address\":{\"area\":\"Bazarpeth, Kalyan West\",\"city\":\"Kalyan\",\"line1\":\"Shop 35, Subhash Chowk\",\"pincode\":\"421301\"},\"lat\":19.243726,\"lng\":73.124766,\"beat_id\":\"59167a2e-7d76-7bb0-ab9e-fb332fd9c88a\",\"tier\":\"B\",\"gst_reg_type\":\"regular\",\"gstin\":\"27RBNPG3735M1ZS\",\"state_code\":\"27\",\"credit\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.496Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40MzYyNTNaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"price_list_items\",\"rows\":[{\"id\":\"9f5466b5-5f6e-7cb1-83ac-4fcdd924caa7\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"price_list_id\":\"04740a6c-ea04-74ad-974b-0655b00b726c\",\"variant_id\":\"452c3f8b-8d99-7e05-a9e2-e4bbc2e596b0\",\"rate_paise\":5038,\"inclusive_of_gst\":false,\"created_at\":\"2026-09-13 12:40:12.420954+05:30\",\"updated_at\":\"2026-09-13 12:40:12.436303+05:30\"},{\"id\":\"39928f86-055d-7dc2-93b8-85b2f4139352\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"price_list_id\":\"2245a710-5188-7549-be0c-2ff17b72f4c8\",\"variant_id\":\"440d6d26-7a39-79c1-8bd2-ab62e048b73a\",\"rate_\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.557Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40NjgzNDhaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"tenant_products\",\"rows\":[{\"id\":\"1a04394e-c312-71b9-b7ab-5f7d3c2d6e79\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"variant_id\":\"2f5b8e5c-5f83-74b4-9e05-f6f0e6ad0d98\",\"listed\":true,\"local_alias\":null,\"case_size_override\":null,\"min_order_qty\":1,\"order_increment\":1,\"max_per_order\":null,\"sort_order\":2,\"created_at\":\"2026-09-13 12:40:12.532596+05:30\",\"updated_at\":\"2026-09-13 12:40:12.533529+05:30\"},{\"id\":\"31115556-4cdf-7e64-b1fc-b12beace9e1d\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"variant_id\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"listed\":true,\"local_alias\"\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.606Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy4yOTUzNDNaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"sales_orders\",\"rows\":[{\"id\":\"43a89edc-c841-7080-a3be-3548df4159a3\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"order_no\":\"SO-0746\",\"retailer_id\":\"20059d26-8301-7f2a-9f72-29cc39ce7753\",\"state\":\"cancelled\",\"source\":\"retailer_app\",\"created_by\":\"be8d0849-0dd8-7a75-9242-bdde2acbe8d7\",\"salesperson_id\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"pricing_date_mode\":\"order\",\"payment_terms\":\"POST_FULFILLMENT\",\"fulfil_from_location_id\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"external_ref\":null,\"subtotal_paise\":3884436,\"discount_paise\":89890,\"tax_paise\":828318,\"round_off_paise\":3\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.663Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy41NzYyNDFaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"sales_order_lines\",\"rows\":[{\"id\":\"07bb687e-dedf-7674-8ff0-80bd3648207f\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"order_id\":\"70f152cf-4483-786c-9225-273aaee3c9a2\",\"line_no\":3,\"variant_id\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"entered_qty\":23,\"entered_unit\":\"piece\",\"pack_size_at_entry\":1,\"qty_pcs\":23,\"free_qty_pcs\":0,\"picked_qty_pcs\":23,\"delivered_qty_pcs\":23,\"list_rate_paise\":1134,\"rate_paise\":1134,\"discount_bps\":0,\"discount_paise\":0,\"gst_bps\":2800,\"tax_paise\":10432,\"line_total_paise\":36514,\"applied_rules\":[],\"price_locked\":false,\"created_at\":\"2026-09-13 12:40\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.737Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy42OTY0MTJaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"sales_order_lines\",\"rows\":[{\"id\":\"b3757222-9e87-7260-8aba-6702a6849cb4\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"order_id\":\"95b1318a-8d21-7cca-ad9f-2d2bfd41ce70\",\"line_no\":2,\"variant_id\":\"99b2404c-4f7f-75c7-98f3-2d36ca78de54\",\"entered_qty\":9,\"entered_unit\":\"case\",\"pack_size_at_entry\":24,\"qty_pcs\":216,\"free_qty_pcs\":9,\"picked_qty_pcs\":216,\"delivered_qty_pcs\":216,\"list_rate_paise\":2263,\"rate_paise\":2263,\"discount_bps\":200,\"discount_paise\":9776,\"gst_bps\":2800,\"tax_paise\":191612,\"line_total_paise\":670644,\"applied_rules\":[{\"kind\":\"scheme\",\"ruleId\":\"8c91c558-a161-77d\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.797Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC4zMjY3NDdaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"invoice_lines\",\"rows\":[{\"id\":\"b7498454-e5a4-77eb-8bc9-13e876d40df9\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"invoice_id\":\"870645ff-d412-759b-b802-77f93ffcc0e2\",\"line_no\":1,\"order_line_id\":\"1e8790b0-14ff-743a-87a3-1e2e9c041d42\",\"variant_id\":\"18d7e52f-e549-7c24-86bc-f48aea578ec2\",\"lot_id\":\"81af55f0-8bdf-704e-96af-69f1506147e7\",\"description\":\"Godavari Flavoured Milk Rose 180 ml\",\"hsn_code\":\"2202\",\"batch_no\":\"GD20260625\",\"expiry_date\":\"2026-10-23\",\"mrp_paise\":2500,\"qty_pcs\":216,\"free_qty_pcs\":0,\"entered_qty\":8,\"entered_unit\":\"case\",\"pack_size_at_entry\":27,\"case_siz\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.858Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC40NjMyMzVaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"invoice_lines\",\"rows\":[{\"id\":\"cbb6591e-5890-726d-8bf9-357ad28753ef\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"invoice_id\":\"e2d76be4-bd66-7c33-9cc2-852de636615d\",\"line_no\":1,\"order_line_id\":\"6ce214fc-cb15-7c64-9c8f-9b6e716e7bd1\",\"variant_id\":\"7df1cb3d-63e5-74e6-98eb-2c64a7d758c9\",\"lot_id\":\"fe97d5a0-d307-7be4-81af-813210232288\",\"description\":\"Godavari Cow Ghee 500 ml\",\"hsn_code\":\"0405\",\"batch_no\":\"GD20260716\",\"expiry_date\":\"2027-07-16\",\"mrp_paise\":39500,\"qty_pcs\":12,\"free_qty_pcs\":0,\"entered_qty\":12,\"entered_unit\":\"piece\",\"pack_size_at_entry\":1,\"case_size\":12,\"rat\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.938Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC42MDk0MDhaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"visits\",\"rows\":[{\"id\":\"a85f959a-8460-791d-8ae6-6b4e0b54828d\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"retailer_id\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"user_id\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"started_at\":\"2026-06-15 10:16:00+05:30\",\"ended_at\":\"2026-06-15 10:31:00+05:30\",\"outcome\":\"ordered\",\"reason\":null,\"lat\":19.23496,\"lng\":73.130154,\"note\":null,\"created_at\":\"2026-06-15 10:16:00+05:30\",\"updated_at\":\"2026-09-13 12:40:20.117769+05:30\"},{\"id\":\"47682995-2e3c-78d5-ac51-6fab4f186d4d\",\"tenant_id\":\"01a0999a-2\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:34.971Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyMC4xMjAwODJaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"visits\",\"rows\":[{\"id\":\"b5e95869-6b1d-7c04-a1d5-1415f116ac93\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"retailer_id\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"user_id\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"started_at\":\"2026-06-18 10:20:00+05:30\",\"ended_at\":\"2026-06-18 10:27:00+05:30\",\"outcome\":\"ordered\",\"reason\":null,\"lat\":19.236515,\"lng\":73.128855,\"note\":null,\"created_at\":\"2026-06-18 10:20:00+05:30\",\"updated_at\":\"2026-09-13 12:40:20.120095+05:30\"},{\"id\":\"e88b35fe-3788-70e0-8b10-0ab9d0175be9\",\"tenant_id\":\"01a0999a-\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:35.035Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyMC4xNTYwOTZaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"retailers\",\"rows\":[{\"id\":\"01a0dd1a-3d8c-775c-8b15-fd25b61e0f43\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"identity_id\":null,\"code\":\"R-9025\",\"name\":\"Fix Walk Kirana One\",\"owner_name\":\"Suresh Navale\",\"phone\":\"+919876543291\",\"alt_phone\":null,\"address\":{\"line1\":\"Shop 3, Rajaji Path\"},\"lat\":null,\"lng\":null,\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"tier\":\"C\",\"gst_reg_type\":\"unregistered\",\"gstin\":null,\"state_code\":\"27\",\"credit_limit_paise\":0,\"credit_limit_bills\":0,\"credit_days\":0,\"credit_mode\":\"indicate\",\"payment_terms\":\"POST_FULFILLMENT\",\"cash_discount_bps\":0,\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.523Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"tenant_products\",\"rows\":[],\"deleted\":[]},{\"table\":\"retailers\",\"rows\":[{\"id\":\"1037f5e7-7ce4-7045-a181-0668a7fa9188\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"identity_id\":null,\"code\":\"R-0011\",\"name\":\"Sai Baba Kirana\",\"owner_name\":\"Mangesh Gaikwad\",\"phone\":\"+918655015314\",\"alt_phone\":null,\"address\":{\"area\":\"Bazarpeth, Kalyan West\",\"city\":\"Kalyan\",\"line1\":\"Shop 35, Subhash Chowk\",\"pincode\":\"421301\"},\"lat\":19.243726,\"lng\":73.124766,\"beat_id\":\"59167a2e-7d76-7bb0-ab9e-fb332fd9c88a\",\"tier\":\"B\",\"gst_reg_type\":\"regular\",\"gstin\":\"27RBNPG3735M1ZS\",\"state_code\":\"27\",\"credit\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.590Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40MzYyNTNaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"price_list_items\",\"rows\":[{\"id\":\"9f5466b5-5f6e-7cb1-83ac-4fcdd924caa7\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"price_list_id\":\"04740a6c-ea04-74ad-974b-0655b00b726c\",\"variant_id\":\"452c3f8b-8d99-7e05-a9e2-e4bbc2e596b0\",\"rate_paise\":5038,\"inclusive_of_gst\":false,\"created_at\":\"2026-09-13 12:40:12.420954+05:30\",\"updated_at\":\"2026-09-13 12:40:12.436303+05:30\"},{\"id\":\"39928f86-055d-7dc2-93b8-85b2f4139352\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"price_list_id\":\"2245a710-5188-7549-be0c-2ff17b72f4c8\",\"variant_id\":\"440d6d26-7a39-79c1-8bd2-ab62e048b73a\",\"rate_\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.660Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMi40NjgzNDhaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"tenant_products\",\"rows\":[{\"id\":\"1a04394e-c312-71b9-b7ab-5f7d3c2d6e79\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"variant_id\":\"2f5b8e5c-5f83-74b4-9e05-f6f0e6ad0d98\",\"listed\":true,\"local_alias\":null,\"case_size_override\":null,\"min_order_qty\":1,\"order_increment\":1,\"max_per_order\":null,\"sort_order\":2,\"created_at\":\"2026-09-13 12:40:12.532596+05:30\",\"updated_at\":\"2026-09-13 12:40:12.533529+05:30\"},{\"id\":\"31115556-4cdf-7e64-b1fc-b12beace9e1d\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"variant_id\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"listed\":true,\"local_alias\"\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.705Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy4yOTUzNDNaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"sales_orders\",\"rows\":[{\"id\":\"43a89edc-c841-7080-a3be-3548df4159a3\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"order_no\":\"SO-0746\",\"retailer_id\":\"20059d26-8301-7f2a-9f72-29cc39ce7753\",\"state\":\"cancelled\",\"source\":\"retailer_app\",\"created_by\":\"be8d0849-0dd8-7a75-9242-bdde2acbe8d7\",\"salesperson_id\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"pricing_date_mode\":\"order\",\"payment_terms\":\"POST_FULFILLMENT\",\"fulfil_from_location_id\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"external_ref\":null,\"subtotal_paise\":3884436,\"discount_paise\":89890,\"tax_paise\":828318,\"round_off_paise\":3\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.761Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy41NzYyNDFaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"sales_order_lines\",\"rows\":[{\"id\":\"07bb687e-dedf-7674-8ff0-80bd3648207f\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"order_id\":\"70f152cf-4483-786c-9225-273aaee3c9a2\",\"line_no\":3,\"variant_id\":\"4cf8c0aa-3028-7155-957a-80108bf2a8fb\",\"entered_qty\":23,\"entered_unit\":\"piece\",\"pack_size_at_entry\":1,\"qty_pcs\":23,\"free_qty_pcs\":0,\"picked_qty_pcs\":23,\"delivered_qty_pcs\":23,\"list_rate_paise\":1134,\"rate_paise\":1134,\"discount_bps\":0,\"discount_paise\":0,\"gst_bps\":2800,\"tax_paise\":10432,\"line_total_paise\":36514,\"applied_rules\":[],\"price_locked\":false,\"created_at\":\"2026-09-13 12:40\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.846Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxMy42OTY0MTJaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"sales_order_lines\",\"rows\":[{\"id\":\"b3757222-9e87-7260-8aba-6702a6849cb4\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"order_id\":\"95b1318a-8d21-7cca-ad9f-2d2bfd41ce70\",\"line_no\":2,\"variant_id\":\"99b2404c-4f7f-75c7-98f3-2d36ca78de54\",\"entered_qty\":9,\"entered_unit\":\"case\",\"pack_size_at_entry\":24,\"qty_pcs\":216,\"free_qty_pcs\":9,\"picked_qty_pcs\":216,\"delivered_qty_pcs\":216,\"list_rate_paise\":2263,\"rate_paise\":2263,\"discount_bps\":200,\"discount_paise\":9776,\"gst_bps\":2800,\"tax_paise\":191612,\"line_total_paise\":670644,\"applied_rules\":[{\"kind\":\"scheme\",\"ruleId\":\"8c91c558-a161-77d\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.897Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC4zMjY3NDdaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"invoice_lines\",\"rows\":[{\"id\":\"b7498454-e5a4-77eb-8bc9-13e876d40df9\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"invoice_id\":\"870645ff-d412-759b-b802-77f93ffcc0e2\",\"line_no\":1,\"order_line_id\":\"1e8790b0-14ff-743a-87a3-1e2e9c041d42\",\"variant_id\":\"18d7e52f-e549-7c24-86bc-f48aea578ec2\",\"lot_id\":\"81af55f0-8bdf-704e-96af-69f1506147e7\",\"description\":\"Godavari Flavoured Milk Rose 180 ml\",\"hsn_code\":\"2202\",\"batch_no\":\"GD20260625\",\"expiry_date\":\"2026-10-23\",\"mrp_paise\":2500,\"qty_pcs\":216,\"free_qty_pcs\":0,\"entered_qty\":8,\"entered_unit\":\"case\",\"pack_size_at_entry\":27,\"case_siz\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:37.959Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC40NjMyMzVaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"invoice_lines\",\"rows\":[{\"id\":\"cbb6591e-5890-726d-8bf9-357ad28753ef\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"invoice_id\":\"e2d76be4-bd66-7c33-9cc2-852de636615d\",\"line_no\":1,\"order_line_id\":\"6ce214fc-cb15-7c64-9c8f-9b6e716e7bd1\",\"variant_id\":\"7df1cb3d-63e5-74e6-98eb-2c64a7d758c9\",\"lot_id\":\"fe97d5a0-d307-7be4-81af-813210232288\",\"description\":\"Godavari Cow Ghee 500 ml\",\"hsn_code\":\"0405\",\"batch_no\":\"GD20260716\",\"expiry_date\":\"2027-07-16\",\"mrp_paise\":39500,\"qty_pcs\":12,\"free_qty_pcs\":0,\"entered_qty\":12,\"entered_unit\":\"piece\",\"pack_size_at_entry\":1,\"case_size\":12,\"rat\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:38.039Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoxNC42MDk0MDhaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"visits\",\"rows\":[{\"id\":\"a85f959a-8460-791d-8ae6-6b4e0b54828d\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"retailer_id\":\"34191c43-f0bc-70ab-a39d-fcbe8f94ae36\",\"user_id\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"started_at\":\"2026-06-15 10:16:00+05:30\",\"ended_at\":\"2026-06-15 10:31:00+05:30\",\"outcome\":\"ordered\",\"reason\":null,\"lat\":19.23496,\"lng\":73.130154,\"note\":null,\"created_at\":\"2026-06-15 10:16:00+05:30\",\"updated_at\":\"2026-09-13 12:40:20.117769+05:30\"},{\"id\":\"47682995-2e3c-78d5-ac51-6fab4f186d4d\",\"tenant_id\":\"01a0999a-2\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:38.073Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyMC4xMjAwODJaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"visits\",\"rows\":[{\"id\":\"b5e95869-6b1d-7c04-a1d5-1415f116ac93\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"retailer_id\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"user_id\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"started_at\":\"2026-06-18 10:20:00+05:30\",\"ended_at\":\"2026-06-18 10:27:00+05:30\",\"outcome\":\"ordered\",\"reason\":null,\"lat\":19.236515,\"lng\":73.128855,\"note\":null,\"created_at\":\"2026-06-18 10:20:00+05:30\",\"updated_at\":\"2026-09-13 12:40:20.120095+05:30\"},{\"id\":\"e88b35fe-3788-70e0-8b10-0ab9d0175be9\",\"tenant_id\":\"01a0999a-\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:38.158Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0xM1QwNzoxMDoyMC4xNTYwOTZaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"retailers\",\"rows\":[{\"id\":\"01a0dd1a-3d8c-775c-8b15-fd25b61e0f43\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"identity_id\":null,\"code\":\"R-9025\",\"name\":\"Fix Walk Kirana One\",\"owner_name\":\"Suresh Navale\",\"phone\":\"+919876543291\",\"alt_phone\":null,\"address\":{\"line1\":\"Shop 3, Rajaji Path\"},\"lat\":null,\"lng\":null,\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"tier\":\"C\",\"gst_reg_type\":\"unregistered\",\"gstin\":null,\"state_code\":\"27\",\"credit_limit_paise\":0,\"credit_limit_bills\":0,\"credit_days\":0,\"credit_mode\":\"indicate\",\"payment_terms\":\"POST_FULFILLMENT\",\"cash_discount_bps\":0,\u2026"
+ },
+ {
+  "at": "2026-09-26T09:50:40.653Z",
+  "label": "211-desk",
+  "method": "POST",
+  "url": "http://127.0.0.1:3417/sales/retailers",
+  "status": 200,
+  "request": {
+   "id": "01a0dd1f-bfc2-7477-b818-1e622805d2ce",
+   "idempotencyKey": "01a0dd1f-b389-75c2-8d5f-0f9e93b65d64",
+   "name": "Fix Walk Desk Stores",
+   "ownerName": null,
+   "phone": "+919876543292",
+   "address": {},
+   "lat": null,
+   "lng": null,
+   "beatId": "7298470d-3ffc-768f-b3f7-c0b7bdb3a07b",
+   "gstRegType": "unregistered",
+   "gstin": null,
+   "stateCode": "27"
+  },
+  "reply": "{\"item\":{\"id\":\"01a0dd1f-bfc2-7477-b818-1e622805d2ce\",\"name\":\"Fix Walk Desk Stores\",\"ownerName\":null,\"phone\":\"+919876543292\",\"altPhone\":null,\"address\":{},\"lat\":null,\"lng\":null,\"beatId\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"gstRegType\":\"unregistered\",\"gstin\":null,\"stateCode\":\"27\",\"paymentTerms\":\"POST_FULFILLMENT\",\"cashDiscountBps\":0,\"cashDiscountDays\":0,\"active\":true,\"code\":\"R-9026\",\"identityId\":null,\"tier\":\"C\",\"creditLimitPaise\":0,\"creditLimitBills\":0,\"creditDays\":0,\"creditMode\":\"indicate\",\"onboardedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\"}}"
+ },
+ {
+  "at": "2026-09-26T09:50:40.678Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/reporting/retailers/01a0dd1f-bfc2-7477-b818-1e622805d2ce/behaviour",
+  "status": 404,
+  "request": null,
+  "reply": "{\"defined\":false,\"code\":\"NOT_FOUND\",\"status\":404,\"message\":\"No behaviour has been computed for this shop yet.\",\"data\":{\"code\":\"behaviour_not_computed\",\"retailerId\":\"01a0dd1f-bfc2-7477-b818-1e622805d2ce\"}}"
+ },
+ {
+  "at": "2026-09-26T09:50:40.713Z",
+  "label": "211-desk",
+  "method": "GET",
+  "url": "http://127.0.0.1:3417/sales/sync/pull?deviceId=01a0dd1f-a244-75e1-a1ff-a0239b11bc75&limit=500&since=eyJ2IjoxLCJ0IjoiMjAyNi0wOS0yNlQwOTo1MDozMy4wNjhaIn0",
+  "status": 200,
+  "request": null,
+  "reply": "{\"changes\":[{\"table\":\"retailers\",\"rows\":[{\"id\":\"01a0dd1f-bfc2-7477-b818-1e622805d2ce\",\"tenant_id\":\"01a0999a-28c3-7341-93f5-e0e84b0189a1\",\"identity_id\":null,\"code\":\"R-9026\",\"name\":\"Fix Walk Desk Stores\",\"owner_name\":null,\"phone\":\"+919876543292\",\"alt_phone\":null,\"address\":{},\"lat\":null,\"lng\":null,\"beat_id\":\"7298470d-3ffc-768f-b3f7-c0b7bdb3a07b\",\"tier\":\"C\",\"gst_reg_type\":\"unregistered\",\"gstin\":null,\"state_code\":\"27\",\"credit_limit_paise\":0,\"credit_limit_bills\":0,\"credit_days\":0,\"credit_mode\":\"indicate\",\"payment_terms\":\"POST_FULFILLMENT\",\"cash_discount_bps\":0,\"cash_discount_days\":0,\"tally_ledger_na\u2026"
+ }
+]

@@ -123,5 +123,13 @@ export function electionRefusal(i: {
   membershipRole: string
   actAs: string
 }): string {
-  return `Your login at ${i.distributor} is a ${i.membershipRole}; ask the owner to add ${i.actAs} to it.`
+  return `Your login at ${i.distributor} is ${article(i.membershipRole)} ${i.membershipRole}; ask the owner to add ${i.actAs} to it.`
+}
+
+/**
+ * "an accountant", "an owner", "a manager" (DOS-210: the sentence read "is a accountant"). The roles
+ * are English words chosen by us, so the vowel rule is exact for every one of them.
+ */
+function article(word: string): 'a' | 'an' {
+  return /^[aeiou]/i.test(word) ? 'an' : 'a'
 }

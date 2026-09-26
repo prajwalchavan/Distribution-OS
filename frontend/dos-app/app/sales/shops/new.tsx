@@ -13,7 +13,7 @@
  * Online only. `retailers` has no sync handler for this role (docs/23 §3.4), so with no signal the
  * screen says so rather than queueing a shop that would never arrive.
  */
-import { useApi, useMutation } from '@dos/api-client/react'
+import { useApi, useMutation, useQueryCache } from '@dos/api-client/react'
 import { isValidGstin, uuidv7 } from '@dos/domain'
 import {
   Button,
@@ -28,10 +28,12 @@ import {
   useGo,
   useStrings,
 } from '@dos/ui'
+import { useSyncEngine } from '@dos/offline/react'
 import { location } from '@dos/ui/platform'
 import { useMemo, useState } from 'react'
 
 import { useBeats, useLocalState, useMyBeatIds } from '../../../src/groups/sales/lib/local'
+import { shopQueryKey } from '../../../src/groups/sales/lib/new-shop'
 import { Panel, useMyUserId } from '../../../src/groups/sales/lib/ui'
 import { today } from '../../../src/groups/sales/lib/dates'
 
@@ -43,6 +45,8 @@ export default function NewShop(): React.JSX.Element {
   const go = useGo()
   const api = useApi()
   const local = useLocalState()
+  const cache = useQueryCache()
+  const engine = useSyncEngine()
   const userId = useMyUserId()
   const beats = useBeats()
   const myBeatIds = useMyBeatIds(userId, today())
@@ -97,6 +101,15 @@ export default function NewShop(): React.JSX.Element {
     {
       invalidates: [['names', 'retailers']],
       onSuccess: (result) => {
+        /*
+         * DOS-211: the card reads the phone, and the phone gets this row only with the next pull. The
+         * reply IS the shop, so the card's service entry is filled with it before the card opens — it
+         * shows the new shop at once instead of "That shop is not on this phone", which a rep at a
+         * counter reads as "it did not save" and answers with a second, duplicate shop. The pull is
+         * asked for now rather than at the next tick, so the beat and the Shops list catch up too.
+         */
+        cache.setData(shopQueryKey(result.item.id), result)
+        void engine?.sync('shop added')
         go.replace(`/shops/${result.item.id}`)
       },
     },
