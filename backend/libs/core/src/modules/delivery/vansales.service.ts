@@ -1,11 +1,26 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
-import type { CreateVanSaleInput, CreateVanSaleOutput } from '@dos/contracts'
-import { deliveries, deliveryLines, trips, tripStops, withTenant, type Db } from '@dos/db'
+import type {
+  CreateVanSaleInput,
+  CreateVanSaleOutput,
+  VanSaleStockInput,
+  VanSaleStockOutput,
+  VanSaleStockRow,
+} from '@dos/contracts'
+import {
+  deliveries,
+  deliveryLines,
+  stockBalances,
+  trips,
+  tripStops,
+  withTenant,
+  type Db,
+} from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
+import { InventoryService } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { CollectionsService } from './collections.service.js'
 import {
@@ -13,11 +28,13 @@ import {
   DOORSTEP,
   emitDeliveryEvent,
   findRetailer,
+  findTrip,
+  loadLots,
   loadVehicle,
   lockTrip,
-  STOP_TERMINAL,
   stopsOf,
   vanSalesFlag,
+  variantNames,
   whenOr,
   type StopRow,
 } from './delivery.internals.js'
@@ -26,6 +43,8 @@ import { deterministicLineId, TripsService } from './trips.service.js'
 
 type CreateIn = z.infer<typeof CreateVanSaleInput>
 type CreateOut = z.infer<typeof CreateVanSaleOutput>
+type StockIn = z.infer<typeof VanSaleStockInput>
+type StockOut = z.infer<typeof VanSaleStockOutput>
 
 /**
  * An on-the-spot sale from van stock (ADR 0013), in ONE transaction:
@@ -52,7 +71,102 @@ export class VanSalesService {
     private readonly billing: BillingService,
     private readonly trips: TripsService,
     private readonly collections: CollectionsService,
+    /** Holds the other shops' billed cartons out of the sale's reach for its transaction (QA DOS-233). */
+    private readonly inventory: InventoryService,
   ) {}
+
+  /**
+   * What the crew may sell here (QA DOS-233): the van's sellable pieces per lot less the pieces this trip's
+   * own bills still hold on board. The screen used to list the whole van — the next shop's Bourbon and
+   * cracker cartons as stock to sell — and the sale would have drawn on them.
+   */
+  async stock(input: StockIn): Promise<StockOut> {
+    requireRole(DOORSTEP)
+    const db = requireDb(this.db)
+    return withTenant(db, currentTenant(), async (tx) => {
+      const trip = await findTrip(tx, input.tripId)
+      assertCrewOrDesk(trip, DOORSTEP)
+      const vehicle = await loadVehicle(tx, trip.vehicleId)
+      const held = await this.heldForBills(tx, trip.id)
+      const rows = await tx
+        .select({
+          lotId: stockBalances.lotId,
+          onHand: stockBalances.onHand,
+          reserved: stockBalances.reserved,
+        })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.locationId, vehicle.locationId),
+            sql`${stockBalances.onHand} - ${stockBalances.reserved} > 0`,
+          ),
+        )
+      const lots = await loadLots(
+        tx,
+        rows.map((r) => r.lotId),
+      )
+      const names = await variantNames(
+        tx,
+        [...lots.values()].map((l) => l.variantId),
+      )
+      const items: VanSaleStockRow[] = []
+      for (const r of rows) {
+        const lot = lots.get(r.lotId)
+        if (!lot) continue
+        const sellable = r.onHand - r.reserved
+        const forBills = Math.min(sellable, held.get(r.lotId) ?? 0)
+        const variant = names.get(lot.variantId)
+        items.push({
+          lotId: r.lotId,
+          variantId: lot.variantId,
+          variantName: variant?.name ?? '',
+          batchNo: lot.batchNo === '' ? null : lot.batchNo,
+          mrpPaise: lot.mrpPaise,
+          expiryDate: lot.expiryDate,
+          caseSize: lot.caseSize ?? variant?.sellCaseSize ?? null,
+          availablePcs: sellable - forBills,
+          heldForBillsPcs: forBills,
+        })
+      }
+      items.sort(
+        (a, b) => a.variantName.localeCompare(b.variantName) || (a.lotId < b.lotId ? -1 : 1),
+      )
+      return {
+        items,
+        vanSalesAllowed:
+          trip.state === 'active' && trip.vanSalesEnabled && (await vanSalesFlag(tx)),
+      }
+    })
+  }
+
+  /**
+   * The pieces per lot this trip's bills still have on the van: every bill planned on it that has no
+   * outcome yet, and every bill that came back undelivered (it rides the van until check-in, docs/22 §4
+   * D5) and has not been cancelled since. A bill handed over — in full or in part — was relieved from the
+   * van at the door (QA DOS-195); what the shop sent back is free van stock again.
+   */
+  private async heldForBills(tx: Db, tripId: string): Promise<Map<string, number>> {
+    const rows = await tx
+      .select({ invoiceId: deliveries.invoiceId })
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.tripId, tripId),
+          or(sql`${deliveries.outcome} is null`, eq(deliveries.outcome, 'failed')),
+        ),
+      )
+    const held = new Map<string, number>()
+    for (const invoiceId of new Set(rows.map((r) => r.invoiceId))) {
+      const invoice = await this.billing.invoiceForDelivery(tx, invoiceId)
+      if (invoice.state === 'cancelled' || invoice.state === 'draft') continue
+      for (const line of invoice.lines) {
+        if (line.lotId === null) continue
+        const pcs = line.qtyPcs + line.freeQtyPcs
+        if (pcs > 0) held.set(line.lotId, (held.get(line.lotId) ?? 0) + pcs)
+      }
+    }
+    return held
+  }
 
   async create(input: CreateIn): Promise<CreateOut> {
     requireRole(DOORSTEP)
@@ -74,6 +188,15 @@ export class VanSalesService {
         const vehicle = await loadVehicle(tx, trip.vehicleId)
         const retailer = await findRetailer(tx, input.retailerId)
         const stop = await this.stopFor(tx, trip.id, input.stopId, retailer.id)
+
+        // QA DOS-233: the other shops' billed cartons ride on this van too. They are held out of the sale's
+        // reach for as long as it reserves — at confirm and again at billing — so a shortage is refused
+        // here rather than found at the next shop's door. Given back once the bill has taken its pieces.
+        const held = await this.inventory.holdPieces(
+          tx,
+          vehicle.locationId,
+          await this.heldForBills(tx, trip.id),
+        )
 
         // the order, priced like any other, from the vehicle
         const draft = await this.orders.insertDraft(tx, {
@@ -102,6 +225,7 @@ export class VanSalesService {
           ...(input.invoiceDate === undefined ? {} : { invoiceDate: input.invoiceDate }),
           deviceId: input.deviceId ?? null,
         })
+        await this.inventory.releaseHeld(tx, vehicle.locationId, held)
         await this.orders.applyFulfilmentEvent(
           tx,
           draft.id,
@@ -178,9 +302,9 @@ export class VanSalesService {
               reason: null,
             })),
           )
-        // a shop already visited keeps its stop state; a fresh stop lands on `delivered`
-        if (!STOP_TERMINAL.has(stop.state))
-          await this.trips.walkStop(tx, stop, 'delivered', at, null)
+        // A shop already visited keeps its stop state; a fresh stop lands on `delivered`; a stop whose
+        // planned bills are still on the van stays open for them (QA DOS-232).
+        await this.trips.settleStopAfterBill(tx, stop, at)
 
         // the money, when the shop pays at the door
         let collection: CreateOut['collection'] = null

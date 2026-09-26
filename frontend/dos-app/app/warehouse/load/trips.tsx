@@ -84,6 +84,8 @@ export default function Trips(): React.JSX.Element {
   const [driverId, setDriverId] = useState<string | null>(null)
   const [helperId, setHelperId] = useState<string | null>(null)
   const [floatPaise, setFloatPaise] = useState<number | null>(null)
+  /** DOS-233: the van also carries stock to sell — offered only while the `van_sales` flag is on. */
+  const [vanSales, setVanSales] = useState(false)
   /** Invoice ids in tap order. */
   const [chosen, setChosen] = useState<readonly string[]>([])
   /** The board is read a page at a time; "More bills" keeps the pages already read, whose bills may be chosen. */
@@ -117,6 +119,11 @@ export default function Trips(): React.JSX.Element {
   const vehicles = useQuery(['vehicles', 'active'], () => api.api.delivery.vehicles.list({}), {
     enabled: signedIn && panel?.kind === 'plan',
   })
+  const flags = useQuery(['tenancy', 'flags'], () => api.api.tenancy.featureFlags.list(), {
+    enabled: signedIn && mayPlan,
+  })
+  const vanSalesOn =
+    flags.data?.items.some((flag) => flag.flag === 'van_sales' && flag.enabled) ?? false
 
   const startLoading = useMutation(
     (input: { id: string }, meta) =>
@@ -146,6 +153,7 @@ export default function Trips(): React.JSX.Element {
         setDriverId(null)
         setHelperId(null)
         setFloatPaise(null)
+        setVanSales(false)
         setChosen([])
         setPlan(null)
         setCursor(null)
@@ -194,6 +202,7 @@ export default function Trips(): React.JSX.Element {
     helperId,
     openingCashPaise: floatPaise,
     chosen: onBoard,
+    vanSales: vanSalesOn && vanSales,
   }
   const problem = planProblem(form)
   const tripName = (trip: { tripNo: string | null; id: string } | undefined): string =>
@@ -433,6 +442,31 @@ export default function Trips(): React.JSX.Element {
                 testID="w10-float"
               />
 
+              {vanSalesOn ? (
+                <Stack gap={2}>
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('w10.vanSales')}
+                  </Txt>
+                  <Segments
+                    testID="w10-van-sales"
+                    value={vanSales ? 'sell' : 'bills'}
+                    onChange={(id) => {
+                      setVanSales(id === 'sell')
+                      changed()
+                    }}
+                    items={[
+                      { id: 'bills', label: t('w10.billsOnly') },
+                      { id: 'sell', label: t('w10.alsoSell') },
+                    ]}
+                  />
+                  {vanSales ? (
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('w10.vanSalesHint')}
+                    </Txt>
+                  ) : null}
+                </Stack>
+              ) : null}
+
               <Stack gap={2}>
                 <Txt field="label" desk="meta" color={colors.text.secondary}>
                   {t('w10.bills')}
@@ -613,11 +647,11 @@ export default function Trips(): React.JSX.Element {
           vehicle: planVehicle?.regNo ?? '',
           date: shortDate(plan?.tripDate),
         })}
-        body={t('w10.planConfirmBody', {
+        body={`${t('w10.planConfirmBody', {
           driver: nameOf(plan?.driverId ?? null) ?? '',
           stops: plan?.stops.length ?? 0,
           bills: (plan?.stops ?? []).reduce((n, stop) => n + stop.invoiceIds.length, 0),
-        })}
+        })}${plan?.vanSales === true ? ` · ${t('w10.confirmVanSales')}` : ''}`}
         confirmLabel={t('w10.planConfirm')}
         busy={createTrip.status === 'pending'}
         onConfirm={() => {

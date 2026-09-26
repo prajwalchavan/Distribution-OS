@@ -15,7 +15,7 @@
 import type { Quote } from '@dos/contracts'
 import { describe, expect, it } from 'vitest'
 
-import { lineFigure, saleFigures } from './van-sale'
+import { lineFigure, saleFigures, vanStockByVariant } from './van-sale'
 
 interface NodeFs {
   readFileSync: (path: string, encoding: 'utf8') => string
@@ -137,5 +137,24 @@ describe('van sale figures', () => {
     expect
       .soft(replaces[0] ?? -1, 'D6 leaves the bill before the crew taps Back')
       .toBeGreaterThan(back)
+  })
+})
+
+describe('DOS-233 what the crew may sell is the van less the trip’s bills', () => {
+  it('offers only the free pieces, one row per SKU, and never a SKU all of whose pieces belong to a bill', () => {
+    const rows = [
+      // Bourbon: three lots, one of them wholly the next shop's bill
+      { variantId: 'bourbon', variantName: 'Bourbon', availablePcs: 0, expiryDate: '2026-10-01' },
+      { variantId: 'bourbon', variantName: 'Bourbon', availablePcs: 24, expiryDate: '2027-01-31' },
+      { variantId: 'bourbon', variantName: 'Bourbon', availablePcs: 6, expiryDate: '2026-11-30' },
+      // Salted Cracker: everything aboard is billed to another shop
+      { variantId: 'cracker', variantName: 'Salted Cracker', availablePcs: 0, expiryDate: null },
+      { variantId: 'atta', variantName: 'Atta 10 kg', availablePcs: 3, expiryDate: null },
+    ]
+    expect(vanStockByVariant(rows)).toEqual([
+      { variantId: 'atta', name: 'Atta 10 kg', available: 3, expiry: null },
+      { variantId: 'bourbon', name: 'Bourbon', available: 30, expiry: '2026-11-30' },
+    ])
+    expect(vanStockByVariant([])).toEqual([])
   })
 })

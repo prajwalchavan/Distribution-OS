@@ -26,6 +26,10 @@
  * "undelivered" means. The trips register also lists the vans that are OUT, not only the ones still to
  * leave, so a desk told "3 trips active" has three rows it can open — read-only: a trip that has left
  * takes no late bill (`delivery.stops.add` is refused for it anyway), so the panel is never offered.
+ *
+ * A VAN THAT SELLS (QA DOS-233). While the distributor's `van_sales` flag is on the plan asks whether the van
+ * also carries stock to sell at shops with no order, and says so to the server (`vanSalesEnabled`); such a
+ * trip may leave with no bill at all. The godown then picks the stock to sell on the trip's load sheet.
  */
 import type { Delivery, PlanningBill, Trip } from '@dos/contracts'
 import { newId } from '@dos/api-client'
@@ -114,6 +118,7 @@ export default function DeskTrips(): React.JSX.Element {
   const [driverId, setDriverId] = useState<string | null>(null)
   const [helperId, setHelperId] = useState<string | null>(null)
   const [floatPaise, setFloatPaise] = useState<number | null>(null)
+  const [vanSales, setVanSales] = useState(false)
   /** Invoice ids in tap order. */
   const [chosen, setChosen] = useState<readonly string[]>([])
   /** The board is read a page at a time; "More bills" keeps the pages already read, whose bills may be chosen. */
@@ -134,6 +139,12 @@ export default function DeskTrips(): React.JSX.Element {
     { enabled: mayReadUndelivered },
   )
   const vehicles = useQuery(['vehicles', 'all'], () => api.api.delivery.vehicles.list({}))
+  /** DOS-233: the van-sales choice exists only while the distributor has van sales switched on. */
+  const flags = useQuery(['tenancy', 'flags'], () => api.api.tenancy.featureFlags.list(), {
+    enabled: mayPlan,
+  })
+  const vanSalesOn =
+    flags.data?.items.some((flag) => flag.flag === 'van_sales' && flag.enabled) ?? false
   const openTrips = trips.data?.items ?? []
   const undeliveredBills = undelivered.data?.items ?? []
   const addTrip =
@@ -177,6 +188,7 @@ export default function DeskTrips(): React.JSX.Element {
     helperId,
     openingCashPaise: floatPaise,
     chosen: onBoard,
+    vanSales: vanSalesOn && vanSales,
   }
   const problem = planProblem(form)
   const activeVehicles = (vehicles.data?.items ?? []).filter((vehicle) => vehicle.active)
@@ -212,6 +224,7 @@ export default function DeskTrips(): React.JSX.Element {
     setDriverId(null)
     setHelperId(null)
     setFloatPaise(null)
+    setVanSales(false)
     setChosen([])
     setPlan(null)
     setStopPlan(null)
@@ -522,6 +535,29 @@ export default function DeskTrips(): React.JSX.Element {
                 testID="trip-plan-float"
               />
 
+              {vanSalesOn ? (
+                <Stack gap={2}>
+                  {label(t('m7t.vanSales'))}
+                  <Segments
+                    testID="trip-plan-van-sales"
+                    value={vanSales ? 'sell' : 'bills'}
+                    onChange={(id) => {
+                      setVanSales(id === 'sell')
+                      changed()
+                    }}
+                    items={[
+                      { id: 'bills', label: t('m7t.billsOnly') },
+                      { id: 'sell', label: t('m7t.alsoSell') },
+                    ]}
+                  />
+                  {vanSales ? (
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {t('m7t.vanSalesHint')}
+                    </Txt>
+                  ) : null}
+                </Stack>
+              ) : null}
+
               <Stack gap={2}>
                 {label(t('m7t.bills'))}
                 {billList((invoiceId) => {
@@ -592,6 +628,11 @@ export default function DeskTrips(): React.JSX.Element {
                 total: totalOf((plan?.stops ?? []).flatMap((stop) => stop.invoiceIds)),
               })}
             </Txt>
+            {plan?.vanSales === true ? (
+              <Txt field="body" desk="body" testID="trip-plan-dialog-van-sales">
+                {t('m7t.confirmVanSales')}
+              </Txt>
+            ) : null}
             <Refusal of={[createTrip]} scope={plan?.id ?? null} testID="trip-plan-refusal" />
           </Stack>
         }

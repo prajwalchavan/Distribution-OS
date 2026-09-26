@@ -16,6 +16,7 @@ import {
   planProblem,
   snapshotPlan,
   stopsFromBills,
+  tripCreateBody,
   type PlanForm,
 } from './trip-plan'
 
@@ -45,6 +46,23 @@ describe('W7 load sheet for a trip', () => {
         vanStock: [],
       },
     )
+    // DOS-233: the stock picked to sell rides on the same sheet, summed per lot, zeros left off.
+    expect(
+      loadSheetInput(
+        { id: 'trip-1', vehicleLocationId: VAN_LOCATION },
+        [],
+        [
+          { lotId: 'lot-a', qtyPcs: 24 },
+          { lotId: 'lot-b', qtyPcs: 0 },
+          { lotId: 'lot-a', qtyPcs: 12 },
+        ],
+      ),
+    ).toEqual({
+      tripId: 'trip-1',
+      toLocationId: VAN_LOCATION,
+      orderIds: [],
+      vanStock: [{ lotId: 'lot-a', qtyPcs: 36 }],
+    })
 
     const none: ReadonlySet<string> = new Set()
     // A shop that is not a stop of the trip.
@@ -100,6 +118,7 @@ describe('W10 plan a trip', () => {
       helperId: null,
       openingCashPaise: null,
       chosen: ['INV1'],
+      vanSales: false,
     }
     expect(planProblem({ ...form, driverId: null })).toBe('needDriver')
     expect(planProblem({ ...form, chosen: [] })).toBe('needBill')
@@ -110,5 +129,12 @@ describe('W10 plan a trip', () => {
     expect(snapshotPlan(form, bills, makeId)?.stops).toEqual([
       { id: 'id-4', sequence: 1, retailerId: 'shop-a', invoiceIds: ['INV1'] },
     ])
+    // DOS-233: a van-sales trip needs no bill, and tells the server it sells from the van.
+    expect(planProblem({ ...form, chosen: [], vanSales: true })).toBeNull()
+    const vanOnly = snapshotPlan({ ...form, chosen: [], vanSales: true }, bills, makeId)
+    expect(vanOnly === null ? null : tripCreateBody(vanOnly, 'k')).toMatchObject({
+      vanSalesEnabled: true,
+      stops: [],
+    })
   })
 })

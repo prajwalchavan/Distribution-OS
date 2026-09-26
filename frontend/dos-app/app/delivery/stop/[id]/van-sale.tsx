@@ -21,8 +21,11 @@
  * crew taps Back to the stop, so the figure they ask the shop for is the bill's, never a toast that vanished
  * under a redirect (DOS-149).
  *
- * The van's stock is `inventory.stock.sellable` at the VEHICLE location. It carries availability,
- * batch and MRP, and no cost column: the crew cannot see what the distributor paid, here or anywhere.
+ * WHAT MAY BE SOLD IS THE VAN LESS THIS TRIP'S BILLS (QA DOS-233). The van also carries the cartons of
+ * every bill still to be handed over — the next shop's order — and this list used to offer them as stock to
+ * sell (`inventory.stock.sellable` at the vehicle: Bourbon 240, Salted Cracker 180 …). It now reads
+ * `delivery.vanSales.stock`, which takes those pieces off per lot and says how many it held back; the
+ * server refuses a sale that would draw on them in any case. Batch, MRP, expiry — never a cost.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
@@ -56,7 +59,11 @@ import {
   useLocalTrip,
 } from '../../../../src/groups/delivery/lib/local'
 import { Async, Panel } from '../../../../src/groups/delivery/lib/ui'
-import { lineFigure, saleFigures } from '../../../../src/groups/delivery/lib/van-sale'
+import {
+  lineFigure,
+  saleFigures,
+  vanStockByVariant,
+} from '../../../../src/groups/delivery/lib/van-sale'
 
 interface Draft {
   variantId: string
@@ -103,56 +110,28 @@ export default function VanSale(): React.JSX.Element {
    * a trip whose `van_sales_enabled` is true and a feature flag that is on. `null` is the third
    * answer — the screen waits and says it is waiting instead of telling a crew they may not sell.
    */
+  const tripId = localTrip?.id ?? stop?.trip_id ?? null
+  const stock = useQuery(
+    ['van-stock', tripId],
+    () => api.api.delivery.vanSales.stock({ tripId: tripId ?? '' }),
+    { enabled: signedIn && tripId !== null },
+  )
   const allowed: boolean | null =
+    stock.data?.vanSalesAllowed ??
     trip.data?.item.vanSalesAllowed ??
     (localTrip === null ? null : bool(localTrip.van_sales_enabled))
   const unknown = allowed === null
-  const vehicleLocationId = trip.data?.item.vehicleLocationId ?? null
-
-  const stock = useQuery(
-    ['van-stock', vehicleLocationId],
-    () =>
-      api.api.inventory.stock.sellable({
-        locationId: vehicleLocationId ?? '',
-        limit: 200,
-      }),
-    { enabled: signedIn && vehicleLocationId !== null },
-  )
 
   const [query, setQuery] = useState('')
   const [draft, setDraft] = useState<Record<string, Draft>>({})
   const [billed, setBilled] = useState<Billed | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const rows = stock.data?.items ?? []
+  const rows = stock.data?.items
   /** One row per variant: the van may hold two lots of the same SKU and the shopkeeper buys the SKU. */
-  const byVariant = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        variantId: string
-        name: string
-        available: number
-        batch: string | null
-        expiry: string | null
-      }
-    >()
-    for (const row of rows) {
-      const held = map.get(row.variantId)
-      if (held === undefined) {
-        map.set(row.variantId, {
-          variantId: row.variantId,
-          name: row.variantName,
-          available: row.available,
-          batch: row.batchNo,
-          expiry: row.expiryDate,
-        })
-      } else {
-        held.available += row.available
-      }
-    }
-    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
-  }, [rows])
+  const byVariant = useMemo(() => vanStockByVariant(rows ?? []), [rows])
+  /** Pieces on the van that belong to this trip's bills: said, never offered (DOS-233). */
+  const heldForBills = (rows ?? []).reduce((n, row) => n + row.heldForBillsPcs, 0)
 
   const shown =
     query.trim() === ''
@@ -366,10 +345,20 @@ export default function VanSale(): React.JSX.Element {
                 onChange={setQuery}
                 state={shown.length === 0 && query.trim() !== '' ? 'noResults' : 'results'}
               />
+              {heldForBills === 0 ? null : (
+                <Txt
+                  field="label"
+                  desk="meta"
+                  color={colors.text.secondary}
+                  testID="d6-held-for-bills"
+                >
+                  {t('d6.heldForBills', { pieces: heldForBills })}
+                </Txt>
+              )}
               <Async
                 state={[trip, stock]}
-                empty={rows.length === 0}
-                emptyMessage={t('d.nothingHere')}
+                empty={byVariant.length === 0}
+                emptyMessage={t('d6.nothingToSell')}
               >
                 <Stack gap={4}>
                   {shown.slice(0, 40).map((row) => (

@@ -1258,6 +1258,32 @@ export const CreateVanSaleInput = MutationBase.extend({
   note: z.string().trim().max(300).optional(),
   deviceId: DeviceIdSchema.optional(),
 })
+/**
+ * WHAT THE CREW MAY SELL FROM THE VAN (QA DOS-233): the vehicle's sellable pieces per lot LESS every piece a
+ * bill of this trip still has on board — a planned bill not yet handed over, or one that came back and rides
+ * the van until check-in. Those cartons belong to another shop's bill; `vanSales.create` refuses to draw on
+ * them, and this list never offers them. Batch, MRP and expiry, never cost.
+ */
+export const VanSaleStockInput = z.object({ tripId: IdSchema })
+export const VanSaleStockRowSchema = z.object({
+  lotId: IdSchema,
+  variantId: IdSchema,
+  variantName: z.string(),
+  batchNo: z.string().nullable(),
+  mrpPaise: PaiseSchema,
+  expiryDate: z.string().nullable(),
+  caseSize: z.number().int().positive().nullable(),
+  /** Free to sell: sellable at the vehicle minus this trip's undelivered bills, never below zero. */
+  availablePcs: PiecesSchema,
+  /** Pieces of this lot the trip's own bills still hold on the van (shown, never sold). */
+  heldForBillsPcs: PiecesSchema,
+})
+export type VanSaleStockRow = z.infer<typeof VanSaleStockRowSchema>
+export const VanSaleStockOutput = z.object({
+  items: z.array(VanSaleStockRowSchema),
+  vanSalesAllowed: z.boolean(),
+})
+
 /** The bill is the full `InvoiceDetail` with its `seller` block: it is printed / shared at the door (§D6). */
 export const CreateVanSaleOutput = z.object({
   order: OrderDetailSchema,
@@ -1638,6 +1664,15 @@ export const deliveryContract = {
       })
       .input(CreateVanSaleInput)
       .output(CreateVanSaleOutput),
+    stock: oc
+      .route({
+        method: 'GET',
+        path: '/delivery/trips/{tripId}/van-stock',
+        summary:
+          "What the crew may sell from the van: its stock less this trip's bills still on board",
+      })
+      .input(VanSaleStockInput)
+      .output(VanSaleStockOutput),
   },
   expenses: {
     record: oc

@@ -62,6 +62,7 @@ const READY: PlanForm = {
   helperId: null,
   openingCashPaise: 200_000,
   chosen: ['INV2', 'INV3', 'INV1'],
+  vanSales: false,
 }
 
 describe('M7 plan a trip', () => {
@@ -103,6 +104,7 @@ describe('M7 plan a trip', () => {
       vehicleId: 'vehicle-1',
       driverId: 'driver-1',
       openingCashPaise: 200_000,
+      vanSalesEnabled: false,
       stops: [
         { id: 'id-2', sequence: 1, retailerId: SHOP_B, invoiceIds: ['INV2'] },
         { id: 'id-3', sequence: 2, retailerId: SHOP_A, invoiceIds: ['INV3', 'INV1'] },
@@ -136,5 +138,23 @@ describe('M7 plan a trip', () => {
     expect(addStopBody(add, 'k-2')).toEqual(addStopBody(add, 'k-2'))
     expect(late.calls()).toBe(1)
     expect(addStopSnapshot('trip-9', BILLS, [], late.make)).toBeNull()
+  })
+
+  it('DOS-233: a van-sales trip says so to the server, and may leave with no bill at all', () => {
+    // Off by default: the body carries vanSalesEnabled false, and a trip with no bill is still refused.
+    expect(planProblem({ ...READY, chosen: [], vanSales: false })).toBe('needBill')
+    // On: nothing is missing without a bill, and the plan is one trip with no stop.
+    const vanOnly = { ...READY, chosen: [], vanSales: true }
+    expect(planProblem(vanOnly)).toBeNull()
+    const plan = snapshotPlan(vanOnly, BILLS, counter('v').make)
+    expect(plan).not.toBeNull()
+    if (plan === null) return
+    expect(tripCreateBody(plan, 'k')).toMatchObject({ vanSalesEnabled: true, stops: [] })
+    // On, with bills too: the bills are the stops and the switch still travels.
+    const both = snapshotPlan({ ...READY, vanSales: true }, BILLS, counter('b').make)
+    expect(both === null ? null : tripCreateBody(both, 'k')).toMatchObject({
+      vanSalesEnabled: true,
+      stops: [{ retailerId: SHOP_B }, { retailerId: SHOP_A }],
+    })
   })
 })

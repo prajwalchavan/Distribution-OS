@@ -528,6 +528,61 @@ export class InventoryService {
       .returning()
   }
 
+  /**
+   * HOLD PIECES OUT OF REACH FOR THE REST OF A TRANSACTION (QA DOS-233): `reserved` is raised on each lot by
+   * as much of `pieces` as is still available there, so `reserve` — which only ever takes `on_hand − reserved`
+   * — cannot draw on them; `releaseHeld` gives the very same amounts back before the transaction commits.
+   * No reservation row and no ledger row: a hold that outlives its transaction is impossible by
+   * construction. Used by a van sale, whose vehicle also carries other shops' billed cartons.
+   */
+  async holdPieces(
+    tx: Db,
+    locationId: string,
+    pieces: ReadonlyMap<string, number>,
+  ): Promise<Map<string, number>> {
+    const { tenantId } = currentTenant()
+    const held = new Map<string, number>()
+    for (const [lotId, qty] of pieces) {
+      if (qty <= 0) continue
+      const [row] = await tx
+        .select({ onHand: stockBalances.onHand, reserved: stockBalances.reserved })
+        .from(stockBalances)
+        .where(
+          and(
+            eq(stockBalances.tenantId, tenantId),
+            eq(stockBalances.lotId, lotId),
+            eq(stockBalances.locationId, locationId),
+          ),
+        )
+        .for('update')
+      const take = row ? Math.min(qty, Math.max(0, row.onHand - row.reserved)) : 0
+      if (take <= 0) continue
+      await this.applyBalance(tx, {
+        lotId,
+        locationId,
+        onHandDelta: 0,
+        reservedDelta: take,
+        negativeAllowed: false,
+      })
+      held.set(lotId, take)
+    }
+    return held
+  }
+
+  /** The other half of `holdPieces`: exactly what it held, given back. */
+  async releaseHeld(tx: Db, locationId: string, held: ReadonlyMap<string, number>): Promise<void> {
+    for (const [lotId, take] of held) {
+      if (take <= 0) continue
+      await this.applyBalance(tx, {
+        lotId,
+        locationId,
+        onHandDelta: 0,
+        reservedDelta: -take,
+        negativeAllowed: false,
+      })
+    }
+  }
+
   /** Give the held pieces back (order cancelled / line edited). Returns how many reservations were voided. */
   async releaseReservation(tx: Db, orderLineId: string): Promise<number> {
     const pending = await this.pendingReservations(tx, orderLineId)

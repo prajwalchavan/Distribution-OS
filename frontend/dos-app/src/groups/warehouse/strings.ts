@@ -394,6 +394,15 @@ export const strings = {
   'w7.vehicle': 'Vehicle',
   'w7.trip': 'Trip',
   'w7.chooseTrip': 'Choose the trip this load is for',
+  /* DOS-233: the stock a van-sales trip carries to sell, picked on its sheet. */
+  'w7.vanStock': 'STOCK TO SELL FROM THE VAN',
+  'w7.vanStockHint': '{trip} sells from the van. Pick what goes on it beyond the bills.',
+  'w7.vanStockEmpty': 'Nothing sellable in the godown matches',
+  'w7.vanAvailable': '{count} pc in the godown',
+  'w7.vanPick': 'Pieces to load',
+  'w7.vanPicked': '{count} pc to load',
+  'w7.vanPickedN': '{pieces} pc to sell from the van',
+  'w7.vanPickOver': 'Only {count} pc are in the godown',
   'w7.tripsEmpty': 'No trip is planned. Plan one under Trips.',
   'w7.notOnTrip': 'Not on {trip}. Add the bill to the trip under Trips first.',
   'w7.packedOrders': 'PACKED ORDERS',
@@ -445,6 +454,9 @@ export const strings = {
   'w9.body': 'Count what came back on the vehicle. The settlement itself is desk work.',
   'w9.expectedOnVan': 'EXPECTED ON THE VEHICLE',
   'w9.expectedEmpty': 'Nothing is loaded on this vehicle',
+  /* DOS-234: the whole vehicle, however long its history — and said so when it is not the whole. */
+  'w9.onVan': '{count} pc in {lots} lots',
+  'w9.partial': 'Only the first {lots} lots are listed. Count these, then open the vehicle again.',
   'w9.countBack': 'Count back',
   'w9.countedBack': 'Counted {counted} · expected {expected}',
   'w9.short': 'Short {count} pc',
@@ -550,7 +562,14 @@ export const strings = {
   'w10.needVehicle': 'Choose a vehicle',
   'w10.needDriver': 'Choose a driver',
   'w10.sameCrew': 'The helper cannot be the driver',
-  'w10.needBill': 'Choose at least one bill',
+  'w10.needBill': 'Choose at least one bill, or send the van to sell',
+  /* DOS-233: a trip whose van also carries stock to sell at shops with no order. */
+  'w10.vanSales': 'What the van does',
+  'w10.billsOnly': 'Deliver bills',
+  'w10.alsoSell': 'Deliver and sell from the van',
+  'w10.vanSalesHint':
+    'Pick the stock to sell on this trip’s load sheet. The trip may go with no bill.',
+  'w10.confirmVanSales': 'sells from the van',
 
   // ---------------------------------------------------------------- W11 reservations
   'w11.title': 'Held for orders',
