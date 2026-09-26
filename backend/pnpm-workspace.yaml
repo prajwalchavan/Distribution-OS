@@ -8,6 +8,8 @@ packages:
   - libs/*
   - '*-service'
   - worker
+  # Scripts and the small libraries they share (the legacy-data importer's parsers and their specs).
+  - tools
   # All eight services (and optionally the worker) in ONE process behind path prefixes — the
   # least-cost deployment mode, founder 2026-09-05 (docs/26 §7). It composes the same
   # `ServiceDefinition`s the eight service packages export, and adds no dependency of its own.

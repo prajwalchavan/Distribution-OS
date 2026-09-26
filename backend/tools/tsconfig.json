@@ -1,5 +1,11 @@
 {
   "extends": "@dos/config/tsconfig/node-app.json",
   "compilerOptions": { "types": ["node"] },
-  "include": ["smoke-endpoints.mts", "generate-readmes.mts", "auth-keygen.mts"]
+  "include": [
+    "generate-readmes.mts",
+    "auth-keygen.mts",
+    "import-legacy-extracts.mts",
+    "legacy",
+    "vitest.config.ts"
+  ]
 }

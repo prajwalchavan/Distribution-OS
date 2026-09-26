@@ -25,6 +25,7 @@
     "docs:readme:check": "tsx tools/generate-readmes.mts --check",
     "auth:keygen": "tsx tools/auth-keygen.mts",
     "smoke": "tsx tools/smoke-endpoints.mts",
+    "import:legacy": "pnpm --filter @dos/tools import:legacy",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {

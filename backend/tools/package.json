@@ -1,0 +1,27 @@
+{
+  "name": "@dos/tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Scripts that run against the workspace (README generator, smoke harness, legacy-data importer) and the small libraries they share. Nothing here is built or shipped.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint legacy import-legacy-extracts.mts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "import:legacy": "tsx import-legacy-extracts.mts"
+  },
+  "devDependencies": {
+    "@dos/config": "workspace:*",
+    "@dos/contracts": "workspace:*",
+    "@dos/core": "workspace:*",
+    "@dos/db": "workspace:*",
+    "@dos/domain": "workspace:*",
+    "@types/node": "catalog:",
+    "drizzle-orm": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

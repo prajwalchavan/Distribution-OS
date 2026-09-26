@@ -2,13 +2,17 @@
 
 Scripts that run against the workspace, not part of any service. All are plain `tsx` entry points
 (no decorators), started from `backend/` through the scripts in `package.json`. `tsconfig.json` here
-exists only so they typecheck and lint — nothing in it is built or shipped.
+exists only so they typecheck and lint — nothing in it is built or shipped. The folder is the
+`@dos/tools` workspace package (`pnpm --filter @dos/tools test | lint | typecheck`), which holds the
+legacy importer's parsers and their specs (`legacy/`); `smoke-endpoints.mts` is left out of its
+typecheck: it has two type errors on the `platform_admin` role that predate the package.
 
-| Script                 | Command                        | What it does                                                                       |
-| ---------------------- | ------------------------------ | ---------------------------------------------------------------------------------- |
-| `generate-readmes.mts` | `pnpm docs:readme` / `--check` | Rewrites every service and app README from the shared contract. CI runs `--check`. |
-| `smoke-endpoints.mts`  | `pnpm smoke`                   | Calls every operation of every running service and reports what works.             |
-| `auth-keygen.mts`      | `pnpm auth:keygen`             | Generates the EdDSA signing key pair for auth-service.                             |
+| Script                       | Command                        | What it does                                                                                                            |
+| ---------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| `generate-readmes.mts`       | `pnpm docs:readme` / `--check` | Rewrites every service and app README from the shared contract. CI runs `--check`.                                      |
+| `smoke-endpoints.mts`        | `pnpm smoke`                   | Calls every operation of every running service and reports what works.                                                  |
+| `auth-keygen.mts`            | `pnpm auth:keygen`             | Generates the EdDSA signing key pair for auth-service.                                                                  |
+| `import-legacy-extracts.mts` | `pnpm import:legacy --help`    | Loads a distributor's old-software extracts (TradeEzee sheets, PDF, SQL Server backup); see `docs/32-legacy-import.md`. |
 
 ## `pnpm smoke` — the endpoint harness
 
