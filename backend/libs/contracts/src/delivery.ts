@@ -868,6 +868,64 @@ export const CancelTripInput = MutationBase.extend({
 })
 export const CancelTripOutput = TripItemOutput
 
+/**
+ * TAKE A BILL OFF A TRIP THAT HAS NOT LEFT (QA DOS-241). A bill planned on a `planned` or `loading` trip whose
+ * goods were never counted out (its order is still `packed`, no confirmed load sheet dispatched it) comes off
+ * the trip: its planned delivery row goes, the stop is `skipped` when it carries no other bill, and the bill is
+ * back on the planning board. The rest of the trip may then load and depart. 409 once the trip has left, when
+ * the bill is not planned on it, when its order was dispatched (it is on the van: the trip must return), or
+ * while a DRAFT load sheet still carries it (cancel or rebuild that sheet first). Owner and manager; audited.
+ */
+export const DropBillInput = MutationBase.extend({
+  id: IdSchema,
+  invoiceId: IdSchema,
+  reason: z.string().trim().min(1).max(200),
+})
+export const DropBillOutput = TripItemOutput
+
+/**
+ * WHAT A VAN BRINGS BACK FOR A BILL (QA DOS-244, docs/22 §8 2026-09-21 ruling S1). The pieces, per lot, of every
+ * bill that came back undelivered on the vehicle's trip that has checked in (`closing`) and are still on the
+ * van: the godown's check-in counts them onto the DOCK for the bill's next trip, never back onto the rack as
+ * free stock. Everything else on the vehicle is free van stock. Empty when the vehicle has no such trip.
+ */
+export const VanReturnsInput = z.object({ vehicleLocationId: IdSchema })
+export const VanReturnsOutput = z.object({
+  tripId: IdSchema.nullable(),
+  tripNo: z.string().nullable(),
+  items: z.array(
+    z.object({
+      lotId: IdSchema,
+      invoiceId: IdSchema,
+      invoiceNo: z.string().nullable(),
+      retailerName: z.string(),
+      /** Pieces of this lot the bill still needs on the dock (what the check-in has not staged yet). */
+      pcs: PiecesSchema,
+    }),
+  ),
+})
+
+/**
+ * THE GODOWN COUNTS ONE LOT OFF A VAN (QA DOS-244). The counted pieces leave the vehicle; as many as the
+ * vehicle's checked-in trip still owes its came-back bills of that lot go to the DOCK (staged for their next
+ * load sheet, `trip_checkin` rows), the rest go to the godown as free stock. One transaction; a replay answers
+ * the first reply. 409 `van_short` when the vehicle holds fewer pieces than counted.
+ */
+export const UnloadVanInput = MutationBase.extend({
+  /** Client-generated id of this count; the ledger rows it writes are referenced by it. */
+  id: IdSchema,
+  vehicleLocationId: IdSchema,
+  lotId: IdSchema,
+  qtyPcs: PiecesSchema.positive(),
+})
+export const UnloadVanOutput = z.object({
+  lotId: IdSchema,
+  dockPcs: PiecesSchema,
+  rackPcs: PiecesSchema,
+  /** The bills the dock pieces were staged for. */
+  bills: z.array(z.object({ invoiceNo: z.string().nullable(), retailerName: z.string() })),
+})
+
 // ---------------------------------------------------------------------------------------------------------------
 // inputs — settlement
 
@@ -1569,6 +1627,34 @@ export const deliveryContract = {
       })
       .input(CancelTripInput)
       .output(CancelTripOutput),
+    dropBill: oc
+      .route({
+        method: 'POST',
+        path: '/delivery/trips/{id}/drop-bill',
+        summary:
+          'Take a bill that was never loaded off a trip that has not left; it goes back on the planning board',
+      })
+      .input(DropBillInput)
+      .output(DropBillOutput),
+    // Not under `/delivery/trips/`: `GET /delivery/trips/{id}` would take the word for an id.
+    vanReturns: oc
+      .route({
+        method: 'GET',
+        path: '/delivery/van-returns',
+        summary:
+          'What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack',
+      })
+      .input(VanReturnsInput)
+      .output(VanReturnsOutput),
+    unload: oc
+      .route({
+        method: 'POST',
+        path: '/delivery/van-returns/unload',
+        summary:
+          "Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown",
+      })
+      .input(UnloadVanInput)
+      .output(UnloadVanOutput),
     settlementPreview: oc
       .route({
         method: 'GET',

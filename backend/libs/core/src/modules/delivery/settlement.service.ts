@@ -10,6 +10,10 @@ import type {
   SettleTripInput,
   SettleTripOutput,
   StockVarianceLine,
+  UnloadVanInput,
+  UnloadVanOutput,
+  VanReturnsInput,
+  VanReturnsOutput,
   VanStockLine,
 } from '@dos/contracts'
 import { businessDate, formatINR, paise, uuidv7 } from '@dos/domain'
@@ -21,7 +25,9 @@ import {
   tripExpenses,
   trips,
   tripSettlements,
+  vehicles,
   withTenant,
+  type ActorRole,
   type Db,
 } from '@dos/db'
 import {
@@ -35,12 +41,13 @@ import {
   requireRole,
 } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
-import { dockLocationId, InventoryService } from '../inventory/index.js'
+import { dockLocationId, InventoryService, reservableLocationId } from '../inventory/index.js'
 import type { ApprovalKindHook, ApprovalRow } from '../orders/index.js'
 import { TenantCatalogService } from '../tenant-catalog/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   assertCrewOrDesk,
+  asSystemRole,
   casesAndLoose,
   emitDeliveryEvent,
   findTrip,
@@ -50,6 +57,7 @@ import {
   loadVehicles,
   lockTrip,
   MONEY_COLLECTORS,
+  retailerNames,
   stopsOf,
   tripEventPayload,
   tripTransition,
@@ -62,6 +70,19 @@ type PreviewIn = z.infer<typeof SettlementPreviewInput>
 type PreviewOut = z.infer<typeof SettlementPreviewOutput>
 type SettleIn = z.infer<typeof SettleTripInput>
 type SettleOut = z.infer<typeof SettleTripOutput>
+type VanReturnsIn = z.infer<typeof VanReturnsInput>
+type VanReturnsOut = z.infer<typeof VanReturnsOutput>
+type UnloadIn = z.infer<typeof UnloadVanInput>
+type UnloadOut = z.infer<typeof UnloadVanOutput>
+
+/** Who counts a van back in at the godown: the people who may move stock at all (`inventory.stock.transfer`). */
+const STOCK_MOVERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
+
+/**
+ * `stock_ledger.ref_type` of the godown's van check-in (QA DOS-244), referenced by the trip it checks in: what
+ * it staged on the dock for that trip's came-back bills is what the settlement does not stage again.
+ */
+const CHECKIN_REF = 'trip_checkin'
 
 interface Cockpit {
   cashCollectedPaise: number
@@ -139,6 +160,219 @@ export class SettlementService {
       assertCrewOrDesk(trip, BACK_OFFICE)
       return this.cockpit(tx, trip)
     })
+  }
+
+  /**
+   * WHAT A CHECKED-IN VAN CARRIES BACK FOR BILLS (QA DOS-244). The godown's check-in counted the whole van onto
+   * the rack as free stock — including Patel's 17 pieces of INV/9028, which FEFO would have sold to the next
+   * shop (DOS-241), and which left nothing for the settlement to stage on the dock, so INV/9028's next load
+   * sheet was `dock_short`. The screen now asks first: per lot, which bill still needs how many of the pieces
+   * on this vehicle, so it can say "INV/9028 · Patel · to the dock" on the row and `unload` routes them there.
+   */
+  async vanReturns(input: VanReturnsIn): Promise<VanReturnsOut> {
+    requireRole(STOCK_MOVERS)
+    const db = requireDb(this.db)
+    return withTenant(db, currentTenant(), async (tx) => {
+      const back = await this.billsBackOnVan(tx, input.vehicleLocationId, { lock: false })
+      return {
+        tripId: back.trips[0]?.id ?? null,
+        tripNo: back.trips[0]?.tripNo ?? null,
+        items: back.owed.filter((o) => o.pcs > 0),
+      }
+    })
+  }
+
+  /**
+   * THE GODOWN COUNTS ONE LOT OFF A VAN (QA DOS-244, docs/22 §8 2026-09-21 ruling S1: "at check-in the pieces of
+   * an undelivered bill go van → dock … while free van stock still goes van → godown"). The counted pieces leave
+   * the vehicle; as many as its checked-in trip's came-back bills still need of that lot go to the DOCK, the rest
+   * to the godown. `trip_checkin` rows referenced by the trip, so the settlement's own count stages only what
+   * is still owed and nothing twice. The trip rows are locked, so two loaders counting the same lot at once
+   * cannot both stage it.
+   */
+  async unload(input: UnloadIn): Promise<UnloadOut> {
+    requireRole(STOCK_MOVERS)
+    const db = requireDb(this.db)
+    return withTenant(db, currentTenant(), (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const back = await this.billsBackOnVan(tx, input.vehicleLocationId, { lock: true })
+        const van = await this.inventory.onHandAt(tx, input.vehicleLocationId)
+        const onVan = van.get(input.lotId) ?? 0
+        if (onVan < input.qtyPcs)
+          throw new ORPCError('CONFLICT', {
+            message: `the vehicle holds ${String(onVan)} pc of this batch; ${String(input.qtyPcs)} were counted — count again`,
+            data: { code: 'van_short', onVanPcs: onVan, countedPcs: input.qtyPcs },
+          })
+        const owed = back.owed.filter((o) => o.lotId === input.lotId && o.pcs > 0)
+        let toDock = Math.min(
+          input.qtyPcs,
+          owed.reduce((n, o) => n + o.pcs, 0),
+        )
+        const dockPcs = toDock
+        const rackPcs = input.qtyPcs - dockPcs
+        const bills: UnloadOut['bills'] = []
+        for (const o of owed) {
+          if (toDock <= 0) break
+          toDock -= Math.min(toDock, o.pcs)
+          bills.push({ invoiceNo: o.invoiceNo, retailerName: o.retailerName })
+        }
+        const trip = back.trips[0] ?? null
+        const refType = trip === null ? 'transfer' : CHECKIN_REF
+        const refId = trip === null ? input.id : trip.id
+        const note =
+          dockPcs > 0
+            ? `van check-in: ${bills.map((b) => b.invoiceNo ?? 'bill').join(', ')} came back — staged on the dock for the next trip`
+            : 'van check-in: free van stock back to the godown'
+        const entries: Parameters<InventoryService['post']>[1] = [
+          {
+            lotId: input.lotId,
+            locationId: input.vehicleLocationId,
+            qtyDelta: -input.qtyPcs,
+            reason: 'transfer_out',
+            refType,
+            refId,
+            idempotencyKey: `unload:${input.id}:out`,
+            note,
+          },
+        ]
+        if (dockPcs > 0)
+          entries.push({
+            lotId: input.lotId,
+            locationId: await dockLocationId(tx),
+            qtyDelta: dockPcs,
+            reason: 'transfer_in',
+            refType,
+            refId,
+            idempotencyKey: `unload:${input.id}:dock`,
+            note,
+          })
+        if (rackPcs > 0)
+          entries.push({
+            lotId: input.lotId,
+            locationId: await reservableLocationId(tx),
+            qtyDelta: rackPcs,
+            reason: 'transfer_in',
+            refType,
+            refId,
+            idempotencyKey: `unload:${input.id}:rack`,
+            note,
+          })
+        await this.inventory.post(tx, entries)
+        return { lotId: input.lotId, dockPcs, rackPcs, bills }
+      }),
+    )
+  }
+
+  /**
+   * The vehicle's checked-in (`closing`) trips and, per bill that came back on them and lot, what that bill
+   * still needs put on the dock: its pieces, less what the godown's check-in already staged for the trip
+   * (earliest delivery first), capped by what the van still holds. The `deliveries` read runs as `system`:
+   * `deliveries_read` hides the doorstep rows from the godown (the `ridingTrips` precedent); only ids,
+   * bill numbers and shop names come out of it.
+   */
+  private async billsBackOnVan(
+    tx: Db,
+    vehicleLocationId: string,
+    opts: { lock: boolean },
+  ): Promise<{
+    trips: TripRow[]
+    owed: {
+      lotId: string
+      invoiceId: string
+      invoiceNo: string | null
+      retailerName: string
+      pcs: number
+    }[]
+  }> {
+    const { tenantId } = currentTenant()
+    const [location] = await tx
+      .select({ kind: locations.kind })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, vehicleLocationId)))
+      .limit(1)
+    if (!location)
+      throw new ORPCError('NOT_FOUND', { message: `location ${vehicleLocationId} not found` })
+    if (location.kind !== 'vehicle')
+      throw new ORPCError('BAD_REQUEST', {
+        message: `location ${vehicleLocationId} is a ${location.kind}; a check-in counts a vehicle`,
+      })
+    const found = await tx
+      .select({ id: trips.id })
+      .from(trips)
+      .innerJoin(vehicles, eq(vehicles.id, trips.vehicleId))
+      .where(
+        and(
+          eq(trips.tenantId, tenantId),
+          eq(vehicles.locationId, vehicleLocationId),
+          eq(trips.state, 'closing'),
+        ),
+      )
+      .orderBy(asc(trips.id))
+    const closing: TripRow[] = []
+    for (const t of found) closing.push(opts.lock ? await lockTrip(tx, t.id) : await findTrip(tx, t.id))
+    if (closing.length === 0) return { trips: [], owed: [] }
+
+    const failed = await asSystemRole(tx, () =>
+      tx
+        .select({ tripId: deliveries.tripId, invoiceId: deliveries.invoiceId })
+        .from(deliveries)
+        .where(
+          and(
+            eq(deliveries.tenantId, tenantId),
+            inArray(
+              deliveries.tripId,
+              closing.map((t) => t.id),
+            ),
+            eq(deliveries.outcome, 'failed'),
+          ),
+        )
+        .orderBy(asc(deliveries.id)),
+    )
+    const lines: { lotId: string; invoiceId: string; invoiceNo: string | null; retailerId: string; pcs: number }[] = []
+    const seen = new Set<string>()
+    for (const row of failed) {
+      if (seen.has(row.invoiceId)) continue
+      seen.add(row.invoiceId)
+      const invoice = await this.billing.invoiceForDelivery(tx, row.invoiceId)
+      if (invoice.state === 'cancelled' || invoice.state === 'draft') continue
+      for (const line of invoice.lines) {
+        const pcs = line.qtyPcs + line.freeQtyPcs
+        if (line.lotId === null || pcs <= 0) continue
+        lines.push({
+          lotId: line.lotId,
+          invoiceId: invoice.id,
+          invoiceNo: invoice.invoiceNo,
+          retailerId: invoice.retailerId,
+          pcs,
+        })
+      }
+    }
+    if (lines.length === 0) return { trips: closing, owed: [] }
+    const staged = await this.inventory.netAtByRef(tx, await dockLocationId(tx), {
+      refType: CHECKIN_REF,
+      refIds: closing.map((t) => t.id),
+    })
+    const van = await this.inventory.onHandAt(tx, vehicleLocationId)
+    const names = await retailerNames(
+      tx,
+      lines.map((l) => l.retailerId),
+    )
+    const alreadyStaged = new Map(staged)
+    const stillOnVan = new Map(van)
+    const owed = lines.map((l) => {
+      const covered = Math.min(l.pcs, Math.max(0, alreadyStaged.get(l.lotId) ?? 0))
+      alreadyStaged.set(l.lotId, (alreadyStaged.get(l.lotId) ?? 0) - covered)
+      const pcs = Math.min(l.pcs - covered, Math.max(0, stillOnVan.get(l.lotId) ?? 0))
+      stillOnVan.set(l.lotId, (stillOnVan.get(l.lotId) ?? 0) - pcs)
+      return {
+        lotId: l.lotId,
+        invoiceId: l.invoiceId,
+        invoiceNo: l.invoiceNo,
+        retailerName: names.get(l.retailerId) ?? '',
+        pcs,
+      }
+    })
+    return { trips: closing, owed }
   }
 
   async settle(input: SettleIn): Promise<SettleOut> {
@@ -248,10 +482,23 @@ export class SettlementService {
           // Everything the crew counted beyond them is free van stock and goes home to the godown.
           const undelivered = await this.cameBackUndelivered(tx, trip.id)
           const dock = undelivered.size > 0 ? await dockLocationId(tx) : null
+          // QA DOS-244: what the godown's van check-in already put on the dock for these bills is not
+          // staged twice; the settlement's count stages only the rest.
+          const stagedAtCheckIn =
+            dock === null
+              ? new Map<string, number>()
+              : await this.inventory.netAtByRef(tx, dock, {
+                  refType: CHECKIN_REF,
+                  refIds: [trip.id],
+                })
           await this.inventory.post(
             tx,
             unloads.flatMap((c) => {
-              const toDock = Math.min(c.countedPcs, undelivered.get(c.lotId) ?? 0)
+              const stillOwed = Math.max(
+                0,
+                (undelivered.get(c.lotId) ?? 0) - (stagedAtCheckIn.get(c.lotId) ?? 0),
+              )
+              const toDock = Math.min(c.countedPcs, stillOwed)
               const toRack = c.countedPcs - toDock
               return [
                 {

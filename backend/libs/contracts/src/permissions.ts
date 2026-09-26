@@ -704,6 +704,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // The manager's PIN, from the manager app; the warehouse phone then confirms the approved sheet.
   'warehouse.loadSheets.approve': PIN_HOLDERS,
   'warehouse.loadSheets.confirm': ROLE_GROUPS.STOCK_KEEPERS,
+  // QA DOS-244: the godown puts a sheet's missing packed pieces from the rack onto the dock before the load-out.
+  'warehouse.loadSheets.stageDock': ROLE_GROUPS.STOCK_KEEPERS,
   'warehouse.loadSheets.cancel': PIN_HOLDERS,
   'warehouse.challans.list': STOCK_VIEWERS,
   'warehouse.challans.get': STOCK_VIEWERS,
@@ -749,6 +751,12 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.trips.depart': DOORSTEP,
   'delivery.trips.return': DOORSTEP,
   'delivery.trips.cancel': PIN_HOLDERS,
+  // QA DOS-241: the desk that plans the road takes a bill that was never loaded off a trip that has not left.
+  'delivery.trips.dropBill': PIN_HOLDERS,
+  // QA DOS-244: the godown's van check-in — what a checked-in van carries back for bills, and the count that
+  // puts those pieces on the dock and the rest on the rack. The same people who may move stock at all.
+  'delivery.trips.vanReturns': ROLE_GROUPS.STOCK_KEEPERS,
+  'delivery.trips.unload': ROLE_GROUPS.STOCK_KEEPERS,
   'delivery.trips.settlementPreview': MONEY_COLLECTORS,
   'delivery.trips.settle': MONEY_DESK,
   'delivery.stops.list': ANY_MEMBER,

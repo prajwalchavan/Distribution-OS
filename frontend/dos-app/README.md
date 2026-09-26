@@ -256,6 +256,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/warehouse/load-sheets/{id}/approve` | Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it | owner, manager |
 | POST | `/warehouse/load-sheets/{id}/confirm` | Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch | owner, manager, warehouse |
 | POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/stage-dock` | Put a draft sheet's missing packed pieces on the dock from the godown, as far as the godown holds them | owner, manager, warehouse |
 | GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}/pdf` | The printed Rule 55 challan (queued until the renderer runs) | owner, manager, accountant, warehouse, delivery |
@@ -281,6 +282,9 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
+| GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
+| POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
 | POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -610,6 +614,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/warehouse/load-sheets/{id}/approve` | Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it | owner, manager |
 | POST | `/warehouse/load-sheets/{id}/confirm` | Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch | owner, manager, warehouse |
 | POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/stage-dock` | Put a draft sheet's missing packed pieces on the dock from the godown, as far as the godown holds them | owner, manager, warehouse |
 | GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}/pdf` | The printed Rule 55 challan (queued until the renderer runs) | owner, manager, accountant, warehouse, delivery |
@@ -635,6 +640,9 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
+| GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
+| POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
 | POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -1139,6 +1147,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/warehouse/load-sheets/{id}/approve` | Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it | owner, manager |
 | POST | `/warehouse/load-sheets/{id}/confirm` | Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch | owner, manager, warehouse |
 | POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/stage-dock` | Put a draft sheet's missing packed pieces on the dock from the godown, as far as the godown holds them | owner, manager, warehouse |
 | GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}/pdf` | The printed Rule 55 challan (queued until the renderer runs) | owner, manager, accountant, warehouse, delivery |
@@ -1164,6 +1173,9 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
+| GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
+| POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
 | POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -1420,6 +1432,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/warehouse/load-sheets/{id}/approve` | Approve a draft sheet from the manager app (the manager's PIN); confirm waits for it | owner, manager |
 | POST | `/warehouse/load-sheets/{id}/confirm` | Check out an approved sheet: count, move godown → vehicle, issue the challan, dispatch | owner, manager, warehouse |
 | POST | `/warehouse/load-sheets/{id}/cancel` | Cancel a draft sheet (a confirmed one has already moved stock) | owner, manager |
+| POST | `/warehouse/load-sheets/{id}/stage-dock` | Put a draft sheet's missing packed pieces on the dock from the godown, as far as the godown holds them | owner, manager, warehouse |
 | GET | `/warehouse/challans` | The delivery challan register | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}` | One challan with everything Rule 55 prints | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/challans/{id}/pdf` | The printed Rule 55 challan (queued until the renderer runs) | owner, manager, accountant, warehouse, delivery |
@@ -1445,6 +1458,9 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
+| GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
+| POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
 | POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
@@ -1692,6 +1708,9 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
 | POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
+| GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
+| POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
 | GET | `/delivery/trips/{id}/settlement` | The check-in cockpit: expected cash, collections by mode, expenses, van stock | owner, manager, accountant, delivery |
 | POST | `/delivery/trips/{tripId}/settle` | Settle: count the van back in, hand over the cash; variance beyond tolerance needs the owner | owner, manager, accountant |
 | GET | `/delivery/stops` | Stops (a shop sees only its own, with an ETA and never a coordinate) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |

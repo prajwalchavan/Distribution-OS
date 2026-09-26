@@ -805,6 +805,32 @@ export const CancelLoadSheetInput = MutationBase.extend({
 })
 export const CancelLoadSheetOutput = LoadSheetItemOutput
 
+/**
+ * PUT A SHEET'S MISSING PIECES ON THE DOCK (QA DOS-244). The load-out never short-loads: a packed lot the dock
+ * cannot cover is 409 `dock_short`. When the pieces are in the godown instead — a bill that came back was
+ * counted onto the rack as free stock — the godown moves them here, rack → dock, lot by lot, as many as the
+ * rack holds FREE (on hand less reserved) and never more than the sheet is short. A batch the godown no longer
+ * holds stays short and is reported, never invented: that bill comes off the trip (`delivery.trips.dropBill`).
+ * Only while the sheet is a draft. Audited through the ledger (`load_sheet` rows keyed per sheet and lot).
+ */
+export const StageDockInput = MutationBase.extend({ id: IdSchema })
+export const StageDockOutput = z.object({
+  items: z.array(
+    z.object({
+      lotId: IdSchema,
+      /** The item and its batch, as the load-out's refusal names it. */
+      label: z.string(),
+      neededPcs: PiecesSchema,
+      /** On the dock before this call. */
+      onDockPcs: PiecesSchema,
+      /** Moved rack → dock by this call. */
+      stagedPcs: PiecesSchema,
+      /** Still missing after it: the godown does not hold them free. */
+      shortPcs: PiecesSchema,
+    }),
+  ),
+})
+
 // ---------------------------------------------------------------------------------------------------------------
 // inputs — challans
 
@@ -1021,6 +1047,15 @@ export const warehouseContract = {
       })
       .input(CancelLoadSheetInput)
       .output(CancelLoadSheetOutput),
+    stageDock: oc
+      .route({
+        method: 'POST',
+        path: '/warehouse/load-sheets/{id}/stage-dock',
+        summary:
+          "Put a draft sheet's missing packed pieces on the dock from the godown, as far as the godown holds them",
+      })
+      .input(StageDockInput)
+      .output(StageDockOutput),
   },
   challans: {
     list: oc

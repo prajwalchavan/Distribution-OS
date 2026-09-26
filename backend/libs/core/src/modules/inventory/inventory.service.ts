@@ -658,6 +658,66 @@ export class InventoryService {
     return new Map(rows.map((r) => [r.lotId, Number(r.onHand)]))
   }
 
+  /**
+   * What a location holds FREE of the named lots — on hand less reserved, never below zero — with the balance
+   * rows locked `FOR UPDATE`, so a caller that moves the pieces in the same transaction cannot race a picker
+   * or another mover for them (QA DOS-244: rack → dock for a bill's next load).
+   */
+  async freeAt(tx: Db, locationId: string, lotIds: readonly string[]): Promise<Map<string, number>> {
+    const { tenantId } = currentTenant()
+    const ids = [...new Set(lotIds)]
+    if (ids.length === 0) return new Map()
+    const rows = await tx
+      .select({
+        lotId: stockBalances.lotId,
+        onHand: stockBalances.onHand,
+        reserved: stockBalances.reserved,
+      })
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.tenantId, tenantId),
+          eq(stockBalances.locationId, locationId),
+          inArray(stockBalances.lotId, ids),
+        ),
+      )
+      .orderBy(asc(stockBalances.lotId))
+      .for('update')
+    return new Map(
+      rows.map((r) => [r.lotId, Math.max(0, Number(r.onHand) - Number(r.reserved))]),
+    )
+  }
+
+  /**
+   * The net pieces the ledger put at `locationId` for one reference (`ref_type`, `ref_id`), per lot. What the
+   * godown's van check-in has already staged on the dock for a trip is `netAtByRef(dock, 'trip_checkin', tripId)`.
+   */
+  async netAtByRef(
+    tx: Db,
+    locationId: string,
+    ref: { refType: string; refIds: readonly string[] },
+  ): Promise<Map<string, number>> {
+    const { tenantId } = currentTenant()
+    const ids = [...new Set(ref.refIds)]
+    if (ids.length === 0) return new Map()
+    const rows = await tx
+      .select({
+        lotId: stockLedger.lotId,
+        qty: sql<string>`coalesce(sum(${stockLedger.qtyDelta}), 0)::bigint`,
+      })
+      .from(stockLedger)
+      .where(
+        and(
+          eq(stockLedger.tenantId, tenantId),
+          eq(stockLedger.locationId, locationId),
+          eq(stockLedger.refType, ref.refType),
+          inArray(stockLedger.refId, ids),
+        ),
+      )
+      .groupBy(stockLedger.lotId)
+    return new Map(rows.map((r) => [r.lotId, Number(r.qty)]))
+  }
+
   async postPick(tx: Db, input: PostPickInput): Promise<PostResult> {
     const picks = input.picks.filter((p) => p.qtyPcs > 0)
     const pending = await this.pendingReservations(tx, input.orderLineId)

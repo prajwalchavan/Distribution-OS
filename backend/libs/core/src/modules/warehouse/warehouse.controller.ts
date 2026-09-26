@@ -128,6 +128,13 @@ export class WarehouseController {
     )
   }
 
+  @Implement(contract.warehouse.loadSheets.stageDock)
+  stageDockLoadSheet(@OwnsReply() _reply: unknown) {
+    return implement(contract.warehouse.loadSheets.stageDock).handler(({ input }) =>
+      this.loadSheets.stageDock(input),
+    )
+  }
+
   @Implement(contract.warehouse.challans.list)
   listChallans(@OwnsReply() _reply: unknown) {
     return implement(contract.warehouse.challans.list).handler(({ input }) =>

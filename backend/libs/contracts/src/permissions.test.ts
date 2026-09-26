@@ -670,6 +670,10 @@ describe('permission matrix', () => {
       'delivery.stops.list',
       'delivery.stops.next',
       'delivery.stops.add',
+      // QA DOS-244: the van check-in is the godown's — what a van carries back for bills, and the count
+      // that puts those pieces on the dock and the rest on the rack. Stock, never money.
+      'delivery.trips.vanReturns',
+      'delivery.trips.unload',
     ]
     for (const path of warehouseMay) {
       expect(isAllowed(permissionFor(path), 'warehouse'), `${path} must allow warehouse`).toBe(true)
@@ -685,6 +689,8 @@ describe('permission matrix', () => {
     // map and the trace, which `trip_points` RLS already limits to owner/manager) are the PIN holders'.
     for (const path of [
       'delivery.trips.cancel',
+      // QA DOS-241: taking a bill that was never loaded off a trip that has not left is the desk's
+      'delivery.trips.dropBill',
       'delivery.vehicles.upsert',
       'delivery.vehicles.positions',
       'delivery.gps.trace',
