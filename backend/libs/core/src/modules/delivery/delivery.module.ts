@@ -3,10 +3,11 @@ import { sql } from 'drizzle-orm'
 import { deliveries, deliveryLines, tripStops, trips, vehicles } from '@dos/db'
 import { BillingModule } from '../billing/index.js'
 import { InventoryModule } from '../inventory/index.js'
-import { OrdersModule } from '../orders/index.js'
+import { ApprovalHooks, OrdersModule } from '../orders/index.js'
 import { ReceivablesModule, ReceivablesService } from '../receivables/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
+import { TenantCatalogModule } from '../tenant-catalog/index.js'
 import { LoadSheetsService, WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
@@ -48,6 +49,7 @@ import { VehiclesService } from './vehicles.service.js'
 @Module({
   imports: [
     TenancyModule,
+    TenantCatalogModule,
     OrdersModule,
     InventoryModule,
     BillingModule,
@@ -73,6 +75,8 @@ export class DeliveryModule implements OnModuleInit {
     private readonly collections: CollectionsService,
     private readonly receivables: ReceivablesService,
     private readonly loadSheets: LoadSheetsService,
+    private readonly settlement: SettlementService,
+    private readonly approvalHooks: ApprovalHooks,
     @Optional() @Inject(SyncRegistry) private readonly registry: SyncRegistry | null,
   ) {}
 
@@ -82,6 +86,8 @@ export class DeliveryModule implements OnModuleInit {
     // which bills still ride a van that has not checked in (DOS-172).
     this.receivables.registerTripPredicates(TRIP_PREDICATES)
     this.loadSheets.registerRoadHold(returnedOnTheRoad)
+    // QA DOS-235: the owner's decision on a trip settlement settles the trip, and the queue names what it is.
+    this.approvalHooks.register('trip_settlement', this.settlement.approvalHook())
     if (!this.registry) return
     // Each upload table names the online procedure(s) it stands for, and the uploader asks PERMISSIONS
     // about every one of them before a handler runs (DOS-166). A stop op moves the stop through start,

@@ -131,7 +131,17 @@ export class DeliveriesService {
           throw new ORPCError('BAD_REQUEST', {
             message: `stop ${stop.id} is not on trip ${trip.id}`,
           })
-        if (STOP_TERMINAL.has(stop.state))
+        /*
+         * QA DOS-232: the per-bill guard. A stop holds every bill planned for the shop and is terminal
+         * only once each of them has an outcome (`trips.settleStopAfterBill`), so a terminal stop may
+         * still carry a planned bill with none — one that ended before that rule existed. That bill is
+         * recorded; a bill that already has an outcome is refused by `completeDeliveryRow` by name. A
+         * terminal stop takes no NEW bill: a second attempt at the shop is a new stop.
+         */
+        if (
+          STOP_TERMINAL.has(stop.state) &&
+          !(await this.trips.billsStillOnStop(tx, stop.id)).includes(input.invoiceId)
+        )
           throw new ORPCError('CONFLICT', {
             message: `stop ${stop.id} is already ${stop.state}; a second attempt is a new stop`,
           })
@@ -278,13 +288,8 @@ export class DeliveriesService {
           })
         else await this.billing.clearUndelivered(tx, invoice.id)
 
-        let nextStop = await this.trips.walkStop(
-          tx,
-          stop,
-          outcome === 'returned' ? 'delivered' : outcome,
-          at,
-          null,
-        )
+        // QA DOS-232: the stop ends when its LAST bill has an outcome, never on the first.
+        let nextStop = await this.trips.settleStopAfterBill(tx, stop, at)
         if (outcome === 'failed')
           nextStop = await this.trips.recordStopFailure(
             tx,

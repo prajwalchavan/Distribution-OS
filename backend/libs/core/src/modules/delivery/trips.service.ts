@@ -1013,6 +1013,51 @@ export class TripsService {
   }
 
   /**
+   * WHERE A STOP STANDS AFTER ONE OF ITS BILLS HAS AN OUTCOME (QA DOS-232).
+   *
+   * A stop carries every bill planned for that shop, and the crew records them one at a time. Landing the
+   * stop on `delivered` after the FIRST bill made it terminal while the second still rode on the van: the
+   * next bill was refused ("already delivered; a second attempt is a new stop"), the check-in counted the
+   * shop as delivered, and the desk read "every bill that went out was delivered" over goods that never
+   * left the van. So a stop ends only when every bill on it has an outcome:
+   *
+   *   - a bill of the stop still has no outcome   → the stop is (at most) `arrived`: the crew is at the door
+   *   - every bill delivered in full               → `delivered`
+   *   - every bill failed                          → `failed`
+   *   - anything else                              → `partial` (some goods went, some came back)
+   *
+   * A stop already terminal is left where it is: the stop machine has no way out of a terminal state, and a
+   * stop that ended before this rule existed keeps its word while its remaining bill is still recorded.
+   */
+  async settleStopAfterBill(tx: Db, stop: StopRow, at: Date): Promise<StopRow> {
+    const [current] = await tx.select().from(tripStops).where(eq(tripStops.id, stop.id)).limit(1)
+    const row = current ?? stop
+    if (STOP_TERMINAL.has(row.state)) return row
+    const outcomes = await tx
+      .select({ outcome: deliveries.outcome })
+      .from(deliveries)
+      .where(eq(deliveries.stopId, row.id))
+    if (outcomes.some((d) => d.outcome === null) || outcomes.length === 0)
+      return this.walkStop(tx, row, 'arrived', at, null)
+    const done = outcomes.map((d) => (d.outcome === 'returned' ? 'delivered' : d.outcome))
+    const target = done.every((o) => o === 'delivered')
+      ? 'delivered'
+      : done.every((o) => o === 'failed')
+        ? 'failed'
+        : 'partial'
+    return this.walkStop(tx, row, target, at, null)
+  }
+
+  /** The bills of a stop that have no outcome yet — the ones still riding on the van for this shop. */
+  async billsStillOnStop(tx: Db, stopId: string): Promise<string[]> {
+    const rows = await tx
+      .select({ invoiceId: deliveries.invoiceId })
+      .from(deliveries)
+      .where(and(eq(deliveries.stopId, stopId), sql`${deliveries.outcome} is null`))
+    return rows.map((r) => r.invoiceId)
+  }
+
+  /**
    * The cause of a doorstep failure onto the stop itself (QA DOS-203), for the path that does NOT go
    * through the fail sheet: `deliveries.record` with every line zero. `failStopInTx` writes the same two
    * columns for `stops.fail` and `trips.return`. Never overwrites a reason already recorded, so a
@@ -1109,7 +1154,18 @@ export class TripsService {
     deviceId: string | null,
   ): Promise<StopRow> {
     const ctx = currentTenant()
-    const walked = await this.walkStop(tx, stop, 'failed', at, null)
+    // QA DOS-232: a stop where some bill was already handed over did not fail — the rest came back.
+    const [handedOver] = await tx
+      .select({ id: deliveries.id })
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.stopId, stop.id),
+          inArray(deliveries.outcome, ['delivered', 'partial', 'returned']),
+        ),
+      )
+      .limit(1)
+    const walked = await this.walkStop(tx, stop, handedOver ? 'partial' : 'failed', at, null)
     const [next] = await tx
       .update(tripStops)
       .set({ failureReason, failureNote, updatedAt: new Date() })

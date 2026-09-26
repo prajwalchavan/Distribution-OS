@@ -41,6 +41,7 @@ import {
 import { instantWithClock, monthsBack, rangeOf, shortDate } from '../../src/groups/owner/lib/dates'
 import { pendingDecisions } from '../../src/groups/owner/lib/pending-decisions'
 import { useWord } from '../../src/groups/owner/lib/words'
+import { tripName, tripOf } from '../../src/groups/owner/lib/trip-settlement'
 
 export default function Today(): React.JSX.Element {
   const go = useGo()
@@ -126,6 +127,10 @@ export default function Today(): React.JSX.Element {
   const waiting = [
     ...(approvals.data?.items ?? []).map((row) => {
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
+      // DOS-235: a trip settlement is named by its trip and carries the cash difference, not "—".
+      const trip = tripOf(row)
+      if (trip !== null)
+        return { id: row.id, kind: row.kind, what: tripName(trip), amount: trip.cashVariancePaise }
       return bargain === undefined
         ? {
             id: row.id,

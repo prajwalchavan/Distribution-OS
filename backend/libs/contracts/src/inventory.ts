@@ -177,6 +177,12 @@ export const StockBalancesInput = z.object({
   expiringBefore: z.iso.date().optional(),
   /** Lots expiring within the tenant's near-expiry window (default 60 days); lots with no expiry are excluded. */
   nearExpiryOnly: QueryBoolSchema.optional(),
+  /**
+   * Only rows whose `onHand` is not zero (QA DOS-234). A balance row stays at zero once a lot has ever stood
+   * in a location, so a van that has run for months holds hundreds of them; without this a page of 200 was
+   * almost all zeros and the live lots fell past it.
+   */
+  nonZero: QueryBoolSchema.optional(),
   limit: QueryIntSchema.min(1).max(500).default(200),
   /** `${lotId}:${locationId}` of the last row. */
   cursor: z.string().optional(),

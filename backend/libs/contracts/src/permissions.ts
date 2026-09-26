@@ -767,6 +767,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'delivery.collections.list': MONEY_COLLECTORS,
   // Billed from the tenant's normal series (docs/17 §D5) by the crew at the door.
   'delivery.vanSales.create': DOORSTEP,
+  // QA DOS-233: what that sale may draw on — the van less this trip's bills. No cost in it.
+  'delivery.vanSales.stock': DOORSTEP,
   'delivery.expenses.record': MONEY_COLLECTORS,
   'delivery.expenses.list': MONEY_COLLECTORS,
   // ADR 0012: the batch bypasses the sync queue; the caller must be the trip's crew (handler).

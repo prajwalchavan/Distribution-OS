@@ -7333,13 +7333,14 @@ On-hand and reserved per lot per location (stock keepers only) · contract `inve
 | `lotId` | uuid | no |
 | `expiringBefore` | date | no |
 | `nearExpiryOnly` | boolean | string | no |
+| `nonZero` | boolean | string | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3003/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&limit=200" \
+curl "http://localhost:3003/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&nonZero=true&limit=200" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -10494,7 +10495,36 @@ curl "http://localhost:3003/approvals?status=pending&orderId=01a06d67-52a6-70c4-
       "orderNo": "SO-0042",
       "orderTotalPaise": 2680000,
       "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
-      "retailerName": "text"
+      "retailerName": "text",
+      "tripSettlement": {
+        "tripId": "01a06d0b-bd31-7813-8e79-aa7c39f75385",
+        "tripNo": "SO-0042",
+        "tripDate": "2026-09-04",
+        "tripState": "text",
+        "vehicleRegNo": "SO-0042",
+        "openingCashPaise": 4000,
+        "cashCollectedPaise": 4000,
+        "expensesPaise": 4000,
+        "expectedCashPaise": 4000,
+        "handedOverCashPaise": 4000,
+        "cashVariancePaise": 4000,
+        "tolerancePaise": 4000,
+        "upiCollectedPaise": 4000,
+        "chequeCollectedPaise": 4000,
+        "stockVariance": [
+          {
+            "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+            "variantName": "Campa Cola 750 ml",
+            "batchNo": null,
+            "caseSize": null,
+            "expectedPcs": 24,
+            "countedPcs": 24,
+            "deltaPcs": 24,
+            "valuePaise": null
+          }
+        ],
+        "stockVarianceValuePaise": 4000
+      }
     }
   ],
   "nextCursor": null
@@ -10727,6 +10757,11 @@ request.json
         "createdAt": "2026-09-04T10:30:00.000Z"
       }
     ]
+  },
+  "trip": {
+    "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+    "tripNo": "SO-0042",
+    "state": "text"
   }
 }
 ```

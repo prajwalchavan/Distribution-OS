@@ -33,6 +33,11 @@ export interface PlanForm {
   readonly openingCashPaise: number | null
   /** Invoice ids in the order they were tapped. */
   readonly chosen: readonly string[]
+  /**
+   * QA DOS-233: the van also carries stock to SELL at shops with no order. Only offered while the tenant's
+   * `van_sales` flag is on; a van-sales trip may leave with no bill at all.
+   */
+  readonly vanSales: boolean
 }
 
 export type PlanProblem = 'needVehicle' | 'needDriver' | 'sameCrew' | 'needBill'
@@ -45,6 +50,7 @@ export interface TripPlan {
   readonly driverId: string
   readonly helperId: string | null
   readonly openingCashPaise: number
+  readonly vanSales: boolean
   readonly stops: readonly PlanStop[]
 }
 
@@ -57,6 +63,7 @@ export interface TripCreateBody {
   driverId: string
   helperId?: string
   openingCashPaise: number
+  vanSalesEnabled: boolean
   stops: { id: string; sequence: number; retailerId: string; invoiceIds: string[] }[]
 }
 
@@ -114,7 +121,8 @@ export function planProblem(form: PlanForm): PlanProblem | null {
   if (form.vehicleId === null) return 'needVehicle'
   if (form.driverId === null) return 'needDriver'
   if (form.helperId !== null && form.helperId === form.driverId) return 'sameCrew'
-  if (form.chosen.length === 0) return 'needBill'
+  // A van that goes out to sell needs no bill (DOS-233); every other trip carries at least one.
+  if (form.chosen.length === 0 && !form.vanSales) return 'needBill'
   return null
 }
 
@@ -129,7 +137,7 @@ export function snapshotPlan(
 ): TripPlan | null {
   if (planProblem(form) !== null || form.vehicleId === null || form.driverId === null) return null
   const onBoard = new Set(bills.map((bill) => bill.invoiceId))
-  if (!form.chosen.some((invoiceId) => onBoard.has(invoiceId))) return null
+  if (!form.vanSales && !form.chosen.some((invoiceId) => onBoard.has(invoiceId))) return null
   const id = makeId()
   const stops = stopsFromBills(bills, form.chosen, makeId).map((stop) =>
     Object.freeze({ ...stop, invoiceIds: Object.freeze([...stop.invoiceIds]) }),
@@ -141,6 +149,7 @@ export function snapshotPlan(
     driverId: form.driverId,
     helperId: form.helperId,
     openingCashPaise: form.openingCashPaise ?? 0,
+    vanSales: form.vanSales,
     stops: Object.freeze(stops),
   })
 }
@@ -154,6 +163,7 @@ export function tripCreateBody(plan: TripPlan, idempotencyKey: string): TripCrea
     driverId: plan.driverId,
     ...(plan.helperId === null ? {} : { helperId: plan.helperId }),
     openingCashPaise: plan.openingCashPaise,
+    vanSalesEnabled: plan.vanSales,
     stops: plan.stops.map((stop) => ({
       id: stop.id,
       sequence: stop.sequence,
@@ -238,16 +248,27 @@ export function mergeBills(
   return merged
 }
 
-/** DOS-137: the sheet names the trip it is built for and loads that trip's own vehicle location. */
+/**
+ * DOS-137: the sheet names the trip it is built for and loads that trip's own vehicle location.
+ * DOS-233: a van-sales trip also takes stock to SELL — the lots and pieces the godown picked for it. A
+ * lot picked twice is summed, a lot at zero pieces is left off (the server takes positive pieces only),
+ * and a trip that sells nothing from the van sends none.
+ */
 export function loadSheetInput(
   trip: Pick<Trip, 'id' | 'vehicleLocationId'>,
   orderIds: readonly string[],
+  vanStock: readonly { lotId: string; qtyPcs: number }[] = [],
 ): LoadSheetBody {
+  const byLot = new Map<string, number>()
+  for (const line of vanStock) {
+    if (!Number.isSafeInteger(line.qtyPcs) || line.qtyPcs <= 0) continue
+    byLot.set(line.lotId, (byLot.get(line.lotId) ?? 0) + line.qtyPcs)
+  }
   return {
     tripId: trip.id,
     toLocationId: trip.vehicleLocationId,
     orderIds: [...orderIds],
-    vanStock: [],
+    vanStock: [...byLot].map(([lotId, qtyPcs]) => ({ lotId, qtyPcs })),
   }
 }
 

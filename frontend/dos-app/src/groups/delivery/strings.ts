@@ -375,7 +375,10 @@ export const strings = {
   'd6.needsLine': 'Add at least one item',
   'd6.online': 'A van sale needs a signal: it makes a numbered GST bill.',
   'd6.failed': 'Could not make the sale',
-  'd6.available': '{pieces} pc on the van',
+  'd6.available': '{pieces} pc to sell',
+  /* DOS-233: the next shops' cartons are on the van too, and are not for sale. */
+  'd6.heldForBills': '{pieces} pc on the van belong to bills of this trip and are not for sale',
+  'd6.nothingToSell': 'Nothing on the van is free to sell — everything aboard belongs to a bill',
 
   // --- D7 expenses ------------------------------------------------------------------------------
   'd7.title': 'Expenses',

@@ -1,0 +1,178 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Tarsun Enterprise
+Load
+Sheets
+Trips
+Check-in
+LOAD SHEETS
+1 sheet not sent out yet
+MH-05-AB-1234
+12 Sep · Expected 38
+draft
+MH-05-CD-5678
+28 Jul · Expected 39
+confirmed
+MH-05-EF-9012
+4 Aug · Expected 48
+confirmed
+MH-05-EF-9012
+3 Sep · Expected 54
+confirmed
+MH-05-AB-1234
+21 Jul · Expected 49
+confirmed
+MH-05-AB-1234
+17 Jul · Expected 65
+confirmed
+MH-05-AB-1234
+7 Sep · Expected 86
+confirmed
+MH-05-EF-9012
+25 Aug · Expected 59
+confirmed
+MH-05-AB-1234
+24 Jun · Expected 47
+confirmed
+MH-05-EF-9012
+29 Jun · Expected 108
+confirmed
+MH-05-CD-5678
+24 Aug · Expected 74
+confirmed
+MH-05-EF-9012
+14 Jul · Expected 91
+confirmed
+MH-05-EF-9012
+23 Jul · Expected 59
+confirmed
+MH-05-CD-5678
+8 Sep · Expected 74
+confirmed
+MH-05-AB-1234
+10 Sep · Expected 74
+confirmed
+MH-05-AB-1234
+30 Jul · Expected 63
+confirmed
+MH-05-EF-9012
+23 Jun · Expected 62
+confirmed
+MH-05-CD-5678
+12 Aug · Expected 65
+confirmed
+MH-05-AB-1234
+26 Aug · Expected 67
+confirmed
+MH-05-EF-9012
+29 Jul · Expected 62
+confirmed
+MH-05-EF-9012
+13 Aug · Expected 83
+confirmed
+MH-05-AB-1234
+30 Jun · Expected 67
+confirmed
+MH-05-CD-5678
+2 Sep · Expected 67
+confirmed
+MH-05-CD-5678
+16 Jul · Expected 42
+confirmed
+MH-05-AB-1234
+9 Jul · Expected 58
+confirmed
+MH-05-CD-5678
+25 Jul · Expected 67
+confirmed
+MH-05-EF-9012
+22 Aug · Expected 61
+confirmed
+MH-05-CD-5678
+21 Aug · Expected 56
+confirmed
+MH-05-CD-5678
+31 Jul · Expected 112
+confirmed
+MH-05-AB-1234
+1 Sep · Expected 80
+confirmed
+MH-05-AB-1234
+10 Jul · Expected 57
+confirmed
+Trip
+TRIP-0001 · MH-05-CD-5678
+26 Sep · planned
+TRIP-NEXT · MH-05-AB-1234
+14 Sep · planned
+PACKED ORDERS
+4
+Ambika Provision Store
+SO-0879 · Cartons 1 · Packed 26 Sep, 9:04 pm
+INV/9007
+City Light Provision
+Not on TRIP-0001. Add the bill to the trip under Trips first. · SO-0862 · Cartons 2 · Packed 11 Sep, 11:30 am
+INV/0831
+Ambika Provision Store
+SO-0850 · Cartons 7 · Packed 10 Sep, 11:30 am
+INV/0820
+Nutan Kirana Stores
+SO-0845 · Cartons 5 · Packed 10 Sep, 11:30 am
+INV/0815
+STOCK TO SELL FROM THE VAN
+TRIP-0001 sells from the van. Pick what goes on it beyond the bills.
+Sunbake Bourbon Cream 300 g
+18 pc in the godown
+Sunbake Bourbon Cream 300 g
+6 pc in the godown
+Sunbake Bourbon Cream 120 g
+7 pc in the godown
+Sunbake Bourbon Cream 60 g
+480 pc in the godown
+Sunbake Bourbon Cream 300 g
+9 pc in the godown
+Sunbake Bourbon Cream 60 g
+480 pc in the godown
+Sunbake Bourbon Cream 300 g
+30 pc in the godown
+Sunbake Bourbon Cream 120 g
+12 pc in the godown
+Sunbake Bourbon Cream 300 g
+180 pc in the godown
+Sunbake Bourbon Cream 120 g
+288 pc in the godown
+Sunbake Bourbon Cream 300 g
+6 pc in the godown
+Sunbake Bourbon Cream 120 g
+60 pc in the godown
+Sunbake Bourbon Cream 120 g
+233 pc in the godown
+Sunbake Bourbon Cream 300 g
+60 pc in the godown
+Sunbake Bourbon Cream 300 g
+Close
+Pieces to load
+999924
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+Only 18 pc are in the godown
+Close
+3 selected · 0 pc
+Build a sheet
+Inbound
+Pick
+Pack
+Load

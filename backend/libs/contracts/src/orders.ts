@@ -213,11 +213,58 @@ export type Approval = z.infer<typeof ApprovalSchema>
  * the list is asked (DOS-004), so no screen depends on what a payload happens to carry. All four are null for an
  * approval with no order behind it (a trip settlement, a bargain gate whose request names no order).
  */
+/**
+ * One lot the count did not tally on (QA DOS-235): named, with its batch and case size, the pieces the van
+ * should hold against the pieces counted, and what the difference is worth at THAT lot's own purchase cost
+ * (the GRN's per-lot row, else the SKU's default). `valuePaise` is null when no cost is known. Cost is read
+ * when the queue is asked — never stored on the approval, whose row every staff role can reach.
+ */
+export const ApprovalStockLineSchema = z.object({
+  lotId: IdSchema,
+  variantName: z.string(),
+  batchNo: z.string().nullable(),
+  caseSize: z.number().int().positive().nullable(),
+  expectedPcs: PiecesSchema,
+  countedPcs: PiecesSchema,
+  deltaPcs: z.number().int(),
+  valuePaise: PaiseSchema.nullable(),
+})
+export type ApprovalStockLine = z.infer<typeof ApprovalStockLineSchema>
+
+/**
+ * WHAT THE OWNER IS ASKED TO ACCEPT on a `trip_settlement` approval (QA DOS-235): the trip, the cash the desk
+ * expected against what was handed over, the tolerance, and every lot that did not tally with its value. Read
+ * from the trip and the count the desk sent; a figure the request did not carry (an approval filed before this
+ * existed) is null. Approving it SETTLES the trip as the owner, with exactly this count.
+ */
+export const ApprovalTripSettlementSchema = z.object({
+  tripId: IdSchema,
+  tripNo: z.string().nullable(),
+  tripDate: z.string().nullable(),
+  tripState: z.string().nullable(),
+  vehicleRegNo: z.string().nullable(),
+  openingCashPaise: PaiseSchema.nullable(),
+  cashCollectedPaise: PaiseSchema.nullable(),
+  expensesPaise: PaiseSchema.nullable(),
+  expectedCashPaise: PaiseSchema,
+  handedOverCashPaise: PaiseSchema,
+  cashVariancePaise: PaiseSchema,
+  tolerancePaise: PaiseSchema,
+  upiCollectedPaise: PaiseSchema.nullable(),
+  chequeCollectedPaise: PaiseSchema.nullable(),
+  stockVariance: z.array(ApprovalStockLineSchema),
+  /** Σ `valuePaise` of the lines that carry one; null when no line does. Negative = pieces missing. */
+  stockVarianceValuePaise: PaiseSchema.nullable(),
+})
+export type ApprovalTripSettlement = z.infer<typeof ApprovalTripSettlementSchema>
+
 export const ApprovalQueueItemSchema = ApprovalSchema.extend({
   orderNo: z.string().nullable(),
   orderTotalPaise: PaiseSchema.nullable(),
   retailerId: IdSchema.nullable(),
   retailerName: z.string().nullable(),
+  /** Only on a `trip_settlement` row (QA DOS-235); absent or null on every other kind. */
+  tripSettlement: ApprovalTripSettlementSchema.nullable().optional(),
 })
 export type ApprovalQueueItem = z.infer<typeof ApprovalQueueItemSchema>
 
@@ -356,6 +403,14 @@ export const DecideApprovalInput = MutationBase.extend({
 export const DecideApprovalOutput = z.object({
   item: ApprovalSchema,
   order: OrderDetailSchema.nullable(),
+  /**
+   * QA DOS-235: an approved `trip_settlement` settles its trip in the same transaction; this is the trip
+   * after it (`settled_with_variance`). Absent or null for every other kind and for a rejection.
+   */
+  trip: z
+    .object({ id: IdSchema, tripNo: z.string().nullable(), state: z.string() })
+    .nullable()
+    .optional(),
 })
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -235,6 +235,14 @@ export default function DayEnd(): React.JSX.Element {
   const p = preview.data
   const variance = p === undefined || handedOver === null ? 0 : handedOver - p.expectedCashPaise
   const beyondTolerance = p !== undefined && Math.abs(variance) > p.tolerancePaise
+  /*
+   * DOS-235: what is still booked on the van. This desk sends no van count, so every piece here is
+   * settled as MISSING and the trip goes to the owner — TRIP-0002 wrote off 154 pieces the godown had not
+   * yet counted back in. Said before the button, with the pieces, so the desk can wait for the godown.
+   */
+  const vanLeft = p?.expectedVanStock ?? []
+  const vanLeftPcs = vanLeft.reduce((n, line) => n + line.expectedPcs, 0)
+  const toOwner = beyondTolerance || vanLeft.length > 0
 
   return (
     <Screen
@@ -399,6 +407,17 @@ export default function DayEnd(): React.JSX.Element {
                     tone={beyondTolerance ? 'critical' : 'default'}
                   />
                 </Field>
+              )}
+
+              {vanLeft.length === 0 ? null : (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.status.brick.fg}
+                  testID="settle-van-left"
+                >
+                  {t('m10.vanNotCounted', { pieces: vanLeftPcs, lots: vanLeft.length })}
+                </Txt>
               )}
 
               <Txt field="label" desk="meta" color={colors.text.secondary}>
@@ -567,7 +586,7 @@ export default function DayEnd(): React.JSX.Element {
           <Stack gap={3}>
             <Money value={handedOver} size="moneyM" />
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {beyondTolerance ? t('m10.acceptVariance') : t('m10.settleBody')}
+              {toOwner ? t('m10.goesToOwner') : t('m10.settleBody')}
             </Txt>
             <TextInput
               label={t('app.note')}

@@ -183,6 +183,11 @@ export class DeliveryController {
     return implement(d.vanSales.create).handler(({ input }) => this.vanSales.create(input))
   }
 
+  @Implement(d.vanSales.stock)
+  vanSaleStock(@OwnsReply() _reply: unknown) {
+    return implement(d.vanSales.stock).handler(({ input }) => this.vanSales.stock(input))
+  }
+
   @Implement(d.expenses.record)
   recordExpense(@OwnsReply() _reply: unknown) {
     return implement(d.expenses.record).handler(({ input }) =>

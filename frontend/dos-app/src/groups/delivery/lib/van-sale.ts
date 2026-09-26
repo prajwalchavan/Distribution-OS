@@ -46,3 +46,45 @@ export function saleFigures(quote: Quote | undefined): SaleFigures | null {
 export function lineFigure(quote: Quote | undefined, lineId: string): number | null {
   return quote?.lines.find((line) => line.lineId === lineId)?.lineTotalPaise ?? null
 }
+
+/** One sellable line of the van-sale list: a SKU, whatever lots of it the van holds (DOS-233). */
+export interface VanVariant {
+  variantId: string
+  name: string
+  /** Pieces free to sell: the van less this trip's bills still on board, summed over the SKU's lots. */
+  available: number
+  /** The earliest expiry among the lots that have something to sell. */
+  expiry: string | null
+}
+
+/**
+ * The van-sale list, one row per SKU, from `delivery.vanSales.stock`: only lots with pieces FREE to sell
+ * count, so a SKU whose every piece belongs to another shop's bill is not offered at all (DOS-233).
+ */
+export function vanStockByVariant(
+  rows: readonly {
+    variantId: string
+    variantName: string
+    availablePcs: number
+    expiryDate: string | null
+  }[],
+): VanVariant[] {
+  const map = new Map<string, VanVariant>()
+  for (const row of rows) {
+    if (row.availablePcs <= 0) continue
+    const held = map.get(row.variantId)
+    if (held === undefined) {
+      map.set(row.variantId, {
+        variantId: row.variantId,
+        name: row.variantName,
+        available: row.availablePcs,
+        expiry: row.expiryDate,
+      })
+      continue
+    }
+    held.available += row.availablePcs
+    if (row.expiryDate !== null && (held.expiry === null || row.expiryDate < held.expiry))
+      held.expiry = row.expiryDate
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+}

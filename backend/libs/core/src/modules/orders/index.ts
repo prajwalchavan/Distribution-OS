@@ -1,6 +1,13 @@
 export { OrdersModule } from './orders.module.js'
 export { OrdersService } from './orders.service.js'
 export { ApprovalsService } from './approvals.service.js'
+export {
+  ApprovalHooks,
+  HOOKED_KINDS,
+  type ApprovalDecisionResult,
+  type ApprovalKindHook,
+} from './approval-hooks.js'
+export type { ApprovalRow } from './orders.mappers.js'
 /**
  * Credit control moved to `modules/receivables` at the receivables slice (coordination §3.1): the rollup
  * table is the source now, not a raw join. Re-exported here so every existing call site is unchanged.

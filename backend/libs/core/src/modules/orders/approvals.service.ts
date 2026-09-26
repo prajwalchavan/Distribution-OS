@@ -24,6 +24,7 @@ import { istMoment, personWord } from '../../platform/refusal-words.js'
 import { BargainsService } from '../pricing/index.js'
 import { retailerRefs } from '../retailers/index.js'
 import { userLabels } from '../tenancy/index.js'
+import { ApprovalHooks, HOOKED_KINDS } from './approval-hooks.js'
 import { toApproval, toApprovalQueueItem, type ApprovalRow } from './orders.mappers.js'
 import { OrdersService } from './orders.service.js'
 
@@ -44,6 +45,8 @@ export class ApprovalsService {
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
     private readonly bargains: BargainsService,
+    /** What delivery does with a `trip_settlement` decision, and what its row shows (QA DOS-235). */
+    private readonly hooks: ApprovalHooks,
   ) {}
 
   async list(input: ListIn): Promise<ListOut> {
@@ -79,14 +82,29 @@ export class ApprovalsService {
         tx,
         page.flatMap((r) => (r.retailerId === null ? [] : [r.retailerId])),
       )
-      const items = page.map((r) =>
-        toApprovalQueueItem(r.approval, {
+      // QA DOS-235: a kind another module files names what is being decided — a trip settlement its trip,
+      // its cash and the lots that did not tally — asked once per kind for the page.
+      const described = new Map<string, NonNullable<ListOut['items'][number]['tripSettlement']>>()
+      for (const kind of new Set(page.map((r) => r.approval.kind))) {
+        const hook = this.hooks.get(kind)
+        if (!hook) continue
+        for (const [id, value] of await hook.describe(
+          tx,
+          page.filter((r) => r.approval.kind === kind).map((r) => r.approval),
+        ))
+          described.set(id, value)
+      }
+      const items = page.map((r) => ({
+        ...toApprovalQueueItem(r.approval, {
           orderNo: r.orderNo,
           orderTotalPaise: r.orderTotalPaise,
           retailerId: r.retailerId,
           retailerName: r.retailerId === null ? null : (shops.get(r.retailerId)?.name ?? null),
         }),
-      )
+        ...(described.has(r.approval.id)
+          ? { tripSettlement: described.get(r.approval.id) ?? null }
+          : {}),
+      }))
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
@@ -108,6 +126,12 @@ export class ApprovalsService {
           throw new ORPCError('NOT_FOUND', { message: `approval ${input.id} not found` })
         if (approval.status !== 'pending')
           throw new ORPCError('CONFLICT', { message: await this.decidedWords(tx, approval) })
+        const hook = this.hooks.get(approval.kind)
+        if (!hook && HOOKED_KINDS.has(approval.kind))
+          throw new ORPCError('CONFLICT', {
+            message: `a ${approval.kind.replace(/_/g, ' ')} cannot be decided on this service`,
+            data: { code: 'approval_kind_unhandled', kind: approval.kind },
+          })
         const now = new Date()
 
         // The order this gate waits on may already be terminal — the shop cancelled it, or another gate on the
@@ -169,6 +193,17 @@ export class ApprovalsService {
             { ifStillRequested: true },
           )
         const item = toApproval(decided ?? approval)
+        // QA DOS-235: the module that filed this kind acts on the decision in this same transaction — an
+        // approved trip settlement settles its trip, and a refusal from it rolls the decision back.
+        if (hook) {
+          const acted = await hook.decide(
+            tx,
+            decided ?? approval,
+            input.decision,
+            input.note ?? null,
+          )
+          if (!approval.orderId || !order) return { item, order: null, trip: acted.trip ?? null }
+        }
         if (!approval.orderId || !order) return { item, order: null }
 
         if (input.decision === 'reject') {

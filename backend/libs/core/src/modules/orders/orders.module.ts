@@ -5,6 +5,7 @@ import { InventoryModule } from '../inventory/index.js'
 import { PricingModule } from '../pricing/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
+import { ApprovalHooks } from './approval-hooks.js'
 import { ApprovalsService } from './approvals.service.js'
 import { OrdersController } from './orders.controller.js'
 import { OrdersService } from './orders.service.js'
@@ -21,8 +22,8 @@ import { applyLineSync, applyOrderSync } from './orders.sync.js'
 @Module({
   imports: [TenancyModule, PricingModule, InventoryModule],
   controllers: [OrdersController],
-  providers: [OrdersService, ApprovalsService],
-  exports: [OrdersService, ApprovalsService],
+  providers: [OrdersService, ApprovalsService, ApprovalHooks],
+  exports: [OrdersService, ApprovalsService, ApprovalHooks],
 })
 export class OrdersModule implements OnModuleInit {
   constructor(

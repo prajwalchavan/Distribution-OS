@@ -17,14 +17,22 @@
  * The orders are kept in the order they are chosen, because "last stop first" is a loading decision
  * the floor makes and the server deliberately does not: reading `trip_stops` would make the warehouse
  * module depend on delivery (coordination §4 item 3).
+ *
+ * STOCK TO SELL (QA DOS-233). A trip planned to sell from the van gets a second list: the godown's sellable
+ * lots, from which the loader picks what goes on the van beyond the bills — pieces keyed on the pad, never
+ * pre-filled. They ride on the same sheet as `vanStock`, the crew counts them at check-out (W7 detail), and a
+ * van-sales trip may load them with no bill at all. Every sheet used to be sent with `vanStock: []`.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
   Button,
   Group,
   ListRow,
+  NumberPad,
   Row,
   Screen,
+  Search,
+  Sheet,
   Stack,
   StatusChip,
   Txt,
@@ -49,6 +57,15 @@ import {
 } from '../../../src/groups/warehouse/lib/ui'
 import { workFirst } from '../../../src/groups/warehouse/lib/work-first'
 
+/** A lot picked to sell from the van, with what the godown holds of it (DOS-233). */
+interface VanPick {
+  lotId: string
+  name: string
+  batchNo: string
+  available: number
+  qtyPcs: number
+}
+
 /** W7 reads the newest 50 packed orders, then up to the contract's page cap — also create's cap per sheet. */
 const PACKED_FIRST = 50
 const PACKED_CAP = 200
@@ -65,6 +82,11 @@ export default function LoadSheets(): React.JSX.Element {
 
   const [tripId, setTripId] = useState<string | null>(null)
   const [chosen, setChosen] = useState<readonly string[]>([])
+  /** DOS-233: the stock picked to sell from the van, by lot. */
+  const [vanPicks, setVanPicks] = useState<Readonly<Record<string, VanPick>>>({})
+  const [picking, setPicking] = useState<VanPick | null>(null)
+  const [pickPieces, setPickPieces] = useState<number | null>(null)
+  const [stockQuery, setStockQuery] = useState('')
 
   /*
    * THE SHEETS STILL WAITING ARE ASKED FOR BY NAME (DOS-047).
@@ -131,6 +153,26 @@ export default function LoadSheets(): React.JSX.Element {
 
   const detail = tripDetail.data?.item
   const trip = tripId !== null && detail !== undefined && detail.id === tripId ? detail : null
+  /** DOS-233: a trip planned to sell from the van (the trip's own switch AND the distributor's flag). */
+  const sellsFromVan = trip?.vanSalesAllowed === true
+  const locations = useQuery(
+    ['locations', 'all'],
+    () => api.api.inventory.locations.list({ activeOnly: true }),
+    { enabled: signedIn && sellsFromVan },
+  )
+  const godownId = (locations.data?.items ?? []).find((one) => one.kind === 'warehouse')?.id ?? null
+  const godownStock = useQuery(
+    ['stock', 'sellable', godownId ?? 'none', stockQuery.trim()],
+    () =>
+      api.api.inventory.stock.sellable({
+        locationId: godownId ?? '',
+        limit: 40,
+        ...(stockQuery.trim() === '' ? {} : { q: stockQuery.trim() }),
+      }),
+    { enabled: signedIn && sellsFromVan && godownId !== null },
+  )
+  const picks = sellsFromVan ? Object.values(vanPicks).filter((pick) => pick.qtyPcs > 0) : []
+  const pickedPieces = picks.reduce((n, pick) => n + pick.qtyPcs, 0)
   const tripLabel = trip === null ? '' : (trip.tripNo ?? trip.id.slice(0, 8))
   const unplanned: ReadonlySet<string> = new Set(
     (board.data?.bills ?? []).map((bill) => bill.invoiceId),
@@ -147,11 +189,15 @@ export default function LoadSheets(): React.JSX.Element {
 
   const create = useMutation(
     (
-      input: { trip: { id: string; vehicleLocationId: string }; orderIds: readonly string[] },
+      input: {
+        trip: { id: string; vehicleLocationId: string }
+        orderIds: readonly string[]
+        vanStock: readonly { lotId: string; qtyPcs: number }[]
+      },
       meta,
     ) =>
       api.api.warehouse.loadSheets.create({
-        ...loadSheetInput(input.trip, input.orderIds),
+        ...loadSheetInput(input.trip, input.orderIds, input.vanStock),
         // The intent's own id: a retry after a lost reply replays the sheet instead of answering 409.
         id: meta.id,
         idempotencyKey: meta.idempotencyKey,
@@ -161,6 +207,7 @@ export default function LoadSheets(): React.JSX.Element {
       onSuccess: (result) => {
         haptics.success()
         setChosen([])
+        setVanPicks({})
         router.push(go.href(`/load/${result.item.id}`))
       },
       onError: () => {
@@ -175,7 +222,7 @@ export default function LoadSheets(): React.JSX.Element {
     )
   }
 
-  const ready = picked.length > 0 && trip !== null
+  const ready = (picked.length > 0 || picks.length > 0) && trip !== null
 
   return (
     <Screen
@@ -183,10 +230,17 @@ export default function LoadSheets(): React.JSX.Element {
       context={session?.tenant.displayName}
       testID="w7-screen"
       bottomBar={
-        picked.length === 0 ? undefined : (
+        picked.length === 0 && picks.length === 0 ? undefined : (
           <Row justify="between" align="center" gap={4} wrap>
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('w4.selected', { count: picked.length, pieces: 0 })}
+              {[
+                picked.length === 0 ? null : t('w4.selected', { count: picked.length, pieces: 0 }),
+                picks.length === 0
+                  ? null
+                  : t('w7.vanPickedN', { lots: picks.length, pieces: pickedPieces }),
+              ]
+                .filter((part): part is string => part !== null)
+                .join(' · ')}
             </Txt>
             <Button
               label={t('w7.build')}
@@ -199,6 +253,7 @@ export default function LoadSheets(): React.JSX.Element {
                 create.mutate({
                   trip: { id: trip.id, vehicleLocationId: trip.vehicleLocationId },
                   orderIds: picked,
+                  vanStock: picks.map((pick) => ({ lotId: pick.lotId, qtyPcs: pick.qtyPcs })),
                 })
               }}
               testID="w7-build"
@@ -271,6 +326,7 @@ export default function LoadSheets(): React.JSX.Element {
                   state={row.id === tripId ? 'selected' : 'default'}
                   onPress={() => {
                     setTripId(row.id === tripId ? null : row.id)
+                    setVanPicks({})
                   }}
                 />
               ))}
@@ -341,12 +397,133 @@ export default function LoadSheets(): React.JSX.Element {
           </Async>
         </Panel>
 
+        {sellsFromVan ? (
+          <Panel
+            title={t('w7.vanStock')}
+            meta={
+              picks.length === 0
+                ? t('w7.vanStockHint', { trip: tripLabel })
+                : t('w7.vanPickedN', { lots: picks.length, pieces: pickedPieces })
+            }
+            testID="w7-van-stock"
+          >
+            <Stack gap={4}>
+              {picks.length === 0 ? null : (
+                <Group>
+                  {picks.map((pick) => (
+                    <ListRow
+                      key={`picked-${pick.lotId}`}
+                      testID={`w7-van-picked-${pick.lotId}`}
+                      primary={pick.name}
+                      secondary={t('w7.vanPicked', { count: pick.qtyPcs })}
+                      {...(pick.batchNo === ''
+                        ? {}
+                        : { reason: t('w.batch', { batch: pick.batchNo }) })}
+                      state="selected"
+                      onPress={() => {
+                        setPicking(pick)
+                        setPickPieces(pick.qtyPcs)
+                      }}
+                    />
+                  ))}
+                </Group>
+              )}
+              <Search
+                testID="w7-van-search"
+                value={stockQuery}
+                onChange={setStockQuery}
+                state={
+                  (godownStock.data?.items.length ?? 0) === 0 && stockQuery.trim() !== ''
+                    ? 'noResults'
+                    : 'results'
+                }
+              />
+              <Async
+                state={[locations, godownStock]}
+                empty={(godownStock.data?.items.length ?? 0) === 0}
+                emptyMessage={t('w7.vanStockEmpty')}
+              >
+                <Group>
+                  {(godownStock.data?.items ?? []).map((row) => (
+                    <ListRow
+                      key={`godown-${row.lotId}`}
+                      testID={`w7-van-lot-${row.lotId}`}
+                      primary={row.variantName}
+                      secondary={t('w7.vanAvailable', { count: row.available })}
+                      {...(row.batchNo === ''
+                        ? {}
+                        : { reason: t('w.batch', { batch: row.batchNo }) })}
+                      state={(vanPicks[row.lotId]?.qtyPcs ?? 0) > 0 ? 'selected' : 'default'}
+                      onPress={() => {
+                        const held = vanPicks[row.lotId]
+                        setPicking({
+                          lotId: row.lotId,
+                          name: row.variantName,
+                          batchNo: row.batchNo,
+                          available: row.available,
+                          qtyPcs: held?.qtyPcs ?? 0,
+                        })
+                        setPickPieces(held === undefined ? null : held.qtyPcs)
+                      }}
+                    />
+                  ))}
+                </Group>
+              </Async>
+            </Stack>
+          </Panel>
+        ) : null}
+
         {create.error === undefined ? null : (
           <Txt field="body" desk="body" color={colors.status.brick.fg}>
             {create.error.message}
           </Txt>
         )}
       </Stack>
+
+      <Sheet
+        open={picking !== null}
+        onClose={() => {
+          setPicking(null)
+        }}
+        title={picking?.name ?? ''}
+        testID="w7-van-pick-sheet"
+      >
+        <Stack gap={4}>
+          <NumberPad
+            testID="w7-van-pick-pad"
+            mode="count"
+            label={t('w7.vanPick')}
+            value={pickPieces}
+            onChange={setPickPieces}
+            doneLabel={t('action.done')}
+            onDone={() => {
+              if (picking === null || pickPieces === null) return
+              if (pickPieces > picking.available) return
+              const lotId = picking.lotId
+              setVanPicks((was) => ({ ...was, [lotId]: { ...picking, qtyPcs: pickPieces } }))
+              haptics.tap()
+              setPicking(null)
+            }}
+          />
+          {picking !== null && pickPieces !== null && pickPieces > picking.available ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w7-van-pick-over">
+              {t('w7.vanPickOver', { count: picking.available })}
+            </Txt>
+          ) : (
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('w7.vanAvailable', { count: picking?.available ?? 0 })}
+            </Txt>
+          )}
+          <Button
+            label={t('w.close')}
+            variant="ghost"
+            onPress={() => {
+              setPicking(null)
+            }}
+            testID="w7-van-pick-cancel"
+          />
+        </Stack>
+      </Sheet>
     </Screen>
   )
 }

@@ -277,6 +277,8 @@ export class StockService {
         input.nearExpiryOnly
           ? sql`${stockLots.expiryDate} <= ${addDaysIst(NEAR_EXPIRY_DAYS)}`
           : undefined,
+        // QA DOS-234: the lots actually standing here, not every lot that ever did.
+        input.nonZero ? sql`${stockBalances.onHand} <> 0` : undefined,
         after
           ? sql`(${stockBalances.lotId}, ${stockBalances.locationId}) > (${after.lotId}, ${after.locationId})`
           : undefined,

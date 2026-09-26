@@ -1,0 +1,51 @@
+-- TRIP-0001 state and settlement
+  trip_no  |         state         | van_sales_enabled 
+-----------+-----------------------+-------------------
+ TRIP-0001 | settled_with_variance | t
+(1 row)
+
+ expected_cash_paise | handed_over_cash_paise | cash_variance_paise | has_variance | settled_by  | approved_by  
+---------------------+------------------------+---------------------+--------------+-------------+--------------
+             1384100 |                1364100 |              -20000 | t            | meena.joshi | sunil.tarsun
+(1 row)
+
+-- approvals filed for the trip
+                  id                  |  status  |                         decision_note                         |  decided_by  
+--------------------------------------+----------+---------------------------------------------------------------+--------------
+ 01a0de66-395d-70e4-ba67-2aa00bc98173 | rejected | Nutan's bill is still on the van - godown to count it back in | sunil.tarsun
+ 01a0de67-e868-7724-9d70-643fadcf196c | approved |                                                               | sunil.tarsun
+(2 rows)
+
+-- DOS-232: the stops and every bill on them
+ sequence |          name          |   state   | failure_reason 
+----------+------------------------+-----------+----------------
+        1 | Ambika Provision Store | delivered | 
+        2 | Nutan Kirana Stores    | failed    | other
+(2 rows)
+
+ invoice_no |  outcome  | order_state 
+------------+-----------+-------------
+ INV/0815   | failed    | packed
+ INV/0820   | delivered | delivered
+ INV/9007   | delivered | delivered
+(3 rows)
+
+-- DOS-233: the load sheet van stock and the vehicle after check-in
+                             van_stock                             
+-------------------------------------------------------------------
+ [{"lotId": "29b68cd9-c464-7d5f-ae24-244391a7ba2e", "qtyPcs": 12}]
+(1 row)
+
+ zero_rows | live_rows | pcs 
+-----------+-----------+-----
+       592 |         0 |   0
+(1 row)
+
+-- CASH_VAN of the trip receipts after settlement
+    ref_type     |    code    | amount_paise 
+-----------------+------------+--------------
+ trip_settlement | CASH       |      1314100
+ trip_settlement | CASH_SHORT |        20000
+ trip_settlement | CASH_VAN   |     -1334100
+(3 rows)
+
