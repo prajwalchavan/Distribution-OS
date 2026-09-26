@@ -225,6 +225,49 @@ async function loadCredit(
       lastPaise: row.last_receipt_paise === null ? null : num(row.last_receipt_paise),
     })
   }
+  // QA DOS-245: an issued credit note is money the shop is owed back exactly like an over-payment. The part
+  // its own bill could not take — the bill was already paid, or paid down below the note — is on account
+  // until the desk matches it to another bill (`allocations.create` with `sourceType: 'credit_note'`).
+  // Leaving it out broke `outstanding + undelivered − on account = AR` by the note's amount.
+  for (const [retailerId, onNotes] of await loadCreditNoteCredit(tx, retailerIds)) {
+    const held = map.get(retailerId)
+    map.set(retailerId, {
+      unallocated: (held?.unallocated ?? 0) + onNotes,
+      lastReceiptAt: held?.lastReceiptAt ?? null,
+      lastPaise: held?.lastPaise ?? null,
+    })
+  }
+  return map
+}
+
+/**
+ * Per shop, what its issued credit notes still hold unmatched: `total − Σ allocations of the note`, summed
+ * like the receipts above (unclamped, so the identity with the book holds whatever the rows say). A draft or
+ * cancelled note is not money; `applied` is an issued note fully used.
+ */
+async function loadCreditNoteCredit(
+  tx: Db,
+  retailerIds: readonly string[],
+): Promise<Map<string, number>> {
+  const { tenantId } = currentTenant()
+  if (retailerIds.length === 0) return new Map()
+  const result = await tx.execute(sql`
+    select c.retailer_id,
+           sum(c.total_paise - coalesce(al.allocated, 0)) as unallocated
+      from credit_notes c
+      left join lateral (
+        select sum(a.amount_paise) as allocated
+          from allocations a
+         where a.tenant_id = c.tenant_id and a.credit_note_id = c.id) al on true
+     where c.tenant_id = ${tenantId}
+       and c.retailer_id in (${idList(retailerIds)})
+       and c.state in ('issued', 'applied')
+     group by c.retailer_id`)
+  const map = new Map<string, number>()
+  for (const row of result.rows as unknown as { retailer_id: string; unallocated: unknown }[]) {
+    const value = num(row.unallocated as string | number | null)
+    if (value !== 0) map.set(row.retailer_id, value)
+  }
   return map
 }
 
