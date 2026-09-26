@@ -100,6 +100,36 @@ export const ProposeProductOutput = z.object({
   status: ProductStatusSchema,
 })
 
+/**
+ * The dated GST rate of an HSN code (QA DOS-213): what a desk typing a supplier bill needs to put the
+ * tax on a line without guessing. `codes` is a comma-separated list of 4–8 digit HSN codes (at most
+ * 50); each is resolved as the order and invoice paths resolve it — the full code, else its 6-digit,
+ * else its 4-digit heading — on `on` (IST business date, default today). A code with no live rate is
+ * simply absent from `items`: the caller says so, it never assumes 0%. A rate is public law, not a
+ * secret, and carries no price.
+ */
+export const HsnRatesInput = z.object({
+  codes: z
+    .string()
+    .trim()
+    .regex(/^\d{4,8}(,\d{4,8}){0,49}$/),
+  on: z.iso.date().optional(),
+})
+export const HsnRateSchema = z.object({
+  /** As asked. */
+  hsnCode: z.string(),
+  /** The row that answered it: the code itself or the heading it fell back to. */
+  matchedHsnCode: z.string(),
+  gstBps: BpsSchema,
+  cessBps: BpsSchema,
+  effectiveFrom: z.string(),
+})
+export type HsnRate = z.infer<typeof HsnRateSchema>
+export const HsnRatesOutput = z.object({
+  on: z.string(),
+  items: z.array(HsnRateSchema),
+})
+
 /** Tenant overlay: what this distributor sells and how it can be ordered. Still no cost. */
 export const TenantProductSchema = VariantSummarySchema.extend({
   tenantProductId: IdSchema.nullable(),

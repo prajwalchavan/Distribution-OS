@@ -1,0 +1,28 @@
+-- 2026-09-26T10:08:39.715Z
+-- select v.name, sl.batch_no, sl.expiry_date, c.purchase_rate_paise, c.landed_cost_paise
+       from grn_lines l join grns g on g.id = l.grn_id join stock_lots sl on sl.id = l.lot_id
+       join product_variants v on v.id = l.variant_id left join tenant_product_costs c on c.lot_id = l.lot_id
+       where g.supplier_invoice_no = $1 order by v.name
+[
+ {
+  "name": "Balaji Chataka Pataka Wafers 45 g",
+  "batch_no": "GK20260815",
+  "expiry_date": "2027-02-27T18:30:00.000Z",
+  "purchase_rate_paise": "1321",
+  "landed_cost_paise": "1321"
+ },
+ {
+  "name": "Balaji Masala Masti Wafers 45 g",
+  "batch_no": "GK20260828",
+  "expiry_date": "2027-01-24T18:30:00.000Z",
+  "purchase_rate_paise": "1321",
+  "landed_cost_paise": "1321"
+ },
+ {
+  "name": "Balaji Simply Salted Wafers 45 g",
+  "batch_no": "GK20260901",
+  "expiry_date": "2026-10-14T18:30:00.000Z",
+  "purchase_rate_paise": "1321",
+  "landed_cost_paise": "1278"
+ }
+]

@@ -1,0 +1,19 @@
+-- 2026-09-26T10:08:39.706Z
+-- select g.status, g.grn_no, g.posted_at, si.status as bill_status,
+         (select count(*) from grn_lines l where l.grn_id = g.id and l.lot_id is not null) as lines_with_lot,
+         (select count(*) from stock_ledger s where s.ref_id = g.id and s.reason = 'grn') as ledger_rows,
+         (select coalesce(sum(s.qty_delta), 0) from stock_ledger s where s.ref_id = g.id and s.reason = 'grn') as pieces_in,
+         (select count(*) from tenant_product_costs c where c.lot_id in (select lot_id from grn_lines where grn_id = g.id)) as cost_rows
+       from grns g join supplier_invoices si on si.id = g.supplier_invoice_id where g.supplier_invoice_no = $1
+[
+ {
+  "status": "posted",
+  "grn_no": "GRN-0133",
+  "posted_at": "2026-09-26T10:08:36.706Z",
+  "bill_status": "received",
+  "lines_with_lot": "3",
+  "ledger_rows": "3",
+  "pieces_in": "456",
+  "cost_rows": "3"
+ }
+]

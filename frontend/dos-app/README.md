@@ -122,6 +122,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -473,6 +474,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -824,6 +826,7 @@ Full request/response samples are in `backend/sales-service/README.md`.
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -1033,6 +1036,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -1291,6 +1295,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |
@@ -1557,6 +1562,7 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | GET | `/catalog/variants` | Search the global product master | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/catalog/manufacturers` | Manufacturers with their brands | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/catalog/proposals` | Propose a missing product; usable immediately | owner, manager, accountant, salesperson, warehouse, delivery |
+| GET | `/catalog/hsn-rates` | The dated GST + cess rate of HSN codes (a typed supplier bill puts GST from the HSN) | owner, manager, accountant, salesperson, warehouse, delivery |
 | GET | `/tenant-catalog/products` | What this distributor sells (no cost) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/tenant-catalog/products` | List/unlist a variant and set order rules | owner, manager |
 | GET | `/tenant-catalog/suppliers` | Suppliers of this distributor | owner, manager, accountant, salesperson, warehouse, delivery |

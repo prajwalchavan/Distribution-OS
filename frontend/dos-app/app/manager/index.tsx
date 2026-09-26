@@ -79,6 +79,15 @@ export default function Today(): React.JSX.Element {
     () => api.api.procurement.grns.list({ status: 'counting', limit: 100 }),
     { enabled: can('procurement.grns.list') },
   )
+  /*
+   * DOS-217: a receipt the gate has counted in full is `reconciled` and waits for the DESK, not the
+   * gate — "Goods to receive" (counting) read 0 while one sat there unposted. Its own queue.
+   */
+  const toPost = useQuery(
+    ['procurement', 'grns', 'reconciled'],
+    () => api.api.procurement.grns.list({ status: 'reconciled', limit: 100 }),
+    { enabled: can('procurement.grns.post') },
+  )
   const documents = useQuery(
     ['docint', 'queue', 'today'],
     () => api.api.docint.queue.list({ limit: 100 }),
@@ -167,6 +176,7 @@ export default function Today(): React.JSX.Element {
   const orderQueue = pagedCount(submitted)
   const billQueue = pagedCount(billing)
   const grnQueue = pagedCount(grns)
+  const postQueue = pagedCount(toPost)
   const docQueue = pagedCount(documents)
 
   /**
@@ -215,8 +225,15 @@ export default function Today(): React.JSX.Element {
       id: 'grn',
       label: t('m1.grnQueue'),
       of: grnQueue,
-      href: routeFor('manager', '/inbound'),
+      href: `${routeFor('manager', '/inbound')}?view=receipts`,
       show: can('procurement.grns.list'),
+    },
+    {
+      id: 'grnPost',
+      label: t('m1.grnToPost'),
+      of: postQueue,
+      href: `${routeFor('manager', '/inbound')}?view=receipts`,
+      show: can('procurement.grns.post'),
     },
     {
       id: 'docs',

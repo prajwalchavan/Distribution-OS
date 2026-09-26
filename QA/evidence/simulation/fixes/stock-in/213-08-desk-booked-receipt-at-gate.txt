@@ -1,0 +1,32 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+Bill GUR/26-27/00701 is booked
+Booked: bill GUR/26-27/00701 from Guru Kripa Agencies (Balaji Super-Stockist).
+Amount ₹
+₹7,015.00
+A goods receipt is waiting at the gate in Godown (lines: 3). The gate counts it blind; then post it from Goods received.
+Go to Goods received
+Type another bill

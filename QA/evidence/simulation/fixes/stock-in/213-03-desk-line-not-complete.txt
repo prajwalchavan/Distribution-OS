@@ -1,0 +1,82 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+For a bill that cannot be photographed, or whose photo could not be read. Type it as printed; the gate still counts the goods blind before anything is posted.
+Supplier
+Supplier
+Guru Kripa Agencies (Balaji Super-Stockist)
+27AAJFG7845K1ZT · Same state: CGST + SGST
+Change supplier
+The bill
+Bill no.
+Bill date
+DD-MM-YYYY, as printed
+Total printed on the bill
+₹
+Optional. Leave empty to round to the rupee.
+Lines
+Add a line
+One line per item and batch · 0 so far
+No line yet. Add one per item and batch, as the bill prints them.
+Totals
+Taxable value
+₹0.00
+CGST
+₹0.00
+SGST
+₹0.00
+Round-off
+₹0.00
+Bill total
+₹0.00
+Add a line
+Close
+Pick the item
+Batch no.
+Expiry date
+DD-MM-YYYY, as printed
+In cases
+In pieces
+Cases billed
+Type how many
+Free pieces
+Rate per case
+Rate per piece
+Rate per case ₹
+₹
+Type the rate
+GST %
+Type the GST rate
+MRP ₹
+₹
+Type the MRP; stock cannot be posted without one
+0 pc · taxable ₹0.00 · tax ₹0.00
+₹0.00
+Keep this line
+Pick the item · Type how many · Type the rate · This item has no case size; type the rate per piece · Type the GST rate · Type the MRP; stock cannot be posted without one
+Bill total
+₹0.00
+Book the bill
+Add every line, each complete

@@ -1,15 +1,27 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, eq, gt, ilike, inArray, or, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gt, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CatalogSearchInput,
   CatalogSearchOutput,
+  HsnRate,
+  HsnRatesInput,
+  HsnRatesOutput,
   ManufacturersListOutput,
   ProposeProductInput,
   ProposeProductOutput,
   VariantSummary,
 } from '@dos/contracts'
-import { brands, manufacturers, productVariants, products, withTenant, type Db } from '@dos/db'
+import { businessDate } from '@dos/domain'
+import {
+  brands,
+  hsnRates,
+  manufacturers,
+  productVariants,
+  products,
+  withTenant,
+  type Db,
+} from '@dos/db'
 import { currentTenant, DB, idempotent, requireDb } from '../../platform/index.js'
 
 type SearchIn = z.infer<typeof CatalogSearchInput>
@@ -17,6 +29,8 @@ type SearchOut = z.infer<typeof CatalogSearchOutput>
 type ManufacturersOut = z.infer<typeof ManufacturersListOutput>
 type ProposeIn = z.infer<typeof ProposeProductInput>
 type ProposeOut = z.infer<typeof ProposeProductOutput>
+type HsnRatesIn = z.infer<typeof HsnRatesInput>
+type HsnRatesOut = z.infer<typeof HsnRatesOutput>
 
 /** Columns every catalog list returns; shared with tenant-catalog so both lists look identical to the apps. */
 export const variantSummaryColumns = {
@@ -142,5 +156,51 @@ export class CatalogService {
         }
       }),
     )
+  }
+
+  /**
+   * The dated GST rate per asked HSN (QA DOS-213), resolved the way the order and invoice paths
+   * resolve it: the full code, else its 6-digit sub-heading, else its 4-digit heading, the newest
+   * `effective_from` on or before `on` whose `effective_to` has not passed. A code with no live rate
+   * is left out — the caller says so, never 0%. One read for the whole list.
+   */
+  async hsnRates(input: HsnRatesIn): Promise<HsnRatesOut> {
+    const db = requireDb(this.db)
+    const on = input.on ?? businessDate().date
+    const asked = [...new Set(input.codes.split(','))]
+    const prefixes = [...new Set(asked.flatMap((c) => [c, c.slice(0, 6), c.slice(0, 4)]))]
+    return withTenant(db, currentTenant(), async (tx) => {
+      const rows = await tx
+        .select({
+          hsnCode: hsnRates.hsnCode,
+          gstBps: hsnRates.gstBps,
+          cessBps: hsnRates.cessBps,
+          effectiveFrom: hsnRates.effectiveFrom,
+        })
+        .from(hsnRates)
+        .where(
+          and(
+            inArray(hsnRates.hsnCode, prefixes),
+            sql`${hsnRates.effectiveFrom} <= ${on}`,
+            or(isNull(hsnRates.effectiveTo), sql`${hsnRates.effectiveTo} >= ${on}`),
+          ),
+        )
+        .orderBy(asc(hsnRates.hsnCode), desc(hsnRates.effectiveFrom))
+      const live = new Map<string, (typeof rows)[number]>()
+      for (const row of rows) if (!live.has(row.hsnCode)) live.set(row.hsnCode, row)
+      const items: HsnRate[] = []
+      for (const code of asked) {
+        const hit = live.get(code) ?? live.get(code.slice(0, 6)) ?? live.get(code.slice(0, 4))
+        if (hit)
+          items.push({
+            hsnCode: code,
+            matchedHsnCode: hit.hsnCode,
+            gstBps: hit.gstBps,
+            cessBps: hit.cessBps,
+            effectiveFrom: hit.effectiveFrom,
+          })
+      }
+      return { on, items }
+    })
   }
 }

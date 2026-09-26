@@ -1,0 +1,64 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+For a bill that cannot be photographed, or whose photo could not be read. Type it as printed; the gate still counts the goods blind before anything is posted.
+Supplier
+Supplier
+Guru Kripa Agencies (Balaji Super-Stockist)
+27AAJFG7845K1ZT · Same state: CGST + SGST
+Change supplier
+The bill
+Bill no.
+Bill date
+DD-MM-YYYY, as printed
+Total printed on the bill
+₹
+Optional. Leave empty to round to the rupee.
+Lines
+Add a line
+One line per item and batch · 3 so far
+Balaji Masala Masti Wafers 45 g
+GK20260828 · 166 days of shelf life · 2 cs = 180 pc · GST 18%
+₹2,805.80
+Balaji Simply Salted Wafers 45 g
+GK20260901 · 19 days of shelf life · 180 pc · GST 18%
+₹2,805.80
+Balaji Chataka Pataka Wafers 45 g
+GK20260815 · 155 days of shelf life · 1 cs = 90 pc · GST 18%
+₹1,402.90
+Totals
+Taxable value
+₹5,944.50
+CGST
+₹535.00
+SGST
+₹535.00
+Round-off
+₹0.50
+Bill total
+₹7,015.00
+Bill total
+₹7,015.00
+Book the bill

@@ -467,6 +467,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'catalog.search': ANY_MEMBER,
   'catalog.manufacturers': ANY_MEMBER,
   'catalog.propose': STAFF,
+  // A GST rate is public law and carries no price; staff read it (QA DOS-213: a typed supplier bill).
+  'catalog.hsnRates': STAFF,
 
   // What this distributor sells. Cost endpoints are back office and are the reason the salesperson,
   // delivery and retailer roles never appear on this block. Every WRITE to the overlay is MANAGEMENT:

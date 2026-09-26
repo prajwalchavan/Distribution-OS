@@ -1,0 +1,22 @@
+-- 2026-09-26T10:07:20.512Z
+-- select g.status, g.counted_at, l.counted_qty_pcs, l.damaged_qty_pcs from grns g join grn_lines l on l.grn_id = g.id where g.id = $1 order by l.id
+[
+ {
+  "status": "reconciled",
+  "counted_at": "2026-09-26T10:07:17.673Z",
+  "counted_qty_pcs": 180,
+  "damaged_qty_pcs": 0
+ },
+ {
+  "status": "reconciled",
+  "counted_at": "2026-09-26T10:07:17.673Z",
+  "counted_qty_pcs": 186,
+  "damaged_qty_pcs": 0
+ },
+ {
+  "status": "reconciled",
+  "counted_at": "2026-09-26T10:07:17.673Z",
+  "counted_qty_pcs": 90,
+  "damaged_qty_pcs": 0
+ }
+]

@@ -1,0 +1,69 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Type a supplier bill
+Supplier bills
+Documents
+Gate count
+For a bill that cannot be photographed, or whose photo could not be read. Type it as printed; the gate still counts the goods blind before anything is posted.
+Supplier
+Alan's Food Products — Bhiwandi
+27AAEFA6120L1ZK
+Annapurna Agro — Kalyan Mill Depot
+27AABCA6610Q1ZG
+Godavari Dairy — Ahmednagar Chilling Centre
+27AABCG2287L1ZB
+Guiltfree Industries — Gurugram
+06AABCG3312F1Z8
+Guru Kripa Agencies (Balaji Super-Stockist)
+27AAJFG7845K1ZT
+Konkan Traders, Ratnagiri
+27AAFFK9034P1ZQ
+MOM Foods — Bikaner
+08AACCM9087P1ZK
+Rajwadi Beverages — Bhiwandi Depot
+27AAECR7712N1ZX
+The bill
+Bill no.
+Bill date
+DD-MM-YYYY, as printed
+Total printed on the bill
+₹
+Optional. Leave empty to round to the rupee.
+Lines
+Add a line
+One line per item and batch · 0 so far
+No line yet. Add one per item and batch, as the bill prints them.
+Totals
+Taxable value
+₹0.00
+CGST
+₹0.00
+SGST
+₹0.00
+Round-off
+₹0.00
+Bill total
+₹0.00
+Bill total
+₹0.00
+Book the bill
+Pick the supplier

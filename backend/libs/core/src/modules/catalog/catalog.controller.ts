@@ -20,6 +20,11 @@ export class CatalogController {
     return implement(contract.catalog.manufacturers).handler(() => this.catalog.manufacturers())
   }
 
+  @Implement(contract.catalog.hsnRates)
+  hsnRates(@OwnsReply() _reply: unknown) {
+    return implement(contract.catalog.hsnRates).handler(({ input }) => this.catalog.hsnRates(input))
+  }
+
   @Implement(contract.catalog.propose)
   propose(@OwnsReply() _reply: unknown) {
     return implement(contract.catalog.propose).handler(({ input }) => this.catalog.propose(input))

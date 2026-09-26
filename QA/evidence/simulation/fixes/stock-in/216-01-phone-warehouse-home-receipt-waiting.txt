@@ -1,0 +1,65 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Tarsun Enterprise
+Inbound
+✓ Queues
+Capture
+Stock
+Counts
+Held
+BILLS TO COUNT
+7
+WAVES OPEN
+1
+PACKED, NO BILL
+0
+SHEETS WAITING
+1
+GATE COUNTS WAITING
+7 receipts
+GUR/26-27/00605 · Guru Kripa Agencies (Balaji Super-Stockist)
+1 line · 26 Sep, 3:26 pm
+counting
+GUR/26-27/R2 · Guru Kripa Agencies (Balaji Super-Stockist)
+1 line · 26 Sep, 3:35 pm
+counting
+GUR/26-27/F2 · Guru Kripa Agencies (Balaji Super-Stockist)
+1 line · 26 Sep, 3:35 pm
+counting
+GUR/26-27/00604 · Guru Kripa Agencies (Balaji Super-Stockist)
+2 lines · 26 Sep, 3:26 pm
+counting
+GUR/26-27/O2 · Guru Kripa Agencies (Balaji Super-Stockist)
+1 line · 26 Sep, 3:35 pm
+counting
+GUR/26-27/P2 · Guru Kripa Agencies (Balaji Super-Stockist)
+2 lines · 26 Sep, 3:35 pm
+counting
+GUR/26-27/00701 · Guru Kripa Agencies (Balaji Super-Stockist)
+3 lines · 26 Sep, 3:36 pm
+counting
+WAVES ON THE FLOOR
+1 being picked · 0 waiting to start
+PICK-0078
+5926 of 7834 pc picked
+picking
+PACKED WITHOUT A BILL
+Every pack has its bill
+LOAD SHEETS
+MH-05-AB-1234 · 12 Sep
+5 orders · 38 cartons
+draft
+COUNTS OPEN
+Weekly count of the fast movers
+3 lots
+open
+Fill rate, last 14 days
+13 Sep — 26 Sep
+100% of ordered pieces picked
+0 of 0 picked
+Inbound
+Pick
+Pack
+Load

@@ -1,0 +1,26 @@
+Pager usage is off.
+                  id                  |  status  |  grn_no  | supplier_invoice_no 
+--------------------------------------+----------+----------+---------------------
+ 01a0dd29-4b24-76be-9b46-37803eb784a8 | posted   | GRN-0131 | GUR/26-27/00606
+ 01a0dd2d-f6ca-75ca-a556-61b602d0308b | counting |          | GUR/26-27/00701
+(2 rows)
+
+   invoice_no    |  status  | source | total_paise | subtotal_paise | cgst_paise | sgst_paise | round_off_paise 
+-----------------+----------+--------+-------------+----------------+------------+------------+-----------------
+ GUR/26-27/00606 | received | manual |      531000 |         450000 |      40500 |      40500 |               0
+ GUR/26-27/00701 | approved | manual |      701500 |         594450 |      53500 |      53500 |              50
+(2 rows)
+
+   invoice_no    | line_no |            description            |  batch_no  | expiry_date | printed_qty | printed_unit | qty_pcs | free_qty_pcs | rate_paise | rate_basis | basis_qty | gst_bps | taxable_paise | tax_paise | line_total_paise 
+-----------------+---------+-----------------------------------+------------+-------------+-------------+--------------+---------+--------------+------------+------------+-----------+---------+---------------+-----------+------------------
+ GUR/26-27/00606 |       1 | Balaji Ratlami Sev 200 g          | RS2609     | 2026-10-20  |           1 | cs           |      90 |            0 |     450000 | case       |        90 |    1800 |        450000 |     81000 |           531000
+ GUR/26-27/00701 |       1 | Balaji Masala Masti Wafers 45 g   | GK20260828 | 2027-03-11  |           2 | cs           |     180 |            0 |     118890 | case       |        90 |    1800 |        237780 |     42800 |           280580
+ GUR/26-27/00701 |       2 | Balaji Simply Salted Wafers 45 g  | GK20260901 | 2026-10-15  |         180 | pcs          |     180 |            6 |       1321 | piece      |         1 |    1800 |        237780 |     42800 |           280580
+ GUR/26-27/00701 |       3 | Balaji Chataka Pataka Wafers 45 g | GK20260815 | 2027-02-28  |           1 | cs           |      90 |            0 |     118890 | case       |        90 |    1800 |        118890 |     21400 |           140290
+(4 rows)
+
+  grn_no  | ledger_rows | pieces_in 
+----------+-------------+-----------
+ GRN-0131 |           1 |        90
+(1 row)
+

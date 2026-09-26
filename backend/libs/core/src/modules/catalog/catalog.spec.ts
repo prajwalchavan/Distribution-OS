@@ -352,6 +352,57 @@ describeDb('catalog + tenant catalog (DATABASE_URL)', () => {
     expect((await call(app, rep, 'GET', '/tenant-catalog/pack-configs', {})).status).toBe(403)
   })
 
+  it('DOS-213: answers the dated GST rate of asked HSN codes, falling back to the heading, never guessing 0%', async () => {
+    // Global rows: codes in chapter 98/99 (services), which no product of the seed carries, and the
+    // same values every run so a code that repeats across runs changes nothing.
+    const digits = String(Date.now() % 1_000_000).padStart(6, '0')
+    const full = `99${digits}`
+    const heading = `98${digits.slice(0, 4)}`
+    await db.execute(
+      sql`insert into hsn_rates (id, hsn_code, gst_bps, cess_bps, effective_from) values
+          (${uuidv7()}, ${full}, 1200, 0, '2020-01-01'),
+          (${uuidv7()}, ${full}, 1800, 0, '2026-04-01'),
+          (${uuidv7()}, ${heading}, 500, 100, '2020-01-01')
+          on conflict do nothing`,
+    )
+    const unknown = `99${String((Number(digits) + 1) % 1_000_000).padStart(6, '0')}`
+    type Out = {
+      on: string
+      items: { hsnCode: string; matchedHsnCode: string; gstBps: number; cessBps: number }[]
+    }
+    const before = await call<Out>(app, owner, 'GET', '/catalog/hsn-rates', {
+      codes: `${full},${heading}11,${unknown}`,
+      on: '2026-03-31',
+    })
+    expect(before.status).toBe(200)
+    expect(before.body.on).toBe('2026-03-31')
+    expect(before.body.items).toEqual([
+      {
+        hsnCode: full,
+        matchedHsnCode: full,
+        gstBps: 1200,
+        cessBps: 0,
+        effectiveFrom: '2020-01-01',
+      },
+      {
+        hsnCode: `${heading}11`,
+        matchedHsnCode: heading,
+        gstBps: 500,
+        cessBps: 100,
+        effectiveFrom: '2020-01-01',
+      },
+    ])
+    const after = await call<Out>(app, rep, 'GET', '/catalog/hsn-rates', {
+      codes: full,
+      on: '2026-04-01',
+    })
+    expect(after.body.items[0]?.gstBps).toBe(1800)
+    // not a list of codes
+    expect((await call(app, owner, 'GET', '/catalog/hsn-rates', { codes: 'ghee' })).status).toBe(
+      400,
+    )
+  })
+
   it('refuses requests without tenant context', async () => {
     const res = await call(app, null, 'GET', '/catalog/variants', {})
     expect(res.status).toBe(401)

@@ -145,6 +145,11 @@ export class SupplierInvoiceService {
         data: { totalPaise: input.totalPaise, expectedPaise: expected },
       })
     }
+    const caseWithoutSize = input.lines.find((l) => l.rateBasis === 'case' && !l.basisQty)
+    if (caseWithoutSize)
+      throw new ORPCError('BAD_REQUEST', {
+        message: `line ${caseWithoutSize.lineNo} has a per-case rate but no case size (basisQty)`,
+      })
     if (input.irn) {
       const [dup] = await tx
         .select({ id: supplierInvoices.id, invoiceNo: supplierInvoices.invoiceNo })
