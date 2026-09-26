@@ -9,7 +9,12 @@
  * Writing rules (UX-00 §12): the trade's own word, labels <= 20 characters, buttons are verb + object,
  * state the next action rather than the problem, never "Oops", never "!" and never an emoji.
  */
+import { PRICING_STRINGS } from '../../pricing/strings'
+
 export const strings = {
+  /* DOS-212 / DOS-214: the desk's credit and pricing editors, one copy for both desks. */
+  ...PRICING_STRINGS,
+
   // --- chrome, sign-in, account (X1–X4) -----------------------------------------------------------
   'app.signIn': 'Sign in',
   'app.signInTitle': 'Sign in',

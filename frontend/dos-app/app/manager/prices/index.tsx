@@ -12,18 +12,31 @@
  * becomes "order_pct 200 · value ≥ 500000" — a defect the owner slice's gate found on its own most
  * price-sensitive screen, and the reason these two helpers exist here too.
  *
+ * DOS-214: the manager EDITS all three here, as the matrix allows (`pricing.priceLists.setItems`,
+ * `pricing.overrides.upsert`, `pricing.schemes.upsert` are owner + manager): pick a rate to change it,
+ * add an item to a list, set or end a shop's own rate, create or change a scheme. The editors are the
+ * owner's own (`src/pricing/editors.tsx`), so both desks write the same payloads in the same words.
+ *
  * The whole destination is hidden from the accountant: `pricing.priceLists.upsert` is owner +
  * manager, which is the matrix half of the founder's "the accountant has NO prices or schemes"
  * (docs/22 §8, 2026-09-05).
  */
-import type { PriceList, PriceListItem, RetailerPriceOverride } from '@dos/contracts'
+import type {
+  PriceList,
+  PriceListItem,
+  RetailerPriceOverride,
+  Scheme as DeskScheme,
+} from '@dos/contracts'
 import { useApi, useQuery } from '@dos/api-client/react'
 import {
+  Button,
   Register,
+  Row,
   Screen,
   Segments,
   Stack,
   StatusChip,
+  Toast,
   Txt,
   formatINR,
   paise,
@@ -43,6 +56,12 @@ import {
 } from '../../../src/groups/manager/lib/ui'
 import { longDate } from '../../../src/groups/manager/lib/dates'
 import { formatBps, useWord } from '../../../src/groups/manager/lib/words'
+import {
+  OverrideSheet,
+  PriceRateDialog,
+  SchemeSheet,
+  deskScheme,
+} from '../../../src/pricing/editors'
 
 /** The scheme row as the contract serves it; the two integer fields are the whole point. */
 interface Scheme {
@@ -74,6 +93,13 @@ export default function Prices(): React.JSX.Element {
 
   const [view, setView] = useState<View>('lists')
   const [listId, setListId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const [rateFor, setRateFor] = useState<{ item: PriceListItem | null } | null>(null)
+  const [schemeFor, setSchemeFor] = useState<{ row: DeskScheme | null } | null>(null)
+  const [overrideFor, setOverrideFor] = useState<{ row: RetailerPriceOverride | null } | null>(null)
+  const mayRates = can('pricing.priceLists.setItems')
+  const maySchemes = can('pricing.schemes.upsert')
+  const mayOverrides = can('pricing.overrides.upsert')
 
   const lists = useQuery(['pricing', 'priceLists'], () => api.api.pricing.priceLists.list({}))
   const schemes = useQuery(
@@ -89,6 +115,10 @@ export default function Prices(): React.JSX.Element {
 
   const listRows = lists.data?.items ?? []
   const current = listRows.find((row) => row.id === listId) ?? listRows[0]
+  const schemeRows = (schemes.data?.items ?? [])
+    .map((row) => deskScheme(row))
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+  const overrideRows = overrides.data?.items ?? []
 
   const trigger = (row: Scheme): string =>
     /* A threshold of nothing is not "≥ ₹0.00"; it is a scheme that always applies. */
@@ -187,18 +217,40 @@ export default function Prices(): React.JSX.Element {
     <Screen
       title={t('m15.title')}
       actions={
-        <Segments
-          testID="prices-view"
-          value={view}
-          onChange={(id) => {
-            setView(id as View)
-          }}
-          items={[
-            { id: 'lists', label: t('m15.priceLists') },
-            { id: 'schemes', label: t('m15.schemes') },
-            { id: 'overrides', label: t('m15.overrides') },
-          ]}
-        />
+        <Row gap={3} wrap align="center">
+          {view === 'schemes' && maySchemes ? (
+            <Button
+              label={t('px.newScheme')}
+              variant="primary"
+              onPress={() => {
+                setSchemeFor({ row: null })
+              }}
+              testID="prices-new-scheme"
+            />
+          ) : null}
+          {view === 'overrides' && mayOverrides ? (
+            <Button
+              label={t('px.setShopRate')}
+              variant="primary"
+              onPress={() => {
+                setOverrideFor({ row: null })
+              }}
+              testID="prices-new-override"
+            />
+          ) : null}
+          <Segments
+            testID="prices-view"
+            value={view}
+            onChange={(id) => {
+              setView(id as View)
+            }}
+            items={[
+              { id: 'lists', label: t('m15.priceLists') },
+              { id: 'schemes', label: t('m15.schemes') },
+              { id: 'overrides', label: t('m15.overrides') },
+            ]}
+          />
+        </Row>
       }
     >
       <Stack gap={6}>
@@ -231,6 +283,20 @@ export default function Prices(): React.JSX.Element {
                 {...(current.validFrom === null
                   ? {}
                   : { meta: t('m15.validFromMeta', { date: longDate(current.validFrom) }) })}
+                {...(mayRates
+                  ? {
+                      actions: (
+                        <Button
+                          label={t('px.addItem')}
+                          variant="secondary"
+                          onPress={() => {
+                            setRateFor({ item: null })
+                          }}
+                          testID="prices-add-item"
+                        />
+                      ),
+                    }
+                  : {})}
                 testID="pricelist-items"
               >
                 <Register
@@ -239,6 +305,13 @@ export default function Prices(): React.JSX.Element {
                   rows={current.items}
                   rowKey={(row) => row.variantId}
                   frozen="item"
+                  {...(mayRates
+                    ? {
+                        onSelect: (row: PriceListItem) => {
+                          setRateFor({ item: row })
+                        },
+                      }
+                    : {})}
                   state="ready"
                   /*
                    * The rate column carries NO total. Adding twenty-nine per-piece rates together
@@ -257,43 +330,91 @@ export default function Prices(): React.JSX.Element {
           <Async
             state={[schemes]}
             rows={10}
-            empty={(schemes.data?.items.length ?? 0) === 0}
+            empty={schemeRows.length === 0}
             emptyMessage={t('m15.empty')}
           >
             <Register
               testID="schemes-register"
               columns={schemeColumns}
-              rows={(schemes.data?.items ?? []) as readonly Scheme[]}
+              rows={schemeRows}
               rowKey={(row) => row.id}
               frozen="name"
+              {...(maySchemes
+                ? {
+                    onSelect: (row: Scheme) => {
+                      const full = schemeRows.find((s) => s.id === row.id)
+                      if (full !== undefined) setSchemeFor({ row: full })
+                    },
+                  }
+                : {})}
               state="ready"
-              totals={{ name: t('app.rows', { count: schemes.data?.items.length ?? 0 }) }}
+              totals={{ name: t('app.rows', { count: schemeRows.length }) }}
             />
           </Async>
         ) : (
           <Async
             state={[overrides]}
             rows={10}
-            empty={(overrides.data?.items.length ?? 0) === 0}
+            empty={overrideRows.length === 0}
             emptyMessage={t('m15.empty')}
           >
             <Register
               testID="overrides-register"
               columns={overrideColumns}
-              rows={overrides.data?.items ?? []}
+              rows={overrideRows}
               rowKey={(row) => row.id}
               frozen="shop"
+              {...(mayOverrides
+                ? {
+                    onSelect: (row: RetailerPriceOverride) => {
+                      setOverrideFor({ row })
+                    },
+                  }
+                : {})}
               state="ready"
             />
           </Async>
         )}
 
-        {can('pricing.schemes.upsert') ? null : (
-          <Txt field="label" desk="meta" color={colors.text.secondary}>
-            {t('m15.readOnly')}
-          </Txt>
-        )}
+        <Txt field="label" desk="meta" color={colors.text.secondary}>
+          {maySchemes ? t('px.tapToEdit') : t('m15.readOnly')}
+        </Txt>
       </Stack>
+
+      <PriceRateDialog
+        list={current ?? null}
+        item={rateFor?.item ?? null}
+        open={rateFor !== null}
+        onClose={() => {
+          setRateFor(null)
+        }}
+        onSaved={setToast}
+      />
+      <SchemeSheet
+        open={schemeFor !== null}
+        row={schemeFor?.row ?? null}
+        onClose={() => {
+          setSchemeFor(null)
+        }}
+        onSaved={setToast}
+      />
+      <OverrideSheet
+        open={overrideFor !== null}
+        row={overrideFor?.row ?? null}
+        rows={overrideRows}
+        onClose={() => {
+          setOverrideFor(null)
+        }}
+        onSaved={setToast}
+      />
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="prices-toast"
+      />
     </Screen>
   )
 }
