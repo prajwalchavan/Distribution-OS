@@ -26,20 +26,42 @@
  * sell (`inventory.stock.sellable` at the vehicle: Bourbon 240, Salted Cracker 180 …). It now reads
  * `delivery.vanSales.stock`, which takes those pieces off per lot and says how many it held back; the
  * server refuses a sale that would draw on them in any case. Batch, MRP, expiry — never a cost.
+ *
+ * ONE CASE MORE IS ONE CASE (QA DOS-239). The stepper steps by the item's SELL-side case — the case the quote
+ * and the bill count in, read off `vanSales.stock` — and the "Pieces" pad takes loose pieces. It used to be
+ * handed a case of one, so "One case more" on a 60-piece Bourbon case sold one piece and read "1 cs": the
+ * crew handed over a carton and billed a packet. Neither control goes past the pieces free on the van; the
+ * one availability figure is the row's own "n pc to sell".
+ *
+ * PAID AT THE DOOR IS NOT CREDIT (QA DOS-240). "How the shop pays" — cash now, UPI now, or on account. Cash
+ * or UPI is taken in the same call as the bill (`collect`), so a pay-on-delivery counter, a shop with credit
+ * stopped or one overdue can still buy: the office's credit gate stands aside for money in hand and holds for
+ * a sale on account. The crew TYPES what it took, against the bill total printed above the pad and never
+ * pre-filled into it (UX-01 D6); only the bill is receipted, and cash over it is change. A refusal is the
+ * office's own sentence — the shop, why, and what sells — with a one-tap switch to cash.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import { useSyncEngine, useSyncStatus } from '@dos/offline/react'
 import {
   Button,
+  caseLine,
+  formatINR,
   Group,
   ListRow,
   Money,
+  paise,
+  parsePieces,
   QtyStepper,
   Row,
+  RupeeInput,
   Screen,
   Search,
+  Segments,
+  Sheet,
   Stack,
   StatusChip,
+  stepPiece,
+  TextInput,
   Txt,
   useColors,
   useStrings,
@@ -48,7 +70,7 @@ import {
 import { haptics } from '@dos/ui/platform'
 import { uuidv7 } from '@dos/domain'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { deviceId } from '../../../../src/api'
 import { longDate } from '../../../../src/groups/delivery/lib/dates'
@@ -60,9 +82,16 @@ import {
 } from '../../../../src/groups/delivery/lib/local'
 import { Async, Panel } from '../../../../src/groups/delivery/lib/ui'
 import {
+  amountToTake,
+  collectFor,
   lineFigure,
+  payNowOf,
+  piecesToSell,
   saleFigures,
+  takenCheck,
   vanStockByVariant,
+  type VanPay,
+  type VanVariant,
 } from '../../../../src/groups/delivery/lib/van-sale'
 
 interface Draft {
@@ -72,10 +101,11 @@ interface Draft {
   pieces: number
 }
 
-/** The bill the office issued, as it came back: its number and its own total. */
+/** The bill the office issued, as it came back: its number, its own total and the money taken with it. */
 interface Billed {
   no: string
   totalPaise: number
+  paid: { mode: 'cash' | 'upi'; amountPaise: number; receiptNo: string } | null
 }
 
 export default function VanSale(): React.JSX.Element {
@@ -126,6 +156,14 @@ export default function VanSale(): React.JSX.Element {
   const [draft, setDraft] = useState<Record<string, Draft>>({})
   const [billed, setBilled] = useState<Billed | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** DOS-240: how the shop pays, what the crew typed it took, and the UPI reference. */
+  const [pay, setPay] = useState<VanPay>('cash')
+  const [takenPaise, setTakenPaise] = useState<number | null>(null)
+  const [reference, setReference] = useState('')
+  /** The office's own "take this much" off the last refusal, for the lines it refused. */
+  const [officeSays, setOfficeSays] = useState<{ key: string; paise: number } | null>(null)
+  /** DOS-239: the SKU whose loose-pieces pad is open. */
+  const [pieceRow, setPieceRow] = useState<VanVariant | null>(null)
 
   const rows = stock.data?.items
   /** One row per variant: the van may hold two lots of the same SKU and the shopkeeper buys the SKU. */
@@ -139,13 +177,24 @@ export default function VanSale(): React.JSX.Element {
       : byVariant.filter((row) => row.name.toLowerCase().includes(query.trim().toLowerCase()))
 
   const lines = Object.values(draft).filter((line) => line.pieces > 0)
+  const linesKey = lines.map((line) => `${line.variantId}:${String(line.pieces)}`).join(',')
+
+  /** One SKU's pieces on the sale, never past what is free on the van (DOS-239). */
+  const setPieces = (row: VanVariant, pieces: number): void => {
+    setDraft((held) => ({
+      ...held,
+      [row.variantId]: {
+        variantId: row.variantId,
+        name: row.name,
+        caseSize: row.caseSize,
+        pieces: piecesToSell(pieces, row.available),
+      },
+    }))
+    setError(null)
+  }
 
   const quote = useQuery(
-    [
-      'quote',
-      stop?.retailer_id ?? null,
-      lines.map((line) => `${line.variantId}:${String(line.pieces)}`).join(','),
-    ],
+    ['quote', stop?.retailer_id ?? null, linesKey],
     () =>
       api.api.pricing.quote({
         retailerId: stop?.retailer_id ?? '',
@@ -158,9 +207,31 @@ export default function VanSale(): React.JSX.Element {
     { enabled: signedIn && stop !== null && lines.length > 0 },
   )
 
+  const figures = saleFigures(quote.data)
+  /** DOS-240: what a paid sale takes — the bill, or the larger figure the office named for these lines. */
+  const toTake = amountToTake(
+    figures?.billPaise ?? null,
+    officeSays !== null && officeSays.key === linesKey ? officeSays.paise : null,
+  )
+  const taken = takenCheck(pay, takenPaise, toTake)
+  const needsUtr = pay === 'upi' && reference.trim() === ''
+  const rupees = (value: number | null): string => formatINR(paise(value ?? 0))
+  const takenWords = (problem: 'enter' | 'short' | 'upiExact'): string =>
+    problem === 'enter'
+      ? t('d6.enterTaken')
+      : problem === 'short'
+        ? t('d6.takeAll', { amount: rupees(toTake) })
+        : t('d6.upiExact', { amount: rupees(toTake) })
+  /** A different sale is a different sum: the typed money goes when the lines change. */
+  useEffect(() => {
+    setTakenPaise(null)
+  }, [linesKey])
+
   const create = useMutation(
-    (_input: { at: number }, meta) =>
-      api.api.delivery.vanSales.create({
+    (_input: { at: number }, meta) => {
+      // DOS-240: the bill is receipted, never the change; nothing for a sale on account
+      const collect = collectFor(pay, toTake, reference, { id: uuidv7(), receiptId: uuidv7() })
+      return api.api.delivery.vanSales.create({
         idempotencyKey: meta.idempotencyKey,
         id: meta.id,
         tripId: stop?.trip_id ?? '',
@@ -175,7 +246,9 @@ export default function VanSale(): React.JSX.Element {
           enteredQty: line.pieces,
           enteredUnit: 'piece' as const,
         })),
-      }),
+        ...(collect === undefined ? {} : { collect }),
+      })
+    },
     {
       invalidates: [['trip'], ['van-stock'], ['settlement']],
       /*
@@ -187,9 +260,18 @@ export default function VanSale(): React.JSX.Element {
        * no-op and the next poll catches up.
        */
       onSuccess: (result) => {
+        const receipt = result.receipt
         setBilled({
           no: result.invoice.invoiceNo ?? result.invoice.id.slice(0, 8),
           totalPaise: result.invoice.totalPaise,
+          paid:
+            receipt === null || (receipt.mode !== 'cash' && receipt.mode !== 'upi')
+              ? null
+              : {
+                  mode: receipt.mode,
+                  amountPaise: receipt.amountPaise,
+                  receiptNo: receipt.receiptNo ?? receipt.id.slice(0, 8),
+                },
         })
         haptics.success()
         void engine?.sync('van-sale')
@@ -197,11 +279,11 @@ export default function VanSale(): React.JSX.Element {
       onError: (failed) => {
         haptics.error()
         setError(failed.message)
+        const payNow = payNowOf(failed.data)
+        setOfficeSays(payNow === null ? null : { key: linesKey, paise: payNow })
       },
     },
   )
-
-  const figures = saleFigures(quote.data)
 
   return (
     <Screen
@@ -230,12 +312,23 @@ export default function VanSale(): React.JSX.Element {
             </Row>
             <Button
               testID="d6-create"
-              label={t('d6.create')}
+              label={
+                pay === 'cash'
+                  ? t('d6.createCash')
+                  : pay === 'upi'
+                    ? t('d6.createUpi')
+                    : t('d6.create')
+              }
               variant="primary"
               size="floor"
               fullWidth
               loading={create.status === 'pending'}
-              disabled={allowed !== true || lines.length === 0 || !status.online}
+              disabled={
+                allowed !== true ||
+                lines.length === 0 ||
+                !status.online ||
+                (pay !== 'account' && (toTake === null || taken.problem !== null || needsUtr))
+              }
               disabledReason={
                 unknown
                   ? t('d6.unknown')
@@ -243,7 +336,13 @@ export default function VanSale(): React.JSX.Element {
                     ? t('d6.off')
                     : !status.online
                       ? t('d6.online')
-                      : t('d6.needsLine')
+                      : lines.length === 0
+                        ? t('d6.needsLine')
+                        : toTake === null
+                          ? t('d6.nothingToCharge')
+                          : taken.problem !== null
+                            ? takenWords(taken.problem)
+                            : t('d6.needsUtr')
               }
               onPress={() => {
                 setError(null)
@@ -277,9 +376,18 @@ export default function VanSale(): React.JSX.Element {
           <Panel title={t('d6.billed', { no: billed.no })} testID="d6-billed">
             <Stack gap={2}>
               <Money value={billed.totalPaise} size="moneyL" testID="d6-billed-total" />
-              <Txt field="body" desk="body" color={colors.text.secondary}>
-                {t('d6.billedNext')}
-              </Txt>
+              {billed.paid === null ? (
+                <Txt field="body" desk="body" color={colors.text.secondary}>
+                  {t('d6.billedNext')}
+                </Txt>
+              ) : (
+                <Txt field="bodyStrong" desk="body" testID="d6-billed-paid">
+                  {t(billed.paid.mode === 'cash' ? 'd6.paidCash' : 'd6.paidUpi', {
+                    amount: rupees(billed.paid.amountPaise),
+                    no: billed.paid.receiptNo,
+                  })}
+                </Txt>
+              )}
             </Stack>
           </Panel>
         )}
@@ -316,7 +424,7 @@ export default function VanSale(): React.JSX.Element {
                     key={line.variantId}
                     testID={`d6-line-${line.variantId}`}
                     primary={line.name}
-                    secondary={t('d.pieces', { pieces: line.pieces })}
+                    secondary={caseLine(line.pieces, line.caseSize, t)}
                     trailingMoney={lineFigure(quote.data, line.variantId)}
                     trailingSize="moneyM"
                     {...(quoted === undefined || quoted.freeQtyPcs === 0
@@ -333,6 +441,68 @@ export default function VanSale(): React.JSX.Element {
                 )
               })}
             </Group>
+          </Panel>
+        )}
+
+        {billed !== null || lines.length === 0 ? null : (
+          <Panel title={t('d6.pay')} testID="d6-pay">
+            <Stack gap={4}>
+              <Segments
+                testID="d6-pay-mode"
+                items={[
+                  { id: 'cash', label: t('d6.payCash') },
+                  { id: 'upi', label: t('d6.payUpi') },
+                  { id: 'account', label: t('d6.payAccount') },
+                ]}
+                value={pay}
+                onChange={(id) => {
+                  setPay(id as VanPay)
+                  setError(null)
+                }}
+              />
+              {pay === 'account' ? (
+                <Txt field="body" desk="body" color={colors.text.secondary} testID="d6-on-account">
+                  {t('d6.onAccount')}
+                </Txt>
+              ) : (
+                <Stack gap={3}>
+                  <Txt field="bodyStrong" desk="body" testID="d6-take">
+                    {toTake === null
+                      ? t('d6.nothingToCharge')
+                      : t(pay === 'cash' ? 'd6.takeCash' : 'd6.takeUpi', {
+                          amount: rupees(toTake),
+                        })}
+                  </Txt>
+                  {/* The bill prints ABOVE the pad and is never pre-filled into it (UX-01 D6). */}
+                  <RupeeInput
+                    testID="d6-taken"
+                    label={t('d6.taken')}
+                    value={takenPaise}
+                    onChange={setTakenPaise}
+                    expected={toTake}
+                    expectedLabel={t('d6.expected')}
+                    {...(takenPaise !== null && taken.problem !== null && taken.problem !== 'enter'
+                      ? { error: takenWords(taken.problem) }
+                      : {})}
+                  />
+                  {taken.changePaise > 0 ? (
+                    <Txt field="bodyStrong" desk="body" testID="d6-change">
+                      {t('d6.change', { amount: rupees(taken.changePaise) })}
+                    </Txt>
+                  ) : null}
+                  {pay === 'upi' ? (
+                    <TextInput
+                      testID="d6-reference"
+                      label={t('d5.reference')}
+                      value={reference}
+                      onChange={setReference}
+                      maxLength={64}
+                      {...(needsUtr && takenPaise !== null ? { error: t('d6.needsUtr') } : {})}
+                    />
+                  ) : null}
+                </Stack>
+              )}
+            </Stack>
           </Panel>
         )}
 
@@ -385,23 +555,33 @@ export default function VanSale(): React.JSX.Element {
                           {longDate(row.expiry)}
                         </Txt>
                       )}
+                      {/*
+                        DOS-239: one case of THIS item per tap — its sell-side case, the one the quote
+                        and the bill count in — and loose pieces on the pad. No `availablePieces`: the
+                        row already says "n pc to sell", and the screen stops at it rather than printing
+                        a second figure in cases or a "short-supplied" line a van sale cannot have.
+                      */}
                       <QtyStepper
                         testID={`d6-qty-${row.variantId}`}
                         pieces={draft[row.variantId]?.pieces ?? 0}
-                        caseSize={1}
-                        availablePieces={row.available}
+                        caseSize={row.caseSize}
                         onChange={(pieces) => {
-                          setDraft((held) => ({
-                            ...held,
-                            [row.variantId]: {
-                              variantId: row.variantId,
-                              name: row.name,
-                              caseSize: 1,
-                              pieces: Math.max(0, pieces),
-                            },
-                          }))
+                          setPieces(row, pieces)
+                        }}
+                        onOpenPieces={() => {
+                          setPieceRow(row)
                         }}
                       />
+                      {(draft[row.variantId]?.pieces ?? 0) >= row.available ? (
+                        <Txt
+                          field="label"
+                          desk="meta"
+                          color={colors.text.secondary}
+                          testID={`d6-all-${row.variantId}`}
+                        >
+                          {t('d6.allOfIt')}
+                        </Txt>
+                      ) : null}
                     </Stack>
                   ))}
                 </Stack>
@@ -411,12 +591,128 @@ export default function VanSale(): React.JSX.Element {
         )}
 
         {error === null ? null : (
-          <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d6-error">
-            {`${t('d6.failed')} — ${error}`}
-          </Txt>
+          <Stack gap={3}>
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="d6-error">
+              {`${t('d6.failed')} — ${error}`}
+            </Txt>
+            {/* DOS-240: the office said money in hand sells; one tap turns the sale into a cash sale. */}
+            {pay === 'account' && toTake !== null && officeSays?.key === linesKey ? (
+              <Button
+                testID="d6-use-cash"
+                label={t('d6.useCash', { amount: rupees(toTake) })}
+                variant="secondary"
+                fullWidth={false}
+                onPress={() => {
+                  setPay('cash')
+                  setError(null)
+                }}
+              />
+            ) : null}
+          </Stack>
         )}
       </Stack>
+
+      <PiecesSheet
+        row={pieceRow}
+        pieces={pieceRow === null ? 0 : (draft[pieceRow.variantId]?.pieces ?? 0)}
+        onClose={() => {
+          setPieceRow(null)
+        }}
+        onSet={(pieces) => {
+          if (pieceRow !== null) setPieces(pieceRow, pieces)
+          setPieceRow(null)
+        }}
+      />
     </Screen>
+  )
+}
+
+/**
+ * DOS-239 · the "Pieces" pad: sell an exact count — 12 packets out of a 60-piece case — or nudge it a piece at
+ * a time. The kit's `parsePieces` reads what was typed (whole pieces, "1,200" included, "1.5" refused rather
+ * than truncated) and the count stops at what is free on the van. The sale's count fills the field when the
+ * pad opens and is never live-updated while it is open.
+ */
+function PiecesSheet({
+  row,
+  pieces,
+  onClose,
+  onSet,
+}: {
+  row: VanVariant | null
+  pieces: number
+  onClose: () => void
+  onSet: (pieces: number) => void
+}): React.JSX.Element {
+  const t = useStrings()
+  const [text, setText] = useState('')
+
+  useEffect(() => {
+    // the count is read when the pad opens (`row` changes), never while it is open
+    if (row !== null) setText(String(pieces))
+  }, [row])
+
+  const typed = parsePieces(text)
+  const over = typed.ok && row !== null && typed.pieces > row.available
+
+  return (
+    <Sheet
+      open={row !== null}
+      onClose={onClose}
+      title={t('qty.piecesTitle')}
+      testID="d6-pieces-sheet"
+    >
+      <Stack gap={4}>
+        <Txt field="bodyStrong" desk="body">
+          {row?.name ?? ''}
+        </Txt>
+        <TextInput
+          testID="d6-pieces-input"
+          label={t('qty.piecesLabel')}
+          value={text}
+          onChange={setText}
+          keyboard="decimal"
+          autoFocus
+          {...(text.trim() !== '' && !typed.ok ? { error: t('qty.piecesInvalid') } : {})}
+          {...(over ? { helper: t('d6.piecesAtMost', { pieces: row.available }) } : {})}
+        />
+        <Row gap={3}>
+          <Button
+            testID="d6-piece-less"
+            label={t('qty.pieceLess')}
+            variant="secondary"
+            disabled={!typed.ok || typed.pieces <= 0}
+            onPress={() => {
+              if (typed.ok) setText(String(stepPiece(typed.pieces, -1)))
+            }}
+          />
+          <Button
+            testID="d6-piece-more"
+            label={t('qty.pieceMore')}
+            variant="secondary"
+            disabled={!typed.ok || (row !== null && typed.pieces >= row.available)}
+            disabledReason={
+              row === null ? undefined : t('d6.piecesAtMost', { pieces: row.available })
+            }
+            onPress={() => {
+              if (typed.ok) setText(String(stepPiece(typed.pieces, 1)))
+            }}
+          />
+        </Row>
+        <Button
+          testID="d6-pieces-set"
+          variant="primary"
+          size="floor"
+          fullWidth
+          label={t('qty.piecesSet')}
+          disabled={!typed.ok}
+          disabledReason={t('qty.piecesInvalid')}
+          onPress={() => {
+            if (typed.ok) onSet(typed.pieces)
+          }}
+        />
+      </Stack>
+    </Sheet>
   )
 }
 

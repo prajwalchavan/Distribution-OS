@@ -3,12 +3,15 @@ import { ORPCError } from '@orpc/server'
 import { and, eq, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
+  ApprovalKind,
+  CreditNotice,
   CreateVanSaleInput,
   CreateVanSaleOutput,
   VanSaleStockInput,
   VanSaleStockOutput,
   VanSaleStockRow,
 } from '@dos/contracts'
+import { formatINR, paise } from '@dos/domain'
 import {
   deliveries,
   deliveryLines,
@@ -36,6 +39,7 @@ import {
   vanSalesFlag,
   variantNames,
   whenOr,
+  type RetailerRow,
   type StopRow,
 } from './delivery.internals.js'
 import { mapDeliveries } from './delivery.mappers.js'
@@ -52,7 +56,9 @@ type StockOut = z.infer<typeof VanSaleStockOutput>
  *   order   `OrdersService.insertDraft` + `writeLines` (`source = 'van_sale'`, `fulfilFromLocationId` =
  *           the vehicle's location, priced by `priceOrder()` like any other order) → `submitInTx`,
  *           which confirms on the spot when no approval gate trips; a gate (credit, bargain, floor) is
- *           a 409 — the crew cannot wait for the owner at a shop door;
+ *           a 409 in words — the crew cannot wait for the owner at a shop door. The whole bill taken in
+ *           cash or UPI in the same call is not credit, so the credit gate does not trip (QA DOS-240);
+ *           a cheque, or less than the bill, keeps it;
  *   bill    `BillingService.issueFromLocation` on the TENANT'S NORMAL SERIES (docs/17 §D5), which
  *           reserves from the VEHICLE — a shortage is a hard 400 from inventory, the van never goes
  *           negative — posts the `sale` rows at the vehicle and the AR entry through receivables;
@@ -123,7 +129,9 @@ export class VanSalesService {
           batchNo: lot.batchNo === '' ? null : lot.batchNo,
           mrpPaise: lot.mrpPaise,
           expiryDate: lot.expiryDate,
-          caseSize: lot.caseSize ?? variant?.sellCaseSize ?? null,
+          // QA DOS-239: the crew SELLS in the distributor's sell-side case (the one the quote and the bill
+          // use), so that comes first; the lot's own pack only when the catalogue names none.
+          caseSize: variant?.sellCaseSize ?? lot.caseSize ?? null,
           availablePcs: sellable - forBills,
           heldForBillsPcs: forBills,
         })
@@ -208,11 +216,27 @@ export class VanSalesService {
           note: input.note ?? null,
         })
         const lined = await this.orders.writeLines(tx, draft, input.lines)
-        const submitted = await this.orders.submitInTx(tx, lined, input.deviceId ?? null)
+        // QA DOS-240: cash or UPI taken for the whole bill in this same call is not credit, so a strict or
+        // pay-on-delivery shop may still buy. A cheque is not money in hand: it waives nothing.
+        const paidAtDoorPaise =
+          input.collect !== undefined && input.collect.mode !== 'cheque'
+            ? input.collect.amountPaise
+            : undefined
+        const submitted = await this.orders.submitInTx(
+          tx,
+          lined,
+          input.deviceId ?? null,
+          paidAtDoorPaise === undefined ? {} : { paidAtDoorPaise },
+        )
         if (submitted.flags.length > 0)
           throw new ORPCError('CONFLICT', {
-            message: `this sale needs the desk's approval (${submitted.flags.join(', ')}); it cannot be billed at the door`,
-            data: { code: 'approval_required', flags: submitted.flags },
+            message: refusalInWords(retailer, submitted.flags, submitted.creditNotice, lined),
+            data: {
+              code: 'approval_required',
+              flags: submitted.flags,
+              // what taking the money would take: the order's own total, GST and round-off included
+              payNowPaise: lined.totalPaise,
+            },
           })
 
         // the bill, from the tenant's normal series, stock leaving the VEHICLE
@@ -226,6 +250,21 @@ export class VanSalesService {
           deviceId: input.deviceId ?? null,
         })
         await this.inventory.releaseHeld(tx, vehicle.locationId, held)
+        // QA DOS-240: the credit gate stood aside because the whole bill is being paid here. The bill rounds
+        // its own GST halves and cess, so it is checked against the BILL's total too; money short of it is
+        // credit after all, and the sale is refused whole (nothing above is committed).
+        if (
+          submitted.creditWaived &&
+          (paidAtDoorPaise === undefined || paidAtDoorPaise < invoiceRow.totalPaise)
+        )
+          throw new ORPCError('CONFLICT', {
+            message: `the bill comes to ${rupees(invoiceRow.totalPaise)}; ${retailer.name} cannot take goods on credit, so take ${rupees(invoiceRow.totalPaise)} in cash or UPI to sell`,
+            data: {
+              code: 'approval_required',
+              flags: ['credit_limit'],
+              payNowPaise: invoiceRow.totalPaise,
+            },
+          })
         await this.orders.applyFulfilmentEvent(
           tx,
           draft.id,
@@ -350,7 +389,9 @@ export class VanSalesService {
           throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'van sale rows vanished' })
         return {
           order: await this.orders.detail(tx, order),
-          invoice: await this.billing.detail(tx, invoiceRow),
+          // read back AFTER the money: a bill paid at the door answers `paid`, never the `issued` it was
+          // a moment before the receipt landed (QA DOS-240)
+          invoice: await this.billing.detail(tx, await this.billing.findInvoice(tx, invoiceRow.id)),
           delivery,
           collection,
           receipt,
@@ -402,4 +443,41 @@ export class VanSalesService {
       .where(eq(trips.id, trip.id))
     return row
   }
+}
+
+/** "₹1,062.00" — never paise, never a minus sign (the DOS-236 rule for words a person reads). */
+function rupees(value: number): string {
+  return formatINR(paise(Math.abs(value)))
+}
+
+/**
+ * WHY THE DOOR SAID NO, IN THE CREW'S WORDS (QA DOS-240). The refusal used to read "this sale needs the
+ * desk's approval (credit_limit)" at a counter that pays cash for everything, with no way forward on the
+ * screen. A credit refusal now names the shop, what stands in the way — credit stopped, pays on
+ * delivery, over the limit by how much, how many days late — and the one thing that sells: the whole
+ * bill in cash or UPI now. A rate or floor gate still needs the desk and says so.
+ */
+function refusalInWords(
+  retailer: Pick<RetailerRow, 'name' | 'paymentTerms'>,
+  flags: readonly ApprovalKind[],
+  notice: CreditNotice | null,
+  order: { totalPaise: number },
+): string {
+  const others = flags.filter((flag) => flag !== 'credit_limit')
+  if (others.length > 0)
+    return `this sale needs the office's approval (${others
+      .map((flag) => flag.replaceAll('_', ' '))
+      .join(', ')}); a van sale is billed at the door or not at all — call the office`
+  const why: string[] = []
+  if (notice?.creditMode === 'stop') why.push('credit is stopped')
+  if (retailer.paymentTerms === 'ON') why.push('pays on delivery')
+  if (retailer.paymentTerms === 'PRE') why.push('pays in advance')
+  if (notice?.reasons.includes('limit_exceeded') && notice.headroomPaise < 0)
+    why.push(`over the credit limit by ${rupees(notice.headroomPaise)}`)
+  if (notice?.reasons.includes('bill_count_exceeded')) why.push('too many bills still unpaid')
+  if (notice?.reasons.includes('overdue_days_exceeded'))
+    why.push(`${String(notice.overdueDays)} days overdue`)
+  return `${retailer.name} cannot take this on credit${
+    why.length === 0 ? '' : ` (${why.join(', ')})`
+  } — take ${rupees(order.totalPaise)} now in cash or UPI and it sells`
 }

@@ -13,9 +13,19 @@
  * named here. Every pattern tolerates whitespace, so `pnpm format` reflowing the JSX cannot turn it red.
  */
 import type { Quote } from '@dos/contracts'
+import { caseLine, stepByCase } from '@dos/ui'
 import { describe, expect, it } from 'vitest'
 
-import { lineFigure, saleFigures, vanStockByVariant } from './van-sale'
+import {
+  amountToTake,
+  collectFor,
+  lineFigure,
+  payNowOf,
+  piecesToSell,
+  saleFigures,
+  takenCheck,
+  vanStockByVariant,
+} from './van-sale'
 
 interface NodeFs {
   readFileSync: (path: string, encoding: 'utf8') => string
@@ -152,9 +162,101 @@ describe('DOS-233 what the crew may sell is the van less the trip’s bills', ()
       { variantId: 'atta', variantName: 'Atta 10 kg', availablePcs: 3, expiryDate: null },
     ]
     expect(vanStockByVariant(rows)).toEqual([
-      { variantId: 'atta', name: 'Atta 10 kg', available: 3, expiry: null },
-      { variantId: 'bourbon', name: 'Bourbon', available: 30, expiry: '2026-11-30' },
+      { variantId: 'atta', name: 'Atta 10 kg', available: 3, expiry: null, caseSize: 1 },
+      { variantId: 'bourbon', name: 'Bourbon', available: 30, expiry: '2026-11-30', caseSize: 1 },
     ])
     expect(vanStockByVariant([])).toEqual([])
+  })
+})
+
+describe('DOS-239 one case more is one case of THIS item', () => {
+  /** Day 4, TRIP-0005: Sunbake Bourbon Cream 120 g, 60 pieces to a case, 60 pieces free on the van. */
+  const bourbon = {
+    variantId: 'bourbon',
+    variantName: 'Sunbake Bourbon Cream 120 g',
+    availablePcs: 60,
+    expiryDate: '2027-05-20',
+    caseSize: 60,
+  }
+
+  it("carries the row's sell-side case, and 1 only when the office names none", () => {
+    expect(vanStockByVariant([bourbon])[0]?.caseSize).toBe(60)
+    expect(vanStockByVariant([{ ...bourbon, caseSize: null }])[0]?.caseSize).toBe(1)
+    // a lot with no case first, one with the case after: the SKU still steps by its case
+    expect(
+      vanStockByVariant([{ ...bourbon, caseSize: null, availablePcs: 6 }, bourbon])[0],
+    ).toMatchObject({ available: 66, caseSize: 60 })
+  })
+
+  it('a case step on the stepper is 60 pieces, and nothing goes past what is free on the van', () => {
+    const row = vanStockByVariant([bourbon])[0]
+    expect(row).toBeDefined()
+    const one = stepByCase(0, 1, row?.caseSize ?? 0)
+    expect(one).toBe(60)
+    expect(caseLine(one, row?.caseSize ?? 0)).toBe('1 cs = 60 pc')
+    expect(piecesToSell(stepByCase(one, 1, row?.caseSize ?? 0), row?.available ?? 0)).toBe(60)
+    expect(piecesToSell(12, 60)).toBe(12)
+    expect(piecesToSell(-3, 60)).toBe(0)
+  })
+
+  it('the screen hands the stepper and the draft the row case, never a case of one', async () => {
+    const code = withoutComments(await readScreen())
+    expect
+      .soft(code, 'D6 steps by a case of one')
+      .not.toMatch(/caseSize\s*[:=]\s*\{?\s*1\s*\}?\s*[,\n}]/)
+    expect
+      .soft(code, "D6 does not give the stepper the row's case")
+      .toMatch(/caseSize=\{\s*row\.caseSize\s*\}/)
+    expect.soft(code, 'D6 offers no loose-pieces pad').toMatch(/onOpenPieces=/)
+  })
+})
+
+describe('DOS-240 a van sale paid at the door', () => {
+  it('asks the crew to type what it took: cash may carry change, UPI is the bill exactly, short is credit', () => {
+    expect(takenCheck('account', null, 106200)).toEqual({ problem: null, changePaise: 0 })
+    expect(takenCheck('cash', null, 106200).problem).toBe('enter')
+    expect(takenCheck('cash', 100000, 106200).problem).toBe('short')
+    expect(takenCheck('cash', 106200, 106200)).toEqual({ problem: null, changePaise: 0 })
+    expect(takenCheck('cash', 110000, 106200)).toEqual({ problem: null, changePaise: 3800 })
+    expect(takenCheck('upi', 110000, 106200).problem).toBe('upiExact')
+    expect(takenCheck('upi', 106200, 106200).problem).toBeNull()
+  })
+
+  it('receipts the bill, never the change, and sends nothing for a sale on account', () => {
+    const ids = { id: 'c1', receiptId: 'r1' }
+    expect(collectFor('account', 106200, '', ids)).toBeUndefined()
+    expect(collectFor('cash', null, '', ids)).toBeUndefined()
+    expect(collectFor('cash', 106200, 'ignored', ids)).toEqual({
+      id: 'c1',
+      receiptId: 'r1',
+      mode: 'cash',
+      amountPaise: 106200,
+    })
+    expect(collectFor('upi', 106200, ' 626926200501 ', ids)).toEqual({
+      id: 'c1',
+      receiptId: 'r1',
+      mode: 'upi',
+      amountPaise: 106200,
+      reference: '626926200501',
+    })
+  })
+
+  it("takes the office's figure when the bill it issues is more than the quote", () => {
+    expect(amountToTake(106200, null)).toBe(106200)
+    expect(amountToTake(106200, 106300)).toBe(106300)
+    expect(amountToTake(106200, 100)).toBe(106200)
+    expect(amountToTake(null, 106300)).toBeNull()
+    expect(payNowOf({ code: 'approval_required', payNowPaise: 106200 })).toBe(106200)
+    expect(payNowOf({ code: 'approval_required' })).toBeNull()
+    expect(payNowOf(undefined)).toBeNull()
+  })
+
+  it('the screen sends the collect with the sale and never pre-fills the money', async () => {
+    const code = withoutComments(await readScreen())
+    expect.soft(code, 'D6 sends no collect').toMatch(/collectFor\s*\(/)
+    expect.soft(code, 'D6 has no way to pay').toMatch(/testID="d6-pay-mode"/)
+    // the typed money starts empty and is never set from the bill
+    expect.soft(code, 'D6 pre-fills the money').not.toMatch(/setTakenPaise\(\s*toTake\s*\)/)
+    expect.soft(code, 'D6 pre-fills the money').toMatch(/useState<number \| null>\(null\)/)
   })
 })

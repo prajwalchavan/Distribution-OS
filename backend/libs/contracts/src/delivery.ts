@@ -1242,6 +1242,11 @@ export const VanSaleCollectInput = z.object({
  * `collect` is present, the collection recorded exactly as `collections.record` does. 403 unless the
  * trip is `active` and `vanSalesAllowed`. The shop must already exist in this tenant (the crew never
  * onboards a shop, docs/17 item 27); `stopId` names the stop it is sold at, else `stops.add` is implied.
+ *
+ * PAID AT THE DOOR IS NOT CREDIT (QA DOS-240): a `collect` in cash or UPI for at least the whole bill means
+ * the credit gate does not trip, so a strict, overdue or pay-on-delivery shop may still buy for money. On
+ * credit — or with a cheque, or less than the bill — a shop the gate stops is a 409 `approval_required`
+ * whose message says why in words and whose `data.payNowPaise` is what taking the money would take.
  */
 export const CreateVanSaleInput = MutationBase.extend({
   /** Client-generated id of the ORDER. */
@@ -1272,6 +1277,10 @@ export const VanSaleStockRowSchema = z.object({
   batchNo: z.string().nullable(),
   mrpPaise: PaiseSchema,
   expiryDate: z.string().nullable(),
+  /**
+   * The SELL-side case (`tenant_products.case_size_override` else the variant's default), the case the
+   * quote and the bill count in; the lot's own pack only when the catalogue names none (QA DOS-239).
+   */
   caseSize: z.number().int().positive().nullable(),
   /** Free to sell: sellable at the vehicle minus this trip's undelivered bills, never below zero. */
   availablePcs: PiecesSchema,

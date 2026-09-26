@@ -4,6 +4,7 @@ import { and, asc, eq, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalKind,
+  CreditNotice,
   CancelOrderInput,
   CancelOrderOutput,
   ConfirmOrderInput,
@@ -303,12 +304,22 @@ export class OrdersService {
    * §4: delivery → orders): the number, the approval gates, the transition row and the event, then the
    * auto-confirm when no gate tripped. `flags` tells the caller which gates are still waiting — a van
    * sale at the door cannot wait for the owner, so it refuses on a non-empty list.
+   *
+   * `paidAtDoorPaise` is the van sale's cash or UPI taken in the same transaction (QA DOS-240): paid in full,
+   * the sale is not credit and the credit gate does not trip (`approvalFlags`). `creditWaived` and
+   * `creditNotice` tell the van sale why, so it can hold the sale to the bill and say it in words.
    */
   async submitInTx(
     tx: Db,
     order: OrderRow,
     deviceId: string | null,
-  ): Promise<{ item: OrderDetail; flags: ApprovalKind[] }> {
+    options: { paidAtDoorPaise?: number } = {},
+  ): Promise<{
+    item: OrderDetail
+    flags: ApprovalKind[]
+    creditNotice: CreditNotice | null
+    creditWaived: boolean
+  }> {
     const ctx = currentTenant()
     const to = transition(order.state, 'submit')
     const lines = await tx
@@ -318,7 +329,12 @@ export class OrdersService {
     if (lines.length === 0)
       throw new ORPCError('BAD_REQUEST', { message: 'an order needs at least one line' })
     const now = new Date()
-    const { flags, bargainIds, creditNotice } = await approvalFlags(tx, order, lines)
+    const { flags, bargainIds, creditNotice, creditWaived } = await approvalFlags(
+      tx,
+      order,
+      lines,
+      options,
+    )
     const [submitted] = await tx
       .update(salesOrders)
       .set({
@@ -340,7 +356,7 @@ export class OrdersService {
         ctx.actorRole === 'retailer'
           ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId))
           : await this.confirmInTx(tx, next, deviceId)
-      return { item: confirmed.item, flags }
+      return { item: confirmed.item, flags, creditNotice, creditWaived }
     }
     // One gate per kind, except `bargain`: one gate per request it waits on, naming that request, so deciding
     // the gate decides the request and the queue holds one record per bargain (DOS-005).
@@ -361,7 +377,7 @@ export class OrdersService {
         })),
       ),
     )
-    return { item: await this.detail(tx, next), flags }
+    return { item: await this.detail(tx, next), flags, creditNotice, creditWaived }
   }
 
   /**

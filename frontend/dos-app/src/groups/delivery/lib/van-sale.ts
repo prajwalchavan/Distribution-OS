@@ -55,11 +55,30 @@ export interface VanVariant {
   available: number
   /** The earliest expiry among the lots that have something to sell. */
   expiry: string | null
+  /**
+   * Pieces in one SELL-side case, the case the quote and the bill count in (QA DOS-239). The stepper steps
+   * by it; 1 only when the office names no case for the item at all.
+   */
+  caseSize: number
+}
+
+/** A case size the stepper can step by: a whole number of pieces, at least one. */
+function usableCase(caseSize: number | null | undefined): number | null {
+  return caseSize !== null &&
+    caseSize !== undefined &&
+    Number.isSafeInteger(caseSize) &&
+    caseSize > 0
+    ? caseSize
+    : null
 }
 
 /**
  * The van-sale list, one row per SKU, from `delivery.vanSales.stock`: only lots with pieces FREE to sell
  * count, so a SKU whose every piece belongs to another shop's bill is not offered at all (DOS-233).
+ *
+ * QA DOS-239: the row carries the item's sell-side case. The screen used to hand the stepper a case of ONE,
+ * so "One case more" on a 60-piece Bourbon case added one piece, read "1 cs", and billed ₹18.00 for a case
+ * worth ₹1,062.00 — the crew handed over 60 packets and the van came back 59 short.
  */
 export function vanStockByVariant(
   rows: readonly {
@@ -67,6 +86,7 @@ export function vanStockByVariant(
     variantName: string
     availablePcs: number
     expiryDate: string | null
+    caseSize?: number | null | undefined
   }[],
 ): VanVariant[] {
   const map = new Map<string, VanVariant>()
@@ -79,12 +99,88 @@ export function vanStockByVariant(
         name: row.variantName,
         available: row.availablePcs,
         expiry: row.expiryDate,
+        caseSize: usableCase(row.caseSize) ?? 1,
       })
       continue
     }
     held.available += row.availablePcs
     if (row.expiryDate !== null && (held.expiry === null || row.expiryDate < held.expiry))
       held.expiry = row.expiryDate
+    if (held.caseSize === 1) held.caseSize = usableCase(row.caseSize) ?? 1
   }
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * What a tap of the stepper — or a count typed on the pieces pad — may put on the sale: never below zero and
+ * never past the pieces FREE on the van (DOS-239). The server refuses a van sale that would draw more, and
+ * "short-supplied" does not exist at a shop door, so the screen stops at what is there instead of warning.
+ */
+export function piecesToSell(pieces: number, available: number): number {
+  if (!Number.isFinite(pieces)) return 0
+  return Math.max(0, Math.min(Math.trunc(pieces), Math.max(0, available)))
+}
+
+/** How the shop pays for a van sale (QA DOS-240). Cash and UPI are taken in the same call as the bill. */
+export type VanPay = 'cash' | 'upi' | 'account'
+
+/**
+ * The money the crew takes for a paid van sale: the bill's own payable figure from the quote, or — when the
+ * office refused a payment short of the bill it actually issues — the larger figure it named. Null while
+ * there is nothing to charge.
+ */
+export function amountToTake(
+  billPaise: number | null,
+  officeSaysPaise: number | null,
+): number | null {
+  if (billPaise === null || billPaise <= 0) return null
+  return officeSaysPaise !== null && officeSaysPaise > billPaise ? officeSaysPaise : billPaise
+}
+
+/**
+ * What the crew typed against the bill, for a paid van sale (QA DOS-240). The figure is typed, never
+ * pre-filled (UX-01 D6: a driver must not confirm money he did not count). Cash may be more than the bill —
+ * the rest goes back as change and only the bill is receipted; UPI is the bill exactly; less than the bill
+ * is credit, which is what the sale cannot be.
+ */
+export function takenCheck(
+  pay: VanPay,
+  typedPaise: number | null,
+  billPaise: number | null,
+): { problem: 'enter' | 'short' | 'upiExact' | null; changePaise: number } {
+  if (pay === 'account' || billPaise === null) return { problem: null, changePaise: 0 }
+  if (typedPaise === null || typedPaise <= 0) return { problem: 'enter', changePaise: 0 }
+  if (typedPaise < billPaise) return { problem: 'short', changePaise: 0 }
+  if (pay === 'upi' && typedPaise !== billPaise) return { problem: 'upiExact', changePaise: 0 }
+  return { problem: null, changePaise: typedPaise - billPaise }
+}
+
+/** The office's "take this much and it sells" off a refusal (`data.payNowPaise`), or null. */
+export function payNowOf(data: unknown): number | null {
+  if (typeof data !== 'object' || data === null) return null
+  const value = (data as { payNowPaise?: unknown }).payNowPaise
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null
+}
+
+/**
+ * The `collect` block of `delivery.vanSales.create` for a paid sale (QA DOS-240), or undefined for a sale on
+ * the shop's account. The ids are the caller's, fixed with the intent so a replay records one receipt.
+ */
+export function collectFor(
+  pay: VanPay,
+  amountPaise: number | null,
+  reference: string,
+  ids: { id: string; receiptId: string },
+):
+  | { id: string; receiptId: string; mode: 'cash' | 'upi'; amountPaise: number; reference?: string }
+  | undefined {
+  if (pay === 'account' || amountPaise === null || amountPaise <= 0) return undefined
+  const utr = reference.trim()
+  return {
+    id: ids.id,
+    receiptId: ids.receiptId,
+    mode: pay,
+    amountPaise,
+    ...(pay === 'upi' && utr !== '' ? { reference: utr } : {}),
+  }
 }

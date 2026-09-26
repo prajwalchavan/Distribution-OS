@@ -379,6 +379,31 @@ export const strings = {
   /* DOS-233: the next shops' cartons are on the van too, and are not for sale. */
   'd6.heldForBills': '{pieces} pc on the van belong to bills of this trip and are not for sale',
   'd6.nothingToSell': 'Nothing on the van is free to sell — everything aboard belongs to a bill',
+  /* DOS-239: the stepper steps by the item's own case; the pad takes loose pieces; it stops at what is free. */
+  'd6.allOfIt': 'That is every free piece on the van',
+  'd6.piecesAtMost': 'Only {pieces} pc are free to sell',
+  /* DOS-240: a van sale paid at the door is not credit. */
+  'd6.pay': 'How the shop pays',
+  'd6.payCash': 'Cash now',
+  'd6.payUpi': 'UPI now',
+  'd6.payAccount': 'On account',
+  'd6.taken': 'Money taken',
+  'd6.expected': 'Bill total',
+  'd6.takeCash': 'Take {amount} in cash before the goods go in',
+  'd6.takeUpi': 'Take {amount} by UPI and write its UTR before the goods go in',
+  'd6.change': 'Give back {amount} change',
+  'd6.takeAll': 'The bill is {amount} — take all of it, or put the sale on account',
+  'd6.upiExact': 'A UPI payment for a van sale is the bill exactly: {amount}',
+  'd6.enterTaken': 'Type the money you took',
+  'd6.onAccount':
+    'The bill goes on the shop’s account. A shop that pays on delivery, has credit stopped or is over its limit cannot buy this way — take the money.',
+  'd6.createCash': 'Cash taken — bill it and hand it over',
+  'd6.createUpi': 'UPI received — bill it and hand it over',
+  'd6.needsUtr': 'Write the UPI reference (UTR) first',
+  'd6.nothingToCharge': 'The bill total is still being worked out',
+  'd6.paidCash': 'Paid {amount} in cash · Receipt {no}',
+  'd6.paidUpi': 'Paid {amount} by UPI · Receipt {no}',
+  'd6.useCash': 'Take {amount} in cash instead',
 
   // --- D7 expenses ------------------------------------------------------------------------------
   'd7.title': 'Expenses',
