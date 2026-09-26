@@ -1,0 +1,32 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Line 1 of 3 · Batch FIX-8-A · Expires 20 Oct 2026
+Balaji Masala Masti Wafers 45 g
+Batch FIX-8-A · Expires 20 Oct 2026
+24 days left
+Count only the cartons that show this batch.
+Blind count: what the bill says is not on this screen.
+Count the good pieces here. Damaged ones are counted on the next step.
+Good pieces
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Damaged pieces
+Scan
+Review the count
+Inbound
+Pick
+Pack
+Load
