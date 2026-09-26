@@ -50,6 +50,7 @@ import {
   today,
 } from '../../../src/groups/sales/lib/dates'
 import { keepKey } from '../../../src/groups/sales/lib/keep'
+import { shopQueryKey, shopToShow } from '../../../src/groups/sales/lib/new-shop'
 import {
   schemesForShop,
   useBeats,
@@ -85,7 +86,20 @@ export default function ShopCard(): React.JSX.Element {
   const local = useLocalState()
   const userId = useMyUserId()
 
-  const shop = useShop(retailerId)
+  const deviceShop = useShop(retailerId)
+  /*
+   * DOS-211: a shop added a moment ago is on the server before the next pull puts it on the phone.
+   * The New shop form seeds this entry with its own POST reply, so the card opens on the shop at
+   * once; a card reached any other way before the pull asks the service. The device's row wins the
+   * moment it lands, and the honest "not on this phone" is left for when neither copy answers.
+   */
+  const askService = retailerId !== '' && deviceShop === null && local.online
+  const serviceShop = useQuery(
+    shopQueryKey(retailerId),
+    () => api.api.retailers.get({ id: retailerId }),
+    { enabled: askService, staleTime: 60_000 },
+  )
+  const shop = shopToShow(deviceShop, serviceShop.data?.item)
   const dues = useOutstanding(retailerId)
   const orders = useShopOrders(retailerId, 25)
   const lastOrder = useLastOrderOf(retailerId)
@@ -142,7 +156,7 @@ export default function ShopCard(): React.JSX.Element {
     return (
       <Screen title={t('s2.title')}>
         <LocalAsync
-          loading={false}
+          loading={askService && serviceShop.data === undefined && serviceShop.error === undefined}
           hydrated={local.hydrated}
           empty
           emptyMessage={t('s2.notOnDevice')}
