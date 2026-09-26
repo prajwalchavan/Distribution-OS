@@ -11,9 +11,11 @@
  * 1. **The chooser is shown only when there is a choice.** A membership that permits exactly one role
  *    goes straight in — which is every salesperson, every warehouse hand and every shopkeeper, i.e.
  *    almost everybody. Showing them a one-row list every morning would be a tax on the common case.
- * 2. **The last choice is remembered per device** (`dos.lastRole`), so the owner who drives on
- *    Tuesdays taps once rather than reading the list, and so the sign-in itself can ask for that role
- *    rather than signing him in as an owner and immediately re-minting.
+ * 2. **The last choice is remembered per device AND per person** (`dos.lastRole`, keyed on the
+ *    username since DOS-210), so the owner who drives on Tuesdays taps once rather than reading the
+ *    list, and so the sign-in itself can ask for that role rather than signing him in as an owner and
+ *    immediately re-minting — while the accountant who sits down at the same desk next is never sent
+ *    out asking for his role.
  * 3. **A change of role is a fresh election** — `electRole`, a new token — never the app deciding to
  *    render another group under the token it already holds. That token would still reach the old
  *    role's service for the life of its refresh.
@@ -73,19 +75,62 @@ export function needsChooser(session: Session): boolean {
 }
 
 /**
- * The role this device last chose, if it is still one this person may have.
- *
- * Device-scoped and not session-scoped, for the same reason the welcome flag is (ruling Q7): it is
- * about this phone, and the next sign-in on it is usually the same person on the same round.
+ * A username as the auth service keys it (`normalizeUsername` in `@dos/db`: trimmed, lower-case), so
+ * "Meena.Joshi " and "meena.joshi" are one person here exactly as they are one person there.
  */
-export function lastRole(): MembershipRole | null {
-  const held = storage.getItemSync(LAST_ROLE_KEY)
-  if (held === null) return null
-  return held in GROUP_OF ? (held as MembershipRole) : null
+function sameUser(username: string): string {
+  return username.trim().toLowerCase()
 }
 
-export function rememberRole(role: MembershipRole): void {
-  storage.setItemSync(LAST_ROLE_KEY, role)
+/** What `dos.lastRole` holds: the choice AND whose choice it was (DOS-210). */
+interface RememberedElection {
+  username: string
+  role: string
+}
+
+function readElection(): RememberedElection | null {
+  const held = storage.getItemSync(LAST_ROLE_KEY)
+  if (held === null) return null
+  try {
+    const parsed: unknown = JSON.parse(held)
+    if (typeof parsed !== 'object' || parsed === null) return null
+    const record = parsed as Record<string, unknown>
+    if (typeof record['username'] !== 'string' || typeof record['role'] !== 'string') return null
+    return { username: record['username'], role: record['role'] }
+  } catch {
+    // A bare role from before DOS-210 ("manager"): nobody knows whose it was, so it is nobody's.
+    return null
+  }
+}
+
+/**
+ * The role THIS PERSON chose last time on this device, if it is still one with a group.
+ *
+ * KEYED ON THE USERNAME (DOS-210). It used to be the device's last choice, full stop, so on a desk
+ * two people share the second person's sign-in went out asking for the FIRST person's role: Meena
+ * the accountant signed in with `actAs: "manager"` because Vikas had, took a 403 naming a role she
+ * never asked for, and was signed in only by the silent retry — an `auth_events` refusal row per
+ * sign-in, and a sentence on a slow network that reads as "your login is broken". A choice now
+ * travels only with the person who made it; anybody else signs in as their own membership role.
+ *
+ * Still device-scoped, for the reason the welcome flag is (ruling Q7): the next sign-in on a phone is
+ * usually the same person on the same round, and that person still taps once.
+ */
+export function lastRole(username: string | null): MembershipRole | null {
+  // A session with no username (a shopkeeper signed in by phone) has nobody to remember for.
+  if (username === null) return null
+  const held = readElection()
+  if (held === null || held.username !== sameUser(username)) return null
+  return held.role in GROUP_OF ? (held.role as MembershipRole) : null
+}
+
+export function rememberRole(username: string | null, role: MembershipRole): void {
+  if (username === null) {
+    forgetRole()
+    return
+  }
+  const value: RememberedElection = { username: sameUser(username), role }
+  storage.setItemSync(LAST_ROLE_KEY, JSON.stringify(value))
 }
 
 /** After a refused election: never ask for that role again by itself on the next launch. */
@@ -100,7 +145,7 @@ export function forgetRole(): void {
  */
 export function preselectedRole(session: Session): MembershipRole {
   const permitted = permittedRoles(session)
-  const remembered = lastRole()
+  const remembered = lastRole(session.user.username)
   if (remembered !== null && permitted.includes(remembered)) return remembered
   const own = currentMembership(session)?.role
   if (own !== undefined && permitted.includes(own)) return own

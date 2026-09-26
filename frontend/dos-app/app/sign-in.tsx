@@ -9,7 +9,7 @@
  *
  * THE ROLE IS ASKED FOR, AND THIS IS WHERE. With six apps, installing the delivery app WAS the
  * choice and every sign-in sent `actAs: 'delivery'`. With one app the person elects: the login asks
- * for the role this device chose last time, and if the membership permits more than one role the
+ * for the role THIS PERSON chose last time here (DOS-210), and if the membership permits more than one role the
  * chooser opens over this screen before anything else renders. A membership with exactly one
  * electable role — every salesperson, every godown hand, every shopkeeper — never sees it.
  *
@@ -67,7 +67,7 @@ export default function SignIn(): React.JSX.Element {
   )
 
   /**
-   * The login itself, asking for the role this device chose last time.
+   * The login itself, asking for the role this person chose last time on this device (DOS-210).
    *
    * A remembered role the owner has since taken away is a 403 with the refusal sentence — so that one
    * failure, and ONLY that one, is retried without it: the person's password was right and they
@@ -76,8 +76,9 @@ export default function SignIn(): React.JSX.Element {
    * lockout counts.
    */
   async function attempt(): Promise<Session> {
-    const remembered = lastRole()
     const credentials = { username: username.trim(), password }
+    // THIS person's last choice, never the previous person's on a shared desk (DOS-210).
+    const remembered = lastRole(credentials.username)
     if (remembered === null) return signIn(credentials)
     try {
       return await signIn({ ...credentials, actAs: remembered })
@@ -109,7 +110,7 @@ export default function SignIn(): React.JSX.Element {
           setChoosing(true)
           return
         }
-        rememberRole(next.role)
+        rememberRole(next.user.username ?? username, next.role)
         endChoosing()
       })
       .catch((raw: unknown) => {
@@ -190,14 +191,14 @@ function ContinueAs({
   const [picked, setPicked] = useState<MembershipRole>(() => preselectedRole(session))
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const remembered = lastRole()
+  const remembered = lastRole(session.user.username)
 
   const go = (): void => {
     if (busy) return
     setBusy(true)
     setError(null)
     const done = (): void => {
-      rememberRole(picked)
+      rememberRole(session.user.username, picked)
       // The ladder is released LAST: the group it moves to is the one this token now carries.
       onDone()
       endChoosing()
