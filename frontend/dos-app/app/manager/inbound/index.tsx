@@ -34,6 +34,7 @@ import {
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import {
@@ -52,6 +53,7 @@ import {
   useNames,
 } from '../../../src/groups/manager/lib/ui'
 import { longDate, shortInstant } from '../../../src/groups/manager/lib/dates'
+import { postReadiness } from '../../../src/groups/manager/lib/grn-post'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
 const BILL_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -97,6 +99,25 @@ const VIEWS: readonly { id: View; labelKey: string }[] = [
   { id: 'orders', labelKey: 'm4.orders' },
 ]
 
+/**
+ * DOS-217: the receipts the desk has to act on come first — counted and waiting to post, then still at
+ * the gate — each newest first; posted and cancelled history follows. `grns.list` pages by id, and a
+ * receipt opened today sat at the BOTTOM of 130 seeded rows (the day-1 agent found it by scrolling).
+ */
+const RECEIPT_ORDER: Readonly<Record<string, number>> = {
+  reconciled: 0,
+  counting: 1,
+  posted: 2,
+  cancelled: 3,
+}
+function receiptsToActOnFirst(rows: readonly Grn[]): Grn[] {
+  return [...rows].sort(
+    (a, b) =>
+      (RECEIPT_ORDER[a.status] ?? 9) - (RECEIPT_ORDER[b.status] ?? 9) ||
+      b.createdAt.localeCompare(a.createdAt),
+  )
+}
+
 export default function Inbound(): React.JSX.Element {
   const t = useStrings()
   const word = useWord()
@@ -105,9 +126,18 @@ export default function Inbound(): React.JSX.Element {
   const names = useNames()
   const can = useCan()
 
+  const router = useRouter()
   const mayWrite = can('procurement.grns.open')
+  const mayType = can('procurement.supplierInvoices.create')
   const mayResolve = can('procurement.discrepancies.resolve')
-  const [view, setView] = useState<View>('bills')
+  /*
+   * `?view=receipts` opens the Goods received register directly: the Today tile "Receipts to post"
+   * and the typed-bill screen both land the desk on the receipt it has to act on (DOS-217).
+   */
+  const params = useLocalSearchParams<{ view?: string }>()
+  const [view, setView] = useState<View>(
+    VIEWS.some((entry) => entry.id === params.view) ? (params.view as View) : 'bills',
+  )
   const [selected, setSelected] = useState<string | null>(null)
   const [grnId, setGrnId] = useState<string | null>(null)
   const [findingId, setFindingId] = useState<string | null>(null)
@@ -200,8 +230,23 @@ export default function Inbound(): React.JSX.Element {
     textColumn('source', t('m11.source'), (row) => word(row.source)),
   ]
 
+  const receiptName = (row: { grnNo: string | null; supplierInvoiceNo: string | null }): string =>
+    row.grnNo ??
+    (row.supplierInvoiceNo === null || row.supplierInvoiceNo === ''
+      ? t('m19.unnumbered')
+      : t('m19.againstBill', { no: row.supplierInvoiceNo }))
+
   const grnColumns: readonly RegisterColumn<Grn>[] = [
-    textColumn('no', t('m4.grnNo'), (row) => row.grnNo, { priority: 'identity' }),
+    /*
+     * A receipt has no number until it is posted, so an unposted row is named by the bill it came
+     * against — "—" in the identity column told the desk nothing about which lorry it was (DOS-217).
+     */
+    textColumn('no', t('m4.grnNo'), (row) => receiptName(row), { priority: 'identity' }),
+    textColumn(
+      'supplier',
+      t('m4.supplier'),
+      (row) => row.supplierName ?? names.supplier(row.supplierId),
+    ),
     textColumn('location', t('m4.location'), (row) => names.location(row.locationId)),
     {
       key: 'status',
@@ -274,10 +319,40 @@ export default function Inbound(): React.JSX.Element {
   }
 
   const counted = (grn?.lines ?? []).filter((line) => line.countedQtyPcs !== null).length
+  /** DOS-217: the server's own rule — `reconciled` posts, anything else says why not. */
+  const readiness = grn === undefined ? undefined : postReadiness(grn)
+  const postBlockedReason =
+    readiness === undefined || readiness.canPost
+      ? undefined
+      : readiness.reason === 'posted'
+        ? t('m4.alreadyPosted', { no: grn?.grnNo ?? '—', when: shortInstant(grn?.postedAt) })
+        : readiness.reason === 'cancelled'
+          ? t('m4.grnCancelled')
+          : readiness.reason === 'notCounted'
+            ? t('m4.notCounted')
+            : t('m4.partlyCounted', {
+                done: readiness.done,
+                total: readiness.total,
+                names: readiness.missing.map((id) => names.variant(id)).join(', '),
+              })
+  const justPosted =
+    postGrn.status === 'success' && postGrn.data?.item.id === grnId ? postGrn.data.item : undefined
 
   return (
     <Screen
       title={t('m4.title')}
+      actions={
+        mayType ? (
+          <Button
+            label={t('m4.typeBill')}
+            variant="primary"
+            onPress={() => {
+              router.push(routeFor('manager', '/inbound/new-bill'))
+            }}
+            testID="type-bill"
+          />
+        ) : undefined
+      }
       chips={
         <PageTabs
           group={routeFor('manager', '/inbound')}
@@ -348,12 +423,13 @@ export default function Inbound(): React.JSX.Element {
           <Register
             testID="grn-register"
             columns={grnColumns}
-            rows={receipts.data?.items ?? []}
+            rows={receiptsToActOnFirst(receipts.data?.items ?? [])}
             rowKey={(row) => row.id}
             frozen="no"
             selectedKey={grnId}
             onSelect={(row) => {
               setGrnId(row.id)
+              postGrn.reset()
             }}
             state="ready"
           />
@@ -475,7 +551,7 @@ export default function Inbound(): React.JSX.Element {
         onClose={() => {
           setGrnId(null)
         }}
-        title={grn === undefined ? undefined : (grn.grnNo ?? t('m4.receipts'))}
+        title={grn === undefined ? undefined : receiptName(grn)}
         testID="grn-panel"
       >
         <Async state={[grnDetail]} rows={6}>
@@ -498,7 +574,7 @@ export default function Inbound(): React.JSX.Element {
                       </Txt>
                       <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
                         {line.countedQtyPcs === null
-                          ? t('m4.expectedPcs')
+                          ? t('m4.lineNotCounted')
                           : `${t('m4.receivedPcs')} ${String(line.countedQtyPcs)} · ${t('m4.expectedPcs')} ${String(line.expectedQtyPcs)} · ${t('m4.damagedPcs')} ${String(line.damagedQtyPcs)}`}
                       </Txt>
                     </Stack>
@@ -518,21 +594,43 @@ export default function Inbound(): React.JSX.Element {
                 </Panel>
               )}
 
-              {mayWrite ? (
+              {/*
+               * A posted or cancelled receipt has nothing left to press: it says what it is instead
+               * of drawing a dead button.
+               */}
+              {justPosted !== undefined ? null : mayWrite &&
+                readiness !== undefined &&
+                !readiness.canPost &&
+                (readiness.reason === 'posted' || readiness.reason === 'cancelled') ? (
+                <Txt field="body" desk="body" color={colors.text.secondary} testID="post-grn-state">
+                  {postBlockedReason}
+                </Txt>
+              ) : mayWrite ? (
                 <Button
                   label={t('m4.postGrn')}
                   variant="primary"
-                  disabled={grn.status !== 'counting' || grn.countedAt === null}
-                  disabledReason={t('m19.countedLines', {
-                    done: counted,
-                    total: grn.lines.length,
-                  })}
+                  disabled={readiness?.canPost !== true}
+                  {...(postBlockedReason === undefined
+                    ? {}
+                    : { disabledReason: postBlockedReason })}
                   onPress={() => {
                     setActing('post')
                   }}
                   testID="post-grn"
                 />
               ) : null}
+              {/*
+               * The outcome, printed only from the 2xx reply (never-list #12): the number the receipt
+               * was given and where the stock now is.
+               */}
+              {justPosted === undefined ? null : (
+                <Txt field="body" desk="body" color={colors.status.moss.fg} testID="post-grn-done">
+                  {t('m4.postedAs', {
+                    no: justPosted.grnNo ?? '—',
+                    location: names.location(justPosted.locationId),
+                  })}
+                </Txt>
+              )}
             </Stack>
           )}
         </Async>
@@ -557,6 +655,16 @@ export default function Inbound(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {acting === 'post' ? t('m4.postBody') : ''}
             </Txt>
+            {acting === 'post' && grn !== undefined ? (
+              <Txt field="body" desk="body" numeric testID="post-grn-summary">
+                {t('m4.postSummary', {
+                  lines: grn.lines.length,
+                  pieces: grn.lines.reduce((sum, line) => sum + (line.countedQtyPcs ?? 0), 0),
+                  damaged: grn.lines.reduce((sum, line) => sum + line.damagedQtyPcs, 0),
+                  location: names.location(grn.locationId),
+                })}
+              </Txt>
+            ) : null}
             {acting === 'resolve' ? (
               /*
                * FOUR outcomes, so a chip row again. `discrepancies.resolve` decides "accepted,
