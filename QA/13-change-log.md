@@ -942,3 +942,14 @@ One lane (`worktree-wf_be1f8178-550-9`) merged `--no-ff` into main, no conflicts
 | 2026-09-26 | DOS-220 | Batch and expiry on every goods-receipt line, named on the gate pad, the review, and the desk's post and bill panels | 10b6f8a9 |
 | 2026-09-26 | DOS-221 | A received supplier bill posts its purchase journal | 10b6f8a9 |
 | 2026-09-26 | DOS-222 | Stock value and COGS use each lot's own GRN cost | 10b6f8a9 |
+
+### 2026-09-26 — day3 fixes merged to main (f481be41)
+
+One lane (`worktree-wf_be1f8178-550-18`) merged `--no-ff` into main, no conflicts. Gates on main after the merge: backend lint, typecheck, build, docs:readme:check green; backend tests 2 979 passed / 3 skipped on a seeded copy of the template (`dos_test_integ_day3`, dropped after; an unseeded copy fails 4 seed-dependent specs in examples.spec / extra-roles-wire.spec, as before); frontend lint, typecheck green, tests 1 262 passed; `expo export --platform web` bundled (1 306 modules); `pnpm format` changed nothing.
+
+| Date | Id | Fix | Merge commit |
+|---|---|---|---|
+| 2026-09-26 | DOS-232 | A stop ends when its last bill has an outcome, never on the first | f481be41 |
+| 2026-09-26 | DOS-233 | A van-sales trip can be planned, loaded and sold from | f481be41 |
+| 2026-09-26 | DOS-234 | Van check-in lists every live lot on the vehicle | f481be41 |
+| 2026-09-26 | DOS-235 | The owner's approval of a red trip settlement settles the trip | f481be41 |
