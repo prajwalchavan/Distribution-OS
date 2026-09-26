@@ -248,8 +248,10 @@ export class ReportingRegistersService {
         nearExpiryBefore,
       })
       const variantIds = [...new Set(rows.map((r) => r.variantId))]
-      const [costs, variantNames, locationNames] = await Promise.all([
+      const lotIds = [...new Set(rows.flatMap((r) => r.lots.map((lot) => lot.lotId)))]
+      const [costs, lotCosts, variantNames, locationNames] = await Promise.all([
         this.tenantCatalog.costsForVariants(tx, variantIds),
+        this.tenantCatalog.costsForLots(tx, lotIds),
         this.tenantCatalog.variantLabels(tx, variantIds),
         this.inventory.locationNames(tx, [...new Set(rows.map((r) => r.locationId))]),
       ])
@@ -258,9 +260,21 @@ export class ReportingRegistersService {
         tx,
         [...brandOf.values()].filter((id): id is string => id !== null),
       )
+      const unitCost = (
+        cost: { landedCostPaise: number; purchaseRatePaise: number } | undefined,
+      ) => (cost ? cost.landedCostPaise || cost.purchaseRatePaise : 0)
       const priced = rows.map((row) => {
-        const cost = costs.get(row.variantId)
-        const avgCostPaise = cost ? cost.landedCostPaise || cost.purchaseRatePaise : 0
+        // QA DOS-222: each batch at what THAT batch cost (the GRN's per-lot row); the SKU's default only
+        // for a lot no GRN costed. The row's cost is the weighted average of its batches.
+        const fallback = unitCost(costs.get(row.variantId))
+        let valuePaise = 0
+        let nearExpiryValuePaise = 0
+        for (const lot of row.lots) {
+          const cost = lotCosts.has(lot.lotId) ? unitCost(lotCosts.get(lot.lotId)) : fallback
+          valuePaise += lot.onHandPcs * cost
+          nearExpiryValuePaise += lot.nearExpiryPcs * cost
+        }
+        const avgCostPaise = row.onHandPcs > 0 ? Math.round(valuePaise / row.onHandPcs) : fallback
         const brandId = brandOf.get(row.variantId) ?? null
         return {
           variantId: row.variantId,
@@ -271,9 +285,9 @@ export class ReportingRegistersService {
           locationName: locationNames.get(row.locationId) ?? row.locationId,
           onHandPcs: row.onHandPcs,
           avgCostPaise,
-          valuePaise: row.onHandPcs * avgCostPaise,
+          valuePaise,
           nearestExpiryDate: row.nearestExpiryDate,
-          nearExpiryValuePaise: row.nearExpiryPcs * avgCostPaise,
+          nearExpiryValuePaise,
         }
       })
       const totals = priced.reduce(

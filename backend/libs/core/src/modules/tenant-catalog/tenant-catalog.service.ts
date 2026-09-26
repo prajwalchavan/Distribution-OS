@@ -352,6 +352,46 @@ export class TenantCatalogService {
     return out
   }
 
+  /**
+   * The cost the GRN wrote for each LOT (QA DOS-222), latest first: a piece of a batch is worth what
+   * that batch cost, not the SKU's older default. A lot no GRN costed (opening stock, a count find) is
+   * simply absent — the caller falls back to `costsForVariants`. One query; RLS makes it empty for
+   * anyone but the back office.
+   */
+  async costsForLots(tx: Db, lotIds: readonly string[]): Promise<Map<string, VariantCostRow>> {
+    const { tenantId } = currentTenant()
+    const unique = [...new Set(lotIds)]
+    if (unique.length === 0) return new Map()
+    const rows = await tx
+      .select({
+        variantId: tenantProductCosts.variantId,
+        lotId: tenantProductCosts.lotId,
+        purchaseRatePaise: tenantProductCosts.purchaseRatePaise,
+        landedCostPaise: tenantProductCosts.landedCostPaise,
+        ptdPaise: tenantProductCosts.ptdPaise,
+        perPieceCost: tenantProductCosts.perPieceCost,
+        effectiveFrom: tenantProductCosts.effectiveFrom,
+      })
+      .from(tenantProductCosts)
+      .where(
+        and(eq(tenantProductCosts.tenantId, tenantId), inArray(tenantProductCosts.lotId, unique)),
+      )
+      .orderBy(asc(tenantProductCosts.lotId), desc(tenantProductCosts.effectiveFrom))
+    const out = new Map<string, VariantCostRow>()
+    for (const r of rows) {
+      if (r.lotId === null || out.has(r.lotId)) continue
+      out.set(r.lotId, {
+        variantId: r.variantId,
+        purchaseRatePaise: r.purchaseRatePaise,
+        landedCostPaise: r.landedCostPaise,
+        ptdPaise: r.ptdPaise,
+        perPieceCost: r.perPieceCost,
+        effectiveFrom: r.effectiveFrom,
+      })
+    }
+    return out
+  }
+
   /** Variants this tenant sells (listedOnly) or the whole catalog with the tenant overlay (for the owner's listing screen). */
   async list(input: ListIn): Promise<ListOut> {
     const db = requireDb(this.db)

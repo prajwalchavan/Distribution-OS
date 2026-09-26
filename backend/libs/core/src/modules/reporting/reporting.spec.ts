@@ -1652,6 +1652,134 @@ describeDb('reporting (DATABASE_URL)', () => {
     }).toEqual({ company: 1_200, distributor: 800 })
   })
 
+  /**
+   * DOS-222: a batch is worth what THAT batch cost. The GRN writes a per-lot cost row; the SKU also
+   * carries an older variant-level default. The owner's Stock at cost, COGS and the stock register
+   * used to price every piece at the default, so a purchase at a new price never reached them.
+   */
+  it('DOS-222: the rollup and the stock register value each lot at its own GRN cost, the SKU default only for a lot no GRN costed; COGS takes the cost of the lot the line shipped from', async () => {
+    const lotTenantId = uuidv7()
+    const lotOwnerId = uuidv7()
+    const lotShopId = uuidv7()
+    const oldLot = uuidv7()
+    const newLot = uuidv7()
+    await db.insert(tenants).values({
+      id: lotTenantId,
+      slug: `rep-l-${run}`,
+      legalName: 'Lot cost',
+      stateCode: '27',
+    })
+    await db.insert(users).values({ id: lotOwnerId, phone: `+91918${run}1`, name: 'Lot owner' })
+    await db
+      .insert(memberships)
+      .values({ id: uuidv7(), tenantId: lotTenantId, userId: lotOwnerId, role: 'owner' })
+    await bootstrapTenant(db, lotTenantId)
+    const [lotGodown] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.tenantId, lotTenantId), eq(locations.kind, 'warehouse')))
+      .limit(1)
+    const where = lotGodown?.id ?? ''
+    await db.insert(stockLots).values([
+      { id: oldLot, tenantId: lotTenantId, variantId, batchNo: `OLD-${run}`, mrpPaise: 20_000 },
+      {
+        id: newLot,
+        tenantId: lotTenantId,
+        variantId,
+        batchNo: `NEW-${run}`,
+        mrpPaise: 20_000,
+        expiryDate: plusDays(today, 400),
+      },
+    ])
+    await db.insert(stockBalances).values([
+      { tenantId: lotTenantId, lotId: oldLot, locationId: where, onHand: 10, reserved: 0 },
+      { tenantId: lotTenantId, lotId: newLot, locationId: where, onHand: 20, reserved: 0 },
+    ])
+    await db.insert(tenantProductCosts).values([
+      // the SKU's older default (the seed's variant-level landed cost)
+      {
+        id: uuidv7(),
+        tenantId: lotTenantId,
+        variantId,
+        purchaseRatePaise: 15_627,
+        landedCostPaise: 15_627,
+      },
+      // what today's GRN wrote for the new batch
+      {
+        id: uuidv7(),
+        tenantId: lotTenantId,
+        variantId,
+        lotId: newLot,
+        purchaseRatePaise: 15_396,
+        landedCostPaise: 15_396,
+      },
+    ])
+    await db.insert(retailers).values({
+      id: lotShopId,
+      tenantId: lotTenantId,
+      code: `L1-${run}`,
+      name: `Shop L1 ${run}`,
+      phone: `+91918${run}2`,
+      stateCode: '27',
+    })
+    const billId = uuidv7()
+    await db.insert(invoices).values({
+      id: billId,
+      tenantId: lotTenantId,
+      invoiceNo: `INV/${run}/L1`,
+      seriesCode: 'INV',
+      fy: financialYear(),
+      invoiceDate: today,
+      retailerId: lotShopId,
+      state: 'issued',
+      buyerName: `Shop L1 ${run}`,
+      placeOfSupplyState: '27',
+      subtotalPaise: 100_000,
+      taxablePaise: 100_000,
+      totalPaise: 100_000,
+    })
+    await db.insert(invoiceLines).values({
+      id: uuidv7(),
+      tenantId: lotTenantId,
+      invoiceId: billId,
+      lineNo: 1,
+      variantId,
+      lotId: newLot,
+      description: 'Cola 750 ml',
+      hsnCode: '2202',
+      qtyPcs: 5,
+      ratePaise: 20_000,
+      taxablePaise: 100_000,
+      gstBps: 0,
+      lineTotalPaise: 100_000,
+    })
+
+    await rollupTenantDay(db, lotTenantId, today)
+    const stats = await db.execute(sql`
+      select stock_value_paise, cogs_paise from daily_owner_stats
+       where tenant_id = ${lotTenantId} and day = ${today}`)
+    // 10 old pieces at the default 156.27 + 20 new pieces at their own 153.96 — not 30 x 156.27
+    expect(Number(stats.rows[0]?.stock_value_paise)).toBe(10 * 15_627 + 20 * 15_396)
+    // the 5 pieces billed shipped from the new batch
+    expect(Number(stats.rows[0]?.cogs_paise)).toBe(5 * 15_396)
+
+    const lotOwner: Actor = { tenantId: lotTenantId, actorId: lotOwnerId, role: 'owner' }
+    const register = await call<StockValue>(
+      app,
+      lotOwner,
+      'GET',
+      '/reporting/registers/stock-value',
+      { nearExpiryDays: 90, limit: 50 },
+    )
+    expect(register.status).toBe(200)
+    const row = register.body.items.find((i) => i.variantId === variantId)
+    expect(row?.onHandPcs).toBe(30)
+    expect(row?.valuePaise).toBe(10 * 15_627 + 20 * 15_396)
+    expect(row?.avgCostPaise).toBe(Math.round((10 * 15_627 + 20 * 15_396) / 30))
+    // the register and the owner's home agree to the paisa
+    expect(register.body.totals.valuePaise).toBe(Number(stats.rows[0]?.stock_value_paise))
+  })
+
   it("DOS-117: once a day carries its nightly ageing snapshot, today's rollup still takes dues from the live summary and re-running a past day keeps the closing figure it stored", async () => {
     // Its own distributor, so no other test's stored rows move.
     const duesTenantId = uuidv7()

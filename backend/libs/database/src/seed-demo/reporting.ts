@@ -658,7 +658,15 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
   >()
   for (const r of (
     await db.execute(sql`
-      with cost as (
+      -- QA DOS-222: the lot's own cost first, the SKU's default only for a lot no GRN costed — the
+      -- same rule as the live rollup (core reporting/rollup.ts costCtes).
+      with lot_cost as (
+        select distinct on (lot_id) lot_id,
+               case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
+          from tenant_product_costs
+         where tenant_id = ${tenantId} and lot_id is not null
+         order by lot_id, effective_from desc
+      ), cost as (
         select distinct on (variant_id) variant_id,
                case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
           from tenant_product_costs
@@ -667,11 +675,12 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
       )
       select to_char(i.invoice_date, 'YYYY-MM-DD') as day, coalesce(p.brand_id, 'unknown') as brand_id,
              sum(l.taxable_paise)::bigint as net_sales,
-             sum((l.qty_pcs + l.free_qty_pcs) * coalesce(c.unit_cost, 0))::bigint as cogs
+             sum((l.qty_pcs + l.free_qty_pcs) * coalesce(lc.unit_cost, c.unit_cost, 0))::bigint as cogs
         from invoice_lines l
         join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
         join product_variants v on v.id = l.variant_id
         join products p on p.id = v.product_id
+        left join lot_cost lc on lc.lot_id = l.lot_id
         left join cost c on c.variant_id = l.variant_id
        where l.tenant_id = ${tenantId} and i.state not in ('draft', 'cancelled')
        group by 1, 2`)
