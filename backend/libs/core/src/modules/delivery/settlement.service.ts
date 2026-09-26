@@ -1,8 +1,10 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, gt, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
+  ApprovalStockLine,
+  ApprovalTripSettlement,
   SettlementPreviewInput,
   SettlementPreviewOutput,
   SettleTripInput,
@@ -10,7 +12,7 @@ import type {
   StockVarianceLine,
   VanStockLine,
 } from '@dos/contracts'
-import { businessDate, uuidv7 } from '@dos/domain'
+import { businessDate, formatINR, paise, uuidv7 } from '@dos/domain'
 import {
   approvals,
   deliveries,
@@ -34,6 +36,8 @@ import {
 } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
 import { dockLocationId, InventoryService } from '../inventory/index.js'
+import type { ApprovalKindHook, ApprovalRow } from '../orders/index.js'
+import { TenantCatalogService } from '../tenant-catalog/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   assertCrewOrDesk,
@@ -43,6 +47,7 @@ import {
   loadLots,
   loadTripPolicy,
   loadVehicle,
+  loadVehicles,
   lockTrip,
   MONEY_COLLECTORS,
   stopsOf,
@@ -67,6 +72,14 @@ interface Cockpit {
   tolerancePaise: number
   vanStock: VanStockLine[]
   collectionsCount: number
+}
+
+/** The count of one settlement request against the van and the cash: what `settle` and the owner decide on. */
+interface SettlementPlan extends Cockpit {
+  cashVariancePaise: number
+  hasVariance: boolean
+  stockVariance: StockVarianceLine[]
+  counted: { lotId: string; countedPcs: number }[]
 }
 
 /**
@@ -114,6 +127,8 @@ export class SettlementService {
     private readonly receivables: ReceivablesService,
     /** The lines of a bill that came back undelivered: which lots, how many pieces (QA DOS-195). */
     private readonly billing: BillingService,
+    /** What a lot that did not tally is worth, for the owner deciding it (QA DOS-235). */
+    private readonly tenantCatalog: TenantCatalogService,
   ) {}
 
   async preview(input: PreviewIn): Promise<PreviewOut> {
@@ -145,10 +160,7 @@ export class SettlementService {
     if (refusal) {
       const approvalId = await withTenant(db, ctx, (tx) => this.fileApproval(tx, input, refusal))
       throw new ORPCError('CONFLICT', {
-        message:
-          ctx.actorRole === 'owner'
-            ? `cash is ${String(refusal.cashVariancePaise)} paise off (tolerance ${String(refusal.tolerancePaise)}) or the van stock does not tally; resend with acceptVariance to close it as a variance settlement`
-            : `cash is ${String(refusal.cashVariancePaise)} paise off (tolerance ${String(refusal.tolerancePaise)}) or the van stock does not tally; the owner has to accept the variance`,
+        message: refusalWords(refusal, ctx.actorRole === 'owner'),
         data: {
           code: 'settlement_needs_owner',
           approvalId,
@@ -189,6 +201,26 @@ export class SettlementService {
             message: 'the settlement has a variance and needs the owner',
             data: { code: 'settlement_needs_owner' },
           })
+        return this.settleInTx(tx, trip, input, plan, ctx.actorId)
+      }),
+    )
+  }
+
+  /**
+   * The settlement itself, under the trip row lock the caller holds and with the plan it counted there:
+   * stock, the balanced journal entry, the `trip_settlements` row, the approval closed and the trip moved.
+   * `settledBy` is who counted it — the desk that filed the variance, when the owner's approval settles it.
+   */
+  private async settleInTx(
+    tx: Db,
+    trip: TripRow,
+    input: SettleIn,
+    plan: SettlementPlan,
+    settledBy: string | null,
+  ): Promise<SettleOut> {
+    const ctx = currentTenant()
+    {
+      {
         const vehicle = await loadVehicle(tx, trip.vehicleId)
         const godown = await this.warehouseLocation(tx)
         const now = new Date()
@@ -317,7 +349,7 @@ export class SettlementService {
                 countedPcs: v.countedPcs,
               })),
               hasVariance: plan.hasVariance,
-              settledBy: ctx.actorRole === 'system' ? null : ctx.actorId,
+              settledBy: ctx.actorRole === 'system' ? null : settledBy,
               settledAt: now,
               approvedBy: owner ? ctx.actorId : null,
               approvedAt: owner ? now : null,
@@ -364,8 +396,8 @@ export class SettlementService {
           tripState: next.state,
           stockAdjustments: adjustments,
         }
-      }),
-    )
+      }
+    }
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -475,14 +507,7 @@ export class SettlementService {
     trip: TripRow,
     input: SettleIn,
     opts: { lock: boolean },
-  ): Promise<
-    Cockpit & {
-      cashVariancePaise: number
-      hasVariance: boolean
-      stockVariance: StockVarianceLine[]
-      counted: { lotId: string; countedPcs: number }[]
-    }
-  > {
+  ): Promise<SettlementPlan> {
     const figures = await this.figures(tx, trip, opts)
     const onVan = new Map(figures.vanStock.map((l) => [l.lotId, l.expectedPcs]))
     const countedByLot = new Map<string, number>()
@@ -518,20 +543,38 @@ export class SettlementService {
     }
   }
 
-  /** One pending approval per trip: a second refusal does not file a second row. */
-  private async fileApproval(
-    tx: Db,
-    input: SettleIn,
-    plan: {
-      cashVariancePaise: number
-      tolerancePaise: number
-      stockVariance: StockVarianceLine[]
-      expectedCashPaise: number
-    },
-  ): Promise<string> {
+  /**
+   * One pending approval per trip, and it carries the LATEST count (QA DOS-235). A second refusal with the
+   * same figures answers the approval already waiting; a recount with different figures expires that one
+   * (the only change the desk may make to an approval) and files the new count, so the owner never decides
+   * a count the desk has since corrected. The payload is everything the owner's Approve needs to settle the
+   * trip exactly as counted — the full per-lot count included — and nothing that carries purchase cost:
+   * every staff role can read an approval row, so the lots' value is read when the queue is asked.
+   */
+  private async fileApproval(tx: Db, input: SettleIn, plan: SettlementPlan): Promise<string> {
     const ctx = currentTenant()
+    const trip = await findTrip(tx, input.tripId)
+    const stockVariance = plan.stockVariance
+      .filter((v) => v.deltaPcs !== 0)
+      .map((v) => ({ lotId: v.lotId, expectedPcs: v.expectedPcs, countedPcs: v.countedPcs }))
+    const payload: TripSettlementPayload = {
+      settlementId: input.id,
+      tripNo: trip.tripNo,
+      openingCashPaise: trip.openingCashPaise,
+      cashCollectedPaise: plan.cashCollectedPaise,
+      upiCollectedPaise: plan.upiCollectedPaise,
+      chequeCollectedPaise: plan.chequeCollectedPaise,
+      expensesPaise: plan.expensesPaise,
+      expectedCashPaise: plan.expectedCashPaise,
+      handedOverCashPaise: input.handedOverCashPaise,
+      cashVariancePaise: plan.cashVariancePaise,
+      tolerancePaise: plan.tolerancePaise,
+      counted: plan.counted,
+      stockVariance,
+      note: input.note ?? null,
+    }
     const [pending] = await tx
-      .select({ id: approvals.id })
+      .select({ id: approvals.id, payload: approvals.payload })
       .from(approvals)
       .where(
         and(
@@ -541,7 +584,19 @@ export class SettlementService {
         ),
       )
       .limit(1)
-    if (pending) return pending.id
+    if (pending) {
+      if (sameCount(readPayload(pending.payload), payload)) return pending.id
+      const now = new Date()
+      await tx
+        .update(approvals)
+        .set({
+          status: 'expired',
+          decisionNote: 'counted again; the new count is waiting for the owner',
+          decidedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(approvals.id, pending.id))
+    }
     const id = uuidv7()
     await tx.insert(approvals).values({
       id,
@@ -551,17 +606,178 @@ export class SettlementService {
       entityId: input.tripId,
       requestedBy: ctx.actorId,
       status: 'pending',
-      payload: {
-        settlementId: input.id,
-        expectedCashPaise: plan.expectedCashPaise,
-        handedOverCashPaise: input.handedOverCashPaise,
-        cashVariancePaise: plan.cashVariancePaise,
-        tolerancePaise: plan.tolerancePaise,
-        stockVariance: plan.stockVariance.filter((v) => v.deltaPcs !== 0),
-        note: input.note ?? null,
-      },
+      payload: { ...payload },
     })
     return id
+  }
+
+  /**
+   * THE OWNER'S DECISION ON A TRIP SETTLEMENT (QA DOS-235), registered with the approvals queue by the
+   * module. Approve settles the trip in the decision's own transaction, as the owner, with the count the
+   * desk filed: `approved_by` is the owner (the 0015 guard insists), `settled_by` the desk that counted.
+   * Reject leaves the trip `closing` for the desk to count again. Only the owner decides one — the
+   * database refuses anyone else's signature on a variance, and a manager's Approve used to be recorded as
+   * "approved" while the trip stayed `closing`.
+   */
+  approvalHook(): ApprovalKindHook {
+    return {
+      decide: (tx, approval, decision, note) => this.decideApproval(tx, approval, decision, note),
+      describe: (tx, rows) => this.describeApprovals(tx, rows),
+    }
+  }
+
+  private async decideApproval(
+    tx: Db,
+    approval: ApprovalRow,
+    decision: 'approve' | 'reject',
+    note: string | null,
+  ): Promise<{ trip: { id: string; tripNo: string | null; state: string } | null }> {
+    const ctx = currentTenant()
+    if (ctx.actorRole !== 'owner' && ctx.actorRole !== 'system')
+      throw new ORPCError('FORBIDDEN', {
+        message: "only the owner accepts or turns down a trip's variance",
+        data: { code: 'owner_only', kind: 'trip_settlement' },
+      })
+    const trip = await lockTrip(tx, approval.entityId)
+    const tripOut = (row: TripRow) => ({ id: row.id, tripNo: row.tripNo, state: row.state })
+    if (decision === 'reject') return { trip: tripOut(trip) }
+    const payload = readPayload(approval.payload)
+    const name = trip.tripNo ?? trip.id
+    if (payload === null)
+      throw new ORPCError('CONFLICT', {
+        message: `this request for ${name} carries no count; ask the desk to settle it again`,
+        data: { code: 'settlement_request_unreadable' },
+      })
+    const existing = await this.settlementOf(tx, trip.id)
+    if (existing) return { trip: tripOut(trip) }
+    if (trip.state !== 'closing')
+      throw new ORPCError('CONFLICT', {
+        message: `trip ${name} is ${trip.state}; only a trip that has come back is settled`,
+      })
+    const said = note ?? payload.note
+    const input: SettleIn = {
+      id: payload.settlementId,
+      idempotencyKey: `approval:${approval.id}`,
+      tripId: trip.id,
+      handedOverCashPaise: payload.handedOverCashPaise,
+      counted: await this.countOf(tx, trip, payload),
+      acceptVariance: true,
+      ...(said === null || said === '' ? {} : { note: said }),
+    }
+    const plan = await this.plan(tx, trip, input, { lock: true })
+    // The owner accepts the figures on the screen and no others: money or stock that moved since the desk
+    // counted is a different settlement, which the desk counts again.
+    if (
+      plan.cashVariancePaise !== payload.cashVariancePaise ||
+      !sameStock(
+        plan.stockVariance.filter((v) => v.deltaPcs !== 0),
+        payload.stockVariance,
+      )
+    )
+      throw new ORPCError('CONFLICT', {
+        message: `${name} has changed since it was counted (cash ${offWords(plan.cashVariancePaise)} now, ${offWords(payload.cashVariancePaise)} then, or a lot moved); ask the desk to count it again — this request stays open`,
+        data: { code: 'settlement_changed' },
+      })
+    if (!plan.hasVariance)
+      throw new ORPCError('CONFLICT', {
+        message: `${name} tallies now; the desk can settle it without you`,
+        data: { code: 'settlement_changed' },
+      })
+    const settled = await this.settleInTx(tx, trip, input, plan, approval.requestedBy)
+    return { trip: { id: trip.id, tripNo: trip.tripNo, state: settled.tripState } }
+  }
+
+  /**
+   * The per-lot count the owner settles with. Filed since QA DOS-235, it is the payload's own `counted`; an
+   * older request carried only the lots that did not tally, so every other lot on the van is taken as
+   * counted in full — which is what that request said.
+   */
+  private async countOf(
+    tx: Db,
+    trip: TripRow,
+    payload: TripSettlementPayload,
+  ): Promise<{ lotId: string; countedPcs: number }[]> {
+    if (payload.counted !== null) return payload.counted
+    const off = new Map(payload.stockVariance.map((v) => [v.lotId, v.countedPcs]))
+    const vehicle = await loadVehicle(tx, trip.vehicleId)
+    return (await this.vanStock(tx, vehicle.locationId)).map((l) => ({
+      lotId: l.lotId,
+      countedPcs: off.get(l.lotId) ?? l.expectedPcs,
+    }))
+  }
+
+  /** What the owner's queue shows for a page of trip-settlement requests: the trip, the cash, the lots and their value. */
+  private async describeApprovals(
+    tx: Db,
+    rows: readonly ApprovalRow[],
+  ): Promise<Map<string, ApprovalTripSettlement>> {
+    const out = new Map<string, ApprovalTripSettlement>()
+    const payloads = rows.flatMap((row) => {
+      const payload = readPayload(row.payload)
+      return payload === null ? [] : [{ row, payload }]
+    })
+    if (payloads.length === 0) return out
+    const tripIds = [...new Set(payloads.map((p) => p.row.entityId))]
+    const tripRows = await tx.select().from(trips).where(inArray(trips.id, tripIds))
+    const tripById = new Map(tripRows.map((t) => [t.id, t]))
+    const vehicleRows = await loadVehicles(
+      tx,
+      tripRows.map((t) => t.vehicleId),
+    )
+    const lotIds = [
+      ...new Set(payloads.flatMap((p) => p.payload.stockVariance.map((v) => v.lotId))),
+    ]
+    const lots = await loadLots(tx, lotIds)
+    const variantIds = [...new Set([...lots.values()].map((l) => l.variantId))]
+    const [names, lotCosts, skuCosts] = await Promise.all([
+      variantNames(tx, variantIds),
+      this.tenantCatalog.costsForLots(tx, lotIds),
+      this.tenantCatalog.costsForVariants(tx, variantIds),
+    ])
+    const unitCost = (c: { landedCostPaise: number; purchaseRatePaise: number } | undefined) =>
+      c ? c.landedCostPaise || c.purchaseRatePaise : null
+    for (const { row, payload } of payloads) {
+      const trip = tripById.get(row.entityId)
+      const lines: ApprovalStockLine[] = payload.stockVariance.map((v) => {
+        const lot = lots.get(v.lotId)
+        const variant = lot ? names.get(lot.variantId) : undefined
+        const cost = lot
+          ? (unitCost(lotCosts.get(v.lotId)) ?? unitCost(skuCosts.get(lot.variantId)))
+          : null
+        const deltaPcs = v.countedPcs - v.expectedPcs
+        return {
+          lotId: v.lotId,
+          variantName: variant?.name ?? '',
+          batchNo: lot === undefined || lot.batchNo === '' ? null : lot.batchNo,
+          caseSize: lot?.caseSize ?? variant?.sellCaseSize ?? null,
+          expectedPcs: v.expectedPcs,
+          countedPcs: v.countedPcs,
+          deltaPcs,
+          valuePaise: cost === null ? null : deltaPcs * cost,
+        }
+      })
+      const valued = lines.filter((l) => l.valuePaise !== null)
+      out.set(row.id, {
+        tripId: row.entityId,
+        tripNo: trip?.tripNo ?? payload.tripNo,
+        tripDate: trip?.tripDate ?? null,
+        tripState: trip?.state ?? null,
+        vehicleRegNo: trip ? (vehicleRows.get(trip.vehicleId)?.regNo ?? null) : null,
+        openingCashPaise: payload.openingCashPaise ?? trip?.openingCashPaise ?? null,
+        cashCollectedPaise: payload.cashCollectedPaise,
+        expensesPaise: payload.expensesPaise,
+        expectedCashPaise: payload.expectedCashPaise,
+        handedOverCashPaise: payload.handedOverCashPaise,
+        cashVariancePaise: payload.cashVariancePaise,
+        tolerancePaise: payload.tolerancePaise,
+        upiCollectedPaise: payload.upiCollectedPaise,
+        chequeCollectedPaise: payload.chequeCollectedPaise,
+        stockVariance: lines,
+        stockVarianceValuePaise:
+          valued.length === 0 ? null : valued.reduce((sum, l) => sum + (l.valuePaise ?? 0), 0),
+      })
+    }
+    return out
   }
 
   /** The owner closed the variance: the approval it raised is decided in the same transaction. */
@@ -649,4 +865,141 @@ export class SettlementService {
       })
     return row.id
   }
+}
+
+/** What a `trip_settlement` approval carries (QA DOS-235). Fields added since are null on an older request. */
+interface TripSettlementPayload {
+  settlementId: string
+  tripNo: string | null
+  openingCashPaise: number | null
+  cashCollectedPaise: number | null
+  upiCollectedPaise: number | null
+  chequeCollectedPaise: number | null
+  expensesPaise: number | null
+  expectedCashPaise: number
+  handedOverCashPaise: number
+  cashVariancePaise: number
+  tolerancePaise: number
+  counted: { lotId: string; countedPcs: number }[] | null
+  stockVariance: { lotId: string; expectedPcs: number; countedPcs: number }[]
+  note: string | null
+}
+
+const intOr = <T extends number | null>(value: unknown, fallback: T): number | T =>
+  typeof value === 'number' && Number.isSafeInteger(value) ? value : fallback
+
+/** The lot rows of a JSON array, each an object naming its lot; null when the value is not an array. */
+function lotRows(value: unknown): Record<string, unknown>[] | null {
+  if (!Array.isArray(value)) return null
+  const out: Record<string, unknown>[] = []
+  for (const item of value as unknown[]) {
+    if (typeof item !== 'object' || item === null) continue
+    const row = item as Record<string, unknown>
+    if (typeof row.lotId === 'string') out.push(row)
+  }
+  return out
+}
+
+/** The payload read defensively: it is a JSON column, and an unreadable one is refused by name, never guessed. */
+function readPayload(raw: unknown): TripSettlementPayload | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const p = raw as Record<string, unknown>
+  const expected = intOr(p.expectedCashPaise, null)
+  const handed = intOr(p.handedOverCashPaise, null)
+  const variance = intOr(p.cashVariancePaise, null)
+  if (
+    typeof p.settlementId !== 'string' ||
+    expected === null ||
+    handed === null ||
+    variance === null
+  )
+    return null
+  const counted = lotRows(p.counted)
+  return {
+    settlementId: p.settlementId,
+    tripNo: typeof p.tripNo === 'string' ? p.tripNo : null,
+    openingCashPaise: intOr(p.openingCashPaise, null),
+    cashCollectedPaise: intOr(p.cashCollectedPaise, null),
+    upiCollectedPaise: intOr(p.upiCollectedPaise, null),
+    chequeCollectedPaise: intOr(p.chequeCollectedPaise, null),
+    expensesPaise: intOr(p.expensesPaise, null),
+    expectedCashPaise: expected,
+    handedOverCashPaise: handed,
+    cashVariancePaise: variance,
+    tolerancePaise: intOr(p.tolerancePaise, 0),
+    counted:
+      counted === null
+        ? null
+        : counted.map((l) => ({ lotId: String(l.lotId), countedPcs: intOr(l.countedPcs, 0) })),
+    stockVariance: (lotRows(p.stockVariance) ?? []).map((l) => ({
+      lotId: String(l.lotId),
+      expectedPcs: intOr(l.expectedPcs, 0),
+      countedPcs: intOr(l.countedPcs, 0),
+    })),
+    note: typeof p.note === 'string' ? p.note : null,
+  }
+}
+
+/** The same lots off by the same pieces, in any order. */
+function sameStock(
+  a: readonly { lotId: string; expectedPcs: number; countedPcs: number }[],
+  b: readonly { lotId: string; expectedPcs: number; countedPcs: number }[],
+): boolean {
+  const key = (l: { lotId: string; expectedPcs: number; countedPcs: number }) =>
+    `${l.lotId}:${String(l.expectedPcs)}:${String(l.countedPcs)}`
+  const left = a.map(key).sort()
+  const right = b.map(key).sort()
+  return left.length === right.length && left.every((k, i) => k === right[i])
+}
+
+/** Two requests that would settle the trip identically: same cash handed over, same variance, same lots. */
+function sameCount(was: TripSettlementPayload | null, now: TripSettlementPayload): boolean {
+  if (was === null) return false
+  return (
+    was.handedOverCashPaise === now.handedOverCashPaise &&
+    was.cashVariancePaise === now.cashVariancePaise &&
+    sameStock(was.stockVariance, now.stockVariance)
+  )
+}
+
+function rupees(value: number): string {
+  return formatINR(paise(Math.abs(value)))
+}
+
+/** "₹200.00 short", "₹50.00 over", "exact" — never paise, never a minus sign. */
+function offWords(variancePaise: number): string {
+  if (variancePaise === 0) return 'exact'
+  return `${rupees(variancePaise)} ${variancePaise < 0 ? 'short' : 'over'}`
+}
+
+/**
+ * WHAT THE DESK IS TOLD WHEN A COUNT GOES TO THE OWNER (QA DOS-235, the wording of DOS-236): rupees, not
+ * paise; short or over, not a minus sign; and the cash and the stock each said only when they are off.
+ */
+function refusalWords(
+  plan: { cashVariancePaise: number; tolerancePaise: number; stockVariance: StockVarianceLine[] },
+  owner: boolean,
+): string {
+  const parts: string[] = []
+  if (Math.abs(plan.cashVariancePaise) > plan.tolerancePaise)
+    parts.push(
+      `cash is ${offWords(plan.cashVariancePaise)} (allowed ${rupees(plan.tolerancePaise)})`,
+    )
+  const off = plan.stockVariance.filter((v) => v.deltaPcs !== 0)
+  if (off.length > 0) {
+    const missing = off.reduce((n, v) => n + Math.max(0, -v.deltaPcs), 0)
+    const extra = off.reduce((n, v) => n + Math.max(0, v.deltaPcs), 0)
+    const pieces = [
+      missing > 0 ? `${String(missing)} pieces missing` : null,
+      extra > 0 ? `${String(extra)} pieces extra` : null,
+    ].filter((p): p is string => p !== null)
+    parts.push(
+      `the van count does not tally on ${String(off.length)} ${off.length === 1 ? 'lot' : 'lots'} (${pieces.join(', ')})`,
+    )
+  }
+  const joined = parts.join(' and ')
+  const what = joined.charAt(0).toUpperCase() + joined.slice(1)
+  return owner
+    ? `${what}; settle again accepting the variance to close it`
+    : `${what} — sent to the owner, who settles it by approving`
 }

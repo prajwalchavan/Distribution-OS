@@ -12,7 +12,14 @@
  *
  * An approval on an order is named by that order's shop, number and total, which the list reads from the order
  * itself (DOS-004), and an over-limit gate shows the shop's live credit position, so nobody decides blind.
+ *
+ * A TRIP SETTLEMENT (QA DOS-235) is named by its trip and vehicle, and its panel shows what the desk counted:
+ * the cash the crew should hand over and how it is made up, what was handed over, the difference against the
+ * owner's own allowance, and every lot of the van that did not tally with its value at cost. Approving it
+ * SETTLES THE TRIP in the same step — the dialog says so, and the toast states the trip's new state from the
+ * server's reply. A refusal (the figures moved since the count, say) is printed in the dialog, which stays open.
  */
+import type { ApprovalTripSettlement } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   Button,
@@ -43,7 +50,15 @@ import {
   type OrderResolution,
 } from '../../src/groups/owner/lib/bargain-order'
 import { Async, Field, PageTabs, Panel, textColumn, useNames } from '../../src/groups/owner/lib/ui'
-import { instantWithClock } from '../../src/groups/owner/lib/dates'
+import { instantWithClock, shortDate } from '../../src/groups/owner/lib/dates'
+import { Refusal, stayOpen } from '../../src/groups/owner/lib/refusal'
+import {
+  cashBeyondTolerance,
+  cashOff,
+  stockSummary,
+  tripName,
+  tripOf,
+} from '../../src/groups/owner/lib/trip-settlement'
 import { useWord } from '../../src/groups/owner/lib/words'
 import { useRegisterKeys, useHotkeys } from '../../src/groups/owner/lib/keys'
 
@@ -65,6 +80,8 @@ interface Decision {
   retailerId: string | null
   /** What the person who asked wrote: an approval's reason or note, a rate request's note. */
   reason: string | null
+  /** DOS-235: the trip, its cash and its van count, on a trip settlement; null for every other kind. */
+  trip: ApprovalTripSettlement | null
 }
 
 /** A payload value, when it is text. */
@@ -143,15 +160,16 @@ export default function Approvals(): React.JSX.Element {
   const rows: readonly Decision[] = [
     ...pending.map<Decision>((row) => {
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
+      const trip = tripOf(row)
       return bargain === undefined
         ? {
             id: row.id,
             stream: 'approval',
             kind: row.kind,
-            what: row.retailerName ?? word(row.kind),
+            what: trip === null ? (row.retailerName ?? word(row.kind)) : tripName(trip),
             who: names.staff(row.requestedBy),
             askedAt: row.createdAt,
-            amountPaise: row.orderTotalPaise,
+            amountPaise: trip === null ? row.orderTotalPaise : trip.cashVariancePaise,
             listRatePaise: null,
             askedRatePaise: null,
             orderId: row.orderId,
@@ -159,6 +177,7 @@ export default function Approvals(): React.JSX.Element {
             orderTotalPaise: row.orderTotalPaise,
             retailerId: row.retailerId,
             reason: textOf(row.payload.reason) ?? textOf(row.payload.note),
+            trip,
           }
         : {
             id: row.id,
@@ -175,6 +194,7 @@ export default function Approvals(): React.JSX.Element {
             orderTotalPaise: row.orderTotalPaise,
             retailerId: row.retailerId ?? bargain.retailerId,
             reason: bargain.note,
+            trip: null,
           }
     }),
     ...(bargains.data?.items ?? [])
@@ -202,6 +222,7 @@ export default function Approvals(): React.JSX.Element {
         orderTotalPaise: null,
         retailerId: null,
         reason: row.note,
+        trip: null,
       })),
   ].filter(
     (row) =>
@@ -307,13 +328,21 @@ export default function Approvals(): React.JSX.Element {
       setNote('')
       setSelected(null)
     }
-    const failed = (): void => {
-      /* the error is on the mutation state and rendered under the dialog */
-    }
     // One intent, one idempotency key: a retry of THIS decision can never write a second row.
     if (current.stream === 'approval') {
       void decideApproval.mutateAsync(input).then((result) => {
         done()
+        /*
+         * DOS-235: a trip settlement's decision says what happened to the TRIP, read off the reply — "settled
+         * with a variance" only when the server says the trip is settled, never because Approve was pressed.
+         */
+        if (result.trip !== null && result.trip !== undefined) {
+          const name = result.trip.tripNo ?? result.trip.id.slice(0, 8)
+          if (result.trip.state === 'settled_with_variance' || result.trip.state === 'settled')
+            setToast(t('o3t.settled', { trip: name }))
+          else if (input.decision === 'reject') setToast(t('o3t.sentBack', { trip: name }))
+          return
+        }
         /*
          * DOS-155: the order AFTER the decision, from the reply itself. It is `confirmed` only when
          * this was the last gate, so the toast states what actually happened rather than what the
@@ -322,10 +351,10 @@ export default function Approvals(): React.JSX.Element {
          */
         if (result.order?.state === 'confirmed')
           setToast(t('o3.orderConfirmed', { order: result.order.orderNo ?? '' }))
-      }, failed)
+      }, stayOpen)
       return
     }
-    void decideBargain.mutateAsync(input).then(done, failed)
+    void decideBargain.mutateAsync(input).then(done, stayOpen)
   }
 
   /*
@@ -469,6 +498,12 @@ export default function Approvals(): React.JSX.Element {
                 </Stack>
               </Field>
             )}
+            {current.trip === null ? null : <TripSettlementFacts trip={current.trip} />}
+            {current.kind === 'trip_settlement' && current.trip === null ? (
+              <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                {t('o3t.unreadable')}
+              </Txt>
+            ) : null}
             {current.listRatePaise === null ? null : (
               <Field label={t('o3.listRate')}>
                 <Money value={current.listRatePaise} size="moneyM" />
@@ -553,6 +588,9 @@ export default function Approvals(): React.JSX.Element {
                 order, its total and the limit that stays, and the button goes where it is changed.
                 Only on approve: rejecting a gate releases nothing.
               */}
+              {current?.trip !== null && current?.trip !== undefined ? (
+                <TripSettlementConsequence trip={current.trip} decision={confirm} />
+              ) : null}
               {current?.kind === 'credit_limit' && confirm === 'approve' ? (
                 <Stack gap={2}>
                   <Txt field="bodyStrong" desk="body" testID="approval-credit-release">
@@ -578,6 +616,11 @@ export default function Approvals(): React.JSX.Element {
                   />
                 </Stack>
               ) : null}
+              <Refusal
+                of={[decideApproval, decideBargain]}
+                scope={current?.id ?? null}
+                testID="approval-refusal"
+              />
             </Stack>
           </Panel>
         }
@@ -597,5 +640,164 @@ export default function Approvals(): React.JSX.Element {
         testID="approval-toast"
       />
     </Screen>
+  )
+}
+
+/**
+ * DOS-235: what the desk counted, as the owner reads it before deciding — the trip, the cash made up and
+ * handed over, the difference against the owner's own allowance, the other money taken, and every lot of the
+ * van that did not tally with its value at that batch's cost. Every figure is the server's.
+ */
+function TripSettlementFacts({ trip }: { trip: ApprovalTripSettlement }): React.JSX.Element {
+  const t = useStrings()
+  const colors = useColors()
+  const off = cashOff(trip)
+  const stock = stockSummary(trip)
+  const rupees = (value: number | null): string => (value === null ? '—' : formatINR(paise(value)))
+  return (
+    <Stack gap={4} testID="approval-trip">
+      <Field label={t('o3t.trip')}>
+        {t('o3t.tripLine', { trip: tripName(trip), date: shortDate(trip.tripDate) })}
+      </Field>
+      <Field label={t('o3t.expected')}>
+        <Stack gap={1}>
+          <Money value={trip.expectedCashPaise} size="moneyM" testID="approval-trip-expected" />
+          {trip.cashCollectedPaise === null ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('o3t.expectedHow', {
+                float: rupees(trip.openingCashPaise),
+                taken: rupees(trip.cashCollectedPaise),
+                spent: rupees(trip.expensesPaise),
+              })}
+            </Txt>
+          )}
+        </Stack>
+      </Field>
+      <Field label={t('o3t.handed')}>
+        <Money value={trip.handedOverCashPaise} size="moneyM" testID="approval-trip-handed" />
+      </Field>
+      <Field label={t('o3t.difference')}>
+        <Stack gap={1}>
+          <Txt
+            field="bodyStrong"
+            desk="body"
+            color={cashBeyondTolerance(trip) ? colors.status.brick.fg : undefined}
+            testID="approval-trip-difference"
+          >
+            {off === 'exact'
+              ? t('o3t.exact')
+              : t(off === 'short' ? 'o3t.short' : 'o3t.over', {
+                  amount: rupees(Math.abs(trip.cashVariancePaise)),
+                })}
+          </Txt>
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            {t('o3t.allowed', { amount: rupees(trip.tolerancePaise) })}
+          </Txt>
+        </Stack>
+      </Field>
+      {trip.upiCollectedPaise === null && trip.chequeCollectedPaise === null ? null : (
+        <Field label={t('o3t.otherMoney')}>
+          {t('o3t.otherMoneyLine', {
+            upi: rupees(trip.upiCollectedPaise),
+            cheques: rupees(trip.chequeCollectedPaise),
+          })}
+        </Field>
+      )}
+      <Field label={t('o3t.stock')}>
+        {stock.lots === 0 ? (
+          <Txt field="body" desk="body" testID="approval-trip-stock-tallies">
+            {t('o3t.stockTallies')}
+          </Txt>
+        ) : (
+          <Stack gap={3} testID="approval-trip-stock">
+            {trip.stockVariance.map((line) => (
+              <Stack key={line.lotId} gap={1} border="bottom" borderTone="faint" padY={1}>
+                <Txt field="bodyStrong" desk="body">
+                  {line.batchNo === null
+                    ? line.variantName
+                    : `${line.variantName} · ${line.batchNo}`}
+                </Txt>
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('o3t.stockLine', { expected: line.expectedPcs, counted: line.countedPcs })}
+                </Txt>
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={line.deltaPcs < 0 ? colors.status.brick.fg : undefined}
+                >
+                  {[
+                    line.deltaPcs < 0
+                      ? t('o3t.missing', { count: -line.deltaPcs })
+                      : t('o3t.extra', { count: line.deltaPcs }),
+                    line.valuePaise === null
+                      ? t('o3t.noCost')
+                      : t('o3t.atCost', { value: rupees(Math.abs(line.valuePaise)) }),
+                  ].join(' · ')}
+                </Txt>
+              </Stack>
+            ))}
+            <Txt field="bodyStrong" desk="body" testID="approval-trip-stock-total">
+              {t('o3t.stockTotal', {
+                missing: stock.missingPcs,
+                value:
+                  stock.valuePaise === null ? t('o3t.noCost') : rupees(Math.abs(stock.valuePaise)),
+              })}
+            </Txt>
+          </Stack>
+        )}
+      </Field>
+    </Stack>
+  )
+}
+
+/** DOS-235: what the decision DOES to the trip, said in the confirm dialog before it happens. */
+function TripSettlementConsequence({
+  trip,
+  decision,
+}: {
+  trip: ApprovalTripSettlement
+  decision: 'approve' | 'reject' | null
+}): React.JSX.Element {
+  const t = useStrings()
+  const name = trip.tripNo ?? trip.tripId.slice(0, 8)
+  if (decision !== 'approve')
+    return (
+      <Txt field="bodyStrong" desk="body" testID="approval-trip-consequence">
+        {t('o3t.rejectSays', { trip: name })}
+      </Txt>
+    )
+  const off = cashOff(trip)
+  const stock = stockSummary(trip)
+  const rupees = (value: number): string => formatINR(paise(Math.abs(value)))
+  return (
+    <Stack gap={1} testID="approval-trip-consequence">
+      <Txt field="bodyStrong" desk="body">
+        {t('o3t.approveCash', {
+          trip: name,
+          cash:
+            off === 'exact'
+              ? t('o3t.exact').toLowerCase()
+              : t(off === 'short' ? 'o3t.short' : 'o3t.over', {
+                  amount: rupees(trip.cashVariancePaise),
+                }),
+        })}
+      </Txt>
+      {stock.missingPcs === 0 ? null : (
+        <Txt field="body" desk="body">
+          {t('o3t.approveStock', {
+            count: stock.missingPcs,
+            value: stock.valuePaise === null ? t('o3t.noCost') : rupees(stock.valuePaise),
+          })}
+        </Txt>
+      )}
+      {stock.extraPcs === 0 ? null : (
+        <Txt field="body" desk="body">
+          {t('o3t.approveExtra', { count: stock.extraPcs })}
+        </Txt>
+      )}
+      <Txt field="body" desk="body">
+        {t('o3t.approveBank')}
+      </Txt>
+    </Stack>
   )
 }

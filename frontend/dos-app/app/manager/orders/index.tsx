@@ -463,6 +463,23 @@ export default function OrderQueue(): React.JSX.Element {
   const waiting = [
     ...pending.map((row) => {
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
+      /*
+       * DOS-235: a trip settlement is the OWNER'S alone to accept — the server refuses anyone else, and
+       * approving it settles the trip. The desk reads which trip and how far off it is, and decides nothing.
+       */
+      const trip = row.kind === 'trip_settlement' ? (row.tripSettlement ?? null) : null
+      if (row.kind === 'trip_settlement')
+        return {
+          id: row.id,
+          kind: 'approval' as const,
+          what:
+            trip === null
+              ? word(row.kind)
+              : [trip.tripNo, trip.vehicleRegNo].filter((p): p is string => p !== null).join(' · '),
+          why: `${word(row.kind)} · ${t('m2.ownerOnly')}`,
+          amount: trip?.cashVariancePaise ?? null,
+          ownerOnly: true,
+        }
       return bargain === undefined
         ? {
             id: row.id,
@@ -472,6 +489,7 @@ export default function OrderQueue(): React.JSX.Element {
               word(row.kind),
             why: word(row.kind),
             amount: row.orderTotalPaise,
+            ownerOnly: false,
           }
         : {
             id: row.id,
@@ -481,6 +499,7 @@ export default function OrderQueue(): React.JSX.Element {
               .join(' · '),
             why: t('m2.askedRate'),
             amount: bargain.askedRatePaise,
+            ownerOnly: false,
           }
     }),
     ...(bargains.data?.items ?? [])
@@ -497,6 +516,7 @@ export default function OrderQueue(): React.JSX.Element {
           .join(' · '),
         why: `${t('m2.askedRate')} · ${t('m2.rateAsked', { when: shortInstant(row.createdAt) })}`,
         amount: row.askedRatePaise,
+        ownerOnly: false,
       })),
   ]
 
@@ -645,7 +665,7 @@ export default function OrderQueue(): React.JSX.Element {
                     {row.why}
                   </Txt>
                   <Money value={row.amount} size="cell" />
-                  {mayDecide ? (
+                  {row.ownerOnly ? null : mayDecide ? (
                     <Stack gap={2}>
                       <Button
                         label={t('m2.approve')}

@@ -152,6 +152,8 @@ export const strings = {
   'm2.keys': 'j / k move · Enter open · 1 confirm · 2 cancel',
   'm2.keysRead': 'j / k move · Enter open',
   'm2.approvals': 'Waiting for a decision',
+  /* DOS-235: a trip's variance is the owner's to accept; approving it settles the trip. */
+  'm2.ownerOnly': 'waiting for the owner, whose approval settles the trip',
   'm2.bargains': 'Rate requests',
   'm2.approve': 'Approve',
   'm2.reject': 'Reject',
@@ -576,7 +578,14 @@ export const strings = {
   'm7t.needVehicle': 'Choose a vehicle',
   'm7t.needDriver': 'Choose a driver',
   'm7t.sameCrew': 'The helper cannot be the driver',
-  'm7t.needBill': 'Choose at least one bill',
+  'm7t.needBill': 'Choose at least one bill, or send the van to sell',
+  /* DOS-233: a trip whose van also carries stock to sell at shops with no order. */
+  'm7t.vanSales': 'What the van does',
+  'm7t.billsOnly': 'Deliver bills',
+  'm7t.alsoSell': 'Deliver and sell from the van',
+  'm7t.vanSalesHint':
+    'The godown adds the stock to sell on this trip’s load sheet. The trip may go with no bill.',
+  'm7t.confirmVanSales': 'The crew may sell from the van on this trip.',
   'm7t.onTheRoad': 'On the road — the desk cannot change it',
 
   // --- M7 Trips · what came back undelivered (QA DOS-196) ------------------------------------------
@@ -749,6 +758,11 @@ export const strings = {
   'm10.collections': 'Collected on the road',
   'm10.expenses': 'Expenses',
   'm10.acceptVariance': 'Ask the owner to accept the difference',
+  /* DOS-235: a variance goes to the owner, and the owner's approval is what settles the trip. */
+  'm10.goesToOwner':
+    'This does not tally, so it goes to the owner. The trip is settled when the owner approves it on Approvals.',
+  'm10.vanNotCounted':
+    '{pieces} pc in {lots} lots are still booked on the van — the godown has not counted them back in. Settled now, they count as missing.',
   'm10.selected': '{count} receipts · {amount}',
   'm10.empty': 'Nothing to bank',
   'm10.noTrips': 'No trip is waiting to be settled',
