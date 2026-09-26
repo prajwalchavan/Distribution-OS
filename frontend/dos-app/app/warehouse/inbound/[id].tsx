@@ -33,10 +33,29 @@ import { camera, haptics } from '@dos/ui/platform'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useMemo, useState } from 'react'
 
+import {
+  acknowledgedLines,
+  lineSaveState,
+  unsavedCount,
+  type LineSaveState,
+} from '../../../src/groups/warehouse/lib/count-save'
 import { useVariantNames } from '../../../src/groups/warehouse/lib/local'
 import { Async, DeskOnly, Panel, pl, workFamily } from '../../../src/groups/warehouse/lib/ui'
 
 type Stage = 'count' | 'damaged' | 'review'
+
+/**
+ * DOS-216: the chip a counted line wears. "Saved" is the server's word, not the pad's: it prints only
+ * once `grns.count` has answered 2xx with this figure (`lib/count-save.ts`). Until then the figure
+ * is the hand's and the chip says so.
+ */
+const SAVE_CHIP: Readonly<
+  Record<LineSaveState, { key: string; family: 'neutral' | 'ochre' | 'moss' }>
+> = {
+  waiting: { key: 'w2.stepWaiting', family: 'neutral' },
+  unsaved: { key: 'w3.notSaved', family: 'ochre' },
+  saved: { key: 'w.saved', family: 'moss' },
+}
 
 const KIND_KEY: Readonly<Record<string, string>> = {
   short: 'w3.kindShort',
@@ -101,8 +120,11 @@ export default function GateCount(): React.JSX.Element {
         setToast(t('w3.saved'))
         setStage('review')
       },
-      onError: () => {
+      onError: (error) => {
         haptics.error()
+        // A refusal means the receipt moved on (posted, cancelled) under this hand: read it again so
+        // the screen shows what it is now. A lost connection changed nothing on the server.
+        if (error.kind !== 'network') void grn.refetch()
       },
     },
   )
@@ -126,7 +148,21 @@ export default function GateCount(): React.JSX.Element {
     })
   }
 
-  const remaining = lines.filter((row) => counted[row.id] === undefined).length
+  /** The server's copy of each line: the last successful count's reply over the last read. */
+  const acknowledged = acknowledgedLines(
+    lines,
+    save.status === 'success' ? save.data?.item.lines : undefined,
+  )
+  const remaining = lines.filter(
+    (row) =>
+      counted[row.id] === undefined && (acknowledged.get(row.id)?.countedQtyPcs ?? null) === null,
+  ).length
+  const notSaved = unsavedCount(
+    lines.map((row) => row.id),
+    counted,
+    damaged,
+    acknowledged,
+  )
 
   // ---------------------------------------------------------------- the pad, full screen
   if (countable && stage !== 'review' && line !== undefined) {
@@ -243,8 +279,17 @@ export default function GateCount(): React.JSX.Element {
       bottomBar={
         countable ? (
           <Row justify="between" align="center" gap={4} wrap>
-            <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {remaining === 0 ? t('w3.allCounted') : pl(t, 'w3.remaining', remaining)}
+            <Txt
+              field="label"
+              desk="meta"
+              color={notSaved > 0 ? colors.status.ochre.fg : colors.text.secondary}
+              testID="w3-save-summary"
+            >
+              {notSaved > 0
+                ? pl(t, 'w3.unsaved', notSaved)
+                : remaining === 0
+                  ? t('w3.allCounted')
+                  : pl(t, 'w3.remaining', remaining)}
             </Txt>
             <Button
               label={t('w3.done')}
@@ -277,42 +322,52 @@ export default function GateCount(): React.JSX.Element {
           empty={lines.length === 0}
           emptyMessage={t('state.empty')}
         >
-          {countable ? null : <DeskOnly>{t('w3.notCounting', { status })}</DeskOnly>}
+          {countable ? null : (
+            <DeskOnly>
+              {status === 'reconciled'
+                ? t('w3.countedWaitsForDesk')
+                : t('w3.notCounting', { status })}
+            </DeskOnly>
+          )}
           <Panel title={t('w3.counted')} meta={t('w3.blind')} testID="w3-lines">
             <Group>
-              {lines.map((row, at) => (
-                <ListRow
-                  key={row.id}
-                  testID={`w3-line-${row.id}`}
-                  primary={nameOf(row.variantId)}
-                  secondary={
-                    counted[row.id] === undefined
-                      ? t('w3.countLabel')
-                      : t('w.pieces', { pieces: counted[row.id] ?? 0 })
-                  }
-                  trailing={
-                    (damaged[row.id] ?? 0) > 0 ? (
+              {lines.map((row, at) => {
+                const server = acknowledged.get(row.id)
+                const good = counted[row.id] ?? server?.countedQtyPcs ?? null
+                const broken = damaged[row.id] ?? server?.damagedQtyPcs ?? 0
+                const saveState = lineSaveState(counted[row.id], damaged[row.id], server)
+                const chip = SAVE_CHIP[saveState]
+                return (
+                  <ListRow
+                    key={row.id}
+                    testID={`w3-line-${row.id}`}
+                    primary={nameOf(row.variantId)}
+                    secondary={
+                      good === null
+                        ? t('w3.countLabel')
+                        : broken > 0
+                          ? t('w3.goodAndDamaged', { pieces: good, damaged: broken })
+                          : t('w.pieces', { pieces: good })
+                    }
+                    trailing={
                       <StatusChip
-                        label={t('w.pieces', { pieces: damaged[row.id] ?? 0 })}
-                        family="brick"
+                        label={t(chip.key)}
+                        family={chip.family}
+                        testID={`w3-line-state-${row.id}`}
                       />
-                    ) : counted[row.id] === undefined ? (
-                      <StatusChip label={t('w2.stepWaiting')} family="neutral" />
-                    ) : (
-                      <StatusChip label={t('w.saved')} family="moss" />
-                    )
-                  }
-                  state={counted[row.id] === undefined ? 'needsAttention' : 'default'}
-                  {...(countable
-                    ? {
-                        onPress: () => {
-                          setIndex(at)
-                          setStage('count')
-                        },
-                      }
-                    : {})}
-                />
-              ))}
+                    }
+                    state={saveState === 'waiting' ? 'needsAttention' : 'default'}
+                    {...(countable
+                      ? {
+                          onPress: () => {
+                            setIndex(at)
+                            setStage('count')
+                          },
+                        }
+                      : {})}
+                  />
+                )
+              })}
             </Group>
           </Panel>
 
@@ -339,10 +394,23 @@ export default function GateCount(): React.JSX.Element {
           </Panel>
 
           <DeskOnly>{t('w3.postIsDesk')}</DeskOnly>
-          {save.error === undefined ? null : (
-            <Txt field="body" desk="body" color={colors.status.brick.fg}>
-              {save.error.message}
-            </Txt>
+          {/*
+           * DOS-216: a refused or lost save says what failed and keeps every keyed figure on screen —
+           * `counted` / `damaged` are never cleared here — so the hand presses Save again, not recounts.
+           */}
+          {save.status !== 'error' || save.error === undefined ? null : (
+            <Stack gap={1} testID="w3-save-error">
+              <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                {t('w3.saveFailedBecause', {
+                  reason: save.error.kind === 'network' ? t('w3.saveOffline') : save.error.message,
+                })}
+              </Txt>
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {save.error.kind === 'network'
+                  ? `${t('w3.keptFigures')} ${t('w3.retryOnline')}`
+                  : t('w3.keptFigures')}
+              </Txt>
+            </Stack>
           )}
           <Button
             label={t('w.close')}
