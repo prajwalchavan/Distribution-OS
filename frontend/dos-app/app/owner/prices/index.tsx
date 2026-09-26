@@ -5,19 +5,30 @@
  * bend them, the per-shop overrides that beat both, and a what-if that prices a real basket through
  * `pricing.quote` — the SAME engine an order goes through, so what this screen says is what the shop
  * will be charged.
+ *
+ * DOS-214: all three are EDITED here now, not only read. A rate on a list (`priceLists.setItems`, one
+ * item per call), a shop's own rate with the `final` mark, and a scheme — created, changed, paused
+ * (`schemes.upsert`). The editors are `src/pricing/editors.tsx`, shared with the manager's desk, and
+ * each says "saved" only after the service has answered 2xx (never-list #12). The same finding named
+ * two caps on this screen, both gone: every price list is offered (Tier C was cut off by a three-item
+ * `Segments`) and the what-if view is reachable (the view switch is a four-tab row now).
  */
+import type { PriceList, PriceListItem, RetailerPriceOverride, Scheme } from '@dos/contracts'
 import { useApi, useQuery } from '@dos/api-client/react'
 import {
   Button,
+  Chips,
   Money,
   Register,
   Screen,
   Search,
-  Segments,
   Stack,
   StatusChip,
+  Tabs,
   TextInput,
+  Toast,
   Txt,
+  useColors,
   useStrings,
   type RegisterColumn,
 } from '@dos/ui'
@@ -34,57 +45,40 @@ import {
 } from '../../../src/groups/owner/lib/ui'
 import { longDate, today } from '../../../src/groups/owner/lib/dates'
 import { formatBps, useWord } from '../../../src/groups/owner/lib/words'
-
-type PriceListItem = {
-  id: string
-  priceListId: string
-  variantId: string
-  /** DOS-013: the server names the item; a price list may price something the tenant never listed. */
-  variantName: string
-  ratePaise: number
-  inclusiveOfGst: boolean
-}
-type PriceList = {
-  id: string
-  name: string
-  tier: string | null
-  isDefault: boolean
-  validFrom: string | null
-  validTo: string | null
-  active: boolean
-  items: readonly PriceListItem[]
-}
-type Scheme = {
-  id: string
-  name: string
-  brandId: string | null
-  triggerKind: string
-  triggerMin: number
-  triggerUnit: string
-  rewardKind: string
-  rewardValue: number
-  validFrom: string
-  validTo: string | null
-  stackable: boolean
-  final: boolean
-  fundingSource: string
-  claimable: boolean
-  active: boolean
-}
+import { overrideState, schemeState } from '../../../src/pricing/forms'
+import {
+  OverrideSheet,
+  PriceRateDialog,
+  SchemeSheet,
+  deskScheme,
+  useMayWrite,
+} from '../../../src/pricing/editors'
 
 type View = 'lists' | 'schemes' | 'overrides' | 'quote'
 
 export default function Prices(): React.JSX.Element {
   const t = useStrings()
   const word = useWord()
+  const colors = useColors()
   const api = useApi()
   const names = useNames()
+  const may = useMayWrite()
   const [view, setView] = useState<View>('lists')
   const [listId, setListId] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [quoteRetailer, setQuoteRetailer] = useState('')
   const [quoteVariant, setQuoteVariant] = useState('')
   const [quoteQty, setQuoteQty] = useState('12')
+  const [toast, setToast] = useState<string | null>(null)
+
+  /* Which editor is open, and on what: `null` row = a new one. */
+  const [rateFor, setRateFor] = useState<{ item: PriceListItem | null } | null>(null)
+  const [schemeFor, setSchemeFor] = useState<{ row: Scheme | null } | null>(null)
+  const [overrideFor, setOverrideFor] = useState<{ row: RetailerPriceOverride | null } | null>(null)
+
+  const mayRates = may('pricing.priceLists.setItems')
+  const maySchemes = may('pricing.schemes.upsert')
+  const mayOverrides = may('pricing.overrides.upsert')
 
   const lists = useQuery(['pricing', 'priceLists'], () => api.api.pricing.priceLists.list({}))
   const schemes = useQuery(['pricing', 'schemes'], () =>
@@ -112,11 +106,16 @@ export default function Prices(): React.JSX.Element {
   const variantName = (variantId: string): string =>
     catalog.data?.items.find((row) => row.variantId === variantId)?.name ?? variantId.slice(0, 8)
 
-  const listRows = (lists.data?.items ?? []) as readonly PriceList[]
+  const listRows: readonly PriceList[] = lists.data?.items ?? []
   const current = listRows.find((row) => row.id === listId) ?? listRows[0] ?? null
   const itemRows = (current?.items ?? []).filter((item) =>
     q === '' ? true : item.variantName.toLowerCase().includes(q.toLowerCase()),
   )
+  const schemeRows = (schemes.data?.items ?? [])
+    .map((row) => deskScheme(row))
+    .filter((row): row is NonNullable<typeof row> => row !== null)
+  const overrideRows = overrides.data?.items ?? []
+  const day = today()
 
   const runQuote = (): void => {
     setQuoteError(null)
@@ -194,6 +193,20 @@ export default function Prices(): React.JSX.Element {
 
   const schemeColumns: readonly RegisterColumn<Scheme>[] = [
     textColumn('name', t('o8.scheme'), (row) => row.name, { priority: 'identity' }),
+    {
+      key: 'state',
+      head: t('px.status'),
+      priority: 'chip',
+      cell: (row) => {
+        const state = schemeState(row, day)
+        return (
+          <StatusChip
+            label={t(`px.state.${state}`)}
+            family={state === 'running' ? 'moss' : 'neutral'}
+          />
+        )
+      },
+    },
     textColumn('trigger', t('o8.trigger'), trigger),
     textColumn('reward', t('o8.reward'), reward),
     textColumn('funding', t('o8.funding'), (row) => word(row.fundingSource)),
@@ -205,20 +218,16 @@ export default function Prices(): React.JSX.Element {
     {
       key: 'flags',
       head: t('o8.stackable'),
-      priority: 'chip',
       cell: (row) => (
         <StatusChip
-          label={row.final ? t('o8.final') : row.stackable ? t('o8.stackable') : t('word.no')}
-          family={row.active ? 'moss' : 'neutral'}
+          label={row.final ? t('o8.final') : row.stackable ? t('o8.stackable') : t('px.exclusive')}
+          family="neutral"
         />
       ),
     },
   ]
 
-  const overrideRows = overrides.data?.items ?? []
-  type Override = (typeof overrideRows)[number]
-
-  const overrideColumns: readonly RegisterColumn<Override>[] = [
+  const overrideColumns: readonly RegisterColumn<RetailerPriceOverride>[] = [
     textColumn('shop', t('o8.quoteShop'), (row) => names.retailer(row.retailerId), {
       priority: 'identity',
     }),
@@ -227,7 +236,6 @@ export default function Prices(): React.JSX.Element {
     {
       key: 'final',
       head: t('o8.final'),
-      priority: 'chip',
       cell: (row) => (
         <StatusChip
           label={row.final ? t('o8.final') : t('o8.stackable')}
@@ -240,46 +248,96 @@ export default function Prices(): React.JSX.Element {
       t('o8.valid'),
       (row) => `${longDate(row.validFrom)} – ${longDate(row.validTo)}`,
     ),
+    {
+      key: 'state',
+      head: t('px.status'),
+      priority: 'chip',
+      cell: (row) => {
+        const state = overrideState(row, day)
+        return (
+          <StatusChip
+            label={t(`px.state.${state}`)}
+            family={state === 'running' ? 'moss' : 'neutral'}
+          />
+        )
+      },
+    },
   ]
 
+  /* The one primary action of the view in front of the desk, and only where the matrix allows it. */
+  const action =
+    view === 'lists' && mayRates && current !== null ? (
+      <Button
+        label={t('px.addItem')}
+        variant="primary"
+        onPress={() => {
+          setRateFor({ item: null })
+        }}
+        testID="prices-add-item"
+      />
+    ) : view === 'schemes' && maySchemes ? (
+      <Button
+        label={t('px.newScheme')}
+        variant="primary"
+        onPress={() => {
+          setSchemeFor({ row: null })
+        }}
+        testID="prices-new-scheme"
+      />
+    ) : view === 'overrides' && mayOverrides ? (
+      <Button
+        label={t('px.setShopRate')}
+        variant="primary"
+        onPress={() => {
+          setOverrideFor({ row: null })
+        }}
+        testID="prices-new-override"
+      />
+    ) : undefined
+
+  const hint = (allowed: boolean): React.JSX.Element => (
+    <Txt field="label" desk="meta" color={colors.text.secondary}>
+      {allowed ? t('px.tapToEdit') : t('px.readOnly')}
+    </Txt>
+  )
+
   return (
-    <Screen
-      title={t('o8.title')}
-      actions={
-        <Segments
+    <Screen title={t('o8.title')} actions={action}>
+      <Stack gap={4}>
+        <Tabs
           value={view}
           onChange={(id) => {
             setView(id as View)
           }}
           items={[
-            { id: 'lists', label: t('o8.priceLists') },
-            { id: 'schemes', label: t('o8.schemes') },
-            { id: 'overrides', label: t('o8.overrides') },
-            { id: 'quote', label: t('o8.quote') },
+            { id: 'lists', label: t('px.tab.lists') },
+            { id: 'schemes', label: t('px.tab.schemes') },
+            { id: 'overrides', label: t('px.tab.shopRates') },
+            { id: 'quote', label: t('px.tab.whatIf') },
           ]}
           testID="prices-view"
         />
-      }
-    >
-      <Stack gap={4}>
+
         {view === 'lists' ? (
           <>
-            <Segments
-              value={current?.id ?? ''}
-              onChange={setListId}
-              items={listRows.slice(0, 3).map((row) => ({
+            {/* Every list, not the first three: Tier C and Tier D are lists a distributor prices too. */}
+            <Chips
+              testID="prices-lists"
+              items={listRows.map((row) => ({
                 id: row.id,
                 label: row.isDefault ? `${row.name} · ${t('o8.default')}` : row.name,
+                selected: row.id === current?.id,
               }))}
-              testID="prices-lists"
+              onToggle={setListId}
             />
             <Search
               testID="prices-search"
               value={q}
               onChange={setQ}
-              placeholder={t('o9.search')}
+              placeholder={t('px.filterList')}
               state={q === '' ? 'idle' : itemRows.length === 0 ? 'noResults' : 'results'}
             />
+            {hint(mayRates)}
             <Async
               state={[lists]}
               rows={10}
@@ -294,35 +352,64 @@ export default function Prices(): React.JSX.Element {
                 frozen="item"
                 state="ready"
                 totals={{ item: t('app.rows', { count: itemRows.length }) }}
+                {...(mayRates
+                  ? {
+                      onSelect: (row: PriceListItem) => {
+                        setRateFor({ item: row })
+                      },
+                    }
+                  : {})}
               />
             </Async>
           </>
         ) : null}
 
         {view === 'schemes' ? (
-          <Async state={[schemes]} rows={10} empty={(schemes.data?.items.length ?? 0) === 0}>
-            <Register
-              testID="prices-schemes"
-              columns={schemeColumns}
-              rows={(schemes.data?.items ?? []) as readonly Scheme[]}
-              rowKey={(row) => row.id}
-              frozen="name"
-              state="ready"
-            />
-          </Async>
+          <>
+            {hint(maySchemes)}
+            <Async state={[schemes]} rows={10} empty={schemeRows.length === 0}>
+              <Register
+                testID="prices-schemes"
+                columns={schemeColumns}
+                rows={schemeRows}
+                rowKey={(row) => row.id}
+                frozen="name"
+                state="ready"
+                totals={{ name: t('app.rows', { count: schemeRows.length }) }}
+                {...(maySchemes
+                  ? {
+                      onSelect: (row: Scheme) => {
+                        setSchemeFor({ row })
+                      },
+                    }
+                  : {})}
+              />
+            </Async>
+          </>
         ) : null}
 
         {view === 'overrides' ? (
-          <Async state={[overrides]} rows={10} empty={(overrides.data?.items.length ?? 0) === 0}>
-            <Register
-              testID="prices-overrides"
-              columns={overrideColumns}
-              rows={overrideRows}
-              rowKey={(row) => row.id}
-              frozen="shop"
-              state="ready"
-            />
-          </Async>
+          <>
+            {hint(mayOverrides)}
+            <Async state={[overrides]} rows={10} empty={overrideRows.length === 0}>
+              <Register
+                testID="prices-overrides"
+                columns={overrideColumns}
+                rows={overrideRows}
+                rowKey={(row) => row.id}
+                frozen="shop"
+                state="ready"
+                totals={{ shop: t('app.rows', { count: overrideRows.length }) }}
+                {...(mayOverrides
+                  ? {
+                      onSelect: (row: RetailerPriceOverride) => {
+                        setOverrideFor({ row })
+                      },
+                    }
+                  : {})}
+              />
+            </Async>
+          </>
         ) : null}
 
         {view === 'quote' ? (
@@ -371,6 +458,41 @@ export default function Prices(): React.JSX.Element {
           </Panel>
         ) : null}
       </Stack>
+
+      <PriceRateDialog
+        list={current}
+        item={rateFor?.item ?? null}
+        open={rateFor !== null}
+        onClose={() => {
+          setRateFor(null)
+        }}
+        onSaved={setToast}
+      />
+      <SchemeSheet
+        open={schemeFor !== null}
+        row={schemeFor?.row ?? null}
+        onClose={() => {
+          setSchemeFor(null)
+        }}
+        onSaved={setToast}
+      />
+      <OverrideSheet
+        open={overrideFor !== null}
+        row={overrideFor?.row ?? null}
+        rows={overrideRows}
+        onClose={() => {
+          setOverrideFor(null)
+        }}
+        onSaved={setToast}
+      />
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="prices-toast"
+      />
     </Screen>
   )
 }

@@ -21,7 +21,6 @@ import {
   Money,
   Register,
   Row,
-  RupeeInput,
   Screen,
   Search,
   Sparkline,
@@ -29,6 +28,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   useColors,
   useStrings,
@@ -59,6 +59,7 @@ import {
 } from '../../../src/groups/manager/lib/shops'
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/keys'
 import { useWord } from '../../../src/groups/manager/lib/words'
+import { CreditDialog } from '../../../src/pricing/editors'
 
 export default function Shops(): React.JSX.Element {
   const t = useStrings()
@@ -75,9 +76,8 @@ export default function Shops(): React.JSX.Element {
   const [beatId, setBeatId] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [dialog, setDialog] = useState<'credit' | 'statement' | 'link' | null>(null)
-  const [limitPaise, setLimitPaise] = useState<number | null>(null)
-  const [creditDays, setCreditDays] = useState('')
   const [phone, setPhone] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const beats = useQuery(['names', 'beats'], () => api.api.retailers.beats.list({}), {
     staleTime: 300_000,
@@ -128,29 +128,11 @@ export default function Shops(): React.JSX.Element {
     { enabled: selected !== null && can('reporting.retailers.behaviour') },
   )
 
-  const setCredit = useMutation(
-    (
-      input: {
-        id: string
-        tier: Retailer['tier']
-        creditLimitPaise: number
-        creditDays: number
-        creditLimitBills: number
-        creditMode: Retailer['creditMode']
-      },
-      meta,
-    ) =>
-      api.api.retailers.setCredit({
-        id: input.id,
-        idempotencyKey: meta.idempotencyKey,
-        tier: input.tier,
-        creditLimitPaise: input.creditLimitPaise,
-        creditDays: input.creditDays,
-        creditLimitBills: input.creditLimitBills,
-        creditMode: input.creditMode,
-      }),
-    { invalidates: [['retailers'], ['receivables'], ['names']] },
-  )
+  /*
+   * DOS-212: "Change the credit terms" is `src/pricing/editors.tsx`'s CreditDialog, the owner's own —
+   * limit, days to pay, what happens over the limit and the payment terms in one `retailers.setCredit`.
+   * It used to ask for the two numbers only and pass the shop's mode straight back.
+   */
   const statement = useMutation(
     (retailerId: string, meta) =>
       api.api.receivables.statements.send({
@@ -207,7 +189,9 @@ export default function Shops(): React.JSX.Element {
       cell: (row) => (
         <StatusChip
           label={word(row.creditMode)}
-          family={row.creditMode === 'stop' ? 'brick' : 'neutral'}
+          family={
+            row.creditMode === 'stop' ? 'brick' : row.creditMode === 'strict' ? 'ochre' : 'neutral'
+          }
         />
       ),
     }),
@@ -301,6 +285,9 @@ export default function Shops(): React.JSX.Element {
               <Field label={t('m14.limit')}>
                 <Money value={current.creditLimitPaise} size="cell" symbol={false} />
               </Field>
+              <Field label={t('px.creditDays')}>{String(current.creditDays)}</Field>
+              <Field label={t('m14.creditMode')}>{word(current.creditMode)}</Field>
+              <Field label={t('px.terms')}>{word(current.paymentTerms)}</Field>
               <Field label={t('m14.phone')}>{current.phone ?? t('app.none')}</Field>
               <Field label={t('m14.gstin')}>{current.gstin ?? t('app.none')}</Field>
 
@@ -385,8 +372,6 @@ export default function Shops(): React.JSX.Element {
                     label={t('m14.setCredit')}
                     variant="secondary"
                     onPress={() => {
-                      setLimitPaise(current.creditLimitPaise)
-                      setCreditDays(String(current.creditDays))
                       setDialog('credit')
                     }}
                     testID="shop-credit"
@@ -418,37 +403,23 @@ export default function Shops(): React.JSX.Element {
         </Async>
       </Sheet>
 
-      <Dialog
-        open={dialog !== null}
+      <CreditDialog
+        shop={current}
+        open={dialog === 'credit'}
         onClose={() => {
           setDialog(null)
         }}
-        title={
-          dialog === 'credit'
-            ? t('m14.creditTitle', { shop: current?.name ?? '' })
-            : dialog === 'statement'
-              ? t('m14.statement')
-              : t('m14.link')
-        }
+        onSaved={setToast}
+      />
+
+      <Dialog
+        open={dialog === 'statement' || dialog === 'link'}
+        onClose={() => {
+          setDialog(null)
+        }}
+        title={dialog === 'statement' ? t('m14.statement') : t('m14.link')}
         body={
           <Stack gap={3}>
-            {dialog === 'credit' ? (
-              <>
-                <RupeeInput
-                  label={t('m14.creditLimit')}
-                  value={limitPaise}
-                  onChange={setLimitPaise}
-                  testID="credit-limit"
-                />
-                <TextInput
-                  label={t('m14.creditDays')}
-                  value={creditDays}
-                  onChange={setCreditDays}
-                  keyboard="decimal"
-                  testID="credit-days"
-                />
-              </>
-            ) : null}
             {dialog === 'statement' ? (
               <Txt field="body" desk="body">
                 {t('m14.statementBody')}
@@ -469,44 +440,30 @@ export default function Shops(): React.JSX.Element {
                 />
               </>
             ) : null}
-            <Refusal of={[setCredit, statement, link]} testID="shop-refusal" />
+            <Refusal of={[statement, link]} testID="shop-refusal" />
           </Stack>
         }
-        confirmLabel={
-          dialog === 'credit'
-            ? t('app.save')
-            : dialog === 'statement'
-              ? t('m14.statement')
-              : t('m14.link')
-        }
-        busy={
-          setCredit.status === 'pending' ||
-          statement.status === 'pending' ||
-          link.status === 'pending'
-        }
+        confirmLabel={dialog === 'statement' ? t('m14.statement') : t('m14.link')}
+        busy={statement.status === 'pending' || link.status === 'pending'}
         onConfirm={() => {
           if (selected === null) return
           const close = (): void => {
             setDialog(null)
           }
-          if (dialog === 'credit' && limitPaise !== null && current !== null)
-            void setCredit
-              .mutateAsync({
-                id: selected,
-                /* The tier, the bill count and the mode are the shop's own; only the two numbers
-                   this dialog actually asks for change. */
-                tier: current.tier,
-                creditLimitPaise: limitPaise,
-                creditDays: Number.parseInt(creditDays, 10) || 0,
-                creditLimitBills: current.creditLimitBills,
-                creditMode: current.creditMode,
-              })
-              .then(close, stayOpen)
           if (dialog === 'statement') void statement.mutateAsync(selected).then(close, stayOpen)
           if (dialog === 'link')
             void link.mutateAsync({ id: selected, phone: phone.trim() }).then(close, stayOpen)
         }}
         testID="shop-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="shop-toast"
       />
     </Screen>
   )

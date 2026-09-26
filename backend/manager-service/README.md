@@ -4224,6 +4224,7 @@ Set tier and credit terms (owner/manager/accountant only) · contract `retailers
 | `creditLimitBills` | integer | yes |
 | `creditDays` | integer | yes |
 | `creditMode` | indicate | strict | stop | yes |
+| `paymentTerms` | PRE | ON | POST_FULFILLMENT | no |
 
 **Example request**
 
@@ -4243,7 +4244,8 @@ request.json
   "creditLimitPaise": 2680000,
   "creditLimitBills": 1,
   "creditDays": 7,
-  "creditMode": "indicate"
+  "creditMode": "indicate",
+  "paymentTerms": "PRE"
 }
 ```
 

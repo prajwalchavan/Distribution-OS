@@ -165,6 +165,12 @@ export const SetCreditInput = MutationBase.extend({
   creditLimitBills: z.number().int().min(0),
   creditDays: z.number().int().min(0).max(365),
   creditMode: CreditModeSchema,
+  /**
+   * DOS-212 (expand-only): the shop's payment terms travel with its credit, because "cash on
+   * delivery", "pays in advance" and "credit for N days" are one decision the desk makes about a shop.
+   * `upsert` also carries it, but that call replaces the whole shop record. Omitted = unchanged.
+   */
+  paymentTerms: PaymentTermsSchema.optional(),
 })
 export const SetCreditOutput = z.object({ item: RetailerSchema })
 

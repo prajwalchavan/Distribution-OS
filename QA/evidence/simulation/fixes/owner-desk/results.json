@@ -1,0 +1,126 @@
+{
+  "at": "2026-09-26T10:01:37.573Z",
+  "app": "http://127.0.0.1:5437",
+  "results": [
+    {
+      "name": "DOS-212 the credit dialog opens on the current values",
+      "ok": true,
+      "detail": "Now: ₹1,80,000.00 · 14 days · Warn only · Credit"
+    },
+    {
+      "name": "DOS-212 a write that does not reach the service keeps the dialog open, the input and says why",
+      "ok": true,
+      "detail": "No connection. Check the signal, then press again."
+    },
+    {
+      "name": "DOS-212 nothing was written on the failed save",
+      "ok": true,
+      "detail": "indicate|POST_FULFILLMENT"
+    },
+    {
+      "name": "DOS-212 saved: stop + ON + ₹0 + 0 days in SQL",
+      "ok": true,
+      "detail": "stop|ON|0|0"
+    },
+    {
+      "name": "DOS-212 the register chip follows the change",
+      "ok": true,
+      "detail": "R-0011Sai Baba KiranaKalyan West MarketB0.00Pays on deliveryBlocked+918655015314"
+    },
+    {
+      "name": "DOS-214 an empty rate is not sent; the dialog says what to do",
+      "ok": true,
+      "detail": "Enter a rate above ₹0"
+    },
+    {
+      "name": "DOS-214 Tier C rate saved: 2735 paise in SQL",
+      "ok": true,
+      "detail": "2735"
+    },
+    {
+      "name": "DOS-214 a scheme save that does not reach the service keeps the sheet and the input",
+      "ok": true,
+      "detail": "No connection. Check the signal, then press again."
+    },
+    {
+      "name": "DOS-214 line scheme in SQL: line_pct 250 bps, stacks, tiers A B, one item",
+      "ok": true,
+      "detail": "line_pct|250|true|[\"A\", \"B\"]|1"
+    },
+    {
+      "name": "DOS-214 150 % is refused on the screen, never sent",
+      "ok": true,
+      "detail": "Enter a percentage above 0 and up to 100, like 2.5"
+    },
+    {
+      "name": "DOS-214 order-value scheme in SQL: order_pct 300, value ≥ 750000 paise, exclusive, to 2026-10-31",
+      "ok": true,
+      "detail": "order_pct|300|value|inr|750000|false|2026-10-31"
+    },
+    {
+      "name": "DOS-214 editing a scheme pauses it (active false; economics unchanged keep the version)",
+      "ok": true,
+      "detail": "false|1"
+    },
+    {
+      "name": "DOS-214 final shop rate in SQL: 2450 paise, final, open-ended",
+      "ok": true,
+      "detail": "2450|true|open"
+    },
+    {
+      "name": "DOS-214 ending a shop rate writes its last day",
+      "ok": true,
+      "detail": "2026-09-26"
+    },
+    {
+      "name": "phone: the credit dialog does not scroll the page sideways",
+      "ok": true,
+      "detail": "overflow 0px"
+    },
+    {
+      "name": "DOS-212 the manager sets mode + terms too (strict | PRE)",
+      "ok": true,
+      "detail": "strict|PRE"
+    },
+    {
+      "name": "DOS-214 the manager edits a scheme (running again)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "the accountant sees no credit control (matrix: owner + manager)",
+      "ok": true,
+      "detail": "controls 0"
+    }
+  ],
+  "screenshots": [
+    "01-owner-shops-register-mode-column-desk",
+    "02-owner-credit-dialog-current-values-desk",
+    "03-owner-credit-save-not-reached-desk",
+    "04-owner-credit-saved-panel-desk",
+    "05-owner-shops-register-chip-followed-desk",
+    "06-owner-prices-tier-c-reachable-desk",
+    "07-owner-rate-empty-refused-desk",
+    "08-owner-rate-saved-desk",
+    "09-owner-new-line-scheme-desk",
+    "10-owner-scheme-save-not-reached-desk",
+    "11-owner-line-scheme-saved-desk",
+    "12-owner-order-scheme-bad-percent-desk",
+    "13-owner-order-scheme-saved-desk",
+    "14-owner-scheme-paused-desk",
+    "15-owner-final-shop-rate-form-desk",
+    "16-owner-final-shop-rate-saved-desk",
+    "17-owner-end-shop-rate-dialog-desk",
+    "18-owner-shop-rate-ended-desk",
+    "19-owner-what-if-reachable-desk",
+    "20-owner-credit-dialog-phone",
+    "21-owner-prices-lists-phone",
+    "22-owner-new-scheme-sheet-phone",
+    "23-owner-shop-rate-sheet-phone",
+    "30-manager-credit-dialog-desk",
+    "31-manager-credit-saved-desk",
+    "32-manager-edit-scheme-desk",
+    "33-manager-shop-rate-sheet-phone",
+    "40-accountant-shop-panel-no-credit-control-desk"
+  ]
+}
