@@ -1,0 +1,102 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Orders
+Today
+7 days
+30 days
+Export CSV
+Orders
+Trips
+Submitted
+Confirmed
+Picking
+Packed
+✓ Dispatched
+Delivered
+Cancelled
+Filters (1) · Clear
+Any date
+Dispatched
+Filters (2)
+Clear
+Order	Shop	State	Value ₹	Waiting on	Placed
+
+SO-0856
+	
+Joshi Kirana Stores
+	Dispatched	14,962.00	
+—
+	
+11 Sep
+
+
+SO-0866
+	
+Rukmini Provision
+	Dispatched	26,581.00	
+—
+	
+11 Sep
+
+
+SO-0860
+	
+Nakshatra Kirana
+	Dispatched	4,756.00	
+—
+	
+11 Sep
+
+
+SO-0861
+	
+Laxmi Narayan Stores
+	Dispatched	22,508.00	
+—
+	
+11 Sep
+
+
+SO-0855
+	
+Vaibhav Kirana Mart
+	Dispatched	7,856.00	
+—
+	
+11 Sep
+
+
+SO-0864
+	
+Khan General Store
+	Dispatched	907.00	
+—
+	
+11 Sep
+
+
+SO-0857
+	
+Ansari Kirana Stores
+	Dispatched	2,610.00	
+—
+	
+11 Sep
+
+7 rows			80,180.00		

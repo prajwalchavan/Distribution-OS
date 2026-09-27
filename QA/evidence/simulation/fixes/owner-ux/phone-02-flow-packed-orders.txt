@@ -1,0 +1,54 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Orders
+Today
+7 days
+30 days
+Export CSV
+Orders
+Trips
+Submitted
+Confirmed
+Picking
+✓ Packed
+Dispatched
+Delivered
+Cancelled
+Filters (1) · Clear
+Any date
+Packed
+Filters (2)
+Clear
+SO-0875 · Balaji Wholesale Stores
+Packed
+1,01,531.00
+SO-0871 · Kadam Stores
+Packed
+12,707.00
+SO-0869 · Meghana General Store
+Packed
+7,076.00
+SO-0876 · Rameshwar General Store
+Packed
+18,027.00
+SO-0878 · Gupta Kirana Stores
+Packed
+11,300.00
+SO-0862 · City Light Provision
+Packed
+7,038.00
+SO-9001 · Mahalaxmi General Stores
+Packed
+2,327.00
+SO-0850 · Ambika Provision Store
+Packed
+12,569.00
+SO-0845 · Nutan Kirana Stores
+Packed
+4,264.00
+Today
+Orders
+Money
+Shops

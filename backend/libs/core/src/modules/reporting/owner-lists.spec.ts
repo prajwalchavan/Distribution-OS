@@ -194,7 +194,10 @@ describeDb('owner registers read newest first and name money on account (DATABAS
     expect(got.status, JSON.stringify(got.body)).toBe(200)
     const row = (id: string) => got.body.items.find((item) => item.retailerId === id)
     expect(row(shopA)).toMatchObject({ outstandingPaise: 107100, unallocatedCreditPaise: 107100 })
-    expect(row(shopB)).toMatchObject({ outstandingPaise: 72080400, unallocatedCreditPaise: 1127600 })
+    expect(row(shopB)).toMatchObject({
+      outstandingPaise: 72080400,
+      unallocatedCreditPaise: 1127600,
+    })
     expect(row(shopC)).toMatchObject({ outstandingPaise: 0, unallocatedCreditPaise: 0 })
     expect(got.body.totals.unallocatedCreditPaise).toBe(107100 + 1127600)
     // "shops that owe" is the existing `minOutstandingPaise` filter: a ₹0 shop drops out, nothing else moves

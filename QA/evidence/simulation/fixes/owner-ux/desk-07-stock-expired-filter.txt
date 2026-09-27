@@ -1,0 +1,518 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+✓ Expired
+Filters (1) · Clear
+Item	Batch	Location	Expiry	On hand	Held	Sellable	MRP ₹
+
+Annapurna Besan 500 g
+	
+B20251204
+	
+Godown
+	
+31 Aug 2026
+	20	0	Expired · 20	60.00
+
+Annapurna Bombay Rava 500 g
+	
+B20251227
+	
+Godown
+	
+23 Sep 2026
+	40	0	Expired · 40	28.00
+
+Campa Lemon 1 L
+	
+B20251205
+	
+Godown
+	
+1 Sep 2026
+	24	0	Expired · 24	50.00
+
+Campa Orange 200 ml
+	
+B20251229
+	
+Godown
+	
+25 Sep 2026
+	96	0	Expired · 96	10.00
+
+Godavari Dahi 1 kg
+	
+GD20260716
+	
+Damaged / expiry bin
+	
+6 Aug 2026
+	2	0	Expired · 2	95.00
+
+Godavari Dahi 1 kg
+	
+GD20260723
+	
+Damaged / expiry bin
+	
+13 Aug 2026
+	8	0	Expired · 8	95.00
+
+Godavari Dahi 1 kg
+	
+GD20260617
+	
+Damaged / expiry bin
+	
+8 Jul 2026
+	8	0	Expired · 8	95.00
+
+Godavari Dahi 1 kg
+	
+GD20260623
+	
+Damaged / expiry bin
+	
+14 Jul 2026
+	8	0	Expired · 8	95.00
+
+Godavari Dahi 1 kg
+	
+B20260904
+	
+Godown
+	
+25 Sep 2026
+	16	0	Expired · 16	95.00
+
+Godavari Dahi 200 g
+	
+B20260812
+	
+Godown
+	
+2 Sep 2026
+	30	0	Expired · 30	22.00
+
+Godavari Dahi 200 g
+	
+GD20260816
+	
+Godown
+	
+6 Sep 2026
+	30	0	Expired · 30	22.00
+
+Godavari Dahi 200 g
+	
+GD20260620
+	
+Damaged / expiry bin
+	
+11 Jul 2026
+	7	0	Expired · 7	22.00
+
+Godavari Dahi 200 g
+	
+GD20260716
+	
+Damaged / expiry bin
+	
+6 Aug 2026
+	33	0	Expired · 33	22.00
+
+Godavari Dahi 200 g
+	
+GD20260614
+	
+Damaged / expiry bin
+	
+5 Jul 2026
+	6	0	Expired · 6	22.00
+
+Godavari Dahi 200 g
+	
+GD20260623
+	
+Damaged / expiry bin
+	
+14 Jul 2026
+	11	0	Expired · 11	22.00
+
+Godavari Dahi 200 g
+	
+GD20260827
+	
+Godown
+	
+17 Sep 2026
+	42	0	Expired · 42	22.00
+
+Godavari Dahi 400 g
+	
+B20260830
+	
+Godown
+	
+20 Sep 2026
+	40	0	Expired · 40	42.00
+
+Godavari Dahi 400 g
+	
+GD20260726
+	
+Damaged / expiry bin
+	
+16 Aug 2026
+	12	0	Expired · 12	42.00
+
+Godavari Dahi 400 g
+	
+GD20260702
+	
+Damaged / expiry bin
+	
+23 Jul 2026
+	20	0	Expired · 20	42.00
+
+Godavari Dahi 400 g
+	
+GD20260827
+	
+Godown
+	
+17 Sep 2026
+	40	0	Expired · 40	42.00
+
+Godavari Dahi 400 g
+	
+GD20260720
+	
+Damaged / expiry bin
+	
+10 Aug 2026
+	5	0	Expired · 5	42.00
+
+Godavari Flavoured Milk Chocolate 180 ml
+	
+B20260525
+	
+Godown
+	
+22 Sep 2026
+	54	0	Expired · 54	25.00
+
+Godavari Fresh Paneer 200 g
+	
+B20260909
+	
+Godown
+	
+24 Sep 2026
+	96	0	Expired · 96	95.00
+
+Godavari Fresh Paneer 200 g
+	
+GD20260825
+	
+Damaged / expiry bin
+	
+9 Sep 2026
+	24	0	Expired · 24	95.00
+
+Godavari Fresh Paneer 200 g
+	
+B20260809
+	
+Godown
+	
+24 Aug 2026
+	24	0	Expired · 24	95.00
+
+Godavari Fresh Paneer 200 g
+	
+GD20260729
+	
+Damaged / expiry bin
+	
+13 Aug 2026
+	38	0	Expired · 38	95.00
+
+Godavari Fresh Paneer 200 g
+	
+GD20260705
+	
+Damaged / expiry bin
+	
+20 Jul 2026
+	24	0	Expired · 24	95.00
+
+Godavari Fresh Paneer 200 g
+	
+GD20260625
+	
+Damaged / expiry bin
+	
+10 Jul 2026
+	24	0	Expired · 24	95.00
+
+Godavari Fresh Paneer 200 g
+	
+GD20260614
+	
+Damaged / expiry bin
+	
+29 Jun 2026
+	24	0	Expired · 24	95.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260611
+	
+Damaged / expiry bin
+	
+26 Jun 2026
+	8	0	Expired · 8	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260705
+	
+Damaged / expiry bin
+	
+20 Jul 2026
+	2	0	Expired · 2	225.00
+
+Godavari Fresh Paneer 500 g
+	
+B20260908
+	
+Godown
+	
+23 Sep 2026
+	24	0	Expired · 24	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260711
+	
+Damaged / expiry bin
+	
+26 Jul 2026
+	4	0	Expired · 4	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260720
+	
+Damaged / expiry bin
+	
+4 Aug 2026
+	5	0	Expired · 5	225.00
+
+Godavari Fresh Paneer 500 g
+	
+B20260909
+	
+Godown
+	
+24 Sep 2026
+	48	0	Expired · 48	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260822
+	
+Damaged / expiry bin
+	
+6 Sep 2026
+	2	0	Expired · 2	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260819
+	
+Damaged / expiry bin
+	
+3 Sep 2026
+	7	0	Expired · 7	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260623
+	
+Damaged / expiry bin
+	
+8 Jul 2026
+	9	0	Expired · 9	225.00
+
+Godavari Fresh Paneer 500 g
+	
+GD20260816
+	
+Damaged / expiry bin
+	
+31 Aug 2026
+	4	0	Expired · 4	225.00
+
+Godavari Kesar Shrikhand 200 g
+	
+B20260814
+	
+Godown
+	
+13 Sep 2026
+	120	0	Expired · 120	65.00
+
+Godavari Masala Chaas 1 L
+	
+GD20260623
+	
+Damaged / expiry bin
+	
+14 Jul 2026
+	9	0	Expired · 9	55.00
+
+Godavari Masala Chaas 1 L
+	
+GD20260810
+	
+Damaged / expiry bin
+	
+31 Aug 2026
+	12	0	Expired · 12	55.00
+
+Godavari Masala Chaas 1 L
+	
+GD20260831
+	
+Godown
+	
+21 Sep 2026
+	36	0	Expired · 36	55.00
+
+Godavari Masala Chaas 1 L
+	
+B20260902
+	
+Godown
+	
+23 Sep 2026
+	24	0	Expired · 24	55.00
+
+Godavari Masala Chaas 1 L
+	
+GD20260614
+	
+Damaged / expiry bin
+	
+5 Jul 2026
+	24	0	Expired · 24	55.00
+
+Godavari Masala Chaas 200 ml
+	
+GD20260827
+	
+Godown
+	
+17 Sep 2026
+	30	0	Expired · 30	12.00
+
+Godavari Masala Chaas 200 ml
+	
+GD20260617
+	
+Damaged / expiry bin
+	
+8 Jul 2026
+	19	0	Expired · 19	12.00
+
+Godavari Masala Chaas 200 ml
+	
+GD20260806
+	
+Damaged / expiry bin
+	
+27 Aug 2026
+	12	0	Expired · 12	12.00
+
+Godavari Masala Chaas 200 ml
+	
+B20260817
+	
+Godown
+	
+7 Sep 2026
+	30	0	Expired · 30	12.00
+
+Rajwadi Apple Nectar 200 ml
+	
+B20260226
+	
+Godown
+	
+25 Aug 2026
+	27	0	Expired · 27	15.00
+
+Sunbake Orange Cream 60 g
+	
+B20260107
+	
+Godown
+	
+4 Sep 2026
+	96	0	Expired · 96	10.00
+51 batches							
+51 batches · Click a row to adjust that batch.
+Cycle counts
