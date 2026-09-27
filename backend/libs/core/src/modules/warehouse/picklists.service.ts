@@ -1054,7 +1054,7 @@ export class PicklistsService implements OnModuleInit {
    *  - A FULLY picked line is done whichever rows carried the pieces: a split recorded under a new id
    *    (an API client may record a whole line that way) leaves the wave's own rows unstamped and has no
    *    missing pieces.
-   *  - A SHORT line is done only when it picked something, has a reason, and every lot row the wave
+   *  - A SHORT line — even one shorted to nothing (QA DOS-252) — is done when it has a reason and every lot row the wave
    *    asked it on (`requestedQtyPcs > 0`) has been recorded, picked or shorted (`pickedAt` set). A short
    *    on one lot must not explain a lot row nobody touched (DOS-042): the wave would close and the
    *    device, which accepts picks only on `picking`, could no longer record that row.
@@ -1074,7 +1074,9 @@ export class PicklistsService implements OnModuleInit {
       totals.every(
         ([orderLineId, t]) =>
           t.picked >= t.requested ||
-          (t.picked > 0 && t.shortReason !== null && !unrecorded.has(orderLineId)),
+          // QA DOS-252 / UX-59: a line shorted IN FULL ("Not on the rack", 0 picked) is answered too — the
+          // wave used to stay `picking` for ever and the order never reached "Ready to pack".
+          (t.shortReason !== null && !unrecorded.has(orderLineId)),
       )
     if (!done || sheet.status === 'picked') return
     await this.updatePicklist(tx, sheet.id, { status: 'picked', completedAt: new Date() })

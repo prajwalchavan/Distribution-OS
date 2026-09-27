@@ -34,7 +34,7 @@ export function createBillingStack(db: Db | null): BillingStack {
   const inventory = new InventoryService()
   const orders = new OrdersService(db, new QuoteService(db), inventory)
   const billing = new BillingService(db, orders, inventory, receivables)
-  const creditNotes = new CreditNotesService(db, orders, inventory, receivables)
+  const creditNotes = new CreditNotesService(db, orders, inventory, receivables, billing)
   const registers = new RegistersService(db)
   return { receivables, inventory, orders, billing, creditNotes, registers }
 }

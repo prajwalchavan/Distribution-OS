@@ -56,7 +56,7 @@ import {
   toCreditNoteListItem,
   type CreditNoteRow,
 } from './billing.mappers.js'
-import { ANY_MEMBER } from './invoices.service.js'
+import { ANY_MEMBER, BillingService } from './invoices.service.js'
 
 /**
  * The credit note: the ONLY lawful correction to an issued tax invoice (ADR 0004). Short delivery, a
@@ -81,6 +81,8 @@ type GetIn = z.infer<typeof CreditNoteGetInput>
 type GetOut = z.infer<typeof CreditNoteGetOutput>
 type ListIn = z.infer<typeof CreditNotesListInput>
 type ListOut = z.infer<typeof CreditNotesListOutput>
+
+type OrderRow = NonNullable<Awaited<ReturnType<OrdersService['findOrder']>>>
 
 /** The tenant's credit-note series key; its prefix and starting number are configuration (docs/17 §D1). */
 export const CREDIT_NOTE_SERIES = 'CN'
@@ -145,7 +147,23 @@ export class CreditNotesService {
     private readonly orders: OrdersService,
     private readonly inventory: InventoryService,
     private readonly receivables: ReceivablesService,
+    /** The dock and the trips, for a bill credited before it left the godown (QA DOS-248). */
+    private readonly billing: BillingService,
   ) {}
+
+  /**
+   * THE BILL HAS NOT LEFT THE GODOWN (QA DOS-248): a pack bill whose order is still `packed`. Its pieces stand
+   * on the dock (or stood there, before a check-in counted them onto the rack), not in the shop — so a
+   * goods note on it is "we could not supply this", and it follows the cancel's rules, not a return's.
+   */
+  private async notDispatched(
+    tx: Db,
+    invoice: { source: string; orderId: string | null },
+  ): Promise<OrderRow | null> {
+    if (invoice.source !== 'pack' || invoice.orderId === null) return null
+    const order = await this.orders.findOrder(tx, invoice.orderId)
+    return order !== undefined && order.state === 'packed' ? order : null
+  }
 
   // =============================================================================================================
   // the surface other modules import
@@ -325,6 +343,31 @@ export class CreditNotesService {
     const byId = new Map(lineRows.map((l) => [l.id, l]))
     const credited = await this.creditedByLine(tx, invoice.id)
 
+    /*
+     * QA DOS-248: A BILL THAT NEVER LEFT THE GODOWN IS CREDITED WHOLE OR NOT AT ALL. Its goods are on the dock
+     * (or were counted back onto the rack) — a goods note on it says "we could not supply this", and what it
+     * leaves behind must be something the godown can still send. A part of a packed bill cannot be: the load
+     * sheet, the challan and the door all carry the bill's full lines. So the desk credits every line, the
+     * order closes with it and the shop gets a fresh order for what it still wants — the same way out the
+     * cancel gives an unpaid bill (DOS-139), for a bill money has already landed on. A money-only note (rate
+     * difference, scheme settlement) is unaffected.
+     */
+    if (RESTOCKING_REASONS.has(input.reason) && (await this.notDispatched(tx, invoice)) !== null) {
+      await this.billing.assertOffEveryTrip(tx, invoice, 'credit it')
+      const asked = new Map<string, number>()
+      for (const line of input.lines)
+        asked.set(line.invoiceLineId, (asked.get(line.invoiceLineId) ?? 0) + line.qtyPcs)
+      const partial = lineRows.some((l) => {
+        const left = piecesLeftToCredit(l, credited.get(l.id)?.pcs ?? 0)
+        return left > 0 && (asked.get(l.id) ?? 0) !== left
+      })
+      if (partial)
+        throw new ORPCError('CONFLICT', {
+          message: `Bill ${invoice.invoiceNo ?? invoice.id} has not left the godown, so it is credited whole or not at all: its load sheet and its delivery carry every line. Credit every line (the shop keeps the money on account) and book a fresh order for what the shop still wants`,
+          data: { code: 'whole_bill_before_dispatch' },
+        })
+    }
+
     let taxable = 0
     let cgst = 0
     let sgst = 0
@@ -451,8 +494,9 @@ export class CreditNotesService {
       })
       .where(and(eq(creditNotes.tenantId, tenantId), eq(creditNotes.id, note.id)))
       .returning()
-    const row = issued ?? note
-    await this.restock(tx, row, restockLocationId)
+    await this.restock(tx, issued ?? note, restockLocationId)
+    // Re-read: a bill credited before dispatch has its note's words extended by the restock (QA DOS-248).
+    const row = await this.findNote(tx, (issued ?? note).id)
     /*
      * QA DOS-185: free goods that come back are a note about GOODS with no money in it — the shop paid
      * nothing for them, so nothing is refunded and nothing is owed back. The book stays out of it (a
@@ -521,6 +565,12 @@ export class CreditNotesService {
       .where(eq(creditNoteLines.creditNoteId, note.id))
       .orderBy(asc(creditNoteLines.id))
     const movable = lines.filter((l) => l.lotId !== null && l.qtyPcs > 0)
+    const invoice = await this.loadInvoice(tx, note.invoiceId)
+    const order = await this.notDispatched(tx, invoice)
+    if (order !== null) {
+      await this.creditBeforeDispatch(tx, note, invoice, order, movable, restockLocationId)
+      return
+    }
     if (movable.length === 0) return
     const saleableLocation = restockLocationId ?? (await this.defaultRestockLocation(tx, note))
     const damagedLocation = await this.damagedLocation(tx)
@@ -539,6 +589,93 @@ export class CreditNotesService {
         note: `credit note ${note.creditNoteNo ?? note.id}`,
       })),
     )
+  }
+
+  /**
+   * A WHOLE BILL CREDITED BEFORE IT LEFT THE GODOWN (QA DOS-248): Balaji paid ₹11,276.00 for INV/9017 on day 3;
+   * its atta and oil were counted back onto the rack at a check-in and sold to another shop, so no sheet could
+   * ever load it, and the only credit note that fitted would have restocked 34 pieces into lots that were
+   * empty on the shelf. Now, in the note's own transaction:
+   *
+   *   the goods   what the dock still holds for the bill goes back to the rack (damaged lines to the damaged
+   *               bin) as a real dock → godown transfer (`BillingService.billOffDock`, `skip`); the pieces the
+   *               dock no longer holds move NOTHING — they already went back into stock where they are — and
+   *               the note says so in its own words, so nobody goes looking for them;
+   *   the order   is cancelled with the bill named, so it leaves the planning board, the godown's awaiting-load
+   *               list and every sheet; the shop that still wants the goods gets a fresh order (DOS-139);
+   *   the flag    "came back undelivered" is cleared, so the bill leaves the Undelivered register and the
+   *               shop's dues are the note's to settle: allocated to the bill, the rest on account (DOS-245).
+   *
+   * Whole bill only (`whole_bill_before_dispatch`, checked at draft and again here, since a draft made while
+   * the bill was out may be issued after it came back).
+   */
+  private async creditBeforeDispatch(
+    tx: Db,
+    note: CreditNoteRow,
+    invoice: { id: string; invoiceNo: string | null; orderId: string | null },
+    order: OrderRow,
+    movable: readonly { id: string; qtyPcs: number; saleable: boolean; lotId: string | null }[],
+    restockLocationId: string | null,
+  ): Promise<void> {
+    const { tenantId } = currentTenant()
+    const bill = invoice.invoiceNo ?? invoice.id
+    await this.billing.assertOffEveryTrip(tx, invoice, 'credit it')
+    const lineRows = await tx
+      .select()
+      .from(invoiceLines)
+      .where(eq(invoiceLines.invoiceId, invoice.id))
+    const credited = await this.creditedByLine(tx, invoice.id)
+    if (lineRows.some((l) => piecesLeftToCredit(l, credited.get(l.id)?.pcs ?? 0) > 0))
+      throw new ORPCError('CONFLICT', {
+        message: `Bill ${bill} has not left the godown, so it is credited whole or not at all: its load sheet and its delivery carry every line. Credit every line and book a fresh order for what the shop still wants`,
+        data: { code: 'whole_bill_before_dispatch' },
+      })
+    const saleableLocation = restockLocationId ?? (await this.defaultRestockLocation(tx, note))
+    const damagedLocation = await this.damagedLocation(tx)
+    const short = await this.billing.billOffDock(
+      tx,
+      { id: invoice.id, orderId: order.id },
+      movable
+        .filter((l): l is typeof l & { lotId: string } => l.lotId !== null)
+        .map((line) => {
+          const to = line.saleable ? saleableLocation : damagedLocation
+          return {
+            lotId: line.lotId,
+            pcs: line.qtyPcs,
+            toLocationId: to,
+            outKey: `credit-note:${note.id}:${line.id}:dock`,
+            inKey: `credit-note:${note.id}:${line.id}`,
+          }
+        }),
+      {
+        refType: 'credit_note',
+        refId: note.id,
+        note: `credit note ${note.creditNoteNo ?? note.id}: ${bill} could not be supplied — its pieces back off the dock`,
+      },
+      'skip',
+    )
+    if (short.length > 0) {
+      const words = `Not on the dock, so nothing moved for: ${short
+        .map((s) => `${String(s.shortPcs)} pc ${s.label}`)
+        .join('; ')} — those pieces had already gone back into stock.`
+      await tx
+        .update(creditNotes)
+        .set({
+          note: (note.note ? `${note.note}\n${words}` : words).slice(0, 1000),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(creditNotes.tenantId, tenantId), eq(creditNotes.id, note.id)))
+    }
+    await this.orders.cancelInTx(
+      tx,
+      order,
+      `bill ${bill} credited in full before dispatch (${note.creditNoteNo ?? note.id})`.slice(
+        0,
+        200,
+      ),
+      null,
+    )
+    await this.billing.clearUndelivered(tx, invoice.id)
   }
 
   private async defaultRestockLocation(tx: Db, note: CreditNoteRow): Promise<string> {
@@ -627,6 +764,8 @@ export class CreditNotesService {
     retailerId: string
     state: string
     isInterState: boolean
+    source: string
+    orderId: string | null
   }> {
     const { tenantId } = currentTenant()
     const [row] = await tx
@@ -636,6 +775,8 @@ export class CreditNotesService {
         retailerId: invoices.retailerId,
         state: invoices.state,
         isInterState: invoices.isInterState,
+        source: invoices.source,
+        orderId: invoices.orderId,
       })
       .from(invoices)
       .where(and(eq(invoices.tenantId, tenantId), eq(invoices.id, invoiceId)))

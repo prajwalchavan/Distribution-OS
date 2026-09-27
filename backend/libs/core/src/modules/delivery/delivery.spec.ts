@@ -4302,6 +4302,35 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(200)
+    // QA DOS-247: the godown counts the bill back off the van first, onto the dock and held for IT — the
+    // next sheet loads its own cartons, never another bill's pieces of the same batch.
+    const back = await call<{ item: TripBody }>(
+      app,
+      manager,
+      'GET',
+      `/delivery/trips/${undeliveredTrip}`,
+    )
+    const bill = await call<{ item: { lines: { lotId: string | null }[] } }>(
+      app,
+      manager,
+      'GET',
+      `/invoices/${billU.invoiceId}`,
+    )
+    const unloaded = await call<{ dockPcs: number }>(
+      app,
+      packer,
+      'POST',
+      '/delivery/van-returns/unload',
+      {
+        idempotencyKey: `u197-unload-${run}`,
+        id: uuidv7(),
+        vehicleLocationId: back.body.item.vehicleLocationId,
+        lotId: bill.body.item.lines[0]?.lotId ?? '',
+        qtyPcs: 12,
+      },
+    )
+    expect(unloaded.status, JSON.stringify(unloaded.body)).toBe(200)
+    expect(unloaded.body.dockPcs).toBe(12)
     const planned = await call<{ item: TripBody }>(app, manager, 'POST', '/delivery/trips', {
       idempotencyKey: `u197-trip2-${run}`,
       id: redeliveryTrip,

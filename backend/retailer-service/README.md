@@ -13831,7 +13831,8 @@ request.json
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   }
 }
 ```
@@ -14075,7 +14076,8 @@ request.json
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   }
 }
 ```
@@ -14338,7 +14340,8 @@ request.json
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   }
 }
 ```
@@ -14570,7 +14573,8 @@ request.json
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   }
 }
 ```
@@ -14795,7 +14799,8 @@ curl "http://localhost:3006/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   }
 }
 ```
@@ -15326,7 +15331,8 @@ request.json
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   }
 }
 ```
@@ -22570,7 +22576,8 @@ request.json
       "invoiceFooter": "text",
       "upiVpa": "text",
       "phone": "+919876543210"
-    }
+    },
+    "awaitingDispatch": true
   },
   "delivery": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",

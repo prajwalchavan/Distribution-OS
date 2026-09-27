@@ -92,6 +92,8 @@ interface Detail {
   cancelReason: string | null
   upiQrPayload: string | null
   lines: Line[]
+  /** QA DOS-248: the goods have not left the godown (a pack bill whose order is still packed). */
+  awaitingDispatch?: boolean
   creditNotes: { id: string; creditNoteNo: string | null; totalPaise: number }[]
   seller: { displayName: string; legalName: string; gstin: string | null; upiVpa: string | null }
 }
@@ -144,6 +146,12 @@ describeDb('billing (DATABASE_URL)', () => {
   const variantScheme = uuidv7()
   /** DOS-245: a shop of its own, so its dues and its AR in the book are exact. */
   const shopPaid = uuidv7()
+  /** DOS-248: Balaji, who paid for a bill that could never be sent — a shop of its own, so its dues are exact. */
+  const shopBalaji = uuidv7()
+  /** DOS-248 / DOS-251: toor dal on a batch of its own, so the dock's pieces of it are this spec's alone. */
+  const variantToor = uuidv7()
+  let lotToor = ''
+  let lotA = ''
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -161,6 +169,8 @@ describeDb('billing (DATABASE_URL)', () => {
   let godown = ''
   let damaged = ''
   let van = ''
+  /** The dock: packed goods wait here for their load sheet (QA DOS-195), held per bill (QA DOS-247). */
+  let dock = ''
   let app: NestFastifyApplication
 
   /** An order confirmed through the real aggregate, so its lines are priced and its stock is held. */
@@ -228,6 +238,43 @@ describeDb('billing (DATABASE_URL)', () => {
     const invoiceId = packed.body.invoice?.id ?? ''
     const res = await call<{ item: Detail }>(app, actor, 'GET', `/invoices/${invoiceId}`)
     return { invoiceId, packId, packed, res }
+  }
+
+  /**
+   * THE BILL LEAVES THE GODOWN (QA DOS-248): a goods credit note on a bill whose order is still `packed` is
+   * "we could not supply it" and is taken whole or not at all, so the cases below that return PART of a bill —
+   * the door, the desk a week later — first send it out the way every bill goes: a load sheet onto the van,
+   * counted and confirmed by the desk (an owner or manager confirming IS the approval).
+   */
+  async function dispatch(orderId: string, tag: string): Promise<void> {
+    const sheetId = uuidv7()
+    const created = await call<{ item: { expectedPackages: number } }>(
+      app,
+      manager,
+      'POST',
+      '/warehouse/load-sheets',
+      {
+        idempotencyKey: `dispatch-sheet-${tag}-${run}`,
+        id: sheetId,
+        toLocationId: van,
+        orderIds: [orderId],
+        vanStock: [],
+      },
+    )
+    expect(created.status, `dispatch ${tag}: ${JSON.stringify(created.body)}`).toBe(200)
+    const confirmed = await call(
+      app,
+      manager,
+      'POST',
+      `/warehouse/load-sheets/${sheetId}/confirm`,
+      {
+        idempotencyKey: `dispatch-confirm-${tag}-${run}`,
+        countedPackages: created.body.item.expectedPackages,
+        countedVanStock: [],
+        challanId: uuidv7(),
+      },
+    )
+    expect(confirmed.status, `dispatch ${tag}: ${JSON.stringify(confirmed.body)}`).toBe(200)
   }
 
   const ledgerFor = async (refId: string): Promise<LedgerRow[]> =>
@@ -345,6 +392,16 @@ describeDb('billing (DATABASE_URL)', () => {
         mrpPaise: 4000,
       },
       {
+        id: variantToor,
+        productId,
+        name: 'Toor Dal 1 kg',
+        netQty: 1,
+        netUnit: 'kg',
+        defaultCaseSize: 12,
+        hsnCode: hsn,
+        mrpPaise: 18000,
+      },
+      {
         id: variantScheme,
         productId,
         name: 'Sunflower Oil 1 L',
@@ -361,6 +418,7 @@ describeDb('billing (DATABASE_URL)', () => {
       { id: uuidv7(), tenantId, variantId: variantB, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantCess, caseSizeOverride: 12 },
       { id: uuidv7(), tenantId, variantId: variantScheme, caseSizeOverride: 12 },
+      { id: uuidv7(), tenantId, variantId: variantToor, caseSizeOverride: 12 },
     ])
     await db.insert(hsnRates).values([
       { id: uuidv7(), hsnCode: hsn, gstBps: 1200, cessBps: 0, effectiveFrom: '2020-04-01' },
@@ -413,6 +471,16 @@ describeDb('billing (DATABASE_URL)', () => {
         creditDays: 7,
       },
       {
+        id: shopBalaji,
+        tenantId,
+        code: `BAL-${run}`,
+        name: `Balaji Kirana ${run}`,
+        phone: `+91972${run}5`,
+        stateCode: '27',
+        gstRegType: 'unregistered',
+        creditDays: 7,
+      },
+      {
         id: shopB2c,
         tenantId,
         code: `B2C-${run}`,
@@ -441,6 +509,7 @@ describeDb('billing (DATABASE_URL)', () => {
       { id: uuidv7(), tenantId, priceListId, variantId: variantB, ratePaise: 2500 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantCess, ratePaise: 2297 },
       { id: uuidv7(), tenantId, priceListId, variantId: variantScheme, ratePaise: 12_400 },
+      { id: uuidv7(), tenantId, priceListId, variantId: variantToor, ratePaise: 17_000 },
     ])
     await db.insert(schemes).values({
       id: uuidv7(),
@@ -468,6 +537,7 @@ describeDb('billing (DATABASE_URL)', () => {
       .where(sql`${locations.tenantId} = ${tenantId}`)
     godown = locs.find((l) => l.kind === 'warehouse')?.id ?? ''
     damaged = locs.find((l) => l.kind === 'damaged')?.id ?? ''
+    dock = locs.find((l) => l.kind === 'in_transit')?.id ?? ''
     const vanId = uuidv7()
     await db
       .insert(locations)
@@ -508,6 +578,13 @@ describeDb('billing (DATABASE_URL)', () => {
         batchNo: `B4-${run}`,
         mrpPaise: 15000,
       })
+      const toor = await inventory.findOrCreateLot(tx, {
+        variantId: variantToor,
+        batchNo: `B20260909-${run}`,
+        mrpPaise: 18000,
+      })
+      lotToor = toor.lot.id
+      lotA = a.lot.id
       await inventory.post(tx, [
         {
           lotId: a.lot.id,
@@ -536,6 +613,13 @@ describeDb('billing (DATABASE_URL)', () => {
           qtyDelta: 5_000,
           reason: 'opening',
           idempotencyKey: `open-${run}-oil`,
+        },
+        {
+          lotId: toor.lot.id,
+          locationId: godown,
+          qtyDelta: 500,
+          reason: 'opening',
+          idempotencyKey: `open-${run}-toor`,
         },
         {
           lotId: a.lot.id,
@@ -777,6 +861,300 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(res.body.item.lines[0]?.enteredQty).toBe(18)
     expect(res.body.item.taxablePaise).toBe(45_000)
     expect(await reservedFor(orderLineId)).toBe(0)
+    // QA DOS-247: the 18 packed pieces stand on the dock held for THIS bill, not for the batch
+    expect(await reservedFor(orderLineId, 'dock')).toBe(18)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // the business simulation's day 6 (QA DOS-252, DOS-251, DOS-248)
+
+  const stockAt = async (lotId: string, locationId: string): Promise<number> =>
+    Number(
+      (
+        (
+          await db.execute(
+            sql`select coalesce(sum(on_hand), 0)::int as n from stock_balances
+                 where tenant_id = ${tenantId} and lot_id = ${lotId} and location_id = ${locationId}`,
+          )
+        ).rows as { n: number }[]
+      )[0]?.n ?? 0,
+    )
+
+  const orderLines = async (orderId: string): Promise<{ id: string; variantId: string }[]> =>
+    (
+      await call<{ item: { lines: { id: string; variantId: string }[] } }>(
+        app,
+        manager,
+        'GET',
+        `/orders/${orderId}`,
+      )
+    ).body.item.lines
+
+  const orderStateOf = async (orderId: string): Promise<string> =>
+    (
+      (await db.execute(sql`select state::text as state from sales_orders where id = ${orderId}`))
+        .rows[0] as { state: string }
+    ).state
+
+  /**
+   * The day-6 state, made by hand: a bill's pieces left the dock under ANOTHER bill — a stale sheet loaded
+   * them — before the dock held pieces per bill (DOS-247). Its holds are void and the pieces ride a van.
+   */
+  async function loadedElsewhere(orderId: string, lotId: string, pcs: number, tag: string) {
+    const lineIds = (await orderLines(orderId)).map((l) => l.id)
+    await asOwner(async (tx) => {
+      const inventory = app.get(InventoryService)
+      await inventory.closeDockHolds(tx, lineIds, 'voided', [lotId])
+      await inventory.post(tx, [
+        {
+          lotId,
+          locationId: dock,
+          qtyDelta: -pcs,
+          reason: 'transfer_out',
+          refType: 'load_sheet',
+          refId: `stale-${tag}`,
+          idempotencyKey: `stale-out-${tag}-${run}`,
+        },
+        {
+          lotId,
+          locationId: van,
+          qtyDelta: pcs,
+          reason: 'transfer_in',
+          refType: 'load_sheet',
+          refId: `stale-${tag}`,
+          idempotencyKey: `stale-in-${tag}-${run}`,
+        },
+      ])
+    })
+  }
+
+  /** A wave for one order, started, with each line's pick as given (0 + a reason is a full short). */
+  async function pickAs(
+    orderId: string,
+    tag: string,
+    picks: (row: { orderLineId: string }) => { pickedQtyPcs: number; shortReason?: string },
+  ): Promise<string> {
+    const picklistId = uuidv7()
+    const wave = await call<{
+      item: { lines: { id: string; orderLineId: string; lotId: string | null }[] }
+    }>(app, manager, 'POST', '/warehouse/picklists', {
+      idempotencyKey: `wave-${tag}-${run}`,
+      id: picklistId,
+      orderIds: [orderId],
+    })
+    expect(wave.status, JSON.stringify(wave.body)).toBe(200)
+    const started = await call(app, manager, 'POST', `/warehouse/picklists/${picklistId}/start`, {
+      idempotencyKey: `start-${tag}-${run}`,
+    })
+    expect(started.status).toBe(200)
+    const picked = await call(app, manager, 'POST', `/warehouse/picklists/${picklistId}/pick`, {
+      idempotencyKey: `pick-${tag}-${run}`,
+      lines: wave.body.item.lines.map((row) => ({
+        id: row.id,
+        orderLineId: row.orderLineId,
+        lotId: row.lotId,
+        ...picks(row),
+      })),
+    })
+    expect(picked.status, JSON.stringify(picked.body)).toBe(200)
+    return picklistId
+  }
+
+  const picklistStatus = async (id: string): Promise<string> =>
+    (
+      (await db.execute(sql`select status::text as status from picklists where id = ${id}`))
+        .rows[0] as { status: string }
+    ).status
+
+  it('DOS-252: a line the picker shorted to nothing is neither billed nor moved, and the pack says it is short', async () => {
+    // SO-0929: the atta picked in full, the toor "Not on the rack" with 0 picked
+    const orderId = await placeOrder(
+      rep,
+      shopMh,
+      [
+        { variantId: variantA, cases: 1 },
+        { variantId: variantToor, cases: 1 },
+      ],
+      'dos252',
+    )
+    const lines = await orderLines(orderId)
+    const atta = lines.find((l) => l.variantId === variantA)?.id ?? ''
+    const toor = lines.find((l) => l.variantId === variantToor)?.id ?? ''
+    expect(await reservedFor(toor)).toBe(12)
+    const wave = await pickAs(orderId, 'dos252', (row) =>
+      row.orderLineId === toor
+        ? { pickedQtyPcs: 0, shortReason: 'Not on the rack' }
+        : { pickedQtyPcs: 12 },
+    )
+    // UX-59: a line shorted in full is answered — the wave is picked, the order ready to pack
+    expect(await picklistStatus(wave)).toBe('picked')
+    const toorGodown = await stockAt(lotToor, godown)
+    const toorDock = await stockAt(lotToor, dock)
+
+    const { res, packed } = await issueFor(orderId, 'dos252')
+    expect(packed.status, JSON.stringify(packed.body)).toBe(200)
+    // the pack says what it is: short, and the bill charges only the atta
+    expect(packed.body.item.shortPacked).toBe(true)
+    expect(res.body.item.lines.map((l) => l.variantId)).toEqual([variantA])
+    expect(res.body.item.lines[0]?.qtyPcs).toBe(12)
+    expect(res.body.item.taxablePaise).toBe(12_000)
+    // not one piece of toor moved, and its hold on the shelf is given back
+    expect(await stockAt(lotToor, godown)).toBe(toorGodown)
+    expect(await stockAt(lotToor, dock)).toBe(toorDock)
+    expect((await ledgerFor(orderId)).filter((r) => r.lot_id === lotToor)).toEqual([])
+    expect(await reservedFor(toor)).toBe(0)
+    expect(await reservedFor(toor, 'dock')).toBe(0)
+    expect(await reservedFor(atta, 'dock')).toBe(12)
+
+    // and an order the picker came back from empty-handed is not packed or billed at all
+    const empty = await placeOrder(rep, shopMh, [{ variantId: variantToor, cases: 1 }], 'dos252e')
+    await pickAs(empty, 'dos252e', () => ({ pickedQtyPcs: 0, shortReason: 'Not on the rack' }))
+    const nothing = await issueFor(empty, 'dos252e')
+    expect(nothing.packed.status).toBe(409)
+    expect((nothing.packed.body as unknown as { data?: { code?: string } }).data?.code).toBe(
+      'nothing_picked',
+    )
+    expect(await orderStateOf(empty)).toBe('picking')
+  })
+
+  it('DOS-251: a cancel moves the bill’s own pieces dock → godown, and refuses — moving nothing — when the dock no longer holds them', async () => {
+    // (a) the pieces are on the dock for the bill: a real movement back, never an adjustment
+    const good = await placeOrder(rep, shopMh, [{ variantId: variantToor, cases: 1 }], 'dos251a')
+    const a = await issueFor(good, 'dos251a')
+    expect(a.res.status).toBe(200)
+    const godownBefore = await stockAt(lotToor, godown)
+    const back = await call(app, manager, 'POST', `/invoices/${a.invoiceId}/cancel`, {
+      idempotencyKey: `dos251a-cancel-${run}`,
+      reason: 'shop cancelled before loading',
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    const rows = await ledgerFor(a.invoiceId)
+    expect(rows.map((r) => [r.reason, r.qty_delta, r.location_id])).toEqual([
+      ['transfer_out', -12, dock],
+      ['transfer_in', 12, godown],
+    ])
+    expect(await stockAt(lotToor, godown)).toBe(godownBefore + 12)
+    expect(await reservedFor((await orderLines(good))[0]?.id ?? '', 'dock')).toBe(0)
+
+    // (b) INV/9034: its toor went out under another bill before holds existed — the dock has none of it
+    const stale = await placeOrder(rep, shopMh, [{ variantId: variantToor, cases: 1 }], 'dos251b')
+    const b = await issueFor(stale, 'dos251b')
+    expect(b.res.status).toBe(200)
+    await loadedElsewhere(stale, lotToor, 12, 'dos251b')
+    const godownThen = await stockAt(lotToor, godown)
+    const refused = await call<{
+      message: string
+      data?: { code?: string; lots?: { lotId: string; neededPcs: number; onDockPcs: number }[] }
+    }>(app, manager, 'POST', `/invoices/${b.invoiceId}/cancel`, {
+      idempotencyKey: `dos251b-cancel-${run}`,
+      reason: 'toor not loadable',
+    })
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('dock_short')
+    expect(refused.body.data?.lots).toEqual([
+      expect.objectContaining({ lotId: lotToor, neededPcs: 12, onDockPcs: 0 }),
+    ])
+    expect(refused.body.message).toMatch(/Toor Dal 1 kg \(batch B20260909-/)
+    expect(refused.body.message).toMatch(/Credit the whole bill/)
+    // nothing was invented and nothing was cancelled
+    expect(await ledgerFor(b.invoiceId)).toEqual([])
+    expect(await stockAt(lotToor, godown)).toBe(godownThen)
+    const still = await call<{ item: Detail }>(app, manager, 'GET', `/invoices/${b.invoiceId}`)
+    expect(still.body.item.state).toBe('issued')
+    expect(await orderStateOf(stale)).toBe('packed')
+  })
+
+  it('DOS-248: a paid bill that cannot be sent is credited whole — what the dock holds goes back, the rest moves nothing, the order closes and the money waits on account', async () => {
+    // INV/9017: Balaji paid in full; its toor went out under another bill, its wafers are still on the dock
+    const orderId = await placeOrder(
+      rep,
+      shopBalaji,
+      [
+        { variantId: variantA, cases: 1 },
+        { variantId: variantToor, cases: 1 },
+      ],
+      'dos248',
+    )
+    const { invoiceId, res } = await issueFor(orderId, 'dos248')
+    expect(res.status).toBe(200)
+    expect(res.body.item.awaitingDispatch).toBe(true)
+    const total = res.body.item.totalPaise
+    const paid = await call(app, accountant, 'POST', '/receipts', {
+      idempotencyKey: `dos248-pay-${run}`,
+      id: uuidv7(),
+      retailerId: shopBalaji,
+      mode: 'cash',
+      amountPaise: total,
+      strategy: 'explicit',
+      allocations: [{ id: uuidv7(), invoiceId, amountPaise: total }],
+    })
+    expect(paid.status, JSON.stringify(paid.body)).toBe(200)
+    await loadedElsewhere(orderId, lotToor, 12, 'dos248')
+    const before = await arTie(shopBalaji)
+    const lines = res.body.item.lines
+
+    // a PART of a bill that never left is refused: its sheet and its door carry every line
+    const part = await call<RefusalBody>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `dos248-part-${run}`,
+      id: uuidv7(),
+      invoiceId,
+      reason: 'short_delivery',
+      autoIssue: true,
+      lines: [
+        {
+          id: uuidv7(),
+          invoiceLineId: lines.find((l) => l.variantId === variantToor)?.id ?? '',
+          qtyPcs: 12,
+        },
+      ],
+    })
+    expect(part.status).toBe(409)
+    expect(part.body.data?.code).toBe('whole_bill_before_dispatch')
+
+    // the whole bill: "Could not send it"
+    const attaGodown = await stockAt(lotA, godown)
+    const toorGodown = await stockAt(lotToor, godown)
+    const noteId = uuidv7()
+    const whole = await call<{ item: CreditNoteDetailBody & { note: string | null } }>(
+      app,
+      manager,
+      'POST',
+      '/credit-notes',
+      {
+        idempotencyKey: `dos248-whole-${run}`,
+        id: noteId,
+        invoiceId,
+        reason: 'short_delivery',
+        autoIssue: true,
+        note: 'Could not send it: its toor batch is gone',
+        lines: lines.map((l) => ({
+          id: uuidv7(),
+          invoiceLineId: l.id,
+          qtyPcs: l.qtyPcs + l.freeQtyPcs,
+        })),
+      },
+    )
+    expect(whole.status, JSON.stringify(whole.body)).toBe(200)
+    expect(whole.body.item.state).toBe('issued')
+    expect(whole.body.item.totalPaise).toBe(total)
+    expect(whole.body.item.note).toMatch(/Not on the dock, so nothing moved for: 12 pc Toor Dal/)
+    // the wafers go back to the rack off the dock; the toor moves nothing — it was not there
+    const moved = await ledgerFor(noteId)
+    expect(moved.map((r) => [r.reason, r.qty_delta, r.lot_id, r.location_id])).toEqual([
+      ['transfer_out', -12, lotA, dock],
+      ['transfer_in', 12, lotA, godown],
+    ])
+    expect(await stockAt(lotA, godown)).toBe(attaGodown + 12)
+    expect(await stockAt(lotToor, godown)).toBe(toorGodown)
+    // the order closes with its bill
+    expect(await orderStateOf(orderId)).toBe('cancelled')
+    const after = await call<{ item: Detail }>(app, manager, 'GET', `/invoices/${invoiceId}`)
+    expect(after.body.item.awaitingDispatch).toBe(false)
+    expect(after.body.item.amountDuePaise).toBe(0)
+    // the money is the shop's, on account, and the book agrees with the dues
+    const tie = await arTie(shopBalaji)
+    expect(tie.onAccount).toBe(before.onAccount + total)
+    expect(tie.rollup).toBe(tie.ar)
   })
 
   it('refuses every edit of an issued bill at the DATABASE, not just in the handler', async () => {
@@ -977,7 +1355,10 @@ describeDb('billing (DATABASE_URL)', () => {
       { idempotencyKey: `dos139g-cancel-${run}`, reason: 'too late' },
     )
     expect(refused.status, JSON.stringify(refused.body)).toBe(409)
-    expect(refused.body.message).toMatch(/money allocated against it; raise a credit note/)
+    // QA DOS-248: a paid bill still in the godown is pointed at the one way out the panel offers
+    expect(refused.body.message).toMatch(
+      /money allocated against it, so it is not cancelled.*"Could not send it — credit the whole bill": one credit note/,
+    )
 
     // the order did not move an inch, and neither did the stock
     const rows = (
@@ -1237,6 +1618,7 @@ describeDb('billing (DATABASE_URL)', () => {
     const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 2 }], 'credit')
     const { invoiceId, res } = await issueFor(orderId, 'credit')
     expect(res.status).toBe(200)
+    await dispatch(orderId, 'credit')
     creditedInvoiceId = invoiceId
     creditedLineId = res.body.item.lines[0]?.id ?? ''
     const dueBefore = res.body.item.amountDuePaise
@@ -1388,6 +1770,7 @@ describeDb('billing (DATABASE_URL)', () => {
     )
     const { invoiceId, res } = await issueFor(orderId, 'dos242')
     expect(res.status).toBe(200)
+    await dispatch(orderId, 'dos242')
     const line = res.body.item.lines.find((l) => l.variantId === variantScheme)
     expect(line).toMatchObject({ qtyPcs: 24, ratePaise: 12_400, taxablePaise: 288_672 })
     const lineId = line?.id ?? ''
@@ -1450,6 +1833,7 @@ describeDb('billing (DATABASE_URL)', () => {
     const orderId = await placeOrder(rep, shopPaid, [{ variantId: variantA, cases: 1 }], 'dos245')
     const { invoiceId, res } = await issueFor(orderId, 'dos245')
     expect(res.status).toBe(200)
+    await dispatch(orderId, 'dos245')
     const total = res.body.item.totalPaise
     const lineId = res.body.item.lines[0]?.id ?? ''
     const paid = await call<{ item: { id: string } }>(app, accountant, 'POST', '/receipts', {
@@ -1541,6 +1925,7 @@ describeDb('billing (DATABASE_URL)', () => {
     const orderId = await placeOrder(rep, shopMh, [{ variantId: variantA, cases: 1 }], tag)
     const { invoiceId, res } = await issueFor(orderId, tag)
     expect(res.status, tag).toBe(200)
+    await dispatch(orderId, tag)
     const lineId = res.body.item.lines[0]?.id ?? ''
     expect(lineId, tag).not.toBe('')
     return { invoiceId, lineId }
@@ -2285,11 +2670,20 @@ describeDb('billing (DATABASE_URL)', () => {
 
   // ---------------------------------------------------------------------------------------------------------------
 
-  async function reservedFor(orderLineId: string): Promise<number> {
+  /**
+   * The line's pending holds in the GODOWN — what the shelf still keeps back for it. Since QA DOS-247 a packed
+   * line also holds its pieces on the DOCK, for its own bill; `where: 'dock'` reads those.
+   */
+  async function reservedFor(
+    orderLineId: string,
+    where: 'godown' | 'dock' = 'godown',
+  ): Promise<number> {
     const rows = (
       await db.execute(
-        sql`select coalesce(sum(qty), 0)::int as held from reservations
-             where tenant_id = ${tenantId} and order_line_id = ${orderLineId} and state = 'pending'`,
+        sql`select coalesce(sum(r.qty), 0)::int as held from reservations r
+              join locations l on l.id = r.location_id
+             where r.tenant_id = ${tenantId} and r.order_line_id = ${orderLineId} and r.state = 'pending'
+               and l.kind = ${where === 'godown' ? 'warehouse' : 'in_transit'}`,
       )
     ).rows as { held: number }[]
     return Number(rows[0]?.held ?? 0)

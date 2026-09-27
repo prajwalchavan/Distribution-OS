@@ -43,6 +43,7 @@ import {
   parseObjectKey,
   type ObjectDomain,
 } from '../../platform/object-storage.js'
+import type { DockHoldInput, InventoryService } from '../inventory/index.js'
 import { loadSettings } from '../tenancy/index.js'
 
 /**
@@ -490,6 +491,90 @@ export async function returnedOnTheRoad(
     if (riding.how === 'returned_on_road')
       held.set(invoiceId, { tripId: riding.tripId, tripNo: riding.tripNo })
   return held
+}
+
+/**
+ * "Which of these bills are still in a trip's hands" (QA DOS-248, DOS-251), as invoice id → that trip: planned
+ * on a stop of a trip that has not settled, or failed on a trip that has not settled yet — whose van may still
+ * carry the pieces until the settlement counts them onto the dock. Billing registers it at start-up
+ * (`BillingService.registerTripHold`) so a bill is cancelled or credited in full only once it has come off
+ * every trip and its pieces stand on the dock; billing never reads `deliveries` or `trips` itself. Runs as
+ * `system` for the reason `ridingTrips` does.
+ */
+export async function inATripsHands(
+  tx: Db,
+  invoiceIds: readonly string[],
+): Promise<Map<string, { tripId: string; tripNo: string | null; planned: boolean }>> {
+  const wanted = [...new Set(invoiceIds)]
+  const out = new Map<string, { tripId: string; tripNo: string | null; planned: boolean }>()
+  if (wanted.length === 0) return out
+  const { tenantId } = currentTenant()
+  const rows = await asSystemRole(tx, () =>
+    tx
+      .select({
+        invoiceId: deliveries.invoiceId,
+        tripId: deliveries.tripId,
+        tripNo: trips.tripNo,
+        outcome: deliveries.outcome,
+      })
+      .from(deliveries)
+      .innerJoin(trips, eq(trips.id, deliveries.tripId))
+      .where(
+        and(
+          eq(deliveries.tenantId, tenantId),
+          inArray(deliveries.invoiceId, wanted),
+          sql`${trips.state} not in ('settled', 'settled_with_variance', 'cancelled')`,
+          sql`(${deliveries.outcome} is null or ${deliveries.outcome} = 'failed')`,
+        ),
+      )
+      .orderBy(sql`(${deliveries.outcome} is null) desc`, asc(deliveries.id)),
+  )
+  for (const row of rows)
+    if (!out.has(row.invoiceId))
+      out.set(row.invoiceId, {
+        tripId: row.tripId,
+        tripNo: row.tripNo,
+        planned: row.outcome === null,
+      })
+  return out
+}
+
+/**
+ * THE PIECES JUST PUT ON THE DOCK FOR BILLS THAT CAME BACK ARE HELD FOR THEM (QA DOS-247). `staged` is what a
+ * check-in, a settlement or the desk's "It came back" has just moved onto the dock, per lot; it is shared out
+ * over the bills' lines in the order given, each line up to what it does not hold there yet, so the next load
+ * sheet of THAT bill finds its own cartons and no other sheet can take them.
+ */
+export async function holdStagedForBills(
+  tx: Db,
+  inventory: InventoryService,
+  lines: readonly { orderLineId: string | null; lotId: string | null; pcs: number }[],
+  staged: ReadonlyMap<string, number>,
+): Promise<void> {
+  const own = lines.filter(
+    (l): l is { orderLineId: string; lotId: string; pcs: number } =>
+      l.orderLineId !== null && l.lotId !== null && l.pcs > 0,
+  )
+  if (own.length === 0 || staged.size === 0) return
+  const held = await inventory.dockHeldFor(
+    tx,
+    own.map((l) => l.orderLineId),
+  )
+  const already = new Map<string, number>()
+  for (const [orderLineId, lots] of held)
+    for (const [lotId, qty] of lots) already.set(`${orderLineId}:${lotId}`, qty)
+  const left = new Map(staged)
+  const holds: DockHoldInput[] = []
+  for (const line of own) {
+    const key = `${line.orderLineId}:${line.lotId}`
+    const covered = Math.min(line.pcs, already.get(key) ?? 0)
+    already.set(key, (already.get(key) ?? 0) - covered)
+    const take = Math.min(line.pcs - covered, Math.max(0, left.get(line.lotId) ?? 0))
+    if (take <= 0) continue
+    left.set(line.lotId, (left.get(line.lotId) ?? 0) - take)
+    holds.push({ orderLineId: line.orderLineId, lotId: line.lotId, qtyPcs: take })
+  }
+  await inventory.holdOnDock(tx, holds)
 }
 
 // ---------------------------------------------------------------------------------------------------------------

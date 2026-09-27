@@ -81,7 +81,13 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
-import { dockLocationId, InventoryService, pgConstraint } from '../inventory/index.js'
+import {
+  coverFromDock,
+  dockLocationId,
+  InventoryService,
+  pgConstraint,
+  type LedgerEntryInput,
+} from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
@@ -285,14 +291,190 @@ interface PricedLine {
   grossPaise: number
 }
 
+/**
+ * "Which of these bills are still in a trip's hands" — planned on a stop of a trip that has not settled, or
+ * failed on one whose van may still carry the pieces (QA DOS-248, DOS-251). Delivery owns trips; it supplies
+ * the answer at start-up (`DeliveryModule.onModuleInit` → `registerTripHold`), the `registerRoadHold` pattern
+ * the load sheets use, so no SQL here names `deliveries` or `trips`.
+ */
+export type TripHoldLookup = (
+  tx: Db,
+  invoiceIds: readonly string[],
+) => Promise<Map<string, { tripId: string; tripNo: string | null; planned: boolean }>>
+
+/** One lot of a bill going back from the dock (QA DOS-251, DOS-248): where to, and under which keys. */
+export interface OffDockMove {
+  lotId: string
+  pcs: number
+  toLocationId: string
+  /** Idempotency keys of the two legs; unique for all time. */
+  outKey: string
+  inKey: string
+}
+
+/** A lot the dock cannot give a bill back, with the words its refusal needs. */
+export interface OffDockShort {
+  lotId: string
+  /** "Annapurna Toor Dal 1 kg (batch B20260909)", off the bill's own line. */
+  label: string
+  neededPcs: number
+  onDockPcs: number
+  shortPcs: number
+}
+
 @Injectable()
 export class BillingService {
+  /** A billing module booted without delivery has no trips, so nothing is in a trip's hands. */
+  private tripHold: TripHoldLookup = () =>
+    Promise.resolve(new Map<string, { tripId: string; tripNo: string | null; planned: boolean }>())
+
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
     private readonly inventory: InventoryService,
     private readonly receivables: ReceivablesService,
   ) {}
+
+  /** Delivery says which bills are still in a trip's hands (QA DOS-248, DOS-251). */
+  registerTripHold(lookup: TripHoldLookup): void {
+    this.tripHold = lookup
+  }
+
+  /**
+   * A bill that is still planned on a trip, or came back on a van that has not been settled, is not the desk's
+   * to cancel or to credit in full yet: its stop would carry a dead bill, or its cartons may still stand on the
+   * van. 409 `bill_on_trip`, naming the trip and the way out.
+   */
+  async assertOffEveryTrip(
+    tx: Db,
+    invoice: { id: string; invoiceNo: string | null },
+    doing: string,
+  ): Promise<void> {
+    const hand = (await this.tripHold(tx, [invoice.id])).get(invoice.id)
+    if (hand === undefined) return
+    const bill = invoice.invoiceNo ?? invoice.id
+    const trip = hand.tripNo ?? hand.tripId
+    throw new ORPCError('CONFLICT', {
+      message: hand.planned
+        ? `Bill ${bill} is planned on ${trip}. Take it off the trip first (Trips › ${trip} › Take it off), then ${doing}`
+        : `Bill ${bill} came back on ${trip}, which is not settled yet, so its cartons may still be on the van. Check the van in and settle ${trip} first, then ${doing}`,
+      data: { code: 'bill_on_trip', tripId: hand.tripId, tripNo: hand.tripNo },
+    })
+  }
+
+  /**
+   * TAKE A PACKED BILL'S PIECES BACK OFF THE DOCK (QA DOS-251, DOS-248). A pack bill's pieces stand on the dock
+   * until they are loaded; a cancel or a credit before dispatch sends them from there to `toLocationId` as a
+   * `transfer_out` / `transfer_in` pair — a real movement, never an `adjustment` that makes stock out of
+   * nothing. Per lot the dock gives what it holds for THIS bill, then what it holds for nobody (stock staged
+   * before per-bill holds); never another bill's (`coverFromDock`).
+   *
+   * `onShort: 'refuse'` moves NOTHING when any lot is short and returns the shortfall for the caller's 409
+   * (the cancel: "stock comes back" must be true). `onShort: 'skip'` moves what the dock can give and nothing
+   * for the rest (the whole-bill credit note: those pieces already went back into stock elsewhere — counted
+   * onto the rack at a check-in, or loaded under another bill — so adding them again would invent them).
+   * Either way the bill's dock holds end. Returns the shortfall per lot.
+   */
+  async billOffDock(
+    tx: Db,
+    bill: { id: string; orderId: string },
+    moves: readonly OffDockMove[],
+    ref: { refType: string; refId: string; note: string },
+    onShort: 'refuse' | 'skip',
+  ): Promise<OffDockShort[]> {
+    const lines = await this.orders.fulfilmentLines(tx, [bill.orderId])
+    const lineIds = lines.map((l) => l.orderLineId)
+    const heldByLine = await this.inventory.dockHeldFor(tx, lineIds)
+    const held = new Map<string, number>()
+    for (const lots of heldByLine.values())
+      for (const [lotId, qty] of lots) held.set(lotId, (held.get(lotId) ?? 0) + qty)
+    const need = new Map<string, number>()
+    for (const m of moves) if (m.pcs > 0) need.set(m.lotId, (need.get(m.lotId) ?? 0) + m.pcs)
+    const dockNow = await this.inventory.dockBalances(tx, [...need.keys()])
+    const covers = coverFromDock(
+      [...need].map(([lotId, neededPcs]) => ({
+        key: bill.id,
+        lotId,
+        neededPcs,
+        heldPcs: held.get(lotId) ?? 0,
+      })),
+      dockNow,
+    )
+    const shortLots = covers.filter((c) => c.shortPcs > 0)
+    const labels = await this.lineLabels(
+      tx,
+      bill.id,
+      shortLots.map((c) => c.lotId),
+    )
+    const short: OffDockShort[] = shortLots.map((c) => ({
+      lotId: c.lotId,
+      label: labels.get(c.lotId) ?? `lot ${c.lotId}`,
+      neededPcs: c.neededPcs,
+      onDockPcs: c.neededPcs - c.shortPcs,
+      shortPcs: c.shortPcs,
+    }))
+    if (short.length > 0 && onShort === 'refuse') return short
+    await this.inventory.closeDockHolds(tx, lineIds)
+    const canGive = new Map(covers.map((c) => [c.lotId, c.neededPcs - c.shortPcs]))
+    const dock = await dockLocationId(tx)
+    const entries: LedgerEntryInput[] = []
+    for (const m of moves) {
+      const pcs = Math.min(m.pcs, Math.max(0, canGive.get(m.lotId) ?? 0))
+      if (pcs <= 0) continue
+      canGive.set(m.lotId, (canGive.get(m.lotId) ?? 0) - pcs)
+      entries.push(
+        {
+          lotId: m.lotId,
+          locationId: dock,
+          qtyDelta: -pcs,
+          reason: 'transfer_out',
+          refType: ref.refType,
+          refId: ref.refId,
+          idempotencyKey: m.outKey,
+          note: ref.note,
+        },
+        {
+          lotId: m.lotId,
+          locationId: m.toLocationId,
+          qtyDelta: pcs,
+          reason: 'transfer_in',
+          refType: ref.refType,
+          refId: ref.refId,
+          idempotencyKey: m.inKey,
+          note: ref.note,
+        },
+      )
+    }
+    if (entries.length > 0) await this.inventory.post(tx, entries)
+    return short
+  }
+
+  /** "Item (batch B…)" per lot, off the bill's own lines — the words a dock refusal names a lot by. */
+  private async lineLabels(
+    tx: Db,
+    invoiceId: string,
+    lotIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    if (lotIds.length === 0) return new Map()
+    const rows = await tx
+      .select({
+        lotId: invoiceLines.lotId,
+        description: invoiceLines.description,
+        batchNo: invoiceLines.batchNo,
+      })
+      .from(invoiceLines)
+      .where(and(eq(invoiceLines.invoiceId, invoiceId), inArray(invoiceLines.lotId, [...lotIds])))
+    const out = new Map<string, string>()
+    for (const r of rows)
+      if (r.lotId !== null && !out.has(r.lotId))
+        out.set(
+          r.lotId,
+          r.batchNo === null || r.batchNo === ''
+            ? r.description
+            : `${r.description} (batch ${r.batchNo})`,
+        )
+    return out
+  }
 
   // =============================================================================================================
   // the surface other modules import (coordination §3.1 and §4)
@@ -817,10 +999,19 @@ export class BillingService {
             })
         }
         const outstanding = await this.receivables.invoiceOutstandingPaise(tx, invoice.id)
-        if (outstanding < invoice.totalPaise)
+        if (outstanding < invoice.totalPaise) {
+          // QA DOS-248: a paid bill still in the godown has a named way out on the same panel.
+          const inGodown =
+            invoice.source === 'pack' &&
+            invoice.orderId !== null &&
+            (await this.orders.findOrder(tx, invoice.orderId))?.state === 'packed'
           throw new ORPCError('CONFLICT', {
-            message: `bill ${invoice.invoiceNo ?? invoice.id} has money allocated against it; raise a credit note instead`,
+            message: inGodown
+              ? `bill ${invoice.invoiceNo ?? invoice.id} has money allocated against it, so it is not cancelled. Its goods have not left the godown: use "Could not send it — credit the whole bill": one credit note for the whole bill, and the shop keeps the money on account`
+              : `bill ${invoice.invoiceNo ?? invoice.id} has money allocated against it; raise a credit note instead`,
+            data: { code: 'bill_has_money', awaitingDispatch: inGodown },
           })
+        }
         const [note] = await tx
           .select({ id: creditNotes.id })
           .from(creditNotes)
@@ -838,6 +1029,8 @@ export class BillingService {
           })
 
         const to = invoiceTransition(invoice.state, 'cancel')
+        if (invoice.source === 'pack' && invoice.orderId)
+          await this.assertOffEveryTrip(tx, invoice, 'cancel it')
         await this.restock(tx, invoice, input.restockLocationId)
         await this.reverseInvoiceEntry(tx, invoice)
         /*
@@ -1203,7 +1396,13 @@ export class BillingService {
   /** The bill with its lines, its credit notes, what is still due and the seller's own branding. */
   async detail(tx: Db, row: InvoiceRow): Promise<InvoiceDetail> {
     const seller = await loadSeller(tx)
-    return loadInvoiceDetail(tx, row, seller, await this.amountDue(tx, row))
+    const detail = await loadInvoiceDetail(tx, row, seller, await this.amountDue(tx, row))
+    // QA DOS-248: the desk offers "Could not send it" only for a pack bill whose goods have not left.
+    const order =
+      row.source === 'pack' && row.orderId !== null && row.state !== 'cancelled'
+        ? await this.orders.findOrder(tx, row.orderId)
+        : undefined
+    return { ...detail, awaitingDispatch: order?.state === 'packed' }
   }
 
   /** A draft was never posted to AR and a cancelled bill was reversed: neither owes anything. */
@@ -1805,6 +2004,14 @@ export class BillingService {
    * standing in the tenant's in-transit location: so the compensating pair is dock → godown, a real
    * movement of the cartons back to the rack. Only a bill whose goods were never staged there — an
    * imported or opening-balance bill — gets the plain `adjustment` it always did.
+   *
+   * AND WHEN THE DOCK DOES NOT HOLD THEM, NOTHING IS CANCELLED (QA DOS-251). This used to test "is the whole
+   * lot on the dock" and, when it was not, fall back to that `adjustment`: INV/9034's toor had been loaded for
+   * another bill, so the cancel wrote Godown +12 for pieces that existed nowhere, FEFO reserved them for the
+   * next order and the picker found an empty rack. A pack bill now always goes dock → godown, from the pieces
+   * the dock holds for it (and those it holds for nobody), and a lot the dock cannot give back is a 409
+   * `dock_short` naming the lot and the shortfall — the desk credits such a bill in full instead, which says
+   * what it is: goods that could not be supplied.
    */
   private async restock(
     tx: Db,
@@ -1831,9 +2038,39 @@ export class BillingService {
         ? ((await this.orders.findOrder(tx, invoice.orderId))?.fulfilFromLocationId ??
           (await this.warehouseLocation(tx)))
         : await this.warehouseLocation(tx))
+    const note = `cancelled invoice ${invoice.invoiceNo ?? invoice.id}`
+    if (invoice.source === 'pack' && invoice.orderId !== null) {
+      const short = await this.billOffDock(
+        tx,
+        { id: invoice.id, orderId: invoice.orderId },
+        [...byLot].map(([lotId, pcs]) => ({
+          lotId,
+          pcs,
+          toLocationId: locationId,
+          outKey: `invoice-cancel:${invoice.id}:${lotId}:dock`,
+          inKey: `invoice-cancel:${invoice.id}:${lotId}:${locationId}`,
+        })),
+        { refType: 'invoice_cancel', refId: invoice.id, note },
+        'refuse',
+      )
+      if (short.length > 0) {
+        const bill = invoice.invoiceNo ?? invoice.id
+        throw new ORPCError('CONFLICT', {
+          message: `${short
+            .map(
+              (s) =>
+                `Only ${String(s.onDockPcs)} pc of ${s.label} are on the dock for ${bill}, the bill needs ${String(s.neededPcs)}`,
+            )
+            .join(
+              '; ',
+            )}. They were loaded or counted back elsewhere, so they cannot come back as stock — nothing was cancelled. Credit the whole bill instead ("Could not send it"): the shop is credited and nothing is added to the godown`,
+          data: { code: 'dock_short', lots: short },
+        })
+      }
+      return
+    }
     const dock = await dockLocationId(tx)
     const onTheDock = await this.inventory.onHandAt(tx, dock)
-    const note = `cancelled invoice ${invoice.invoiceNo ?? invoice.id}`
     await this.inventory.post(
       tx,
       [...byLot].flatMap(([lotId, qty]) => {
