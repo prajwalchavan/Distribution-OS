@@ -235,6 +235,7 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
   const deltaTone = {
     positive: theme.colors.status.moss.fg,
     critical: theme.colors.status.brick.fg,
+    attention: theme.colors.status.ochre.fg,
     neutral: theme.density === 'desk' ? theme.colors.text.tertiary : theme.colors.text.secondary,
   }
   return (
@@ -249,30 +250,46 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
         borderColor: theme.colors.border.hairline,
       }}
     >
-      {items.map((item, i) => (
-        <View
-          key={`${item.label}-${String(i)}`}
-          style={{
-            width: columnWidth,
-            padding: space[3],
-            borderLeftWidth: (wide ? i === 0 : i % 2 === 0) ? 0 : 1,
-            borderLeftColor: theme.colors.border.faint,
-            borderTopWidth: !wide && i > 1 ? 1 : 0,
-            borderTopColor: theme.colors.border.faint,
-          }}
-        >
-          <Eyebrow>{item.label}</Eyebrow>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
-            {kpiValue(item.value)}
-            {item.spark ? <Sparkline values={item.spark} /> : null}
+      {items.map((item, i) => {
+        const cellStyle = {
+          width: columnWidth,
+          padding: space[3],
+          borderLeftWidth: (wide ? i === 0 : i % 2 === 0) ? 0 : 1,
+          borderLeftColor: theme.colors.border.faint,
+          borderTopWidth: !wide && i > 1 ? 1 : 0,
+          borderTopColor: theme.colors.border.faint,
+        }
+        const body = (
+          <>
+            <Eyebrow>{item.label}</Eyebrow>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space[2] }}>
+              {kpiValue(item.value)}
+              {item.spark ? <Sparkline values={item.spark} /> : null}
+            </View>
+            {item.delta ? (
+              <Txt field="moneyM" desk="meta" numeric color={deltaTone[item.tone ?? 'neutral']}>
+                {item.delta}
+              </Txt>
+            ) : null}
+          </>
+        )
+        // UX-O-3: a column with `onPress` opens the register behind its figure.
+        return item.onPress ? (
+          <Pressable
+            key={`${item.label}-${String(i)}`}
+            testID={item.testID}
+            accessibilityRole="link"
+            onPress={item.onPress}
+            style={cellStyle}
+          >
+            {body}
+          </Pressable>
+        ) : (
+          <View key={`${item.label}-${String(i)}`} testID={item.testID} style={cellStyle}>
+            {body}
           </View>
-          {item.delta ? (
-            <Txt field="moneyM" desk="meta" numeric color={deltaTone[item.tone ?? 'neutral']}>
-              {item.delta}
-            </Txt>
-          ) : null}
-        </View>
-      ))}
+        )
+      })}
     </View>
   )
 }

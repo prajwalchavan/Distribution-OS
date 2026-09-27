@@ -259,9 +259,16 @@ export interface KpiItem {
   /** Already formatted by the caller through `<Money>` or a count. */
   value: ReactNode
   delta?: string | undefined
-  tone?: ('positive' | 'critical' | 'neutral') | undefined
+  /** The colour of `delta`. `attention` is ochre: something that should have moved and has not. */
+  tone?: ('positive' | 'critical' | 'attention' | 'neutral') | undefined
   /** A 40x16 sparkline in the column. */
   spark?: readonly number[] | undefined
+  /**
+   * The column opens the register behind its figure (UX-O-3: "Invoiced today" → today's bills). A pressable
+   * column is a link on the web and a pressable on a phone; one without it stays a plain figure.
+   */
+  onPress?: (() => void) | undefined
+  testID?: string | undefined
 }
 
 export interface KpiStripProps extends Testable {

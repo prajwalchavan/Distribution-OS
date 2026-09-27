@@ -244,6 +244,7 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
   const deltaTone = {
     positive: theme.colors.status.moss.fg,
     critical: theme.colors.status.brick.fg,
+    attention: theme.colors.status.ochre.fg,
     neutral: theme.density === 'desk' ? theme.colors.text.tertiary : theme.colors.text.secondary,
   }
   return (
@@ -262,6 +263,26 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
       {items.map((item, i) => (
         <div
           key={`${item.label}-${String(i)}`}
+          data-testid={item.testID}
+          /*
+           * UX-O-3: a column with `onPress` opens the register behind its figure. It is a link to the
+           * reader (role, focus, Enter / Space) and keeps the strip's own layout — a <button> would
+           * restyle the grid cell.
+           */
+          role={item.onPress ? 'link' : undefined}
+          tabIndex={item.onPress ? 0 : undefined}
+          onClick={item.onPress}
+          onKeyDown={
+            item.onPress
+              ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    item.onPress?.()
+                  }
+                }
+              : undefined
+          }
+          className={item.onPress ? 'dos-kpi-link' : undefined}
           style={{
             padding: `${space[3]}px ${space[4]}px`,
             borderLeft: (wide ? i === 0 : i % 2 === 0)
@@ -269,6 +290,7 @@ export function KpiStrip({ items, testID }: KpiStripProps): React.JSX.Element {
               : `1px solid ${theme.colors.border.faint}`,
             borderTop: !wide && i > 1 ? `1px solid ${theme.colors.border.faint}` : undefined,
             minWidth: 0,
+            cursor: item.onPress ? 'pointer' : undefined,
           }}
         >
           <Eyebrow>{item.label}</Eyebrow>
