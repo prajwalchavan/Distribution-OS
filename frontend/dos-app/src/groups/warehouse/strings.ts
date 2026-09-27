@@ -429,12 +429,16 @@ export const strings = {
   /* QA DOS-244: a packed batch missing on the dock — bring it from the godown, or the desk takes the bill off. */
   'w7.dockTitle': 'Pieces missing on the dock',
   'w7.dockBody':
-    'Some packed pieces for this sheet are not on the dock. If they are in the godown, bring them over and press the button: the stock moves with you.',
+    'Some bills on this sheet are missing packed pieces on the dock. If they are in the godown, bring them over and press the button: the stock moves with you, held for that bill.',
   'w7.dockStage': 'Bring them from the godown',
   'w7.dockStaged': '{label}: {staged} pc moved to the dock',
   'w7.dockStillShort':
     '{label}: {staged} pc moved, {short} pc are not in the godown. Ask the manager to take that bill off the trip.',
   'w7.dockReady': 'Everything is on the dock. Send the vehicle out again.',
+  /* QA DOS-247: the dock answers per bill, so each line names the bill it is short for. */
+  'w7.dockStagedFor': '{bill} — {label}: {staged} pc moved to the dock',
+  'w7.dockStillShortFor':
+    '{bill} — {label}: {staged} pc moved, {short} pc are not in the godown. Ask the manager to take {billNo} off the trip; the desk can then credit it and the shop can order again.',
   'w7.confirmed': 'Vehicle checked out',
   'w7.challan': 'Challan {no}',
   'w7.printChallan': 'Print the challan',
