@@ -978,6 +978,7 @@ export const strings = {
   'm16.ledger': 'Stock ledger',
   'm16.counts': 'Cycle counts',
   'm16.item': 'Item',
+  'm16.itemBatch': '{item} · {batch}',
   'm16.lot': 'Batch',
   'm16.location': 'Where',
   'm16.onHand': 'On hand',

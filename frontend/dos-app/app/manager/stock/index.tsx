@@ -228,6 +228,12 @@ export default function Stock(): React.JSX.Element {
     textColumn('when', t('m16.when'), (row) => shortInstant(row.occurredAt), {
       priority: 'identity',
     }),
+    // What moved (QA DOS-257): the item and its batch, not only a reason and a number.
+    textColumn('item', t('m16.item'), (row) =>
+      row.variantName === undefined
+        ? t('app.none')
+        : t('m16.itemBatch', { item: row.variantName, batch: row.batchNo || t('app.none') }),
+    ),
     textColumn('reason', t('m16.reason'), (row) => word(row.reason)),
     textColumn('where', t('m16.location'), (row) => names.location(row.locationId)),
     textColumn('qty', t('m16.qty'), (row) => row.qtyDelta, { align: 'right', priority: 'value' }),

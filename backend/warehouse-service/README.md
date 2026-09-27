@@ -5791,7 +5791,9 @@ request.json
     "refType": "text",
     "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
     "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
-    "note": null
+    "note": null,
+    "variantName": "Campa Cola 750 ml",
+    "batchNo": "SO-0042"
   },
   "balance": {
     "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
@@ -5915,7 +5917,9 @@ request.json
     "refType": "text",
     "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
     "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
-    "note": null
+    "note": null,
+    "variantName": "Campa Cola 750 ml",
+    "batchNo": "SO-0042"
   },
   "in": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
@@ -5927,7 +5931,9 @@ request.json
     "refType": "text",
     "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
     "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
-    "note": null
+    "note": null,
+    "variantName": "Campa Cola 750 ml",
+    "batchNo": "SO-0042"
   },
   "from": {
     "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
@@ -6045,7 +6051,9 @@ curl "http://localhost:3004/inventory/ledger?lotId=01a06dc6-1c19-701b-8a21-982c1
       "refType": "text",
       "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
       "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
-      "note": null
+      "note": null,
+      "variantName": "Campa Cola 750 ml",
+      "batchNo": "SO-0042"
     }
   ],
   "nextCursor": null
@@ -6554,7 +6562,9 @@ request.json
       "refType": "text",
       "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
       "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
-      "note": null
+      "note": null,
+      "variantName": "Campa Cola 750 ml",
+      "batchNo": "SO-0042"
     }
   ]
 }

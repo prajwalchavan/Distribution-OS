@@ -521,13 +521,23 @@ export class StockService {
           ? sql`(${stockLedger.occurredAt}, ${stockLedger.id}) < (select c.occurred_at, c.id from stock_ledger c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
           : undefined,
       ]
+      // The item and batch ride along (QA DOS-257): a movement the reader cannot name is no use to him.
+      // Both joins are on primary keys of the page's own rows, so they add no scan.
       const rows = await tx
-        .select()
+        .select({
+          row: stockLedger,
+          variantName: productVariants.name,
+          batchNo: stockLots.batchNo,
+        })
         .from(stockLedger)
+        .innerJoin(stockLots, eq(stockLots.id, stockLedger.lotId))
+        .innerJoin(productVariants, eq(productVariants.id, stockLots.variantId))
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
         .orderBy(desc(stockLedger.occurredAt), desc(stockLedger.id))
         .limit(input.limit + 1)
-      const items = rows.slice(0, input.limit).map(toEntry)
+      const items = rows
+        .slice(0, input.limit)
+        .map((r) => ({ ...toEntry(r.row), variantName: r.variantName, batchNo: r.batchNo }))
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })

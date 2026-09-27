@@ -524,6 +524,15 @@ export const strings = {
   'o15.why': 'Why (goes into the stock ledger)',
   'o15.adjusted': 'Stock adjusted: {item}, batch {batch} now {count} pcs',
   'o15.hint': 'Click a row to adjust that batch.',
+  'o15.itemBatch': '{item} · {batch}',
+  'o15.reasonWhen': '{reason} · {when}',
+  'o15.whatDoc': '{what} · {doc}',
+  'o15.lately': 'Last movements of this batch here',
+  'o15.latelyLoading': 'Reading the stock ledger…',
+  'o15.latelyFailed': 'Could not read the stock ledger; the adjustment still works.',
+  'o15.latelyNone': 'Nothing has moved this batch here yet.',
+  'o15.latelyRow': '{when} · {delta} pcs · {what}',
+  'o15.latelyRowNote': '{when} · {delta} pcs · {what} — {note}',
 
   // --- O16 Inbound + O26 Documents ---------------------------------------------------------------------------
   'o16.tab': 'Inbound',
