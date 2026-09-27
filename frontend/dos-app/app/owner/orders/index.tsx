@@ -45,7 +45,13 @@ import {
   useNames,
 } from '../../../src/groups/owner/lib/ui'
 import { Refusal, stayOpen } from '../../../src/groups/owner/lib/refusal'
-import { rangeOf, shortInstant, longDate, type RangeId } from '../../../src/groups/owner/lib/dates'
+import {
+  rangeOf,
+  rangeParam,
+  shortInstant,
+  longDate,
+  type RangeId,
+} from '../../../src/groups/owner/lib/dates'
 import { waitingOnKinds } from '../../../src/groups/owner/lib/waiting-on'
 import { readAllReservations, reservedPcs } from '../../../src/groups/owner/lib/reservations'
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
@@ -110,10 +116,23 @@ export default function Orders(): React.JSX.Element {
    */
   const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
-  const params = useLocalSearchParams<{ q?: string }>()
-  const [range, setRange] = useState<RangeId>('d30')
+  /*
+   * UX-O-1: the home's flow strip opens this register filtered to what its step counted —
+   * `?range=today` for Booked, `?state=packed&range=all` for "Packed, no van" (nine orders had waited
+   * since 10 Sep, past a 30-day window's reach on another day), `?state=dispatched&range=all` for
+   * "On the road". `range=all` is "any date": the register says so in its filter row.
+   */
+  const params = useLocalSearchParams<{ q?: string; state?: string; range?: string }>()
+  const [range, setRange] = useState<RangeId>(rangeParam(params.range, 'd30'))
+  const [anyDate, setAnyDate] = useState(params.range === 'all')
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
-  const [states, setStates] = useState<readonly OrderState[]>([])
+  const [states, setStates] = useState<readonly OrderState[]>(
+    typeof params.state === 'string'
+      ? params.state
+          .split(',')
+          .filter((s): s is OrderState => (STATES as readonly string[]).includes(s))
+      : [],
+  )
   const [selected, setSelected] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<'confirm' | 'cancel' | 'release' | null>(null)
   const [reason, setReason] = useState('')
@@ -125,11 +144,18 @@ export default function Orders(): React.JSX.Element {
    * being silently hidden by the 30-day window the register opens on. The chip says which it is.
    */
   const searching = q !== ''
+  const undated = searching || anyDate
   const list = useQuery(
-    ['orders', 'list', searching ? q : `${span.from}:${span.to}`, states.join(',')],
+    [
+      'orders',
+      'list',
+      searching ? q : anyDate ? 'any' : `${span.from}:${span.to}`,
+      states.join(','),
+    ],
     () =>
       api.api.orders.list({
-        ...(searching ? { q } : { from: span.from, to: span.to }),
+        ...(searching ? { q } : {}),
+        ...(undated ? {} : { from: span.from, to: span.to }),
         limit: 200,
         ...(states.length === 1 ? { state: states[0] } : {}),
         ...(states.length > 1 ? { states: [...states] } : {}),
@@ -266,10 +292,12 @@ export default function Orders(): React.JSX.Element {
       actions={
         <>
           <RangeSegments
-            value={range}
+            value={anyDate ? '' : range}
             onChange={(id) => {
               setRange(id as RangeId)
+              setAnyDate(false)
             }}
+            today
             testID="orders-range"
           />
           {/*
@@ -329,11 +357,13 @@ export default function Orders(): React.JSX.Element {
             state="ready"
             filters={[
               ...(searching ? [{ id: 'q', label: t('app.searchFilter', { query: q }) }] : []),
+              ...(anyDate && !searching ? [{ id: 'any', label: t('app.anyDate') }] : []),
               ...states.map((state) => ({ id: state, label: word(state) })),
             ]}
             onClearFilters={() => {
               setStates([])
               setQ('')
+              setAnyDate(false)
             }}
             totals={{
               orderNo: t('app.rows', { count: rows.length }),

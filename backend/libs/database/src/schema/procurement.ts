@@ -69,6 +69,8 @@ export const purchaseOrders = pgTable(
   },
   (t) => [
     index('purchase_orders_supplier_idx').on(t.tenantId, t.supplierId, t.createdAt),
+    /** An unfiltered list, newest first with the id as the tie-break, is a walk of this index (UX-O-8 keyset). */
+    index('purchase_orders_created_idx').on(t.tenantId, t.createdAt, t.id),
     tenantRolePolicy('purchase_orders_back_office', BACK_OFFICE_ROLES),
   ],
 ).enableRLS()
@@ -144,6 +146,8 @@ export const supplierInvoices = pgTable(
       .on(t.tenantId, t.irn)
       .where(sql`irn IS NOT NULL`),
     index('supplier_invoices_status_idx').on(t.tenantId, t.status, t.invoiceDate),
+    /** An unfiltered list, newest first with the id as the tie-break, is a walk of this index (UX-O-8 keyset). */
+    index('supplier_invoices_date_idx').on(t.tenantId, t.invoiceDate, t.id),
     tenantRolePolicy('supplier_invoices_back_office', BACK_OFFICE_ROLES),
   ],
 ).enableRLS()
@@ -246,6 +250,8 @@ export const grns = pgTable(
   (t) => [
     index('grns_invoice_idx').on(t.tenantId, t.supplierInvoiceId),
     index('grns_status_idx').on(t.tenantId, t.status),
+    /** An unfiltered list, newest first with the id as the tie-break, is a walk of this index (UX-O-8 keyset). */
+    index('grns_created_idx').on(t.tenantId, t.createdAt, t.id),
     staffReadPolicy('grns_read'),
     ...roleWritePolicies('grns_write', INBOUND_ROLES),
   ],

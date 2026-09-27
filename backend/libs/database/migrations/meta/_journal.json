@@ -498,6 +498,13 @@
       "when": 1790700000100,
       "tag": "0072_invoice_cancel_phantom_writeoff",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1790800000000,
+      "tag": "0073_owner_list_keyset_indexes",
+      "breakpoints": true
     }
   ]
 }

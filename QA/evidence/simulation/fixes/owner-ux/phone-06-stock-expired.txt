@@ -1,0 +1,200 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+✓ Expired
+Filters (1) · Clear
+Annapurna Besan 500 g · Godown
+Batch B20251204 · expired
+20
+Annapurna Bombay Rava 500 g · Godown
+Batch B20251227 · expired
+40
+Campa Lemon 1 L · Godown
+Batch B20251205 · expired
+24
+Campa Orange 200 ml · Godown
+Batch B20251229 · expired
+96
+Godavari Dahi 1 kg · Damaged / expiry bin
+Batch GD20260716 · expired
+2
+Godavari Dahi 1 kg · Damaged / expiry bin
+Batch GD20260723 · expired
+8
+Godavari Dahi 1 kg · Damaged / expiry bin
+Batch GD20260617 · expired
+8
+Godavari Dahi 1 kg · Damaged / expiry bin
+Batch GD20260623 · expired
+8
+Godavari Dahi 1 kg · Godown
+Batch B20260904 · expired
+16
+Godavari Dahi 200 g · Godown
+Batch B20260812 · expired
+30
+Godavari Dahi 200 g · Godown
+Batch GD20260816 · expired
+30
+Godavari Dahi 200 g · Damaged / expiry bin
+Batch GD20260620 · expired
+7
+Godavari Dahi 200 g · Damaged / expiry bin
+Batch GD20260716 · expired
+33
+Godavari Dahi 200 g · Damaged / expiry bin
+Batch GD20260614 · expired
+6
+Godavari Dahi 200 g · Damaged / expiry bin
+Batch GD20260623 · expired
+11
+Godavari Dahi 200 g · Godown
+Batch GD20260827 · expired
+42
+Godavari Dahi 400 g · Godown
+Batch B20260830 · expired
+40
+Godavari Dahi 400 g · Damaged / expiry bin
+Batch GD20260726 · expired
+12
+Godavari Dahi 400 g · Damaged / expiry bin
+Batch GD20260702 · expired
+20
+Godavari Dahi 400 g · Godown
+Batch GD20260827 · expired
+40
+Godavari Dahi 400 g · Damaged / expiry bin
+Batch GD20260720 · expired
+5
+Godavari Flavoured Milk Chocolate 180 ml · Godown
+Batch B20260525 · expired
+54
+Godavari Fresh Paneer 200 g · Godown
+Batch B20260909 · expired
+96
+Godavari Fresh Paneer 200 g · Damaged / expiry bin
+Batch GD20260825 · expired
+24
+Godavari Fresh Paneer 200 g · Godown
+Batch B20260809 · expired
+24
+Godavari Fresh Paneer 200 g · Damaged / expiry bin
+Batch GD20260729 · expired
+38
+Godavari Fresh Paneer 200 g · Damaged / expiry bin
+Batch GD20260705 · expired
+24
+Godavari Fresh Paneer 200 g · Damaged / expiry bin
+Batch GD20260625 · expired
+24
+Godavari Fresh Paneer 200 g · Damaged / expiry bin
+Batch GD20260614 · expired
+24
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260611 · expired
+8
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260705 · expired
+2
+Godavari Fresh Paneer 500 g · Godown
+Batch B20260908 · expired
+24
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260711 · expired
+4
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260720 · expired
+5
+Godavari Fresh Paneer 500 g · Godown
+Batch B20260909 · expired
+48
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260822 · expired
+2
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260819 · expired
+7
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260623 · expired
+9
+Godavari Fresh Paneer 500 g · Damaged / expiry bin
+Batch GD20260816 · expired
+4
+Godavari Kesar Shrikhand 200 g · Godown
+Batch B20260814 · expired
+120
+Godavari Masala Chaas 1 L · Damaged / expiry bin
+Batch GD20260623 · expired
+9
+Godavari Masala Chaas 1 L · Damaged / expiry bin
+Batch GD20260810 · expired
+12
+Godavari Masala Chaas 1 L · Godown
+Batch GD20260831 · expired
+36
+Godavari Masala Chaas 1 L · Godown
+Batch B20260902 · expired
+24
+Godavari Masala Chaas 1 L · Damaged / expiry bin
+Batch GD20260614 · expired
+24
+Godavari Masala Chaas 200 ml · Godown
+Batch GD20260827 · expired
+30
+Godavari Masala Chaas 200 ml · Damaged / expiry bin
+Batch GD20260617 · expired
+19
+Godavari Masala Chaas 200 ml · Damaged / expiry bin
+Batch GD20260806 · expired
+12
+Godavari Masala Chaas 200 ml · Godown
+Batch B20260817 · expired
+30
+Rajwadi Apple Nectar 200 ml · Godown
+Batch B20260226 · expired
+27
+Sunbake Orange Cream 60 g · Godown
+Batch B20260107 · expired
+96
+51 batches · Click a row to adjust that batch.
+Cycle counts
+Today
+Orders
+Money
+Shops

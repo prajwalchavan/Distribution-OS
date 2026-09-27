@@ -102,6 +102,8 @@ export const exportJobs = pgTable(
   },
   (t) => [
     index('export_jobs_status_idx').on(t.tenantId, t.status, t.createdAt),
+    /** An unfiltered list, newest first with the id as the tie-break, is a walk of this index (UX-O-8 keyset). */
+    index('export_jobs_created_idx').on(t.tenantId, t.createdAt, t.id),
     tenantRolePolicy('export_jobs_back_office', BACK_OFFICE_ROLES),
   ],
 ).enableRLS()

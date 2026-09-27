@@ -31,7 +31,8 @@ describe('dues → shop → bill → items (2026-09-26)', () => {
     expect(money).toContain('testID="money-open-bill"')
   })
   it('the Bills register opens the bill it is sent', () => {
-    expect(billing).toMatch(/useLocalSearchParams<\{ q\?: string; bill\?: string \}>/)
+    // UX-O-1 added `range` (the home's Billed step opens today's bills); `bill` is still read.
+    expect(billing).toMatch(/useLocalSearchParams<\{ q\?: string; bill\?: string[^}]*\}>/)
     expect(billing).toMatch(
       /typeof params\.bill === 'string' && params\.bill !== '' \? params\.bill : null/,
     )

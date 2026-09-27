@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, lt, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { z } from 'zod'
 import type {
@@ -258,21 +258,29 @@ export class SupplierInvoiceService {
     return { item: toInvoiceWithLines(row, sortLines(lines)) }
   }
 
-  /** Newest first; cursor is the last id seen. */
+  /**
+   * Newest first by the bill's own INVOICE DATE — the date the register prints and the purchase register
+   * (GSTR-2) keeps it by — with the id only breaking a tie (the DOS-009 ruling; UX-O-8: under `desc(id)`
+   * the owner's Inbound opened on 19 Aug, 27 Jun, 15 Jul and the week's bills were not on top). The cursor
+   * is still the last id seen; the keyset reads that bill's (invoice_date, id).
+   */
   async list(input: ListIn): Promise<ListOut> {
     requireRole(BACK_OFFICE)
     const db = requireDb(this.db)
+    const { tenantId } = currentTenant()
     return withTenant(db, currentTenant(), async (tx) => {
       const filters: (SQL | undefined)[] = [
         input.status ? eq(supplierInvoices.status, input.status) : undefined,
         input.supplierId ? eq(supplierInvoices.supplierId, input.supplierId) : undefined,
-        input.cursor ? lt(supplierInvoices.id, input.cursor) : undefined,
+        input.cursor
+          ? sql`(${supplierInvoices.invoiceDate}, ${supplierInvoices.id}) < (select c.invoice_date, c.id from supplier_invoices c where c.tenant_id = ${tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(supplierInvoices)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(supplierInvoices.id))
+        .orderBy(desc(supplierInvoices.invoiceDate), desc(supplierInvoices.id))
         .limit(input.limit + 1)
       const items = rows.slice(0, input.limit).map(toInvoice)
       const last = items[items.length - 1]
@@ -482,13 +490,16 @@ export class SupplierInvoiceService {
       const filters: (SQL | undefined)[] = [
         input.supplierId ? eq(purchaseOrders.supplierId, input.supplierId) : undefined,
         input.status ? eq(purchaseOrders.status, input.status) : undefined,
-        input.cursor ? lt(purchaseOrders.id, input.cursor) : undefined,
+        // A queue of work: server time, newest first, the id only a tie-break (DOS-009 ruling, UX-O-8).
+        input.cursor
+          ? sql`(${purchaseOrders.createdAt}, ${purchaseOrders.id}) < (select c.created_at, c.id from purchase_orders c where c.tenant_id = ${currentTenant().tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(purchaseOrders)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(purchaseOrders.id))
+        .orderBy(desc(purchaseOrders.createdAt), desc(purchaseOrders.id))
         .limit(input.limit + 1)
       const items = rows.slice(0, input.limit).map(toPurchaseOrder)
       const last = items[items.length - 1]

@@ -455,13 +455,16 @@ export class GrnService {
       const filters: (SQL | undefined)[] = [
         input.status ? eq(grns.status, input.status) : undefined,
         input.supplierInvoiceId ? eq(grns.supplierInvoiceId, input.supplierInvoiceId) : undefined,
-        input.cursor ? lt(grns.id, input.cursor) : undefined,
+        // A queue of work: server time, newest first, the id only a tie-break (DOS-009 ruling, UX-O-8).
+        input.cursor
+          ? sql`(${grns.createdAt}, ${grns.id}) < (select c.created_at, c.id from grns c where c.tenant_id = ${currentTenant().tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(grns)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(grns.id))
+        .orderBy(desc(grns.createdAt), desc(grns.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       // QA DOS-050: the row names the lorry and says how many lines are on it. Two grouped reads for

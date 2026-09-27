@@ -87,8 +87,32 @@ export function instantWithClock(iso: string | null | undefined): string {
   return `${shortDate(businessDate(ms).date)}, ${String(hour12)}:${minutes} ${suffix}`
 }
 
-/** The four ranges the owner's charts and registers offer, as `{ from, to }` IST dates. */
-export type RangeId = 'd7' | 'd30' | 'd90' | 'fy'
+/**
+ * The ranges the owner's charts and registers offer, as `{ from, to }` IST dates. `today` is the one a
+ * register opened from the home's flow strip lands on (UX-O-1): "today's bills", "today's receipts".
+ */
+export type RangeId = 'today' | 'd7' | 'd30' | 'd90' | 'fy'
+
+const RANGE_IDS: readonly RangeId[] = ['today', 'd7', 'd30', 'd90', 'fy']
+
+/**
+ * The windows `<RangeSegments>` draws as segments. The kit's `<Segments>` takes "two or three options"
+ * and renders only the first three (`items.slice(0, 3)` in both renderers), so this list is exactly the
+ * three a reader can pick — FY was the fourth and never drew. **Today is not one of them**: putting it in
+ * front pushed 90 days off the end on Orders, Bills & GST and Receipts (owner-ux repair, verifier finding
+ * 1). A register that offers Today draws it as its own chip beside these three.
+ */
+export const RANGE_SEGMENT_IDS = ['d7', 'd30', 'd90'] as const satisfies readonly RangeId[]
+
+/** The most options the kit's `<Segments>` draws (`SegmentsProps`: "Two or three options"). */
+export const SEGMENTS_MAX = 3
+
+/** A `?range=` query parameter as a range, or `fallback` when it is absent or not one of ours. */
+export function rangeParam(value: unknown, fallback: RangeId): RangeId {
+  return typeof value === 'string' && (RANGE_IDS as readonly string[]).includes(value)
+    ? (value as RangeId)
+    : fallback
+}
 
 export interface DateRange {
   from: string
@@ -97,6 +121,8 @@ export interface DateRange {
 
 export function rangeOf(id: RangeId, now: string = today()): DateRange {
   switch (id) {
+    case 'today':
+      return { from: now, to: now }
     case 'd7':
       return { from: shiftDays(now, -6), to: now }
     case 'd30':
@@ -138,6 +164,54 @@ export function clampWindow(range: DateRange, maxDays: number): DateRange {
   return windowDays(range) <= maxDays
     ? range
     : { from: shiftDays(range.to, -(maxDays - 1)), to: range.to }
+}
+
+/**
+ * The same days of last month as this month has had so far (UX-O-4): on 27 Sep, 1–27 Sep against 1–27
+ * Aug. A whole last month against a part month is not a comparison (`series.growth` said −53.42 % where
+ * the like-for-like figure is −46 %). A day this month that last month did not have (31 Oct → 30 Sep) is
+ * clamped to last month's end.
+ */
+export function sameDaysLastMonth(now: string = today()): {
+  current: DateRange
+  previous: DateRange
+} {
+  const [y, m, d] = now.split('-').map(Number) as [number, number, number]
+  const first = `${String(y)}-${String(m).padStart(2, '0')}-01`
+  const lastMonthStart = new Date(Date.UTC(y, m - 2, 1))
+  const from = `${String(lastMonthStart.getUTCFullYear())}-${String(lastMonthStart.getUTCMonth() + 1).padStart(2, '0')}-01`
+  const day = Math.min(d, Number(endOfMonth(from).slice(8, 10)))
+  return {
+    current: { from: first, to: now },
+    previous: { from, to: `${from.slice(0, 8)}${String(day).padStart(2, '0')}` },
+  }
+}
+
+/** `1–27 Aug`: a window inside one month, the way the trade says it. */
+export function dayRange(range: DateRange): string {
+  const month = MONTHS[Number(range.from.slice(5, 7)) - 1] ?? ''
+  const from = String(Number(range.from.slice(8, 10)))
+  const to = String(Number(range.to.slice(8, 10)))
+  return from === to ? `${from} ${month}` : `${from}–${to} ${month}`
+}
+
+/**
+ * True when an instant (`2026-09-10T…Z`) or an IST date (`2026-09-12`, read as its IST midnight) is more
+ * than a day behind `nowMs` — the flow strip's ochre rule (UX-O-1): a step holding anything older than a
+ * day is money stuck, not money moving.
+ */
+export function olderThanADay(at: string | null | undefined, nowMs: number = Date.now()): boolean {
+  if (!at) return false
+  const ms = at.length === 10 ? Date.parse(`${at}T00:00:00+05:30`) : Date.parse(at)
+  return !Number.isNaN(ms) && nowMs - ms > DAY_MS
+}
+
+/**
+ * A lot is past its date once its expiry day is behind today in IST (UX-O-2, DOS-261): B20251204, expiry
+ * 31 Aug 2026, read "Sellable 20" on 27 Sep. The day of expiry itself still sells.
+ */
+export function isExpired(expiryDate: string | null | undefined, now: string = today()): boolean {
+  return typeof expiryDate === 'string' && expiryDate.length >= 10 && expiryDate.slice(0, 10) < now
 }
 
 /** The last N whole months, as a month-grain window ending in the current month. */

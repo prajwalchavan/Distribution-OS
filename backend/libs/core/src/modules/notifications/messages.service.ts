@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, inArray, isNull, lt, or, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   MessageGetInput,
@@ -94,13 +94,20 @@ export class MessagesService {
           ? and(inArray(messages.channel, MARKABLE), isNull(messages.readAt))
           : undefined,
         ...dayWindow(messages.createdAt, input.from, input.to),
-        input.cursor ? lt(messages.id, input.cursor) : undefined,
+        /*
+         * Newest first on `created_at`, the column `from`/`to` filter on, with the id only a tie-break
+         * (DOS-009 ruling; UX-O-8: under `desc(id)` the owner's Messages opened on 10 Sep with the week's
+         * messages further down). The cursor stays the last id seen.
+         */
+        input.cursor
+          ? sql`(${messages.createdAt}, ${messages.id}) < (select c.created_at, c.id from messages c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(messages)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(messages.id))
+        .orderBy(desc(messages.createdAt), desc(messages.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const mapping = await this.mapping(tx, page)

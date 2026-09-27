@@ -8,10 +8,14 @@
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
+  Box,
   Button,
+  Chips,
   ErrorState,
   EmptyState,
+  ListRow,
   Money,
+  Pressable,
   Row,
   Segments,
   Skeleton,
@@ -32,7 +36,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { PAGE_TABS } from '../nav'
 import { absoluteUrl } from '../../../config'
-import { clampWindow, instantWithClock, type DateRange } from './dates'
+import { RANGE_SEGMENT_IDS, clampWindow, instantWithClock, type DateRange } from './dates'
+import { FLOW_DESK_PER_ROW, flowRows } from './flow'
 
 /**
  * How many NAMED groups a brand-mix chart asks the reporting API for (DOS-002).
@@ -231,29 +236,220 @@ export function PageTabs({ group, active }: { group: string; active: string }): 
 
 export type { RangeId } from './dates'
 
-/** The 7 / 30 / 90 / FY switch every register and every chart on this app offers. */
+const RANGE_LABEL_KEYS: Readonly<Record<(typeof RANGE_SEGMENT_IDS)[number], string>> = {
+  d7: 'app.days7',
+  d30: 'app.days30',
+  d90: 'app.days90',
+}
+
+/**
+ * The 7 / 30 / 90 switch every register and every chart on this app offers. A register the home's flow
+ * strip opens (orders, bills, receipts) also offers **Today** (UX-O-1, UX-O-5) — as its OWN chip in front
+ * of the three segments, never as a fourth segment: the kit's `<Segments>` draws three, and a Today
+ * segment pushed 90 days off the end (owner-ux repair). A chart does not offer Today — one day is one point.
+ */
 export function RangeSegments({
   value,
   onChange,
+  today = false,
   testID,
 }: {
   value: string
   onChange: (id: string) => void
+  today?: boolean
   testID?: string
 }): React.JSX.Element {
   const t = useStrings()
-  return (
+  const segments = (
     <Segments
       testID={testID}
       value={value}
       onChange={onChange}
-      items={[
-        { id: 'd7', label: t('app.days7') },
-        { id: 'd30', label: t('app.days30') },
-        { id: 'd90', label: t('app.days90') },
-        { id: 'fy', label: t('app.fy') },
-      ]}
+      items={RANGE_SEGMENT_IDS.map((id) => ({ id, label: t(RANGE_LABEL_KEYS[id]) }))}
     />
+  )
+  if (!today) return segments
+  return (
+    <Row gap={2} align="center" wrap>
+      <Chips
+        testID={testID === undefined ? undefined : `${testID}-today`}
+        items={[{ id: 'today', label: t('app.today'), selected: value === 'today' }]}
+        onToggle={() => {
+          // Pressing Today again steps out to the shortest window that still holds today.
+          onChange(value === 'today' ? 'd7' : 'today')
+        }}
+      />
+      {segments}
+    </Row>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Today's flow (UX-O-1)
+// ---------------------------------------------------------------------------
+
+export interface FlowCell {
+  id: string
+  label: string
+  /** "31", "9+" — a count, or "—" while its read has not answered; absent for a step that is only ₹. */
+  count?: string | undefined
+  /** "₹1,28,198.00" — absent for a step that is only a count. */
+  amount?: string | undefined
+  /** One line under the figure: the oldest date, the trip, the split by mode. */
+  meta?: string | undefined
+  /** Holds something older than a day: drawn in ochre. */
+  stale: boolean
+  /**
+   * A read behind this step FAILED: its figure stays a dash and `meta` says it did not load, in the
+   * critical tone — a dash alone reads the same as "still loading" (owner-ux repair, verifier finding 5).
+   */
+  failed?: boolean | undefined
+  onPress: () => void
+}
+
+/**
+ * The owner's day as one chain, each link a count and a ₹ that opens its register (UX-O-1). On a desk
+ * it is two rows of cells (five, then four) read left to right with a thin arrow before every cell but
+ * the first, the columns aligned; on a phone the same cells are a timeline the owner scrolls. A cell
+ * holding anything older than a day is ochre — that is the money that is stuck — and a cell whose read
+ * failed says so in the critical tone. Composed only from the kit's layout vocabulary: no new component.
+ */
+export function FlowStrip({
+  cells,
+  testID,
+}: {
+  cells: readonly FlowCell[]
+  testID?: string
+}): React.JSX.Element {
+  const colors = useColors()
+  const viewport = useViewport()
+  const ochre = colors.status.ochre.fg
+  const tone = (cell: FlowCell): string =>
+    cell.failed === true ? colors.status.brick.fg : cell.stale ? ochre : colors.text.primary
+  if (viewport.kind === 'phone') {
+    return (
+      <Stack testID={testID} border="top" borderTone="hairline">
+        {cells.map((cell) => (
+          <ListRow
+            key={cell.id}
+            testID={`${testID ?? 'flow'}-${cell.id}`}
+            primary={cell.label}
+            secondary={cell.meta}
+            trailing={
+              <Txt field="bodyStrong" desk="body" numeric color={tone(cell)}>
+                {[cell.count, cell.amount].filter((part) => part !== undefined).join(' · ')}
+              </Txt>
+            }
+            onPress={cell.onPress}
+          />
+        ))}
+      </Stack>
+    )
+  }
+  const rows = flowRows(cells)
+  return (
+    <Stack testID={testID} border="all" borderTone="hairline" background="surface">
+      {rows.map((row, r) => (
+        <Row
+          key={row.map((cell) => cell.id).join('-')}
+          align="stretch"
+          border={r === 0 ? undefined : 'top'}
+          borderTone="hairline"
+        >
+          {Array.from({ length: FLOW_DESK_PER_ROW }, (_, c) => {
+            const cell = row[c]
+            // The short last row keeps its columns under the first row's: an empty cell holds the place.
+            if (cell === undefined) return <Box key={`pad-${String(c)}`} grow />
+            const first = r === 0 && c === 0
+            return (
+              <Row key={cell.id} grow gap={1} align="stretch">
+                <Box width={12} align="center" padY={2}>
+                  {first ? null : (
+                    <Txt field="label" desk="meta" color={colors.text.tertiary}>
+                      ›
+                    </Txt>
+                  )}
+                </Box>
+                <Box grow>
+                  <Pressable
+                    onPress={cell.onPress}
+                    role="link"
+                    label={cell.label}
+                    minHeight={64}
+                    testID={`${testID ?? 'flow'}-${cell.id}`}
+                  >
+                    <Stack gap={1} padX={2} padY={2}>
+                      <Txt field="label" desk="meta" color={colors.text.secondary}>
+                        {cell.label}
+                      </Txt>
+                      {cell.count === undefined ? null : (
+                        <Txt field="bodyStrong" desk="body" numeric color={tone(cell)}>
+                          {cell.count}
+                        </Txt>
+                      )}
+                      {cell.amount === undefined ? null : (
+                        <Txt
+                          field={cell.count === undefined ? 'bodyStrong' : 'body'}
+                          desk="body"
+                          numeric
+                          color={tone(cell)}
+                        >
+                          {cell.amount}
+                        </Txt>
+                      )}
+                      {cell.meta === undefined ? null : (
+                        <Txt
+                          field="label"
+                          desk="meta"
+                          numeric
+                          color={
+                            cell.failed === true
+                              ? colors.status.brick.fg
+                              : cell.stale
+                                ? ochre
+                                : colors.text.secondary
+                          }
+                        >
+                          {cell.meta}
+                        </Txt>
+                      )}
+                    </Stack>
+                  </Pressable>
+                </Box>
+              </Row>
+            )
+          })}
+        </Row>
+      ))}
+    </Stack>
+  )
+}
+
+/**
+ * A "···" button that shows the page's rarely-used actions beside it (UX-O-6: "Rebuild ageing" is a
+ * repair, not a daily action, and sat third among the Money controls on a phone).
+ */
+export function MoreActions({
+  children,
+  testID,
+}: {
+  children: ReactNode
+  testID?: string
+}): React.JSX.Element {
+  const t = useStrings()
+  const [open, setOpen] = useState(false)
+  return (
+    <Row gap={2} align="center" wrap>
+      <Button
+        label={open ? t('app.lessActions') : t('app.moreActions')}
+        variant="ghost"
+        onPress={() => {
+          setOpen((v) => !v)
+        }}
+        testID={testID}
+      />
+      {open ? children : null}
+    </Row>
   )
 }
 

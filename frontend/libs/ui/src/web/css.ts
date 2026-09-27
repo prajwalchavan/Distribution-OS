@@ -92,6 +92,7 @@ export const BASE_CSS = `
 .dos-row[data-pressable='true'] { cursor: pointer; }
 .dos-row[data-pressable='true']:hover { background: var(--dos-bg-raised); }
 .dos-row[data-state='selected'] { background: var(--dos-accent-tint); }
+.dos-kpi-link:hover { background: var(--dos-bg-raised); }
 
 /* Register ------------------------------------------------------------- */
 .dos-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }

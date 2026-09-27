@@ -14,6 +14,7 @@ import {
   Link,
   ListRow,
   Money,
+  Row,
   Screen,
   Stack,
   StatusChip,
@@ -32,16 +33,43 @@ import {
   AsOf,
   Async,
   Columns,
+  FlowStrip,
   Half,
   MIX_TOP_GROUPS,
   PageTabs,
   Panel,
   useNames,
+  type FlowCell,
 } from '../../src/groups/owner/lib/ui'
-import { instantWithClock, monthsBack, rangeOf, shortDate } from '../../src/groups/owner/lib/dates'
+import {
+  dayRange,
+  instantWithClock,
+  monthsBack,
+  olderThanADay,
+  rangeOf,
+  shiftDays,
+  shortDate,
+  shortInstant,
+  today,
+} from '../../src/groups/owner/lib/dates'
+import {
+  buildFlow,
+  failedSteps,
+  rollupIsToday,
+  type FlowRead,
+  type FlowStep,
+} from '../../src/groups/owner/lib/flow'
+import { monthCompare, monthCompareWindow } from '../../src/groups/owner/lib/month-compare'
 import { pendingDecisions } from '../../src/groups/owner/lib/pending-decisions'
 import { useWord } from '../../src/groups/owner/lib/words'
 import { tripName, tripOf } from '../../src/groups/owner/lib/trip-settlement'
+
+/** What the strip needs of a read to say that it failed and to try it again. */
+interface AsyncRead {
+  data: unknown
+  error: { message: string } | undefined
+  refetch: () => Promise<unknown>
+}
 
 export default function Today(): React.JSX.Element {
   const go = useGo()
@@ -80,6 +108,73 @@ export default function Today(): React.JSX.Element {
   const bargains = useQuery(['bargains', 'requested', 'top'], () =>
     api.api.pricing.bargains.list({ status: 'requested', limit: 5 }),
   )
+
+  /*
+   * UX-O-1: today's flow. Every read is a procedure the owner already holds and each is the SAME read its
+   * register makes when the step is pressed, so the figure on the strip is the figure on the page it opens.
+   */
+  const now = today()
+  const booked = useQuery(['orders', 'list', 'flow', 'booked', now], () =>
+    api.api.orders.list({ from: now, to: now, limit: 200 }),
+  )
+  const billedBills = useQuery(['invoices', 'flow', 'billed', now], () =>
+    api.api.billing.invoices.list({ from: now, to: now, limit: 200 }),
+  )
+  const packed = useQuery(['orders', 'list', 'flow', 'packed'], () =>
+    api.api.orders.list({ state: 'packed', limit: 200 }),
+  )
+  const dispatched = useQuery(['orders', 'list', 'flow', 'dispatched'], () =>
+    api.api.orders.list({ state: 'dispatched', limit: 200 }),
+  )
+  const onTheRoad = useQuery(['delivery', 'trips', 'flow', 'active'], () =>
+    api.api.delivery.trips.list({ state: 'active', limit: 50 }),
+  )
+  const collections = useQuery(['registers', 'collections', now], () =>
+    api.api.reporting.registers.collections({ from: now, to: now, groupBy: 'day' }),
+  )
+  const banked = useQuery(['receipts', 'flow', 'banked', now], () =>
+    api.api.receivables.receipts.list({ status: 'deposited', from: now, to: now, limit: 1 }),
+  )
+
+  /* UX-O-4: the days of this month so far against the same days of last month, one read. */
+  const compareWindow = monthCompareWindow(now)
+  const monthSeries = useQuery(
+    ['series', 'sales', 'mtdCompare', compareWindow.from, compareWindow.to],
+    () =>
+      api.api.reporting.series.sales({
+        grain: 'day',
+        from: compareWindow.from,
+        to: compareWindow.to,
+      }),
+  )
+  const vsLastMonth =
+    monthSeries.data === undefined ? undefined : monthCompare(monthSeries.data.points, now)
+
+  /*
+   * UX-O-2: lots past their date. `expiringBefore` is inclusive, so yesterday is "expired before today".
+   * The line counts EVERY place, as the Stock register's Expired filter it opens lists every place — the
+   * home said 22 batches while the register listed 51, the damaged bin's 29 among them (owner-ux repair,
+   * verifier finding 4) — and then says how much of it still stands in a godown, which is the part the
+   * owner has to move; expired stock already in the damaged bin is where it belongs.
+   */
+  const locations = useQuery(['inventory', 'locations'], () =>
+    api.api.inventory.locations.list({ activeOnly: true }),
+  )
+  const expired = useQuery(['inventory', 'balances', 'owner', 'expired', now], () =>
+    api.api.inventory.stock.balances({
+      expiringBefore: shiftDays(now, -1),
+      nonZero: true,
+      limit: 500,
+    }),
+  )
+  const godowns = new Set(
+    (locations.data?.items ?? []).filter((loc) => loc.kind === 'warehouse').map((loc) => loc.id),
+  )
+  const expiredRows = (expired.data?.items ?? []).filter((row) => row.onHand > 0)
+  const expiredPieces = expiredRows.reduce((total, row) => total + row.onHand, 0)
+  const expiredInGodown = expiredRows.filter((row) => godowns.has(row.locationId))
+  const godownPieces = expiredInGodown.reduce((total, row) => total + row.onHand, 0)
+  const expiredMore = (expired.data?.nextCursor ?? null) !== null
 
   const d = dashboard.data
 
@@ -166,6 +261,196 @@ export default function Today(): React.JSX.Element {
    */
   const decisions = pendingDecisions(approvals.data, bargains.data)
 
+  const flow = buildFlow({
+    today: now,
+    booked: booked.data,
+    held:
+      decisions === undefined
+        ? undefined
+        : {
+            count: decisions.count,
+            more: decisions.more,
+            asked: [
+              ...(approvals.data?.items ?? []).map((row) => row.createdAt),
+              ...(bargains.data?.items ?? []).map((row) => row.createdAt),
+            ],
+          },
+    billedBills: billedBills.data,
+    packed: packed.data,
+    dispatched: dispatched.data,
+    trips: onTheRoad.data,
+    dashboard: d,
+    collections: collections.data?.totals,
+    banked: banked.data?.totals,
+  })
+  const rupees = (value: number): string => formatINR(paise(value))
+  /*
+   * A step that counts shows its count (a dash until its read answers); a step that carries ₹ shows its
+   * ₹. "+" marks a floor: the list had more pages than the one page read.
+   */
+  const COUNTED = new Set(['booked', 'held', 'billed', 'packed', 'road', 'delivered'])
+  const MONEYED = new Set(['booked', 'billed', 'packed', 'road', 'collected', 'banked', 'owed'])
+  const countOf = (step: FlowStep): string | undefined =>
+    !COUNTED.has(step.id)
+      ? undefined
+      : step.count === undefined
+        ? t('flow.none')
+        : t(step.more ? 'flow.countMore' : 'flow.count', { count: step.count })
+  const amountOf = (step: FlowStep): string | undefined =>
+    !MONEYED.has(step.id)
+      ? undefined
+      : step.paise === undefined
+        ? COUNTED.has(step.id)
+          ? undefined
+          : t('flow.none')
+        : step.more
+          ? t('flow.amountMore', { amount: rupees(step.paise) })
+          : rupees(step.paise)
+  const metaOf = (step: FlowStep): string | undefined => {
+    switch (step.id) {
+      case 'booked':
+        return step.cancelled === undefined || step.cancelled.count === 0
+          ? undefined
+          : t('flow.cancelled', {
+              count: step.cancelled.count,
+              amount: rupees(step.cancelled.paise),
+            })
+      case 'held':
+        return step.oldest === undefined
+          ? undefined
+          : t('flow.asked', { date: shortInstant(step.oldest) })
+      case 'packed':
+        return step.oldest === undefined
+          ? undefined
+          : t('flow.oldest', { date: shortInstant(step.oldest) })
+      case 'road':
+        return step.trip === undefined
+          ? step.oldest === undefined
+            ? undefined
+            : t('flow.oldest', { date: shortInstant(step.oldest) })
+          : t('flow.trip', {
+              trip: step.trip.name ?? t('app.none'),
+              date:
+                step.trip.since.length === 10
+                  ? shortDate(step.trip.since)
+                  : shortInstant(step.trip.since),
+            })
+      case 'delivered':
+        return step.asOf !== undefined
+          ? t('flow.rollupOf', { when: instantWithClock(step.asOf) })
+          : step.failed === undefined
+            ? undefined
+            : t('flow.failed', { count: step.failed })
+      case 'collected':
+        return step.modes === undefined
+          ? undefined
+          : t('flow.modes', {
+              cash: formatINR(paise(step.modes.cash), { symbol: false }),
+              upi: formatINR(paise(step.modes.upi), { symbol: false }),
+              cheque: formatINR(paise(step.modes.cheque), { symbol: false }),
+            })
+      case 'banked':
+        return t('flow.bankedMeta')
+      case 'owed':
+        return step.asOf === undefined
+          ? t('flow.dues')
+          : t('flow.duesAsOf', { when: instantWithClock(step.asOf) })
+      default:
+        return undefined
+    }
+  }
+  /*
+   * A read that failed leaves its step on a dash — which looked exactly like "still loading" (owner-ux
+   * repair, verifier finding 5). The step now says it did not load, and a line under the strip names the
+   * error with one Retry for every failed read.
+   */
+  const flowReads: Readonly<Record<FlowRead, AsyncRead>> = {
+    booked,
+    approvals,
+    bargains,
+    billed: billedBills,
+    packed,
+    dispatched,
+    trips: onTheRoad,
+    dashboard,
+    collections,
+    banked,
+  }
+  // A read that answered before and failed on a revalidation still has its figure: only a read with
+  // nothing to show is a step that did not load.
+  const failedReads = (Object.keys(flowReads) as FlowRead[]).filter(
+    (read) => flowReads[read].error !== undefined && flowReads[read].data === undefined,
+  )
+  const failed = failedSteps(new Set(failedReads))
+  const firstError = failedReads
+    .map((read) => flowReads[read].error?.message)
+    .find((message) => message !== undefined)
+  const flowCells: readonly FlowCell[] = flow.map((step) => ({
+    id: step.id,
+    label: t(`flow.${step.id}`),
+    count: countOf(step),
+    amount: amountOf(step),
+    meta: failed.has(step.id) ? t('flow.readFailed') : metaOf(step),
+    stale: step.stale,
+    failed: failed.has(step.id),
+    onPress: () => {
+      go.push(step.href)
+    },
+  }))
+
+  /*
+   * The dashboard's `today…` figures are the rollup's day. When the rollup is not of today (the seeded
+   * data reads "as of 12 Sep"), the Invoiced, Collected and Orders tiles show the LIVE read their register
+   * makes — the same figure the strip above shows and the page the tile opens lists — and say so, instead
+   * of passing 12 Sep's ₹1,50,147 off as today's over a register that reads "No bills in this window"
+   * (owner-ux repair, verifier finding 3).
+   */
+  const rollupToday = rollupIsToday(d?.asOf, now)
+  const billedStep = flow.find((step) => step.id === 'billed')
+  const bookedStep = flow.find((step) => step.id === 'booked')
+  const liveNote =
+    d === undefined || rollupToday
+      ? undefined
+      : t('o1.liveNotRollup', { when: shortInstant(d.asOf) })
+  const invoicedValue: React.ReactNode = rollupToday ? (
+    <Money value={d?.todayInvoicedPaise ?? 0} size="moneyM" />
+  ) : billedStep?.more === true && billedStep.paise !== undefined ? (
+    t('flow.amountMore', { amount: rupees(billedStep.paise) })
+  ) : (
+    <Money value={billedStep?.paise ?? null} size="moneyM" />
+  )
+  const collectedValue: React.ReactNode = (
+    <Money
+      value={
+        rollupToday ? (d?.todayCollectedPaise ?? 0) : (collections.data?.totals.totalPaise ?? null)
+      }
+      size="moneyM"
+    />
+  )
+  const ordersValue = rollupToday
+    ? String(d?.todayOrdersCount ?? 0)
+    : bookedStep?.count === undefined
+      ? t('flow.none')
+      : t(bookedStep.more ? 'flow.countMore' : 'flow.count', { count: bookedStep.count })
+
+  /* UX-O-3: the trip that has been out longest, for the Collected tile. */
+  const roadStep = flow.find((step) => step.id === 'road')
+  const activeTrips = d?.activeTrips ?? 0
+  const oldestTrip = roadStep?.trip
+  const tripsLine =
+    activeTrips === 0 || oldestTrip === undefined
+      ? activeTrips === 0
+        ? t('o1.noTripOnRoad')
+        : t('o1.trips', { count: activeTrips })
+      : t(activeTrips === 1 ? 'o1.tripOnRoad' : 'o1.tripsOnRoad', {
+          count: activeTrips,
+          since:
+            oldestTrip.since.length === 10
+              ? shortDate(oldestTrip.since)
+              : shortInstant(oldestTrip.since),
+        })
+  const tripStuck = olderThanADay(oldestTrip?.since)
+
   return (
     <Screen
       title={t('o1.title')}
@@ -182,6 +467,33 @@ export default function Today(): React.JSX.Element {
       }
     >
       <Stack gap={6}>
+        {/*
+          UX-O-1: the day as a story, directly under the page tabs. Each cell reads its own procedure and
+          shows a dash, not a zero, until that read answers; a failed read leaves its cell on the dash and
+          the rest of the strip still tells what it knows.
+        */}
+        <Panel title={t('flow.title')} meta={shortDate(now)} testID="today-flow-panel">
+          <FlowStrip cells={flowCells} testID="today-flow" />
+          {failed.size === 0 ? null : (
+            <Row gap={3} align="center" wrap testID="today-flow-failed">
+              <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                {t(failed.size === 1 ? 'flow.failedOne' : 'flow.failedMany', {
+                  count: failed.size,
+                  message: firstError ?? t('flow.readFailed'),
+                })}
+              </Txt>
+              <Button
+                label={t('app.retry')}
+                variant="secondary"
+                onPress={() => {
+                  for (const read of failedReads) void flowReads[read].refetch()
+                }}
+                testID="today-flow-retry"
+              />
+            </Row>
+          )}
+        </Panel>
+
         <Async state={[dashboard]} rows={4}>
           <Stack gap={2}>
             <KpiStrip
@@ -189,29 +501,48 @@ export default function Today(): React.JSX.Element {
               items={[
                 {
                   label: t('o1.sales'),
-                  value: <Money value={d?.todayInvoicedPaise ?? 0} size="moneyM" />,
+                  testID: 'today-kpi-invoiced',
+                  onPress: () => {
+                    go.push('/billing?range=today')
+                  },
+                  value: invoicedValue,
                   /*
                    * QA DOS-254: a bill credited today was still billed today, so the tile keeps what was
                    * invoiced — and says beside it what was credited and what is left, instead of letting a
                    * whole-bill credit vanish inside a gross figure.
                    */
                   delta:
-                    d === undefined || d.todayCreditedPaise === 0
-                      ? undefined
-                      : t('o1.creditedToday', {
-                          amount: formatINR(paise(d.todayCreditedPaise)),
-                          net: formatINR(paise(d.todayInvoicedPaise - d.todayCreditedPaise)),
-                        }),
+                    liveNote !== undefined
+                      ? liveNote
+                      : d === undefined || d.todayCreditedPaise === 0
+                        ? undefined
+                        : t('o1.creditedToday', {
+                            amount: formatINR(paise(d.todayCreditedPaise)),
+                            net: formatINR(paise(d.todayInvoicedPaise - d.todayCreditedPaise)),
+                          }),
                   spark: invoicedSpark,
                 },
                 {
                   label: t('o1.collected'),
-                  value: <Money value={d?.todayCollectedPaise ?? 0} size="moneyM" />,
-                  delta: t('o1.trips', { count: d?.activeTrips ?? 0 }),
+                  testID: 'today-kpi-collected',
+                  onPress: () => {
+                    go.push('/money/receipts?range=today')
+                  },
+                  value: collectedValue,
+                  /*
+                   * UX-O-3: "1 trips active" hid a trip that had been out since 12 Sep. The line names
+                   * the oldest trip on the road and turns ochre once it is older than today.
+                   */
+                  delta: tripsLine,
+                  tone: tripStuck ? 'attention' : 'neutral',
                   spark: collectedSpark,
                 },
                 {
                   label: t('o1.outstanding'),
+                  testID: 'today-kpi-outstanding',
+                  onPress: () => {
+                    go.push('/money')
+                  },
                   value: <Money value={d?.totalOutstandingPaise ?? 0} size="moneyM" />,
                   /*
                    * DOS-016: the tile stays the GROSS open value of bills — the ageing ladder, the
@@ -232,8 +563,25 @@ export default function Today(): React.JSX.Element {
                 },
                 {
                   label: t('o1.orders'),
-                  value: String(d?.todayOrdersCount ?? 0),
-                  delta: t('o1.stopsDone', { count: d?.todayDeliveredStops ?? 0 }),
+                  testID: 'today-kpi-orders',
+                  onPress: () => {
+                    go.push('/orders?range=today')
+                  },
+                  value: ordersValue,
+                  /*
+                   * UX-O-3: the failed stop the dashboard already sends is said, not dropped — when the
+                   * rollup is today's; another day's stops are not today's.
+                   */
+                  delta:
+                    liveNote !== undefined
+                      ? liveNote
+                      : (d?.todayFailedStops ?? 0) > 0
+                        ? t('o1.deliveredFailed', {
+                            delivered: d?.todayDeliveredStops ?? 0,
+                            failed: d?.todayFailedStops ?? 0,
+                          })
+                        : t('o1.deliveredOnly', { delivered: d?.todayDeliveredStops ?? 0 }),
+                  tone: rollupToday && (d?.todayFailedStops ?? 0) > 0 ? 'attention' : 'neutral',
                   spark: ordersSpark,
                 },
               ]}
@@ -302,6 +650,36 @@ export default function Today(): React.JSX.Element {
                       go.push('/stock')
                     }}
                   />
+                  {/*
+                    UX-O-2: stock past its date — counted in "Stock at cost" above and, until DOS-261,
+                    in what reads as sellable. It counts what the Stock register's Expired filter lists
+                    (every place) and says how much of it still stands in a godown; brick while any does.
+                  */}
+                  <ListRow
+                    testID="today-expired"
+                    primary={t('o1.expired')}
+                    secondary={
+                      expired.data === undefined || locations.data === undefined
+                        ? expired.error === undefined
+                          ? t('flow.none')
+                          : expired.error.message
+                        : expiredRows.length === 0
+                          ? t('o1.expiredNone')
+                          : t(expiredMore ? 'o1.expiredLineMore' : 'o1.expiredLine', {
+                              count: expiredRows.length,
+                              pieces: expiredPieces,
+                              godown: godownPieces,
+                            })
+                    }
+                    trailing={
+                      expiredInGodown.length === 0 ? undefined : (
+                        <StatusChip label={t('o15.expired')} family="brick" />
+                      )
+                    }
+                    onPress={() => {
+                      go.push('/stock?filter=expired')
+                    }}
+                  />
                   <ListRow
                     primary={t('o1.cashInTransit')}
                     secondary={t('o1.trips', { count: d?.activeTrips ?? 0 })}
@@ -326,6 +704,29 @@ export default function Today(): React.JSX.Element {
                       go.push('/reports')
                     }}
                   />
+                  {/*
+                    UX-O-4: the same days of last month, invoiced, and this month's change against them
+                    — both sides summed from one day-grain `series.sales` read, so the percent is like
+                    for like (`series.growth` compares a part month with a whole one).
+                  */}
+                  {vsLastMonth === undefined ? null : (
+                    <ListRow
+                      testID="today-mtd-vs-last"
+                      primary={t('o1.mtdLast')}
+                      secondary={
+                        vsLastMonth.changePct === null
+                          ? t('o1.mtdLastLineNone', { days: dayRange(vsLastMonth.previous) })
+                          : t('o1.mtdLastLine', {
+                              days: dayRange(vsLastMonth.previous),
+                              change: `${vsLastMonth.changePct > 0 ? '+' : vsLastMonth.changePct < 0 ? '−' : ''}${String(Math.abs(vsLastMonth.changePct))} %`,
+                            })
+                      }
+                      trailingMoney={vsLastMonth.previousPaise}
+                      onPress={() => {
+                        go.push('/reports')
+                      }}
+                    />
+                  )}
                 </Stack>
               </Async>
             </Panel>

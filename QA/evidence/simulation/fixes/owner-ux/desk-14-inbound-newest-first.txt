@@ -1,0 +1,728 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Supplier bills, GRNs & POs
+Supplier bills
+Goods received
+Purchase orders
+Stock
+Inbound
+Documents
+Catalog
+Bill	Date	Supplier	Total ₹	Status
+
+GOD/26-27/00612
+	
+10 Sep 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	71,976.26	Received
+
+SSM/26-27/00499
+	
+9 Sep 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	1,00,891.86	Received
+
+ANP/26-27/00498
+	
+9 Sep 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	29,978.06	Received
+
+RJB/26-27/00474
+	
+8 Sep 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	20,247.08	Received
+
+GFI/26-27/00473
+	
+6 Sep 2026
+	
+Guiltfree Industries — Gurugram
+	21,769.08	Received
+
+GKA/26-27/00500
+	
+5 Sep 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	44,218.14	Received
+
+GOD/26-27/00604
+	
+5 Sep 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	93,071.50	Received
+
+RCP/26-27/00491
+	
+3 Sep 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	3,45,529.64	Received
+
+GOD/26-27/00596
+	
+2 Sep 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	30,541.32	Received
+
+SSM/26-27/00495
+	
+2 Sep 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	1,19,659.50	Received
+
+SCC/26-27/00452
+	
+2 Sep 2026
+	
+Shubhda Consumer Care — Vapi Works
+	1,69,027.06	Received
+
+AFP/26-27/00431
+	
+2 Sep 2026
+	
+Alan's Food Products — Bhiwandi
+	10,895.72	Received
+
+ANP/26-27/00495
+	
+2 Sep 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	91,350.36	Received
+
+GKA/26-27/00492
+	
+2 Sep 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	66,320.28	Received
+
+KTR/26-27/00451
+	
+2 Sep 2026
+	
+Konkan Traders, Ratnagiri
+	29,594.16	Received
+
+MOM/26-27/00437
+	
+1 Sep 2026
+	
+MOM Foods — Bikaner
+	9,078.39	Received
+
+GOD/26-27/00593
+	
+29 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	46,691.75	Received
+
+RJB/26-27/00464
+	
+29 Aug 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	49,436.56	Received
+
+GFI/26-27/00463
+	
+29 Aug 2026
+	
+Guiltfree Industries — Gurugram
+	40,851.05	Received
+
+GOD/26-27/00585
+	
+27 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	68,984.79	Received
+
+ANP/26-27/00488
+	
+26 Aug 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	1,40,015.51	Received
+
+GKA/26-27/00484
+	
+26 Aug 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	83,170.46	Received
+
+RCP/26-27/00485
+	
+26 Aug 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	2,28,847.64	Received
+
+SSM/26-27/00486
+	
+26 Aug 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	81,004.42	Received
+
+GOD/26-27/00578
+	
+24 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	1,05,368.66	Received
+
+GOD/26-27/00570
+	
+21 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	52,879.00	Received
+
+GFI/26-27/00456
+	
+19 Aug 2026
+	
+Guiltfree Industries — Gurugram
+	63,944.74	Received
+
+KTR/26-27/00444
+	
+19 Aug 2026
+	
+Konkan Traders, Ratnagiri
+	61,664.62	Received
+
+SSM/26-27/00478
+	
+19 Aug 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	1,86,555.20	Received
+
+SCC/26-27/00442
+	
+19 Aug 2026
+	
+Shubhda Consumer Care — Vapi Works
+	2,19,758.27	Received
+
+GKA/26-27/00478
+	
+19 Aug 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	1,19,411.84	Received
+
+ANP/26-27/00481
+	
+19 Aug 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	2,00,653.97	Received
+
+RCP/26-27/00481
+	
+19 Aug 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	4,28,357.01	Received
+
+RJB/26-27/00459
+	
+19 Aug 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	53,499.89	Received
+
+GOD/26-27/00564
+	
+18 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	50,140.61	Received
+
+GOD/26-27/00556
+	
+15 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	47,992.70	Received
+
+GOD/26-27/00549
+	
+12 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	66,687.24	Received
+
+RCP/26-27/00470
+	
+12 Aug 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	2,98,635.52	Received
+
+ANP/26-27/00471
+	
+12 Aug 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	1,25,505.45	Received
+
+SSM/26-27/00471
+	
+12 Aug 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	90,618.64	Received
+
+GKA/26-27/00473
+	
+12 Aug 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	46,745.22	Received
+
+MOM/26-27/00432
+	
+12 Aug 2026
+	
+MOM Foods — Bikaner
+	4,468.68	Received
+
+RJB/26-27/00449
+	
+8 Aug 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	51,574.17	Received
+
+GOD/26-27/00543
+	
+8 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	93,232.38	Received
+
+GFI/26-27/00453
+	
+8 Aug 2026
+	
+Guiltfree Industries — Gurugram
+	36,358.89	Received
+
+GOD/26-27/00535
+	
+6 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	13,641.24	Received
+
+RCP/26-27/00467
+	
+5 Aug 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	2,91,318.72	Received
+
+KTR/26-27/00438
+	
+5 Aug 2026
+	
+Konkan Traders, Ratnagiri
+	16,034.22	Received
+
+SCC/26-27/00435
+	
+5 Aug 2026
+	
+Shubhda Consumer Care — Vapi Works
+	1,55,422.00	Received
+
+ANP/26-27/00464
+	
+5 Aug 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	52,008.10	Received
+
+SSM/26-27/00464
+	
+5 Aug 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	56,331.48	Received
+
+GKA/26-27/00465
+	
+5 Aug 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	51,943.92	Received
+
+GOD/26-27/00526
+	
+3 Aug 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	38,157.00	Received
+
+GOD/26-27/00523
+	
+31 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	39,051.85	Received
+
+GFI/26-27/00444
+	
+30 Jul 2026
+	
+Guiltfree Industries — Gurugram
+	47,116.06	Received
+
+RJB/26-27/00445
+	
+30 Jul 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	26,704.46	Received
+
+SSM/26-27/00457
+	
+29 Jul 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	1,40,011.82	Received
+
+ANP/26-27/00459
+	
+29 Jul 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	81,545.38	Received
+
+RCP/26-27/00456
+	
+29 Jul 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	2,32,380.96	Received
+
+GKA/26-27/00460
+	
+29 Jul 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	50,041.86	Received
+
+GOD/26-27/00514
+	
+28 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	55,593.11	Received
+
+GOD/26-27/00506
+	
+25 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	23,716.28	Received
+
+ANP/26-27/00452
+	
+22 Jul 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	80,095.77	Received
+
+MOM/26-27/00423
+	
+22 Jul 2026
+	
+MOM Foods — Bikaner
+	13,809.06	Received
+
+AFP/26-27/00423
+	
+22 Jul 2026
+	
+Alan's Food Products — Bhiwandi
+	4,074.00	Received
+
+KTR/26-27/00429
+	
+22 Jul 2026
+	
+Konkan Traders, Ratnagiri
+	1,01,216.94	Received
+
+RCP/26-27/00452
+	
+22 Jul 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	2,35,696.97	Received
+
+SCC/26-27/00432
+	
+22 Jul 2026
+	
+Shubhda Consumer Care — Vapi Works
+	2,10,034.83	Received
+
+SSM/26-27/00449
+	
+22 Jul 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	78,446.68	Received
+
+GKA/26-27/00449
+	
+22 Jul 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	65,666.24	Received
+
+GOD/26-27/00502
+	
+22 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	87,968.89	Received
+
+GFI/26-27/00435
+	
+20 Jul 2026
+	
+Guiltfree Industries — Gurugram
+	54,357.21	Received
+
+RJB/26-27/00436
+	
+20 Jul 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	41,023.74	Received
+
+GOD/26-27/00495
+	
+18 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	74,043.45	Received
+
+GOD/26-27/00487
+	
+16 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	69,130.66	Received
+
+RCP/26-27/00443
+	
+15 Jul 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	1,91,506.91	Received
+
+GKA/26-27/00442
+	
+15 Jul 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	63,961.58	Received
+
+SSM/26-27/00444
+	
+15 Jul 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	89,289.56	Received
+
+ANP/26-27/00446
+	
+15 Jul 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	1,47,215.67	Received
+
+GOD/26-27/00480
+	
+13 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	29,157.32	Received
+
+RJB/26-27/00430
+	
+10 Jul 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	65,802.88	Received
+
+GOD/26-27/00470
+	
+10 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	24,334.66	Received
+
+GFI/26-27/00429
+	
+10 Jul 2026
+	
+Guiltfree Industries — Gurugram
+	59,059.85	Received
+
+AFP/26-27/00417
+	
+8 Jul 2026
+	
+Alan's Food Products — Bhiwandi
+	5,872.30	Received
+
+SCC/26-27/00424
+	
+8 Jul 2026
+	
+Shubhda Consumer Care — Vapi Works
+	3,32,587.81	Received
+
+GKA/26-27/00435
+	
+8 Jul 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	89,876.02	Received
+
+RCP/26-27/00437
+	
+8 Jul 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	3,32,124.93	Received
+
+ANP/26-27/00439
+	
+8 Jul 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	1,78,413.45	Received
+
+KTR/26-27/00422
+	
+8 Jul 2026
+	
+Konkan Traders, Ratnagiri
+	73,305.48	Received
+
+SSM/26-27/00439
+	
+8 Jul 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	1,43,762.26	Received
+
+GOD/26-27/00465
+	
+7 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	59,375.00	Received
+
+GOD/26-27/00457
+	
+4 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	28,481.76	Received
+
+ANP/26-27/00428
+	
+1 Jul 2026
+	
+Annapurna Agro — Kalyan Mill Depot
+	1,50,936.40	Received
+
+SSM/26-27/00428
+	
+1 Jul 2026
+	
+Shree Sai Marketing (Sunbake Super-Stockist)
+	1,24,145.84	Received
+
+GKA/26-27/00430
+	
+1 Jul 2026
+	
+Guru Kripa Agencies (Balaji Super-Stockist)
+	55,085.30	Received
+
+GOD/26-27/00450
+	
+1 Jul 2026
+	
+Godavari Dairy — Ahmednagar Chilling Centre
+	39,998.92	Received
+
+MOM/26-27/00417
+	
+1 Jul 2026
+	
+MOM Foods — Bikaner
+	9,806.04	Received
+
+RCP/26-27/00432
+	
+1 Jul 2026
+	
+Reliance Consumer Products — Kalyan Depot
+	3,35,845.11	Received
+
+GFI/26-27/00424
+	
+30 Jun 2026
+	
+Guiltfree Industries — Gurugram
+	1,15,982.94	Received
+
+RJB/26-27/00425
+	
+30 Jun 2026
+	
+Rajwadi Beverages — Bhiwandi Depot
+	48,944.98	Received
+Total			96,78,659.16	

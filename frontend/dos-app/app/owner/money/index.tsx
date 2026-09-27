@@ -6,7 +6,7 @@
  * and the register below is the shops in that bucket. Every action here is the money desk's: send a
  * statement, write a debt off (owner only), rebuild the ageing after a correction.
  */
-import type { OutstandingListItem } from '@dos/contracts'
+import type { OpenBill, OutstandingListItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   AgeingBuckets,
@@ -41,15 +41,24 @@ import {
   ExportButton,
   Field,
   Half,
+  MoreActions,
   PageTabs,
   Panel,
   RangeSegments,
   moneyColumn,
+  staffRetailer,
   textColumn,
   useNames,
 } from '../../../src/groups/owner/lib/ui'
 import { Refusal, stayOpen } from '../../../src/groups/owner/lib/refusal'
-import { rangeOf, shortDate, today, type RangeId } from '../../../src/groups/owner/lib/dates'
+import {
+  rangeOf,
+  shortDate,
+  shortInstant,
+  today,
+  type RangeId,
+} from '../../../src/groups/owner/lib/dates'
+import { billFacts } from '../../../src/groups/owner/lib/bill-facts'
 import { useWord } from '../../../src/groups/owner/lib/words'
 
 const BUCKETS = ['b0_7', 'b8_15', 'b16_30', 'b31_60', 'b61_90', 'b90plus'] as const
@@ -72,6 +81,12 @@ export default function OutstandingListItem(): React.JSX.Element {
 
   const [bucket, setBucket] = useState<BucketId | null>(null)
   const [overdueOnly, setOverdueOnly] = useState(false)
+  /*
+   * UX-O-6 (UX-F-3): Shop by shop opens on the shops that OWE — 56 of 65 in the simulation, the other 9
+   * reading ₹0.00 — with a chip to show them all. The ladder and the header keep reading every shop, so
+   * "On account · Net dues" still matches Books → Trial balance.
+   */
+  const [showAll, setShowAll] = useState(false)
   const [range, setRange] = useState<RangeId>('d90')
   const [selected, setSelected] = useState<string | null>(null)
   const [dialog, setDialog] = useState<'writeOff' | 'statement' | 'rebuild' | null>(null)
@@ -90,6 +105,18 @@ export default function OutstandingListItem(): React.JSX.Element {
         ...(bucket === null ? {} : { bucket }),
         ...(overdueOnly ? { overdueOnly: true } : {}),
       }),
+  )
+  const owing = useQuery(
+    ['receivables', 'outstanding', bucket ?? 'all', overdueOnly ? 'overdue' : 'all', 'owing'],
+    () =>
+      api.api.receivables.outstanding.list({
+        limit: 200,
+        sort: 'outstanding',
+        minOutstandingPaise: 1,
+        ...(bucket === null ? {} : { bucket }),
+        ...(overdueOnly ? { overdueOnly: true } : {}),
+      }),
+    { enabled: !showAll },
   )
   const history = useQuery(['receivables', 'ageingHistory', span.from, span.to], () =>
     api.api.receivables.ageing.history({ grain: 'week', from: span.from, to: span.to }),
@@ -140,9 +167,43 @@ export default function OutstandingListItem(): React.JSX.Element {
       }),
     { enabled: selected !== null },
   )
+  /* UX-O-7: the panel names the shop's phone, so the owner can call about the bill he is looking at. */
+  const shopCard = useQuery(
+    ['retailers', 'get', selected ?? 'none'],
+    () => api.api.retailers.get({ id: selected ?? '' }),
+    { enabled: selected !== null },
+  )
+  const shopPhone = shopCard.data === undefined ? null : staffRetailer(shopCard.data.item)?.phone
 
-  const rows = list.data?.items ?? []
+  /*
+   * UX-O-7: "INV/9048 · billed 27 Sep · due 4 Oct" and "INV/0433 · billed 30 Jul · ₹4,561.00 left of
+   * ₹10,119.00 · 52 days late" — the panel printed an unlabelled due date and an unlabelled remainder.
+   */
+  const billLine = (bill: OpenBill): string => {
+    const facts = billFacts(bill)
+    return [
+      t('o10.billed', { date: shortDate(facts.billed) }),
+      facts.partPaid
+        ? t('o10.leftOf', {
+            left: formatINR(paise(bill.openPaise)),
+            total: formatINR(paise(bill.totalPaise)),
+          })
+        : null,
+      facts.lateDays !== null
+        ? t(facts.lateDays === 1 ? 'o10.dayLate' : 'o10.daysLate', { count: facts.lateDays })
+        : facts.due === null
+          ? null
+          : t('o10.due', { date: shortDate(facts.due) }),
+    ]
+      .filter((part): part is string => part !== null)
+      .join(' · ')
+  }
+
+  const register = showAll ? list : owing
+  const rows = register.data?.items ?? []
   const totals = list.data?.totals
+  const allShops = totals?.retailers
+  const shown = register.data?.totals
   const current = rows.find((row) => row.retailerId === selected) ?? null
 
   const trend: readonly Series[] = [
@@ -182,6 +243,12 @@ export default function OutstandingListItem(): React.JSX.Element {
         />
       ),
     }),
+    /*
+     * DOS-260: a row is gross, like the header. What the shop holds on account sits beside it and the
+     * net is what it actually owes — Patel's ₹1,071.00 owed against ₹1,071.00 on account nets to ₹0.00.
+     */
+    moneyColumn('onAccount', t('o10.onAccount'), (row) => row.unallocatedCreditPaise),
+    moneyColumn('net', t('o10.net'), (row) => row.outstandingPaise - row.unallocatedCreditPaise),
     textColumn('bills', t('o10.bills'), (row) => row.openBills),
     textColumn('oldest', t('o10.oldest'), (row) => shortDate(row.oldestDueDate)),
     {
@@ -203,22 +270,22 @@ export default function OutstandingListItem(): React.JSX.Element {
       chips={<PageTabs group={go.href('/money')} active={go.href('/money')} />}
       actions={
         <>
-          <RangeSegments
-            value={range}
-            onChange={(id) => {
-              setRange(id as RangeId)
-            }}
-          />
           <ExportButton register="outstanding" filters={{}} testID="money-export" />
-          <Button
-            label={t('o10.rebuild')}
-            variant="ghost"
-            loading={rebuild.status === 'pending'}
-            onPress={() => {
-              setDialog('rebuild')
-            }}
-            testID="money-rebuild"
-          />
+          {/*
+            UX-O-6: "Rebuild ageing" is a repair the nightly pass already does, not a daily action — it
+            sat third among the controls on a phone. It lives behind "More".
+          */}
+          <MoreActions testID="money-more">
+            <Button
+              label={t('o10.rebuild')}
+              variant="ghost"
+              loading={rebuild.status === 'pending'}
+              onPress={() => {
+                setDialog('rebuild')
+              }}
+              testID="money-rebuild"
+            />
+          </MoreActions>
         </>
       }
     >
@@ -276,9 +343,22 @@ export default function OutstandingListItem(): React.JSX.Element {
             </Panel>
           </Half>
           <Half>
+            {/*
+              UX-O-6: the 7 / 30 / 90 days switch is the history chart's own window — dues have no date
+              range — so it sits on the chart, not at the head of the page.
+            */}
             <Panel
               title={t('o10.history')}
               meta={t('app.range', { from: shortDate(span.from), to: shortDate(span.to) })}
+              actions={
+                <RangeSegments
+                  value={range}
+                  onChange={(id) => {
+                    setRange(id as RangeId)
+                  }}
+                  testID="money-history-range"
+                />
+              }
               testID="money-history"
             >
               <Async state={[history]} rows={4} empty={(history.data?.points.length ?? 0) === 0}>
@@ -290,7 +370,13 @@ export default function OutstandingListItem(): React.JSX.Element {
 
         <Panel
           title={t('o10.byShop')}
-          meta={totals === undefined ? undefined : t('app.rows', { count: totals.retailers })}
+          meta={
+            shown === undefined
+              ? undefined
+              : showAll
+                ? t('app.rows', { count: shown.retailers })
+                : t('o10.owingRows', { count: shown.retailers })
+          }
           actions={
             <Button
               label={t('o10.statements')}
@@ -306,12 +392,29 @@ export default function OutstandingListItem(): React.JSX.Element {
           }
         >
           <Chips
-            items={[{ id: 'overdue', label: t('o10.overdue'), selected: overdueOnly }]}
-            onToggle={() => {
-              setOverdueOnly((v) => !v)
+            testID="money-shop-filter"
+            items={[
+              { id: 'overdue', label: t('o10.overdue'), selected: overdueOnly },
+              {
+                id: 'all',
+                label:
+                  allShops === undefined
+                    ? t('o10.showAllShops')
+                    : t('o10.showAllCount', { count: allShops }),
+                selected: showAll,
+              },
+            ]}
+            onToggle={(id) => {
+              if (id === 'all') setShowAll((v) => !v)
+              else setOverdueOnly((v) => !v)
             }}
           />
-          <Async state={[list]} rows={10} empty={rows.length === 0} emptyMessage={t('o10.empty')}>
+          <Async
+            state={[register]}
+            rows={10}
+            empty={rows.length === 0}
+            emptyMessage={t('o10.empty')}
+          >
             <Register
               testID="money-register"
               columns={columns}
@@ -325,8 +428,18 @@ export default function OutstandingListItem(): React.JSX.Element {
               state="ready"
               totals={{
                 code: t('word.total'),
-                dues: <Money value={totals?.outstandingPaise ?? 0} size="cell" symbol={false} />,
-                overdue: <Money value={totals?.overduePaise ?? 0} size="cell" symbol={false} />,
+                dues: <Money value={shown?.outstandingPaise ?? 0} size="cell" symbol={false} />,
+                overdue: <Money value={shown?.overduePaise ?? 0} size="cell" symbol={false} />,
+                onAccount: (
+                  <Money value={shown?.unallocatedCreditPaise ?? 0} size="cell" symbol={false} />
+                ),
+                net: (
+                  <Money
+                    value={(shown?.outstandingPaise ?? 0) - (shown?.unallocatedCreditPaise ?? 0)}
+                    size="cell"
+                    symbol={false}
+                  />
+                ),
               }}
             />
           </Async>
@@ -358,13 +471,38 @@ export default function OutstandingListItem(): React.JSX.Element {
                 <Money value={shop.data.overduePaise} size="cell" tone="critical" />
               </Field>
               <Field label={t('o10.oldest')}>{shortDate(shop.data.oldestDueDate)}</Field>
+              {/*
+                UX-O-7: who to call and when he last paid, beside what he owes. The phone is the shop's
+                own card (retailers.get); the last payment is receivables' own summary.
+              */}
+              <Field label={t('o6.phone')}>
+                <Txt field="body" desk="body" numeric testID="money-shop-phone">
+                  {shopPhone ?? (shopCard.error === undefined ? '—' : shopCard.error.message)}
+                </Txt>
+              </Field>
+              <Field label={t('o10.lastPaid')}>
+                <Txt field="body" desk="body" numeric testID="money-shop-last-paid">
+                  {shop.data.lastReceiptAt === null
+                    ? t('o10.neverPaid')
+                    : t('o10.lastPaidLine', {
+                        amount: formatINR(paise(shop.data.lastReceiptPaise ?? 0)),
+                        date: shortInstant(shop.data.lastReceiptAt),
+                      })}
+                </Txt>
+              </Field>
+              {shop.data.unallocatedCreditPaise > 0 ? (
+                <Field label={t('o10.onAccount')}>
+                  <Money value={shop.data.unallocatedCreditPaise} size="cell" />
+                </Field>
+              ) : null}
               <Panel title={t('o6.bills')}>
                 <Stack gap={2}>
                   {shop.data.bills.map((bill) => (
                     <ListRow
                       key={bill.id}
+                      testID={`money-bill-${bill.invoiceNo ?? bill.id}`}
                       primary={bill.invoiceNo}
-                      secondary={shortDate(bill.dueDate)}
+                      secondary={billLine(bill)}
                       trailingMoney={bill.openPaise}
                       state={billId === bill.id ? 'selected' : 'default'}
                       onPress={() => {

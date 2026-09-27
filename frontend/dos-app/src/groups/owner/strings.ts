@@ -83,6 +83,9 @@ export const strings = {
   'app.keyboardHint': 'Press / to search, Esc to close, Enter to commit',
   'app.drill': 'Open the rows behind this',
   'app.today': 'Today',
+  'app.anyDate': 'Any date',
+  'app.moreActions': 'More ···',
+  'app.lessActions': 'Fewer ···',
   'app.days7': '7 days',
   'app.days30': '30 days',
   'app.days90': '90 days',
@@ -123,6 +126,53 @@ export const strings = {
   'o1.atRisk': 'At-risk stock',
   'o1.activeTrips': 'Active trips',
   'o1.viewMap': 'Open live map',
+  // UX-O-3: the tiles say what moved and what did not, and each opens its register.
+  'o1.tripOnRoad': '1 trip on the road · since {since}',
+  'o1.tripsOnRoad': '{count} trips on the road · since {since}',
+  'o1.noTripOnRoad': 'No trip on the road',
+  'o1.deliveredFailed': '{delivered} delivered · {failed} failed',
+  'o1.deliveredOnly': '{delivered} delivered',
+  // UX-O-4: this month against the same days of last month, never against the whole of it.
+  'o1.mtdLast': 'Same days last month',
+  'o1.mtdLastLine': '{days} invoiced · this month {change}',
+  'o1.mtdLastLineNone': '{days} invoiced',
+  // UX-O-2: expired lots, every place (as the Stock register's Expired filter lists them), and how much
+  // of it still stands in a godown — on the At-risk panel.
+  'o1.expired': 'Expired stock',
+  'o1.expiredLine': '{count} batches · {pieces} pcs · {godown} pcs still in the godown',
+  'o1.expiredLineMore': '{count}+ batches · {pieces}+ pcs · {godown}+ pcs still in the godown',
+  // The KPI tiles when the dashboard rollup is of another day: the figure is the live read.
+  'o1.liveNotRollup': 'live · the rollup last ran {when}',
+  'o1.expiredNone': 'Nothing past its date',
+
+  // --- UX-O-1 Today's flow -------------------------------------------------------------------------
+  'flow.title': "Today's flow",
+  'flow.booked': 'Booked',
+  'flow.held': 'Held',
+  'flow.billed': 'Billed',
+  'flow.packed': 'Packed, no van',
+  'flow.road': 'On the road',
+  'flow.delivered': 'Delivered',
+  'flow.collected': 'Collected',
+  'flow.banked': 'Banked',
+  'flow.owed': 'Owed',
+  'flow.amountMore': '{amount}+',
+  'flow.count': '{count}',
+  'flow.countMore': '{count}+',
+  'flow.cancelled': '{count} cancelled {amount}',
+  'flow.asked': 'asked {date}',
+  'flow.oldest': 'oldest {date}',
+  'flow.trip': '{trip} since {date}',
+  'flow.failed': '{count} failed',
+  'flow.modes': 'cash {cash} · UPI {upi} · chq {cheque}',
+  'flow.dues': 'all open bills',
+  'flow.duesAsOf': 'as of {when}',
+  'flow.rollupOf': 'not counted today; last {when}',
+  'flow.bankedMeta': 'of today’s money',
+  'flow.none': '—',
+  'flow.readFailed': 'did not load',
+  'flow.failedOne': 'One step did not load: {message}',
+  'flow.failedMany': '{count} steps did not load: {message}',
 
   // --- O3 Approvals --------------------------------------------------------------------------------
   'o3.tab': 'Approvals',
@@ -399,6 +449,21 @@ export const strings = {
   'o10.statements': 'Send statements',
   'o10.statementsSent': '{count} statements queued',
   'o10.empty': 'Nothing is owed',
+  // UX-O-6 (UX-F-3, DOS-260): the shops that owe first; what each holds on account beside it.
+  'o10.onAccount': 'On account ₹',
+  'o10.net': 'Net ₹',
+  'o10.owingRows': '{count} shops owe',
+  'o10.showAllShops': 'Show all shops',
+  'o10.showAllCount': 'Show all {count}',
+  // UX-O-7: a bill in the shop panel names its dates and what is left of it.
+  'o10.billed': 'billed {date}',
+  'o10.due': 'due {date}',
+  'o10.leftOf': '{left} left of {total}',
+  'o10.daysLate': '{count} days late',
+  'o10.dayLate': '1 day late',
+  'o10.lastPaid': 'Last paid',
+  'o10.lastPaidLine': '{amount} on {date}',
+  'o10.neverPaid': 'Nothing received yet',
 
   // --- O11 Receipts & banking --------------------------------------------------------------------------
   'o11.tab': 'Receipts',
@@ -420,6 +485,11 @@ export const strings = {
   'o11.document': 'Receipt document',
   'o11.counted': 'Counted',
   'o11.onAccount': 'On account',
+  // UX-O-5: what came in, by mode, and how much of it is in the bank, for the window on screen.
+  'o11.banked': 'Banked',
+  'o11.modesLine':
+    'Cash {cash} · UPI {upi} · Cheque {cheque} · Bank transfer {bank} · banked {banked}',
+  'o11.modesWindow': 'By mode, {range}',
   // DOS-011: the receipt says which bills it closed and what the cash discount cost.
   'o11.settles': 'Settles',
   'o11.billUnknown': 'Bill not named',
@@ -502,6 +572,10 @@ export const strings = {
   'o15.counts': 'Cycle counts',
   'o15.locations': 'Locations',
   'o15.nearExpiry': 'Near expiry',
+  // UX-O-2 (DOS-261): a lot past its date is not sellable, whatever the books still hold of it.
+  'o15.expired': 'Expired',
+  'o15.expiredCount': 'Expired · {count}',
+  'o15.batchExpired': 'Batch {batch} · expired',
   'o15.byBrand': 'Stock value by brand',
   'o15.empty': 'No stock at this location',
   // QA DOS-253: stock by item and batch, searched and paged on the server
