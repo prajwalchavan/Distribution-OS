@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import { Pressable, ScrollView, TextInput as RNTextInput, View, type ViewStyle } from 'react-native'
 
-import { useTheme } from '../theme.js'
+import { useStrings, useTheme } from '../theme.js'
 import { gap, radius, size as sizeTokens, space } from '../tokens.js'
 import type {
   ButtonProps,
@@ -134,6 +134,9 @@ export function Button({
 // 6.2 TextInput
 // ---------------------------------------------------------------------------
 
+/** Room for the longest of "Show" / "Hide" at the field size, inside the field's right edge. */
+const REVEAL_WIDTH = 64
+
 export function TextInput({
   label,
   value,
@@ -152,9 +155,12 @@ export function TextInput({
   testID,
 }: TextInputProps): React.JSX.Element {
   const theme = useTheme()
+  const t = useStrings()
   const height = sizeTokens[size ?? theme.touch]
   const resolved = error ? 'error' : (state ?? 'default')
   const bodyStyle = useTypeStyle('body', 'body')
+  // UX-F-5: a password typed blind is a password typed wrong. The field starts hidden, always.
+  const [revealed, setRevealed] = useState(false)
   const keyboardType =
     keyboard === 'decimal'
       ? 'decimal-pad'
@@ -173,39 +179,68 @@ export function TextInput({
       >
         {label}
       </Txt>
-      <RNTextInput
-        testID={testID}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={theme.colors.text.secondary}
-        maxLength={maxLength}
-        autoFocus={autoFocus}
-        editable={resolved !== 'disabled' && resolved !== 'readonly'}
-        secureTextEntry={secure}
-        keyboardType={keyboardType}
-        // A username, a GSTIN or an invoice number is not a sentence: iOS capitalises and corrects
-        // a text field unless it is told not to, and both silently corrupt an identifier.
-        autoCapitalize={capitalize === 'none' ? 'none' : capitalize}
-        autoCorrect={false}
-        spellCheck={false}
-        onSubmitEditing={onSubmit}
-        style={[
-          bodyStyle,
-          {
-            height,
-            minHeight: height,
-            borderWidth: 1,
-            borderStyle: resolved === 'disabled' ? 'dashed' : 'solid',
-            borderColor:
-              resolved === 'error' ? theme.colors.status.brick.edge : theme.colors.border.strong,
-            borderRadius: radius.sm,
-            paddingHorizontal: space[3],
-            backgroundColor: theme.colors.bg.surface,
-            color: resolved === 'disabled' ? theme.colors.text.disabled : theme.colors.text.primary,
-          },
-        ]}
-      />
+      {/* The field and its toggle share one box, so the toggle sits on the field whatever the helper says. */}
+      <View>
+        <RNTextInput
+          testID={testID}
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor={theme.colors.text.secondary}
+          maxLength={maxLength}
+          autoFocus={autoFocus}
+          editable={resolved !== 'disabled' && resolved !== 'readonly'}
+          secureTextEntry={secure === true && !revealed}
+          keyboardType={keyboardType}
+          // A username, a GSTIN or an invoice number is not a sentence: iOS capitalises and corrects
+          // a text field unless it is told not to, and both silently corrupt an identifier.
+          autoCapitalize={capitalize === 'none' ? 'none' : capitalize}
+          autoCorrect={false}
+          spellCheck={false}
+          onSubmitEditing={onSubmit}
+          style={[
+            bodyStyle,
+            {
+              height,
+              minHeight: height,
+              borderWidth: 1,
+              borderStyle: resolved === 'disabled' ? 'dashed' : 'solid',
+              borderColor:
+                resolved === 'error' ? theme.colors.status.brick.edge : theme.colors.border.strong,
+              borderRadius: radius.sm,
+              paddingHorizontal: space[3],
+              backgroundColor: theme.colors.bg.surface,
+              color:
+                resolved === 'disabled' ? theme.colors.text.disabled : theme.colors.text.primary,
+            },
+            secure ? { paddingRight: REVEAL_WIDTH } : null,
+          ]}
+        />
+        {secure ? (
+          <Pressable
+            testID={testID ? `${testID}-reveal` : undefined}
+            accessibilityRole="button"
+            accessibilityLabel={t(revealed ? 'input.hidePassword' : 'input.showPassword')}
+            onPress={() => {
+              setRevealed((now) => !now)
+            }}
+            hitSlop={8}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              height,
+              width: REVEAL_WIDTH,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Txt field="bodyStrong" desk="label" color={theme.colors.accent.fg}>
+              {t(revealed ? 'input.hide' : 'input.show')}
+            </Txt>
+          </Pressable>
+        ) : null}
+      </View>
       {/* Helper height is reserved so a validation message never moves the layout. */}
       <View style={{ minHeight: 18, marginTop: space[1] }}>
         {error || helper ? (

@@ -86,6 +86,11 @@ export const BASE_CSS = `
 .dos-input:disabled { color: var(--dos-text-disabled); border-style: dashed; background: var(--dos-bg-surface); }
 .dos-input[data-state='error'] { border-color: var(--dos-status-brick-edge); }
 .dos-input[data-state='readonly'] { border-color: transparent; padding-left: 0; }
+.dos-input-reveal {
+  position: absolute; top: 0; right: 0; border: 0; background: transparent; cursor: pointer;
+  font-family: inherit; color: var(--dos-accent-fg); border-radius: 6px;
+}
+.dos-input-reveal:focus-visible { outline: 2px solid var(--dos-accent-solid); outline-offset: -2px; }
 
 /* Rows and groups ------------------------------------------------------ */
 .dos-row { display: flex; align-items: center; width: 100%; background: var(--dos-bg-surface); border: 0; text-align: left; font: inherit; cursor: default; }

@@ -25,6 +25,11 @@ export const en = {
   'action.export': 'Export',
   'action.print': 'Print',
   'action.open': 'Open',
+  // UX-F-5: a typed password can be read back before it is sent (the `secure` TextInput's toggle).
+  'input.show': 'Show',
+  'input.hide': 'Hide',
+  'input.showPassword': 'Show the password',
+  'input.hidePassword': 'Hide the password',
 
   // Money and quantity (UX-00 sections 4.5, 6.3, 6.4).
   'money.none': '—',

@@ -3,7 +3,7 @@
  */
 import { useId, useState } from 'react'
 
-import { useTheme } from '../theme.js'
+import { useStrings, useTheme } from '../theme.js'
 import { gap, radius, size as sizeTokens, space } from '../tokens.js'
 import type {
   ButtonProps,
@@ -71,6 +71,9 @@ export function Button({
 // 6.2 TextInput
 // ---------------------------------------------------------------------------
 
+/** Room for the longest of "Show" / "Hide" at the field size, inside the field's right edge. */
+const REVEAL_WIDTH = 64
+
 export function TextInput({
   label,
   value,
@@ -89,11 +92,50 @@ export function TextInput({
   testID,
 }: TextInputProps): React.JSX.Element {
   const theme = useTheme()
+  const t = useStrings()
   const id = useId()
   const height = sizeTokens[size ?? theme.touch]
   const resolved = error ? 'error' : (state ?? 'default')
   const bodyStyle = useTypeStyle('body', 'body')
+  const labelStyle = useTypeStyle('bodyStrong', 'label')
   const inputMode = keyboard === 'text' ? undefined : keyboard === 'phone' ? 'tel' : keyboard
+  // UX-F-5: a password typed blind is a password typed wrong. The field starts hidden, always.
+  const [revealed, setRevealed] = useState(false)
+  const input = (
+    <input
+      id={id}
+      data-testid={testID}
+      className="dos-input"
+      data-state={resolved}
+      type={secure && !revealed ? 'password' : 'text'}
+      inputMode={inputMode}
+      // The same build is the website on that phone (docs/08 §0), and a mobile browser
+      // auto-capitalises and spell-corrects a text input exactly the way iOS does.
+      autoCapitalize={capitalize}
+      autoCorrect="off"
+      spellCheck={false}
+      value={value}
+      placeholder={placeholder}
+      maxLength={maxLength}
+      autoFocus={autoFocus}
+      readOnly={resolved === 'readonly'}
+      disabled={resolved === 'disabled'}
+      aria-invalid={resolved === 'error'}
+      aria-errormessage={error ? `${id}-msg` : undefined}
+      onChange={(e) => {
+        onChange(e.currentTarget.value)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && onSubmit) onSubmit()
+      }}
+      style={{
+        height,
+        minHeight: height,
+        ...bodyStyle,
+        ...(secure ? { paddingRight: REVEAL_WIDTH } : {}),
+      }}
+    />
+  )
   return (
     <div style={{ width: '100%' }}>
       <Txt
@@ -105,34 +147,26 @@ export function TextInput({
       >
         {label}
       </Txt>
-      <input
-        id={id}
-        data-testid={testID}
-        className="dos-input"
-        data-state={resolved}
-        type={secure ? 'password' : 'text'}
-        inputMode={inputMode}
-        // The same build is the website on that phone (docs/08 §0), and a mobile browser
-        // auto-capitalises and spell-corrects a text input exactly the way iOS does.
-        autoCapitalize={capitalize}
-        autoCorrect="off"
-        spellCheck={false}
-        value={value}
-        placeholder={placeholder}
-        maxLength={maxLength}
-        autoFocus={autoFocus}
-        readOnly={resolved === 'readonly'}
-        disabled={resolved === 'disabled'}
-        aria-invalid={resolved === 'error'}
-        aria-errormessage={error ? `${id}-msg` : undefined}
-        onChange={(e) => {
-          onChange(e.currentTarget.value)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && onSubmit) onSubmit()
-        }}
-        style={{ height, minHeight: height, ...bodyStyle }}
-      />
+      {secure ? (
+        <div style={{ position: 'relative' }}>
+          {input}
+          <button
+            type="button"
+            className="dos-input-reveal"
+            data-testid={testID ? `${testID}-reveal` : undefined}
+            aria-label={t(revealed ? 'input.hidePassword' : 'input.showPassword')}
+            aria-pressed={revealed}
+            onClick={() => {
+              setRevealed((now) => !now)
+            }}
+            style={{ height, width: REVEAL_WIDTH, ...labelStyle }}
+          >
+            {t(revealed ? 'input.hide' : 'input.show')}
+          </button>
+        </div>
+      ) : (
+        input
+      )}
       {/* Helper height is reserved so a validation message never moves the layout. */}
       <div id={`${id}-msg`} style={{ minHeight: 18, marginTop: space[1] }}>
         {error || helper ? (
