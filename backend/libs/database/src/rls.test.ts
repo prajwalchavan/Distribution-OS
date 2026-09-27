@@ -112,6 +112,7 @@ import {
   visits,
   writeOffs,
 } from './schema/index.js'
+import { invoiceCancelFootprints } from './stock-footprints.js'
 import {
   FORBIDDEN_PULL_COLUMN_PATTERNS,
   SYNC_PULL_TABLES,
@@ -3346,6 +3347,87 @@ describeDb('row level security and ledger guarantees', () => {
       post(van, -1, 'sale', 'd195-overdraw'),
       'a vehicle may not go negative',
     ).rejects.toThrow()
+  })
+
+  it('DOS-257: a cancelled bill takes back exactly what it moved — the database refuses, at commit, a cancel that makes stock out of nothing or loses it', async () => {
+    /*
+     * INV/9034's cancel wrote Godown +12 toor under `invoice_cancel` because the dock no longer held the
+     * bill's pieces: stock out of nothing, sellable for a week. Migration 0071: per (bill, lot) the bill's
+     * own `invoice` rows plus its `invoice_cancel` rows sum to zero, checked at COMMIT (a cancel writes
+     * its dock leg and its rack leg as two rows).
+     */
+    const dock = uuidv7()
+    const lot = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: dock, tenantId: tenantA, kind: 'in_transit', name: `Dock D257 ${run}` })
+    await db.insert(stockLots).values({
+      id: lot,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `D257-${run}`,
+      mrpPaise: 4000,
+    })
+    const leg = (
+      bill: string,
+      locationId: string,
+      qtyDelta: number,
+      reason: 'adjustment' | 'sale' | 'transfer_in' | 'transfer_out',
+      refType: 'invoice' | 'invoice_cancel' | 'pack',
+      key: string,
+    ) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      lotId: lot,
+      locationId,
+      qtyDelta,
+      reason,
+      refType,
+      refId: bill,
+      actorId: owner,
+      idempotencyKey: `d257-${key}-${run}`,
+    })
+    const post = (rows: ReturnType<typeof leg>[]) =>
+      withTenant(db, { tenantId: tenantA, actorId: owner, actorRole: 'manager' }, async (tx) => {
+        await tx.insert(stockLedger).values(rows)
+      })
+
+    // The phantom itself: +12 into the godown, and the bill never took a piece out.
+    const phantom = uuidv7()
+    await rejectsWith(
+      post([leg(phantom, godownA, 12, 'adjustment', 'invoice_cancel', 'phantom')]),
+      /QA DOS-257/,
+    )
+    // Half a movement loses stock just the same: the dock leg without the rack leg.
+    await rejectsWith(
+      post([leg(phantom, dock, -12, 'transfer_out', 'invoice_cancel', 'half')]),
+      /QA DOS-257/,
+    )
+
+    // A pack bill: the pack moved rack → dock under `pack`; the cancel moves dock → rack in one commit.
+    const packBill = uuidv7()
+    const order = uuidv7()
+    await post([
+      { ...leg(order, godownA, -12, 'transfer_out', 'pack', 'pack-out'), refId: order },
+      { ...leg(order, dock, 12, 'transfer_in', 'pack', 'pack-in'), refId: order },
+    ])
+    await expect(
+      post([
+        leg(packBill, dock, -12, 'transfer_out', 'invoice_cancel', 'pack-cancel-dock'),
+        leg(packBill, godownA, 12, 'transfer_in', 'invoice_cancel', 'pack-cancel-rack'),
+      ]),
+    ).resolves.toBeUndefined()
+
+    // A bill that sold under its own ref (a van sale, the seed's old-model bill): the cancel puts it back.
+    const soldBill = uuidv7()
+    await post([leg(soldBill, godownA, -6, 'sale', 'invoice', 'sold')])
+    await expect(
+      post([leg(soldBill, godownA, 6, 'adjustment', 'invoice_cancel', 'sold-back')]),
+    ).resolves.toBeUndefined()
+
+    // …and the release check agrees: nothing on this lot is left behind by a cancel.
+    const left = (await invoiceCancelFootprints(db, tenantA)).filter((f) => f.lotId === lot)
+    expect(left).toEqual([])
   })
 
   it('DOS-204: sellable_stock holds only the sellable locations — a lot standing in the damaged / expiry bin, in transit or on a customer floor is never in it', async () => {

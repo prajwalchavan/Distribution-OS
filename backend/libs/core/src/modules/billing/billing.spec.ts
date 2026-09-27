@@ -22,6 +22,7 @@ import {
   tenants,
   tenantSettings,
   TENANT_SETTING_KEYS,
+  invoiceCancelFootprints,
   users,
   withTenant,
   type Db,
@@ -1035,6 +1036,9 @@ describeDb('billing (DATABASE_URL)', () => {
     ])
     expect(await stockAt(lotToor, godown)).toBe(godownBefore + 12)
     expect(await reservedFor((await orderLines(good))[0]?.id ?? '', 'dock')).toBe(0)
+    // QA DOS-257: the release check reads this cancel as a movement — it left nothing behind
+    const footprints = await invoiceCancelFootprints(db, tenantId)
+    expect(footprints.filter((f) => f.invoiceId === a.invoiceId)).toEqual([])
 
     // (b) INV/9034: its toor went out under another bill before holds existed — the dock has none of it
     const stale = await placeOrder(rep, shopMh, [{ variantId: variantToor, cases: 1 }], 'dos251b')
@@ -1062,6 +1066,22 @@ describeDb('billing (DATABASE_URL)', () => {
     const still = await call<{ item: Detail }>(app, manager, 'GET', `/invoices/${b.invoiceId}`)
     expect(still.body.item.state).toBe('issued')
     expect(await orderStateOf(stale)).toBe('packed')
+
+    // QA DOS-257: and the path the old code took is closed at the database too — the Godown +12 that
+    // INV/9034's cancel wrote is refused at commit, whoever writes it
+    await expect(
+      asOwner((tx) =>
+        tx.execute(sql`
+          insert into stock_ledger (id, tenant_id, lot_id, location_id, qty_delta, reason, ref_type, ref_id, actor_id, idempotency_key, note)
+          values (${uuidv7()}, ${tenantId}, ${lotToor}, ${godown}, 12, 'adjustment', 'invoice_cancel', ${b.invoiceId},
+                  ${ownerId}, ${`dos257-phantom-${run}`}, 'the pre-DOS-251 cancel')`),
+      ),
+    ).rejects.toSatisfy((e: unknown) => {
+      const err = e as { message?: string; cause?: { message?: string } }
+      return /QA DOS-257/.test(err.cause?.message ?? err.message ?? '')
+    })
+    expect(await ledgerFor(b.invoiceId)).toEqual([])
+    expect(await stockAt(lotToor, godown)).toBe(godownThen)
   })
 
   it('DOS-248: a paid bill that cannot be sent is credited whole — what the dock holds goes back, the rest moves nothing, the order closes and the money waits on account', async () => {

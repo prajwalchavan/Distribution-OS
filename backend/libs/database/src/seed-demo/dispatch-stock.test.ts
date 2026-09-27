@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { createDb, createPool } from '../client.js'
+import { cancelFootprintFaults } from '../stock-footprints.js'
 import { demoTenants, dispatchStockFaults } from './dispatch-stock.js'
 
 /**
@@ -30,6 +31,22 @@ describeDb('DOS-195 the seeded dock model (DATABASE_URL)', () => {
       ctx.skip('no demo distributor on this database: run pnpm db:seed first')
     for (const tenant of tenants) {
       const faults = await dispatchStockFaults(db, tenant.id)
+      expect({ slug: tenant.slug, faults }).toEqual({ slug: tenant.slug, faults: [] })
+    }
+  }, 120_000)
+
+  /**
+   * QA DOS-257: no cancelled bill leaves stock behind that it never took out — the seed's three
+   * cancelled bills (INV/9002, SAI/9002, KA/9002) put back exactly their own `sale` rows. On a database
+   * the business simulation ran on, this is the release check `pnpm check:stock-cancels` prints: a
+   * pre-DOS-251 phantom stays a failure here until a write-off on that batch takes it off.
+   */
+  it('every demo distributor: each cancelled bill nets to zero stock, or its extra pieces have been written off', async (ctx) => {
+    const tenants = await demoTenants(db)
+    if (tenants.length === 0)
+      ctx.skip('no demo distributor on this database: run pnpm db:seed first')
+    for (const tenant of tenants) {
+      const faults = await cancelFootprintFaults(db, tenant.id)
       expect({ slug: tenant.slug, faults }).toEqual({ slug: tenant.slug, faults: [] })
     }
   }, 120_000)
