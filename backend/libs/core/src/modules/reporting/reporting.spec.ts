@@ -39,6 +39,8 @@ import {
   brands,
   createDb,
   createPool,
+  creditNoteLines,
+  creditNotes,
   dailyOwnerStats,
   dailyRepStats,
   dailyRetailerStats,
@@ -75,7 +77,7 @@ import {
 } from '@dos/db'
 import { createObjectStorage, tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
-import { rollupTenantDay } from './rollup.js'
+import { rollupStaleCreditDays, rollupTenantDay } from './rollup.js'
 import { ReportingModule } from './index.js'
 
 const url = process.env.DATABASE_URL
@@ -1945,6 +1947,308 @@ describeDb('reporting (DATABASE_URL)', () => {
       '/reporting/dashboard/owner',
     )
     expect(again.body.onAccountPaise).toBe(11_500)
+  })
+
+  /*
+   * QA DOS-254 (business simulation, day 7): the desk credited two whole bills and the owner's "Invoiced
+   * today", "Sales this month" and gross margin did not move — the rollup summed invoices and never took a
+   * credit note off, and its cost of goods kept the cost of pieces a note had put back on the rack.
+   * QA DOS-253 rides along: the stock-at-cost register answers its brand split over EVERY row, not a page.
+   */
+  it('DOS-254: credit notes come off net sales by note date, the cost of saleable pieces a restocking note put back comes off COGS, the owner sees invoiced and credited apart; a day rolled before the fix is re-rolled once, keeping its stored stock; DOS-253: stock value by brand covers every row', async () => {
+    const cnTenantId = uuidv7()
+    const cnOwnerId = uuidv7()
+    const cnShopId = uuidv7()
+    const lotA = uuidv7()
+    const lotB = uuidv7()
+    const otherMakerId = uuidv7()
+    const otherBrandId = uuidv7()
+    const otherProductId = uuidv7()
+    const otherVariantId = uuidv7()
+    const cnOwner: Actor = { tenantId: cnTenantId, actorId: cnOwnerId, role: 'owner' }
+    await db
+      .insert(tenants)
+      .values({ id: cnTenantId, slug: `cn-${run}`, legalName: 'Credit notes', stateCode: '27' })
+    await db.insert(users).values({ id: cnOwnerId, phone: `+91926${run}1`, name: 'CN owner' })
+    await db
+      .insert(memberships)
+      .values({ id: uuidv7(), tenantId: cnTenantId, userId: cnOwnerId, role: 'owner' })
+    await bootstrapTenant(db, cnTenantId)
+    await db.insert(manufacturers).values({ id: otherMakerId, name: `Maker cn ${run}` })
+    await db
+      .insert(brands)
+      .values({ id: otherBrandId, manufacturerId: otherMakerId, name: `Brand CN ${run}` })
+    await db.insert(products).values({
+      id: otherProductId,
+      manufacturerId: otherMakerId,
+      brandId: otherBrandId,
+      name: 'Toor dal',
+      category: 'Staples',
+    })
+    await db.insert(productVariants).values({
+      id: otherVariantId,
+      productId: otherProductId,
+      name: 'Toor 1 kg',
+      netQty: 1,
+      netUnit: 'kg',
+      defaultCaseSize: 10,
+      hsnCode: '0713',
+    })
+    const [cnGodown] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.tenantId, cnTenantId), eq(locations.kind, 'warehouse')))
+      .limit(1)
+    const where = cnGodown?.id ?? ''
+    await db.insert(stockLots).values([
+      { id: lotA, tenantId: cnTenantId, variantId, batchNo: `CA-${run}`, mrpPaise: 25_000 },
+      {
+        id: lotB,
+        tenantId: cnTenantId,
+        variantId: otherVariantId,
+        batchNo: `CB-${run}`,
+        mrpPaise: 9_000,
+      },
+    ])
+    await db.insert(stockBalances).values([
+      { tenantId: cnTenantId, lotId: lotA, locationId: where, onHand: 10, reserved: 0 },
+      { tenantId: cnTenantId, lotId: lotB, locationId: where, onHand: 4, reserved: 0 },
+    ])
+    await db.insert(tenantProductCosts).values([
+      {
+        id: uuidv7(),
+        tenantId: cnTenantId,
+        variantId,
+        lotId: lotA,
+        purchaseRatePaise: 10_000,
+        landedCostPaise: 10_000,
+      },
+      {
+        id: uuidv7(),
+        tenantId: cnTenantId,
+        variantId: otherVariantId,
+        lotId: lotB,
+        purchaseRatePaise: 5_000,
+        landedCostPaise: 5_000,
+      },
+    ])
+    await db.insert(retailers).values({
+      id: cnShopId,
+      tenantId: cnTenantId,
+      code: `CN1-${run}`,
+      name: `Shop CN1 ${run}`,
+      phone: `+91926${run}2`,
+      stateCode: '27',
+    })
+    const billId = uuidv7()
+    const colaLine = uuidv7()
+    const toorLine = uuidv7()
+    await db.insert(invoices).values({
+      id: billId,
+      tenantId: cnTenantId,
+      invoiceNo: `INV/${run}/CN`,
+      seriesCode: 'INV',
+      fy: financialYear(),
+      invoiceDate: today,
+      retailerId: cnShopId,
+      state: 'issued',
+      buyerName: `Shop CN1 ${run}`,
+      placeOfSupplyState: '27',
+      subtotalPaise: 120_000,
+      taxablePaise: 120_000,
+      totalPaise: 120_000,
+    })
+    await db.insert(invoiceLines).values([
+      {
+        id: colaLine,
+        tenantId: cnTenantId,
+        invoiceId: billId,
+        lineNo: 1,
+        variantId,
+        lotId: lotA,
+        description: 'Cola 750 ml',
+        hsnCode: '2202',
+        qtyPcs: 5,
+        ratePaise: 20_000,
+        taxablePaise: 100_000,
+        gstBps: 0,
+        lineTotalPaise: 100_000,
+      },
+      {
+        id: toorLine,
+        tenantId: cnTenantId,
+        invoiceId: billId,
+        lineNo: 2,
+        variantId: otherVariantId,
+        lotId: lotB,
+        description: 'Toor 1 kg',
+        hsnCode: '0713',
+        qtyPcs: 2,
+        ratePaise: 10_000,
+        taxablePaise: 20_000,
+        gstBps: 0,
+        lineTotalPaise: 20_000,
+      },
+    ])
+    /** One note, one line; GST 0 so taxable = total and every figure below is exact. */
+    const note = async (o: {
+      reason: 'short_delivery' | 'return_damaged' | 'rate_difference'
+      state: 'draft' | 'issued' | 'applied' | 'cancelled'
+      line: string
+      qty: number
+      saleable: boolean
+      taxable: number
+      noteDate?: string
+    }): Promise<void> => {
+      const id = uuidv7()
+      await db.insert(creditNotes).values({
+        id,
+        tenantId: cnTenantId,
+        creditNoteNo: o.state === 'draft' ? null : `CN/${run}/${id.slice(-6)}`,
+        fy: financialYear(),
+        noteDate: o.noteDate ?? today,
+        invoiceId: billId,
+        retailerId: cnShopId,
+        reason: o.reason,
+        state: o.state,
+        taxablePaise: o.taxable,
+        totalPaise: o.taxable,
+      })
+      await db.insert(creditNoteLines).values({
+        id: uuidv7(),
+        tenantId: cnTenantId,
+        creditNoteId: id,
+        invoiceLineId: o.line,
+        qtyPcs: o.qty,
+        saleable: o.saleable,
+        ratePaise: o.qty > 0 ? Math.round(o.taxable / o.qty) : 0,
+        taxablePaise: o.taxable,
+        gstBps: 0,
+        taxPaise: 0,
+        lineTotalPaise: o.taxable,
+      })
+    }
+    // two cola pieces short, back on the rack: −40 000 sales, −2 × 10 000 cost
+    await note({
+      reason: 'short_delivery',
+      state: 'issued',
+      line: colaLine,
+      qty: 2,
+      saleable: true,
+      taxable: 40_000,
+    })
+    // a damaged toor back to the damaged bin: −10 000 sales, its cost STAYS in COGS (a loss)
+    await note({
+      reason: 'return_damaged',
+      state: 'issued',
+      line: toorLine,
+      qty: 1,
+      saleable: false,
+      taxable: 10_000,
+    })
+    // a rate difference: −5 000 sales, no goods moved, no cost back
+    await note({
+      reason: 'rate_difference',
+      state: 'applied',
+      line: colaLine,
+      qty: 1,
+      saleable: true,
+      taxable: 5_000,
+    })
+    // a draft and a cancelled note never count
+    await note({
+      reason: 'short_delivery',
+      state: 'draft',
+      line: colaLine,
+      qty: 1,
+      saleable: true,
+      taxable: 99_000,
+    })
+    await note({
+      reason: 'short_delivery',
+      state: 'cancelled',
+      line: colaLine,
+      qty: 1,
+      saleable: true,
+      taxable: 77_000,
+    })
+
+    // A day of this month rolled up BEFORE the fix: credited_paise NULL, a stored closing stock of 123.
+    const monthStart = monthOf(today)
+    const pastDay = monthStart === today ? null : monthStart
+    if (pastDay !== null) {
+      await db
+        .insert(dailyTenantStats)
+        .values({ tenantId: cnTenantId, day: pastDay, invoicedPaise: 0 })
+      await db.insert(dailyOwnerStats).values({
+        tenantId: cnTenantId,
+        day: pastDay,
+        stockValuePaise: 123,
+        nearExpiryValuePaise: 0,
+      })
+      await note({
+        reason: 'rate_difference',
+        state: 'issued',
+        line: colaLine,
+        qty: 1,
+        saleable: true,
+        taxable: 3_000,
+        noteDate: pastDay,
+      })
+      expect(await rollupStaleCreditDays(db, cnTenantId, today)).toEqual([pastDay])
+      const past = await db.execute(sql`
+        select t.credited_paise, o.net_sales_paise, o.stock_value_paise
+          from daily_tenant_stats t join daily_owner_stats o on o.tenant_id = t.tenant_id and o.day = t.day
+         where t.tenant_id = ${cnTenantId} and t.day = ${pastDay}`)
+      expect(Number(past.rows[0]?.credited_paise)).toBe(3_000)
+      expect(Number(past.rows[0]?.net_sales_paise)).toBe(-3_000)
+      // the re-roll keeps the day's own closing stock, never today's
+      expect(Number(past.rows[0]?.stock_value_paise)).toBe(123)
+      // once: the next tick finds nothing to catch up
+      expect(await rollupStaleCreditDays(db, cnTenantId, today)).toEqual([])
+    }
+
+    await rollupTenantDay(db, cnTenantId, today)
+    const day = await db.execute(sql`
+      select t.invoiced_paise, t.credited_paise, o.net_sales_paise, o.cogs_paise, o.gross_margin_paise, o.by_brand
+        from daily_tenant_stats t join daily_owner_stats o on o.tenant_id = t.tenant_id and o.day = t.day
+       where t.tenant_id = ${cnTenantId} and t.day = ${today}`)
+    const row = day.rows[0] as Record<string, unknown>
+    expect(Number(row.invoiced_paise)).toBe(120_000)
+    expect(Number(row.credited_paise)).toBe(55_000)
+    expect(Number(row.net_sales_paise)).toBe(120_000 - 55_000)
+    // 5 × 10 000 + 2 × 5 000 sold, less the 2 cola pieces back on the rack
+    expect(Number(row.cogs_paise)).toBe(60_000 - 20_000)
+    expect(Number(row.gross_margin_paise)).toBe(65_000 - 40_000)
+    expect(row.by_brand).toEqual({
+      [brandId]: { cogsPaise: 30_000, grossMarginPaise: 55_000 - 30_000 },
+      [otherBrandId]: { cogsPaise: 10_000, grossMarginPaise: 10_000 - 10_000 },
+    })
+
+    const dash = await call<OwnerDashboard>(app, cnOwner, 'GET', '/reporting/dashboard/owner')
+    expect(dash.status).toBe(200)
+    const earlier = pastDay === null ? 0 : 3_000
+    expect(dash.body.todayInvoicedPaise).toBe(120_000)
+    expect(dash.body.todayCreditedPaise).toBe(55_000)
+    expect(dash.body.mtdCreditedPaise).toBe(55_000 + earlier)
+    expect(dash.body.mtdSalesPaise).toBe(120_000 - 55_000 - earlier)
+    expect(dash.body.mtdGrossMarginPaise).toBe(25_000 - earlier)
+
+    // DOS-253: one page of one row still carries the brand split of EVERY row, largest first
+    const value = await call<StockValue>(app, cnOwner, 'GET', '/reporting/registers/stock-value', {
+      nearExpiryDays: 90,
+      limit: 1,
+    })
+    expect(value.status).toBe(200)
+    expect(value.body.items).toHaveLength(1)
+    expect(value.body.nextCursor).not.toBeNull()
+    expect(value.body.byBrand.map((b) => [b.brandId, b.onHandPcs, b.valuePaise])).toEqual([
+      [brandId, 10, 100_000],
+      [otherBrandId, 4, 20_000],
+    ])
+    expect(value.body.byBrand.reduce((s, b) => s + b.valuePaise, 0)).toBe(
+      value.body.totals.valuePaise,
+    )
   })
 
   // ===============================================================================================

@@ -44,6 +44,21 @@ function istInstant(isoDate: string, plusDays = 0): Date {
 
 const n = (v: unknown): number => (v === null || v === undefined ? 0 : Number(v))
 
+/**
+ * The credit-note states that reduce sales (QA DOS-254): a draft was never issued and a cancelled note never
+ * took effect. A literal, not a parameter list, so every query reads it the same way.
+ */
+const CREDIT_COUNTED_STATES = sql.raw(`('issued', 'applied')`)
+
+/**
+ * The reasons whose saleable lines put pieces BACK ON THE RACK (billing's `RESTOCKING_REASONS`): only their
+ * cost leaves the cost of goods sold. A rate difference or a scheme settlement returns no goods, and a
+ * damaged line goes to the damaged bin, a loss that stays in the cost (docs/22 §8, QA DOS-116).
+ */
+const RESTOCKING_REASONS = sql.raw(
+  `('short_delivery', 'return_saleable', 'return_damaged', 'cancellation')`,
+)
+
 const systemCtx = (tenantId: string): TenantContext => ({
   tenantId,
   actorId: 'system',
@@ -96,6 +111,13 @@ export async function rollupTenantDay(
          where tenant_id = ${tenantId}
            and invoice_date = ${day}
            and state not in ('draft', 'cancelled')`)
+      // QA DOS-254: the day's credit notes, by the note's own date. `invoiced` stays what was billed.
+      const credited = await tx.execute(sql`
+        select coalesce(sum(total_paise), 0)::bigint as credited_paise
+          from credit_notes
+         where tenant_id = ${tenantId}
+           and note_date = ${day}
+           and state in ${CREDIT_COUNTED_STATES}`)
       const collected = await tx.execute(sql`
         select coalesce(sum(amount_paise), 0)::bigint as collected_paise,
                mode::text                             as mode
@@ -222,6 +244,7 @@ export async function rollupTenantDay(
           day,
           ordersCount: n(orderRow?.orders_count),
           invoicedPaise: n(invoiced.rows[0]?.invoiced_paise),
+          creditedPaise: n(credited.rows[0]?.credited_paise),
           collectedPaise,
           outstandingPaise: dues.outstanding,
           overduePaise: dues.overdue,
@@ -244,6 +267,7 @@ export async function rollupTenantDay(
           set: {
             ordersCount: sql`excluded.orders_count`,
             invoicedPaise: sql`excluded.invoiced_paise`,
+            creditedPaise: sql`excluded.credited_paise`,
             collectedPaise: sql`excluded.collected_paise`,
             outstandingPaise: sql`excluded.outstanding_paise`,
             overduePaise: sql`excluded.overdue_paise`,
@@ -270,6 +294,37 @@ export async function rollupTenantDay(
       return { tenantId, day, tenantRows: 1, repRows, retailerRows }
     }),
   )
+}
+
+/**
+ * THE DOS-254 CATCH-UP. A day of the current month rolled up before credit notes were counted carries
+ * `daily_tenant_stats.credited_paise IS NULL` (migration 0069 added the column without a default on purpose).
+ * Each such day, oldest first, is re-rolled ONCE — the re-roll writes the column, so the next tick finds
+ * nothing — so "Sales this month" and the month's margin are net from the first tick after deploy. A past day
+ * re-rolled keeps its stored dues and its stored stock at cost. The caller rolls TODAY afterwards, which
+ * rewrites the owner summary last. Bounded by the month (≤ 30 days), and a no-op on every later tick.
+ */
+export async function rollupStaleCreditDays(
+  db: Db,
+  tenantId: string,
+  day: string = businessDate().date,
+): Promise<string[]> {
+  const ctx = systemCtx(tenantId)
+  const monthStart = `${day.slice(0, 7)}-01`
+  const stale = await tenantStorage.run(ctx, () =>
+    withTenant(db, ctx, (tx) =>
+      tx.execute(sql`
+        select to_char(day, 'YYYY-MM-DD') as day
+          from daily_tenant_stats
+         where tenant_id = ${tenantId} and day >= ${monthStart} and day < ${day}
+           and credited_paise is null
+         order by day
+         limit 31`),
+    ),
+  )
+  const days = stale.rows.map((r: Record<string, unknown>) => String(r.day))
+  for (const past of days) await rollupTenantDay(db, tenantId, past)
+  return days
 }
 
 /** One row per rep who did anything that day: visits, orders, and the money a delivery user took. */
@@ -435,8 +490,29 @@ function costCtes(tenantId: string): ReturnType<typeof sql> {
  * The cost-bearing half of the day (BACK_OFFICE at the database): net sales ex-GST, cost of goods sold
  * at landed cost (else purchase rate) of the lot each line shipped from, the margin identity the CHECK
  * enforces, closing stock at cost lot by lot, and scheme spend split by who funds it — never collapsed.
+ *
+ * NET OF CREDIT NOTES (QA DOS-254; the schema has always said "credit notes as negatives"): the day's
+ * issued notes, by note date, take their taxable value off net sales, and the cost of the saleable pieces a
+ * restocking note put back on the rack off the cost of goods sold — at the cost of the lot the bill shipped
+ * from, the same rule the sale was costed by. Before this the owner's margin kept every credited bill.
  */
 async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<void> {
+  const returns = await tx.execute(sql`
+    with ${costCtes(tenantId)}
+    select coalesce(p.brand_id::text, '') as brand_id,
+           coalesce(sum(cl.taxable_paise), 0)::bigint as taxable,
+           coalesce(sum(case when cn.reason in ${RESTOCKING_REASONS} and cl.saleable
+                             then cl.qty_pcs * coalesce(lc.unit_cost, c.unit_cost, 0) else 0 end), 0)::bigint as restocked_cost
+      from credit_note_lines cl
+      join credit_notes cn on cn.id = cl.credit_note_id and cn.tenant_id = cl.tenant_id
+      join invoice_lines il on il.id = cl.invoice_line_id and il.tenant_id = cl.tenant_id
+      join product_variants v on v.id = il.variant_id
+      join products p on p.id = v.product_id
+      left join lot_cost lc on lc.lot_id = il.lot_id
+      left join cost c on c.variant_id = il.variant_id
+     where cl.tenant_id = ${tenantId} and cn.note_date = ${day}
+       and cn.state in ${CREDIT_COUNTED_STATES}
+     group by 1`)
   const margin = await tx.execute(sql`
     with ${costCtes(tenantId)}
     select coalesce(sum(l.taxable_paise), 0)::bigint                                    as net_sales,
@@ -486,15 +562,52 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
        and coalesce(rule ->> 'kind', 'scheme') = 'scheme'
      group by 1`)
 
+  /*
+   * Stock at cost is a CLOSING figure read from the live balances, so only today's run may write it. A past
+   * day re-rolled (the 00:20 pass, the DOS-254 catch-up) keeps the figure its own last run stored, or the
+   * history chart would show today's stock on every re-rolled day — the same rule as the dues (property 4).
+   */
+  const stored =
+    day === businessDate().date
+      ? undefined
+      : (
+          await tx.execute(sql`
+            select stock_value_paise, near_expiry_value_paise
+              from daily_owner_stats where tenant_id = ${tenantId} and day = ${day}`)
+        ).rows[0]
   const marginRow = margin.rows[0]
-  const stockRow = stock.rows[0]
-  const netSales = n(marginRow?.net_sales)
-  const cogs = n(marginRow?.cogs)
+  const stockRow =
+    stored === undefined
+      ? stock.rows[0]
+      : { stock_value: stored.stock_value_paise, near_expiry_value: stored.near_expiry_value_paise }
+  let creditedTaxable = 0
+  let restockedCost = 0
+  const returnsByBrand = new Map<string, { taxable: number; restockedCost: number }>()
+  for (const row of returns.rows) {
+    const taxable = n(row.taxable)
+    const cost = n(row.restocked_cost)
+    creditedTaxable += taxable
+    restockedCost += cost
+    if (String(row.brand_id) !== '')
+      returnsByBrand.set(String(row.brand_id), { taxable, restockedCost: cost })
+  }
+  const netSales = n(marginRow?.net_sales) - creditedTaxable
+  const cogs = n(marginRow?.cogs) - restockedCost
   const byBrand: DailyMarginMix = {}
   for (const row of byBrandResult.rows) {
+    const back = returnsByBrand.get(String(row.brand_id))
+    const brandCogs = n(row.cogs) - (back?.restockedCost ?? 0)
     byBrand[String(row.brand_id)] = {
-      cogsPaise: n(row.cogs),
-      grossMarginPaise: n(row.net_sales) - n(row.cogs),
+      cogsPaise: brandCogs,
+      grossMarginPaise: n(row.net_sales) - (back?.taxable ?? 0) - brandCogs,
+    }
+    returnsByBrand.delete(String(row.brand_id))
+  }
+  // A brand credited today that sold nothing today: its day is the return alone, a negative margin.
+  for (const [brandId, back] of returnsByBrand) {
+    byBrand[brandId] = {
+      cogsPaise: -back.restockedCost,
+      grossMarginPaise: -back.taxable + back.restockedCost,
     }
   }
   let company = 0
@@ -546,8 +659,10 @@ async function refreshOwnerSummary(
   dues: Record<string, unknown> | undefined,
 ): Promise<void> {
   const monthStart = `${day.slice(0, 7)}-01`
+  // QA DOS-254: sales this month are NET of the month's credit notes; what was credited is stated beside it.
   const mtd = await tx.execute(sql`
-    select coalesce(sum(invoiced_paise), 0)::bigint as mtd_sales
+    select coalesce(sum(invoiced_paise), 0)::bigint               as mtd_invoiced,
+           coalesce(sum(coalesce(credited_paise, 0)), 0)::bigint as mtd_credited
       from daily_tenant_stats
      where tenant_id = ${tenantId} and day between ${monthStart} and ${day}`)
   const mtdMargin = await tx.execute(sql`
@@ -557,7 +672,7 @@ async function refreshOwnerSummary(
       from daily_owner_stats
      where tenant_id = ${tenantId} and day between ${monthStart} and ${day}`)
   const todayRow = await tx.execute(sql`
-    select invoiced_paise, collected_paise
+    select invoiced_paise, credited_paise, collected_paise
       from daily_tenant_stats where tenant_id = ${tenantId} and day = ${day}`)
   const pending = await tx.execute(sql`
     select count(*)::int as pending from approvals where tenant_id = ${tenantId} and status = 'pending'`)
@@ -579,6 +694,8 @@ async function refreshOwnerSummary(
 
   const today = todayRow.rows[0]
   const marginRow = mtdMargin.rows[0]
+  const mtdRow = mtd.rows[0]
+  const mtdCredited = n(mtdRow?.mtd_credited)
   await tx
     .insert(ownerSummary)
     .values({
@@ -588,7 +705,7 @@ async function refreshOwnerSummary(
       todayCollectedPaise: n(today?.collected_paise),
       totalOutstandingPaise: n(dues?.outstanding_paise),
       overduePaise: n(dues?.overdue_paise),
-      mtdSalesPaise: n(mtd.rows[0]?.mtd_sales),
+      mtdSalesPaise: n(mtdRow?.mtd_invoiced) - mtdCredited,
       mtdGrossMarginPaise: n(marginRow?.mtd_margin),
       stockValuePaise: n(marginRow?.stock_value),
       nearExpiryValuePaise: n(marginRow?.near_expiry_value),
@@ -596,6 +713,8 @@ async function refreshOwnerSummary(
       activeTrips: n(active.rows[0]?.active),
       detail: {
         cashInTransitPaise: n(inTransit.rows[0]?.paise),
+        todayCreditedPaise: n(today?.credited_paise),
+        mtdCreditedPaise: mtdCredited,
         /*
          * DOS-016: always LIVE, like the ageing rungs beside it — `dues` here is the live row, not the
          * stored closing figure, so the tile and the Money screen agree with the books as they stand.

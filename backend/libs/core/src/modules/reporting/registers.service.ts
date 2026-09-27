@@ -298,6 +298,27 @@ export class ReportingRegistersService {
         }),
         { onHandPcs: 0, valuePaise: 0, nearExpiryValuePaise: 0 },
       )
+      // QA DOS-253: the brand split of the SAME totals, over every row — a chart is drawn from this, never
+      // from one page of `items`.
+      const brandTotals = new Map<string, z.infer<typeof StockValueOutput>['byBrand'][number]>()
+      for (const r of priced) {
+        const key = r.brandId ?? ''
+        const entry = brandTotals.get(key) ?? {
+          brandId: r.brandId,
+          brandName: r.brandName,
+          onHandPcs: 0,
+          valuePaise: 0,
+          nearExpiryValuePaise: 0,
+        }
+        entry.onHandPcs += r.onHandPcs
+        entry.valuePaise += r.valuePaise
+        entry.nearExpiryValuePaise += r.nearExpiryValuePaise
+        brandTotals.set(key, entry)
+      }
+      const byBrand = [...brandTotals.values()].sort(
+        (a, b) =>
+          b.valuePaise - a.valuePaise || (a.brandName ?? '').localeCompare(b.brandName ?? ''),
+      )
       const keyOf = (r: (typeof priced)[number]): string => `${r.variantId}|${r.locationId}`
       const cursor = input.cursor
       const after = cursor ? priced.filter((r) => keyOf(r) > cursor) : priced
@@ -308,6 +329,7 @@ export class ReportingRegistersService {
         items,
         nextCursor: page.length > input.limit && last ? keyOf(last) : null,
         totals,
+        byBrand,
       }
     })
   }

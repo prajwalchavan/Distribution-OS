@@ -183,8 +183,23 @@ export const StockBalancesInput = z.object({
    * almost all zeros and the live lots fell past it.
    */
   nonZero: QueryBoolSchema.optional(),
+  /**
+   * Item, product or batch text, matched anywhere in the word and ignoring case (QA DOS-253). The search
+   * runs on the SERVER, over every balance row: a godown holds thousands of lot × location rows, and a
+   * filter over the one page a screen asked for could not find a batch that sat on page three.
+   */
+  q: z.string().trim().min(1).max(80).optional(),
+  /**
+   * The order of the rows (QA DOS-253). `lot` (the default, and the order every existing caller and the
+   * offline pull rely on): lot, then location. `item`: the item's name, then its batches oldest first,
+   * then location — stock read by item and batch, the way an owner counts a shelf.
+   */
+  sort: z.enum(['lot', 'item']).optional(),
   limit: QueryIntSchema.min(1).max(500).default(200),
-  /** `${lotId}:${locationId}` of the last row. */
+  /**
+   * Opaque: hand back the `nextCursor` of the previous page with the same filters and `sort`.
+   * (`${lotId}:${locationId}` of the last row for `sort: lot`.)
+   */
   cursor: z.string().optional(),
 })
 export const StockBalancesOutput = z.object({

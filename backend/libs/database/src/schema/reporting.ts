@@ -73,6 +73,12 @@ export type OwnerSummaryDetail = {
   ageingB31_60?: number
   ageingB61_90?: number
   ageingB90plus?: number
+  /**
+   * QA DOS-254: credit notes issued today and since the 1st, with GST, by the note's date. The summary's
+   * `mtd_sales_paise` is already net of `mtdCreditedPaise`; `today_invoiced_paise` stays what was billed.
+   */
+  todayCreditedPaise?: number
+  mtdCreditedPaise?: number
 }
 
 /**
@@ -91,6 +97,12 @@ export const dailyTenantStats = pgTable(
     day: date('day', { mode: 'string' }).notNull(),
     ordersCount: integer('orders_count').notNull().default(0),
     invoicedPaise: paise('invoiced_paise').notNull().default(0),
+    /**
+     * QA DOS-254: credit notes issued (or applied) that day, with GST, by `note_date`. `invoiced_paise` stays
+     * what was billed; net sales = invoiced − credited. NULL means the row was rolled up before credit notes
+     * were counted (migration 0069): the worker re-rolls such a day of the current month once, then never.
+     */
+    creditedPaise: paise('credited_paise'),
     collectedPaise: paise('collected_paise').notNull().default(0),
     /** Open dues at the end of the day; `overdue_paise` is the part past its due date. */
     outstandingPaise: paise('outstanding_paise').notNull().default(0),

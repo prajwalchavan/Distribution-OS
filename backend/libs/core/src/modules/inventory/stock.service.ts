@@ -120,6 +120,29 @@ function splitCursor(cursor: string | undefined): { lotId: string; locationId: s
   return { lotId: cursor.slice(0, i), locationId: cursor.slice(i + 1) }
 }
 
+/** The `sort: 'item'` cursor (QA DOS-253): `[variantName, variantId, lotId, locationId]` of the last row, as JSON. */
+function splitItemCursor(
+  cursor: string | undefined,
+): { name: string; variantId: string; lotId: string; locationId: string } | null {
+  if (!cursor) return null
+  let parts: unknown
+  try {
+    parts = JSON.parse(cursor)
+  } catch {
+    parts = null
+  }
+  if (
+    !Array.isArray(parts) ||
+    parts.length !== 4 ||
+    !parts.every((p): p is string => typeof p === 'string')
+  )
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'cursor must be the nextCursor of the previous page read with sort=item',
+    })
+  const [name, variantId, lotId, locationId] = parts as [string, string, string, string]
+  return { name, variantId, lotId, locationId }
+}
+
 @Injectable()
 export class StockService {
   constructor(
@@ -265,8 +288,13 @@ export class StockService {
   async balances(input: BalancesIn): Promise<BalancesOut> {
     requireRole(STOCK_VIEWERS)
     const db = requireDb(this.db)
+    const byItem = input.sort === 'item'
+    // Parsed before the transaction: a malformed cursor is the caller's 400, not a rolled-back read.
+    const after = byItem ? null : splitCursor(input.cursor)
+    const afterItem = byItem ? splitItemCursor(input.cursor) : null
+    // QA DOS-253: a server-side search over every row, not a filter over the page a screen fetched.
+    const like = input.q ? `%${input.q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : null
     return withTenant(db, currentTenant(), async (tx) => {
-      const after = splitCursor(input.cursor)
       const filters: (SQL | undefined)[] = [
         input.variantId ? eq(stockLots.variantId, input.variantId) : undefined,
         input.locationId ? eq(stockBalances.locationId, input.locationId) : undefined,
@@ -279,8 +307,14 @@ export class StockService {
           : undefined,
         // QA DOS-234: the lots actually standing here, not every lot that ever did.
         input.nonZero ? sql`${stockBalances.onHand} <> 0` : undefined,
+        like
+          ? sql`(${productVariants.name} ilike ${like} or ${products.name} ilike ${like} or ${stockLots.batchNo} ilike ${like})`
+          : undefined,
         after
           ? sql`(${stockBalances.lotId}, ${stockBalances.locationId}) > (${after.lotId}, ${after.locationId})`
+          : undefined,
+        afterItem
+          ? sql`(${productVariants.name}, ${stockLots.variantId}, ${stockBalances.lotId}, ${stockBalances.locationId}) > (${afterItem.name}, ${afterItem.variantId}, ${afterItem.lotId}, ${afterItem.locationId})`
           : undefined,
       ]
       const rows = await tx
@@ -302,13 +336,27 @@ export class StockService {
         .innerJoin(productVariants, eq(productVariants.id, stockLots.variantId))
         .innerJoin(products, eq(products.id, productVariants.productId))
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(asc(stockBalances.lotId), asc(stockBalances.locationId))
+        .orderBy(
+          ...(byItem
+            ? [
+                asc(productVariants.name),
+                asc(stockLots.variantId),
+                asc(stockBalances.lotId),
+                asc(stockBalances.locationId),
+              ]
+            : [asc(stockBalances.lotId), asc(stockBalances.locationId)]),
+        )
         .limit(input.limit + 1)
       const items: StockBalanceRow[] = rows.slice(0, input.limit)
       const last = items[items.length - 1]
+      const more = rows.length > input.limit && last !== undefined
       return {
         items,
-        nextCursor: rows.length > input.limit && last ? `${last.lotId}:${last.locationId}` : null,
+        nextCursor: !more
+          ? null
+          : byItem
+            ? JSON.stringify([last.variantName, last.variantId, last.lotId, last.locationId])
+            : `${last.lotId}:${last.locationId}`,
       }
     })
   }

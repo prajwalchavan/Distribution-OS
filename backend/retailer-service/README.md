@@ -7327,13 +7327,15 @@ On-hand and reserved per lot per location (stock keepers only) · contract `inve
 | `expiringBefore` | date | no |
 | `nearExpiryOnly` | boolean | string | no |
 | `nonZero` | boolean | string | no |
+| `q` | string | no |
+| `sort` | lot | item | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3006/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&nonZero=true&limit=200" \
+curl "http://localhost:3006/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&nonZero=true&q=campa&sort=lot&limit=200" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 

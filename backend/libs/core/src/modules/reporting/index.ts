@@ -15,6 +15,7 @@ export { registerReportRenderers } from './renderers.js'
 export {
   activeTenantIds,
   rollupBehaviour,
+  rollupStaleCreditDays,
   rollupTenant,
   rollupTenantDay,
   type RollupResult,
