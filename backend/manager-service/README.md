@@ -14819,7 +14819,8 @@ curl "http://localhost:3002/receivables/outstanding?beatId=01a06d3e-cfdb-7635-85
       "openBills": 1,
       "oldestDueDate": "2026-09-04",
       "bucketPaise": 4000,
-      "creditMode": "indicate"
+      "creditMode": "indicate",
+      "unallocatedCreditPaise": 4000
     }
   ],
   "nextCursor": null,

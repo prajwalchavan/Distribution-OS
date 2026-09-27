@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, desc, eq, gte, inArray, lt, lte, ne, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, inArray, lte, ne, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CancelCreditNoteInput,
@@ -273,13 +273,24 @@ export class CreditNotesService {
         input.state ? eq(creditNotes.state, input.state) : undefined,
         input.from ? gte(creditNotes.noteDate, input.from) : undefined,
         input.to ? lte(creditNotes.noteDate, input.to) : undefined,
-        input.cursor ? lt(creditNotes.id, input.cursor) : undefined,
+        /*
+         * Keyset on the cursor note's own (note_date, id), inside this tenant's fence (DOS-009 ruling,
+         * UX-O-8): the cursor stays the last id seen, so the wire does not change.
+         */
+        input.cursor
+          ? sql`(${creditNotes.noteDate}, ${creditNotes.id}) < (select c.note_date, c.id from credit_notes c where c.tenant_id = ${tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(creditNotes)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(creditNotes.id))
+        /*
+         * Newest first by NOTE DATE, the column `from`/`to` filters on (the DOS-009 ruling names this
+         * list: "sort on its window column"). Ids are minted by the client, so id order is not age — the
+         * simulation's five notes of 27 Sep read as rows 56–60 of 60 under `desc(id)` (UX-O-8).
+         */
+        .orderBy(desc(creditNotes.noteDate), desc(creditNotes.id))
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const numbers = await this.invoiceNumbers(

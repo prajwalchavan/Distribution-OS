@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, lt, sql, type SQL } from 'drizzle-orm'
+import { and, desc, eq, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ExportDownloadUrlInput,
@@ -216,13 +216,20 @@ export class ExportJobsService {
         input.status ? eq(exportJobs.status, input.status) : undefined,
         input.from ? sql`${exportJobs.createdAt} >= ${istStart(input.from)}` : undefined,
         input.to ? sql`${exportJobs.createdAt} < ${istStart(input.to, 1)}` : undefined,
-        input.cursor ? lt(exportJobs.id, input.cursor) : undefined,
+        /*
+         * Newest first on `created_at`, the column `from`/`to` filter on, with the id only a tie-break
+         * (DOS-009 ruling; UX-O-8: under `desc(id)` a 4 Jul claim sheet sat on top of the owner's
+         * Exports). The cursor stays the last id seen.
+         */
+        input.cursor
+          ? sql`(${exportJobs.createdAt}, ${exportJobs.id}) < (select c.created_at, c.id from export_jobs c where c.tenant_id = ${ctx.tenantId} and c.id = ${input.cursor})`
+          : undefined,
       ]
       const rows = await tx
         .select()
         .from(exportJobs)
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(desc(exportJobs.id))
+        .orderBy(desc(exportJobs.createdAt), desc(exportJobs.id))
         .limit(input.limit + 1)
       const items = rows.slice(0, input.limit).map(toExportJob)
       const last = items[items.length - 1]

@@ -264,6 +264,13 @@ export const OutstandingListItemSchema = z.object({
   /** The value in the requested `bucket`, or null when no bucket filter was given. */
   bucketPaise: PaiseSchema.nullable(),
   creditMode: CreditModeSchema,
+  /**
+   * Money this shop has paid (or been credited) that no bill has claimed yet (QA DOS-260, UX-O-6). The row
+   * stays GROSS in `outstandingPaise`, like the header; `outstandingPaise − unallocatedCreditPaise` is what
+   * the shop nets to, so a shop that owes ₹1,071 and holds ₹1,071 on account reads net ₹0 on its own row.
+   * The header's `totals.unallocatedCreditPaise` is the sum of this over the same filtered rows.
+   */
+  unallocatedCreditPaise: PaiseSchema,
 })
 export type OutstandingListItem = z.infer<typeof OutstandingListItemSchema>
 
