@@ -1,0 +1,7 @@
+[
+  {
+    "status": 200,
+    "request": "{\"idempotencyKey\":\"01a0e1ae-9e63-7095-adbb-ec1c013268fb\",\"lotId\":\"34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"qtyDelta\":-12,\"reason\":\"adjustment\",\"note\":\"DOS-257 phantom from cancelled INV/9002 (never took them out)\"}",
+    "reply": "{\"entry\":{\"id\":\"01a0e1ae-bb6b-740c-890c-9c0fbc6ebe4c\",\"occurredAt\":\"2026-09-27T07:05:19.979Z\",\"lotId\":\"34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"qtyDelta\":-12,\"reason\":\"adjustment\",\"refType\":\"adjustment\",\"refId\":null,\"actorId\":\"a66bacc8-4212-73e1-b75f-405af2960e36\",\"note\":\"DOS-257 phantom from cancelled INV/9002 (never took them out)\"},\"balance\":{\"lotId\":\"34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"onHand\":81,\"reserved\":0,\"version\":4}}"
+  }
+]

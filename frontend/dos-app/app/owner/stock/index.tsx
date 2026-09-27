@@ -21,6 +21,11 @@
  *     adding up to the stock at cost printed beside it;
  *   - the adjustment says which batch at which place, how many are on hand, and what will be left; it
  *     takes pieces OFF or ADDS them without typing a minus sign, and a refusal is printed in the dialog.
+ *
+ * QA DOS-257 (the audit): the 12 phantom toor a cancelled bill wrote into the Godown are written off HERE,
+ * so the screen has to let the owner see them for what they are. The dialog lists the batch's last
+ * movements at that place ("+12 · Adjusted by hand · Bill cancelled — cancelled invoice INV/9034"), and the
+ * stock ledger names the item, the batch and the place of every movement instead of only its reason.
  */
 import type { LedgerEntry, StockBalanceRow } from '@dos/contracts'
 import { useApi, useMutation, useQuery, useRefusal } from '@dos/api-client/react'
@@ -129,6 +134,22 @@ export default function StockScreen(): React.JSX.Element {
         ...(locationId === null ? {} : { locationId }),
       }),
     { enabled: view === 'ledger' },
+  )
+  /*
+   * QA DOS-257: the dialog shows what last moved THIS batch at THIS place, so the owner deciding to take
+   * pieces off sees why the books hold them — the simulation's 12 phantom toor read "+12 · Bill cancelled ·
+   * cancelled invoice INV/9034" with nothing taking them out again. Keyed under 'inventory', so the
+   * adjustment's own invalidation reads it again after a save.
+   */
+  const history = useQuery(
+    ['inventory', 'ledger', 'batch', adjustLot?.lotId ?? '', adjustLot?.locationId ?? ''],
+    () =>
+      api.api.inventory.stock.ledger({
+        lotId: adjustLot?.lotId ?? '',
+        locationId: adjustLot?.locationId ?? '',
+        limit: 5,
+      }),
+    { enabled: adjustLot !== null },
   )
   // One row is enough: the totals and the brand split in the reply cover EVERY row (DOS-253).
   const value = useQuery(['reporting', 'stockValue', 'summary'], () =>
@@ -258,11 +279,32 @@ export default function StockScreen(): React.JSX.Element {
     moneyColumn('mrp', t('o15.mrp'), (row) => row.mrpPaise),
   ]
 
+  // What moved, where (QA DOS-257): a movement the owner cannot name is no use to him.
+  const itemBatch = (row: LedgerEntry): string =>
+    row.variantName === undefined
+      ? t('app.none')
+      : t('o15.itemBatch', { item: row.variantName, batch: row.batchNo || t('app.none') })
   const ledgerColumns: readonly RegisterColumn<LedgerEntry>[] = [
     textColumn('when', t('o12.date'), (row) => instantWithClock(row.occurredAt), {
-      priority: 'identity',
+      priority: phone ? 'detail' : 'identity',
     }),
-    textColumn('reason', t('o15.reason'), (row) => word(row.reason), { priority: 'chip' }),
+    textColumn('item', t('o15.item'), itemBatch, phone ? { priority: 'identity' } : {}),
+    ...(locationId === null
+      ? [textColumn<LedgerEntry>('where', t('o15.location'), (row) => placeName(row.locationId))]
+      : []),
+    // The phone row draws the identity and this line under it: the date rides here so it is not lost.
+    textColumn(
+      'reason',
+      t('o15.reason'),
+      (row) =>
+        phone
+          ? t('o15.reasonWhen', {
+              reason: word(row.reason),
+              when: instantWithClock(row.occurredAt),
+            })
+          : word(row.reason),
+      { priority: 'chip' },
+    ),
     {
       key: 'delta',
       head: t('o15.movement'),
@@ -454,6 +496,42 @@ export default function StockScreen(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
               {t('o15.adjustNow', { count: onHandNow })}
             </Txt>
+            <Stack gap={1}>
+              <Txt field="label" desk="meta" color={colors.text.secondary}>
+                {t('o15.lately')}
+              </Txt>
+              {history.data === undefined ? (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {history.error === undefined ? t('o15.latelyLoading') : t('o15.latelyFailed')}
+                </Txt>
+              ) : history.data.items.length === 0 ? (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('o15.latelyNone')}
+                </Txt>
+              ) : (
+                history.data.items.map((row) => {
+                  const what = word(row.reason)
+                  // "Adjusted by hand · Adjusted by hand" says nothing twice: the document only when it adds.
+                  const doc = row.refType === null ? what : word(row.refType)
+                  return (
+                    <Txt
+                      key={row.id}
+                      field="label"
+                      desk="meta"
+                      numeric
+                      testID={`stock-adjust-history-${row.id}`}
+                    >
+                      {t(row.note === null ? 'o15.latelyRow' : 'o15.latelyRowNote', {
+                        when: instantWithClock(row.occurredAt),
+                        delta: row.qtyDelta > 0 ? `+${String(row.qtyDelta)}` : String(row.qtyDelta),
+                        what: doc === what ? what : t('o15.whatDoc', { what, doc }),
+                        note: row.note ?? '',
+                      })}
+                    </Txt>
+                  )
+                })
+              )}
+            </Stack>
             <Segments
               testID="stock-adjust-direction"
               value={direction}

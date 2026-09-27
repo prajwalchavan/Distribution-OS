@@ -1,0 +1,13 @@
+       slug       | invoice_no | source |      variant      |      batch_no      |                lot_id                | bill_rows | cancel_rows |                   cancel_detail                    | footprint 
+------------------+------------+--------+-------------------+--------------------+--------------------------------------+-----------+-------------+----------------------------------------------------+-----------
+ bill-92436559    | TST/0508   | pack   | Toor Dal 1 kg     | B20260909-92436559 | 01a0e1aa-692c-72be-8e03-3bed523ff10a |           |           0 | transfer_in@Godown 12, transfer_out@In transit -12 |         0
+ bill-92436559    | TST/0511   | pack   | Wafers 45 g       | B1-92436559        | 01a0e1aa-6912-77d7-a02d-0f8fd1a88df6 |           |           0 | transfer_in@Godown 12, transfer_out@In transit -12 |         0
+ bill-92436559    | TST/0512   | pack   | Wafers 45 g       | B1-92436559        | 01a0e1aa-6912-77d7-a02d-0f8fd1a88df6 |           |           0 | transfer_in@Godown 12, transfer_out@In transit -12 |         0
+ bill-92436559    | TST/0514   | pack   | Wafers 45 g       | B1-92436559        | 01a0e1aa-6912-77d7-a02d-0f8fd1a88df6 |           |           0 | transfer_in@Godown 12, transfer_out@In transit -12 |         0
+ bill-92436559    | TST/0515   | pack   | Wafers 45 g       | B1-92436559        | 01a0e1aa-6912-77d7-a02d-0f8fd1a88df6 |           |           0 | transfer_in@Godown 12, transfer_out@In transit -12 |         0
+ bill-92481838    | TST/0501   | pack   | Toor Dal 1 kg     | B20260909-92481838 | 01a0e1ab-19cc-7092-b955-c12e1640976b |           |           0 | transfer_in@Godown 12, transfer_out@In transit -12 |         0
+ kalyan-agencies  | KA/9002    | pack   | Campa Cola 750 ml | B20260515          | 8342bdd4-9f2d-7302-ab73-b6c06892f8b7 |       -72 |          72 | adjustment@Godown 72                               |         0
+ sai-distributors | SAI/9002   | pack   | Campa Cola 750 ml | B20260515          | 157577f7-d9cd-75dc-ac15-cba576f172b8 |       -72 |          72 | adjustment@Godown 72                               |         0
+ tarsun           | INV/9002   | pack   | Campa Cola 750 ml | B20260515          | 34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29 |       -72 |          84 | adjustment@Godown 12, adjustment@Godown 72         |        12
+(9 rows)
+

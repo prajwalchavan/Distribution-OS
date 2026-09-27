@@ -5,6 +5,7 @@
     "generate-readmes.mts",
     "auth-keygen.mts",
     "import-legacy-extracts.mts",
+    "check-stock-cancels.mts",
     "legacy",
     "vitest.config.ts"
   ]

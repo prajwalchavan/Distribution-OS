@@ -1,0 +1,644 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Campa Cola 750 ml · B20260515
+Adjusted by hand · 27 Sep, 12:35 pm
+-12
+Campa Cola 750 ml · B20260515
+Adjusted by hand · 27 Sep, 12:26 pm
+12
+Campa Lemon 750 ml · B20260823
+Sold · 12 Sep, 11:30 am
+-150
+Rajwadi Aamras Mango Drink 600 ml · RJ20260830
+Sold · 12 Sep, 11:30 am
+-168
+Campa Orange 500 ml · RCP20260807
+Sold · 12 Sep, 11:30 am
+-312
+Godavari Cow Ghee 1 L · GD20260903
+Brought in · 12 Sep, 11:30 am
+7
+Sunbake Marie Light 300 g · SB20260823
+Brought in · 12 Sep, 11:30 am
+24
+Sunbake Orange Cream 120 g · SB20260830
+Sold · 12 Sep, 11:30 am
+-840
+Sunbake Salted Cracker 60 g · SB20260628
+Brought in · 12 Sep, 11:30 am
+48
+Balaji Chataka Pataka Wafers 45 g · B20260902
+Brought in · 12 Sep, 11:30 am
+240
+Sunbake Marie Light 300 g · SB20260823
+Sold · 12 Sep, 11:30 am
+-24
+Campa Orange 1 L · B20260902
+Sold · 12 Sep, 11:30 am
+-125
+Campa Lemon 750 ml · B20260909
+Sold · 12 Sep, 11:30 am
+-250
+Godavari Cow Ghee 1 L · GD20260903
+Sold · 12 Sep, 11:30 am
+-7
+Konkan Masala Khakhra 180 g · KC20260828
+Sold · 12 Sep, 11:30 am
+-330
+Masti Oye Tomato Twist 30 g · AF20260827
+Sold · 12 Sep, 11:30 am
+-230
+Campa Cola 750 ml · RCP20260822
+Brought in · 12 Sep, 11:30 am
+25
+Campa Cola 1 L · RCP20260814
+Sold · 12 Sep, 11:30 am
+-50
+Chamak Dishwash Bar 145 g · SC20260604
+Brought in · 12 Sep, 11:30 am
+42
+Konkan Masala Khakhra 180 g · KC20260828
+Brought in · 12 Sep, 11:30 am
+330
+Campa Cola 750 ml · RCP20260822
+Brought in · 12 Sep, 11:30 am
+25
+Konkan Kerala Banana Chips 40 g · KC20260828
+Brought in · 12 Sep, 11:30 am
+648
+Konkan Kerala Banana Chips 40 g · KC20260828
+Sold · 12 Sep, 11:30 am
+-648
+Sunbake Butter Cookies 75 g · SB20260830
+Sold · 12 Sep, 11:30 am
+-720
+Balaji Simply Salted Wafers 45 g · GK20260828
+Brought in · 12 Sep, 11:30 am
+624
+Campa Cola 750 ml · RCP20260822
+Sold · 12 Sep, 11:30 am
+-100
+Campa Orange 750 ml · B20260823
+Sold · 12 Sep, 11:30 am
+-75
+Godavari Dairy Whitener 200 g · GD20260822
+Brought in · 12 Sep, 11:30 am
+216
+Chamak Dishwash Bar 145 g · SC20260604
+Sold · 12 Sep, 11:30 am
+-42
+Campa Orange 500 ml · RCP20260807
+Brought in · 12 Sep, 11:30 am
+312
+Sunbake Salted Cracker 60 g · SB20260628
+Sold · 12 Sep, 11:30 am
+-48
+Campa Lemon 750 ml · B20260823
+Brought in · 12 Sep, 11:30 am
+150
+Sunbake Glucose 110 g · B20260823
+Sold · 12 Sep, 11:30 am
+-390
+Campa Cola 1 L · RCP20260814
+Brought in · 12 Sep, 11:30 am
+50
+Neelam Anti-Dandruff Shampoo 175 ml · B20260729
+Brought in · 12 Sep, 11:30 am
+48
+Campa Cola 750 ml · RCP20260822
+Sold · 12 Sep, 11:30 am
+-175
+Campa Orange 750 ml · B20260823
+Brought in · 12 Sep, 11:30 am
+75
+Campa Cola 750 ml · RCP20260822
+Sold · 12 Sep, 11:30 am
+-25
+Balaji Ratlami Sev 200 g · GK20260825
+Brought in · 12 Sep, 11:30 am
+60
+Balaji Simply Salted Wafers 45 g · GK20260828
+Sold · 12 Sep, 11:30 am
+-624
+Sunbake Orange Cream 120 g · SB20260830
+Brought in · 12 Sep, 11:30 am
+840
+Campa Cola 750 ml · RCP20260822
+Brought in · 12 Sep, 11:30 am
+100
+Campa Orange 1 L · B20260902
+Brought in · 12 Sep, 11:30 am
+125
+Balaji Ratlami Sev 200 g · GK20260825
+Sold · 12 Sep, 11:30 am
+-60
+Sunbake Butter Cookies 75 g · SB20260830
+Brought in · 12 Sep, 11:30 am
+720
+Sunbake Glucose 110 g · B20260823
+Brought in · 12 Sep, 11:30 am
+390
+Rajwadi Aamras Mango Drink 600 ml · RJ20260830
+Brought in · 12 Sep, 11:30 am
+168
+Godavari Dairy Whitener 200 g · GD20260822
+Sold · 12 Sep, 11:30 am
+-216
+Masti Oye Tomato Twist 30 g · AF20260827
+Brought in · 12 Sep, 11:30 am
+230
+Balaji Chataka Pataka Wafers 45 g · B20260902
+Sold · 12 Sep, 11:30 am
+-240
+Godavari Cow Ghee 1 L · GD20260903
+Brought in · 12 Sep, 11:30 am
+4
+Campa Cola 750 ml · RCP20260822
+Sold · 12 Sep, 11:30 am
+-25
+Godavari Cow Ghee 1 L · GD20260903
+Sold · 12 Sep, 11:30 am
+-4
+Campa Lemon 750 ml · B20260909
+Brought in · 12 Sep, 11:30 am
+250
+Campa Cola 750 ml · RCP20260822
+Brought in · 12 Sep, 11:30 am
+175
+Neelam Anti-Dandruff Shampoo 175 ml · B20260729
+Sold · 12 Sep, 11:30 am
+-48
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+Sold · 12 Sep, 10:20 am
+-5
+Balaji Masala Masti Wafers 45 g · GK20260825
+Sold · 12 Sep, 10:20 am
+-96
+Annapurna Bombay Rava 500 g · AN20260801
+Sold · 12 Sep, 9:40 am
+-8
+Sunbake Bourbon Cream 300 g · B20260729
+Sold · 12 Sep, 9:40 am
+-24
+Campa Cola 1 L · RCP20260814
+Sold · 12 Sep, 9:40 am
+-21
+Neelam Sandal Soap 100 g · SC20260730
+Sold · 12 Sep, 9:40 am
+-72
+Campa Cola 500 ml · RCP20260814
+Sold · 12 Sep, 9:20 am
+-192
+Konkan Ratlami Sev 180 g · B20260902
+Sold · 12 Sep, 9:20 am
+-324
+Annapurna Iodised Salt 1 kg · AN20260815
+Sold · 12 Sep, 9:20 am
+-240
+Campa Cola 750 ml · RCP20260822
+Sold · 12 Sep, 9:20 am
+-250
+Konkan Bhajani Chivda 100 g · B20260729
+Sold · 12 Sep, 9:20 am
+-384
+Godavari Dairy Whitener 200 g · B20260902
+Sold · 12 Sep, 9:20 am
+-360
+Too Yumm Karare 60 g · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+-48
+Campa Lemon 750 ml · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+-24
+Too Yumm Karare 60 g · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+48
+Balaji Simply Salted Wafers 45 g · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+-48
+Campa Orange 750 ml · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+24
+Balaji Simply Salted Wafers 45 g · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+48
+Campa Cola 750 ml · RCP20260822
+Loaded on a van · 12 Sep, 8:40 am
+24
+Campa Orange 750 ml · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+-24
+Campa Cola 1 L · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+-24
+Campa Cola 1 L · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+24
+Campa Cola 750 ml · RCP20260822
+Loaded on a van · 12 Sep, 8:40 am
+-24
+Campa Lemon 750 ml · B20260909
+Loaded on a van · 12 Sep, 8:40 am
+24
+Godavari Masala Chaas 200 ml · B20260817
+Cycle count · 12 Sep, 8:30 am
+30
+Annapurna Besan 500 g · B20251204
+Cycle count · 12 Sep, 8:30 am
+20
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260610
+Cycle count · 12 Sep, 8:30 am
+54
+Godavari Flavoured Milk Rose 180 ml · B20260605
+Cycle count · 12 Sep, 8:30 am
+54
+Campa Orange 200 ml · B20251229
+Cycle count · 12 Sep, 8:30 am
+96
+Rajwadi Apple Nectar 200 ml · B20260226
+Cycle count · 12 Sep, 8:30 am
+27
+Annapurna Thick Poha 500 g · B20260107
+Cycle count · 12 Sep, 8:30 am
+40
+Campa Lemon 1 L · B20251205
+Cycle count · 12 Sep, 8:30 am
+24
+Annapurna Bombay Rava 500 g · B20251227
+Cycle count · 12 Sep, 8:30 am
+40
+Godavari Dahi 200 g · B20260812
+Cycle count · 12 Sep, 8:30 am
+30
+Godavari Fresh Paneer 200 g · B20260809
+Cycle count · 12 Sep, 8:30 am
+24
+Godavari Dahi 1 kg · B20260904
+Cycle count · 12 Sep, 8:30 am
+16
+Campa Lemon 200 ml · B20260101
+Cycle count · 12 Sep, 8:30 am
+96
+Godavari Dahi 400 g · B20260830
+Cycle count · 12 Sep, 8:30 am
+40
+Konkan Kerala Banana Chips 40 g · B20260609
+Cycle count · 12 Sep, 8:30 am
+144
+Sunbake Orange Cream 60 g · B20260107
+Cycle count · 12 Sep, 8:30 am
+96
+Konkan Roasted Peanut Masala 40 g · B20260604
+Cycle count · 12 Sep, 8:30 am
+192
+Godavari Flavoured Milk Chocolate 180 ml · B20260525
+Cycle count · 12 Sep, 8:30 am
+54
+Godavari Toned UHT Milk 500 ml · B20260606
+Cycle count · 12 Sep, 8:30 am
+48
+Godavari Masala Chaas 1 L · B20260902
+Cycle count · 12 Sep, 8:30 am
+24
+Godavari Fresh Paneer 500 g · B20260908
+Cycle count · 12 Sep, 8:30 am
+24
+Sunbake Bourbon Cream 300 g · B20260729
+Sent out · 11 Sep, 12:15 pm
+-24
+Masti Oye Classic Salted 30 g · B20260729
+Sent out · 11 Sep, 12:15 pm
+-34
+Campa Cola 1 L · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-11
+Rajwadi Jeera Masala Soda 1.25 L · RJ20260830
+Brought in · 11 Sep, 12:15 pm
+156
+Annapurna Chana Dal 500 g · AN20260815
+Brought in · 11 Sep, 12:15 pm
+16
+Campa Orange 750 ml · B20260823
+Sent out · 11 Sep, 12:15 pm
+-50
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+Sent out · 11 Sep, 12:15 pm
+-135
+Campa Lemon 2 L · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-24
+Campa Orange 500 ml · RCP20260807
+Brought in · 11 Sep, 12:15 pm
+72
+Campa Lemon 750 ml · B20260823
+Sent out · 11 Sep, 12:15 pm
+-100
+Campa Lemon 200 ml · B20260902
+Brought in · 11 Sep, 12:15 pm
+288
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+Brought in · 11 Sep, 12:15 pm
+162
+Campa Cola 750 ml · RCP20260822
+Sent out · 11 Sep, 12:15 pm
+-75
+Campa Orange 750 ml · B20260823
+Brought in · 11 Sep, 12:15 pm
+50
+Sunbake Marie Light 300 g · SB20260830
+Sent out · 11 Sep, 12:15 pm
+-216
+Konkan Ratlami Sev 180 g · B20260902
+Brought in · 11 Sep, 12:15 pm
+324
+Godavari Dairy Whitener 200 g · B20260902
+Sent out · 11 Sep, 12:15 pm
+-360
+Campa Cola 750 ml · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+25
+Campa Cola 1 L · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+21
+Balaji Simply Salted Wafers 45 g · GK20260825
+Brought in · 11 Sep, 12:15 pm
+48
+Balaji Masala Masti Wafers 45 g · GK20260825
+Sent out · 11 Sep, 12:15 pm
+-96
+Campa Cola 750 ml · RCP20260822
+Brought in · 11 Sep, 12:15 pm
+250
+Sunbake Butter Cookies 75 g · SB20260830
+Brought in · 11 Sep, 12:15 pm
+432
+Godavari Cow Ghee 200 ml · GD20260702
+Sent out · 11 Sep, 12:15 pm
+-5
+Balaji Simply Salted Wafers 45 g · GK20260825
+Sent out · 11 Sep, 12:15 pm
+-144
+Balaji Chataka Pataka Wafers 45 g · GK20260804
+Brought in · 11 Sep, 12:15 pm
+96
+Rajwadi Aamras Mango Drink 1 L · B20260902
+Brought in · 11 Sep, 12:15 pm
+60
+Balaji Simply Salted Wafers 45 g · GK20260828
+Sent out · 11 Sep, 12:15 pm
+-288
+Rajwadi Aamras Mango Drink 1 L · B20260902
+Sent out · 11 Sep, 12:15 pm
+-60
+Campa Cola 500 ml · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-192
+Godavari Dahi 1 kg · B20260907
+Brought in · 11 Sep, 12:15 pm
+24
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+Brought in · 11 Sep, 12:15 pm
+5
+Konkan Aloo Bhujia 200 g · KC20260814
+Sent out · 11 Sep, 12:15 pm
+-36
+Annapurna Bombay Rava 500 g · AN20260801
+Brought in · 11 Sep, 12:15 pm
+8
+Balaji Simply Salted Wafers 45 g · GK20260828
+Brought in · 11 Sep, 12:15 pm
+288
+Annapurna Iodised Salt 1 kg · AN20260815
+Sent out · 11 Sep, 12:15 pm
+-240
+Campa Cola 1 L · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+11
+Neelam Cold Cream 30 g · SC20260604
+Sent out · 11 Sep, 12:15 pm
+-63
+Konkan Bhajani Chivda 100 g · B20260729
+Brought in · 11 Sep, 12:15 pm
+384
+Sunbake Marie Light 150 g · SB20260823
+Sent out · 11 Sep, 12:15 pm
+-300
+Annapurna Bombay Rava 500 g · AN20260801
+Sent out · 11 Sep, 12:15 pm
+-8
+Masti Oye Classic Salted 30 g · B20260729
+Brought in · 11 Sep, 12:15 pm
+34
+Campa Lemon 500 ml · B20260902
+Sent out · 11 Sep, 12:15 pm
+-192
+Campa Lemon 750 ml · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+75
+Godavari Dairy Whitener 200 g · B20260902
+Brought in · 11 Sep, 12:15 pm
+360
+Konkan Bhajani Chivda 100 g · B20260729
+Sent out · 11 Sep, 12:15 pm
+-384
+Campa Cola 750 ml · RCP20260822
+Brought in · 11 Sep, 12:15 pm
+75
+Sunbake Digestive Hi-Fibre 100 g · SB20260614
+Sent out · 11 Sep, 12:15 pm
+-36
+Campa Orange 1 L · RCP20260703
+Sent out · 11 Sep, 12:15 pm
+-9
+Annapurna Iodised Salt 1 kg · AN20260815
+Brought in · 11 Sep, 12:15 pm
+240
+Annapurna Red Chilli Powder 500 g · B20260729
+Sent out · 11 Sep, 12:15 pm
+-12
+Campa Orange 200 ml · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-25
+Balaji Masala Masti Wafers 45 g · GK20260825
+Brought in · 11 Sep, 12:15 pm
+96
+Sunbake Bourbon Cream 300 g · SB20260830
+Sent out · 11 Sep, 12:15 pm
+-120
+Sunbake Digestive Hi-Fibre 100 g · SB20260614
+Brought in · 11 Sep, 12:15 pm
+36
+Sunbake Marie Light 150 g · SB20260823
+Brought in · 11 Sep, 12:15 pm
+300
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+Sent out · 11 Sep, 12:15 pm
+-162
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+Brought in · 11 Sep, 12:15 pm
+135
+Godavari Cow Ghee 200 ml · GD20260702
+Brought in · 11 Sep, 12:15 pm
+5
+Konkan Aloo Bhujia 200 g · KC20260814
+Brought in · 11 Sep, 12:15 pm
+36
+Balaji Simply Salted Wafers 45 g · GK20260825
+Brought in · 11 Sep, 12:15 pm
+144
+Annapurna Red Chilli Powder 500 g · B20260729
+Brought in · 11 Sep, 12:15 pm
+12
+Sunbake Butter Cookies 75 g · SB20260830
+Sent out · 11 Sep, 12:15 pm
+-432
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+Sent out · 11 Sep, 12:15 pm
+-81
+Balaji Chataka Pataka Wafers 45 g · GK20260804
+Sent out · 11 Sep, 12:15 pm
+-96
+Campa Lemon 2 L · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+24
+Campa Orange 200 ml · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+25
+Campa Cola 750 ml · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-25
+Campa Lemon 200 ml · B20260902
+Sent out · 11 Sep, 12:15 pm
+-288
+Neelam Sandal Soap 100 g · SC20260730
+Brought in · 11 Sep, 12:15 pm
+72
+Campa Lemon 750 ml · B20260823
+Brought in · 11 Sep, 12:15 pm
+100
+Campa Orange 750 ml · B20260909
+Sent out · 11 Sep, 12:15 pm
+-275
+Annapurna Chana Dal 500 g · AN20260815
+Sent out · 11 Sep, 12:15 pm
+-16
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+Brought in · 11 Sep, 12:15 pm
+81
+Campa Orange 1 L · RCP20260703
+Brought in · 11 Sep, 12:15 pm
+9
+Campa Cola 1 L · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-21
+Campa Orange 750 ml · RCP20260822
+Brought in · 11 Sep, 12:15 pm
+117
+Sunbake Bourbon Cream 300 g · B20260729
+Brought in · 11 Sep, 12:15 pm
+24
+Sunbake Marie Light 300 g · SB20260830
+Brought in · 11 Sep, 12:15 pm
+216
+Neelam Cold Cream 30 g · SC20260604
+Brought in · 11 Sep, 12:15 pm
+63
+Campa Orange 500 ml · RCP20260807
+Sent out · 11 Sep, 12:15 pm
+-72
+Rajwadi Jeera Masala Soda 1.25 L · RJ20260830
+Sent out · 11 Sep, 12:15 pm
+-156
+Balaji Simply Salted Wafers 45 g · GK20260825
+Sent out · 11 Sep, 12:15 pm
+-48
+Campa Cola 750 ml · RCP20260822
+Sent out · 11 Sep, 12:15 pm
+-250
+Campa Lemon 500 ml · B20260902
+Brought in · 11 Sep, 12:15 pm
+192
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+Sent out · 11 Sep, 12:15 pm
+-5
+Sunbake Bourbon Cream 300 g · SB20260830
+Brought in · 11 Sep, 12:15 pm
+120
+Konkan Ratlami Sev 180 g · B20260902
+Sent out · 11 Sep, 12:15 pm
+-324
+Godavari Dahi 1 kg · B20260907
+Sent out · 11 Sep, 12:15 pm
+-24
+Campa Orange 750 ml · B20260909
+Brought in · 11 Sep, 12:15 pm
+275
+Campa Cola 500 ml · RCP20260814
+Brought in · 11 Sep, 12:15 pm
+192
+Campa Lemon 750 ml · RCP20260814
+Sent out · 11 Sep, 12:15 pm
+-75
+Neelam Sandal Soap 100 g · SC20260730
+Sent out · 11 Sep, 12:15 pm
+-72
+Campa Orange 750 ml · RCP20260822
+Sent out · 11 Sep, 12:15 pm
+-117
+Campa Cola 500 ml · RCP20260814
+Brought in · 11 Sep, 11:30 am
+192
+Rajwadi Aamras Mango Drink 1 L · B20260902
+Sold · 11 Sep, 11:30 am
+-60
+Konkan Bhajani Chivda 100 g · B20260729
+Brought in · 11 Sep, 11:30 am
+384
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+Brought in · 11 Sep, 11:30 am
+162
+Campa Cola 1 L · RCP20260814
+Brought in · 11 Sep, 11:30 am
+21
+Cycle counts
+Today
+Orders
+Money
+Shops

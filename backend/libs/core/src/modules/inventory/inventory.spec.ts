@@ -36,7 +36,14 @@ const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
 
 type Balance = { lotId: string; locationId: string; onHand: number; reserved: number }
-type Entry = { id: string; reason: string; qtyDelta: number; lotId: string }
+type Entry = {
+  id: string
+  reason: string
+  qtyDelta: number
+  lotId: string
+  variantName?: string
+  batchNo?: string
+}
 
 describeDb('inventory (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
@@ -370,6 +377,10 @@ describeDb('inventory (DATABASE_URL)', () => {
     })
     expect(ledger.status).toBe(200)
     expect(ledger.body.items.filter((e) => e.reason === 'sale')).toHaveLength(2)
+    // QA DOS-257: every movement names what moved — the item and its batch — not only a lot id
+    const early = ledger.body.items.find((e) => e.reason === 'sale' && e.lotId === lotEarly)
+    expect(early).toMatchObject({ variantName: 'Makhana 12 g', batchNo: 'L1' })
+    expect(ledger.body.items.every((e) => typeof e.variantName === 'string')).toBe(true)
   })
 
   it('shows a rep sellable stock only, never balances, adjustments or the ledger', async () => {

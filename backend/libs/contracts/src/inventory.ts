@@ -218,6 +218,13 @@ export const LedgerEntrySchema = z.object({
   refId: z.string().nullable(),
   actorId: z.string(),
   note: z.string().nullable(),
+  /**
+   * WHAT moved (QA DOS-257): the item and its batch, filled by `stock.ledger` so the owner reading
+   * "+12 · Bill cancelled" knows it was 12 toor of batch B20260909 without opening anything else.
+   * Optional: the replies that answer with the one row the caller just posted leave them out.
+   */
+  variantName: z.string().optional(),
+  batchNo: z.string().optional(),
 })
 export type LedgerEntry = z.infer<typeof LedgerEntrySchema>
 

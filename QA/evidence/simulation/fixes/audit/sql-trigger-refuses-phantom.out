@@ -1,0 +1,29 @@
+                   tgname                   | tginitdeferred 
+--------------------------------------------+----------------
+ stock_ledger_invoice_cancel_leaves_nothing | t
+(1 row)
+
+BEGIN
+INSERT 0 1
+psql:/private/tmp/claude-501/-Users-prajwalchavan-Desktop-Distribution-OS/682f4d7a-4374-4d97-b41b-5f986fb5fa07/scratchpad/refuse.sql:8: ERROR:  cancelling invoice 1a9698e5-b3a8-7ccb-8381-a3ae6bdfc8b1 would leave 24 pc of lot 34f8d8ff-f1f3-7cdb-b6a0-d6ec8b936c29 in stock beyond what the bill itself moved: a cancel only takes back the bill's own pieces, it never makes or loses stock (QA DOS-257)
+CONTEXT:  PL/pgSQL function dos_invoice_cancel_leaves_nothing() line 18 at RAISE
+ probe_rows 
+------------
+          0
+(1 row)
+
+ on_hand 
+---------
+      81
+(1 row)
+
+           occurred_at            | qty_delta |   reason   |    ref_type    |                             note                              
+----------------------------------+-----------+------------+----------------+---------------------------------------------------------------
+ 2026-09-27 12:35:19.979+05:30    |       -12 | adjustment | adjustment     | DOS-257 phantom from cancelled INV/9002 (never took them out)
+ 2026-09-27 12:26:53.905777+05:30 |        12 | adjustment | invoice_cancel | cancelled invoice INV/9002
+ 2026-09-11 10:50:00+05:30        |       -18 | van_load   | manual         | Counter stock handed to the crew for van sales
+ 2026-09-10 19:30:00+05:30        |        72 | adjustment | invoice_cancel | cancelled invoice INV/9002
+ 2026-09-10 16:00:00+05:30        |       -72 | sale       | invoice        | 
+ 2026-07-07 11:30:00+05:30        |        -7 | sale       | pack           | 
+(6 rows)
+

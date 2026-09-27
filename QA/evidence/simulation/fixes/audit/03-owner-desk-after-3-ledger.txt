@@ -1,0 +1,2654 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Date	Item	Location	Reason	Movement	Document	Note for the person who asked
+
+27 Sep, 12:35 pm
+	
+Campa Cola 750 ml · B20260515
+	
+Godown
+	
+Adjusted by hand
+	-12	
+Adjusted by hand
+	
+DOS-257 phantom from cancelled INV/9002 (never took them out)
+
+
+27 Sep, 12:26 pm
+	
+Campa Cola 750 ml · B20260515
+	
+Godown
+	
+Adjusted by hand
+	12	
+Bill cancelled
+	
+cancelled invoice INV/9002
+
+
+12 Sep, 11:30 am
+	
+Campa Lemon 750 ml · B20260823
+	
+Godown
+	
+Sold
+	-150	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Rajwadi Aamras Mango Drink 600 ml · RJ20260830
+	
+Godown
+	
+Sold
+	-168	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Orange 500 ml · RCP20260807
+	
+Godown
+	
+Sold
+	-312	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+In transit
+	
+Brought in
+	7	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sunbake Marie Light 300 g · SB20260823
+	
+In transit
+	
+Brought in
+	24	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sunbake Orange Cream 120 g · SB20260830
+	
+Godown
+	
+Sold
+	-840	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sunbake Salted Cracker 60 g · SB20260628
+	
+In transit
+	
+Brought in
+	48	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Balaji Chataka Pataka Wafers 45 g · B20260902
+	
+In transit
+	
+Brought in
+	240	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sunbake Marie Light 300 g · SB20260823
+	
+Godown
+	
+Sold
+	-24	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Orange 1 L · B20260902
+	
+Godown
+	
+Sold
+	-125	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Lemon 750 ml · B20260909
+	
+Godown
+	
+Sold
+	-250	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+Godown
+	
+Sold
+	-7	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Konkan Masala Khakhra 180 g · KC20260828
+	
+Godown
+	
+Sold
+	-330	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Masti Oye Tomato Twist 30 g · AF20260827
+	
+Godown
+	
+Sold
+	-230	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+In transit
+	
+Brought in
+	25	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 1 L · RCP20260814
+	
+Godown
+	
+Sold
+	-50	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Chamak Dishwash Bar 145 g · SC20260604
+	
+In transit
+	
+Brought in
+	42	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Konkan Masala Khakhra 180 g · KC20260828
+	
+In transit
+	
+Brought in
+	330	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+In transit
+	
+Brought in
+	25	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Konkan Kerala Banana Chips 40 g · KC20260828
+	
+In transit
+	
+Brought in
+	648	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Konkan Kerala Banana Chips 40 g · KC20260828
+	
+Godown
+	
+Sold
+	-648	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+Godown
+	
+Sold
+	-720	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+In transit
+	
+Brought in
+	624	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Godown
+	
+Sold
+	-100	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Orange 750 ml · B20260823
+	
+Godown
+	
+Sold
+	-75	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Godavari Dairy Whitener 200 g · GD20260822
+	
+In transit
+	
+Brought in
+	216	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Chamak Dishwash Bar 145 g · SC20260604
+	
+Godown
+	
+Sold
+	-42	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Orange 500 ml · RCP20260807
+	
+In transit
+	
+Brought in
+	312	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sunbake Salted Cracker 60 g · SB20260628
+	
+Godown
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Lemon 750 ml · B20260823
+	
+In transit
+	
+Brought in
+	150	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sunbake Glucose 110 g · B20260823
+	
+Godown
+	
+Sold
+	-390	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 1 L · RCP20260814
+	
+In transit
+	
+Brought in
+	50	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Neelam Anti-Dandruff Shampoo 175 ml · B20260729
+	
+In transit
+	
+Brought in
+	48	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Godown
+	
+Sold
+	-175	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Orange 750 ml · B20260823
+	
+In transit
+	
+Brought in
+	75	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Godown
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Balaji Ratlami Sev 200 g · GK20260825
+	
+In transit
+	
+Brought in
+	60	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+Godown
+	
+Sold
+	-624	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sunbake Orange Cream 120 g · SB20260830
+	
+In transit
+	
+Brought in
+	840	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+In transit
+	
+Brought in
+	100	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Orange 1 L · B20260902
+	
+In transit
+	
+Brought in
+	125	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Balaji Ratlami Sev 200 g · GK20260825
+	
+Godown
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+In transit
+	
+Brought in
+	720	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sunbake Glucose 110 g · B20260823
+	
+In transit
+	
+Brought in
+	390	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Rajwadi Aamras Mango Drink 600 ml · RJ20260830
+	
+In transit
+	
+Brought in
+	168	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Godavari Dairy Whitener 200 g · GD20260822
+	
+Godown
+	
+Sold
+	-216	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Masti Oye Tomato Twist 30 g · AF20260827
+	
+In transit
+	
+Brought in
+	230	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Balaji Chataka Pataka Wafers 45 g · B20260902
+	
+Godown
+	
+Sold
+	-240	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+In transit
+	
+Brought in
+	4	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Godown
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+Godown
+	
+Sold
+	-4	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Campa Lemon 750 ml · B20260909
+	
+In transit
+	
+Brought in
+	250	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+In transit
+	
+Brought in
+	175	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Neelam Anti-Dandruff Shampoo 175 ml · B20260729
+	
+Godown
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+12 Sep, 10:20 am
+	
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-5	
+Delivery
+	
+—
+
+
+12 Sep, 10:20 am
+	
+Balaji Masala Masti Wafers 45 g · GK20260825
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-96	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Annapurna Bombay Rava 500 g · AN20260801
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-8	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Sunbake Bourbon Cream 300 g · B20260729
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-24	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Campa Cola 1 L · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-21	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Neelam Sandal Soap 100 g · SC20260730
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-72	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Campa Cola 500 ml · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-192	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Konkan Ratlami Sev 180 g · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-324	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Annapurna Iodised Salt 1 kg · AN20260815
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-240	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-250	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-384	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Godavari Dairy Whitener 200 g · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Sold
+	-360	
+Delivery
+	
+—
+
+
+12 Sep, 8:40 am
+	
+Too Yumm Karare 60 g · B20260909
+	
+Godown
+	
+Loaded on a van
+	-48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Lemon 750 ml · B20260909
+	
+Godown
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Too Yumm Karare 60 g · B20260909
+	
+Vehicle MH-05-AB-1234
+	
+Loaded on a van
+	48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Balaji Simply Salted Wafers 45 g · B20260909
+	
+Godown
+	
+Loaded on a van
+	-48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Orange 750 ml · B20260909
+	
+Vehicle MH-05-AB-1234
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Balaji Simply Salted Wafers 45 g · B20260909
+	
+Vehicle MH-05-AB-1234
+	
+Loaded on a van
+	48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Vehicle MH-05-AB-1234
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Orange 750 ml · B20260909
+	
+Godown
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Cola 1 L · B20260909
+	
+Godown
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Cola 1 L · B20260909
+	
+Vehicle MH-05-AB-1234
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Cola 750 ml · RCP20260822
+	
+Godown
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Campa Lemon 750 ml · B20260909
+	
+Vehicle MH-05-AB-1234
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:30 am
+	
+Godavari Masala Chaas 200 ml · B20260817
+	
+Godown
+	
+Cycle count
+	30	
+Manual entry
+	
+Past expiry by 5 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Annapurna Besan 500 g · B20251204
+	
+Godown
+	
+Cycle count
+	20	
+Manual entry
+	
+Past expiry by 12 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260610
+	
+Godown
+	
+Cycle count
+	54	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 26 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Flavoured Milk Rose 180 ml · B20260605
+	
+Godown
+	
+Cycle count
+	54	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 21 days.
+
+
+12 Sep, 8:30 am
+	
+Campa Orange 200 ml · B20251229
+	
+Godown
+	
+Cycle count
+	96	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 13 days.
+
+
+12 Sep, 8:30 am
+	
+Rajwadi Apple Nectar 200 ml · B20260226
+	
+Godown
+	
+Cycle count
+	27	
+Manual entry
+	
+Past expiry by 18 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Annapurna Thick Poha 500 g · B20260107
+	
+Godown
+	
+Cycle count
+	40	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 22 days.
+
+
+12 Sep, 8:30 am
+	
+Campa Lemon 1 L · B20251205
+	
+Godown
+	
+Cycle count
+	24	
+Manual entry
+	
+Past expiry by 11 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Annapurna Bombay Rava 500 g · B20251227
+	
+Godown
+	
+Cycle count
+	40	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Dahi 200 g · B20260812
+	
+Godown
+	
+Cycle count
+	30	
+Manual entry
+	
+Past expiry by 10 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Godavari Fresh Paneer 200 g · B20260809
+	
+Godown
+	
+Cycle count
+	24	
+Manual entry
+	
+Past expiry by 19 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Godavari Dahi 1 kg · B20260904
+	
+Godown
+	
+Cycle count
+	16	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 13 days.
+
+
+12 Sep, 8:30 am
+	
+Campa Lemon 200 ml · B20260101
+	
+Godown
+	
+Cycle count
+	96	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 16 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Dahi 400 g · B20260830
+	
+Godown
+	
+Cycle count
+	40	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 8 days.
+
+
+12 Sep, 8:30 am
+	
+Konkan Kerala Banana Chips 40 g · B20260609
+	
+Godown
+	
+Cycle count
+	144	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 25 days.
+
+
+12 Sep, 8:30 am
+	
+Sunbake Orange Cream 60 g · B20260107
+	
+Godown
+	
+Cycle count
+	96	
+Manual entry
+	
+Past expiry by 8 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Konkan Roasted Peanut Masala 40 g · B20260604
+	
+Godown
+	
+Cycle count
+	192	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 20 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Flavoured Milk Chocolate 180 ml · B20260525
+	
+Godown
+	
+Cycle count
+	54	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 10 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Toned UHT Milk 500 ml · B20260606
+	
+Godown
+	
+Cycle count
+	48	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 22 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Masala Chaas 1 L · B20260902
+	
+Godown
+	
+Cycle count
+	24	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+12 Sep, 8:30 am
+	
+Godavari Fresh Paneer 500 g · B20260908
+	
+Godown
+	
+Cycle count
+	24	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Bourbon Cream 300 g · B20260729
+	
+In transit
+	
+Sent out
+	-24	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Masti Oye Classic Salted 30 g · B20260729
+	
+In transit
+	
+Sent out
+	-34	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 1 L · RCP20260814
+	
+In transit
+	
+Sent out
+	-11	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Rajwadi Jeera Masala Soda 1.25 L · RJ20260830
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	156	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Chana Dal 500 g · AN20260815
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	16	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 750 ml · B20260823
+	
+In transit
+	
+Sent out
+	-50	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+In transit
+	
+Sent out
+	-135	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 2 L · RCP20260814
+	
+In transit
+	
+Sent out
+	-24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 500 ml · RCP20260807
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 750 ml · B20260823
+	
+In transit
+	
+Sent out
+	-100	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 200 ml · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	162	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 750 ml · RCP20260822
+	
+In transit
+	
+Sent out
+	-75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 750 ml · B20260823
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	50	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Marie Light 300 g · SB20260830
+	
+In transit
+	
+Sent out
+	-216	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Konkan Ratlami Sev 180 g · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	324	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Godavari Dairy Whitener 200 g · B20260902
+	
+In transit
+	
+Sent out
+	-360	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 750 ml · RCP20260814
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	25	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 1 L · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	21	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	48	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Balaji Masala Masti Wafers 45 g · GK20260825
+	
+In transit
+	
+Sent out
+	-96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 750 ml · RCP20260822
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	250	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	432	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Godavari Cow Ghee 200 ml · GD20260702
+	
+In transit
+	
+Sent out
+	-5	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+In transit
+	
+Sent out
+	-144	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Balaji Chataka Pataka Wafers 45 g · GK20260804
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Rajwadi Aamras Mango Drink 1 L · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	60	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+In transit
+	
+Sent out
+	-288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Rajwadi Aamras Mango Drink 1 L · B20260902
+	
+In transit
+	
+Sent out
+	-60	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 500 ml · RCP20260814
+	
+In transit
+	
+Sent out
+	-192	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Godavari Dahi 1 kg · B20260907
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	5	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Konkan Aloo Bhujia 200 g · KC20260814
+	
+In transit
+	
+Sent out
+	-36	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Bombay Rava 500 g · AN20260801
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	8	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Iodised Salt 1 kg · AN20260815
+	
+In transit
+	
+Sent out
+	-240	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 1 L · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	11	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Neelam Cold Cream 30 g · SC20260604
+	
+In transit
+	
+Sent out
+	-63	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	384	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Marie Light 150 g · SB20260823
+	
+In transit
+	
+Sent out
+	-300	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Bombay Rava 500 g · AN20260801
+	
+In transit
+	
+Sent out
+	-8	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Masti Oye Classic Salted 30 g · B20260729
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	34	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 500 ml · B20260902
+	
+In transit
+	
+Sent out
+	-192	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 750 ml · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Godavari Dairy Whitener 200 g · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	360	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+In transit
+	
+Sent out
+	-384	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 750 ml · RCP20260822
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Digestive Hi-Fibre 100 g · SB20260614
+	
+In transit
+	
+Sent out
+	-36	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 1 L · RCP20260703
+	
+In transit
+	
+Sent out
+	-9	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Iodised Salt 1 kg · AN20260815
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	240	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Red Chilli Powder 500 g · B20260729
+	
+In transit
+	
+Sent out
+	-12	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 200 ml · RCP20260814
+	
+In transit
+	
+Sent out
+	-25	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Balaji Masala Masti Wafers 45 g · GK20260825
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Bourbon Cream 300 g · SB20260830
+	
+In transit
+	
+Sent out
+	-120	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Digestive Hi-Fibre 100 g · SB20260614
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	36	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Marie Light 150 g · SB20260823
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	300	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+	
+In transit
+	
+Sent out
+	-162	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	135	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Godavari Cow Ghee 200 ml · GD20260702
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	5	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Konkan Aloo Bhujia 200 g · KC20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	36	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	144	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Red Chilli Powder 500 g · B20260729
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	12	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+In transit
+	
+Sent out
+	-432	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+In transit
+	
+Sent out
+	-81	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Balaji Chataka Pataka Wafers 45 g · GK20260804
+	
+In transit
+	
+Sent out
+	-96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 2 L · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 200 ml · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	25	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 750 ml · RCP20260814
+	
+In transit
+	
+Sent out
+	-25	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 200 ml · B20260902
+	
+In transit
+	
+Sent out
+	-288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Neelam Sandal Soap 100 g · SC20260730
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 750 ml · B20260823
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	100	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 750 ml · B20260909
+	
+In transit
+	
+Sent out
+	-275	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Chana Dal 500 g · AN20260815
+	
+In transit
+	
+Sent out
+	-16	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	81	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 1 L · RCP20260703
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	9	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 1 L · RCP20260814
+	
+In transit
+	
+Sent out
+	-21	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 750 ml · RCP20260822
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	117	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Bourbon Cream 300 g · B20260729
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	24	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Marie Light 300 g · SB20260830
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	216	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Neelam Cold Cream 30 g · SC20260604
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	63	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 500 ml · RCP20260807
+	
+In transit
+	
+Sent out
+	-72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Rajwadi Jeera Masala Soda 1.25 L · RJ20260830
+	
+In transit
+	
+Sent out
+	-156	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+In transit
+	
+Sent out
+	-48	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 750 ml · RCP20260822
+	
+In transit
+	
+Sent out
+	-250	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 500 ml · B20260902
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	192	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+	
+In transit
+	
+Sent out
+	-5	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sunbake Bourbon Cream 300 g · SB20260830
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	120	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Konkan Ratlami Sev 180 g · B20260902
+	
+In transit
+	
+Sent out
+	-324	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Godavari Dahi 1 kg · B20260907
+	
+In transit
+	
+Sent out
+	-24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 750 ml · B20260909
+	
+Vehicle MH-05-EF-9012
+	
+Brought in
+	275	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Cola 500 ml · RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+Brought in
+	192	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Lemon 750 ml · RCP20260814
+	
+In transit
+	
+Sent out
+	-75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Neelam Sandal Soap 100 g · SC20260730
+	
+In transit
+	
+Sent out
+	-72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Campa Orange 750 ml · RCP20260822
+	
+In transit
+	
+Sent out
+	-117	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 11:30 am
+	
+Campa Cola 500 ml · RCP20260814
+	
+In transit
+	
+Brought in
+	192	
+Pack
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Rajwadi Aamras Mango Drink 1 L · B20260902
+	
+Godown
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+In transit
+	
+Brought in
+	384	
+Pack
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+	
+In transit
+	
+Brought in
+	162	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+11 Sep, 11:30 am
+	
+Campa Cola 1 L · RCP20260814
+	
+In transit
+	
+Brought in
+	21	
+Pack
+	
+—
+Cycle counts

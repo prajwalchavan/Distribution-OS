@@ -1,0 +1,1855 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Date	Reason	Movement	Document	Note for the person who asked
+
+27 Sep, 12:35 pm
+	
+Adjusted by hand
+	-12	
+Adjusted by hand
+	
+DOS-257 phantom from cancelled INV/9002 (never took them out)
+
+
+27 Sep, 12:26 pm
+	
+Adjusted by hand
+	12	
+Bill cancelled
+	
+cancelled invoice INV/9002
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-150	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-168	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-312	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	7	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	24	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-840	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	48	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	240	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-24	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-125	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-250	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-7	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-330	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-230	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	25	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-50	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	42	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	330	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	25	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	648	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-648	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-720	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	624	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-100	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-75	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	216	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-42	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	312	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	150	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-390	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	50	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	48	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-175	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	75	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	60	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-624	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	840	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	100	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	125	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	720	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	390	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	168	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-216	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	230	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-240	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	4	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-25	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-4	
+Pack
+	
+—
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	250	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Brought in
+	175	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep, 11:30 am
+	
+Sold
+	-48	
+Pack
+	
+—
+
+
+12 Sep, 10:20 am
+	
+Sold
+	-5	
+Delivery
+	
+—
+
+
+12 Sep, 10:20 am
+	
+Sold
+	-96	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Sold
+	-8	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Sold
+	-24	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Sold
+	-21	
+Delivery
+	
+—
+
+
+12 Sep, 9:40 am
+	
+Sold
+	-72	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Sold
+	-192	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Sold
+	-324	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Sold
+	-240	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Sold
+	-250	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Sold
+	-384	
+Delivery
+	
+—
+
+
+12 Sep, 9:20 am
+	
+Sold
+	-360	
+Delivery
+	
+—
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	-48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	-48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	48	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	-24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:40 am
+	
+Loaded on a van
+	24	
+Trip
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	30	
+Manual entry
+	
+Past expiry by 5 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	20	
+Manual entry
+	
+Past expiry by 12 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	54	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 26 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	54	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 21 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	96	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 13 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	27	
+Manual entry
+	
+Past expiry by 18 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	40	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 22 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	24	
+Manual entry
+	
+Past expiry by 11 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	40	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	30	
+Manual entry
+	
+Past expiry by 10 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	24	
+Manual entry
+	
+Past expiry by 19 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	16	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 13 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	96	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 16 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	40	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 8 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	144	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 25 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	96	
+Manual entry
+	
+Past expiry by 8 days on this morning's count; held for the expiry claim.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	192	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 20 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	54	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 10 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	48	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 22 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	24	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+12 Sep, 8:30 am
+	
+Cycle count
+	24	
+Manual entry
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-24	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-34	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-11	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	156	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	16	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-50	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-135	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-100	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	162	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	50	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-216	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	324	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-360	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	25	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	21	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	48	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	250	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	432	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-5	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-144	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	60	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-60	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-192	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	5	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-36	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	8	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-240	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	11	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-63	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	384	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-300	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-8	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	34	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-192	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	360	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-384	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-36	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-9	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	240	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-12	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-25	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-120	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	36	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	300	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-162	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	135	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	5	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	36	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	144	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	12	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-432	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-81	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-96	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	25	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-25	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-288	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	100	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-275	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-16	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	81	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	9	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-21	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	117	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	24	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	216	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	63	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-156	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-48	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-250	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	192	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-5	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	120	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-324	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-24	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	275	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Brought in
+	192	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-75	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-72	
+Load sheet
+	
+—
+
+
+11 Sep, 12:15 pm
+	
+Sent out
+	-117	
+Load sheet
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep, 11:30 am
+	
+Brought in
+	192	
+Pack
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Sold
+	-60	
+Pack
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Brought in
+	384	
+Pack
+	
+—
+
+
+11 Sep, 11:30 am
+	
+Brought in
+	162	
+Pack
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+11 Sep, 11:30 am
+	
+Brought in
+	21	
+Pack
+	
+—
+Cycle counts
+Stock adjusted: Campa Cola 750 ml, batch B20260515 now 81 pcs
