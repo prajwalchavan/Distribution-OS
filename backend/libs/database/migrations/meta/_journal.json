@@ -488,8 +488,8 @@
     {
       "idx": 71,
       "version": "7",
-      "when": 1790700000000,
-      "tag": "0071_invoice_cancel_footprint_guarantees",
+      "when": 1790700000100,
+      "tag": "0071_invoice_cancel_phantom_writeoff",
       "breakpoints": true
     }
   ]
