@@ -31,13 +31,18 @@ if (!url) {
   process.exit(2)
 }
 
+/** stdout, one line: the report IS the output (no-console allows only warn and error). */
+const say = (line: string): void => {
+  process.stdout.write(`${line}\n`)
+}
+
 const pool = createPool(url, 1)
 try {
   const rows = await invoiceCancelFootprints(createDb(pool))
   if (process.argv.includes('--json')) {
-    console.log(JSON.stringify(rows, null, 2))
+    say(JSON.stringify(rows, null, 2))
   } else if (rows.length === 0) {
-    console.log('every cancelled bill nets to zero stock: nothing to write off')
+    say('every cancelled bill nets to zero stock: nothing to write off')
   } else {
     for (const r of rows) {
       const what = `${r.tenantSlug}  ${r.invoiceNo ?? r.invoiceId}  ${r.variantName} batch ${r.batchNo || '-'} at ${r.locationName ?? 'no location'}`
@@ -45,10 +50,10 @@ try {
         r.footprintPcs > 0
           ? `+${String(r.footprintPcs)} pc the bill never took out; ${String(r.writtenOffPcs)} written off since`
           : `${String(r.footprintPcs)} pc: the cancel put back fewer than the bill took out`
-      console.log(`${r.status.toUpperCase().padEnd(11)} ${what}: ${how}`)
-      console.log(`            cancel rows ${r.cancelRowIds.join(', ')}`)
+      say(`${r.status.toUpperCase().padEnd(11)} ${what}: ${how}`)
+      say(`            cancel rows ${r.cancelRowIds.join(', ')}`)
       if (r.writeOffRowIds.length > 0)
-        console.log(`            write-off rows ${r.writeOffRowIds.join(', ')}`)
+        say(`            write-off rows ${r.writeOffRowIds.join(', ')}`)
     }
   }
   const open = rows.filter((r) => r.status === 'open').length
