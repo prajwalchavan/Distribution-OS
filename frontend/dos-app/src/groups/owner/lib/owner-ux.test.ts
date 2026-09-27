@@ -9,8 +9,25 @@
 import { describe, expect, it } from 'vitest'
 
 import { billFacts } from './bill-facts'
-import { dayRange, isExpired, olderThanADay, rangeOf, rangeParam, sameDaysLastMonth } from './dates'
-import { FLOW_HREF, buildFlow } from './flow'
+import {
+  RANGE_SEGMENT_IDS,
+  SEGMENTS_MAX,
+  dayRange,
+  isExpired,
+  olderThanADay,
+  rangeOf,
+  rangeParam,
+  sameDaysLastMonth,
+} from './dates'
+import {
+  FLOW_DESK_PER_ROW,
+  FLOW_HREF,
+  FLOW_READS,
+  buildFlow,
+  failedSteps,
+  flowRows,
+  rollupIsToday,
+} from './flow'
 import { monthCompare, monthCompareWindow } from './month-compare'
 
 const NOW = Date.parse('2026-09-27T14:15:00Z') // 7:45 pm IST on 27 Sep
@@ -266,5 +283,46 @@ describe('UX-O-7: a bill in the shop panel names its dates and what is left', ()
         ageDays: 52,
       }),
     ).toEqual({ billed: '2026-07-30', due: '2026-08-06', lateDays: 52, partPaid: true })
+  })
+})
+
+describe('owner-ux repair: what the blind verifier found', () => {
+  it('finding 1: the range segments still offer 90 days; Today is not a segment', () => {
+    // The kit's <Segments> draws only its first three items: a Today segment in front pushed 90 off.
+    expect(RANGE_SEGMENT_IDS.length).toBeLessThanOrEqual(SEGMENTS_MAX)
+    expect(RANGE_SEGMENT_IDS).toContain('d90')
+    expect(RANGE_SEGMENT_IDS).toEqual(['d7', 'd30', 'd90'])
+    expect(RANGE_SEGMENT_IDS as readonly string[]).not.toContain('today')
+  })
+
+  it('finding 2: the nine steps lay out on a desk as two aligned rows, five then four', () => {
+    const ids = buildFlow({ today: '2026-09-27', nowMs: NOW }).map((step) => step.id)
+    const rows = flowRows(ids)
+    expect(FLOW_DESK_PER_ROW).toBe(5)
+    expect(rows).toEqual([
+      ['booked', 'held', 'billed', 'packed', 'road'],
+      ['delivered', 'collected', 'banked', 'owed'],
+    ])
+    expect(rows.flat()).toEqual(ids)
+  })
+
+  it('finding 3: a rollup of 12 Sep is not today’s; one of this afternoon is', () => {
+    expect(rollupIsToday('2026-09-12T12:30:00Z', '2026-09-27')).toBe(false)
+    expect(rollupIsToday('2026-09-27T09:00:00Z', '2026-09-27')).toBe(true)
+    // the day is IST: 11:45 pm IST on the 26th is the 26th, 00:30 am IST on the 27th is the 27th
+    expect(rollupIsToday('2026-09-26T18:15:00Z', '2026-09-27')).toBe(false)
+    expect(rollupIsToday('2026-09-26T19:00:00Z', '2026-09-27')).toBe(true)
+    expect(rollupIsToday(undefined, '2026-09-27')).toBe(false)
+  })
+
+  it('finding 5: a failed read names every step drawn from it', () => {
+    expect(failedSteps(new Set())).toEqual(new Set())
+    expect(failedSteps(new Set(['packed']))).toEqual(new Set(['packed']))
+    expect(failedSteps(new Set(['dashboard']))).toEqual(new Set(['delivered', 'owed']))
+    expect(failedSteps(new Set(['trips', 'bargains', 'collections']))).toEqual(
+      new Set(['road', 'held', 'collected']),
+    )
+    // every step is drawn from at least one read, so no step can fail silently
+    for (const reads of Object.values(FLOW_READS)) expect(reads.length).toBeGreaterThan(0)
   })
 })

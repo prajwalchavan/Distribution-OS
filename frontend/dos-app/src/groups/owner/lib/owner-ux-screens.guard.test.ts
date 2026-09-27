@@ -67,7 +67,11 @@ describe('owner UX review fixes, as the screens are written', () => {
     expect(stock).toMatch(/id: 'expired', label: t\('o15\.expired'\)/)
     const home = await read('../../../../app/owner/index.tsx')
     expect(home).toMatch(/go\.push\('\/stock\?filter=expired'\)/)
-    expect(catalogue['o1.expired']).toBe('Expired, still in the godown')
+    expect(catalogue['o1.expired']).toBe('Expired stock')
+    // owner-ux repair, finding 4: the count is what the register lists (every place), the godown a part
+    expect(home).toMatch(/count: expiredRows\.length,/)
+    expect(home).toMatch(/godown: godownPieces,/)
+    expect(catalogue['o1.expiredLine']).toContain('{godown} pcs still in the godown')
   })
 
   it('UX-O-3: each KPI tile opens its register; trips and failed stops are said', async () => {
@@ -107,5 +111,41 @@ describe('owner UX review fixes, as the screens are written', () => {
     expect(money).toMatch(/money-shop-phone/)
     expect(money).toMatch(/lastReceiptAt/)
     expect(catalogue['o10.leftOf']).toBe('{left} left of {total}')
+  })
+})
+
+describe('owner-ux repair, as the screens are written', () => {
+  it('finding 1: Today is a chip beside the 7 / 30 / 90 segments, never a fourth segment', async () => {
+    const ui = await read('./ui.tsx')
+    const body = ui.slice(
+      ui.indexOf('export function RangeSegments'),
+      ui.indexOf('export interface FlowCell'),
+    )
+    expect(body).toMatch(/items=\{RANGE_SEGMENT_IDS\.map/)
+    expect(body).toMatch(/<Chips[\s\S]*?id: 'today'/)
+    expect(body).not.toMatch(/\{ id: 'today'[^}]*\}\s*:\s*\[\]/)
+    // the kit still draws three: if it ever draws more, RANGE_SEGMENT_IDS may grow back to FY
+    for (const kit of [
+      '../../../../../libs/ui/src/web/controls.tsx',
+      '../../../../../libs/ui/src/native/controls.tsx',
+    ])
+      expect(await read(kit), kit).toContain('items.slice(0, 3)')
+  })
+
+  it('finding 3: the today tiles show the live read when the rollup is not today’s', async () => {
+    const home = await read('../../../../app/owner/index.tsx')
+    expect(home).toMatch(/const rollupToday = rollupIsToday\(d\?\.asOf, now\)/)
+    expect(home).toMatch(/value: invoicedValue,/)
+    expect(home).toMatch(/value: collectedValue,/)
+    expect(home).toMatch(/value: ordersValue,/)
+    expect(home).toMatch(/collections\.data\?\.totals\.totalPaise/)
+  })
+
+  it('finding 5: a failed flow read says so and can be retried', async () => {
+    const home = await read('../../../../app/owner/index.tsx')
+    expect(home).toMatch(/failed: failed\.has\(step\.id\)/)
+    expect(home).toMatch(/testID="today-flow-failed"/)
+    expect(home).toMatch(/testID="today-flow-retry"/)
+    expect(catalogue['flow.readFailed']).toBe('did not load')
   })
 })

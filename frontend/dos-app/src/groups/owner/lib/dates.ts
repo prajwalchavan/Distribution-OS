@@ -95,6 +95,18 @@ export type RangeId = 'today' | 'd7' | 'd30' | 'd90' | 'fy'
 
 const RANGE_IDS: readonly RangeId[] = ['today', 'd7', 'd30', 'd90', 'fy']
 
+/**
+ * The windows `<RangeSegments>` draws as segments. The kit's `<Segments>` takes "two or three options"
+ * and renders only the first three (`items.slice(0, 3)` in both renderers), so this list is exactly the
+ * three a reader can pick — FY was the fourth and never drew. **Today is not one of them**: putting it in
+ * front pushed 90 days off the end on Orders, Bills & GST and Receipts (owner-ux repair, verifier finding
+ * 1). A register that offers Today draws it as its own chip beside these three.
+ */
+export const RANGE_SEGMENT_IDS = ['d7', 'd30', 'd90'] as const satisfies readonly RangeId[]
+
+/** The most options the kit's `<Segments>` draws (`SegmentsProps`: "Two or three options"). */
+export const SEGMENTS_MAX = 3
+
 /** A `?range=` query parameter as a range, or `fallback` when it is absent or not one of ours. */
 export function rangeParam(value: unknown, fallback: RangeId): RangeId {
   return typeof value === 'string' && (RANGE_IDS as readonly string[]).includes(value)

@@ -136,10 +136,13 @@ export const strings = {
   'o1.mtdLast': 'Same days last month',
   'o1.mtdLastLine': '{days} invoiced · this month {change}',
   'o1.mtdLastLineNone': '{days} invoiced',
-  // UX-O-2: expired lots still standing in the godown, on the At-risk panel.
-  'o1.expired': 'Expired, still in the godown',
-  'o1.expiredLine': '{count} batches · {pieces} pcs',
-  'o1.expiredLineMore': '{count}+ batches · {pieces}+ pcs',
+  // UX-O-2: expired lots, every place (as the Stock register's Expired filter lists them), and how much
+  // of it still stands in a godown — on the At-risk panel.
+  'o1.expired': 'Expired stock',
+  'o1.expiredLine': '{count} batches · {pieces} pcs · {godown} pcs still in the godown',
+  'o1.expiredLineMore': '{count}+ batches · {pieces}+ pcs · {godown}+ pcs still in the godown',
+  // The KPI tiles when the dashboard rollup is of another day: the figure is the live read.
+  'o1.liveNotRollup': 'live · the rollup last ran {when}',
   'o1.expiredNone': 'Nothing past its date',
 
   // --- UX-O-1 Today's flow -------------------------------------------------------------------------
@@ -167,6 +170,9 @@ export const strings = {
   'flow.rollupOf': 'not counted today; last {when}',
   'flow.bankedMeta': 'of today’s money',
   'flow.none': '—',
+  'flow.readFailed': 'did not load',
+  'flow.failedOne': 'One step did not load: {message}',
+  'flow.failedMany': '{count} steps did not load: {message}',
 
   // --- O3 Approvals --------------------------------------------------------------------------------
   'o3.tab': 'Approvals',

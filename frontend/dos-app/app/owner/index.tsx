@@ -14,6 +14,7 @@ import {
   Link,
   ListRow,
   Money,
+  Row,
   Screen,
   Stack,
   StatusChip,
@@ -51,11 +52,24 @@ import {
   shortInstant,
   today,
 } from '../../src/groups/owner/lib/dates'
-import { buildFlow, type FlowStep } from '../../src/groups/owner/lib/flow'
+import {
+  buildFlow,
+  failedSteps,
+  rollupIsToday,
+  type FlowRead,
+  type FlowStep,
+} from '../../src/groups/owner/lib/flow'
 import { monthCompare, monthCompareWindow } from '../../src/groups/owner/lib/month-compare'
 import { pendingDecisions } from '../../src/groups/owner/lib/pending-decisions'
 import { useWord } from '../../src/groups/owner/lib/words'
 import { tripName, tripOf } from '../../src/groups/owner/lib/trip-settlement'
+
+/** What the strip needs of a read to say that it failed and to try it again. */
+interface AsyncRead {
+  data: unknown
+  error: { message: string } | undefined
+  refetch: () => Promise<unknown>
+}
 
 export default function Today(): React.JSX.Element {
   const go = useGo()
@@ -137,9 +151,11 @@ export default function Today(): React.JSX.Element {
     monthSeries.data === undefined ? undefined : monthCompare(monthSeries.data.points, now)
 
   /*
-   * UX-O-2: lots past their date that still stand in a godown. `expiringBefore` is inclusive, so
-   * yesterday is "expired before today"; the damaged bin is left out — expired stock already put there
-   * is where it belongs.
+   * UX-O-2: lots past their date. `expiringBefore` is inclusive, so yesterday is "expired before today".
+   * The line counts EVERY place, as the Stock register's Expired filter it opens lists every place — the
+   * home said 22 batches while the register listed 51, the damaged bin's 29 among them (owner-ux repair,
+   * verifier finding 4) — and then says how much of it still stands in a godown, which is the part the
+   * owner has to move; expired stock already in the damaged bin is where it belongs.
    */
   const locations = useQuery(['inventory', 'locations'], () =>
     api.api.inventory.locations.list({ activeOnly: true }),
@@ -154,10 +170,10 @@ export default function Today(): React.JSX.Element {
   const godowns = new Set(
     (locations.data?.items ?? []).filter((loc) => loc.kind === 'warehouse').map((loc) => loc.id),
   )
-  const expiredInGodown = (expired.data?.items ?? []).filter(
-    (row) => godowns.has(row.locationId) && row.onHand > 0,
-  )
-  const expiredPieces = expiredInGodown.reduce((total, row) => total + row.onHand, 0)
+  const expiredRows = (expired.data?.items ?? []).filter((row) => row.onHand > 0)
+  const expiredPieces = expiredRows.reduce((total, row) => total + row.onHand, 0)
+  const expiredInGodown = expiredRows.filter((row) => godowns.has(row.locationId))
+  const godownPieces = expiredInGodown.reduce((total, row) => total + row.onHand, 0)
   const expiredMore = (expired.data?.nextCursor ?? null) !== null
 
   const d = dashboard.data
@@ -343,17 +359,79 @@ export default function Today(): React.JSX.Element {
         return undefined
     }
   }
+  /*
+   * A read that failed leaves its step on a dash — which looked exactly like "still loading" (owner-ux
+   * repair, verifier finding 5). The step now says it did not load, and a line under the strip names the
+   * error with one Retry for every failed read.
+   */
+  const flowReads: Readonly<Record<FlowRead, AsyncRead>> = {
+    booked,
+    approvals,
+    bargains,
+    billed: billedBills,
+    packed,
+    dispatched,
+    trips: onTheRoad,
+    dashboard,
+    collections,
+    banked,
+  }
+  // A read that answered before and failed on a revalidation still has its figure: only a read with
+  // nothing to show is a step that did not load.
+  const failedReads = (Object.keys(flowReads) as FlowRead[]).filter(
+    (read) => flowReads[read].error !== undefined && flowReads[read].data === undefined,
+  )
+  const failed = failedSteps(new Set(failedReads))
+  const firstError = failedReads
+    .map((read) => flowReads[read].error?.message)
+    .find((message) => message !== undefined)
   const flowCells: readonly FlowCell[] = flow.map((step) => ({
     id: step.id,
     label: t(`flow.${step.id}`),
     count: countOf(step),
     amount: amountOf(step),
-    meta: metaOf(step),
+    meta: failed.has(step.id) ? t('flow.readFailed') : metaOf(step),
     stale: step.stale,
+    failed: failed.has(step.id),
     onPress: () => {
       go.push(step.href)
     },
   }))
+
+  /*
+   * The dashboard's `today…` figures are the rollup's day. When the rollup is not of today (the seeded
+   * data reads "as of 12 Sep"), the Invoiced, Collected and Orders tiles show the LIVE read their register
+   * makes — the same figure the strip above shows and the page the tile opens lists — and say so, instead
+   * of passing 12 Sep's ₹1,50,147 off as today's over a register that reads "No bills in this window"
+   * (owner-ux repair, verifier finding 3).
+   */
+  const rollupToday = rollupIsToday(d?.asOf, now)
+  const billedStep = flow.find((step) => step.id === 'billed')
+  const bookedStep = flow.find((step) => step.id === 'booked')
+  const liveNote =
+    d === undefined || rollupToday
+      ? undefined
+      : t('o1.liveNotRollup', { when: shortInstant(d.asOf) })
+  const invoicedValue: React.ReactNode = rollupToday ? (
+    <Money value={d?.todayInvoicedPaise ?? 0} size="moneyM" />
+  ) : billedStep?.more === true && billedStep.paise !== undefined ? (
+    t('flow.amountMore', { amount: rupees(billedStep.paise) })
+  ) : (
+    <Money value={billedStep?.paise ?? null} size="moneyM" />
+  )
+  const collectedValue: React.ReactNode = (
+    <Money
+      value={
+        rollupToday ? (d?.todayCollectedPaise ?? 0) : (collections.data?.totals.totalPaise ?? null)
+      }
+      size="moneyM"
+    />
+  )
+  const ordersValue = rollupToday
+    ? String(d?.todayOrdersCount ?? 0)
+    : bookedStep?.count === undefined
+      ? t('flow.none')
+      : t(bookedStep.more ? 'flow.countMore' : 'flow.count', { count: bookedStep.count })
 
   /* UX-O-3: the trip that has been out longest, for the Collected tile. */
   const roadStep = flow.find((step) => step.id === 'road')
@@ -396,6 +474,24 @@ export default function Today(): React.JSX.Element {
         */}
         <Panel title={t('flow.title')} meta={shortDate(now)} testID="today-flow-panel">
           <FlowStrip cells={flowCells} testID="today-flow" />
+          {failed.size === 0 ? null : (
+            <Row gap={3} align="center" wrap testID="today-flow-failed">
+              <Txt field="body" desk="body" color={colors.status.brick.fg}>
+                {t(failed.size === 1 ? 'flow.failedOne' : 'flow.failedMany', {
+                  count: failed.size,
+                  message: firstError ?? t('flow.readFailed'),
+                })}
+              </Txt>
+              <Button
+                label={t('app.retry')}
+                variant="secondary"
+                onPress={() => {
+                  for (const read of failedReads) void flowReads[read].refetch()
+                }}
+                testID="today-flow-retry"
+              />
+            </Row>
+          )}
         </Panel>
 
         <Async state={[dashboard]} rows={4}>
@@ -409,19 +505,21 @@ export default function Today(): React.JSX.Element {
                   onPress: () => {
                     go.push('/billing?range=today')
                   },
-                  value: <Money value={d?.todayInvoicedPaise ?? 0} size="moneyM" />,
+                  value: invoicedValue,
                   /*
                    * QA DOS-254: a bill credited today was still billed today, so the tile keeps what was
                    * invoiced — and says beside it what was credited and what is left, instead of letting a
                    * whole-bill credit vanish inside a gross figure.
                    */
                   delta:
-                    d === undefined || d.todayCreditedPaise === 0
-                      ? undefined
-                      : t('o1.creditedToday', {
-                          amount: formatINR(paise(d.todayCreditedPaise)),
-                          net: formatINR(paise(d.todayInvoicedPaise - d.todayCreditedPaise)),
-                        }),
+                    liveNote !== undefined
+                      ? liveNote
+                      : d === undefined || d.todayCreditedPaise === 0
+                        ? undefined
+                        : t('o1.creditedToday', {
+                            amount: formatINR(paise(d.todayCreditedPaise)),
+                            net: formatINR(paise(d.todayInvoicedPaise - d.todayCreditedPaise)),
+                          }),
                   spark: invoicedSpark,
                 },
                 {
@@ -430,7 +528,7 @@ export default function Today(): React.JSX.Element {
                   onPress: () => {
                     go.push('/money/receipts?range=today')
                   },
-                  value: <Money value={d?.todayCollectedPaise ?? 0} size="moneyM" />,
+                  value: collectedValue,
                   /*
                    * UX-O-3: "1 trips active" hid a trip that had been out since 12 Sep. The line names
                    * the oldest trip on the road and turns ochre once it is older than today.
@@ -469,16 +567,21 @@ export default function Today(): React.JSX.Element {
                   onPress: () => {
                     go.push('/orders?range=today')
                   },
-                  value: String(d?.todayOrdersCount ?? 0),
-                  /* UX-O-3: the failed stop the dashboard already sends is said, not dropped. */
+                  value: ordersValue,
+                  /*
+                   * UX-O-3: the failed stop the dashboard already sends is said, not dropped — when the
+                   * rollup is today's; another day's stops are not today's.
+                   */
                   delta:
-                    (d?.todayFailedStops ?? 0) > 0
-                      ? t('o1.deliveredFailed', {
-                          delivered: d?.todayDeliveredStops ?? 0,
-                          failed: d?.todayFailedStops ?? 0,
-                        })
-                      : t('o1.deliveredOnly', { delivered: d?.todayDeliveredStops ?? 0 }),
-                  tone: (d?.todayFailedStops ?? 0) > 0 ? 'attention' : 'neutral',
+                    liveNote !== undefined
+                      ? liveNote
+                      : (d?.todayFailedStops ?? 0) > 0
+                        ? t('o1.deliveredFailed', {
+                            delivered: d?.todayDeliveredStops ?? 0,
+                            failed: d?.todayFailedStops ?? 0,
+                          })
+                        : t('o1.deliveredOnly', { delivered: d?.todayDeliveredStops ?? 0 }),
+                  tone: rollupToday && (d?.todayFailedStops ?? 0) > 0 ? 'attention' : 'neutral',
                   spark: ordersSpark,
                 },
               ]}
@@ -548,9 +651,9 @@ export default function Today(): React.JSX.Element {
                     }}
                   />
                   {/*
-                    UX-O-2: stock past its date that still stands in a godown — counted in "Stock at
-                    cost" above and, until DOS-261, in what reads as sellable. It opens the Stock register
-                    on its Expired filter.
+                    UX-O-2: stock past its date — counted in "Stock at cost" above and, until DOS-261,
+                    in what reads as sellable. It counts what the Stock register's Expired filter lists
+                    (every place) and says how much of it still stands in a godown; brick while any does.
                   */}
                   <ListRow
                     testID="today-expired"
@@ -560,11 +663,12 @@ export default function Today(): React.JSX.Element {
                         ? expired.error === undefined
                           ? t('flow.none')
                           : expired.error.message
-                        : expiredInGodown.length === 0
+                        : expiredRows.length === 0
                           ? t('o1.expiredNone')
                           : t(expiredMore ? 'o1.expiredLineMore' : 'o1.expiredLine', {
-                              count: expiredInGodown.length,
+                              count: expiredRows.length,
                               pieces: expiredPieces,
+                              godown: godownPieces,
                             })
                     }
                     trailing={

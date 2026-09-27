@@ -28,6 +28,50 @@ export const FLOW_HREF: Readonly<Record<FlowStepId, string>> = {
   owed: '/money',
 }
 
+/** The reads the home makes for the strip; a step is drawn from one or two of them. */
+export type FlowRead =
+  | 'booked'
+  | 'approvals'
+  | 'bargains'
+  | 'billed'
+  | 'packed'
+  | 'dispatched'
+  | 'trips'
+  | 'dashboard'
+  | 'collections'
+  | 'banked'
+
+/** Which reads each step is drawn from — a step whose read FAILED says so (owner-ux repair, finding 5). */
+export const FLOW_READS: Readonly<Record<FlowStepId, readonly FlowRead[]>> = {
+  booked: ['booked'],
+  held: ['approvals', 'bargains'],
+  billed: ['billed'],
+  packed: ['packed'],
+  road: ['dispatched', 'trips'],
+  delivered: ['dashboard'],
+  collected: ['collections'],
+  banked: ['banked'],
+  owed: ['dashboard'],
+}
+
+/** The steps that cannot be drawn because a read behind them failed. */
+export function failedSteps(failed: ReadonlySet<FlowRead>): ReadonlySet<FlowStepId> {
+  return new Set(
+    (Object.keys(FLOW_READS) as FlowStepId[]).filter((id) =>
+      FLOW_READS[id].some((read) => failed.has(read)),
+    ),
+  )
+}
+
+/**
+ * The dashboard rollup is of TODAY (IST). When it is not — it was last rolled up on another day — its
+ * `today…` figures are that day's, and nothing may present them as today's: the strip blanks Delivered,
+ * and the KPI tiles show the live read their register makes (owner-ux repair, verifier finding 3).
+ */
+export function rollupIsToday(asOf: string | undefined, today: string): boolean {
+  return asOf !== undefined && businessDate(Date.parse(asOf)).date === today
+}
+
 /** A page of a list read: `nextCursor` non-null means the count is a floor, and the strip says "+". */
 interface Paged<T> {
   items: readonly T[]
@@ -206,7 +250,7 @@ export function buildFlow(input: FlowInputs): readonly FlowStep[] {
   road.trip = tripSince
   road.stale = road.stale || olderThanADay(tripSince?.since, nowMs)
 
-  const fresh = d !== undefined && businessDate(Date.parse(d.asOf)).date === input.today
+  const fresh = d !== undefined && rollupIsToday(d.asOf, input.today)
   const delivered: FlowStep = {
     id: 'delivered',
     href: FLOW_HREF.delivered,
@@ -248,4 +292,20 @@ export function buildFlow(input: FlowInputs): readonly FlowStep[] {
   }
 
   return [booked, heldStep, billed, packed, road, delivered, collected, banked, owed]
+}
+
+/**
+ * How many cells a desk row of the strip holds. Nine in one row did not fit: at 1024 px (the desk
+ * breakpoint) a cell had 60 px for "₹1,76,839.00", Packed ran into On the road and Owed's
+ * "₹44,24,374.00" ran past the strip and the viewport; at 1280 px Owed still spilled (owner-ux repair,
+ * verifier finding 2). The desk content is at most `layout.deskMaxWidth` (1200 px) wide, so no desk ever
+ * fits nine; five a row gives each cell ≥ 170 px from 1024 px up — room for a crore with its paise.
+ */
+export const FLOW_DESK_PER_ROW = 5
+
+/** The cells in desk rows of `perRow`, in order: 5 + 4 for the nine steps. */
+export function flowRows<T>(cells: readonly T[], perRow: number = FLOW_DESK_PER_ROW): T[][] {
+  const rows: T[][] = []
+  for (let i = 0; i < cells.length; i += perRow) rows.push(cells.slice(i, i + perRow))
+  return rows
 }
