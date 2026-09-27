@@ -1,0 +1,67 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Location	Expiry	On hand	Held	Sellable	MRP ₹
+
+Campa Cola 750 ml
+	
+B20260515
+	
+Godown
+	
+9 Feb 2027
+	81	0	81	40.00
+1 batches							
+1 batches · Click a row to adjust that batch.
+Cycle counts
+Stock adjusted: Campa Cola 750 ml, batch B20260515 now 81 pcs

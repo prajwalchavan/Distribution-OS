@@ -1,0 +1,6 @@
+DATABASE_URL=postgres://dos:dos@127.0.0.1:5439/dos_test_dos257
+$ tsx tools/check-stock-cancels.mts
+WRITTEN_OFF tarsun  INV/9002  Campa Cola 750 ml batch B20260515 at Godown: +12 pc the bill never took out; 12 written off since
+            cancel rows 4075fee9-288c-787b-ad22-e86e675c2b94, 030b1dea-3d99-4a5b-a506-ab79cde82e3c
+            write-off rows 01a0e1ae-bb6b-740c-890c-9c0fbc6ebe4c
+exit=0

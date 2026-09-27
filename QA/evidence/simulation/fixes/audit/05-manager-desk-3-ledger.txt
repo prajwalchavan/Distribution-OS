@@ -1,0 +1,3033 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Stock
+On hand
+Stock ledger
+Held for orders
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+When	Item	Why	Where	Pieces	Taken by	Note
+
+27 Sep
+	
+Campa Cola 750 ml · B20260515
+	
+Adjusted by hand
+	
+Godown
+	
+-12
+	
+Sunil Tarsun
+	
+DOS-257 phantom from cancelled INV/9002 (never took them out)
+
+
+27 Sep
+	
+Campa Cola 750 ml · B20260515
+	
+Adjusted by hand
+	
+Godown
+	
+12
+	
+Pilot Owner
+	
+cancelled invoice INV/9002
+
+
+12 Sep
+	
+Campa Lemon 750 ml · B20260823
+	
+Sold
+	
+Godown
+	
+-150
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Rajwadi Aamras Mango Drink 600 ml · RJ20260830
+	
+Sold
+	
+Godown
+	
+-168
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Orange 500 ml · RCP20260807
+	
+Sold
+	
+Godown
+	
+-312
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+Brought in
+	
+In transit
+	
+7
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Sunbake Marie Light 300 g · SB20260823
+	
+Brought in
+	
+In transit
+	
+24
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Sunbake Orange Cream 120 g · SB20260830
+	
+Sold
+	
+Godown
+	
+-840
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Sunbake Salted Cracker 60 g · SB20260628
+	
+Brought in
+	
+In transit
+	
+48
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Balaji Chataka Pataka Wafers 45 g · B20260902
+	
+Brought in
+	
+In transit
+	
+240
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Sunbake Marie Light 300 g · SB20260823
+	
+Sold
+	
+Godown
+	
+-24
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Orange 1 L · B20260902
+	
+Sold
+	
+Godown
+	
+-125
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Lemon 750 ml · B20260909
+	
+Sold
+	
+Godown
+	
+-250
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+Sold
+	
+Godown
+	
+-7
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Konkan Masala Khakhra 180 g · KC20260828
+	
+Sold
+	
+Godown
+	
+-330
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Masti Oye Tomato Twist 30 g · AF20260827
+	
+Sold
+	
+Godown
+	
+-230
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Brought in
+	
+In transit
+	
+25
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Sold
+	
+Godown
+	
+-50
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Chamak Dishwash Bar 145 g · SC20260604
+	
+Brought in
+	
+In transit
+	
+42
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Konkan Masala Khakhra 180 g · KC20260828
+	
+Brought in
+	
+In transit
+	
+330
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Brought in
+	
+In transit
+	
+25
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Konkan Kerala Banana Chips 40 g · KC20260828
+	
+Brought in
+	
+In transit
+	
+648
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Konkan Kerala Banana Chips 40 g · KC20260828
+	
+Sold
+	
+Godown
+	
+-648
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+Sold
+	
+Godown
+	
+-720
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+Brought in
+	
+In transit
+	
+624
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sold
+	
+Godown
+	
+-100
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Orange 750 ml · B20260823
+	
+Sold
+	
+Godown
+	
+-75
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Godavari Dairy Whitener 200 g · GD20260822
+	
+Brought in
+	
+In transit
+	
+216
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Chamak Dishwash Bar 145 g · SC20260604
+	
+Sold
+	
+Godown
+	
+-42
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Orange 500 ml · RCP20260807
+	
+Brought in
+	
+In transit
+	
+312
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Sunbake Salted Cracker 60 g · SB20260628
+	
+Sold
+	
+Godown
+	
+-48
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Lemon 750 ml · B20260823
+	
+Brought in
+	
+In transit
+	
+150
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Sunbake Glucose 110 g · B20260823
+	
+Sold
+	
+Godown
+	
+-390
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Brought in
+	
+In transit
+	
+50
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Neelam Anti-Dandruff Shampoo 175 ml · B20260729
+	
+Brought in
+	
+In transit
+	
+48
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sold
+	
+Godown
+	
+-175
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Orange 750 ml · B20260823
+	
+Brought in
+	
+In transit
+	
+75
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sold
+	
+Godown
+	
+-25
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Balaji Ratlami Sev 200 g · GK20260825
+	
+Brought in
+	
+In transit
+	
+60
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+Sold
+	
+Godown
+	
+-624
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Sunbake Orange Cream 120 g · SB20260830
+	
+Brought in
+	
+In transit
+	
+840
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Brought in
+	
+In transit
+	
+100
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Orange 1 L · B20260902
+	
+Brought in
+	
+In transit
+	
+125
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Balaji Ratlami Sev 200 g · GK20260825
+	
+Sold
+	
+Godown
+	
+-60
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+Brought in
+	
+In transit
+	
+720
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Sunbake Glucose 110 g · B20260823
+	
+Brought in
+	
+In transit
+	
+390
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Rajwadi Aamras Mango Drink 600 ml · RJ20260830
+	
+Brought in
+	
+In transit
+	
+168
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Godavari Dairy Whitener 200 g · GD20260822
+	
+Sold
+	
+Godown
+	
+-216
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Masti Oye Tomato Twist 30 g · AF20260827
+	
+Brought in
+	
+In transit
+	
+230
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Balaji Chataka Pataka Wafers 45 g · B20260902
+	
+Sold
+	
+Godown
+	
+-240
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+Brought in
+	
+In transit
+	
+4
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sold
+	
+Godown
+	
+-25
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Godavari Cow Ghee 1 L · GD20260903
+	
+Sold
+	
+Godown
+	
+-4
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Campa Lemon 750 ml · B20260909
+	
+Brought in
+	
+In transit
+	
+250
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Brought in
+	
+In transit
+	
+175
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+12 Sep
+	
+Neelam Anti-Dandruff Shampoo 175 ml · B20260729
+	
+Sold
+	
+Godown
+	
+-48
+	
+Dinesh Patil
+	
+—
+
+
+12 Sep
+	
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-5
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Balaji Masala Masti Wafers 45 g · GK20260825
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-96
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Annapurna Bombay Rava 500 g · AN20260801
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-8
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Sunbake Bourbon Cream 300 g · B20260729
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-24
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-21
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Neelam Sandal Soap 100 g · SC20260730
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-72
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Campa Cola 500 ml · RCP20260814
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-192
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Konkan Ratlami Sev 180 g · B20260902
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-324
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Annapurna Iodised Salt 1 kg · AN20260815
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-240
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-250
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-384
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Godavari Dairy Whitener 200 g · B20260902
+	
+Sold
+	
+Vehicle MH-05-AB-1234
+	
+-360
+	
+Ganesh More
+	
+—
+
+
+12 Sep
+	
+Too Yumm Karare 60 g · B20260909
+	
+Loaded on a van
+	
+Godown
+	
+-48
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Lemon 750 ml · B20260909
+	
+Loaded on a van
+	
+Godown
+	
+-24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Too Yumm Karare 60 g · B20260909
+	
+Loaded on a van
+	
+Vehicle MH-05-AB-1234
+	
+48
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Balaji Simply Salted Wafers 45 g · B20260909
+	
+Loaded on a van
+	
+Godown
+	
+-48
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Orange 750 ml · B20260909
+	
+Loaded on a van
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Balaji Simply Salted Wafers 45 g · B20260909
+	
+Loaded on a van
+	
+Vehicle MH-05-AB-1234
+	
+48
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Loaded on a van
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Orange 750 ml · B20260909
+	
+Loaded on a van
+	
+Godown
+	
+-24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Cola 1 L · B20260909
+	
+Loaded on a van
+	
+Godown
+	
+-24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Cola 1 L · B20260909
+	
+Loaded on a van
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Loaded on a van
+	
+Godown
+	
+-24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Campa Lemon 750 ml · B20260909
+	
+Loaded on a van
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+Counter stock for van sales on today’s trip.
+
+
+12 Sep
+	
+Godavari Masala Chaas 200 ml · B20260817
+	
+Cycle count
+	
+Godown
+	
+30
+	
+Dinesh Patil
+	
+Past expiry by 5 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Annapurna Besan 500 g · B20251204
+	
+Cycle count
+	
+Godown
+	
+20
+	
+Dinesh Patil
+	
+Past expiry by 12 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260610
+	
+Cycle count
+	
+Godown
+	
+54
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 26 days.
+
+
+12 Sep
+	
+Godavari Flavoured Milk Rose 180 ml · B20260605
+	
+Cycle count
+	
+Godown
+	
+54
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 21 days.
+
+
+12 Sep
+	
+Campa Orange 200 ml · B20251229
+	
+Cycle count
+	
+Godown
+	
+96
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 13 days.
+
+
+12 Sep
+	
+Rajwadi Apple Nectar 200 ml · B20260226
+	
+Cycle count
+	
+Godown
+	
+27
+	
+Dinesh Patil
+	
+Past expiry by 18 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Annapurna Thick Poha 500 g · B20260107
+	
+Cycle count
+	
+Godown
+	
+40
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 22 days.
+
+
+12 Sep
+	
+Campa Lemon 1 L · B20251205
+	
+Cycle count
+	
+Godown
+	
+24
+	
+Dinesh Patil
+	
+Past expiry by 11 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Annapurna Bombay Rava 500 g · B20251227
+	
+Cycle count
+	
+Godown
+	
+40
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+12 Sep
+	
+Godavari Dahi 200 g · B20260812
+	
+Cycle count
+	
+Godown
+	
+30
+	
+Dinesh Patil
+	
+Past expiry by 10 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Godavari Fresh Paneer 200 g · B20260809
+	
+Cycle count
+	
+Godown
+	
+24
+	
+Dinesh Patil
+	
+Past expiry by 19 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Godavari Dahi 1 kg · B20260904
+	
+Cycle count
+	
+Godown
+	
+16
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 13 days.
+
+
+12 Sep
+	
+Campa Lemon 200 ml · B20260101
+	
+Cycle count
+	
+Godown
+	
+96
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 16 days.
+
+
+12 Sep
+	
+Godavari Dahi 400 g · B20260830
+	
+Cycle count
+	
+Godown
+	
+40
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 8 days.
+
+
+12 Sep
+	
+Konkan Kerala Banana Chips 40 g · B20260609
+	
+Cycle count
+	
+Godown
+	
+144
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 25 days.
+
+
+12 Sep
+	
+Sunbake Orange Cream 60 g · B20260107
+	
+Cycle count
+	
+Godown
+	
+96
+	
+Dinesh Patil
+	
+Past expiry by 8 days on this morning's count; held for the expiry claim.
+
+
+12 Sep
+	
+Konkan Roasted Peanut Masala 40 g · B20260604
+	
+Cycle count
+	
+Godown
+	
+192
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 20 days.
+
+
+12 Sep
+	
+Godavari Flavoured Milk Chocolate 180 ml · B20260525
+	
+Cycle count
+	
+Godown
+	
+54
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 10 days.
+
+
+12 Sep
+	
+Godavari Toned UHT Milk 500 ml · B20260606
+	
+Cycle count
+	
+Godown
+	
+48
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 22 days.
+
+
+12 Sep
+	
+Godavari Masala Chaas 1 L · B20260902
+	
+Cycle count
+	
+Godown
+	
+24
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+12 Sep
+	
+Godavari Fresh Paneer 500 g · B20260908
+	
+Cycle count
+	
+Godown
+	
+24
+	
+Dinesh Patil
+	
+Found at the back of rack 4 on this morning's count; expires in 11 days.
+
+
+11 Sep
+	
+Sunbake Bourbon Cream 300 g · B20260729
+	
+Sent out
+	
+In transit
+	
+-24
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Masti Oye Classic Salted 30 g · B20260729
+	
+Sent out
+	
+In transit
+	
+-34
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-11
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Rajwadi Jeera Masala Soda 1.25 L · RJ20260830
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+156
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Chana Dal 500 g · AN20260815
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+16
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Orange 750 ml · B20260823
+	
+Sent out
+	
+In transit
+	
+-50
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+Sent out
+	
+In transit
+	
+-135
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Lemon 2 L · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-24
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Orange 500 ml · RCP20260807
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+72
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Lemon 750 ml · B20260823
+	
+Sent out
+	
+In transit
+	
+-100
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Lemon 200 ml · B20260902
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+288
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+162
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sent out
+	
+In transit
+	
+-75
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Orange 750 ml · B20260823
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+50
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Sunbake Marie Light 300 g · SB20260830
+	
+Sent out
+	
+In transit
+	
+-216
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Konkan Ratlami Sev 180 g · B20260902
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+324
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Godavari Dairy Whitener 200 g · B20260902
+	
+Sent out
+	
+In transit
+	
+-360
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 750 ml · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+25
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+21
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+48
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Balaji Masala Masti Wafers 45 g · GK20260825
+	
+Sent out
+	
+In transit
+	
+-96
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+250
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+432
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Godavari Cow Ghee 200 ml · GD20260702
+	
+Sent out
+	
+In transit
+	
+-5
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+Sent out
+	
+In transit
+	
+-144
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Balaji Chataka Pataka Wafers 45 g · GK20260804
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+96
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Rajwadi Aamras Mango Drink 1 L · B20260902
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+60
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+Sent out
+	
+In transit
+	
+-288
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Rajwadi Aamras Mango Drink 1 L · B20260902
+	
+Sent out
+	
+In transit
+	
+-60
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Cola 500 ml · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-192
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Godavari Dahi 1 kg · B20260907
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+5
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Konkan Aloo Bhujia 200 g · KC20260814
+	
+Sent out
+	
+In transit
+	
+-36
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Bombay Rava 500 g · AN20260801
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+8
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260828
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+288
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Iodised Salt 1 kg · AN20260815
+	
+Sent out
+	
+In transit
+	
+-240
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+11
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Neelam Cold Cream 30 g · SC20260604
+	
+Sent out
+	
+In transit
+	
+-63
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+384
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Marie Light 150 g · SB20260823
+	
+Sent out
+	
+In transit
+	
+-300
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Bombay Rava 500 g · AN20260801
+	
+Sent out
+	
+In transit
+	
+-8
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Masti Oye Classic Salted 30 g · B20260729
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+34
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Lemon 500 ml · B20260902
+	
+Sent out
+	
+In transit
+	
+-192
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Lemon 750 ml · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+75
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Godavari Dairy Whitener 200 g · B20260902
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+360
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+Sent out
+	
+In transit
+	
+-384
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+75
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Sunbake Digestive Hi-Fibre 100 g · SB20260614
+	
+Sent out
+	
+In transit
+	
+-36
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Orange 1 L · RCP20260703
+	
+Sent out
+	
+In transit
+	
+-9
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Iodised Salt 1 kg · AN20260815
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+240
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Annapurna Red Chilli Powder 500 g · B20260729
+	
+Sent out
+	
+In transit
+	
+-12
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Orange 200 ml · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-25
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Balaji Masala Masti Wafers 45 g · GK20260825
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+96
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Bourbon Cream 300 g · SB20260830
+	
+Sent out
+	
+In transit
+	
+-120
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Sunbake Digestive Hi-Fibre 100 g · SB20260614
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+36
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Marie Light 150 g · SB20260823
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+300
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+	
+Sent out
+	
+In transit
+	
+-162
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+135
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Godavari Cow Ghee 200 ml · GD20260702
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+5
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Konkan Aloo Bhujia 200 g · KC20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+36
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+144
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Red Chilli Powder 500 g · B20260729
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+12
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Butter Cookies 75 g · SB20260830
+	
+Sent out
+	
+In transit
+	
+-432
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+Sent out
+	
+In transit
+	
+-81
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Balaji Chataka Pataka Wafers 45 g · GK20260804
+	
+Sent out
+	
+In transit
+	
+-96
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Lemon 2 L · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Orange 200 ml · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+25
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Cola 750 ml · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-25
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Lemon 200 ml · B20260902
+	
+Sent out
+	
+In transit
+	
+-288
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Neelam Sandal Soap 100 g · SC20260730
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+72
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Lemon 750 ml · B20260823
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+100
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Orange 750 ml · B20260909
+	
+Sent out
+	
+In transit
+	
+-275
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Annapurna Chana Dal 500 g · AN20260815
+	
+Sent out
+	
+In transit
+	
+-16
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Godavari Flavoured Milk Kesar Badam 180 ml · B20260902
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+81
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Orange 1 L · RCP20260703
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+9
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-21
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Orange 750 ml · RCP20260822
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+117
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Sunbake Bourbon Cream 300 g · B20260729
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+24
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Marie Light 300 g · SB20260830
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+216
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Neelam Cold Cream 30 g · SC20260604
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+63
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Orange 500 ml · RCP20260807
+	
+Sent out
+	
+In transit
+	
+-72
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Rajwadi Jeera Masala Soda 1.25 L · RJ20260830
+	
+Sent out
+	
+In transit
+	
+-156
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Balaji Simply Salted Wafers 45 g · GK20260825
+	
+Sent out
+	
+In transit
+	
+-48
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 750 ml · RCP20260822
+	
+Sent out
+	
+In transit
+	
+-250
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Lemon 500 ml · B20260902
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+192
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Annapurna Chakki Fresh Atta 5 kg · B20260823
+	
+Sent out
+	
+In transit
+	
+-5
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Sunbake Bourbon Cream 300 g · SB20260830
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+120
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Konkan Ratlami Sev 180 g · B20260902
+	
+Sent out
+	
+In transit
+	
+-324
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Godavari Dahi 1 kg · B20260907
+	
+Sent out
+	
+In transit
+	
+-24
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Orange 750 ml · B20260909
+	
+Brought in
+	
+Vehicle MH-05-EF-9012
+	
+275
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Cola 500 ml · RCP20260814
+	
+Brought in
+	
+Vehicle MH-05-AB-1234
+	
+192
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Lemon 750 ml · RCP20260814
+	
+Sent out
+	
+In transit
+	
+-75
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Neelam Sandal Soap 100 g · SC20260730
+	
+Sent out
+	
+In transit
+	
+-72
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Campa Orange 750 ml · RCP20260822
+	
+Sent out
+	
+In transit
+	
+-117
+	
+Dinesh Patil
+	
+loaded dock → vehicle by migration 0064: dispatched before the dock existed
+
+
+11 Sep
+	
+Campa Cola 500 ml · RCP20260814
+	
+Brought in
+	
+In transit
+	
+192
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Rajwadi Aamras Mango Drink 1 L · B20260902
+	
+Sold
+	
+Godown
+	
+-60
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Konkan Bhajani Chivda 100 g · B20260729
+	
+Brought in
+	
+In transit
+	
+384
+	
+Dinesh Patil
+	
+—
+
+
+11 Sep
+	
+Rajwadi Aamras Mango Drink 200 ml · RJ20260830
+	
+Brought in
+	
+In transit
+	
+162
+	
+Dinesh Patil
+	
+staged on the dock by migration 0064: packed before the dock existed
+
+
+11 Sep
+	
+Campa Cola 1 L · RCP20260814
+	
+Brought in
+	
+In transit
+	
+21
+	
+Dinesh Patil
+	
+—
+Why is it being adjusted?

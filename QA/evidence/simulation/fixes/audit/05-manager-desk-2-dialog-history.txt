@@ -1,0 +1,61 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Stock
+On hand
+Stock ledger
+Held for orders
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Where	On hand	Held	Free	Expires
+
+Campa Cola 750 ml
+	
+B20260515
+	
+Godown
+	
+81
+	
+0
+	
+81
+	9 Feb 2027
+1			81			
+1 batches
+Why is it being adjusted?
+Adjust stock
+Campa Cola 750 ml · B20260515
+On hand 81
+Adjusted by hand
+Damaged
+Expired
+Pieces
+Why is it being adjusted?
+Note
+Move stock
+Cancel
+Adjust the stock
