@@ -26,6 +26,7 @@ Fixed 2026-09-26 (day4): DOS-237, DOS-239, DOS-240 merged 6abdba6a
 Fixed 2026-09-26 (day5): DOS-241, DOS-242, DOS-244, DOS-245 merged 1afb47d1
 Fixed 2026-09-26 (day6): DOS-247, DOS-248, DOS-251, DOS-252 merged 417cb302
 Fixed 2026-09-26 (day7): DOS-253, DOS-254 merged 0ca599b1
+Fixed 2026-09-26 (dos257): DOS-257 merged 9ba4189b
 
 **Where the product is.** Every fix lane of the programme is on main (`2d5f0e26`+): deploy plumbing, D8 display, S-176/S-177 tax + credit leak, **the one app** (`frontend/dos-app`; the six per-role apps are deleted), DOS-185 free goods, the undelivered flow (DOS-196/197/191/203), the dock model (DOS-195/204/186). Migrations end at **0065**. Findings table runs S-01..S-193; Phase 2 findings carry `Status:` lines in `QA/09` / `QA/findings/12`.
 
