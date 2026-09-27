@@ -55,6 +55,7 @@ import { deviceId } from '../../../src/api'
 import { forgetDraft, useOrderDraft } from '../../../src/groups/sales/lib/draft'
 import { today } from '../../../src/groups/sales/lib/dates'
 import { keepKey } from '../../../src/groups/sales/lib/keep'
+import { repeatOf, wireOf } from '../../../src/groups/sales/lib/lines'
 import { orderOutcome } from '../../../src/groups/sales/lib/outcome'
 import { creditAsk, creditChipCopy, placedCopy } from '../../../src/groups/sales/lib/placed'
 import {
@@ -198,17 +199,13 @@ export default function OrderEntry(): React.JSX.Element {
     { enabled: local.online && ask.amountPaise > 0, staleTime: 30_000 },
   )
 
-  /** The shop's own last basket, ready to be the whole order in one tap. */
+  /**
+   * The shop's own last basket, ready to be the whole order in one tap — as the PIECES it was sent,
+   * never an old `inner` count re-read as pieces (DOS-227, `lines.ts`).
+   */
   const usual: DraftLine[] = useMemo(
-    () =>
-      lastLines.map((line) => ({
-        id: uuidv7(),
-        variantId: line.variant_id,
-        qtyPcs: line.qty_pcs ?? 0,
-        enteredQty: line.entered_qty,
-        enteredUnit: line.entered_unit === 'case' ? 'case' : 'piece',
-      })),
-    [lastLines],
+    () => repeatOf(lastLines, (variantId) => byVariant.get(variantId)?.caseSize ?? 1, uuidv7),
+    [lastLines, byVariant],
   )
 
   const suggestions = useMemo(() => {
@@ -244,11 +241,11 @@ export default function OrderEntry(): React.JSX.Element {
     async (_input: null, meta) => {
       const lines = draft.lines
         .filter((line) => line.qtyPcs > 0)
+        // DOS-227: the pieces this screen priced, in the unit the rep typed only while it says that.
         .map((line) => ({
           id: line.id,
           variantId: line.variantId,
-          enteredQty: line.enteredQty,
-          enteredUnit: line.enteredUnit,
+          ...wireOf(line, byVariant.get(line.variantId)?.caseSize ?? 1),
         }))
       if (lines.length === 0) throw new Error(t('s3.noLines'))
 
