@@ -1,0 +1,36 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+Stock
+On hand
+Stock ledger
+Held for orders
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Annapurna Bombay Rava 1 kg · Godown
+Batch AN20260829
+24
+Annapurna Red Chilli Powder 100 g · Godown
+Batch AN20260829
+288
+Annapurna Sunflower Refined Oil 1 L pouch · Godown
+Batch AN20260829
+10
+Annapurna Toor Dal 1 kg · Godown
+Batch AN20260829
+17
+Annapurna Toor Dal 500 g · Godown
+Batch AN20260829
+100
+5 batches
+Why is it being adjusted?
+Today
+Orders
+Fulfilment
+Billing

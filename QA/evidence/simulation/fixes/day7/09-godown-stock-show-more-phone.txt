@@ -1,0 +1,994 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Tarsun Enterprise
+Stock
+Queues
+Capture
+✓ Stock
+Counts
+Held
+Location
+Godown
+warehouse
+Vehicle MH-05-AB-1234
+vehicle
+Vehicle MH-05-CD-5678
+vehicle
+Vehicle MH-05-EF-9012
+vehicle
+Damaged / expiry bin
+damaged
+In transit
+in_transit
+All stock
+Near expiry only
+STOCK BY LOT
+Annapurna Basmati Classic 1 kg
+Batch AN20260718
+Exp 14 Apr 2027
+₹135.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹135.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch AN20260627
+Exp 24 Mar 2027
+₹135.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹135.00
+On hand 8 cs + 1 pc = 97 pc
+Held 0 pc
+Free 97 pc
+Adjust
+Move
+Annapurna Basmati Classic 1 kg
+Batch AN20260801
+Exp 28 Apr 2027
+₹135.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Basmati Classic 5 kg
+Batch B20260604
+Exp 1 Mar 2027
+₹650.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Besan 1 kg
+Batch AN20260704
+Exp 31 Mar 2027
+₹115.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Besan 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹115.00
+On hand 5 cs + 11 pc = 71 pc
+Held 0 pc
+Free 71 pc
+Adjust
+Move
+Annapurna Besan 1 kg
+Batch AN20260822
+Exp 19 May 2027
+₹115.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Besan 1 kg
+Batch AN20260613
+Exp 10 Mar 2027
+₹115.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Besan 1 kg
+Batch AN20260815
+Exp 12 May 2027
+₹115.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Besan 500 g
+Batch B20251204
+Expired 31 Aug 2026
+₹60.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Besan 500 g
+Batch AN20260620
+Exp 17 Mar 2027
+₹60.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Besan 500 g
+Batch AN20260815
+Exp 12 May 2027
+₹60.00
+On hand 4 cs = 80 pc
+Held 0 pc
+Free 80 pc
+Adjust
+Move
+Annapurna Besan 500 g
+Batch AN20260808
+Exp 5 May 2027
+₹60.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch AN20260711
+Exp 7 Apr 2027
+₹52.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹52.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹52.00
+On hand 5 cs = 60 pc
+Held 0 pc
+Free 60 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch AN20260704
+Exp 31 Mar 2027
+₹52.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch AN20260613
+Exp 10 Mar 2027
+₹52.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Annapurna Bombay Rava 1 kg
+Batch AN20260829
+Exp 26 May 2027
+₹52.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260801
+Exp 28 Apr 2027
+₹28.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260704
+Exp 31 Mar 2027
+₹28.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch B20251227
+Expired 23 Sep 2026
+₹28.00
+On hand 2 cs = 40 pc
+Held 0 pc
+Free 40 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260620
+Exp 17 Mar 2027
+₹28.00
+On hand 4 pc
+Held 0 pc
+Free 4 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260613
+Exp 10 Mar 2027
+₹28.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260822
+Exp 19 May 2027
+₹28.00
+On hand 2 cs = 40 pc
+Held 0 pc
+Free 40 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260725
+Exp 21 Apr 2027
+₹28.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Annapurna Bombay Rava 500 g
+Batch AN20260627
+Exp 24 Mar 2027
+₹28.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 1 kg
+Batch AN20260808
+Exp 5 May 2027
+₹55.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 1 kg
+Batch AN20260711
+Exp 7 Apr 2027
+₹55.00
+On hand 1 cs = 10 pc
+Held 0 pc
+Free 10 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 1 kg
+Batch AN20260822
+Exp 19 May 2027
+₹55.00
+On hand 4 cs = 40 pc
+Held 0 pc
+Free 40 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹55.00
+On hand 4 cs + 4 pc = 44 pc
+Held 0 pc
+Free 44 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 10 kg
+Batch AN20260905
+Exp 2 Jun 2027
+₹495.00
+On hand 3 cs = 9 pc
+Held 0 pc
+Free 9 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 10 kg
+Batch B20260902
+Exp 30 May 2027
+₹495.00
+On hand 5 cs = 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 10 kg
+Batch AN20260718
+Exp 14 Apr 2027
+₹495.00
+On hand 1 cs = 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 10 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹495.00
+On hand 5 cs = 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch B20260909
+Exp 6 Jun 2027
+₹255.00
+On hand 10 cs = 50 pc
+Held 0 pc
+Free 50 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch AN20260815
+Exp 12 May 2027
+₹255.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch AN20260711
+Exp 7 Apr 2027
+₹255.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch B20260614
+Exp 11 Mar 2027
+₹255.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch AN20260905
+Exp 2 Jun 2027
+₹255.00
+On hand 5 cs = 25 pc
+Held 0 pc
+Free 25 pc
+Adjust
+Move
+Annapurna Chakki Fresh Atta 5 kg
+Batch B20260823
+Exp 20 May 2027
+₹255.00
+On hand 3 cs = 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Annapurna Chana Dal 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹105.00
+On hand 6 cs = 72 pc
+Held 0 pc
+Free 72 pc
+Adjust
+Move
+Annapurna Chana Dal 1 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹105.00
+On hand 4 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Annapurna Chana Dal 500 g
+Batch AN20260815
+Exp 12 May 2027
+₹55.00
+On hand 3 cs + 4 pc = 64 pc
+Held 0 pc
+Free 64 pc
+Adjust
+Move
+Annapurna Chana Dal 500 g
+Batch B20260902
+Exp 30 May 2027
+₹55.00
+On hand 6 cs + 9 pc = 129 pc
+Held 0 pc
+Free 129 pc
+Adjust
+Move
+Annapurna Chana Dal 500 g
+Batch AN20260711
+Exp 7 Apr 2027
+₹55.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Chana Dal 500 g
+Batch AN20260613
+Exp 10 Mar 2027
+₹55.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Annapurna Filtered Groundnut Oil 1 L
+Batch B20260729
+Exp 25 Jan 2027
+₹210.00
+On hand 5 cs = 60 pc
+Held 0 pc
+Free 60 pc
+Adjust
+Move
+Annapurna Filtered Groundnut Oil 1 L
+Batch B20260902
+Exp 1 Mar 2027
+₹210.00
+On hand 5 cs = 60 pc
+Held 0 pc
+Free 60 pc
+Adjust
+Move
+Annapurna Filtered Groundnut Oil 5 L
+Batch B20260729
+Exp 25 Jan 2027
+₹1,035.00
+On hand 5 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Filtered Groundnut Oil 5 L
+Batch B20260902
+Exp 1 Mar 2027
+₹1,035.00
+On hand 5 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Garam Masala 100 g
+Batch AN20260711
+Exp 11 Jul 2027
+₹85.00
+On hand 31 pc
+Held 0 pc
+Free 31 pc
+Adjust
+Move
+Annapurna Garam Masala 100 g
+Batch AN20260620
+Exp 20 Jun 2027
+₹85.00
+On hand 9 pc
+Held 0 pc
+Free 9 pc
+Adjust
+Move
+Annapurna Garam Masala 100 g
+Batch AN20260606
+Exp 6 Jun 2027
+₹85.00
+On hand 8 pc
+Held 0 pc
+Free 8 pc
+Adjust
+Move
+Annapurna Garam Masala 100 g
+Batch AN20260704
+Exp 4 Jul 2027
+₹85.00
+On hand 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Annapurna Garam Masala 100 g
+Batch B20260902
+Exp 2 Sep 2027
+₹85.00
+On hand 7 cs + 45 pc = 381 pc
+Held 0 pc
+Free 381 pc
+Adjust
+Move
+Annapurna Garam Masala 100 g
+Batch B20260729
+Exp 29 Jul 2027
+₹85.00
+On hand 1 cs = 48 pc
+Held 0 pc
+Free 48 pc
+Adjust
+Move
+Annapurna Iodised Salt 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹28.00
+On hand 8 cs + 23 pc = 215 pc
+Held 0 pc
+Free 215 pc
+Adjust
+Move
+Annapurna Iodised Salt 1 kg
+Batch AN20260815
+Exp 12 May 2027
+₹28.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Annapurna Iodised Salt 1 kg
+Batch AN20260704
+Exp 31 Mar 2027
+₹28.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Iodised Salt 1 kg
+Batch AN20260711
+Exp 7 Apr 2027
+₹28.00
+On hand 1 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Kolam Rice 1 kg
+Batch AN20260718
+Exp 14 Apr 2027
+₹68.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Kolam Rice 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹68.00
+On hand 8 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Annapurna Kolam Rice 25 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹1,590.00
+On hand 5 pc
+Held 0 pc
+Free 5 pc
+Adjust
+Move
+Annapurna Kolam Rice 25 kg
+Batch B20260902
+Exp 30 May 2027
+₹1,590.00
+On hand 5 pc
+Held 0 pc
+Free 5 pc
+Adjust
+Move
+Annapurna Kolam Rice 5 kg
+Batch B20260902
+Exp 30 May 2027
+₹330.00
+On hand 8 cs + 3 pc = 43 pc
+Held 0 pc
+Free 43 pc
+Adjust
+Move
+Annapurna Kolam Rice 5 kg
+Batch AN20260815
+Exp 12 May 2027
+₹330.00
+On hand 2 pc
+Held 0 pc
+Free 2 pc
+Adjust
+Move
+Annapurna Kolam Rice 5 kg
+Batch AN20260718
+Exp 14 Apr 2027
+₹330.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Kolam Rice 5 kg
+Batch AN20260606
+Exp 3 Mar 2027
+₹330.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Kolam Rice 5 kg
+Batch AN20260822
+Exp 19 May 2027
+₹330.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 100 g
+Batch AN20260829
+Exp 29 Aug 2027
+₹45.00
+On hand 6 cs = 288 pc
+Held 0 pc
+Free 288 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 100 g
+Batch B20260729
+Exp 29 Jul 2027
+₹45.00
+On hand 2 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 100 g
+Batch B20260902
+Exp 2 Sep 2027
+₹45.00
+On hand 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 100 g
+Batch AN20260613
+Exp 13 Jun 2027
+₹45.00
+On hand 30 pc
+Held 0 pc
+Free 30 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 100 g
+Batch AN20260718
+Exp 18 Jul 2027
+₹45.00
+On hand 2 cs = 96 pc
+Held 0 pc
+Free 96 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 500 g
+Batch B20260902
+Exp 2 Sep 2027
+₹210.00
+On hand 6 cs + 8 pc = 128 pc
+Held 0 pc
+Free 128 pc
+Adjust
+Move
+Annapurna Red Chilli Powder 500 g
+Batch B20260729
+Exp 29 Jul 2027
+₹210.00
+On hand 3 cs + 12 pc = 72 pc
+Held 0 pc
+Free 72 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch AN20260815
+Exp 12 May 2027
+₹48.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch B20260729
+Exp 25 Apr 2027
+₹48.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch AN20260613
+Exp 10 Mar 2027
+₹48.00
+On hand 8 pc
+Held 0 pc
+Free 8 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch AN20260905
+Exp 2 Jun 2027
+₹48.00
+On hand 7 cs = 140 pc
+Held 0 pc
+Free 140 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹48.00
+On hand 1 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 1 kg
+Batch B20260902
+Exp 30 May 2027
+₹48.00
+On hand 2 cs = 40 pc
+Held 0 pc
+Free 40 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 5 kg
+Batch B20260902
+Exp 30 May 2027
+₹235.00
+On hand 7 cs + 4 pc = 39 pc
+Held 0 pc
+Free 39 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 5 kg
+Batch AN20260606
+Exp 3 Mar 2027
+₹235.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+Annapurna Sulphurless Sugar 5 kg
+Batch AN20260822
+Exp 19 May 2027
+₹235.00
+On hand 2 cs = 10 pc
+Held 0 pc
+Free 10 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260725
+Exp 21 Jan 2027
+₹135.00
+On hand 1 cs + 3 pc = 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260704
+Exp 31 Dec 2026
+₹135.00
+On hand 7 pc
+Held 0 pc
+Free 7 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260606
+Expires in 67 days
+₹135.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch B20260909
+Exp 8 Mar 2027
+₹135.00
+On hand 10 cs = 120 pc
+Held 0 pc
+Free 120 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260905
+Exp 4 Mar 2027
+₹135.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch B20260823
+Exp 19 Feb 2027
+₹135.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260822
+Exp 18 Feb 2027
+₹135.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260829
+Exp 25 Feb 2027
+₹135.00
+On hand 10 pc
+Held 0 pc
+Free 10 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260808
+Exp 4 Feb 2027
+₹135.00
+On hand 2 cs = 24 pc
+Held 0 pc
+Free 24 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260801
+Exp 28 Jan 2027
+₹135.00
+On hand 1 cs = 12 pc
+Held 0 pc
+Free 12 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 5 L jar
+Batch B20260729
+Exp 25 Jan 2027
+₹660.00
+On hand 5 cs = 20 pc
+Held 0 pc
+Free 20 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 5 L jar
+Batch AN20260627
+Expires in 88 days
+₹660.00
+On hand 3 pc
+Held 0 pc
+Free 3 pc
+Adjust
+Move
+100 batches shown — more below
+Show more
+LAST MOVEMENTS
+adjustment
+27 Sep, 11:27 am
+-115
+damage
+27 Sep, 11:27 am
+-5
+adjustment
+27 Sep, 11:27 am
++120
+adjustment
+27 Sep, 11:25 am
+-115
+damage
+27 Sep, 11:25 am
+-5
+adjustment
+27 Sep, 11:25 am
++120
+adjustment
+27 Sep, 11:22 am
+-115
+damage
+27 Sep, 11:22 am
+-5
+adjustment
+27 Sep, 11:22 am
++120
+adjustment
+27 Sep, 11:20 am
+-115
+damage
+27 Sep, 11:20 am
+-5
+adjustment
+27 Sep, 11:20 am
++120
+adjustment
+27 Sep, 11:18 am
+-115
+damage
+27 Sep, 11:18 am
+-5
+sale_return_saleable
+27 Sep, 11:13 am
++24
+sale
+12 Sep, 11:30 am
+-150
+sale
+12 Sep, 11:30 am
+-168
+transfer_in
+12 Sep, 11:30 am
++100
+sale
+12 Sep, 11:30 am
+-312
+transfer_in
+12 Sep, 11:30 am
++840
+Inbound
+Pick
+Pack
+Load

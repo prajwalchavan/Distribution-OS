@@ -1,0 +1,120 @@
+Tarsun Enterprise
+warehouse
+⋯
+Updated just now · Not kept in this browser
+Tarsun Enterprise
+Stock
+Queues
+Capture
+✓ Stock
+Counts
+Held
+Location
+Godown
+warehouse
+Vehicle MH-05-AB-1234
+vehicle
+Vehicle MH-05-CD-5678
+vehicle
+Vehicle MH-05-EF-9012
+vehicle
+Damaged / expiry bin
+damaged
+In transit
+in_transit
+All stock
+Near expiry only
+STOCK BY LOT
+Annapurna Bombay Rava 500 g
+Batch AN20260725
+Exp 21 Apr 2027
+₹28.00
+On hand 6 pc
+Held 0 pc
+Free 6 pc
+Adjust
+Move
+Annapurna Sunflower Refined Oil 1 L pouch
+Batch AN20260725
+Exp 21 Jan 2027
+₹135.00
+On hand 1 cs + 3 pc = 15 pc
+Held 0 pc
+Free 15 pc
+Adjust
+Move
+Annapurna Toor Dal 1 kg
+Batch AN20260725
+Exp 21 Apr 2027
+₹185.00
+On hand 1 pc
+Held 0 pc
+Free 1 pc
+Adjust
+Move
+3 batches
+LAST MOVEMENTS
+adjustment
+27 Sep, 11:27 am
+-115
+damage
+27 Sep, 11:27 am
+-5
+adjustment
+27 Sep, 11:27 am
++120
+adjustment
+27 Sep, 11:25 am
+-115
+damage
+27 Sep, 11:25 am
+-5
+adjustment
+27 Sep, 11:25 am
++120
+adjustment
+27 Sep, 11:22 am
+-115
+damage
+27 Sep, 11:22 am
+-5
+adjustment
+27 Sep, 11:22 am
++120
+adjustment
+27 Sep, 11:20 am
+-115
+damage
+27 Sep, 11:20 am
+-5
+adjustment
+27 Sep, 11:20 am
++120
+adjustment
+27 Sep, 11:18 am
+-115
+damage
+27 Sep, 11:18 am
+-5
+sale_return_saleable
+27 Sep, 11:13 am
++24
+sale
+12 Sep, 11:30 am
+-150
+sale
+12 Sep, 11:30 am
+-168
+transfer_in
+12 Sep, 11:30 am
++100
+sale
+12 Sep, 11:30 am
+-312
+transfer_in
+12 Sep, 11:30 am
++840
+Inbound
+Pick
+Pack
+Load

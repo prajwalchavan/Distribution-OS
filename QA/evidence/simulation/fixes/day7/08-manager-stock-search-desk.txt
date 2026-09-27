@@ -1,0 +1,88 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Stock
+On hand
+Stock ledger
+Held for orders
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Where	On hand	Held	Free	Expires
+
+Annapurna Toor Dal 500 g
+	
+AN20260606
+	
+Godown
+	
+3
+	
+0
+	
+3
+	3 Mar 2027
+
+Annapurna Toor Dal 500 g
+	
+AN20260815
+	
+Godown
+	
+13
+	
+0
+	
+13
+	12 May 2027
+
+Annapurna Toor Dal 500 g
+	
+AN20260829
+	
+Godown
+	
+100
+	
+0
+	
+100
+	26 May 2027
+
+Annapurna Toor Dal 500 g
+	
+B20260902
+	
+Godown
+	
+100
+	
+0
+	
+100
+	30 May 2027
+4			216			
+4 batches
+Why is it being adjusted?

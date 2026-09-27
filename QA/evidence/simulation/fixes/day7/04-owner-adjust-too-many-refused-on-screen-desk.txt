@@ -1,0 +1,155 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,918.91
+Near expiry
+₹2,22,444.84
+✓ Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Filters (1) · Clear
+Item	Batch	Expiry	On hand	Held	Sellable	MRP ₹
+
+Annapurna Toor Dal 1 kg
+	
+AN20260905
+	
+2 Jun 2027
+	84	0	84	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260815
+	
+12 May 2027
+	2	0	2	185.00
+
+Annapurna Toor Dal 1 kg
+	
+B20260823
+	
+20 May 2027
+	4	0	4	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260711
+	
+7 Apr 2027
+	2	0	2	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260829
+	
+26 May 2027
+	17	0	17	185.00
+
+Annapurna Toor Dal 1 kg
+	
+B20260909
+	
+6 Jun 2027
+	120	0	120	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260808
+	
+5 May 2027
+	3	0	3	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260725
+	
+21 Apr 2027
+	1	0	1	185.00
+
+Annapurna Toor Dal 500 g
+	
+AN20260606
+	
+3 Mar 2027
+	3	0	3	95.00
+
+Annapurna Toor Dal 500 g
+	
+AN20260815
+	
+12 May 2027
+	13	0	13	95.00
+
+Annapurna Toor Dal 500 g
+	
+AN20260829
+	
+26 May 2027
+	100	0	100	95.00
+
+Annapurna Toor Dal 500 g
+	
+B20260902
+	
+30 May 2027
+	100	0	100	95.00
+12 batches						
+12 batches · Click a row to adjust that batch.
+Adjust stock
+Annapurna Toor Dal 1 kg · batch B20260909 · Godown
+On hand now: 120 pcs
+Take off
+Add
+Adjusted by hand
+Damaged
+Expired
+Pieces
+Only 120 pcs are on hand here
+Why (goes into the stock ledger)
+Cancel
+Adjust stock
+Cycle counts
