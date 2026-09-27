@@ -590,7 +590,8 @@ export const strings = {
   'm7d.reason': 'Why is it coming off?',
   'm7d.needReason': 'Say why, in a few words — it goes on the trip’s record',
   'm7d.action': 'Take it off',
-  'm7d.done': '{bill} is off the trip and back on the planning board.',
+  'm7d.done':
+    '{bill} is off the trip and back on the planning board. If its goods can never be sent, open it under Billing › Bills issued and press “Could not send it”.',
   /* DOS-233: a trip whose van also carries stock to sell at shops with no order. */
   'm7t.vanSales': 'What the van does',
   'm7t.billsOnly': 'Deliver bills',
@@ -675,6 +676,18 @@ export const strings = {
   'm6.nextBill': 'Next bill',
   'm6.keys': 'j / k move · Enter open · p print',
   'm6.alreadyCancelled': 'This bill is already cancelled',
+  /*
+   * QA DOS-248: a bill that never left the godown and can no longer be sent (its batch was sold, or paid for
+   * and not supplied) is credited WHOLE — never in part, because its load sheet and its delivery carry every
+   * line — and the shop orders again for what it still wants.
+   */
+  'm6.stillInGodown': 'Not sent — still in the godown',
+  'm6.cantSend': 'Could not send it — credit the whole bill',
+  'm6.cantSendBody':
+    'A credit note for the whole bill ({total}) is issued now. Whatever is still on the dock for it goes back on the rack; pieces no longer on the dock are not added again. The order is closed, and money the shop has paid stays on its account for its next bill. Book a fresh order for what the shop still wants.',
+  'm6.cantSendReason': 'Why can it not be sent?',
+  'm6.cantSendConfirm': 'Credit the whole bill',
+  'm6.cantSendDone': 'Credit note {no} issued for {bill}. The order is closed.',
 
   // --- M8 Credit notes -----------------------------------------------------------------------------
   'm8.tab': 'Credit notes',

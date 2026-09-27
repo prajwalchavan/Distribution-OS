@@ -329,6 +329,8 @@ export class StockService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
+        if (input.qtyDelta < 0)
+          await this.assertNotHeldOnDock(tx, input.locationId, input.lotId, -input.qtyDelta)
         const entry: Parameters<InventoryService['post']>[1][number] = {
           lotId: input.lotId,
           locationId: input.locationId,
@@ -355,6 +357,7 @@ export class StockService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
+        await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [
           {
@@ -393,6 +396,47 @@ export class StockService {
         return { out: toEntry(out), in: toEntry(inn), from: toBalance(from), to: toBalance(to) }
       }),
     )
+  }
+
+  /**
+   * PACKED PIECES LEAVE THE DOCK WITH THEIR BILL, NEVER BY HAND (QA DOS-247). A bill's pieces stand on the dock
+   * under a hold; its load sheet, its cancel or its credit note takes them off and ends the hold. A hand
+   * transfer or adjustment out of the dock may move only what the dock holds for nobody — otherwise the hold
+   * would outlive its pieces, and the next load would find a bill "covered" by cartons that are gone. 409
+   * `dock_held`, saying how many are free to move.
+   */
+  private async assertNotHeldOnDock(
+    tx: Db,
+    locationId: string,
+    lotId: string,
+    qtyPcs: number,
+  ): Promise<void> {
+    const { tenantId } = currentTenant()
+    const [loc] = await tx
+      .select({ kind: locations.kind })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+      .limit(1)
+    if (loc?.kind !== 'in_transit') return
+    const [balance] = await tx
+      .select({ onHand: stockBalances.onHand, reserved: stockBalances.reserved })
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.tenantId, tenantId),
+          eq(stockBalances.lotId, lotId),
+          eq(stockBalances.locationId, locationId),
+        ),
+      )
+      .for('update')
+    const reserved = Number(balance?.reserved ?? 0)
+    if (reserved <= 0) return
+    const free = Math.max(0, Number(balance?.onHand ?? 0) - reserved)
+    if (qtyPcs <= free) return
+    throw new ORPCError('CONFLICT', {
+      message: `${String(reserved)} pc of this batch on the dock are packed for bills, and only ${String(free)} are free to move by hand. Packed pieces leave the dock with their bill — its load sheet, its cancel or its credit note`,
+      data: { code: 'dock_held', heldPcs: reserved, freePcs: free, askedPcs: qtyPcs },
+    })
   }
 
   /**

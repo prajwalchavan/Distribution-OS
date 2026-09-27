@@ -45,7 +45,14 @@ import {
 } from '../../platform/index.js'
 import { istDateWord, istMoment, personWord } from '../../platform/refusal-words.js'
 import { BillingService, sellerBranding } from '../billing/index.js'
-import { dockLocationId, InventoryService } from '../inventory/index.js'
+import {
+  coverFromDock,
+  dockLocationId,
+  InventoryService,
+  type DockClaim,
+  type DockCover,
+  type DockHoldInput,
+} from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { userLabels } from '../tenancy/index.js'
 import {
@@ -99,6 +106,27 @@ type ChallanIn = z.infer<typeof ChallanGetInput>
 type ChallanOut = z.infer<typeof ChallanGetOutput>
 type EwbIn = z.infer<typeof RecordEwbInput>
 type EwbOut = z.infer<typeof RecordEwbOutput>
+
+/** One bill's cover on the dock for one lot, with the words a refusal names it by (QA DOS-247). */
+interface BillCover extends DockCover {
+  orderId: string
+  orderNo: string | null
+  invoiceNo: string | null
+  retailerName: string
+  variantId: string
+  /** The item and its batch: "Annapurna Toor Dal 1 kg (batch B20260909)". */
+  label: string
+}
+
+/** "INV/9034 · Ekta General Stores": how the godown and the desk name a bill on a refusal. */
+function billWords(c: {
+  invoiceNo: string | null
+  orderNo: string | null
+  retailerName: string
+}): string {
+  const bill = c.invoiceNo ?? c.orderNo ?? 'the bill'
+  return c.retailerName === '' ? bill : `${bill} · ${c.retailerName}`
+}
 
 /** What DELIVERY needs to know about a load without reading warehouse's tables (coordination §4). */
 export interface ConfirmedLoad {
@@ -505,42 +533,56 @@ export class LoadSheetsService {
         //
         // THE LOAD-OUT NEVER CLAMPS OR SHORT-LOADS (verifier's major on DOS-195, ruling S2). The sheet
         // says the goods went aboard, the challan values them, the e-way bill declares them and the
-        // door will sell them off the van: so a dock that holds fewer pieces of a lot than the sheet
-        // needs is a 409 naming the lot and the shortfall, and NOTHING moves — no ledger row, no
-        // challan, no order dispatched; the transaction rolls back. A quiet `min()` here once issued a
-        // full challan for an empty van and sent the crew to an open shop with a 400 (the bill that came
-        // back undelivered and was never staged again). Every packed bill is on the dock since the
-        // check-in stages undelivered bills there and migration 0064 staged the ones packed before.
-        const packedByLot = new Map<string, number>()
-        for (const entries of (await packedLotsByOrder(tx, sheet.orderIds)).values()) {
-          for (const entry of entries) {
-            packedByLot.set(entry.lotId, (packedByLot.get(entry.lotId) ?? 0) + entry.qtyPcs)
-          }
-        }
-        const dock = packedByLot.size > 0 ? await dockLocationId(tx) : null
-        const onTheDock =
-          dock === null ? new Map<string, number>() : await this.inventory.onHandAt(tx, dock)
-        const lotLabel = new Map(
-          lots.map((l) => [
-            l.lotId,
-            l.batchNo === null ? l.variantName : `${l.variantName} (batch ${l.batchNo})`,
-          ]),
-        )
-        for (const [lotId, qtyPcs] of packedByLot) {
-          const available = onTheDock.get(lotId) ?? 0
-          if (available >= qtyPcs) continue
+        // door will sell them off the van: so a dock that holds fewer pieces of a lot than a bill needs
+        // is a 409 naming the bill, the lot and the shortfall, and NOTHING moves — no ledger row, no
+        // challan, no order dispatched; the transaction rolls back.
+        //
+        // PER BILL, NOT PER BATCH (QA DOS-247). Each bill is covered by the pieces the dock holds for IT
+        // (its pack, its check-in, its "Bring them from the godown") and then by pieces the dock holds for
+        // nobody; never by another bill's. On day 6 a bill that came back the day before loaded the toor
+        // packed an hour earlier for three of today's shops, and the next three sheets were refused for a
+        // shortfall no screen could name.
+        const cover = await this.dockCover(tx, sheet.orderIds)
+        const short = cover.covers.filter((c) => c.shortPcs > 0)
+        if (short.length > 0) {
+          const first = short[0] as (typeof short)[number]
+          const words = short.map(
+            (c) =>
+              `${billWords(c)} needs ${String(c.neededPcs)} pc of ${c.label} and only ${String(c.neededPcs - c.shortPcs)} are on the dock for it`,
+          )
+          const bills = [...new Set(short.map((c) => c.invoiceNo ?? c.orderNo ?? 'the bill'))]
           throw new ORPCError('CONFLICT', {
-            // QA DOS-244: the sentence names the two ways out that now exist on the screens.
-            message: `Only ${String(available)} pc of ${lotLabel.get(lotId) ?? `lot ${lotId}`} are on the dock, the sheet needs ${String(qtyPcs)}. If they are in the godown, bring them over and press "Bring them from the godown"; if not, the manager takes the bill off the trip — nothing was loaded`,
+            // QA DOS-244 / DOS-247: the sentence names the bill and the two ways out the screens offer.
+            message: `${words.join('; ')}. If they are in the godown, bring them over and press "Bring them from the godown"; if not, the manager takes ${bills.join(', ')} off the trip — nothing was loaded`,
             data: {
               code: 'dock_short',
-              lotId,
-              onDockPcs: available,
-              neededPcs: qtyPcs,
-              shortPcs: qtyPcs - available,
+              lotId: first.lotId,
+              onDockPcs: first.neededPcs - first.shortPcs,
+              neededPcs: first.neededPcs,
+              shortPcs: first.shortPcs,
+              orderId: first.orderId,
+              invoiceNo: first.invoiceNo,
+              retailerName: first.retailerName,
+              bills: short.map((c) => ({
+                orderId: c.orderId,
+                orderNo: c.orderNo,
+                invoiceNo: c.invoiceNo,
+                retailerName: c.retailerName,
+                lotId: c.lotId,
+                label: c.label,
+                neededPcs: c.neededPcs,
+                onDockPcs: c.neededPcs - c.shortPcs,
+                shortPcs: c.shortPcs,
+              })),
             },
           })
         }
+        const dock = cover.covers.length > 0 ? await dockLocationId(tx) : null
+        // The bills' holds end here: their pieces are leaving the dock with them.
+        await this.inventory.closeDockHolds(tx, cover.orderLineIds)
+        const packedByLot = new Map<string, number>()
+        for (const c of cover.covers)
+          packedByLot.set(c.lotId, (packedByLot.get(c.lotId) ?? 0) + c.neededPcs)
         const shipping = [...packedByLot].flatMap(([lotId, qtyPcs]) => [
           {
             lotId,
@@ -663,10 +705,11 @@ export class LoadSheetsService {
    * cover (`dock_short`, ruling S2: the load-out never short-loads). When those pieces stand in the godown —
    * a bill that came back was counted onto the rack as free stock before the check-in knew better — the loader
    * brings them over and this records it: per packed lot of the sheet, `min(short on the dock, free in the
-   * godown)` moves godown → dock (`transfer_out` / `transfer_in`, `load_sheet` rows keyed per sheet, lot and
-   * the call's idempotency key). A batch the godown no longer holds free stays short and is reported, never
-   * invented. The same arithmetic `confirm` uses — the dock's on-hand against the sheet's packed pieces per lot
-   * — so what this call leaves at zero short, `confirm` accepts. Only while the sheet is a draft.
+   * godown)` moves godown → dock (`transfer_out` / `transfer_in`, `load_sheet` rows keyed per sheet, bill, lot
+   * and the call's idempotency key). A batch the godown no longer holds free stays short and is reported, never
+   * invented. The same arithmetic `confirm` uses — PER BILL since QA DOS-247 (`dockCover`: the bill's own dock
+   * holds, then what the dock holds for nobody) — so what this call leaves at zero short, `confirm` accepts; the
+   * pieces it fetches, and the unheld ones it counted, are held for that bill. Only while the sheet is a draft.
    */
   async stageDock(input: StageDockIn): Promise<StageDockOut> {
     requireRole(WAREHOUSE_DESK)
@@ -679,63 +722,69 @@ export class LoadSheetsService {
           throw new ORPCError('CONFLICT', {
             message: `load sheet ${sheet.id} is ${sheet.status}; only a draft sheet is staged`,
           })
-        const need = new Map<string, number>()
-        for (const entries of (await packedLotsByOrder(tx, sheet.orderIds)).values())
-          for (const entry of entries)
-            need.set(entry.lotId, (need.get(entry.lotId) ?? 0) + entry.qtyPcs)
-        if (need.size === 0) return { items: [] }
+        // The same arithmetic `confirm` refuses on, bill by bill (QA DOS-247): what the dock holds for the
+        // bill, then what it holds for nobody; the rest is fetched from the godown's FREE pieces and held for
+        // that bill, so the next bill on the sheet — or on another sheet — cannot take it.
+        const cover = await this.dockCover(tx, sheet.orderIds)
+        if (cover.covers.length === 0) return { items: [] }
         const dock = await dockLocationId(tx)
-        const onDock = await this.inventory.onHandAt(tx, dock)
-        const free = await this.inventory.freeAt(tx, sheet.fromLocationId, [...need.keys()])
-        const lots = await loadSheetLots(tx, sheet)
-        const label = new Map(
-          lots.map((l) => [
-            l.lotId,
-            l.batchNo === null ? l.variantName : `${l.variantName} (batch ${l.batchNo})`,
-          ]),
+        const free = await this.inventory.freeAt(
+          tx,
+          sheet.fromLocationId,
+          cover.covers.map((c) => c.lotId),
         )
         const moves: Parameters<InventoryService['post']>[1] = []
+        const holds: DockHoldInput[] = []
         const items: StageDockOut['items'] = []
-        for (const [lotId, neededPcs] of need) {
-          const onDockPcs = onDock.get(lotId) ?? 0
-          // The same arithmetic `confirm` refuses on: the dock's pieces of the lot against the sheet's need.
-          const short = Math.max(0, neededPcs - onDockPcs)
-          const stagedPcs = Math.min(short, free.get(lotId) ?? 0)
-          if (stagedPcs > 0) {
-            const note = `staged for load sheet ${sheet.id}: packed pieces brought from the godown to the dock`
+        for (const c of cover.covers) {
+          const stagedPcs = Math.min(c.shortPcs, Math.max(0, free.get(c.lotId) ?? 0))
+          free.set(c.lotId, (free.get(c.lotId) ?? 0) - stagedPcs)
+          const orderLineId = cover.anchorLine(c.orderId, c.variantId)
+          if (stagedPcs > 0 && orderLineId !== null) {
+            const note = `staged for load sheet ${sheet.id}: ${billWords(c)}'s packed pieces brought from the godown to the dock`
+            const key = `stage-dock:${sheet.id}:${c.orderId}:${c.lotId}:${input.idempotencyKey}`
             moves.push(
               {
-                lotId,
+                lotId: c.lotId,
                 locationId: sheet.fromLocationId,
                 qtyDelta: -stagedPcs,
                 reason: 'transfer_out',
                 refType: 'load_sheet',
                 refId: sheet.id,
-                idempotencyKey: `stage-dock:${sheet.id}:${lotId}:${input.idempotencyKey}:out`,
+                idempotencyKey: `${key}:out`,
                 note,
               },
               {
-                lotId,
+                lotId: c.lotId,
                 locationId: dock,
                 qtyDelta: stagedPcs,
                 reason: 'transfer_in',
                 refType: 'load_sheet',
                 refId: sheet.id,
-                idempotencyKey: `stage-dock:${sheet.id}:${lotId}:${input.idempotencyKey}:in`,
+                idempotencyKey: `${key}:in`,
                 note,
               },
             )
           }
+          const staged = orderLineId === null ? 0 : stagedPcs
+          // The bill now CLAIMS what it found unheld on the dock as well as what was fetched for it.
+          if (orderLineId !== null && c.fromUnheldPcs + staged > 0)
+            holds.push({ orderLineId, lotId: c.lotId, qtyPcs: c.fromUnheldPcs + staged })
           items.push({
-            lotId,
-            label: label.get(lotId) ?? `lot ${lotId}`,
-            neededPcs,
-            onDockPcs,
-            stagedPcs,
-            shortPcs: short - stagedPcs,
+            lotId: c.lotId,
+            label: c.label,
+            neededPcs: c.neededPcs,
+            onDockPcs: c.neededPcs - c.shortPcs,
+            stagedPcs: staged,
+            shortPcs: c.shortPcs - staged,
+            orderId: c.orderId,
+            orderNo: c.orderNo,
+            invoiceNo: c.invoiceNo,
+            retailerName: c.retailerName,
           })
         }
         if (moves.length > 0) await this.inventory.post(tx, moves)
+        await this.inventory.holdOnDock(tx, holds)
         return { items }
       }),
     )
@@ -906,6 +955,93 @@ export class LoadSheetsService {
   }
 
   // -------------------------------------------------------------------------------------------------------------
+
+  /**
+   * QA DOS-247: what each bill on a sheet needs off the dock, lot by lot and in the sheet's own order, against
+   * the pieces the dock holds for THAT bill and then the pieces it holds for nobody (`coverFromDock`). The
+   * unheld balances are read `FOR UPDATE`, so two sheets cannot both count the same unheld carton. Each row
+   * carries the words a refusal needs: the bill number, the shop, the item and its batch.
+   */
+  private async dockCover(
+    tx: Db,
+    orderIds: readonly string[],
+  ): Promise<{
+    covers: BillCover[]
+    orderLineIds: string[]
+    anchorLine: (orderId: string, variantId: string) => string | null
+  }> {
+    const packed = await packedLotsByOrder(tx, orderIds)
+    const lines = await this.orders.fulfilmentLines(tx, orderIds)
+    const linesOf = new Map<string, typeof lines>()
+    for (const line of lines) {
+      const group = linesOf.get(line.orderId) ?? []
+      group.push(line)
+      linesOf.set(line.orderId, group)
+    }
+    const heldByLine = await this.inventory.dockHeldFor(
+      tx,
+      lines.map((l) => l.orderLineId),
+    )
+    const lotIds = [...new Set([...packed.values()].flatMap((e) => e.map((x) => x.lotId)))]
+    const lotRows = await loadLots(tx, lotIds)
+    const variants = await loadVariantInfo(
+      tx,
+      [...lotRows.values()].map((l) => l.variantId),
+    )
+    const claims: (DockClaim & { orderId: string })[] = []
+    for (const orderId of orderIds) {
+      const held = new Map<string, number>()
+      for (const line of linesOf.get(orderId) ?? [])
+        for (const [lotId, qty] of heldByLine.get(line.orderLineId) ?? [])
+          held.set(lotId, (held.get(lotId) ?? 0) + qty)
+      for (const entry of packed.get(orderId) ?? [])
+        claims.push({
+          key: orderId,
+          orderId,
+          lotId: entry.lotId,
+          neededPcs: entry.qtyPcs,
+          heldPcs: held.get(entry.lotId) ?? 0,
+        })
+    }
+    const dockNow = await this.inventory.dockBalances(tx, lotIds)
+    const orders = await this.orders.fulfilmentOrders(tx, orderIds)
+    const byOrder = new Map(orders.map((o) => [o.orderId, o]))
+    const packs =
+      orderIds.length === 0
+        ? []
+        : await tx
+            .select({ orderId: packConfirmations.orderId, invoiceId: packConfirmations.invoiceId })
+            .from(packConfirmations)
+            .where(inArray(packConfirmations.orderId, [...orderIds]))
+    const invoiceOf = new Map(packs.map((p) => [p.orderId, p.invoiceId]))
+    const refs = await this.billing.invoiceRefs(
+      tx,
+      packs.map((p) => p.invoiceId).filter((id): id is string => id !== null),
+    )
+    const covers = coverFromDock(claims, dockNow).map((c): BillCover => {
+      const lot = lotRows.get(c.lotId)
+      const variantId = lot?.variantId ?? ''
+      const name = variants.get(variantId)?.variantName ?? `lot ${c.lotId}`
+      const invoiceId = invoiceOf.get(c.key) ?? null
+      return {
+        ...c,
+        orderId: c.key,
+        orderNo: byOrder.get(c.key)?.orderNo ?? null,
+        invoiceNo: invoiceId === null ? null : (refs.get(invoiceId)?.invoiceNo ?? null),
+        retailerName: byOrder.get(c.key)?.retailerName ?? '',
+        variantId,
+        label: lot === undefined || lot.batchNo === '' ? name : `${name} (batch ${lot.batchNo})`,
+      }
+    })
+    return {
+      covers,
+      orderLineIds: lines.map((l) => l.orderLineId),
+      anchorLine: (orderId, variantId) => {
+        const group = linesOf.get(orderId) ?? []
+        return (group.find((l) => l.variantId === variantId) ?? group[0])?.orderLineId ?? null
+      },
+    }
+  }
 
   private readonly seller = (tx: Db): Promise<SellerBranding> => sellerBranding(tx)
 

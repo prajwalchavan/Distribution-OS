@@ -23,11 +23,13 @@
  * `billing.invoices.cancel` is owner + manager: for the accountant that button is absent.
  */
 import type { BillingQueueItem, InvoiceListItem, PackListItem } from '@dos/contracts'
+import { newId } from '@dos/api-client'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   billLineQty,
   Button,
   Dialog,
+  formatMoney,
   ListRow,
   Money,
   Register,
@@ -101,6 +103,7 @@ export default function BillingDesk(): React.JSX.Element {
   const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
   const mayCancel = can('billing.invoices.cancel')
+  const mayCreditWhole = can('billing.creditNotes.create')
   const mayIssueForPack = can('billing.invoices.issueForPack')
   /*
    * DOS-145: someone arriving with a bill in the url is looking for a BILL. `view=bills` (the header
@@ -142,7 +145,20 @@ export default function BillingDesk(): React.JSX.Element {
     if (typeof params.bill === 'string' && params.bill !== '') setSelected(params.bill)
   }, [urlIntent, params.bill, params.q, params.view])
 
-  const [dialog, setDialog] = useState<'cancel' | 'eway' | 'billPack' | null>(null)
+  const [dialog, setDialog] = useState<'cancel' | 'eway' | 'billPack' | 'cantSend' | null>(null)
+  /**
+   * QA DOS-248: "Could not send it" credits the WHOLE bill. The note's line ids are made once, when the
+   * dialog opens, so a retry of the same press is the same intent (the client keys idempotency on the input).
+   */
+  const [wholeLines, setWholeLines] = useState<
+    readonly { id: string; invoiceLineId: string; qtyPcs: number }[]
+  >([])
+  /** What the server said the credit did — shown only after its 2xx (never-list #12). */
+  const [creditedNote, setCreditedNote] = useState<{
+    bill: string
+    no: string
+    note: string | null
+  } | null>(null)
   const [reason, setReason] = useState('')
   const [ewayNo, setEwayNo] = useState('')
   const [packToBill, setPackToBill] = useState<PackListItem | null>(null)
@@ -179,6 +195,36 @@ export default function BillingDesk(): React.JSX.Element {
         idempotencyKey: meta.idempotencyKey,
       }),
     { invalidates: [['invoices'], ['billing'], ['receivables'], ['reporting']] },
+  )
+  const creditWhole = useMutation(
+    (
+      input: {
+        invoiceId: string
+        note: string
+        lines: readonly { id: string; invoiceLineId: string; qtyPcs: number }[]
+      },
+      meta,
+    ) =>
+      api.api.billing.creditNotes.create({
+        id: meta.id,
+        idempotencyKey: meta.idempotencyKey,
+        invoiceId: input.invoiceId,
+        reason: 'short_delivery',
+        autoIssue: true,
+        ...(input.note === '' ? {} : { note: input.note }),
+        lines: input.lines.map((line) => ({ ...line })),
+      }),
+    {
+      invalidates: [
+        ['invoices'],
+        ['billing'],
+        ['creditNotes'],
+        ['receivables'],
+        ['reporting'],
+        ['orders'],
+        ['delivery'],
+      ],
+    },
   )
   const setEway = useMutation(
     (input: { id: string; ewayBillNo: string }, meta) =>
@@ -338,6 +384,19 @@ export default function BillingDesk(): React.JSX.Element {
     }
     if (dialog === 'cancel' && invoice !== undefined)
       void cancel.mutateAsync({ id: invoice.id, reason: reason.trim() }).then(done, stayOpen)
+    if (dialog === 'cantSend' && invoice !== undefined) {
+      const bill = invoice.invoiceNo ?? ''
+      void creditWhole
+        .mutateAsync({ invoiceId: invoice.id, note: reason.trim(), lines: wholeLines })
+        .then((reply) => {
+          setCreditedNote({
+            bill,
+            no: reply.item.creditNoteNo ?? '',
+            note: reply.item.note ?? null,
+          })
+          done()
+        }, stayOpen)
+    }
     if (dialog === 'eway' && invoice !== undefined)
       void setEway.mutateAsync({ id: invoice.id, ewayBillNo: ewayNo.trim() }).then(done, stayOpen)
     if (dialog === 'billPack' && packToBill !== null)
@@ -546,6 +605,25 @@ export default function BillingDesk(): React.JSX.Element {
                   tone={invoice.amountDuePaise > 0 ? 'critical' : 'positive'}
                 />
               </Field>
+              {invoice.awaitingDispatch === true ? (
+                <StatusChip
+                  label={t('m6.stillInGodown')}
+                  family="ochre"
+                  testID="invoice-still-in-godown"
+                />
+              ) : null}
+              {creditedNote !== null && creditedNote.bill === (invoice.invoiceNo ?? '') ? (
+                <Stack gap={1} testID="invoice-credited">
+                  <Txt field="body" desk="body" color={colors.status.moss.fg}>
+                    {t('m6.cantSendDone', { no: creditedNote.no, bill: creditedNote.bill })}
+                  </Txt>
+                  {creditedNote.note === null ? null : (
+                    <Txt field="label" desk="meta" color={colors.text.secondary}>
+                      {creditedNote.note}
+                    </Txt>
+                  )}
+                </Stack>
+              ) : null}
 
               <Panel title={t('m2.lines')}>
                 <Stack gap={2}>
@@ -623,6 +701,28 @@ export default function BillingDesk(): React.JSX.Element {
                     />
                   </>
                 ) : null}
+                {mayCreditWhole &&
+                invoice.awaitingDispatch === true &&
+                invoice.state !== 'cancelled' ? (
+                  <Button
+                    label={t('m6.cantSend')}
+                    variant="secondary"
+                    onPress={() => {
+                      setWholeLines(
+                        invoice.lines
+                          .filter((line) => line.qtyPcs + line.freeQtyPcs > 0)
+                          .map((line) => ({
+                            id: newId(),
+                            invoiceLineId: line.id,
+                            qtyPcs: line.qtyPcs + line.freeQtyPcs,
+                          })),
+                      )
+                      setReason('')
+                      setDialog('cantSend')
+                    }}
+                    testID="invoice-cant-send"
+                  />
+                ) : null}
                 {mayCancel ? (
                   <Button
                     label={t('m6.cancelInvoice')}
@@ -653,9 +753,11 @@ export default function BillingDesk(): React.JSX.Element {
         title={
           dialog === 'cancel'
             ? t('m6.cancelInvoice')
-            : dialog === 'eway'
-              ? t('m6.setEwb')
-              : t('m6.billPack')
+            : dialog === 'cantSend'
+              ? t('m6.cantSend')
+              : dialog === 'eway'
+                ? t('m6.setEwb')
+                : t('m6.billPack')
         }
         body={
           <Stack gap={3}>
@@ -667,13 +769,17 @@ export default function BillingDesk(): React.JSX.Element {
             <Txt field="label" desk="meta" color={colors.text.secondary}>
               {dialog === 'cancel'
                 ? t('m6.cancelBody')
-                : dialog === 'billPack'
-                  ? t('m6.billPackBody')
-                  : t('m7.ewbHint')}
+                : dialog === 'cantSend'
+                  ? t('m6.cantSendBody', {
+                      total: invoice === undefined ? '' : formatMoney(invoice.totalPaise),
+                    })
+                  : dialog === 'billPack'
+                    ? t('m6.billPackBody')
+                    : t('m7.ewbHint')}
             </Txt>
-            {dialog === 'cancel' ? (
+            {dialog === 'cancel' || dialog === 'cantSend' ? (
               <TextInput
-                label={t('m6.cancelReason')}
+                label={dialog === 'cantSend' ? t('m6.cantSendReason') : t('m6.cancelReason')}
                 value={reason}
                 onChange={setReason}
                 capitalize="sentences"
@@ -690,18 +796,21 @@ export default function BillingDesk(): React.JSX.Element {
                 testID="invoice-ewb"
               />
             ) : null}
-            <Refusal of={[cancel, setEway, billPack]} testID="billing-refusal" />
+            <Refusal of={[cancel, setEway, billPack, creditWhole]} testID="billing-refusal" />
           </Stack>
         }
         confirmLabel={
           dialog === 'cancel'
             ? t('m6.cancelInvoice')
-            : dialog === 'eway'
-              ? t('m6.setEwb')
-              : t('m6.billPack')
+            : dialog === 'cantSend'
+              ? t('m6.cantSendConfirm')
+              : dialog === 'eway'
+                ? t('m6.setEwb')
+                : t('m6.billPack')
         }
-        destructive={dialog === 'cancel'}
+        destructive={dialog === 'cancel' || dialog === 'cantSend'}
         busy={
+          creditWhole.status === 'pending' ||
           cancel.status === 'pending' ||
           setEway.status === 'pending' ||
           billPack.status === 'pending'

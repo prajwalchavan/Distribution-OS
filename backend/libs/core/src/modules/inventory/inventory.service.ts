@@ -132,6 +132,68 @@ export interface PostPickInput {
   idempotencyKey: string
 }
 
+/** One bill's claim on the dock (QA DOS-247): these pieces of this lot stand there for this order line. */
+export interface DockHoldInput {
+  orderLineId: string
+  lotId: string
+  qtyPcs: number
+}
+
+/**
+ * What one bill needs of one lot off the dock, and what it already holds there (QA DOS-247). `key` is the
+ * caller's name for the bill (an order id, an invoice id); `coverFromDock` hands it back unchanged.
+ */
+export interface DockClaim {
+  key: string
+  lotId: string
+  neededPcs: number
+  heldPcs: number
+}
+
+export interface DockCover extends DockClaim {
+  /** Pieces of the bill's own holds that are really standing there. */
+  fromHeldPcs: number
+  /** Pieces the dock holds for nobody (stock staged before per-bill holds existed) that this claim takes. */
+  fromUnheldPcs: number
+  /** What neither the bill's own holds nor the unheld pieces cover. */
+  shortPcs: number
+}
+
+/** One lot on the dock: what stands there and how much of it is held for bills. */
+export interface DockBalance {
+  onHand: number
+  reserved: number
+}
+
+/**
+ * THE DOCK ANSWERS PER BILL (QA DOS-247). A bill is covered by its OWN holds first, then by pieces the dock
+ * holds for nobody — stock staged there before holds existed — in the order the claims are given, and never
+ * by another bill's holds: that is what let a bill that came back undelivered load the cartons packed an hour
+ * earlier for today's shops. Nothing is ever covered beyond what really stands there: a hold whose pieces were
+ * moved off the dock some other way (a hand transfer, a count) covers only what is left. Pure: `dock` is the
+ * caller's snapshot (`dockBalances`), consumed as it goes.
+ */
+export function coverFromDock(
+  claims: readonly DockClaim[],
+  dock: ReadonlyMap<string, DockBalance>,
+): DockCover[] {
+  const onHandLeft = new Map<string, number>()
+  const unheldLeft = new Map<string, number>()
+  for (const [lotId, b] of dock) {
+    onHandLeft.set(lotId, Math.max(0, b.onHand))
+    unheldLeft.set(lotId, Math.max(0, b.onHand - b.reserved))
+  }
+  return claims.map((claim) => {
+    const standing = onHandLeft.get(claim.lotId) ?? 0
+    const fromHeldPcs = Math.min(claim.neededPcs, Math.max(0, claim.heldPcs), standing)
+    const rest = claim.neededPcs - fromHeldPcs
+    const fromUnheldPcs = Math.min(rest, unheldLeft.get(claim.lotId) ?? 0, standing - fromHeldPcs)
+    onHandLeft.set(claim.lotId, standing - fromHeldPcs - fromUnheldPcs)
+    unheldLeft.set(claim.lotId, (unheldLeft.get(claim.lotId) ?? 0) - fromUnheldPcs)
+    return { ...claim, fromHeldPcs, fromUnheldPcs, shortPcs: rest - fromUnheldPcs }
+  })
+}
+
 export type ReservationState = (typeof reservationState.enumValues)[number]
 
 export interface ReservationFilter {
@@ -718,6 +780,186 @@ export class InventoryService {
       )
       .groupBy(stockLedger.lotId)
     return new Map(rows.map((r) => [r.lotId, Number(r.qty)]))
+  }
+
+  // -------------------------------------------------------------------------------------------------------------
+  // the dock, per bill (QA DOS-247)
+  //
+  // A packed bill's pieces stand on the dock under a HOLD: a `reservations` row at the tenant's in-transit
+  // location, keyed by the order line, with the balance's `reserved` raised by as much. Every writer that puts
+  // a bill's pieces on the dock holds them for that bill (the pack, the godown's van check-in, the settlement's
+  // count, the desk's "It came back", the load sheet's "Bring them from the godown"); every reader that takes a
+  // bill's pieces off it (the load-out, a cancel, a credit note before dispatch) takes that bill's holds and,
+  // for pieces staged before holds existed, only what the dock holds for NOBODY (`on_hand − reserved`). So a
+  // stale bill can never load the cartons packed for today's shops. `sellable_stock` leaves the dock out
+  // (migration 0063), so a hold there never touches what a rep may sell.
+
+  /**
+   * Hold dock pieces for these order lines. At most what the dock holds for nobody, under the balance rows'
+   * `FOR UPDATE` lock: a hold never claims a piece that is not standing there or is already another bill's.
+   * Returns what was held, per lot.
+   */
+  async holdOnDock(tx: Db, holds: readonly DockHoldInput[]): Promise<Map<string, number>> {
+    const wanted = new Map<string, DockHoldInput>()
+    for (const h of holds) {
+      if (!Number.isSafeInteger(h.qtyPcs) || h.qtyPcs <= 0) continue
+      const key = `${h.orderLineId}:${h.lotId}`
+      const was = wanted.get(key)
+      wanted.set(key, { ...h, qtyPcs: (was?.qtyPcs ?? 0) + h.qtyPcs })
+    }
+    const held = new Map<string, number>()
+    if (wanted.size === 0) return held
+    const { tenantId } = currentTenant()
+    const dock = await dockLocationId(tx)
+    const lotIds = [...new Set([...wanted.values()].map((h) => h.lotId))]
+    const free = await this.freeAt(tx, dock, lotIds)
+    const lots = await tx
+      .select({ id: stockLots.id, variantId: stockLots.variantId })
+      .from(stockLots)
+      .where(and(eq(stockLots.tenantId, tenantId), inArray(stockLots.id, lotIds)))
+    const variantOf = new Map(lots.map((l) => [l.id, l.variantId]))
+    const rows: (typeof reservations.$inferInsert)[] = []
+    for (const h of wanted.values()) {
+      const variantId = variantOf.get(h.lotId)
+      const take = Math.min(h.qtyPcs, free.get(h.lotId) ?? 0)
+      if (variantId === undefined || take <= 0) continue
+      free.set(h.lotId, (free.get(h.lotId) ?? 0) - take)
+      await this.applyBalance(tx, {
+        lotId: h.lotId,
+        locationId: dock,
+        onHandDelta: 0,
+        reservedDelta: take,
+        negativeAllowed: false,
+      })
+      rows.push({
+        id: uuidv7(),
+        tenantId,
+        orderLineId: h.orderLineId,
+        variantId,
+        lotId: h.lotId,
+        locationId: dock,
+        qty: take,
+        state: 'pending',
+      })
+      held.set(h.lotId, (held.get(h.lotId) ?? 0) + take)
+    }
+    if (rows.length > 0) await tx.insert(reservations).values(rows)
+    return held
+  }
+
+  /** The pieces the dock holds for these order lines, per order line and lot (pending holds only). */
+  async dockHeldFor(
+    tx: Db,
+    orderLineIds: readonly string[],
+  ): Promise<Map<string, Map<string, number>>> {
+    const ids = [...new Set(orderLineIds)]
+    const out = new Map<string, Map<string, number>>()
+    if (ids.length === 0) return out
+    const { tenantId } = currentTenant()
+    const dock = await dockLocationId(tx)
+    const rows = await tx
+      .select({
+        orderLineId: reservations.orderLineId,
+        lotId: reservations.lotId,
+        qty: reservations.qty,
+      })
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.tenantId, tenantId),
+          eq(reservations.locationId, dock),
+          eq(reservations.state, 'pending'),
+          inArray(reservations.orderLineId, ids),
+        ),
+      )
+    for (const r of rows) {
+      if (r.lotId === null) continue
+      const line = out.get(r.orderLineId) ?? new Map<string, number>()
+      line.set(r.lotId, (line.get(r.lotId) ?? 0) + r.qty)
+      out.set(r.orderLineId, line)
+    }
+    return out
+  }
+
+  /** What stands on the dock per lot and how much of it is held for bills, with the balance rows locked. */
+  async dockBalances(tx: Db, lotIds: readonly string[]): Promise<Map<string, DockBalance>> {
+    const ids = [...new Set(lotIds)]
+    if (ids.length === 0) return new Map()
+    const { tenantId } = currentTenant()
+    const dock = await dockLocationId(tx)
+    const rows = await tx
+      .select({
+        lotId: stockBalances.lotId,
+        onHand: stockBalances.onHand,
+        reserved: stockBalances.reserved,
+      })
+      .from(stockBalances)
+      .where(
+        and(
+          eq(stockBalances.tenantId, tenantId),
+          eq(stockBalances.locationId, dock),
+          inArray(stockBalances.lotId, ids),
+        ),
+      )
+      .orderBy(asc(stockBalances.lotId))
+      .for('update')
+    return new Map(
+      rows.map((r) => [r.lotId, { onHand: Number(r.onHand), reserved: Number(r.reserved) }]),
+    )
+  }
+
+  /**
+   * Close every dock hold of these order lines — the pieces are leaving the dock with their bill (loaded,
+   * cancelled, credited) — and give the balance's `reserved` back. Returns what was released, per lot.
+   */
+  async closeDockHolds(
+    tx: Db,
+    orderLineIds: readonly string[],
+    state: 'posted' | 'voided' = 'posted',
+    /** Only these lots; every lot when absent. */
+    lotIds?: readonly string[],
+  ): Promise<Map<string, number>> {
+    const ids = [...new Set(orderLineIds)]
+    const released = new Map<string, number>()
+    if (ids.length === 0 || lotIds?.length === 0) return released
+    const { tenantId } = currentTenant()
+    const dock = await dockLocationId(tx)
+    const pending = await tx
+      .select()
+      .from(reservations)
+      .where(
+        and(
+          eq(reservations.tenantId, tenantId),
+          eq(reservations.locationId, dock),
+          eq(reservations.state, 'pending'),
+          inArray(reservations.orderLineId, ids),
+          lotIds === undefined ? undefined : inArray(reservations.lotId, [...lotIds]),
+        ),
+      )
+      .orderBy(asc(reservations.id))
+      .for('update')
+    for (const r of pending) {
+      if (r.lotId === null) continue
+      await this.applyBalance(tx, {
+        lotId: r.lotId,
+        locationId: dock,
+        onHandDelta: 0,
+        reservedDelta: -r.qty,
+        negativeAllowed: false,
+      })
+      released.set(r.lotId, (released.get(r.lotId) ?? 0) + r.qty)
+    }
+    if (pending.length > 0)
+      await tx
+        .update(reservations)
+        .set({ state, updatedAt: new Date() })
+        .where(
+          inArray(
+            reservations.id,
+            pending.map((r) => r.id),
+          ),
+        )
+    return released
   }
 
   async postPick(tx: Db, input: PostPickInput): Promise<PostResult> {

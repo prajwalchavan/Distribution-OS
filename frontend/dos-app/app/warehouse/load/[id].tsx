@@ -22,6 +22,10 @@
  * missing pieces rack → dock as far as the godown holds them free, and says per batch what moved and what
  * is still missing. A batch the godown no longer has is the desk's call: the manager takes that bill off
  * the trip (Trips › the trip › Take a bill off).
+ *
+ * QA DOS-247: the dock answers PER BILL. The refusal and every "Bring them from the godown" line name the bill
+ * they are short for ("INV/9034 · Ekta — Toor (batch B20260909)"), so the desk knows which bill to take off
+ * instead of guessing; a bill whose batch is gone is then credited whole at the desk ("Could not send it").
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
@@ -415,23 +419,47 @@ export default function LoadSheet(): React.JSX.Element {
                     </Txt>
                     {(stage.data?.items ?? [])
                       .filter((line) => line.stagedPcs > 0 || line.shortPcs > 0)
-                      .map((line) => (
-                        <Txt
-                          key={line.lotId}
-                          field="body"
-                          desk="body"
-                          color={line.shortPcs > 0 ? colors.status.brick.fg : colors.text.primary}
-                          testID={`w7-dock-${line.lotId}`}
-                        >
-                          {line.shortPcs > 0
-                            ? t('w7.dockStillShort', {
-                                label: line.label,
-                                staged: line.stagedPcs,
-                                short: line.shortPcs,
-                              })
-                            : t('w7.dockStaged', { label: line.label, staged: line.stagedPcs })}
-                        </Txt>
-                      ))}
+                      .map((line) => {
+                        // QA DOS-247: each line is one BILL's need of one batch, and says which bill.
+                        const billNo = line.invoiceNo ?? line.orderNo ?? null
+                        const bill =
+                          billNo === null
+                            ? null
+                            : line.retailerName === undefined || line.retailerName === ''
+                              ? billNo
+                              : `${billNo} · ${line.retailerName}`
+                        return (
+                          <Txt
+                            key={`${line.orderId ?? ''}-${line.lotId}`}
+                            field="body"
+                            desk="body"
+                            color={line.shortPcs > 0 ? colors.status.brick.fg : colors.text.primary}
+                            testID={`w7-dock-${line.orderId ?? ''}-${line.lotId}`}
+                          >
+                            {bill === null
+                              ? line.shortPcs > 0
+                                ? t('w7.dockStillShort', {
+                                    label: line.label,
+                                    staged: line.stagedPcs,
+                                    short: line.shortPcs,
+                                  })
+                                : t('w7.dockStaged', { label: line.label, staged: line.stagedPcs })
+                              : line.shortPcs > 0
+                                ? t('w7.dockStillShortFor', {
+                                    bill,
+                                    billNo: billNo ?? '',
+                                    label: line.label,
+                                    staged: line.stagedPcs,
+                                    short: line.shortPcs,
+                                  })
+                                : t('w7.dockStagedFor', {
+                                    bill,
+                                    label: line.label,
+                                    staged: line.stagedPcs,
+                                  })}
+                          </Txt>
+                        )
+                      })}
                     {stage.data !== undefined &&
                     stage.data.items.every((line) => line.shortPcs === 0) ? (
                       <Txt field="body" desk="body" testID="w7-dock-ready">

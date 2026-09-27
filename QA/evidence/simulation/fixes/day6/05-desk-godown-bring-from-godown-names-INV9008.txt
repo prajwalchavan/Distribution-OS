@@ -1,0 +1,52 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+27 Sep
+MH-05-CD-5678
+draft
+Approved · 27 Sep, 9:23 am
+Count the cartons
+Blind count: what the bill says is not on this screen.
+Cartons on the vehicle
+1
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+ORDERS ON THIS SHEET
+1 order
+Balaji Wholesale Stores
+SO-0880 · Cartons 1
+INV/9008
+WHAT GOES ON THE VEHICLE
+Annapurna Chakki Fresh Atta 1 kg
+1 cs = 10 pc
+Exp 7 Apr 2027
+Declared value
+₹505.00
+A sheet is cancelled by the manager.
+Pieces missing on the dock
+Some bills on this sheet are missing packed pieces on the dock. If they are in the godown, bring them over and press the button: the stock moves with you, held for that bill.
+INV/9008 · Balaji Wholesale Stores — Annapurna Chakki Fresh Atta 1 kg (batch AN20260711): 0 pc moved, 10 pc are not in the godown. Ask the manager to take INV/9008 off the trip; the desk can then credit it and the shop can order again.
+Bring them from the godown
+Close
+MH-05-CD-5678
+Send the vehicle out

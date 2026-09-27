@@ -47,6 +47,7 @@ import {
   DOORSTEP,
   emitDeliveryEvent,
   findRetailer,
+  holdStagedForBills,
   loadLots,
   loadTripPolicy,
   loadVehicle,
@@ -628,6 +629,21 @@ export class DeliveriesService {
       })
     }
     if (entries.length > 0) await this.inventory.post(tx, entries)
+    // QA DOS-247: what was fetched from the godown stands on the dock FOR this bill.
+    const fetched = new Map(
+      staged.filter((s) => s.stagedPcs > 0).map((s) => [s.lotId, s.stagedPcs]),
+    )
+    if (fetched.size > 0)
+      await holdStagedForBills(
+        tx,
+        this.inventory,
+        invoice.lines.map((l) => ({
+          orderLineId: l.orderLineId,
+          lotId: l.lotId,
+          pcs: l.qtyPcs + l.freeQtyPcs,
+        })),
+        fetched,
+      )
     return staged
   }
 

@@ -1,7 +1,7 @@
 import { Inject, Module, Optional, type OnModuleInit } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { deliveries, deliveryLines, tripStops, trips, vehicles } from '@dos/db'
-import { BillingModule } from '../billing/index.js'
+import { BillingModule, BillingService } from '../billing/index.js'
 import { InventoryModule } from '../inventory/index.js'
 import { ApprovalHooks, OrdersModule } from '../orders/index.js'
 import { ReceivablesModule, ReceivablesService } from '../receivables/index.js'
@@ -12,7 +12,7 @@ import { LoadSheetsService, WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
 import { DeliveryController } from './delivery.controller.js'
-import { returnedOnTheRoad, TRIP_PREDICATES } from './delivery.internals.js'
+import { inATripsHands, returnedOnTheRoad, TRIP_PREDICATES } from './delivery.internals.js'
 import {
   applyCollectionSync,
   applyDeliverySync,
@@ -75,6 +75,7 @@ export class DeliveryModule implements OnModuleInit {
     private readonly collections: CollectionsService,
     private readonly receivables: ReceivablesService,
     private readonly loadSheets: LoadSheetsService,
+    private readonly billing: BillingService,
     private readonly settlement: SettlementService,
     private readonly approvalHooks: ApprovalHooks,
     @Optional() @Inject(SyncRegistry) private readonly registry: SyncRegistry | null,
@@ -86,6 +87,8 @@ export class DeliveryModule implements OnModuleInit {
     // which bills still ride a van that has not checked in (DOS-172).
     this.receivables.registerTripPredicates(TRIP_PREDICATES)
     this.loadSheets.registerRoadHold(returnedOnTheRoad)
+    // QA DOS-248 / DOS-251: a bill still in a trip's hands is not the desk's to cancel or credit in full yet.
+    this.billing.registerTripHold(inATripsHands)
     // QA DOS-235: the owner's decision on a trip settlement settles the trip, and the queue names what it is.
     this.approvalHooks.register('trip_settlement', this.settlement.approvalHook())
     if (!this.registry) return

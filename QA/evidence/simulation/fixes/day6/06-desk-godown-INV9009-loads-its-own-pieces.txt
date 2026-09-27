@@ -1,0 +1,34 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+27 Sep
+MH-05-EF-9012
+confirmed
+Approved · 27 Sep, 9:24 am
+ORDERS ON THIS SHEET
+Expected 1
+Ambika Provision Store
+SO-0881 · Cartons 1
+INV/9009
+WHAT GOES ON THE VEHICLE
+Annapurna Chakki Fresh Atta 1 kg
+1 cs = 10 pc
+Exp 7 Apr 2027
+Count the cartons
+Expected 1
+Counted 1
+Declared value
+₹513.00
+Print the challan
+A sheet is cancelled by the manager.
+Close
+Vehicle checked out

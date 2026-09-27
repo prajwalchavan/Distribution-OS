@@ -51,6 +51,7 @@ import {
   casesAndLoose,
   emitDeliveryEvent,
   findTrip,
+  holdStagedForBills,
   loadLots,
   loadTripPolicy,
   loadVehicle,
@@ -177,7 +178,15 @@ export class SettlementService {
       return {
         tripId: back.trips[0]?.id ?? null,
         tripNo: back.trips[0]?.tripNo ?? null,
-        items: back.owed.filter((o) => o.pcs > 0),
+        items: back.owed
+          .filter((o) => o.pcs > 0)
+          .map((o) => ({
+            lotId: o.lotId,
+            invoiceId: o.invoiceId,
+            invoiceNo: o.invoiceNo,
+            retailerName: o.retailerName,
+            pcs: o.pcs,
+          })),
       }
     })
   }
@@ -258,6 +267,14 @@ export class SettlementService {
             note,
           })
         await this.inventory.post(tx, entries)
+        // QA DOS-247: the pieces staged for these bills stand on the dock FOR them.
+        if (dockPcs > 0)
+          await holdStagedForBills(
+            tx,
+            this.inventory,
+            owed.map((o) => ({ orderLineId: o.orderLineId, lotId: o.lotId, pcs: o.linePcs })),
+            new Map([[input.lotId, dockPcs]]),
+          )
         return { lotId: input.lotId, dockPcs, rackPcs, bills }
       }),
     )
@@ -278,6 +295,9 @@ export class SettlementService {
     trips: TripRow[]
     owed: {
       lotId: string
+      orderLineId: string | null
+      /** The whole line's pieces; `pcs` is what it still needs staged. */
+      linePcs: number
       invoiceId: string
       invoiceNo: string | null
       retailerName: string
@@ -331,6 +351,7 @@ export class SettlementService {
     )
     const lines: {
       lotId: string
+      orderLineId: string | null
       invoiceId: string
       invoiceNo: string | null
       retailerId: string
@@ -347,6 +368,7 @@ export class SettlementService {
         if (line.lotId === null || pcs <= 0) continue
         lines.push({
           lotId: line.lotId,
+          orderLineId: line.orderLineId,
           invoiceId: invoice.id,
           invoiceNo: invoice.invoiceNo,
           retailerId: invoice.retailerId,
@@ -373,6 +395,8 @@ export class SettlementService {
       stillOnVan.set(l.lotId, (stillOnVan.get(l.lotId) ?? 0) - pcs)
       return {
         lotId: l.lotId,
+        orderLineId: l.orderLineId,
+        linePcs: l.pcs,
         invoiceId: l.invoiceId,
         invoiceNo: l.invoiceNo,
         retailerName: names.get(l.retailerId) ?? '',
@@ -498,6 +522,7 @@ export class SettlementService {
                   refType: CHECKIN_REF,
                   refIds: [trip.id],
                 })
+          const dockedNow = new Map<string, number>()
           await this.inventory.post(
             tx,
             unloads.flatMap((c) => {
@@ -506,6 +531,7 @@ export class SettlementService {
                 (undelivered.get(c.lotId) ?? 0) - (stagedAtCheckIn.get(c.lotId) ?? 0),
               )
               const toDock = Math.min(c.countedPcs, stillOwed)
+              if (toDock > 0) dockedNow.set(c.lotId, toDock)
               const toRack = c.countedPcs - toDock
               return [
                 {
@@ -547,6 +573,14 @@ export class SettlementService {
               ]
             }),
           )
+          // QA DOS-247: what the count staged for the bills that came back stands on the dock FOR them.
+          if (dockedNow.size > 0)
+            await holdStagedForBills(
+              tx,
+              this.inventory,
+              await this.cameBackLines(tx, trip.id),
+              dockedNow,
+            )
         }
 
         // money: one balanced entry (a trip that moved no cash at all — nothing collected, nothing
@@ -1064,6 +1098,17 @@ export class SettlementService {
    * batch fill the dock once with both.
    */
   private async cameBackUndelivered(tx: Db, tripId: string): Promise<Map<string, number>> {
+    const need = new Map<string, number>()
+    for (const line of await this.cameBackLines(tx, tripId))
+      need.set(line.lotId, (need.get(line.lotId) ?? 0) + line.pcs)
+    return need
+  }
+
+  /** The lines of the bills that came back undelivered on this trip, in delivery order (QA DOS-247). */
+  private async cameBackLines(
+    tx: Db,
+    tripId: string,
+  ): Promise<{ orderLineId: string | null; lotId: string; pcs: number }[]> {
     const { tenantId } = currentTenant()
     const rows = await tx
       .select({ invoiceId: deliveries.invoiceId })
@@ -1076,7 +1121,7 @@ export class SettlementService {
         ),
       )
       .orderBy(asc(deliveries.id))
-    const need = new Map<string, number>()
+    const out: { orderLineId: string | null; lotId: string; pcs: number }[] = []
     for (const invoiceId of new Set(rows.map((r) => r.invoiceId))) {
       const invoice = await this.billing.invoiceForDelivery(tx, invoiceId)
       if (invoice.state === 'cancelled') continue
@@ -1084,10 +1129,10 @@ export class SettlementService {
         if (line.lotId === null) continue
         const pcs = line.qtyPcs + line.freeQtyPcs
         if (pcs <= 0) continue
-        need.set(line.lotId, (need.get(line.lotId) ?? 0) + pcs)
+        out.push({ orderLineId: line.orderLineId, lotId: line.lotId, pcs })
       }
     }
-    return need
+    return out
   }
 
   private async settlementOf(tx: Db, tripId: string) {

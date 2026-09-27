@@ -273,6 +273,12 @@ export const InvoiceDetailSchema = InvoiceSchema.extend({
   creditNotes: z.array(InvoiceCreditNoteRefSchema),
   amountDuePaise: PaiseSchema,
   seller: SellerBrandingSchema,
+  /**
+   * QA DOS-248: a pack bill whose goods have not left the godown (its order is still `packed`). Such a bill is
+   * cancelled while nothing is paid, or credited WHOLE ("Could not send it") — never in part, because its load
+   * sheet and its delivery carry every line. Absent from a server older than DOS-248.
+   */
+  awaitingDispatch: z.boolean().optional(),
 })
 export type InvoiceDetail = z.infer<typeof InvoiceDetailSchema>
 

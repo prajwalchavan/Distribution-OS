@@ -812,6 +812,8 @@ export const CancelLoadSheetOutput = LoadSheetItemOutput
  * rack holds FREE (on hand less reserved) and never more than the sheet is short. A batch the godown no longer
  * holds stays short and is reported, never invented: that bill comes off the trip (`delivery.trips.dropBill`).
  * Only while the sheet is a draft. Audited through the ledger (`load_sheet` rows keyed per sheet and lot).
+ * QA DOS-247: bill by bill — what the dock holds for each bill counts for that bill only, the pieces fetched
+ * are held for it, and each row of the answer names the bill it is short for.
  */
 export const StageDockInput = MutationBase.extend({ id: IdSchema })
 export const StageDockOutput = z.object({
@@ -827,6 +829,15 @@ export const StageDockOutput = z.object({
       stagedPcs: PiecesSchema,
       /** Still missing after it: the godown does not hold them free. */
       shortPcs: PiecesSchema,
+      /**
+       * QA DOS-247: the dock answers PER BILL, so each row is one bill's need of one batch and names the bill
+       * — "INV/9034 · Ekta · Toor (B20260909): 12 pc are not in the godown" — instead of leaving the desk to
+       * guess which bill to take off the trip. Absent only from a server older than DOS-247.
+       */
+      orderId: IdSchema.optional(),
+      orderNo: z.string().nullable().optional(),
+      invoiceNo: z.string().nullable().optional(),
+      retailerName: z.string().optional(),
     }),
   ),
 })

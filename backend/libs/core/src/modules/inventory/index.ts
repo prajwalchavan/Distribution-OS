@@ -1,7 +1,12 @@
 export { InventoryModule } from './inventory.module.js'
 export {
+  coverFromDock,
   InventoryService,
   pgConstraint,
+  type DockBalance,
+  type DockClaim,
+  type DockCover,
+  type DockHoldInput,
   type LedgerEntryInput,
   type LedgerReasonFilter,
   type LedgerReasonRow,

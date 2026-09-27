@@ -1169,9 +1169,10 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     expect(refused.status, JSON.stringify(refused.body)).toBe(409)
     expect(refused.body.data?.code).toBe('dock_short')
     expect(refused.body.data?.lotId).toBe(lot.lotId)
+    // QA DOS-247: the refusal names the BILL, and what the dock holds for it
     expect(refused.body.message).toMatch(
       new RegExp(
-        `Only ${String(dockHolds)} pc of .+ are on the dock, the sheet needs ${String(lot.pcs)}`,
+        `^INV/\\S+ · .+ needs ${String(lot.pcs)} pc of .+ and only ${String(dockHolds)} are on the dock for it`,
       ),
     )
     // Nothing happened: no ledger row, no challan, the van as it was, the order still packed, the sheet

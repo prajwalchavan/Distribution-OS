@@ -92,6 +92,12 @@ export class PackingService {
         await this.assertNotAlreadyPacked(tx, order.id)
         const locationId = order.fulfilFromLocationId ?? (await activeWarehouseLocation(tx))
         const packs = await this.whatLeftTheRack(tx, order.id, locationId)
+        // QA DOS-252: an order the picker came back from empty-handed has nothing to tape shut or to bill.
+        if (packs.every((p) => p.picks.every((pick) => pick.qtyPcs <= 0)))
+          throw new ORPCError('CONFLICT', {
+            message: `nothing of ${order.orderNo ?? order.id} was picked, so there is nothing to pack or bill; the desk cancels the order or it is picked again`,
+            data: { code: 'nothing_picked' },
+          })
 
         // 1 + 2: the pieces leave, the holds close, the order line records what was taken.
         const billingLines: IssueForPackLine[] = []
@@ -106,6 +112,18 @@ export class PackingService {
           })
           billingLines.push(...this.splitPaidAndFree(pack))
         }
+        // QA DOS-247: the pieces that just reached the dock stand there for THIS bill, not for whichever
+        // load sheet asks for the batch first.
+        await this.inventory.holdOnDock(
+          tx,
+          packs.flatMap((p) =>
+            p.picks.map((pick) => ({
+              orderLineId: p.line.orderLineId,
+              lotId: pick.lotId,
+              qtyPcs: pick.qtyPcs,
+            })),
+          ),
+        )
         await this.orders.recordPick(
           tx,
           order.id,
@@ -275,6 +293,13 @@ export class PackingService {
    */
   private async whatLeftTheRack(tx: Db, orderId: string, locationId: string): Promise<LinePack[]> {
     const lines = await this.orders.fulfilmentLines(tx, [orderId])
+    /*
+     * Every RECORDED pick row (`picked_at` set: picked, or shorted with a reason), including the ones that
+     * took nothing. QA DOS-252: this read used to keep only `picked_qty_pcs > 0`, so a line the picker
+     * shorted in full ("Not on the rack", 0 picked) looked unanswered, fell through to the holds below and
+     * was billed and moved in full — INV/9052 charged Ekta ₹2,142.00 for 12 toor that never went into a
+     * carton. A line with a recorded row is ANSWERED: its picks are what it took, even when that is nothing.
+     */
     const picked = await tx
       .select({
         orderLineId: pickLines.orderLineId,
@@ -282,13 +307,19 @@ export class PackingService {
         qtyPcs: sql<number>`sum(${pickLines.pickedQtyPcs})`,
       })
       .from(pickLines)
-      .where(and(eq(pickLines.orderId, orderId), sql`${pickLines.pickedQtyPcs} > 0`))
+      .where(
+        and(
+          eq(pickLines.orderId, orderId),
+          sql`(${pickLines.pickedAt} is not null or ${pickLines.pickedQtyPcs} > 0)`,
+          isNull(pickLines.cancelledAt),
+        ),
+      )
       .groupBy(pickLines.orderLineId, pickLines.lotId)
     const byLine = new Map<string, { lotId: string; qtyPcs: number }[]>()
     for (const row of picked) {
-      if (row.lotId === null) continue
       const group = byLine.get(row.orderLineId) ?? []
-      group.push({ lotId: row.lotId, qtyPcs: Number(row.qtyPcs) })
+      const qtyPcs = Number(row.qtyPcs)
+      if (row.lotId !== null && qtyPcs > 0) group.push({ lotId: row.lotId, qtyPcs })
       byLine.set(row.orderLineId, group)
     }
     const unpicked = lines.filter((l) => !byLine.has(l.orderLineId))
