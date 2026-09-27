@@ -1,0 +1,101 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Stock
+On hand
+Stock ledger
+Held for orders
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Where	On hand	Held	Free	Expires
+
+Godavari Cow Ghee 200 ml
+	
+GD20260804
+	
+Godown
+	
+4
+	
+0
+	
+4
+	4 Aug 2027
+
+Godavari Cow Ghee 200 ml
+	
+B20260902
+	
+Godown
+	
+259
+	
+0
+	
+259
+	2 Sep 2027
+
+Godavari Cow Ghee 200 ml
+	
+GD20260816
+	
+Godown
+	
+24
+	
+0
+	
+24
+	16 Aug 2027
+
+Godavari Cow Ghee 200 ml
+	
+GD20260702
+	
+Godown
+	
+1
+	
+0
+	
+1
+	2 Jul 2027
+
+Godavari Cow Ghee 200 ml
+	
+GD20260702
+	
+Vehicle MH-05-AB-1234
+	
+5
+	
+0
+	
+5
+	2 Jul 2027
+5			293			
+5 batches
+Why is it being adjusted?

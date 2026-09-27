@@ -7,13 +7,13 @@ exists only so they typecheck and lint — nothing in it is built or shipped. Th
 legacy importer's parsers and their specs (`legacy/`); `smoke-endpoints.mts` is left out of its
 typecheck: it has two type errors on the `platform_admin` role that predate the package.
 
-| Script                       | Command                        | What it does                                                                                                            |
-| ---------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `generate-readmes.mts`       | `pnpm docs:readme` / `--check` | Rewrites every service and app README from the shared contract. CI runs `--check`.                                      |
-| `smoke-endpoints.mts`        | `pnpm smoke`                   | Calls every operation of every running service and reports what works.                                                  |
-| `auth-keygen.mts`            | `pnpm auth:keygen`             | Generates the EdDSA signing key pair for auth-service.                                                                  |
-| `import-legacy-extracts.mts` | `pnpm import:legacy --help`    | Loads a distributor's old-software extracts (TradeEzee sheets, PDF, SQL Server backup); see `docs/32-legacy-import.md`. |
-| `check-stock-cancels.mts`    | `pnpm check:stock-cancels`     | Release check (QA DOS-257): lists every cancelled bill whose stock rows do not net to zero; exits 1 while one is open.  |
+| Script                       | Command                        | What it does                                                                                                                                                                   |
+| ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `generate-readmes.mts`       | `pnpm docs:readme` / `--check` | Rewrites every service and app README from the shared contract. CI runs `--check`.                                                                                             |
+| `smoke-endpoints.mts`        | `pnpm smoke`                   | Calls every operation of every running service and reports what works.                                                                                                         |
+| `auth-keygen.mts`            | `pnpm auth:keygen`             | Generates the EdDSA signing key pair for auth-service.                                                                                                                         |
+| `import-legacy-extracts.mts` | `pnpm import:legacy --help`    | Loads a distributor's old-software extracts (TradeEzee sheets, PDF, SQL Server backup); see `docs/32-legacy-import.md`.                                                        |
+| `check-stock-cancels.mts`    | `pnpm check:stock-cancels`     | Release check (QA DOS-257): lists every cancelled bill whose stock rows do not net to zero (`--write-off` reruns migration 0072's write-off first); exits 1 while one is open. |
 
 ## `pnpm smoke` — the endpoint harness
 

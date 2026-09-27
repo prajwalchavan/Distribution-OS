@@ -3,14 +3,17 @@
  * behind that it never took out (or take back fewer pieces than it did)?
  *
  * Reads every tenant of `DATABASE_URL` (loaded through `loadDotenv()` like every script here, a real env var
- * wins) through `invoiceCancelFootprints` in @dos/db and prints one line per (bill, lot) whose `invoice` and
- * `invoice_cancel` ledger rows do not net to zero. Since migration 0071 the database refuses a new one at
- * commit, so what this finds was written before it — the simulation's INV/9034 toor is the known case.
+ * wins) through `invoiceCancelFootprints` in @dos/db — the same SQL definition (`dos_invoice_cancel_footprints`)
+ * migration 0072 wrote its write-off from — and prints one line per (bill, lot) that does not net to zero.
+ * Since 0071 (and 0072) the database refuses a new one at commit and has already written off every invented piece that
+ * was still standing where its cancel put it, so on a migrated database this normally prints nothing.
  *
- * `written_off` means a later hand write-off or count on that lot at that place has taken at least the
- * footprint off again (the stock screen's "Take off", ideally with the bill number in the note). `open`
- * means the pieces are still in the books: the owner or manager writes them off on Stock → the batch row →
- * Adjust → Take off, reason "Adjustment", with the bill number in the note, and this check then passes.
+ * `--write-off` runs 0072's write-off again first (`dos_write_off_invoice_cancel_phantoms`, idempotent), for a
+ * database a phantom reached after its migration — a restored dump, a hand-written row. It needs a role that
+ * bypasses row level security (the migration owner), like `pnpm db:migrate`.
+ *
+ * `written_off` means a hand write-off or count on that lot at that place has taken at least the footprint
+ * off. `open` means somebody has to look: the pieces moved on before the write-off could take them.
  *
  * Exit code 1 while any footprint is open, 0 otherwise. `--json` prints the rows instead of sentences.
  */
@@ -21,6 +24,7 @@ import {
   createPool,
   invoiceCancelFootprints,
   loadDotenv,
+  writeOffInvoiceCancelPhantoms,
 } from '../libs/database/src/index.js'
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..')
@@ -38,7 +42,15 @@ const say = (line: string): void => {
 
 const pool = createPool(url, 1)
 try {
-  const rows = await invoiceCancelFootprints(createDb(pool))
+  const db = createDb(pool)
+  if (process.argv.includes('--write-off')) {
+    for (const w of await writeOffInvoiceCancelPhantoms(db)) {
+      say(
+        `WROTE OFF   ${w.invoiceNo}  lot ${w.lotId} at ${w.locationId}: ${String(w.writtenPcs)} of ${String(w.footprintPcs)} pc (${String(w.takenOffPcs)} taken off by hand before, ${String(w.onHandPcs)} were there)`,
+      )
+    }
+  }
+  const rows = await invoiceCancelFootprints(db)
   if (process.argv.includes('--json')) {
     say(JSON.stringify(rows, null, 2))
   } else if (rows.length === 0) {
@@ -58,7 +70,9 @@ try {
   }
   const open = rows.filter((r) => r.status === 'open').length
   if (open > 0) {
-    console.error(`${String(open)} open: write them off on Stock (see the header of this script)`)
+    console.error(
+      `${String(open)} open: the pieces had moved on before the write-off; count that batch and correct it on Stock`,
+    )
     process.exitCode = 1
   }
 } finally {

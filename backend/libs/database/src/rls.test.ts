@@ -112,7 +112,7 @@ import {
   visits,
   writeOffs,
 } from './schema/index.js'
-import { invoiceCancelFootprints } from './stock-footprints.js'
+import { invoiceCancelFootprints, writeOffInvoiceCancelPhantoms } from './stock-footprints.js'
 import {
   FORBIDDEN_PULL_COLUMN_PATTERNS,
   SYNC_PULL_TABLES,
@@ -3428,6 +3428,173 @@ describeDb('row level security and ledger guarantees', () => {
     // …and the release check agrees: nothing on this lot is left behind by a cancel.
     const left = (await invoiceCancelFootprints(db, tenantA)).filter((f) => f.lotId === lot)
     expect(left).toEqual([])
+  })
+
+  it('DOS-257: the pieces a pre-DOS-251 cancel invented are written off where they stand — once, never the old model’s honest restock, never what a hand write-off already took, never more than is there', async () => {
+    /*
+     * The trigger stops a NEW phantom; the simulation's 12 toor were written before it and stayed in the
+     * books until the audit found them. Migration 0072 writes such pieces off with
+     * `dos_write_off_invoice_cancel_phantoms()`, and `pnpm check:stock-cancels` reads the same footprint.
+     * Four cancelled pack bills, each on its own lot, planted the way the old code wrote them (the trigger
+     * is off for that one transaction, exactly as the rows predate it):
+     *   phantom  dock-model pack (rack → dock, 0), the dock's pieces then went out on another sheet, the
+     *            cancel wrote Godown +12 `adjustment`             → −12 written off, the balance 100 → 88;
+     *   oldModel the pack was a `sale` −12 (before DOS-195), the cancel +12                → honest, nothing;
+     *   byHand   a dock-model phantom +12 the owner already took off on Stock (−12)        → nothing twice;
+     *   movedOn  a dock-model phantom +12 of which only 5 still stand there                → −5, 7 stay open.
+     */
+    const dock = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: dock, tenantId: tenantA, kind: 'in_transit', name: `Dock W257 ${run}` })
+    const cases = ['phantom', 'oldModel', 'byHand', 'movedOn'] as const
+    type Case = (typeof cases)[number]
+    const onHand: Record<Case, number> = { phantom: 100, oldModel: 100, byHand: 88, movedOn: 5 }
+    const ids = Object.fromEntries(
+      cases.map((c) => [c, { lot: uuidv7(), order: uuidv7(), bill: uuidv7() }]),
+    ) as Record<Case, { lot: string; order: string; bill: string }>
+    for (const [n, c] of cases.entries()) {
+      const { lot, order, bill } = ids[c]
+      await db.insert(stockLots).values({
+        id: lot,
+        tenantId: tenantA,
+        variantId: variant,
+        batchNo: `W257-${c}-${run}`,
+        mrpPaise: 4000,
+      })
+      await db
+        .insert(stockBalances)
+        .values({ tenantId: tenantA, lotId: lot, locationId: godownA, onHand: onHand[c] })
+      await db.insert(salesOrders).values({
+        id: order,
+        tenantId: tenantA,
+        retailerId: retailerA,
+        state: 'cancelled',
+        source: 'salesperson',
+        createdBy: rep,
+        paymentTerms: 'POST_FULFILLMENT',
+      })
+      await db.insert(invoices).values({
+        id: bill,
+        tenantId: tenantA,
+        invoiceNo: `W257-${run}/${String(n + 1)}`,
+        fy: '2026-27',
+        invoiceDate: '2026-09-27',
+        retailerId: retailerA,
+        orderId: order,
+        source: 'pack',
+        state: 'cancelled',
+        cancelledAt: new Date(),
+        cancelReason: 'DOS-257 fixture',
+        buyerName: 'Shop A',
+        placeOfSupplyState: '27',
+        totalPaise: 0,
+      })
+    }
+    const row = (
+      c: Case,
+      locationId: string,
+      qtyDelta: number,
+      reason: 'adjustment' | 'sale' | 'transfer_in' | 'transfer_out',
+      refType: 'invoice_cancel' | 'pack' | 'load_sheet' | 'adjustment',
+      key: string,
+    ) => ({
+      id: uuidv7(),
+      tenantId: tenantA,
+      lotId: ids[c].lot,
+      locationId,
+      qtyDelta,
+      reason,
+      refType,
+      refId: refType === 'pack' ? ids[c].order : ids[c].bill,
+      actorId: owner,
+      idempotencyKey: `w257-${c}-${key}-${run}`,
+    })
+    const dockModel = (c: Case) => [
+      row(c, godownA, -12, 'transfer_out', 'pack', 'pack'),
+      row(c, dock, 12, 'transfer_in', 'pack', 'pack:in'),
+      row(c, dock, -12, 'transfer_out', 'load_sheet', 'other-sheet'),
+      row(c, godownA, 12, 'adjustment', 'invoice_cancel', 'cancel'),
+    ]
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`ALTER TABLE stock_ledger DISABLE TRIGGER stock_ledger_invoice_cancel_leaves_nothing`,
+      )
+      await tx
+        .insert(stockLedger)
+        .values([
+          ...dockModel('phantom'),
+          row('oldModel', godownA, -12, 'sale', 'pack', 'pack'),
+          row('oldModel', godownA, 12, 'adjustment', 'invoice_cancel', 'cancel'),
+          ...dockModel('byHand'),
+          ...dockModel('movedOn'),
+        ])
+      await tx.execute(
+        sql`ALTER TABLE stock_ledger ENABLE TRIGGER stock_ledger_invoice_cancel_leaves_nothing`,
+      )
+    })
+    // The owner's own write-off on the Stock screen, AFTER the cancel (a later transaction).
+    await db
+      .insert(stockLedger)
+      .values(row('byHand', godownA, -12, 'adjustment', 'adjustment', 'by-hand'))
+
+    const mine = (lotId: string) => cases.find((c) => ids[c].lot === lotId)
+    const before = (await invoiceCancelFootprints(db, tenantA)).filter((f) => mine(f.lotId))
+    expect(
+      before.map((f) => [mine(f.lotId), f.footprintPcs, f.writtenOffPcs, f.status]).sort(),
+    ).toEqual([
+      ['byHand', 12, 12, 'written_off'],
+      ['movedOn', 12, 0, 'open'],
+      ['phantom', 12, 0, 'open'],
+    ])
+
+    const written = (await writeOffInvoiceCancelPhantoms(db, tenantA)).filter((w) => mine(w.lotId))
+    expect(written.map((w) => [mine(w.lotId), w.writtenPcs, w.onHandPcs]).sort()).toEqual([
+      ['byHand', 0, 88],
+      ['movedOn', 5, 5],
+      ['phantom', 12, 100],
+    ])
+    const balance = async (c: Case) => {
+      const [b] = await db
+        .select({ onHand: stockBalances.onHand })
+        .from(stockBalances)
+        .where(
+          sql`${stockBalances.tenantId} = ${tenantA} AND ${stockBalances.lotId} = ${ids[c].lot} AND ${stockBalances.locationId} = ${godownA}`,
+        )
+      return b?.onHand
+    }
+    expect(await balance('phantom')).toBe(88)
+    expect(await balance('oldModel')).toBe(100)
+    expect(await balance('byHand')).toBe(88)
+    expect(await balance('movedOn')).toBe(0)
+    // The row says what it is, under the bill, and the ledger still sums to the balance.
+    const [phantomRow] = (
+      await db.execute(sql`
+        SELECT reason, ref_type, ref_id, qty_delta, note FROM stock_ledger
+         WHERE tenant_id = ${tenantA} AND lot_id = ${ids.phantom.lot} AND ref_type = 'invoice_cancel_writeoff'`)
+    ).rows as {
+      reason: string
+      ref_type: string
+      ref_id: string
+      qty_delta: number
+      note: string
+    }[]
+    expect(phantomRow).toMatchObject({
+      reason: 'adjustment',
+      ref_id: ids.phantom.bill,
+      qty_delta: -12,
+    })
+    expect(phantomRow?.note).toMatch(/12 pc that cancelling W257-.*\/1 put back here/)
+
+    // Nothing is left for the release check but the 7 that had moved on, and a second run writes nothing.
+    const after = (await invoiceCancelFootprints(db, tenantA)).filter((f) => mine(f.lotId))
+    expect(after.map((f) => [mine(f.lotId), f.footprintPcs, f.status]).sort()).toEqual([
+      ['byHand', 12, 'written_off'],
+      ['movedOn', 7, 'open'],
+    ])
+    const again = (await writeOffInvoiceCancelPhantoms(db, tenantA)).filter((w) => mine(w.lotId))
+    expect(again.every((w) => w.writtenPcs === 0)).toBe(true)
+    expect(await balance('phantom')).toBe(88)
   })
 
   it('DOS-204: sellable_stock holds only the sellable locations — a lot standing in the damaged / expiry bin, in transit or on a customer floor is never in it', async () => {

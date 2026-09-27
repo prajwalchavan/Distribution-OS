@@ -959,6 +959,8 @@ export const strings = {
   'word.claim_write_off': 'Claim written off',
   'word.receipt_reversal': 'Receipt reversed',
   'word.invoice_cancel': 'Bill cancelled',
+  /* QA DOS-257: migration 0072 takes off the pieces a pre-DOS-251 cancel put back without having them. */
+  'word.invoice_cancel_writeoff': 'Cancelled bill corrected',
   'word.load_sheet': 'Load sheet',
   'word.cycle_count': 'Cycle count',
   'word.trip_stop': 'Delivery stop',

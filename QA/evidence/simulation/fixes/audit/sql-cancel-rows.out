@@ -1,0 +1,21 @@
+ invoice_no |   state   |  location  |           item           |  batch_no   |    reason    | qty_delta |    ref_type    
+------------+-----------+------------+--------------------------+-------------+--------------+-----------+----------------
+ INV/0831   | cancelled | In transit | Godavari Cow Ghee 200 ml | B20260902   | transfer_out |       -48 | invoice_cancel
+ INV/0831   | cancelled | Godown     | Godavari Cow Ghee 200 ml | B20260902   | transfer_in  |        48 | invoice_cancel
+ INV/0831   | cancelled | In transit | Campa Orange 500 ml      | RCP20260807 | transfer_out |       -15 | invoice_cancel
+ INV/0831   | cancelled | Godown     | Campa Orange 500 ml      | RCP20260807 | transfer_in  |        15 | invoice_cancel
+(4 rows)
+
+ invoice_no |   state   
+------------+-----------
+ INV/0815   | issued
+ INV/0831   | cancelled
+(2 rows)
+
+         name          | on_hand | reserved 
+-----------------------+---------+----------
+ Godown                |     259 |        0
+ In transit            |       0 |        0
+ Vehicle MH-05-AB-1234 |       0 |        0
+(3 rows)
+
