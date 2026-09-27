@@ -1,0 +1,110 @@
+[
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1790604497&signature=a64620d297c8a42314ec4b0462d7730b522ecfb5124f66c5bf35c38912da99df",
+  "body": "����\u0000\u0010JFIF\u0000\u0001\u0001\u0000\u0000�\u0000�\u0000\u0000��\u00012Exif\u0000\u0000MM\u0000*\u0000\u0000\u0000\b\u0000\u0007\u0001\u000e\u0000\u0002\u0000\u0000\u0000\u000b\u0000\u0000\u0000b\u0001\u0012\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0001\u001a\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0000n\u0001\u001b\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0000v\u0001(\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0002\u0000\u0000\u00012\u0000\u0002\u0000\u0000\u0000\u0014\u0000\u0000\u0000~�i\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0000�\u0000\u0000\u0000\u0000Screenshot\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000\u0001\u0000\u0000\u0000�\u0000\u0000\u0000\u00012026:09:06 10:01:02\u0000\u0000\t�\u0000\u0000\u0007\u0000\u0000\u0000\u00040221�\u0003\u0000\u0002\u0000\u0000\u0000\u0014\u0000\u0000\u0001\u0004�\u0001\u0000\u0007\u0000\u0000\u0000\u0004\u0001\u0002\u0003\u0000��\u0000\u0007\u0000\u0000\u0000\u0012\u0000\u0000\u0001\u0018�\u0000\u0000\u0007\u0000\u0000\u0000\u00040100�\u0001\u0000\u0003\u0000\u0000\u0000\u0001��\u0000\u0000�\u0002\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0001h�\u0003\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0000��\u0006\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00002026:09:06 10:01:02\u0000ASCII\u0000\u0000\u0000Screenshot��\u0000nPhotoshop 3.0\u00008BIM\u0004\u0004\u0000\u0000\u0000\u0000\u00006\u001c\u0001Z\u0000\u0003\u001b%G\u001c\u0002\u0000\u0000\u0002\u0000\u0002\u001c\u0002x\u0000\nScreenshot\u001c\u0002<\u0000\u0006100102\u001c\u00027\u0000\b202609068BIM\u0004%\u0000\u0000\u0000\u0000\u0000\u0010[g���,���M��ϛ^\u0005��\u0002(ICC_PROFILE\u0000\u0001\u0001\u0000\u0000\u0002\u0018appl\u0004\u0000\u0000\u0000mntrRGB XYZ \u0007�\u0000\u0001\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000acspAPPL\u0000\u0000\u0000\u0000APPL\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��\u0000\u0001\u0000\u0000\u0000\u0000�-appl����8�G�m��Oz�\u0018/\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\ndesc\u0000\u0000\u0000�\u0000\u0000\u0000"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/beats",
+  "body": "{\"items\":[{\"id\":\"9beaaaa4-dd67-70ac-9ad6-459da62f4792\",\"name\":\"Birla College Road\",\"area\":\"Birla College Road, Kalyan West\",\"visitDays\":[4,6],\"active\":true},{\"id\":\"1f319e0e-fedb-7bbf-b7ee-9e7d33266c38\",\"name\":\"Godrej Hill\",\"area\":\"Godrej Hill, Kalyan West\",\"visitDays\":[1,3,5],\"active\":true},{\"id\":\"59167a2e-7d76-7bb0-ab9e-fb332fd9c88a\",\"name\":\"Kalyan West Market\",\"area\":\"Bazarpeth, Kalyan West\",\"visitDays\":[2,5],\"active\":true},{\"id\":\"8f452aa3-d365-7262-a50c-b4cc814df641\",\"name\":\"Khadakpada\",\"area\":\"Khadakpada, Kalyan West\",\"visitDays\":[3,6],\"active\":true},{\"id\":\"f2438ce1-a8be-74fb-b30f-aaaca462"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/pricing/bargains?status=requested&limit=5",
+  "body": "{\"items\":[{\"id\":\"011d0c51-293c-7e9b-bf53-b5b035898d9c\",\"retailerId\":\"d7f09885-489b-73cb-ab29-169334b5eca5\",\"variantId\":\"4454fb4a-3e82-718d-bf36-ad3c09f84c2a\",\"orderId\":null,\"requestedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"listRatePaise\":4102,\"askedRatePaise\":3958,\"approvedRatePaise\":null,\"status\":\"requested\",\"decidedBy\":null,\"decidedAt\":null,\"expiresAt\":\"2026-09-15T12:30:00.000Z\",\"note\":null,\"createdAt\":\"2026-09-12T05:45:00.000Z\"},{\"id\":\"1221ccf5-aa42-7f60-9557-2eedce569b87\",\"retailerId\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"variantId\":\"f71bf137-50de-7182-a0d9-c83f1a613a57\",\"orderId\":nu"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/reporting/dashboard/owner",
+  "body": "{\"asOf\":\"2026-09-12T12:30:00.000Z\",\"todayInvoicedPaise\":15014700,\"todayCreditedPaise\":0,\"todayCollectedPaise\":44979367,\"todayOrdersCount\":0,\"todayDeliveredStops\":0,\"todayFailedStops\":0,\"cashInTransitPaise\":0,\"totalOutstandingPaise\":442437400,\"overduePaise\":268691700,\"onAccountPaise\":3508000,\"ageing\":{\"b0_7\":232749100,\"b8_15\":67632650,\"b16_30\":78676350,\"b31_60\":50059000,\"b61_90\":9805900,\"b90plus\":3514400},\"mtdSalesPaise\":196963100,\"mtdCreditedPaise\":291200,\"mtdGrossMarginPaise\":8253838,\"stockValuePaise\":237641659,\"nearExpiryValuePaise\":16770114,\"pendingApprovals\":5,\"activeTrips\":2,\"last7Days\":["
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/approvals?status=pending&limit=5",
+  "body": "{\"items\":[{\"id\":\"94b9dc4a-513f-7c54-a4e8-2531add6fbc4\",\"kind\":\"credit_limit\",\"orderId\":\"3efdbf77-02ab-745b-92d0-a175744f6761\",\"entityType\":\"retailer\",\"entityId\":\"5ea5255a-59c1-77ba-866c-6090446e2a38\",\"requestedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"status\":\"pending\",\"payload\":{\"reason\":\"Festive season stocking, retailer asked for a temporary bump.\",\"currentLimitPaise\":15000000,\"requestedLimitPaise\":17000000},\"decidedBy\":null,\"decidedAt\":null,\"decisionNote\":null,\"createdAt\":\"2026-09-12T05:00:00.000Z\",\"orderNo\":\"SO-0868\",\"orderTotalPaise\":1773600,\"retailerId\":\"5ea5255a-59c1-77ba-866c-609044"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/retailers?limit=500&activeOnly=true",
+  "body": "{\"items\":[{\"id\":\"06cf7ea6-f74a-76d8-a747-248696740a46\",\"name\":\"Khan General Store\",\"ownerName\":\"Nasreen Khan\",\"phone\":\"+918976068981\",\"altPhone\":null,\"address\":{\"line1\":\"Shop 14, Nandivli Road\",\"area\":\"Kolsewadi, Kalyan East\",\"city\":\"Kalyan\",\"pincode\":\"421306\"},\"lat\":19.237037,\"lng\":73.143453,\"beatId\":\"f2438ce1-a8be-74fb-b30f-aaaca4621b4e\",\"gstRegType\":\"unregistered\",\"gstin\":null,\"stateCode\":\"27\",\"paymentTerms\":\"ON\",\"cashDiscountBps\":0,\"cashDiscountDays\":0,\"active\":true,\"code\":\"R-0046\",\"identityId\":null,\"tier\":\"D\",\"creditLimitPaise\":0,\"creditLimitBills\":0,\"creditDays\":0,\"creditMode\":\"stop\",\"on"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/tenancy/staff",
+  "body": "{\"items\":[{\"userId\":\"efde1e76-9785-7827-aff2-6f56ecd33588\",\"username\":\"amit.pawar\",\"name\":\"Amit Pawar\",\"phone\":\"+919810000012\",\"role\":\"salesperson\",\"extraRoles\":[],\"status\":\"active\",\"lastLoginAt\":null},{\"userId\":\"9be27e0e-9211-7be6-9497-4bee998843a3\",\"username\":\"amol.vaidya\",\"name\":\"Amol Vaidya\",\"phone\":\"+919810000006\",\"role\":\"accountant\",\"extraRoles\":[],\"status\":\"active\",\"lastLoginAt\":null},{\"userId\":\"37b9b9a6-256c-7cfc-8a28-bce1f59052aa\",\"username\":\"anil.tarsun\",\"name\":\"Anil Tarsun\",\"phone\":\"+919810000004\",\"role\":\"owner\",\"extraRoles\":[],\"status\":\"active\",\"lastLoginAt\":null},{\"userId\":\"5b6fbe"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/reporting/series/sales?grain=day&from=2026-08-29&to=2026-09-27&compare=previousPeriod",
+  "body": "{\"metric\":\"invoiced\",\"grain\":\"day\",\"unit\":\"paise\",\"from\":\"2026-08-29\",\"to\":\"2026-09-27\",\"compare\":\"previousPeriod\",\"groupBy\":null,\"asOf\":\"2026-09-13T07:10:20.337Z\",\"points\":[{\"bucket\":\"2026-08-29\",\"value\":12351000,\"previous\":18843200},{\"bucket\":\"2026-08-30\",\"value\":0,\"previous\":27253900},{\"bucket\":\"2026-08-31\",\"value\":22058200,\"previous\":21781750},{\"bucket\":\"2026-09-01\",\"value\":21061000,\"previous\":null},{\"bucket\":\"2026-09-02\",\"value\":11296300,\"previous\":20771400},{\"bucket\":\"2026-09-03\",\"value\":10722300,\"previous\":12815800},{\"bucket\":\"2026-09-04\",\"value\":19989100,\"previous\":12199100},{\"bucket\":"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/reporting/series/brand-mix?from=2026-09-01&to=2026-09-27&topGroups=4",
+  "body": "{\"metric\":\"invoiced\",\"grain\":\"month\",\"unit\":\"paise\",\"from\":\"2026-09-01\",\"to\":\"2026-09-27\",\"compare\":\"none\",\"groupBy\":\"brand\",\"asOf\":\"2026-09-13T07:10:20.337Z\",\"points\":[{\"bucket\":\"2026-09-01\",\"value\":197254300,\"previous\":null}],\"groups\":[{\"key\":\"215e2935-1509-71d7-b3e9-9b23bca6ec3f\",\"name\":\"Campa\",\"points\":[{\"bucket\":\"2026-09-01\",\"value\":50024511,\"previous\":null}]},{\"key\":\"a4ebffdb-e802-75e9-9614-d605563a9e65\",\"name\":\"Sunbake\",\"points\":[{\"bucket\":\"2026-09-01\",\"value\":29307909,\"previous\":null}]},{\"key\":\"779361b4-0399-7c3c-abde-7675e66c031c\",\"name\":\"Godavari\",\"points\":[{\"bucket\":\"2026-09-01\",\"va"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/storage/tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/branding/logo.jpg?expires=1790604502&signature=b69ae93d2351932647da5ec0f054e7034a404bd99f81fbec53da52b15521a0f8",
+  "body": "����\u0000\u0010JFIF\u0000\u0001\u0001\u0000\u0000�\u0000�\u0000\u0000��\u00012Exif\u0000\u0000MM\u0000*\u0000\u0000\u0000\b\u0000\u0007\u0001\u000e\u0000\u0002\u0000\u0000\u0000\u000b\u0000\u0000\u0000b\u0001\u0012\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0001\u001a\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0000n\u0001\u001b\u0000\u0005\u0000\u0000\u0000\u0001\u0000\u0000\u0000v\u0001(\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0002\u0000\u0000\u00012\u0000\u0002\u0000\u0000\u0000\u0014\u0000\u0000\u0000~�i\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0000�\u0000\u0000\u0000\u0000Screenshot\u0000\u0000\u0000\u0000\u0000�\u0000\u0000\u0000\u0001\u0000\u0000\u0000�\u0000\u0000\u0000\u00012026:09:06 10:01:02\u0000\u0000\t�\u0000\u0000\u0007\u0000\u0000\u0000\u00040221�\u0003\u0000\u0002\u0000\u0000\u0000\u0014\u0000\u0000\u0001\u0004�\u0001\u0000\u0007\u0000\u0000\u0000\u0004\u0001\u0002\u0003\u0000��\u0000\u0007\u0000\u0000\u0000\u0012\u0000\u0000\u0001\u0018�\u0000\u0000\u0007\u0000\u0000\u0000\u00040100�\u0001\u0000\u0003\u0000\u0000\u0000\u0001��\u0000\u0000�\u0002\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0001h�\u0003\u0000\u0004\u0000\u0000\u0000\u0001\u0000\u0000\u0000��\u0006\u0000\u0003\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00002026:09:06 10:01:02\u0000ASCII\u0000\u0000\u0000Screenshot��\u0000nPhotoshop 3.0\u00008BIM\u0004\u0004\u0000\u0000\u0000\u0000\u00006\u001c\u0001Z\u0000\u0003\u001b%G\u001c\u0002\u0000\u0000\u0002\u0000\u0002\u001c\u0002x\u0000\nScreenshot\u001c\u0002<\u0000\u0006100102\u001c\u00027\u0000\b202609068BIM\u0004%\u0000\u0000\u0000\u0000\u0000\u0010[g���,���M��ϛ^\u0005��\u0002(ICC_PROFILE\u0000\u0001\u0001\u0000\u0000\u0002\u0018appl\u0004\u0000\u0000\u0000mntrRGB XYZ \u0007�\u0000\u0001\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000acspAPPL\u0000\u0000\u0000\u0000APPL\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000��\u0000\u0001\u0000\u0000\u0000\u0000�-appl����8�G�m��Oz�\u0018/\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\ndesc\u0000\u0000\u0000�\u0000\u0000\u0000"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/pricing/bargains?status=requested&limit=5",
+  "body": "{\"items\":[{\"id\":\"011d0c51-293c-7e9b-bf53-b5b035898d9c\",\"retailerId\":\"d7f09885-489b-73cb-ab29-169334b5eca5\",\"variantId\":\"4454fb4a-3e82-718d-bf36-ad3c09f84c2a\",\"orderId\":null,\"requestedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"listRatePaise\":4102,\"askedRatePaise\":3958,\"approvedRatePaise\":null,\"status\":\"requested\",\"decidedBy\":null,\"decidedAt\":null,\"expiresAt\":\"2026-09-15T12:30:00.000Z\",\"note\":null,\"createdAt\":\"2026-09-12T05:45:00.000Z\"},{\"id\":\"1221ccf5-aa42-7f60-9557-2eedce569b87\",\"retailerId\":\"34ce3241-c275-7cc5-bc44-cd7856930d50\",\"variantId\":\"f71bf137-50de-7182-a0d9-c83f1a613a57\",\"orderId\":nu"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/reporting/dashboard/owner",
+  "body": "{\"asOf\":\"2026-09-12T12:30:00.000Z\",\"todayInvoicedPaise\":15014700,\"todayCreditedPaise\":0,\"todayCollectedPaise\":44979367,\"todayOrdersCount\":0,\"todayDeliveredStops\":0,\"todayFailedStops\":0,\"cashInTransitPaise\":0,\"totalOutstandingPaise\":442437400,\"overduePaise\":268691700,\"onAccountPaise\":3508000,\"ageing\":{\"b0_7\":232749100,\"b8_15\":67632650,\"b16_30\":78676350,\"b31_60\":50059000,\"b61_90\":9805900,\"b90plus\":3514400},\"mtdSalesPaise\":196963100,\"mtdCreditedPaise\":291200,\"mtdGrossMarginPaise\":8253838,\"stockValuePaise\":237641659,\"nearExpiryValuePaise\":16770114,\"pendingApprovals\":5,\"activeTrips\":2,\"last7Days\":["
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/inventory/locations?activeOnly=true",
+  "body": "{\"items\":[{\"id\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"kind\":\"warehouse\",\"name\":\"Godown\",\"vehicleId\":null,\"negativeAllowed\":false,\"active\":true},{\"id\":\"3bbe6b52-7dd7-7540-aad6-94ff815e8d8b\",\"kind\":\"vehicle\",\"name\":\"Vehicle MH-05-AB-1234\",\"vehicleId\":\"ed6a6781-433c-77fe-9319-7da08b1bdd97\",\"negativeAllowed\":false,\"active\":true},{\"id\":\"7e8fe8ac-a7b5-7531-8def-b362624790ba\",\"kind\":\"vehicle\",\"name\":\"Vehicle MH-05-CD-5678\",\"vehicleId\":\"413b0f64-671f-74a5-9616-b57959bac0e5\",\"negativeAllowed\":false,\"active\":true},{\"id\":\"2c7b4801-3f88-77d1-8a25-7e903891f265\",\"kind\":\"vehicle\",\"name\":\"Vehicle MH-05-EF-9"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/approvals?status=pending&limit=5",
+  "body": "{\"items\":[{\"id\":\"94b9dc4a-513f-7c54-a4e8-2531add6fbc4\",\"kind\":\"credit_limit\",\"orderId\":\"3efdbf77-02ab-745b-92d0-a175744f6761\",\"entityType\":\"retailer\",\"entityId\":\"5ea5255a-59c1-77ba-866c-6090446e2a38\",\"requestedBy\":\"8760e17e-4830-7395-a946-1e02fffa1ad7\",\"status\":\"pending\",\"payload\":{\"reason\":\"Festive season stocking, retailer asked for a temporary bump.\",\"currentLimitPaise\":15000000,\"requestedLimitPaise\":17000000},\"decidedBy\":null,\"decidedAt\":null,\"decisionNote\":null,\"createdAt\":\"2026-09-12T05:00:00.000Z\",\"orderNo\":\"SO-0868\",\"orderTotalPaise\":1773600,\"retailerId\":\"5ea5255a-59c1-77ba-866c-609044"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/inventory/balances?nonZero=true&sort=item&limit=100",
+  "body": "{\"items\":[{\"lotId\":\"1bbd3f54-75e8-7c70-8c98-c3c49f1ce4fc\",\"variantId\":\"03ddc45e-c10a-7adb-a00d-669f8c90996a\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"batchNo\":\"AN20260718\",\"mrpPaise\":13500,\"expiryDate\":\"2027-04-14\",\"onHand\":3,\"reserved\":0,\"version\":1,\"variantName\":\"Annapurna Basmati Classic 1 kg\",\"productName\":\"Annapurna Basmati Classic\"},{\"lotId\":\"3011a333-f5c2-724c-a9fd-cc67119de2ad\",\"variantId\":\"03ddc45e-c10a-7adb-a00d-669f8c90996a\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"batchNo\":\"B20260729\",\"mrpPaise\":13500,\"expiryDate\":\"2027-04-25\",\"onHand\":4,\"reserved\":0,\"versio"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/reporting/registers/stock-value?limit=1",
+  "body": "{\"items\":[{\"variantId\":\"00991e15-fd1e-7637-a093-bfec3e357a26\",\"variantName\":\"Chamak Detergent Bar 250 g · Chamak\",\"brandId\":\"c12995d6-092a-761a-96bd-a89df7a2ad73\",\"brandName\":\"Chamak\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"locationName\":\"Godown\",\"onHandPcs\":480,\"avgCostPaise\":1231,\"valuePaise\":590880,\"nearestExpiryDate\":\"2028-06-03\",\"nearExpiryValuePaise\":0}],\"nextCursor\":\"00991e15-fd1e-7637-a093-bfec3e357a26|01a0999a-28e0-7224-8c93-c81b22069a0d\",\"totals\":{\"onHandPcs\":87593,\"valuePaise\":238246123,\"nearExpiryValuePaise\":22244484},\"byBrand\":[{\"brandId\":\"7845dad6-75b8-785b-a6fc-6e10"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/inventory/balances?nonZero=true&sort=item&q=Cow+Ghee+200&limit=100",
+  "body": "{\"items\":[{\"lotId\":\"1b32d126-661b-7b07-a554-7e37570337c7\",\"variantId\":\"5d753cbd-df89-7009-b820-fb0b481129ca\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"batchNo\":\"GD20260804\",\"mrpPaise\":16500,\"expiryDate\":\"2027-08-04\",\"onHand\":4,\"reserved\":0,\"version\":1,\"variantName\":\"Godavari Cow Ghee 200 ml\",\"productName\":\"Godavari Cow Ghee\"},{\"lotId\":\"7654860f-3a84-7848-9951-874fd708feca\",\"variantId\":\"5d753cbd-df89-7009-b820-fb0b481129ca\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"batchNo\":\"B20260902\",\"mrpPaise\":16500,\"expiryDate\":\"2027-09-02\",\"onHand\":307,\"reserved\":0,\"version\":3,\"varian"
+ },
+ {
+  "status": 200,
+  "method": "GET",
+  "url": "/owner/inventory/ledger?limit=200",
+  "body": "{\"items\":[{\"id\":\"581e3cf8-c69d-4923-a27d-2a4734551ae6\",\"occurredAt\":\"2026-09-27T13:58:02.103Z\",\"lotId\":\"7654860f-3a84-7848-9951-874fd708feca\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"qtyDelta\":48,\"reason\":\"adjustment\",\"refType\":\"invoice_cancel\",\"refId\":\"4b1fb55a-5812-7f04-89ed-7882e470499a\",\"actorId\":\"a1cbd424-d568-7ccb-b5cc-b049e8ac2063\",\"note\":\"cancelled invoice INV/0831\"},{\"id\":\"01a0e328-1da2-72b8-ae75-9546ecba0605\",\"occurredAt\":\"2026-09-27T13:57:32.194Z\",\"lotId\":\"b38a6292-6e58-77ac-ae85-a942fe87a829\",\"locationId\":\"01a0999a-28e0-7224-8c93-c81b22069a0d\",\"qtyDelta\":15,\"reason\":\"tr"
+ }
+]
