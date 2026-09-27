@@ -974,3 +974,14 @@ One lane (`worktree-wf_be1f8178-550-26`) merged `--no-ff` into main, no conflict
 | 2026-09-26 | DOS-242 | A returned piece is credited at what the shop paid for it (the line's taxable after schemes), never the list rate | 1afb47d1 |
 | 2026-09-26 | DOS-244 | The godown's van check-in names the came-back bill and puts its pieces on the dock (`vanReturns` / `unload`), so they no longer vanish from the van count | 1afb47d1 |
 | 2026-09-26 | DOS-245 | A credit note its own bill cannot take is the shop's money on account, so outstanding + undelivered - on account = AR holds after a return on a paid bill | 1afb47d1 |
+
+### 2026-09-26 — day6 fixes merged to main (417cb302)
+
+One lane (`worktree-wf_be1f8178-550-30`) merged `--no-ff` into main, no conflicts; one migration, 0068 (`dock_holds_per_bill_backfill`, hand-written back-fill); contract additions expand-only (StageDockOutput items + orderId/orderNo/invoiceNo/retailerName; InvoiceDetail.awaitingDispatch). Gates on main after the merge: backend lint, typecheck, build, docs:readme:check green; backend tests 3 022 passed / 3 skipped on a migrated and seeded copy of the template (`dos_test_integ_day6`, dropped after; before the seed the same 4 seed-dependent specs in examples.spec / extra-roles-wire.spec failed, as on day5); frontend lint, typecheck green, tests 1 271 passed; `expo export --platform web` bundled (1 307 modules); `pnpm format` changed nothing.
+
+| Date | Id | Fix | Merge commit |
+|---|---|---|---|
+| 2026-09-26 | DOS-247 | The dock holds each bill's packed pieces; load-out and Bring them from the godown cover a bill from its own holds, never another bill's, and name the bill they are short for (0068 back-fills holds) | 417cb302 |
+| 2026-09-26 | DOS-248 | A goods credit note on a bill that never left the godown is whole-bill only (Billing: Could not send it — credit the whole bill); moves back what the dock holds, cancels the order, money on account | 417cb302 |
+| 2026-09-26 | DOS-251 | Cancelling a packed bill moves its pieces dock to godown, or refuses (409 dock_short, lot and shortfall named); never an invented adjustment | 417cb302 |
+| 2026-09-26 | DOS-252 | A line shorted to nothing at pick is not billed: pack reads every recorded pick row, packs 0, and an order with nothing picked is refused | 417cb302 |
