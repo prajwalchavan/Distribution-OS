@@ -1,0 +1,20 @@
+ invoice_no |           item           |  batch_no   | pack_rows | bill_rows | cancel_rows | writeoff_rows 
+------------+--------------------------+-------------+-----------+-----------+-------------+---------------
+ INV/0831   | Campa Orange 500 ml      | RCP20260807 |         0 |         0 |           0 |             0
+ INV/0831   | Godavari Cow Ghee 200 ml | B20260902   |         0 |         0 |          48 |           -48
+ INV/9002   | Campa Cola 750 ml        | B20260515   |         0 |       -72 |          72 |             0
+(3 rows)
+
+  name  | on_hand 
+--------+---------
+ Godown |     259
+(1 row)
+
+     created_at      |  name  |   reason    | qty_delta |        ref_type         |                                                                   note                                                                   
+---------------------+--------+-------------+-----------+-------------------------+------------------------------------------------------------------------------------------------------------------------------------------
+ 2026-09-27 19:39:04 | Godown | adjustment  |       -48 | invoice_cancel_writeoff | 48 pc that cancelling INV/0831 put back here were never taken off the dock, so they never existed: taken off again (QA DOS-251, DOS-257)
+ 2026-09-27 19:28:02 | Godown | adjustment  |        48 | invoice_cancel          | cancelled invoice INV/0831
+ 2026-09-27 19:27:32 | Godown | transfer_in |        48 | invoice_cancel          | cancelled invoice INV/0831
+ 2026-09-13 12:40:15 | Godown | sale        |       -72 | pack                    | 
+(4 rows)
+

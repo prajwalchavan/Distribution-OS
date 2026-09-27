@@ -1,0 +1,60 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Godavari Cow Ghee 200 ml · Godown
+Batch GD20260804
+4
+Godavari Cow Ghee 200 ml · Godown
+Batch B20260902
+259
+Godavari Cow Ghee 200 ml · Godown
+Batch GD20260816
+24
+Godavari Cow Ghee 200 ml · Godown
+Batch GD20260702
+1
+Godavari Cow Ghee 200 ml · Vehicle MH-05-AB-1234
+Batch GD20260702
+5
+5 batches · Click a row to adjust that batch.
+Cycle counts
+Today
+Orders
+Money
+Shops

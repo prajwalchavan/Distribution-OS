@@ -2002,8 +2002,8 @@ export class BillingService {
    * A CANCEL BEFORE DISPATCH TAKES THEM OFF THE DOCK (QA DOS-195), it does not conjure them. A pack bill
    * can only be cancelled while its order is still `packed`, which is exactly while its pieces are
    * standing in the tenant's in-transit location: so the compensating pair is dock → godown, a real
-   * movement of the cartons back to the rack. Only a bill whose goods were never staged there — an
-   * imported or opening-balance bill — gets the plain `adjustment` it always did.
+   * movement of the cartons back to the rack. A bill whose goods were never staged there (a van sale) gets
+   * back exactly what its own `invoice` rows took, as an `adjustment` — and nothing when they took nothing.
    *
    * AND WHEN THE DOCK DOES NOT HOLD THEM, NOTHING IS CANCELLED (QA DOS-251). This used to test "is the whole
    * lot on the dock" and, when it was not, fall back to that `adjustment`: INV/9034's toor had been loaded for
@@ -2069,40 +2069,37 @@ export class BillingService {
       }
       return
     }
-    const dock = await dockLocationId(tx)
-    const onTheDock = await this.inventory.onHandAt(tx, dock)
+    /*
+     * ANY OTHER BILL GIVES BACK WHAT IT TOOK, READ OFF ITS OWN LEDGER ROWS (QA DOS-257). A bill that is not a
+     * pack bill took its pieces under its own ref (`ref_type = 'invoice'`: a van sale's `sale` out of the
+     * vehicle), so the cancel puts back exactly those, per lot, and nothing a bill never took. It used to
+     * restock the INVOICE LINES — pieces conjured for a bill whose lines carry a lot but whose goods never
+     * left under it — and, whenever the dock happened to hold as many of a lot, to move THOSE: another bill's
+     * packed cartons, taken off the dock for a bill that never stood there. Migration 0071 refuses both at
+     * commit; this is the code not asking.
+     */
+    const taken = new Map<string, number>()
+    for (const row of await this.inventory.ledgerRowsByRef(tx, {
+      refType: 'invoice',
+      refId: invoice.id,
+    })) {
+      if (!byLot.has(row.lotId)) continue
+      taken.set(row.lotId, (taken.get(row.lotId) ?? 0) - row.qtyDelta)
+    }
     await this.inventory.post(
       tx,
-      [...byLot].flatMap(([lotId, qty]) => {
-        // The whole lot has to be standing on the dock for this to be a movement: a partial match means
-        // the bill was never staged there (an import, an opening balance), and that gets the plain
-        // compensating row it always did.
-        const staged = (onTheDock.get(lotId) ?? 0) >= qty
-        const back = {
+      [...taken]
+        .filter(([, qty]) => qty > 0)
+        .map(([lotId, qty]) => ({
           lotId,
           locationId,
           qtyDelta: qty,
-          reason: staged ? ('transfer_in' as const) : ('adjustment' as const),
+          reason: 'adjustment' as const,
           refType: 'invoice_cancel',
           refId: invoice.id,
           idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:${locationId}`,
           note,
-        }
-        if (!staged) return [back]
-        return [
-          {
-            lotId,
-            locationId: dock,
-            qtyDelta: -qty,
-            reason: 'transfer_out' as const,
-            refType: 'invoice_cancel',
-            refId: invoice.id,
-            idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:dock`,
-            note,
-          },
-          back,
-        ]
-      }),
+        })),
     )
   }
 

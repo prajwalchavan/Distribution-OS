@@ -1,0 +1,102 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.2L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,82,461.23
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Location	Expiry	On hand	Held	Sellable	MRP ₹
+
+Godavari Cow Ghee 200 ml
+	
+GD20260804
+	
+Godown
+	
+4 Aug 2027
+	4	0	4	165.00
+
+Godavari Cow Ghee 200 ml
+	
+B20260902
+	
+Godown
+	
+2 Sep 2027
+	307	0	307	165.00
+
+Godavari Cow Ghee 200 ml
+	
+GD20260816
+	
+Godown
+	
+16 Aug 2027
+	24	0	24	165.00
+
+Godavari Cow Ghee 200 ml
+	
+GD20260702
+	
+Godown
+	
+2 Jul 2027
+	1	0	1	165.00
+
+Godavari Cow Ghee 200 ml
+	
+GD20260702
+	
+Vehicle MH-05-AB-1234
+	
+2 Jul 2027
+	5	0	5	165.00
+5 batches							
+5 batches · Click a row to adjust that batch.
+Cycle counts

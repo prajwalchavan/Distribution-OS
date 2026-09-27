@@ -1,0 +1,3 @@
+$ pnpm --filter @dos/db migrate
+$ tsx src/migrate.ts
+migrations applied

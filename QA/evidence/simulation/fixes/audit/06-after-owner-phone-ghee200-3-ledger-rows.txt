@@ -1,0 +1,644 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,416.59
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+27 Sep, 7:39 pm
+Adjusted by hand
+-48
+27 Sep, 7:28 pm
+Adjusted by hand
+48
+27 Sep, 7:27 pm
+Brought in
+15
+27 Sep, 7:27 pm
+Sent out
+-15
+27 Sep, 7:27 pm
+Brought in
+48
+27 Sep, 7:27 pm
+Sent out
+-48
+27 Sep, 7:22 pm
+Brought in
+240
+27 Sep, 7:22 pm
+Sent out
+-240
+12 Sep, 11:30 am
+Sold
+-150
+12 Sep, 11:30 am
+Sold
+-168
+12 Sep, 11:30 am
+Brought in
+840
+12 Sep, 11:30 am
+Sold
+-312
+12 Sep, 11:30 am
+Brought in
+48
+12 Sep, 11:30 am
+Brought in
+168
+12 Sep, 11:30 am
+Sold
+-840
+12 Sep, 11:30 am
+Sold
+-24
+12 Sep, 11:30 am
+Brought in
+25
+12 Sep, 11:30 am
+Sold
+-125
+12 Sep, 11:30 am
+Sold
+-250
+12 Sep, 11:30 am
+Sold
+-7
+12 Sep, 11:30 am
+Sold
+-330
+12 Sep, 11:30 am
+Brought in
+312
+12 Sep, 11:30 am
+Sold
+-230
+12 Sep, 11:30 am
+Brought in
+648
+12 Sep, 11:30 am
+Brought in
+150
+12 Sep, 11:30 am
+Sold
+-50
+12 Sep, 11:30 am
+Brought in
+50
+12 Sep, 11:30 am
+Brought in
+100
+12 Sep, 11:30 am
+Sold
+-648
+12 Sep, 11:30 am
+Brought in
+330
+12 Sep, 11:30 am
+Sold
+-720
+12 Sep, 11:30 am
+Brought in
+4
+12 Sep, 11:30 am
+Sold
+-100
+12 Sep, 11:30 am
+Brought in
+216
+12 Sep, 11:30 am
+Brought in
+720
+12 Sep, 11:30 am
+Sold
+-75
+12 Sep, 11:30 am
+Sold
+-42
+12 Sep, 11:30 am
+Brought in
+60
+12 Sep, 11:30 am
+Sold
+-48
+12 Sep, 11:30 am
+Brought in
+25
+12 Sep, 11:30 am
+Brought in
+42
+12 Sep, 11:30 am
+Sold
+-390
+12 Sep, 11:30 am
+Brought in
+230
+12 Sep, 11:30 am
+Brought in
+7
+12 Sep, 11:30 am
+Brought in
+48
+12 Sep, 11:30 am
+Sold
+-175
+12 Sep, 11:30 am
+Sold
+-25
+12 Sep, 11:30 am
+Sold
+-624
+12 Sep, 11:30 am
+Brought in
+125
+12 Sep, 11:30 am
+Sold
+-60
+12 Sep, 11:30 am
+Sold
+-216
+12 Sep, 11:30 am
+Sold
+-240
+12 Sep, 11:30 am
+Brought in
+75
+12 Sep, 11:30 am
+Brought in
+250
+12 Sep, 11:30 am
+Sold
+-25
+12 Sep, 11:30 am
+Brought in
+175
+12 Sep, 11:30 am
+Sold
+-4
+12 Sep, 11:30 am
+Brought in
+390
+12 Sep, 11:30 am
+Brought in
+624
+12 Sep, 11:30 am
+Brought in
+24
+12 Sep, 11:30 am
+Brought in
+240
+12 Sep, 11:30 am
+Sold
+-48
+12 Sep, 10:20 am
+Sold
+-5
+12 Sep, 10:20 am
+Sold
+-96
+12 Sep, 9:40 am
+Sold
+-8
+12 Sep, 9:40 am
+Sold
+-24
+12 Sep, 9:40 am
+Sold
+-21
+12 Sep, 9:40 am
+Sold
+-72
+12 Sep, 9:20 am
+Sold
+-192
+12 Sep, 9:20 am
+Sold
+-324
+12 Sep, 9:20 am
+Sold
+-240
+12 Sep, 9:20 am
+Sold
+-250
+12 Sep, 9:20 am
+Sold
+-384
+12 Sep, 9:20 am
+Sold
+-360
+12 Sep, 8:40 am
+Loaded on a van
+-48
+12 Sep, 8:40 am
+Loaded on a van
+-24
+12 Sep, 8:40 am
+Loaded on a van
+48
+12 Sep, 8:40 am
+Loaded on a van
+-48
+12 Sep, 8:40 am
+Loaded on a van
+24
+12 Sep, 8:40 am
+Loaded on a van
+48
+12 Sep, 8:40 am
+Loaded on a van
+24
+12 Sep, 8:40 am
+Loaded on a van
+-24
+12 Sep, 8:40 am
+Loaded on a van
+-24
+12 Sep, 8:40 am
+Loaded on a van
+24
+12 Sep, 8:40 am
+Loaded on a van
+-24
+12 Sep, 8:40 am
+Loaded on a van
+24
+12 Sep, 8:30 am
+Cycle count
+30
+12 Sep, 8:30 am
+Cycle count
+20
+12 Sep, 8:30 am
+Cycle count
+54
+12 Sep, 8:30 am
+Cycle count
+54
+12 Sep, 8:30 am
+Cycle count
+96
+12 Sep, 8:30 am
+Cycle count
+27
+12 Sep, 8:30 am
+Cycle count
+40
+12 Sep, 8:30 am
+Cycle count
+24
+12 Sep, 8:30 am
+Cycle count
+40
+12 Sep, 8:30 am
+Cycle count
+30
+12 Sep, 8:30 am
+Cycle count
+24
+12 Sep, 8:30 am
+Cycle count
+16
+12 Sep, 8:30 am
+Cycle count
+96
+12 Sep, 8:30 am
+Cycle count
+40
+12 Sep, 8:30 am
+Cycle count
+144
+12 Sep, 8:30 am
+Cycle count
+96
+12 Sep, 8:30 am
+Cycle count
+192
+12 Sep, 8:30 am
+Cycle count
+54
+12 Sep, 8:30 am
+Cycle count
+48
+12 Sep, 8:30 am
+Cycle count
+24
+12 Sep, 8:30 am
+Cycle count
+24
+11 Sep, 12:15 pm
+Sent out
+-24
+11 Sep, 12:15 pm
+Sent out
+-288
+11 Sep, 12:15 pm
+Sent out
+-216
+11 Sep, 12:15 pm
+Brought in
+16
+11 Sep, 12:15 pm
+Sent out
+-50
+11 Sep, 12:15 pm
+Brought in
+300
+11 Sep, 12:15 pm
+Sent out
+-144
+11 Sep, 12:15 pm
+Sent out
+-117
+11 Sep, 12:15 pm
+Brought in
+72
+11 Sep, 12:15 pm
+Sent out
+-192
+11 Sep, 12:15 pm
+Sent out
+-156
+11 Sep, 12:15 pm
+Brought in
+144
+11 Sep, 12:15 pm
+Brought in
+25
+11 Sep, 12:15 pm
+Brought in
+11
+11 Sep, 12:15 pm
+Sent out
+-300
+11 Sep, 12:15 pm
+Sent out
+-162
+11 Sep, 12:15 pm
+Sent out
+-75
+11 Sep, 12:15 pm
+Brought in
+324
+11 Sep, 12:15 pm
+Sent out
+-360
+11 Sep, 12:15 pm
+Brought in
+25
+11 Sep, 12:15 pm
+Brought in
+288
+11 Sep, 12:15 pm
+Brought in
+21
+11 Sep, 12:15 pm
+Brought in
+48
+11 Sep, 12:15 pm
+Sent out
+-96
+11 Sep, 12:15 pm
+Brought in
+250
+11 Sep, 12:15 pm
+Brought in
+75
+11 Sep, 12:15 pm
+Brought in
+96
+11 Sep, 12:15 pm
+Sent out
+-24
+11 Sep, 12:15 pm
+Sent out
+-192
+11 Sep, 12:15 pm
+Sent out
+-34
+11 Sep, 12:15 pm
+Brought in
+5
+11 Sep, 12:15 pm
+Sent out
+-25
+11 Sep, 12:15 pm
+Brought in
+8
+11 Sep, 12:15 pm
+Sent out
+-240
+11 Sep, 12:15 pm
+Brought in
+162
+11 Sep, 12:15 pm
+Sent out
+-288
+11 Sep, 12:15 pm
+Brought in
+384
+11 Sep, 12:15 pm
+Brought in
+9
+11 Sep, 12:15 pm
+Sent out
+-9
+11 Sep, 12:15 pm
+Sent out
+-135
+11 Sep, 12:15 pm
+Sent out
+-8
+11 Sep, 12:15 pm
+Brought in
+360
+11 Sep, 12:15 pm
+Sent out
+-384
+11 Sep, 12:15 pm
+Brought in
+24
+11 Sep, 12:15 pm
+Brought in
+34
+11 Sep, 12:15 pm
+Sent out
+-11
+11 Sep, 12:15 pm
+Sent out
+-36
+11 Sep, 12:15 pm
+Sent out
+-36
+11 Sep, 12:15 pm
+Brought in
+240
+11 Sep, 12:15 pm
+Sent out
+-12
+11 Sep, 12:15 pm
+Sent out
+-120
+11 Sep, 12:15 pm
+Brought in
+432
+11 Sep, 12:15 pm
+Brought in
+96
+11 Sep, 12:15 pm
+Brought in
+36
+11 Sep, 12:15 pm
+Sent out
+-63
+11 Sep, 12:15 pm
+Brought in
+36
+11 Sep, 12:15 pm
+Brought in
+12
+11 Sep, 12:15 pm
+Sent out
+-81
+11 Sep, 12:15 pm
+Sent out
+-96
+11 Sep, 12:15 pm
+Sent out
+-25
+11 Sep, 12:15 pm
+Brought in
+156
+11 Sep, 12:15 pm
+Brought in
+5
+11 Sep, 12:15 pm
+Brought in
+72
+11 Sep, 12:15 pm
+Brought in
+192
+11 Sep, 12:15 pm
+Brought in
+100
+11 Sep, 12:15 pm
+Brought in
+216
+11 Sep, 12:15 pm
+Brought in
+63
+11 Sep, 12:15 pm
+Sent out
+-275
+11 Sep, 12:15 pm
+Brought in
+288
+11 Sep, 12:15 pm
+Sent out
+-16
+11 Sep, 12:15 pm
+Brought in
+81
+11 Sep, 12:15 pm
+Sent out
+-60
+11 Sep, 12:15 pm
+Sent out
+-21
+11 Sep, 12:15 pm
+Brought in
+24
+11 Sep, 12:15 pm
+Brought in
+75
+11 Sep, 12:15 pm
+Brought in
+24
+11 Sep, 12:15 pm
+Sent out
+-100
+11 Sep, 12:15 pm
+Sent out
+-72
+11 Sep, 12:15 pm
+Sent out
+-24
+11 Sep, 12:15 pm
+Sent out
+-432
+11 Sep, 12:15 pm
+Sent out
+-48
+11 Sep, 12:15 pm
+Sent out
+-250
+11 Sep, 12:15 pm
+Sent out
+-5
+11 Sep, 12:15 pm
+Sent out
+-5
+11 Sep, 12:15 pm
+Brought in
+60
+11 Sep, 12:15 pm
+Sent out
+-75
+11 Sep, 12:15 pm
+Sent out
+-324
+11 Sep, 12:15 pm
+Brought in
+50
+11 Sep, 12:15 pm
+Brought in
+135
+11 Sep, 12:15 pm
+Brought in
+275
+11 Sep, 12:15 pm
+Brought in
+192
+11 Sep, 12:15 pm
+Brought in
+120
+11 Sep, 12:15 pm
+Brought in
+117
+Cycle counts
+Today
+Orders
+Money
+Shops

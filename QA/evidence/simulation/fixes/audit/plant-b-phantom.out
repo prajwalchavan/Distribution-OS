@@ -1,0 +1,10 @@
+BEGIN
+SELECT 1
+INSERT 0 1
+UPDATE 1
+COMMIT
+  name  | on_hand 
+--------+---------
+ Godown |     307
+(1 row)
+

@@ -1,0 +1,20 @@
+BEGIN
+              set_config              | set_config 
+--------------------------------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | manager
+(1 row)
+
+              set_config              
+--------------------------------------
+ a1cbd424-d568-7ccb-b5cc-b049e8ac2063
+(1 row)
+
+SET
+INSERT 0 1
+psql:refuse-phantom.sql:14: ERROR:  cancelling invoice 4b1fb55a-5812-7f04-89ed-7882e470499a would leave 12 pc of lot 7654860f-3a84-7848-9951-874fd708feca in stock beyond what the bill itself moved: a cancel only takes back the bill's own pieces, it never makes or loses stock (QA DOS-257)
+CONTEXT:  PL/pgSQL function dos_invoice_cancel_leaves_nothing() line 18 at RAISE
+ rows_with_that_key 
+--------------------
+                  0
+(1 row)
+
