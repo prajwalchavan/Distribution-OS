@@ -23,6 +23,7 @@ import type { EnqueueInput, OutboxRow } from '@dos/offline'
 import { useCallback, useEffect } from 'react'
 
 import { deviceId } from '../../../api'
+import { piecesOfEntered, wireOf } from './lines'
 import type { CatalogItem } from './local'
 import type { DraftLine } from './pricing'
 
@@ -65,17 +66,21 @@ export function useEnqueueOrder(): (input: QueueOrderInput) => Promise<void> {
       }
       const lines = input.lines
         .filter((line) => line.qtyPcs > 0)
-        .map((line): EnqueueInput => ({
-          table: 'sales_order_lines',
-          id: line.id,
-          op: 'PUT',
-          data: {
-            order_id: input.orderId,
-            variant_id: line.variantId,
-            entered_qty: line.enteredQty,
-            entered_unit: line.enteredUnit,
-          },
-        }))
+        .map((line): EnqueueInput => {
+          // DOS-227: the pieces the screen priced, whatever unit the draft line remembers.
+          const wire = wireOf(line, input.catalog.get(line.variantId)?.caseSize ?? 1)
+          return {
+            table: 'sales_order_lines',
+            id: line.id,
+            op: 'PUT',
+            data: {
+              order_id: input.orderId,
+              variant_id: line.variantId,
+              entered_qty: wire.enteredQty,
+              entered_unit: wire.enteredUnit,
+            },
+          }
+        })
       await outbox.enqueueMany([header, ...lines])
     },
     [outbox],
@@ -94,7 +99,7 @@ export function piecesOfLine(
   caseSize: number,
 ): number {
   if (line.qty_pcs !== null && line.qty_pcs > 0) return line.qty_pcs
-  return line.entered_unit === 'case' ? line.entered_qty * Math.max(1, caseSize) : line.entered_qty
+  return piecesOfEntered(line.entered_qty, line.entered_unit, caseSize)
 }
 
 /**
