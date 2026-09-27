@@ -8,10 +8,13 @@
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
+  Box,
   Button,
   ErrorState,
   EmptyState,
+  ListRow,
   Money,
+  Pressable,
   Row,
   Segments,
   Skeleton,
@@ -231,14 +234,20 @@ export function PageTabs({ group, active }: { group: string; active: string }): 
 
 export type { RangeId } from './dates'
 
-/** The 7 / 30 / 90 / FY switch every register and every chart on this app offers. */
+/**
+ * The 7 / 30 / 90 / FY switch every register and every chart on this app offers. A register the home's
+ * flow strip opens (orders, bills, receipts) also offers **Today** (UX-O-1, UX-O-5); a chart does not —
+ * one day is one point.
+ */
 export function RangeSegments({
   value,
   onChange,
+  today = false,
   testID,
 }: {
   value: string
   onChange: (id: string) => void
+  today?: boolean
   testID?: string
 }): React.JSX.Element {
   const t = useStrings()
@@ -248,12 +257,167 @@ export function RangeSegments({
       value={value}
       onChange={onChange}
       items={[
+        ...(today ? [{ id: 'today', label: t('app.today') }] : []),
         { id: 'd7', label: t('app.days7') },
         { id: 'd30', label: t('app.days30') },
         { id: 'd90', label: t('app.days90') },
         { id: 'fy', label: t('app.fy') },
       ]}
     />
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Today's flow (UX-O-1)
+// ---------------------------------------------------------------------------
+
+export interface FlowCell {
+  id: string
+  label: string
+  /** "31", "9+" — a count, or "—" while its read has not answered; absent for a step that is only ₹. */
+  count?: string | undefined
+  /** "₹1,28,198.00" — absent for a step that is only a count. */
+  amount?: string | undefined
+  /** One line under the figure: the oldest date, the trip, the split by mode. */
+  meta?: string | undefined
+  /** Holds something older than a day: drawn in ochre. */
+  stale: boolean
+  onPress: () => void
+}
+
+/**
+ * The owner's day as one chain, each link a count and a ₹ that opens its register (UX-O-1). On a desk it
+ * is one row of nine cells with a thin arrow between them; on a phone the same cells are a timeline the
+ * owner scrolls. A cell holding anything older than a day is ochre — that is the money that is stuck.
+ * Composed only from the kit's layout vocabulary: no new component.
+ */
+export function FlowStrip({
+  cells,
+  testID,
+}: {
+  cells: readonly FlowCell[]
+  testID?: string
+}): React.JSX.Element {
+  const colors = useColors()
+  const viewport = useViewport()
+  const ochre = colors.status.ochre.fg
+  if (viewport.kind === 'phone') {
+    return (
+      <Stack testID={testID} border="top" borderTone="hairline">
+        {cells.map((cell) => (
+          <ListRow
+            key={cell.id}
+            testID={`${testID ?? 'flow'}-${cell.id}`}
+            primary={cell.label}
+            secondary={cell.meta}
+            trailing={
+              <Txt
+                field="bodyStrong"
+                desk="body"
+                numeric
+                color={cell.stale ? ochre : colors.text.primary}
+              >
+                {[cell.count, cell.amount].filter((part) => part !== undefined).join(' · ')}
+              </Txt>
+            }
+            onPress={cell.onPress}
+          />
+        ))}
+      </Stack>
+    )
+  }
+  return (
+    <Row
+      gap={1}
+      align="stretch"
+      testID={testID}
+      border="all"
+      borderTone="hairline"
+      background="surface"
+    >
+      {cells.map((cell, i) => (
+        <Row key={cell.id} grow gap={1} align="center">
+          {i === 0 ? null : (
+            <Txt field="label" desk="meta" color={colors.text.tertiary}>
+              ›
+            </Txt>
+          )}
+          <Box grow>
+            <Pressable
+              onPress={cell.onPress}
+              role="link"
+              label={cell.label}
+              minHeight={64}
+              testID={`${testID ?? 'flow'}-${cell.id}`}
+            >
+              <Stack gap={1} padX={2} padY={2}>
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {cell.label}
+                </Txt>
+                {cell.count === undefined ? null : (
+                  <Txt
+                    field="bodyStrong"
+                    desk="body"
+                    numeric
+                    color={cell.stale ? ochre : colors.text.primary}
+                  >
+                    {cell.count}
+                  </Txt>
+                )}
+                {cell.amount === undefined ? null : (
+                  <Txt
+                    field={cell.count === undefined ? 'bodyStrong' : 'body'}
+                    desk="body"
+                    numeric
+                    color={cell.stale ? ochre : colors.text.primary}
+                  >
+                    {cell.amount}
+                  </Txt>
+                )}
+                {cell.meta === undefined ? null : (
+                  <Txt
+                    field="label"
+                    desk="meta"
+                    numeric
+                    color={cell.stale ? ochre : colors.text.secondary}
+                  >
+                    {cell.meta}
+                  </Txt>
+                )}
+              </Stack>
+            </Pressable>
+          </Box>
+        </Row>
+      ))}
+    </Row>
+  )
+}
+
+/**
+ * A "···" button that shows the page's rarely-used actions beside it (UX-O-6: "Rebuild ageing" is a
+ * repair, not a daily action, and sat third among the Money controls on a phone).
+ */
+export function MoreActions({
+  children,
+  testID,
+}: {
+  children: ReactNode
+  testID?: string
+}): React.JSX.Element {
+  const t = useStrings()
+  const [open, setOpen] = useState(false)
+  return (
+    <Row gap={2} align="center" wrap>
+      <Button
+        label={open ? t('app.lessActions') : t('app.moreActions')}
+        variant="ghost"
+        onPress={() => {
+          setOpen((v) => !v)
+        }}
+        testID={testID}
+      />
+      {open ? children : null}
+    </Row>
   )
 }
 

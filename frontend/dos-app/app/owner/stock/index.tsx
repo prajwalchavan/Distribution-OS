@@ -52,6 +52,7 @@ import {
   type RegisterColumn,
 } from '@dos/ui'
 import { platform } from '@dos/ui/platform'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
 import {
@@ -64,7 +65,13 @@ import {
   moneyColumn,
   textColumn,
 } from '../../../src/groups/owner/lib/ui'
-import { instantWithClock, longDate, shiftDays, today } from '../../../src/groups/owner/lib/dates'
+import {
+  instantWithClock,
+  isExpired,
+  longDate,
+  shiftDays,
+  today,
+} from '../../../src/groups/owner/lib/dates'
 import { useWord } from '../../../src/groups/owner/lib/words'
 import { useMorePages, useSettled } from '../../../src/paging'
 import { brandSlices } from '../../../src/stock'
@@ -91,9 +98,16 @@ export default function StockScreen(): React.JSX.Element {
    */
   const phone = useViewport().kind === 'phone' || platform.kind === 'native'
 
+  const params = useLocalSearchParams<{ filter?: string }>()
   const [view, setView] = useState<'balances' | 'ledger'>('balances')
   const [locationId, setLocationId] = useState<string | null>(null)
   const [nearExpiryOnly, setNearExpiryOnly] = useState(false)
+  /*
+   * UX-O-2: the lots already past their date — the home's "Expired, still in the godown" opens here.
+   * `expiringBefore` is inclusive, so yesterday reads "expired before today".
+   */
+  const [expiredOnly, setExpiredOnly] = useState(params.filter === 'expired')
+  const now = today()
   const [search, setSearch] = useState('')
   const q = useSettled(search.trim(), 300)
   const [adjustLot, setAdjustLot] = useState<StockBalanceRow | null>(null)
@@ -114,7 +128,11 @@ export default function StockScreen(): React.JSX.Element {
     sort: 'item' as const,
     ...(q === '' ? {} : { q }),
     ...(locationId === null ? {} : { locationId }),
-    ...(nearExpiryOnly ? { expiringBefore: shiftDays(today(), 90) } : {}),
+    ...(expiredOnly
+      ? { expiringBefore: shiftDays(now, -1) }
+      : nearExpiryOnly
+        ? { expiringBefore: shiftDays(now, 90) }
+        : {}),
   }
   const filterKey = JSON.stringify(filters)
   const balances = useQuery(['inventory', 'balances', 'owner', filterKey], () =>
@@ -226,8 +244,14 @@ export default function StockScreen(): React.JSX.Element {
           priority: 'chip',
           cell: (row) => (
             <StatusChip
-              label={t('o15.batchChip', { batch: row.batchNo || t('app.none') })}
-              family={row.onHand - row.reserved <= 0 ? 'brick' : 'neutral'}
+              label={t(isExpired(row.expiryDate, now) ? 'o15.batchExpired' : 'o15.batchChip', {
+                batch: row.batchNo || t('app.none'),
+              })}
+              family={
+                row.onHand - row.reserved <= 0 || isExpired(row.expiryDate, now)
+                  ? 'brick'
+                  : 'neutral'
+              }
             />
           ),
         }
@@ -267,14 +291,27 @@ export default function StockScreen(): React.JSX.Element {
       head: t('o15.sellable'),
       align: 'right',
       ...(phone ? {} : { priority: 'chip' as const }),
-      cell: (row) => (
-        <StatusChip
-          label={String(row.onHand - row.reserved)}
-          family={row.onHand - row.reserved <= 0 ? 'brick' : 'moss'}
-          solid={row.onHand - row.reserved <= 0}
-          figure
-        />
-      ),
+      /*
+       * UX-O-2 (DOS-261): B20251204, expiry 31 Aug, read "Sellable 20" in green on 27 Sep. A lot past its
+       * date is not sellable whatever the books still hold of it: the cell says "Expired" in brick with
+       * the pieces beside it, so they can be written off (expiry write-off) from the same row.
+       */
+      cell: (row) =>
+        isExpired(row.expiryDate, now) ? (
+          <StatusChip
+            label={t('o15.expiredCount', { count: row.onHand - row.reserved })}
+            family="brick"
+            solid
+            testID={`stock-expired-${row.lotId}`}
+          />
+        ) : (
+          <StatusChip
+            label={String(row.onHand - row.reserved)}
+            family={row.onHand - row.reserved <= 0 ? 'brick' : 'moss'}
+            solid={row.onHand - row.reserved <= 0}
+            figure
+          />
+        ),
     },
     moneyColumn('mrp', t('o15.mrp'), (row) => row.mrpPaise),
   ]
@@ -401,17 +438,25 @@ export default function StockScreen(): React.JSX.Element {
               selected: locationId === loc.id,
             })),
             { id: 'nearExpiry', label: t('o15.nearExpiry'), selected: nearExpiryOnly },
+            { id: 'expired', label: t('o15.expired'), selected: expiredOnly },
           ]}
           onToggle={(id) => {
-            if (id === 'nearExpiry') setNearExpiryOnly((v) => !v)
-            else setLocationId((cur) => (cur === id ? null : id))
+            // Near expiry and Expired are two readings of one date filter: picking one drops the other.
+            if (id === 'nearExpiry') {
+              setNearExpiryOnly((v) => !v)
+              setExpiredOnly(false)
+            } else if (id === 'expired') {
+              setExpiredOnly((v) => !v)
+              setNearExpiryOnly(false)
+            } else setLocationId((cur) => (cur === id ? null : id))
           }}
           onClear={
-            locationId === null && !nearExpiryOnly
+            locationId === null && !nearExpiryOnly && !expiredOnly
               ? undefined
               : () => {
                   setLocationId(null)
                   setNearExpiryOnly(false)
+                  setExpiredOnly(false)
                 }
           }
         />

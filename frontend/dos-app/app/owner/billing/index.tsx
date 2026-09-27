@@ -45,7 +45,7 @@ import {
 } from '../../../src/groups/owner/lib/ui'
 import { Refusal, stayOpen } from '../../../src/groups/owner/lib/refusal'
 import { absoluteUrl } from '../../../src/config'
-import { longDate, rangeOf, type RangeId } from '../../../src/groups/owner/lib/dates'
+import { longDate, rangeOf, rangeParam, type RangeId } from '../../../src/groups/owner/lib/dates'
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
 import { useWord } from '../../../src/groups/owner/lib/words'
 
@@ -86,8 +86,9 @@ export default function Billing(): React.JSX.Element {
   const names = useNames()
 
   /** `bill` arrives from the Money owed panel's "Open bill": that bill's panel opens on arrival. */
-  const params = useLocalSearchParams<{ q?: string; bill?: string }>()
-  const [range, setRange] = useState<RangeId>('d30')
+  /* UX-O-1, UX-O-3: `range=today` arrives from the home's Billed step and its Invoiced tile. */
+  const params = useLocalSearchParams<{ q?: string; bill?: string; range?: string }>()
+  const [range, setRange] = useState<RangeId>(rangeParam(params.range, 'd30'))
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
   const [view, setView] = useState<'bills' | 'gst'>('bills')
   const [selected, setSelected] = useState<string | null>(
@@ -277,6 +278,7 @@ export default function Billing(): React.JSX.Element {
             onChange={(id) => {
               setRange(id as RangeId)
             }}
+            today
           />
           <ExportButton
             register="gstSalesRegister"

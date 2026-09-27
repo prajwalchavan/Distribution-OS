@@ -23,11 +23,14 @@ import {
   Txt,
   formatINR,
   paise,
+  useColors,
   useGo,
   useStrings,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { REGISTER_WINDOW_DAYS } from '@dos/contracts'
+import { useLocalSearchParams } from 'expo-router'
 import { useState } from 'react'
 
 import {
@@ -41,7 +44,14 @@ import {
   useNames,
 } from '../../../src/groups/owner/lib/ui'
 import { Refusal, stayOpen } from '../../../src/groups/owner/lib/refusal'
-import { instantWithClock, rangeOf, type RangeId } from '../../../src/groups/owner/lib/dates'
+import {
+  clampWindow,
+  instantWithClock,
+  rangeOf,
+  rangeParam,
+  shortDate,
+  type RangeId,
+} from '../../../src/groups/owner/lib/dates'
 import { useWord } from '../../../src/groups/owner/lib/words'
 
 const STATUS_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -58,12 +68,19 @@ export default function Receipts(): React.JSX.Element {
   const go = useGo()
   const t = useStrings()
   const word = useWord()
+  const colors = useColors()
   const api = useApi()
   const names = useNames()
 
-  const [range, setRange] = useState<RangeId>('d30')
+  /*
+   * UX-O-1, UX-O-5: the home's Collected and Banked steps open this register on `?range=today`
+   * (and `&status=deposited` for Banked), and the owner can pick Today here himself.
+   */
+  const params = useLocalSearchParams<{ range?: string; status?: string }>()
+  const [range, setRange] = useState<RangeId>(rangeParam(params.range, 'd30'))
   const [mode, setMode] = useState<Mode | null>(null)
   const [unallocatedOnly, setUnallocatedOnly] = useState(false)
+  const [bankedOnly, setBankedOnly] = useState(params.status === 'deposited')
   const [selected, setSelected] = useState<string | null>(null)
   /*
    * The dialog carries the instant it OPENED (DOS-136): `depositedAt` and `bouncedAt` are client
@@ -79,7 +96,14 @@ export default function Receipts(): React.JSX.Element {
 
   const span = rangeOf(range)
   const list = useQuery(
-    ['receipts', span.from, span.to, mode ?? 'all', unallocatedOnly ? 'unallocated' : 'all'],
+    [
+      'receipts',
+      span.from,
+      span.to,
+      mode ?? 'all',
+      unallocatedOnly ? 'unallocated' : 'all',
+      bankedOnly ? 'deposited' : 'any',
+    ],
     () =>
       api.api.receivables.receipts.list({
         from: span.from,
@@ -87,8 +111,32 @@ export default function Receipts(): React.JSX.Element {
         limit: 200,
         ...(mode === null ? {} : { mode }),
         ...(unallocatedOnly ? { unallocatedOnly: true } : {}),
+        ...(bankedOnly ? { status: 'deposited' as const } : {}),
       }),
   )
+  /*
+   * UX-O-5: the owner had no screen for "what came in, in what form, and is it banked". The split is
+   * the collections register's (the manager home's own read), over the window on screen narrowed to
+   * what that register serves; the banked figure is this list's own total for deposited receipts over
+   * the same window. The line names its window whenever it had to be narrowed.
+   */
+  const modesSpan = clampWindow(span, REGISTER_WINDOW_DAYS.collections)
+  const modes = useQuery(['registers', 'collections', modesSpan.from, modesSpan.to], () =>
+    api.api.reporting.registers.collections({
+      from: modesSpan.from,
+      to: modesSpan.to,
+      groupBy: 'day',
+    }),
+  )
+  const bankedTotal = useQuery(['receipts', 'banked', modesSpan.from, modesSpan.to], () =>
+    api.api.receivables.receipts.list({
+      status: 'deposited',
+      from: modesSpan.from,
+      to: modesSpan.to,
+      limit: 1,
+    }),
+  )
+  const modeTotals = modes.data?.totals
   const detail = useQuery(
     ['receipts', 'get', selected ?? 'none'],
     () => api.api.receivables.receipts.get({ id: selected ?? '' }),
@@ -163,6 +211,8 @@ export default function Receipts(): React.JSX.Element {
             onChange={(id) => {
               setRange(id as RangeId)
             }}
+            today
+            testID="receipts-range"
           />
           <ExportButton
             register="collections"
@@ -173,22 +223,53 @@ export default function Receipts(): React.JSX.Element {
       }
     >
       <Stack gap={4}>
+        <Stack gap={1} testID="receipts-mode-totals">
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            {t('o11.modesWindow', {
+              range:
+                modesSpan.from === modesSpan.to
+                  ? shortDate(modesSpan.from)
+                  : t('app.range', {
+                      from: shortDate(modesSpan.from),
+                      to: shortDate(modesSpan.to),
+                    }),
+            })}
+          </Txt>
+          <Txt field="bodyStrong" desk="body" numeric testID="receipts-mode-line">
+            {modes.error !== undefined
+              ? modes.error.message
+              : bankedTotal.error !== undefined
+                ? bankedTotal.error.message
+                : modeTotals === undefined || bankedTotal.data === undefined
+                  ? '—'
+                  : t('o11.modesLine', {
+                      cash: formatINR(paise(modeTotals.cashPaise)),
+                      upi: formatINR(paise(modeTotals.upiPaise)),
+                      cheque: formatINR(paise(modeTotals.chequePaise)),
+                      bank: formatINR(paise(modeTotals.bankTransferPaise)),
+                      banked: formatINR(paise(bankedTotal.data.totals.countedPaise)),
+                    })}
+          </Txt>
+        </Stack>
         <Chips
           testID="receipts-modes"
           items={[
             ...MODES.map((id) => ({ id, label: word(id), selected: mode === id })),
             { id: 'unallocated', label: t('o11.onAccount'), selected: unallocatedOnly },
+            { id: 'deposited', label: t('o11.banked'), selected: bankedOnly },
           ]}
           onToggle={(id) => {
             if (id === 'unallocated') setUnallocatedOnly((v) => !v)
+            else if (id === 'deposited') setBankedOnly((v) => !v)
             else setMode((cur) => (cur === id ? null : (id as Mode)))
           }}
           onClear={
-            mode === null && !unallocatedOnly
+            mode === null && !unallocatedOnly && !bankedOnly
               ? undefined
               : () => {
                   setMode(null)
                   setUnallocatedOnly(false)
+                  setBankedOnly(false)
                 }
           }
         />
