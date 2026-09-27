@@ -155,6 +155,8 @@ export const messages = pgTable(
   (t) => [
     uniqueIndex('messages_idempotency_idx').on(t.tenantId, t.idempotencyKey),
     index('messages_status_idx').on(t.tenantId, t.status, t.createdAt),
+    /** An unfiltered list, newest first with the id as the tie-break, is a walk of this index (UX-O-8 keyset). */
+    index('messages_created_idx').on(t.tenantId, t.createdAt, t.id),
     index('messages_ref_idx').on(t.tenantId, t.refType, t.refId),
     /** The worker's dispatch sweep: what is due, by due time, over the small live set only. */
     index('messages_dispatch_idx')
