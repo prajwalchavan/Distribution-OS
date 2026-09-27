@@ -14,6 +14,7 @@ Founder (13:30, after switching to Fable): "once everything is done, continue wi
 
 Fixed 2026-09-26 (day1-gaps): DOS-210, DOS-211, DOS-212, DOS-213, DOS-214, DOS-215, DOS-216, DOS-217 merged a9fd3181
 Fixed 2026-09-26 (day1b): DOS-220, DOS-221, DOS-222 merged 10b6f8a9
+Fixed 2026-09-26 (day2): DOS-227 merged 8e17cc80
 Fixed 2026-09-26 (day3): DOS-232, DOS-233, DOS-234, DOS-235 merged f481be41
 Fixed 2026-09-26 (day4): DOS-237, DOS-239, DOS-240 merged 6abdba6a
 Fixed 2026-09-26 (day5): DOS-241, DOS-242, DOS-244, DOS-245 merged 1afb47d1
