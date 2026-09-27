@@ -1,0 +1,51 @@
+           description            |  batch_no  | qty_pcs | line_total_paise 
+----------------------------------+------------+---------+------------------
+ Annapurna Chakki Fresh Atta 5 kg | AN20260815 |       3 |            70926
+ Annapurna Chakki Fresh Atta 5 kg | AN20260711 |       1 |            23642
+ Annapurna Chakki Fresh Atta 5 kg | B20260614  |       1 |            23642
+ Annapurna Chakki Fresh Atta 5 kg | B20260823  |       5 |           118210
+(4 rows)
+
+    kind    |  batch_no  |               name               |    reason    | qty_delta 
+------------+------------+----------------------------------+--------------+-----------
+ warehouse  | AN20260711 | Annapurna Chakki Fresh Atta 5 kg | transfer_out |        -1
+ in_transit | AN20260711 | Annapurna Chakki Fresh Atta 5 kg | transfer_in  |         1
+ warehouse  | AN20260815 | Annapurna Chakki Fresh Atta 5 kg | transfer_out |        -3
+ in_transit | AN20260815 | Annapurna Chakki Fresh Atta 5 kg | transfer_in  |         3
+ warehouse  | B20260614  | Annapurna Chakki Fresh Atta 5 kg | transfer_out |        -1
+ in_transit | B20260614  | Annapurna Chakki Fresh Atta 5 kg | transfer_in  |         1
+ warehouse  | B20260823  | Annapurna Chakki Fresh Atta 5 kg | transfer_out |        -5
+ in_transit | B20260823  | Annapurna Chakki Fresh Atta 5 kg | transfer_in  |         5
+(8 rows)
+
+    kind    |  batch_no  | on_hand | reserved 
+------------+------------+---------+----------
+ warehouse  | AN20260711 |       2 |        0
+ warehouse  | AN20260725 |       1 |        0
+ warehouse  | AN20260808 |       3 |        0
+ warehouse  | AN20260815 |       2 |        0
+ warehouse  | B20260823  |       4 |        0
+ in_transit | AN20260711 |       0 |        0
+ in_transit | AN20260725 |       0 |        0
+ in_transit | AN20260808 |       0 |        0
+ in_transit | AN20260815 |       0 |        0
+ in_transit | B20260823  |       0 |        0
+(10 rows)
+
+  state  |    kind    | qty 
+---------+------------+-----
+ pending | in_transit |   5
+ pending | in_transit |   1
+ pending | in_transit |   1
+ pending | in_transit |   3
+ posted  | warehouse  |   2
+ posted  | warehouse  |   5
+ posted  | warehouse  |   4
+ posted  | warehouse  |   1
+ posted  | warehouse  |   1
+ posted  | warehouse  |   3
+ posted  | warehouse  |   2
+ posted  | warehouse  |   3
+ posted  | warehouse  |   1
+(13 rows)
+

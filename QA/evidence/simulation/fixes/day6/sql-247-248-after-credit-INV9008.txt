@@ -1,0 +1,34 @@
+ order_no |   state    |                      cancel_reason                       
+----------+------------+----------------------------------------------------------
+ SO-0880  | cancelled  | bill INV/9008 credited in full before dispatch (CN/9003)
+ SO-0881  | dispatched | 
+(2 rows)
+
+ credit_note_no |     reason     | state  | total_paise |                                                                       note                                                                        
+----------------+----------------+--------+-------------+---------------------------------------------------------------------------------------------------------------------------------------------------
+ CN/9003        | short_delivery | issued |       50500 | Its atta batch is gone; Balaji will order again                                                                                                  +
+                |                |        |             | Not on the dock, so nothing moved for: 10 pc Annapurna Chakki Fresh Atta 1 kg (batch AN20260711) — those pieces had already gone back into stock.
+(1 row)
+
+ ledger_rows_of_the_note 
+-------------------------
+                       0
+(1 row)
+
+    kind    |         name          | on_hand | reserved 
+------------+-----------------------+---------+----------
+ warehouse  | Godown                |       0 |        0
+ in_transit | In transit            |       0 |        0
+ vehicle    | Vehicle MH-05-EF-9012 |      10 |        0
+(3 rows)
+
+ outstanding_paise | undelivered_paise | unallocated_credit_paise | ar_book  
+-------------------+-------------------+--------------------------+----------
+          72080400 |                 0 |                    50500 | 72029900
+(1 row)
+
+ invoice_no | state | undelivered_at 
+------------+-------+----------------
+ INV/9008   | paid  | 
+(1 row)
+

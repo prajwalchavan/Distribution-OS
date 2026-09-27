@@ -1,0 +1,17 @@
+    kind    |  batch_no  |    reason    | qty_delta 
+------------+------------+--------------+-----------
+ in_transit | AN20260711 | transfer_out |        -1
+ warehouse  | AN20260711 | transfer_in  |         1
+ in_transit | AN20260815 | transfer_out |        -3
+ warehouse  | AN20260815 | transfer_in  |         3
+ in_transit | B20260614  | transfer_out |        -1
+ warehouse  | B20260614  | transfer_in  |         1
+ in_transit | B20260823  | transfer_out |        -5
+ warehouse  | B20260823  | transfer_in  |         5
+(8 rows)
+
+ order_no |   state   
+----------+-----------
+ SO-0879  | cancelled
+(1 row)
+

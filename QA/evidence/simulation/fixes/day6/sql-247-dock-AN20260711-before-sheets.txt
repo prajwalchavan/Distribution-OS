@@ -1,0 +1,12 @@
+    kind    | on_hand | reserved 
+------------+---------+----------
+ warehouse  |       0 |        0
+ in_transit |      10 |       10
+(2 rows)
+
+ order_no | qty |  state  
+----------+-----+---------
+ SO-0880  |  10 | voided
+ SO-0881  |  10 | pending
+(2 rows)
+

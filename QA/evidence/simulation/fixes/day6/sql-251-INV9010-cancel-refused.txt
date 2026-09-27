@@ -1,0 +1,16 @@
+ invoice_cancel_rows 
+---------------------
+                   0
+(1 row)
+
+ invoice_no | state  
+------------+--------
+ INV/9010   | issued
+(1 row)
+
+    kind    | on_hand | reserved 
+------------+---------+----------
+ in_transit |       0 |        0
+ warehouse  |       6 |        0
+(2 rows)
+

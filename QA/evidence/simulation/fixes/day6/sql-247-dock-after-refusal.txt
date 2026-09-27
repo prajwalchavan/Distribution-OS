@@ -1,0 +1,6 @@
+    kind    | on_hand | reserved 
+------------+---------+----------
+ warehouse  |       0 |        0
+ in_transit |      10 |       10
+(2 rows)
+

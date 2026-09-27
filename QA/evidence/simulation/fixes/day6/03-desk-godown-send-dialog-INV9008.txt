@@ -1,0 +1,52 @@
+Tarsun Enterprise
+warehouse
+Inbound
+Pick
+Pack
+Load
+SETUP
+Settings
+Updated just now · Not kept in this browser
+DP
+Dinesh Patil
+warehouse
+27 Sep
+MH-05-CD-5678
+draft
+Approved · 27 Sep, 9:23 am
+Count the cartons
+Blind count: what the bill says is not on this screen.
+Cartons on the vehicle
+1
+1
+2
+3
+4
+5
+6
+7
+8
+9
+Clear
+0
+⌫
+Done
+ORDERS ON THIS SHEET
+1 order
+Balaji Wholesale Stores
+SO-0880 · Cartons 1
+INV/9008
+WHAT GOES ON THE VEHICLE
+Annapurna Chakki Fresh Atta 1 kg
+1 cs = 10 pc
+Exp 7 Apr 2027
+Declared value
+₹505.00
+A sheet is cancelled by the manager.
+Close
+Check out MH-05-CD-5678?
+1 cartons leave on MH-05-CD-5678. Stock moves to the vehicle and challan paper is issued. This cannot be undone.
+Cancel
+Send the vehicle out
+MH-05-CD-5678
+Send the vehicle out

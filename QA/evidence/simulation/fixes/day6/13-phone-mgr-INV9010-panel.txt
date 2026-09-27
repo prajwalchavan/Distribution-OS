@@ -1,0 +1,469 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+1 left to bill
+Billing desk
+Billing desk
+Bills issued
+7 days
+30 days
+90 days
+Export CSV
+Billing desk
+Credit notes
+Brand DMS
+INV/9010 · Ekvira Kirana
+Issued
+292.98
+INV/9009 · Ambika Provision Store
+Issued
+488.30
+INV/9008 · Balaji Wholesale Stores
+Paid
+481.00
+INV/9007 · Ekvira Kirana
+Cancelled
+2,251.60
+INV/0836 · Meghana General Store
+Issued
+5,766.20
+INV/0839 · Rameshwar General Store
+Issued
+14,260.03
+INV/0837 · Kadam Stores
+Issued
+10,580.45
+INV/0840 · Gupta Kirana Stores
+Issued
+8,547.48
+INV/0838 · Balaji Wholesale Stores
+Paid
+87,219.61
+INV/0825 · Vaibhav Kirana Mart
+Issued
+6,498.97
+INV/0834 · Nutan Kirana Stores
+Issued
+9,855.04
+INV/0833 · Khan General Store
+Issued
+648.04
+INV/0828 · Metro Kirana Bazar
+Issued
+3,763.62
+INV/0826 · Joshi Kirana Stores
+Issued
+11,667.47
+INV/0830 · Laxmi Narayan Stores
+Issued
+18,148.10
+INV/9003 · Krishna Kirana Stores
+Paid
+415.62
+INV/0832 · Anand Bhavan Provision
+Issued
+2,533.94
+INV/0835 · Rukmini Provision
+Issued
+22,210.74
+INV/0831 · City Light Provision
+Issued
+6,241.45
+INV/0829 · Nakshatra Kirana
+Issued
+3,621.46
+INV/0827 · Ansari Kirana Stores
+Issued
+2,211.95
+INV/0824 · Prerna Super Market
+Paid
+66,323.94
+INV/0822 · Mahalaxmi General Stores
+Paid
+10,749.58
+INV/0815 · Nutan Kirana Stores
+Issued
+3,246.96
+INV/0823 · Gurukrupa Provision
+Issued
+13,701.36
+INV/0818 · Birla Road Kirana Mart
+Part paid
+6,461.28
+INV/0821 · Jai Bhavani Stores
+Part paid
+9,298.25
+INV/0820 · Ambika Provision Store
+Paid
+9,399.44
+INV/0816 · Sahyadri Super Bazar
+Issued
+66,176.59
+INV/0819 · Balaji Wholesale Stores
+Paid
+64,637.34
+INV/9002 · Mahalaxmi General Stores
+Cancelled
+1,662.48
+INV/0817 · Shree Ganesh Kirana
+Paid
+4,383.24
+INV/0811 · Metro Kirana Bazar
+Issued
+3,486.99
+INV/0812 · Ansari Kirana Stores
+Issued
+1,482.33
+INV/0810 · City Light Provision
+Issued
+5,130.99
+INV/0804 · Iyer Provision Store
+Paid
+3,595.04
+INV/0814 · Shree Ganesh Kirana
+Paid
+10,604.46
+INV/0807 · Gavhane Kirana
+Issued
+8,221.20
+INV/0813 · Pawar General Store
+Part paid
+2,041.38
+INV/0805 · New Bombay Stores
+Paid
+25,336.21
+INV/0808 · Reddy Traders
+Issued
+4,667.54
+INV/0809 · Chavan Kirana Stores
+Issued
+4,015.89
+INV/0806 · Ganesh General Store
+Issued
+22,839.91
+INV/0803 · Ganpati General Stores
+Paid
+12,491.23
+INV/0800 · Shree Ganesh Kirana
+Paid
+4,744.69
+INV/0798 · Dnyandeep Stores
+Paid
+24,202.13
+INV/0794 · Sai Baba Kirana
+Part paid
+23,489.46
+INV/0793 · Vaibhav Kirana Mart
+Issued
+9,407.20
+INV/0796 · Laxmi Narayan Stores
+Issued
+25,996.42
+INV/0799 · Ekvira Kirana
+Paid
+3,416.73
+INV/0797 · Deshmukh Kirana
+Issued
+4,685.88
+INV/0802 · Khan General Store
+Paid
+4,000.51
+INV/0801 · Vitthal Traders
+Issued
+1,076.67
+INV/0795 · Gavhane Kirana
+Issued
+2,911.14
+INV/0792 · Gavhane Kirana
+Issued
+369.60
+INV/0785 · Sai Baba Kirana
+Issued
+72,478.64
+INV/0787 · Prerna Super Market
+Paid
+65,155.28
+INV/0784 · Ganesh General Store
+Issued
+24,045.36
+INV/0790 · City Light Provision
+Issued
+9,121.24
+INV/0789 · Sharma Kirana Stores
+Issued
+7,900.83
+INV/0791 · Nutan Kirana Stores
+Issued
+2,931.86
+INV/0786 · Ambika Provision Store
+Part paid
+4,898.67
+INV/0783 · Balaji Wholesale Stores
+Paid
+71,120.22
+INV/0788 · Rukmini Provision
+Issued
+9,128.58
+TY/26-27/00412 · Sai Krupa Super Bazar
+Issued
+2,832.00
+INV/0778 · Chavan Kirana Stores
+Issued
+8,063.70
+INV/0776 · Gupta Kirana Stores
+Issued
+6,847.52
+INV/0780 · Karve Provision
+Issued
+5,721.94
+INV/0781 · Gurukrupa Provision
+Issued
+15,166.23
+INV/0777 · Deshmukh Kirana
+Issued
+4,524.04
+INV/0775 · Mishra Provision Store
+Issued
+1,610.64
+INV/0782 · Meghana General Store
+Issued
+2,392.24
+INV/0773 · Joshi Kirana Stores
+Issued
+16,110.17
+INV/0779 · Rameshwar General Store
+Issued
+19,084.20
+INV/0772 · Singh General Store
+Issued
+1,884.74
+INV/0774 · Balaji Wholesale Stores
+Paid
+96,497.89
+INV/0761 · Ansari Kirana Stores
+Issued
+2,607.78
+INV/0765 · Nutan Kirana Stores
+Issued
+8,658.59
+INV/0764 · More Provision Store
+Paid
+7,108.75
+INV/0757 · Kolsewadi Corner Store
+Issued
+815.76
+INV/0760 · City Light Provision
+Issued
+716.40
+INV/0771 · Laxmi Narayan Stores
+Issued
+34,204.55
+INV/0758 · Shubhalabh Stores
+Paid
+6,428.40
+INV/0759 · Ekvira Kirana
+Paid
+8,649.44
+INV/0770 · Navjeevan Super Bazar
+Issued
+35,422.08
+INV/0769 · Vitthal Traders
+Issued
+10,140.00
+INV/0762 · Gavhane Kirana
+Issued
+9,540.14
+INV/0763 · Vaibhav Kirana Mart
+Issued
+3,232.72
+INV/0766 · Ganpati General Stores
+Issued
+7,681.92
+INV/0768 · Dnyandeep Stores
+Issued
+18,640.02
+INV/0767 · Gurukrupa Provision
+Part paid
+13,976.16
+INV/0754 · Rameshwar General Store
+Paid
+24,757.20
+INV/0751 · Navjeevan Super Bazar
+Issued
+24,455.59
+INV/0756 · Shivshakti Traders
+Paid
+1,422.72
+INV/0753 · Shree Ganesh Kirana
+Issued
+4,343.64
+INV/0750 · Sai Krupa Super Bazar
+Issued
+22,482.45
+INV/0752 · Karve Provision
+Issued
+4,110.00
+INV/0755 · New Bombay Stores
+Issued
+9,469.08
+INV/0745 · Metro Kirana Bazar
+Issued
+4,122.89
+INV/0748 · Rukmini Provision
+Paid
+14,877.98
+INV/0743 · Bhosale Traders
+Paid
+12,495.59
+INV/0740 · Reddy Traders
+Part paid
+1,341.48
+INV/0744 · Shubhalabh Stores
+Paid
+3,206.77
+INV/0749 · New Bombay Stores
+Paid
+10,045.84
+INV/0746 · Pawar General Store
+Issued
+4,284.12
+INV/0747 · Mishra Provision Store
+Part paid
+3,060.28
+INV/0741 · Prerna Super Market
+Issued
+36,840.53
+INV/0742 · Kolsewadi Corner Store
+Issued
+2,541.65
+INV/0730 · Vitthal Traders
+Issued
+1,792.46
+INV/0736 · Trimurti General Store
+Issued
+7,843.53
+INV/0735 · Dnyandeep Stores
+Issued
+11,171.76
+INV/0734 · Navjeevan Super Bazar
+Paid
+24,003.76
+INV/0738 · Deshmukh Kirana
+Paid
+5,091.27
+INV/0729 · Kolsewadi Corner Store
+Issued
+7,768.52
+INV/0732 · Birla Road Kirana Mart
+Issued
+1,993.76
+INV/0737 · Anand Bhavan Provision
+Paid
+8,256.36
+INV/0739 · More Provision Store
+Part paid
+9,658.35
+INV/0733 · Joshi Kirana Stores
+Issued
+20,503.56
+INV/0728 · Mangal Traders
+Issued
+734.56
+INV/0731 · Balaji Wholesale Stores
+Paid
+75,567.42
+INV/0716 · Om Sai Provision Store
+Issued
+7,071.12
+INV/0725 · Shivshakti Traders
+Part paid
+2,571.78
+INV/0714 · New Bombay Stores
+Issued
+13,086.73
+INV/0723 · Prerna Super Market
+Paid
+48,113.66
+INV/0720 · Sai Krupa Super Bazar
+Issued
+31,544.80
+INV/0715 · Ambika Provision Store
+Issued
+2,562.53
+INV/0726 · Metro Kirana Bazar
+Issued
+4,146.62
+INV/0719 · Rukmini Provision
+Issued
+13,959.72
+INV/0727 · Laxmi Narayan Stores
+Issued
+34,995.00
+INV/0724 · Shree Ganesh Kirana
+Paid
+7,240.73
+INV/0722 · Krishna Kirana Stores
+Paid
+7,136.64
+INV/0718 · Gavhane Kirana
+Issued
+6,273.93
+INV/0717 · Mahalaxmi General Stores
+Issued
+5,672.90
+INV/0721 · City Light Provision
+Issued
+1,308.00
+INV/0710 · Sahyadri Super Bazar
+Issued
+49,685.00
+INV/0713 · Birla Road Kirana Mart
+Paid
+11,340.28
+INV/0711 · Nutan Kirana Stores
+Paid
+5,102.46
+INV/0707 · Gurukrupa Provision
+Issued
+19,941.87
+INV/0708 · Anand Bhavan Provision
+Issued
+5,740.38
+INV/0712 · Singh General Store
+Issued
+2,971.50
+INV/0709 · Gupta Kirana Stores
+Issued
+12,139.39
+j / k move · Enter open · p print
+Bill INV/9010
+Close
+Shop
+Ekvira Kirana
+Date
+27 Sep 2026
+Payment
+Issued
+Total ₹
+₹308.00
+Still due ₹
+₹308.00
+Not sent yet — its goods have not left the godown
+Lines
+Annapurna Chakki Fresh Atta 1 kg
+6 pc
+·
+at
+₹48.83
+₹307.62
+Print the bill
+p
+Record the e-way bill
+Get the IRN
+Could not send it — credit the whole bill
+Cancel the bill
+Today
+Orders
+Fulfilment
+Billing

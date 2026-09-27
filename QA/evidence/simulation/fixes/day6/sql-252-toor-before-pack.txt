@@ -1,0 +1,14 @@
+    kind    |  batch_no  | on_hand | reserved 
+------------+------------+---------+----------
+ warehouse  | AN20260711 |       2 |        2
+ warehouse  | AN20260725 |       1 |        1
+ warehouse  | AN20260808 |       3 |        3
+ warehouse  | AN20260815 |       2 |        2
+ warehouse  | B20260823  |       4 |        4
+ in_transit | AN20260711 |       0 |        0
+ in_transit | AN20260725 |       0 |        0
+ in_transit | AN20260808 |       0 |        0
+ in_transit | AN20260815 |       0 |        0
+ in_transit | B20260823  |       0 |        0
+(10 rows)
+

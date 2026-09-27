@@ -1,0 +1,55 @@
+FIX-DAY6 walk — lane fix-day6, branch worktree-wf_be1f8178-550-30, database dos_test_fixday6 (from dos_test_batch2b_template,
+migrated incl. 0068, seeded), API all-in-one :3461, app expo web :5461. Browser pane (desk 1280x800) for the godown pick/pack of
+SO-0879 and the manager's approvals, sheet cancel and "Take it off"; a headless Chromium (Playwright, own CDP port 9461) for the
+screenshots saved here. Setup orders were placed through the API as rahul.deshmukh (labelled "FIX-DAY6 walk" in the order note).
+
+DOS-252 (dinesh.patil, godown)
+  Pick › SO-0879 (Ekvira, Atta 5 kg 10 pc + Toor 1 kg 12 pc) › Make a wave › PICK-0079 › Start picking › atta rows Picked (4),
+  toor rows Short · Not on the rack · 0 (5). pick_lines: toor 0/12 on 5 rows, picked_at set.
+  Pack › Being picked › Ekvira › Pack and bill › dialog "10 of 22 pc picked · 12 pc short." › Pack and bill.
+  Wire: POST /warehouse/warehouse/orders/…/pack 200 → shortPacked TRUE, toor packedQtyPcs 0 lots [], INV/9007 totalPaise 236400.
+  SQL: invoice INV/9007 has 4 atta lines only (no toor); pack ledger rows atta only; toor godown on_hand unchanged (2/1/3/2/4),
+  reserved 0 (the holds were given back); atta held on the dock for the bill (4 pending in_transit holds).
+  Files: wire-252-pack-SO-0879.json, sql-252-toor-before-pack.txt, sql-252-SO-0879-after-pack.txt, 01-desk-godown-SO-0879-….png
+
+DOS-247 (godown + manager)
+  Fixture (labelled): INV/9008 (Balaji, Atta 1 kg 10 pc, batch AN20260711) packed and paid (RCPT-9005); its dock hold voided by
+  SQL (sql-247-fixture-legacy-void-hold.txt) and its 10 pieces moved dock → godown through POST /warehouse/inventory/transfers —
+  the pre-DOS-244 check-in that counted a came-back bill onto the rack. Then INV/9009 (Ambika, same 10 pieces, FEFO) packed:
+  dock AN20260711 on_hand 10 reserved 10, the hold is SO-0881's (sql-247-dock-AN20260711-before-sheets.txt).
+  Godown › Load › TRIP-0001 › SO-0880 › Build a sheet (02); manager approves in the pane; godown counts 1 › Send the vehicle out
+  (03) → 409 dock_short, on screen: "INV/9008 · Balaji Wholesale Stores needs 10 pc of Annapurna Chakki Fresh Atta 1 kg (batch
+  AN20260711) and only 0 are on the dock for it. … the manager takes INV/9008 off the trip — nothing was loaded" (04).
+  Before the fix this sheet LOADED INV/9009's ten pieces (day 6, sheet H).
+  Bring them from the godown → "INV/9008 · Balaji Wholesale Stores — … : 0 pc moved, 10 pc are not in the godown. Ask the manager
+  to take INV/9008 off the trip; the desk can then credit it and the shop can order again." (05). Dock unchanged (sql-247-dock-after-refusal.txt).
+  INV/9009's sheet on TRIP-0002: approved in the pane, counted 1, sent → "Vehicle checked out" (06); its 10 pieces now on MH-05-EF-9012.
+
+DOS-248 (manager)
+  Pane: Load-out › MH-05-CD-5678 › Cancel the sheet (reason typed) → Cancelled; Trips › TRIP-0001 › Balaji INV/9008 › Take it off →
+  "INV/9008 is off the trip and back on the planning board."
+  Billing › Bills issued › INV/9008: "Not sent … still in the godown" chip and the new "Could not send it — credit the whole bill"
+  (07). Cancel the bill → refused "bill INV/9008 has money allocated against it; raise a credit note instead" (08; the message now
+  names "Could not send it" for a paid bill still in the godown — server change made after this shot, covered by billing.spec).
+  Could not send it (09) → Credit the whole bill → "Credit note CN/9003 issued for INV/9008. The order is closed." and the note's own
+  words "Not on the dock, so nothing moved for: 10 pc Annapurna Chakki Fresh Atta 1 kg (batch AN20260711) — those pieces had already
+  gone back into stock." (10). SQL (sql-247-248-after-credit-INV9008.txt): SO-0880 cancelled with the bill named, CN/9003
+  short_delivery 50500 issued, 0 ledger rows for the note, INV/9008 undelivered_at null, Balaji unallocated credit 50500 and
+  outstanding + undelivered − on account = AR book (72080400 + 0 − 50500 = 72029900).
+  Phone 390: panel chip and dialog fit, no horizontal scroll (scrollWidth 390) (13–15, 13 shows the longer chip text before it was
+  shortened).
+
+DOS-251 (manager)
+  Fixture (labelled): INV/9010 (Ekvira, Atta 1 kg 6 pc, AN20260808) packed, its dock hold voided (sql-251-fixture-legacy-void-hold.txt)
+  and its pieces moved off the dock by hand. Billing › INV/9010 › Cancel the bill → 409, on screen: "Only 0 pc of Annapurna Chakki
+  Fresh Atta 1 kg (batch AN20260808) are on the dock for INV/9010, the bill needs 6. They were loaded or counted back elsewhere, so
+  they cannot come back as stock — nothing was cancelled. Credit the whole bill instead ("Could not send it") …" (11). SQL: 0
+  invoice_cancel rows, INV/9010 still issued (sql-251-INV9010-cancel-refused.txt). Before the fix: Godown `adjustment` +6.
+  INV/9007 (pieces held on the dock) › Cancel the bill → Cancelled; ledger dock → godown transfer_out/transfer_in per batch, no
+  adjustment; SO-0879 cancelled (12, sql-251-INV9007-cancel-dock-to-godown.txt).
+
+  INV/9010 (unpaid, pieces gone) was then closed the way the refusal says: Could not send it → CN/9004, "Not on the dock, so nothing
+  moved for: 6 pc … (batch AN20260808)", order closed (17). This also clears the seed guarantee test
+  (@dos/db dispatch-stock.test.ts), which had — rightly — flagged INV/9010 as a packed bill whose pieces were not on the dock.
+
+Owner: Money shows the tenant's On account including Balaji's ₹505.00 (16).
