@@ -8,6 +8,7 @@ import { createDb, createPool, type Db } from './client.js'
 import { memberships, salesOrders, tenants, users } from './schema/index.js'
 import { dispatchStockFaults } from './seed-demo/dispatch-stock.js'
 import { seedDemo, seedExtraTenants, seedPlatformConsole } from './seed-demo.js'
+import { cancelFootprintFaults, invoiceCancelFootprints } from './stock-footprints.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
 /**
@@ -781,5 +782,63 @@ describeDb('demo seed on an empty database', () => {
     expect(numbers.filter((r) => !/^TRIP-\d{8}-\d+$/.test(r.trip_no ?? ''))).toEqual([])
     // And they are still one per trip: a number nobody can tell from another is no better.
     expect(new Set(numbers.map((r) => r.trip_no)).size).toBe(numbers.length)
+  }, 180_000)
+
+  /**
+   * DOS-257: the simulation's audit found one cancel that left 12 toor in the godown that the bill never
+   * took out, and asked for the seed's three look-alike rows (`adjustment` +72 under `invoice_cancel`, the
+   * cancelled INV/9002 of each distributor) to be checked. They put back exactly the `sale` −72 their bill
+   * wrote, so the seed carries no phantom — asserted here on a fresh seed, through the same
+   * `invoiceCancelFootprints` the release check (`pnpm check:stock-cancels`) runs. Then a phantom written
+   * the pre-DOS-251 way is planted (0071's trigger switched off for that one insert, in this throwaway
+   * database only): the check reports it `open` until a write-off on that batch at that place takes the
+   * pieces off, and `written_off` after.
+   *
+   * LAST in this file on purpose: it leaves a ledger row the balances never saw.
+   */
+  it('DOS-257: the seed’s cancelled bills put back exactly what they took out, and the release check holds a planted phantom open until it is written off', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    const cancels = (
+      await db.execute(sql`
+        SELECT s.lot_id, s.location_id, s.ref_id, s.actor_id FROM stock_ledger s
+         WHERE s.tenant_id = ${tenantId} AND s.ref_type = 'invoice_cancel' AND s.qty_delta > 0
+         ORDER BY s.created_at LIMIT 1`)
+    ).rows as { lot_id: string; location_id: string; ref_id: string; actor_id: string }[]
+    const cancel = cancels[0]
+    if (!cancel) throw new Error('the seed wrote no cancelled bill with stock: nothing was checked')
+    expect(await invoiceCancelFootprints(db)).toEqual([])
+    expect(await cancelFootprintFaults(db)).toEqual([])
+
+    await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`ALTER TABLE stock_ledger DISABLE TRIGGER stock_ledger_invoice_cancel_leaves_nothing`,
+      )
+      await tx.execute(sql`
+        INSERT INTO stock_ledger (id, tenant_id, lot_id, location_id, qty_delta, reason, ref_type, ref_id, actor_id, idempotency_key, note)
+        VALUES (${uuidv7()}, ${tenantId}, ${cancel.lot_id}, ${cancel.location_id}, 12, 'adjustment', 'invoice_cancel',
+                ${cancel.ref_id}, ${cancel.actor_id}, ${`d257-phantom-${run}`}, 'the pre-DOS-251 cancel')`)
+      await tx.execute(
+        sql`ALTER TABLE stock_ledger ENABLE TRIGGER stock_ledger_invoice_cancel_leaves_nothing`,
+      )
+    })
+    const planted = await invoiceCancelFootprints(db, tenantId)
+    expect(planted.map((f) => [f.invoiceNo, f.footprintPcs, f.writtenOffPcs, f.status])).toEqual([
+      ['INV/9002', 12, 0, 'open'],
+    ])
+    expect(await cancelFootprintFaults(db, tenantId)).toEqual([
+      expect.stringMatching(/cancelling INV\/9002 left 12 pc of .* that the bill never took out/),
+    ])
+
+    // The owner's write-off on the stock screen: `inventory.stock.adjust` −12, reason adjustment.
+    const writeOff = uuidv7()
+    await db.execute(sql`
+      INSERT INTO stock_ledger (id, tenant_id, lot_id, location_id, qty_delta, reason, ref_type, ref_id, actor_id, idempotency_key, note)
+      VALUES (${writeOff}, ${tenantId}, ${cancel.lot_id}, ${cancel.location_id}, -12, 'adjustment', 'adjustment',
+              ${writeOff}, ${cancel.actor_id}, ${`d257-writeoff-${run}`}, 'INV/9002 phantom')`)
+    const after = await invoiceCancelFootprints(db, tenantId)
+    expect(after.map((f) => [f.footprintPcs, f.writtenOffPcs, f.status, f.writeOffRowIds])).toEqual(
+      [[12, 12, 'written_off', [writeOff]]],
+    )
+    expect(await cancelFootprintFaults(db, tenantId)).toEqual([])
   }, 180_000)
 })
