@@ -1,0 +1,60 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.4L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,58,166.51
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Annapurna Bombay Rava 1 kg · Godown
+Batch AN20260829
+24
+Annapurna Red Chilli Powder 100 g · Godown
+Batch AN20260829
+288
+Annapurna Sunflower Refined Oil 1 L pouch · Godown
+Batch AN20260829
+10
+Annapurna Toor Dal 1 kg · Godown
+Batch AN20260829
+17
+Annapurna Toor Dal 500 g · Godown
+Batch AN20260829
+100
+5 batches · Click a row to adjust that batch.
+Cycle counts
+Today
+Orders
+Money
+Shops

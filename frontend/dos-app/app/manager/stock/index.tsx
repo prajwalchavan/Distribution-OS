@@ -10,6 +10,11 @@
  *
  * A rupee is deliberately absent from this screen. Stock AT COST is `reporting.registers.stockValue`,
  * a back-office register that belongs with the money books; the godown's question is pieces.
+ *
+ * QA DOS-253: the balances were ONE page of 300 lot × location rows in lot order, zero rows included, and
+ * the Godown holds over a thousand — a live batch could sit past the page with nothing saying so. They are
+ * now the live rows only, item by item, searched on the server, a page at a time with "Show more", and the
+ * footer's pieces total is printed only when every row is on screen.
  */
 import type { LedgerEntry, ReservationRow, StockBalanceRow } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
@@ -18,7 +23,9 @@ import {
   Chips,
   Dialog,
   Register,
+  Row,
   Screen,
+  Search,
   Segments,
   Stack,
   StatusChip,
@@ -26,9 +33,11 @@ import {
   Txt,
   useColors,
   useStrings,
+  useViewport,
   type RegisterColumn,
   type StatusFamily,
 } from '@dos/ui'
+import { platform } from '@dos/ui/platform'
 import { useState } from 'react'
 
 import {
@@ -37,7 +46,6 @@ import {
   Refusal,
   countText,
   pageTotal,
-  pagedCount,
   stayOpen,
   textColumn,
   useCan,
@@ -45,8 +53,13 @@ import {
 } from '../../../src/groups/manager/lib/ui'
 import { daysUntil, longDate, shortInstant } from '../../../src/groups/manager/lib/dates'
 import { useWord } from '../../../src/groups/manager/lib/words'
+import { useMorePages, useSettled } from '../../../src/paging'
 
 type View = 'balances' | 'ledger' | 'held'
+
+/** Rows per page of the balances: a screenful and a half, never the whole godown (docs/20 rule 3). */
+const PAGE = 100
+const balanceKey = (row: StockBalanceRow): string => `${row.lotId}-${row.locationId}`
 type AdjustReason = 'adjustment' | 'damage' | 'expiry_writeoff' | 'cycle_count'
 
 /** Grey until it is a month out, ochre inside the month, brick once the date has passed. */
@@ -61,6 +74,11 @@ export default function Stock(): React.JSX.Element {
   const t = useStrings()
   const word = useWord()
   const colors = useColors()
+  /*
+   * QA DOS-253: the phone register draws the identity, one number and a chip — no Batch or Where column.
+   * There the chip IS the batch, tinted by its expiry the way the Expires chip is, and the identity says where.
+   */
+  const phone = useViewport().kind === 'phone' || platform.kind === 'native'
   const api = useApi()
   const names = useNames()
   const can = useCan()
@@ -69,6 +87,8 @@ export default function Stock(): React.JSX.Element {
   const [view, setView] = useState<View>('balances')
   const [locationId, setLocationId] = useState<string | null>(null)
   const [nearExpiry, setNearExpiry] = useState(false)
+  const [search, setSearch] = useState('')
+  const q = useSettled(search.trim(), 300)
   const [adjusting, setAdjusting] = useState<StockBalanceRow | null>(null)
   const [delta, setDelta] = useState('')
   const [reason, setReason] = useState<AdjustReason>('adjustment')
@@ -80,16 +100,29 @@ export default function Stock(): React.JSX.Element {
   const locations = useQuery(['names', 'locations'], () => api.api.inventory.locations.list({}), {
     staleTime: 300_000,
   })
+  const filters = {
+    nonZero: true,
+    sort: 'item' as const,
+    ...(q === '' ? {} : { q }),
+    ...(locationId === null ? {} : { locationId }),
+    ...(nearExpiry ? { nearExpiryOnly: true } : {}),
+  }
+  const filterKey = JSON.stringify(filters)
   const balances = useQuery(
-    ['inventory', 'balances', locationId ?? 'all', nearExpiry ? 'near' : 'all'],
-    () =>
-      api.api.inventory.stock.balances({
-        limit: 300,
-        ...(locationId === null ? {} : { locationId }),
-        ...(nearExpiry ? { nearExpiryOnly: true } : {}),
-      }),
+    ['inventory', 'balances', 'manager', filterKey],
+    () => api.api.inventory.stock.balances({ ...filters, limit: PAGE }),
     { enabled: view === 'balances' },
   )
+  const paged = useMorePages(
+    filterKey,
+    balances.data,
+    (cursor) => api.api.inventory.stock.balances({ ...filters, limit: PAGE, cursor }),
+    balanceKey,
+  )
+  const shown = {
+    count: balances.data === undefined ? undefined : paged.rows.length,
+    more: paged.hasMore,
+  }
   const ledger = useQuery(
     ['inventory', 'ledger', locationId ?? 'all'],
     () =>
@@ -142,8 +175,28 @@ export default function Stock(): React.JSX.Element {
   )
 
   const balanceColumns: readonly RegisterColumn<StockBalanceRow>[] = [
-    textColumn('item', t('m16.item'), (row) => row.variantName, { priority: 'identity' }),
-    textColumn('lot', t('m16.lot'), (row) => row.batchNo),
+    textColumn(
+      'item',
+      t('m16.item'),
+      (row) =>
+        phone
+          ? t('m16.itemAt', { item: row.variantName, location: names.location(row.locationId) })
+          : row.variantName,
+      { priority: 'identity' },
+    ),
+    phone
+      ? {
+          key: 'lot',
+          head: t('m16.lot'),
+          priority: 'chip',
+          cell: (row) => (
+            <StatusChip
+              label={t('m16.batchChip', { batch: row.batchNo || t('app.none') })}
+              family={row.expiryDate === null ? 'neutral' : expiryFamily(row.expiryDate)}
+            />
+          ),
+        }
+      : textColumn('lot', t('m16.lot'), (row) => row.batchNo),
     textColumn('where', t('m16.location'), (row) => names.location(row.locationId)),
     textColumn('onHand', t('m16.onHand'), (row) => row.onHand, {
       align: 'right',
@@ -154,7 +207,7 @@ export default function Stock(): React.JSX.Element {
     {
       key: 'expiry',
       head: t('m16.expiry'),
-      priority: 'chip',
+      ...(phone ? {} : { priority: 'chip' as const }),
       cell: (row) =>
         row.expiryDate === null ? (
           <Txt field="body" desk="cell">
@@ -209,6 +262,24 @@ export default function Stock(): React.JSX.Element {
       }
     >
       <Stack gap={4}>
+        {view === 'balances' ? (
+          <Search
+            testID="stock-search"
+            value={search}
+            onChange={setSearch}
+            placeholder={t('m16.search')}
+            state={
+              search.trim() === ''
+                ? 'idle'
+                : search.trim() !== q || balances.isFetching
+                  ? 'typing'
+                  : paged.rows.length === 0
+                    ? 'noResults'
+                    : 'results'
+            }
+          />
+        ) : null}
+
         <Chips
           testID="stock-locations"
           items={[
@@ -237,33 +308,63 @@ export default function Stock(): React.JSX.Element {
           <Async
             state={[balances]}
             rows={12}
-            empty={(balances.data?.items.length ?? 0) === 0}
-            emptyMessage={t('m16.empty')}
+            empty={paged.rows.length === 0}
+            emptyMessage={q === '' ? t('m16.empty') : t('m16.noMatch', { q })}
           >
-            <Register
-              testID="balances-register"
-              columns={balanceColumns}
-              rows={balances.data?.items ?? []}
-              rowKey={(row) => `${row.lotId}-${row.locationId}`}
-              frozen="item"
-              onSelect={
-                mayAdjust
-                  ? (row) => {
-                      setAdjusting(row)
-                      setDelta('')
-                      setNote('')
-                    }
-                  : undefined
-              }
-              state="ready"
-              totals={{
-                item: countText(pagedCount(balances), t('app.none')),
-                onHand: pageTotal(
-                  pagedCount(balances),
-                  String((balances.data?.items ?? []).reduce((sum, row) => sum + row.onHand, 0)),
-                ),
-              }}
-            />
+            <Stack gap={3}>
+              <Register
+                testID="balances-register"
+                columns={balanceColumns}
+                rows={paged.rows}
+                rowKey={balanceKey}
+                frozen="item"
+                onSelect={
+                  mayAdjust
+                    ? (row) => {
+                        setAdjusting(row)
+                        setDelta('')
+                        setNote('')
+                      }
+                    : undefined
+                }
+                state="ready"
+                totals={{
+                  item: countText(shown, t('app.none')),
+                  onHand: pageTotal(
+                    shown,
+                    String(paged.rows.reduce((sum, row) => sum + row.onHand, 0)),
+                  ),
+                }}
+              />
+              <Row gap={4} align="center" wrap>
+                <Txt field="label" desk="meta" color={colors.text.secondary} testID="stock-count">
+                  {paged.hasMore
+                    ? t('m16.rowsMore', { count: paged.rows.length })
+                    : t('m16.rows', { count: paged.rows.length })}
+                </Txt>
+                {paged.hasMore ? (
+                  <Button
+                    label={t('m16.showMore')}
+                    variant="secondary"
+                    loading={paged.loading}
+                    onPress={paged.showMore}
+                    testID="stock-more"
+                  />
+                ) : null}
+              </Row>
+              {paged.error === undefined ? null : (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.status.brick.fg}
+                  testID="stock-more-error"
+                >
+                  {paged.error.kind === 'network'
+                    ? t('app.writeNoConnection')
+                    : paged.error.message}
+                </Txt>
+              )}
+            </Stack>
           </Async>
         ) : view === 'ledger' ? (
           <Async

@@ -1,0 +1,16 @@
+           name           |  batch_no  | on_hand | old_position | on_old_page 
+--------------------------+------------+---------+--------------+-------------
+ Annapurna Toor Dal 1 kg  | AN20260905 |      84 |          255 | t
+ Annapurna Toor Dal 1 kg  | AN20260815 |       2 |          300 | t
+ Annapurna Toor Dal 1 kg  | B20260823  |       4 |          538 | f
+ Annapurna Toor Dal 1 kg  | AN20260711 |       2 |          668 | f
+ Annapurna Toor Dal 1 kg  | AN20260829 |      17 |          907 | f
+ Annapurna Toor Dal 1 kg  | B20260909  |     120 |         1060 | f
+ Annapurna Toor Dal 1 kg  | AN20260808 |       3 |         1184 | f
+ Annapurna Toor Dal 1 kg  | AN20260725 |       1 |         1246 | f
+ Annapurna Toor Dal 500 g | AN20260606 |       3 |           12 | t
+ Annapurna Toor Dal 500 g | AN20260815 |      13 |          365 | f
+ Annapurna Toor Dal 500 g | AN20260829 |     100 |          423 | f
+ Annapurna Toor Dal 500 g | B20260902  |     100 |          902 | f
+(12 rows)
+

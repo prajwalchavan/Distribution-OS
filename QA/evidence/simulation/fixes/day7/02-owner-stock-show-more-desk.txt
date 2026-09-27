@@ -1,0 +1,1858 @@
+Tarsun Enterprise
+owner
+Today
+5
+Orders
+Money
+Shops
+Billing
+Stock
+Reports
+SETUP
+Prices
+Staff
+Settings
+Updated just now
+ST
+Sunil Tarsun
+owner
+Stock
+Balances
+Stock ledger
+Export CSV
+Stock
+Inbound
+Documents
+Catalog
+Stock value by brand
+Annapurna
+₹4.6L
+19%
+Godavari
+₹4.1L
+17%
+Neelam
+₹3.6L
+15%
+Campa
+₹3.4L
+14%
+Other
+₹8.1L
+34%
+Stock at cost
+₹23,76,918.91
+Near expiry
+₹2,22,444.84
+Godown
+Vehicle MH-05-AB-1234
+Vehicle MH-05-CD-5678
+Vehicle MH-05-EF-9012
+Damaged / expiry bin
+In transit
+Near expiry
+Item	Batch	Location	Expiry	On hand	Held	Sellable	MRP ₹
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260718
+	
+Godown
+	
+14 Apr 2027
+	3	0	3	135.00
+
+Annapurna Basmati Classic 1 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	4	0	4	135.00
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260627
+	
+Godown
+	
+24 Mar 2027
+	4	0	4	135.00
+
+Annapurna Basmati Classic 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	97	0	97	135.00
+
+Annapurna Basmati Classic 1 kg
+	
+AN20260801
+	
+Godown
+	
+28 Apr 2027
+	12	0	12	135.00
+
+Annapurna Basmati Classic 5 kg
+	
+B20260604
+	
+Godown
+	
+1 Mar 2027
+	1	0	1	650.00
+
+Annapurna Besan 1 kg
+	
+AN20260704
+	
+Godown
+	
+31 Mar 2027
+	12	0	12	115.00
+
+Annapurna Besan 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	71	0	71	115.00
+
+Annapurna Besan 1 kg
+	
+AN20260822
+	
+Godown
+	
+19 May 2027
+	24	0	24	115.00
+
+Annapurna Besan 1 kg
+	
+AN20260613
+	
+Godown
+	
+10 Mar 2027
+	1	0	1	115.00
+
+Annapurna Besan 1 kg
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	12	0	12	115.00
+
+Annapurna Besan 500 g
+	
+B20251204
+	
+Godown
+	
+31 Aug 2026
+	20	0	20	60.00
+
+Annapurna Besan 500 g
+	
+AN20260620
+	
+Godown
+	
+17 Mar 2027
+	12	0	12	60.00
+
+Annapurna Besan 500 g
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	80	0	80	60.00
+
+Annapurna Besan 500 g
+	
+AN20260808
+	
+Godown
+	
+5 May 2027
+	4	0	4	60.00
+
+Annapurna Bombay Rava 1 kg
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	12	0	12	52.00
+
+Annapurna Bombay Rava 1 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	12	0	12	52.00
+
+Annapurna Bombay Rava 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	60	0	60	52.00
+
+Annapurna Bombay Rava 1 kg
+	
+AN20260704
+	
+Godown
+	
+31 Mar 2027
+	12	0	12	52.00
+
+Annapurna Bombay Rava 1 kg
+	
+AN20260613
+	
+Godown
+	
+10 Mar 2027
+	6	0	6	52.00
+
+Annapurna Bombay Rava 1 kg
+	
+AN20260829
+	
+Godown
+	
+26 May 2027
+	24	0	24	52.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260801
+	
+Godown
+	
+28 Apr 2027
+	20	0	20	28.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260704
+	
+Godown
+	
+31 Mar 2027
+	1	0	1	28.00
+
+Annapurna Bombay Rava 500 g
+	
+B20251227
+	
+Godown
+	
+23 Sep 2026
+	40	0	40	28.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260620
+	
+Godown
+	
+17 Mar 2027
+	4	0	4	28.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260613
+	
+Godown
+	
+10 Mar 2027
+	7	0	7	28.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260822
+	
+Godown
+	
+19 May 2027
+	40	0	40	28.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260725
+	
+Godown
+	
+21 Apr 2027
+	6	0	6	28.00
+
+Annapurna Bombay Rava 500 g
+	
+AN20260627
+	
+Godown
+	
+24 Mar 2027
+	2	0	2	28.00
+
+Annapurna Chakki Fresh Atta 1 kg
+	
+AN20260808
+	
+Godown
+	
+5 May 2027
+	6	0	6	55.00
+
+Annapurna Chakki Fresh Atta 1 kg
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	10	0	10	55.00
+
+Annapurna Chakki Fresh Atta 1 kg
+	
+AN20260822
+	
+Godown
+	
+19 May 2027
+	40	0	40	55.00
+
+Annapurna Chakki Fresh Atta 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	44	0	44	55.00
+
+Annapurna Chakki Fresh Atta 10 kg
+	
+AN20260905
+	
+Godown
+	
+2 Jun 2027
+	9	0	9	495.00
+
+Annapurna Chakki Fresh Atta 10 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	15	0	15	495.00
+
+Annapurna Chakki Fresh Atta 10 kg
+	
+AN20260718
+	
+Godown
+	
+14 Apr 2027
+	3	0	3	495.00
+
+Annapurna Chakki Fresh Atta 10 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	15	0	15	495.00
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+B20260909
+	
+Godown
+	
+6 Jun 2027
+	50	0	50	255.00
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	3	0	3	255.00
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	1	0	1	255.00
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+B20260614
+	
+Godown
+	
+11 Mar 2027
+	1	0	1	255.00
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+AN20260905
+	
+Godown
+	
+2 Jun 2027
+	25	0	25	255.00
+
+Annapurna Chakki Fresh Atta 5 kg
+	
+B20260823
+	
+Godown
+	
+20 May 2027
+	15	0	15	255.00
+
+Annapurna Chana Dal 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	72	0	72	105.00
+
+Annapurna Chana Dal 1 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	48	0	48	105.00
+
+Annapurna Chana Dal 500 g
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	64	0	64	55.00
+
+Annapurna Chana Dal 500 g
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	129	0	129	55.00
+
+Annapurna Chana Dal 500 g
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	1	0	1	55.00
+
+Annapurna Chana Dal 500 g
+	
+AN20260613
+	
+Godown
+	
+10 Mar 2027
+	6	0	6	55.00
+
+Annapurna Filtered Groundnut Oil 1 L
+	
+B20260729
+	
+Godown
+	
+25 Jan 2027
+	60	0	60	210.00
+
+Annapurna Filtered Groundnut Oil 1 L
+	
+B20260902
+	
+Godown
+	
+1 Mar 2027
+	60	0	60	210.00
+
+Annapurna Filtered Groundnut Oil 5 L
+	
+B20260729
+	
+Godown
+	
+25 Jan 2027
+	20	0	20	1,035.00
+
+Annapurna Filtered Groundnut Oil 5 L
+	
+B20260902
+	
+Godown
+	
+1 Mar 2027
+	20	0	20	1,035.00
+
+Annapurna Garam Masala 100 g
+	
+AN20260711
+	
+Godown
+	
+11 Jul 2027
+	31	0	31	85.00
+
+Annapurna Garam Masala 100 g
+	
+AN20260620
+	
+Godown
+	
+20 Jun 2027
+	9	0	9	85.00
+
+Annapurna Garam Masala 100 g
+	
+AN20260606
+	
+Godown
+	
+6 Jun 2027
+	8	0	8	85.00
+
+Annapurna Garam Masala 100 g
+	
+AN20260704
+	
+Godown
+	
+4 Jul 2027
+	15	0	15	85.00
+
+Annapurna Garam Masala 100 g
+	
+B20260902
+	
+Godown
+	
+2 Sep 2027
+	381	0	381	85.00
+
+Annapurna Garam Masala 100 g
+	
+B20260729
+	
+Godown
+	
+29 Jul 2027
+	48	0	48	85.00
+
+Annapurna Iodised Salt 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	215	0	215	28.00
+
+Annapurna Iodised Salt 1 kg
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	6	0	6	28.00
+
+Annapurna Iodised Salt 1 kg
+	
+AN20260704
+	
+Godown
+	
+31 Mar 2027
+	1	0	1	28.00
+
+Annapurna Iodised Salt 1 kg
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	24	0	24	28.00
+
+Annapurna Kolam Rice 1 kg
+	
+AN20260718
+	
+Godown
+	
+14 Apr 2027
+	24	0	24	68.00
+
+Annapurna Kolam Rice 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	96	0	96	68.00
+
+Annapurna Kolam Rice 25 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	5	0	5	1,590.00
+
+Annapurna Kolam Rice 25 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	5	0	5	1,590.00
+
+Annapurna Kolam Rice 5 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	43	0	43	330.00
+
+Annapurna Kolam Rice 5 kg
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	2	0	2	330.00
+
+Annapurna Kolam Rice 5 kg
+	
+AN20260718
+	
+Godown
+	
+14 Apr 2027
+	1	0	1	330.00
+
+Annapurna Kolam Rice 5 kg
+	
+AN20260606
+	
+Godown
+	
+3 Mar 2027
+	1	0	1	330.00
+
+Annapurna Kolam Rice 5 kg
+	
+AN20260822
+	
+Godown
+	
+19 May 2027
+	3	0	3	330.00
+
+Annapurna Red Chilli Powder 100 g
+	
+AN20260829
+	
+Godown
+	
+29 Aug 2027
+	288	0	288	45.00
+
+Annapurna Red Chilli Powder 100 g
+	
+B20260729
+	
+Godown
+	
+29 Jul 2027
+	96	0	96	45.00
+
+Annapurna Red Chilli Powder 100 g
+	
+B20260902
+	
+Godown
+	
+2 Sep 2027
+	12	0	12	45.00
+
+Annapurna Red Chilli Powder 100 g
+	
+AN20260613
+	
+Godown
+	
+13 Jun 2027
+	30	0	30	45.00
+
+Annapurna Red Chilli Powder 100 g
+	
+AN20260718
+	
+Godown
+	
+18 Jul 2027
+	96	0	96	45.00
+
+Annapurna Red Chilli Powder 500 g
+	
+B20260902
+	
+Godown
+	
+2 Sep 2027
+	128	0	128	210.00
+
+Annapurna Red Chilli Powder 500 g
+	
+B20260729
+	
+Godown
+	
+29 Jul 2027
+	72	0	72	210.00
+
+Annapurna Sulphurless Sugar 1 kg
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	20	0	20	48.00
+
+Annapurna Sulphurless Sugar 1 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	20	0	20	48.00
+
+Annapurna Sulphurless Sugar 1 kg
+	
+AN20260613
+	
+Godown
+	
+10 Mar 2027
+	8	0	8	48.00
+
+Annapurna Sulphurless Sugar 1 kg
+	
+AN20260905
+	
+Godown
+	
+2 Jun 2027
+	140	0	140	48.00
+
+Annapurna Sulphurless Sugar 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	20	0	20	48.00
+
+Annapurna Sulphurless Sugar 1 kg
+	
+B20260902
+	
+In transit
+	
+30 May 2027
+	40	0	40	48.00
+
+Annapurna Sulphurless Sugar 5 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	39	0	39	235.00
+
+Annapurna Sulphurless Sugar 5 kg
+	
+AN20260606
+	
+Godown
+	
+3 Mar 2027
+	1	0	1	235.00
+
+Annapurna Sulphurless Sugar 5 kg
+	
+AN20260822
+	
+Godown
+	
+19 May 2027
+	10	0	10	235.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260725
+	
+Godown
+	
+21 Jan 2027
+	15	0	15	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260704
+	
+Godown
+	
+31 Dec 2026
+	7	0	7	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260606
+	
+Godown
+	
+3 Dec 2026
+	3	0	3	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+B20260909
+	
+Godown
+	
+8 Mar 2027
+	120	0	120	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260905
+	
+Godown
+	
+4 Mar 2027
+	24	0	24	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+B20260823
+	
+Godown
+	
+19 Feb 2027
+	3	0	3	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260822
+	
+Godown
+	
+18 Feb 2027
+	24	0	24	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260829
+	
+Godown
+	
+25 Feb 2027
+	10	0	10	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260808
+	
+Godown
+	
+4 Feb 2027
+	24	0	24	135.00
+
+Annapurna Sunflower Refined Oil 1 L pouch
+	
+AN20260801
+	
+Godown
+	
+28 Jan 2027
+	12	0	12	135.00
+
+Annapurna Sunflower Refined Oil 5 L jar
+	
+B20260729
+	
+Godown
+	
+25 Jan 2027
+	20	0	20	660.00
+
+Annapurna Sunflower Refined Oil 5 L jar
+	
+AN20260627
+	
+Godown
+	
+24 Dec 2026
+	3	0	3	660.00
+
+Annapurna Sunflower Refined Oil 5 L jar
+	
+B20260902
+	
+Godown
+	
+1 Mar 2027
+	17	0	17	660.00
+
+Annapurna Thick Poha 1 kg
+	
+AN20260613
+	
+Godown
+	
+10 Mar 2027
+	3	0	3	65.00
+
+Annapurna Thick Poha 1 kg
+	
+B20260729
+	
+Godown
+	
+25 Apr 2027
+	24	0	24	65.00
+
+Annapurna Thick Poha 1 kg
+	
+AN20260808
+	
+Godown
+	
+5 May 2027
+	36	0	36	65.00
+
+Annapurna Thick Poha 1 kg
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	54	0	54	65.00
+
+Annapurna Thick Poha 1 kg
+	
+AN20260606
+	
+Godown
+	
+3 Mar 2027
+	3	0	3	65.00
+
+Annapurna Thick Poha 500 g
+	
+AN20260606
+	
+Godown
+	
+3 Mar 2027
+	8	0	8	35.00
+
+Annapurna Thick Poha 500 g
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	20	0	20	35.00
+
+Annapurna Thick Poha 500 g
+	
+B20260107
+	
+Godown
+	
+4 Oct 2026
+	40	0	40	35.00
+
+Annapurna Thick Poha 500 g
+	
+AN20260704
+	
+Godown
+	
+31 Mar 2027
+	14	0	14	35.00
+
+Annapurna Thick Poha 500 g
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	38	0	38	35.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260905
+	
+Godown
+	
+2 Jun 2027
+	84	0	84	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	2	0	2	185.00
+
+Annapurna Toor Dal 1 kg
+	
+B20260823
+	
+Godown
+	
+20 May 2027
+	4	0	4	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260711
+	
+Godown
+	
+7 Apr 2027
+	2	0	2	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260829
+	
+Godown
+	
+26 May 2027
+	17	0	17	185.00
+
+Annapurna Toor Dal 1 kg
+	
+B20260909
+	
+Godown
+	
+6 Jun 2027
+	120	0	120	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260808
+	
+Godown
+	
+5 May 2027
+	3	0	3	185.00
+
+Annapurna Toor Dal 1 kg
+	
+AN20260725
+	
+Godown
+	
+21 Apr 2027
+	1	0	1	185.00
+
+Annapurna Toor Dal 500 g
+	
+AN20260606
+	
+Godown
+	
+3 Mar 2027
+	3	0	3	95.00
+
+Annapurna Toor Dal 500 g
+	
+AN20260815
+	
+Godown
+	
+12 May 2027
+	13	0	13	95.00
+
+Annapurna Toor Dal 500 g
+	
+AN20260829
+	
+Godown
+	
+26 May 2027
+	100	0	100	95.00
+
+Annapurna Toor Dal 500 g
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	100	0	100	95.00
+
+Annapurna Turmeric Powder 100 g
+	
+AN20260704
+	
+Godown
+	
+4 Jul 2027
+	67	0	67	32.00
+
+Annapurna Turmeric Powder 100 g
+	
+AN20260822
+	
+Godown
+	
+22 Aug 2027
+	96	0	96	32.00
+
+Annapurna Turmeric Powder 100 g
+	
+B20260902
+	
+Godown
+	
+2 Sep 2027
+	267	0	267	32.00
+
+Annapurna Turmeric Powder 100 g
+	
+AN20260613
+	
+Godown
+	
+13 Jun 2027
+	2	0	2	32.00
+
+Annapurna Turmeric Powder 100 g
+	
+AN20260808
+	
+Godown
+	
+8 Aug 2027
+	48	0	48	32.00
+
+Annapurna Turmeric Powder 500 g
+	
+AN20260704
+	
+Godown
+	
+4 Jul 2027
+	3	0	3	150.00
+
+Annapurna Turmeric Powder 500 g
+	
+AN20260627
+	
+Godown
+	
+27 Jun 2027
+	3	0	3	150.00
+
+Annapurna Turmeric Powder 500 g
+	
+B20260902
+	
+Godown
+	
+2 Sep 2027
+	194	0	194	150.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260811
+	
+Godown
+	
+8 Jan 2027
+	48	0	48	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260818
+	
+Godown
+	
+15 Jan 2027
+	96	0	96	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+B20260729
+	
+Godown
+	
+26 Dec 2026
+	19	0	19	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260825
+	
+Godown
+	
+22 Jan 2027
+	144	0	144	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+B20260902
+	
+In transit
+	
+30 Jan 2027
+	240	240	0	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260728
+	
+Godown
+	
+25 Dec 2026
+	6	0	6	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260616
+	
+Godown
+	
+13 Nov 2026
+	3	0	3	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260828
+	
+Godown
+	
+25 Jan 2027
+	186	0	186	20.00
+
+Balaji Chataka Pataka Wafers 45 g
+	
+GK20260828
+	
+Damaged / expiry bin
+	
+25 Jan 2027
+	6	0	6	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+B20260909
+	
+Godown
+	
+6 Feb 2027
+	602	0	602	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260609
+	
+Godown
+	
+6 Nov 2026
+	3	0	3	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260828
+	
+Godown
+	
+25 Jan 2027
+	144	0	144	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260707
+	
+Godown
+	
+4 Dec 2026
+	20	0	20	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260623
+	
+Godown
+	
+20 Nov 2026
+	20	0	20	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260804
+	
+Godown
+	
+1 Jan 2027
+	14	0	14	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260721
+	
+Godown
+	
+18 Dec 2026
+	19	0	19	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260630
+	
+Godown
+	
+27 Nov 2026
+	15	0	15	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260825
+	
+Godown
+	
+22 Jan 2027
+	74	0	74	20.00
+
+Balaji Masala Masti Wafers 45 g
+	
+GK20260602
+	
+Godown
+	
+30 Oct 2026
+	13	0	13	20.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260825
+	
+Godown
+	
+23 Dec 2026
+	30	0	30	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260825
+	
+In transit
+	
+23 Dec 2026
+	60	60	0	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260714
+	
+Godown
+	
+11 Nov 2026
+	5	0	5	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260828
+	
+Godown
+	
+26 Dec 2026
+	90	0	90	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260630
+	
+Godown
+	
+28 Oct 2026
+	12	0	12	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260707
+	
+Godown
+	
+4 Nov 2026
+	12	0	12	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260623
+	
+Godown
+	
+21 Oct 2026
+	7	0	7	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260616
+	
+Godown
+	
+14 Oct 2026
+	6	0	6	80.00
+
+Balaji Ratlami Sev 200 g
+	
+GK20260609
+	
+Godown
+	
+7 Oct 2026
+	2	0	2	80.00
+
+Balaji Ratlami Sev 200 g
+	
+B20260902
+	
+Godown
+	
+31 Dec 2026
+	150	0	150	80.00
+
+Balaji Simply Salted Wafers 45 g
+	
+B20260823
+	
+Godown
+	
+20 Jan 2027
+	42	0	42	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260602
+	
+Godown
+	
+30 Oct 2026
+	1	0	1	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260825
+	
+Godown
+	
+22 Jan 2027
+	96	0	96	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260825
+	
+Vehicle MH-05-AB-1234
+	
+22 Jan 2027
+	144	0	144	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260828
+	
+Godown
+	
+25 Jan 2027
+	336	0	336	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260828
+	
+In transit
+	
+25 Jan 2027
+	624	624	0	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260828
+	
+Vehicle MH-05-AB-1234
+	
+25 Jan 2027
+	288	0	288	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260630
+	
+Godown
+	
+27 Nov 2026
+	11	0	11	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260609
+	
+Godown
+	
+6 Nov 2026
+	6	0	6	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260707
+	
+Godown
+	
+4 Dec 2026
+	3	0	3	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+B20260909
+	
+Godown
+	
+6 Feb 2027
+	407	0	407	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+B20260909
+	
+Vehicle MH-05-AB-1234
+	
+6 Feb 2027
+	48	0	48	20.00
+
+Balaji Simply Salted Wafers 45 g
+	
+GK20260728
+	
+Godown
+	
+25 Dec 2026
+	10	0	10	20.00
+
+Campa Cola 1 L
+	
+RCP20260807
+	
+Godown
+	
+4 May 2027
+	9	0	9	50.00
+
+Campa Cola 1 L
+	
+RCP20260612
+	
+Godown
+	
+9 Mar 2027
+	4	0	4	50.00
+
+Campa Cola 1 L
+	
+B20260614
+	
+Godown
+	
+11 Mar 2027
+	4	0	4	50.00
+
+Campa Cola 1 L
+	
+RCP20260710
+	
+Godown
+	
+6 Apr 2027
+	4	0	4	50.00
+
+Campa Cola 1 L
+	
+RCP20260529
+	
+Godown
+	
+23 Feb 2027
+	5	0	5	50.00
+
+Campa Cola 1 L
+	
+RCP20260731
+	
+Godown
+	
+27 Apr 2027
+	5	0	5	50.00
+
+Campa Cola 1 L
+	
+B20260909
+	
+Godown
+	
+6 Jun 2027
+	393	0	393	50.00
+
+Campa Cola 1 L
+	
+B20260909
+	
+Vehicle MH-05-AB-1234
+	
+6 Jun 2027
+	24	0	24	50.00
+
+Campa Cola 1 L
+	
+RCP20260605
+	
+Godown
+	
+2 Mar 2027
+	7	0	7	50.00
+
+Campa Cola 1 L
+	
+RCP20260626
+	
+Godown
+	
+23 Mar 2027
+	4	0	4	50.00
+
+Campa Cola 1 L
+	
+RCP20260724
+	
+Godown
+	
+20 Apr 2027
+	6	0	6	50.00
+
+Campa Cola 1 L
+	
+RCP20260717
+	
+Godown
+	
+13 Apr 2027
+	4	0	4	50.00
+
+Campa Cola 1 L
+	
+RCP20260814
+	
+Godown
+	
+11 May 2027
+	11	0	11	50.00
+
+Campa Cola 1 L
+	
+RCP20260814
+	
+In transit
+	
+11 May 2027
+	50	50	0	50.00
+
+Campa Cola 1 L
+	
+RCP20260814
+	
+Vehicle MH-05-AB-1234
+	
+11 May 2027
+	11	0	11	50.00
+
+Campa Cola 1 L
+	
+RCP20260703
+	
+Godown
+	
+30 Mar 2027
+	2	0	2	50.00
+
+Campa Cola 1 L
+	
+RCP20260619
+	
+Godown
+	
+16 Mar 2027
+	4	0	4	50.00
+
+Campa Cola 2 L
+	
+RCP20260605
+	
+Godown
+	
+2 Mar 2027
+	7	0	7	90.00
+
+Campa Cola 2 L
+	
+RCP20260731
+	
+Godown
+	
+27 Apr 2027
+	24	0	24	90.00
+
+Campa Cola 2 L
+	
+B20260902
+	
+Godown
+	
+30 May 2027
+	162	0	162	90.00
+
+Campa Cola 2 L
+	
+RCP20260529
+	
+Godown
+	
+23 Feb 2027
+	2	0	2	90.00
+
+Campa Cola 2 L
+	
+RCP20260612
+	
+Godown
+	
+9 Mar 2027
+	2	0	2	90.00
+
+Campa Cola 2 L
+	
+RCP20260619
+	
+Godown
+	
+16 Mar 2027
+	5	0	5	90.00
+
+Campa Cola 2 L
+	
+RCP20260710
+	
+Godown
+	
+6 Apr 2027
+	14	0	14	90.00
+
+Campa Cola 2 L
+	
+RCP20260724
+	
+Godown
+	
+20 Apr 2027
+	24	0	24	90.00
+
+Campa Cola 200 ml
+	
+RCP20260619
+	
+Godown
+	
+16 Mar 2027
+	17	0	17	10.00
+
+Campa Cola 200 ml
+	
+RCP20260724
+	
+Godown
+	
+20 Apr 2027
+	33	0	33	10.00
+200 batches shown — more below							
+200 batches shown — more below · Click a row to adjust that batch.
+Show more
+Cycle counts

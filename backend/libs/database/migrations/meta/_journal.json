@@ -470,6 +470,20 @@
       "when": 1790500000000,
       "tag": "0068_dock_holds_per_bill_backfill",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1790600000000,
+      "tag": "0069_daily_credited_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1790600000001,
+      "tag": "0070_daily_credited_guarantees",
+      "breakpoints": true
     }
   ]
 }

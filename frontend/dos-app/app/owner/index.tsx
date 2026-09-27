@@ -190,6 +190,18 @@ export default function Today(): React.JSX.Element {
                 {
                   label: t('o1.sales'),
                   value: <Money value={d?.todayInvoicedPaise ?? 0} size="moneyM" />,
+                  /*
+                   * QA DOS-254: a bill credited today was still billed today, so the tile keeps what was
+                   * invoiced — and says beside it what was credited and what is left, instead of letting a
+                   * whole-bill credit vanish inside a gross figure.
+                   */
+                  delta:
+                    d === undefined || d.todayCreditedPaise === 0
+                      ? undefined
+                      : t('o1.creditedToday', {
+                          amount: formatINR(paise(d.todayCreditedPaise)),
+                          net: formatINR(paise(d.todayInvoicedPaise - d.todayCreditedPaise)),
+                        }),
                   spark: invoicedSpark,
                 },
                 {
@@ -300,6 +312,15 @@ export default function Today(): React.JSX.Element {
                   />
                   <ListRow
                     primary={t('o1.mtdSales')}
+                    /* QA DOS-254: net of the month's credit notes, with the split stated. */
+                    secondary={
+                      d === undefined || d.mtdCreditedPaise === 0
+                        ? t('o1.mtdNet')
+                        : t('o1.mtdSplit', {
+                            invoiced: formatINR(paise(d.mtdSalesPaise + d.mtdCreditedPaise)),
+                            credited: formatINR(paise(d.mtdCreditedPaise)),
+                          })
+                    }
                     trailingMoney={d?.mtdSalesPaise ?? 0}
                     onPress={() => {
                       go.push('/reports')

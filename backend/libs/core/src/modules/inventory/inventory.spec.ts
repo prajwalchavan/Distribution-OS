@@ -1401,6 +1401,132 @@ describeDb('inventory (DATABASE_URL)', () => {
     expect(todayOnly.body.items.map((e) => e.id)).toEqual([todayId])
   })
 
+  /*
+   * QA DOS-253 (business simulation, day 7): the owner's, the manager's and the godown's Stock screens read
+   * one page of balances in lot order, and the godown has 1 294 rows, so 8 of 29 live batches of the
+   * simulation's items were not on screen and a client-side search could never find them. The read now
+   * searches on the server, drops zero rows, and pages in item order with a cursor that keeps its place.
+   */
+  it('DOS-253: balances search item, product and batch on the server (case-insensitive, LIKE wildcards literal), skip zero rows, and page by item then batch with a cursor that neither drops nor repeats a row', async () => {
+    const tag = `Q${run}`
+    const productId = uuidv7()
+    const amla = uuidv7()
+    const zeera = uuidv7()
+    const maker = uuidv7()
+    await db.insert(manufacturers).values({ id: maker, name: `Maker 253 ${run}` })
+    await db.insert(products).values({ id: productId, manufacturerId: maker, name: 'Mukhwas' })
+    await db.insert(productVariants).values([
+      // created Zeera first, so item order (Amla, Zeera) is NOT the id order
+      {
+        id: zeera,
+        productId,
+        name: `Zeera goli 50 g ${tag}`,
+        netQty: 50,
+        netUnit: 'g',
+        defaultCaseSize: 40,
+        hsnCode: '2106',
+        mrpPaise: 1000,
+      },
+      {
+        id: amla,
+        productId,
+        name: `Amla candy 100 g ${tag}`,
+        netQty: 100,
+        netUnit: 'g',
+        defaultCaseSize: 20,
+        hsnCode: '2106',
+        mrpPaise: 2000,
+      },
+    ])
+    const lots: [string, string, string, number][] = [
+      [uuidv7(), zeera, `${tag}-Z1`, 12],
+      [uuidv7(), zeera, `${tag}-Z2`, 7],
+      [uuidv7(), amla, `${tag}-A1`, 5],
+      [uuidv7(), zeera, `${tag}-Z0`, 3],
+    ]
+    for (const [id, variant, batchNo, pieces] of lots) {
+      const lot = await call(app, owner, 'POST', '/inventory/lots', {
+        idempotencyKey: `lot-${id}`,
+        id,
+        variantId: variant,
+        batchNo,
+        mrpPaise: 1000,
+      })
+      expect(lot.status).toBe(200)
+      const open = await call(app, owner, 'POST', '/inventory/adjustments', {
+        idempotencyKey: `open-${id}`,
+        lotId: id,
+        locationId: godown,
+        qtyDelta: pieces,
+        reason: 'opening',
+      })
+      expect(open.status).toBe(200)
+    }
+    // the Z0 batch is written off to zero: its balance row stays, at 0
+    const zeroLot = lots[3]?.[0] ?? ''
+    expect(
+      (
+        await call(app, owner, 'POST', '/inventory/adjustments', {
+          idempotencyKey: `off-${zeroLot}`,
+          lotId: zeroLot,
+          locationId: godown,
+          qtyDelta: -3,
+          reason: 'damage',
+        })
+      ).status,
+    ).toBe(200)
+
+    type Row = Balance & { batchNo: string; variantName: string }
+    const read = (input: Record<string, unknown>) =>
+      call<{ items: Row[]; nextCursor: string | null }>(
+        app,
+        owner,
+        'GET',
+        '/inventory/balances',
+        input,
+      )
+
+    // the search is the server's, over every row, and ignores case
+    const all = await read({ q: tag.toLowerCase(), limit: 500 })
+    expect(all.status).toBe(200)
+    expect(all.body.items.map((r) => r.batchNo).sort()).toEqual(
+      [`${tag}-A1`, `${tag}-Z0`, `${tag}-Z1`, `${tag}-Z2`].sort(),
+    )
+    // by item name, and by product name
+    const byItem = await read({ q: `amla candy 100 g ${tag}` })
+    expect(byItem.body.items.map((r) => r.batchNo)).toEqual([`${tag}-A1`])
+    const byBatch = await read({ q: `${tag}-z2` })
+    expect(byBatch.body.items.map((r) => r.batchNo)).toEqual([`${tag}-Z2`])
+    // a LIKE wildcard is a literal character, not "everything"
+    expect((await read({ q: '%' })).body.items).toEqual([])
+    expect((await read({ q: '_' })).body.items).toEqual([])
+
+    // item order, one row per page, zero rows skipped: Amla, then Zeera's batches oldest first
+    const seen: string[] = []
+    let cursor: string | undefined
+    for (let page = 0; page < 10; page += 1) {
+      const res = await read({
+        q: tag,
+        nonZero: true,
+        sort: 'item',
+        limit: 1,
+        ...(cursor === undefined ? {} : { cursor }),
+      })
+      expect(res.status).toBe(200)
+      seen.push(...res.body.items.map((r) => `${r.batchNo}:${String(r.onHand)}`))
+      if (res.body.nextCursor === null) break
+      cursor = res.body.nextCursor
+    }
+    expect(seen).toEqual([`${tag}-A1:5`, `${tag}-Z1:12`, `${tag}-Z2:7`])
+
+    // a cursor that is not an item cursor is the caller's 400, never a 500
+    expect((await read({ sort: 'item', cursor: `${zeroLot}:${godown}` })).status).toBe(400)
+    // the lot order every other caller relies on is unchanged
+    const lotOrder = await read({ q: tag, limit: 500 })
+    const ids = lotOrder.body.items.map((r) => r.lotId)
+    expect(ids).toEqual([...ids].sort())
+  })
+
   it('keeps the ledger append-only even for the owner', async () => {
     await expect(
       withTenant(db, ownerCtx, (tx) =>

@@ -5,6 +5,7 @@
 export {
   activeTenantIds,
   rollupBehaviour,
+  rollupStaleCreditDays,
   rollupTenant,
   rollupTenantDay,
   type RollupResult,

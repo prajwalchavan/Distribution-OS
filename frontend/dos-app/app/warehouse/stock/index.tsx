@@ -15,6 +15,11 @@
  * found short. The sheet asks for the pieces going out and sends them negative, and lists only the
  * reasons `mayPostAdjustment` lets this login send, so never "Opening stock". Adding is the desk's:
  * more on the rack than the books show is recorded under Counts, and goods arriving come in on a GRN.
+ *
+ * QA DOS-253 / DOS-223: the list was ONE page of 200 lot × location rows in lot order, zero rows included,
+ * and the search filtered only that page — a batch past row 200 could not be found at all. The search now
+ * runs on the server over every row, only live rows are read, item by item, a page at a time with
+ * "Show more", and the count says when more are below.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
 import {
@@ -40,6 +45,8 @@ import { mayPostAdjustment, type AdjustmentReason, type StockBalanceRow } from '
 import { haptics } from '@dos/ui/platform'
 import { useMemo, useState } from 'react'
 
+import { useMorePages, useSettled } from '../../../src/paging'
+
 import { instantWithClock } from '../../../src/groups/warehouse/lib/dates'
 import { useLotCaseSize } from '../../../src/groups/warehouse/lib/local'
 import {
@@ -55,6 +62,10 @@ import {
  * The reasons the sheet can list, in order. "Opening stock" is not one of them: it is the desk's in
  * both signs (DOS-044), and the component still filters this list through `mayPostAdjustment`.
  */
+/** Rows per page: a phone reads a page and asks for the next, never the whole godown (docs/20 rule 3). */
+const PAGE = 50
+const lotKey = (row: StockBalanceRow): string => `${row.lotId}-${row.locationId}`
+
 const ADJUSTMENT_REASONS: readonly { id: AdjustmentReason; key: string }[] = [
   { id: 'adjustment', key: 'w8.reasonAdjustment' },
   { id: 'damage', key: 'w8.reasonDamage' },
@@ -78,6 +89,7 @@ export default function Stock(): React.JSX.Element {
 
   const [locationId, setLocationId] = useState<string | null>(null)
   const [q, setQ] = useState('')
+  const term = useSettled(q.trim(), 300)
   const [nearExpiry, setNearExpiry] = useState(false)
   const [adjusting, setAdjusting] = useState<StockBalanceRow | null>(null)
   const [moving, setMoving] = useState<StockBalanceRow | null>(null)
@@ -93,15 +105,24 @@ export default function Stock(): React.JSX.Element {
     () => api.api.inventory.locations.list({ activeOnly: true }),
     { enabled: signedIn },
   )
+  const filters = {
+    nonZero: true,
+    sort: 'item' as const,
+    ...(term === '' ? {} : { q: term }),
+    ...(locationId === null ? {} : { locationId }),
+    ...(nearExpiry ? { nearExpiryOnly: true } : {}),
+  }
+  const filterKey = JSON.stringify(filters)
   const balances = useQuery(
-    ['balances', locationId ?? 'all', nearExpiry ? 'near' : 'all'],
-    () =>
-      api.api.inventory.stock.balances({
-        limit: 200,
-        ...(locationId === null ? {} : { locationId }),
-        ...(nearExpiry ? { nearExpiryOnly: true } : {}),
-      }),
+    ['balances', filterKey],
+    () => api.api.inventory.stock.balances({ ...filters, limit: PAGE }),
     { enabled: signedIn },
+  )
+  const paged = useMorePages(
+    filterKey,
+    balances.data,
+    (cursor) => api.api.inventory.stock.balances({ ...filters, limit: PAGE, cursor }),
+    lotKey,
   )
   const ledger = useQuery(
     ['ledger', locationId ?? 'all'],
@@ -164,14 +185,7 @@ export default function Stock(): React.JSX.Element {
   )
 
   const { caseSizeOf } = useLotCaseSize()
-  const term = q.trim().toLowerCase()
-  const rows = (balances.data?.items ?? []).filter(
-    (row) =>
-      term === '' ||
-      row.variantName.toLowerCase().includes(term) ||
-      row.productName.toLowerCase().includes(term) ||
-      row.batchNo.toLowerCase().includes(term),
-  )
+  const rows = paged.rows
   const deltaValue = Number.parseInt(delta, 10)
   // Pieces going OUT: a positive number, sent negative (iOS's decimal pad has no minus key, DOS-044).
   const deltaOk = Number.isSafeInteger(deltaValue) && deltaValue > 0
@@ -207,7 +221,15 @@ export default function Stock(): React.JSX.Element {
           value={q}
           onChange={setQ}
           placeholder={t('w8.search')}
-          state={term === '' ? 'idle' : rows.length === 0 ? 'noResults' : 'results'}
+          state={
+            q.trim() === ''
+              ? 'idle'
+              : q.trim() !== term || balances.isFetching
+                ? 'typing'
+                : rows.length === 0
+                  ? 'noResults'
+                  : 'results'
+          }
         />
 
         <Segments
@@ -223,11 +245,15 @@ export default function Stock(): React.JSX.Element {
         />
 
         <Panel title={t('w8.rows')} testID="w8-rows">
-          <Async state={balances} empty={rows.length === 0} emptyMessage={t('w8.rowsEmpty')}>
+          <Async
+            state={balances}
+            empty={rows.length === 0}
+            emptyMessage={term === '' ? t('w8.rowsEmpty') : t('w8.noMatch', { q: term })}
+          >
             <Stack gap={4}>
               {rows.map((row) => (
                 <Stack
-                  key={`${row.lotId}-${row.locationId}`}
+                  key={lotKey(row)}
                   gap={3}
                   pad={4}
                   background="surface"
@@ -292,6 +318,26 @@ export default function Stock(): React.JSX.Element {
                   </Row>
                 </Stack>
               ))}
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="w8-count">
+                {paged.hasMore
+                  ? t('w8.countMore', { count: rows.length })
+                  : t('w8.count', { count: rows.length })}
+              </Txt>
+              {paged.hasMore ? (
+                <Button
+                  label={t('w8.showMore')}
+                  variant="secondary"
+                  loading={paged.loading}
+                  onPress={paged.showMore}
+                  fullWidth
+                  testID="w8-more"
+                />
+              ) : null}
+              {paged.error === undefined ? null : (
+                <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w8-more-error">
+                  {paged.error.message}
+                </Txt>
+              )}
             </Stack>
           </Async>
         </Panel>

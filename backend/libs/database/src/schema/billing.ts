@@ -273,6 +273,8 @@ export const creditNotes = pgTable(
     index('credit_notes_invoice_idx').on(t.tenantId, t.invoiceId),
     /** The retailer's credits tab and the ageing recompute, which walk credits by party and date. */
     index('credit_notes_retailer_idx').on(t.tenantId, t.retailerId, t.noteDate),
+    /** The rollup's day and month of credit notes across every shop (QA DOS-254), every 15 minutes. */
+    index('credit_notes_date_idx').on(t.tenantId, t.noteDate),
     tenantOrOwnRetailerPolicy('credit_notes_read', 'retailer_id'),
     ...staffWritePolicy('credit_notes_write'),
   ],

@@ -7482,13 +7482,15 @@ On-hand and reserved per lot per location (stock keepers only) · contract `inve
 | `expiringBefore` | date | no |
 | `nearExpiryOnly` | boolean | string | no |
 | `nonZero` | boolean | string | no |
+| `q` | string | no |
+| `sort` | lot | item | no |
 | `limit` | integer | no |
 | `cursor` | string | no |
 
 **Example request**
 
 ```bash
-curl "http://localhost:3002/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&nonZero=true&limit=200" \
+curl "http://localhost:3002/inventory/balances?variantId=01a06df0-2faf-79a2-8456-92042e49f147&locationId=01a06d18-e60a-7abc-87f8-910189e5f14c&lotId=01a06dc6-1c19-701b-8a21-982c1b2f8bc3&expiringBefore=2026-09-04&nearExpiryOnly=true&nonZero=true&q=campa&sort=lot&limit=200" \
   -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…"
 ```
 
@@ -42323,6 +42325,7 @@ curl "http://localhost:3002/reporting/dashboard/owner" \
 {
   "asOf": "2026-09-04",
   "todayInvoicedPaise": 4000,
+  "todayCreditedPaise": 4000,
   "todayCollectedPaise": 4000,
   "todayOrdersCount": 1,
   "todayDeliveredStops": 1,
@@ -42340,6 +42343,7 @@ curl "http://localhost:3002/reporting/dashboard/owner" \
     "b90plus": 1
   },
   "mtdSalesPaise": 4000,
+  "mtdCreditedPaise": 4000,
   "mtdGrossMarginPaise": 4000,
   "stockValuePaise": 4000,
   "nearExpiryValuePaise": 4000,
@@ -44913,7 +44917,16 @@ curl "http://localhost:3002/reporting/registers/stock-value?locationId=01a06d18-
     "onHandPcs": 24,
     "valuePaise": 4000,
     "nearExpiryValuePaise": 4000
-  }
+  },
+  "byBrand": [
+    {
+      "brandId": "01a06db4-0f6a-71b5-8f6e-febe6219c69d",
+      "brandName": "Campa Cola 750 ml",
+      "onHandPcs": 24,
+      "valuePaise": 4000,
+      "nearExpiryValuePaise": 4000
+    }
+  ]
 }
 ```
 

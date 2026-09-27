@@ -6,6 +6,7 @@ import {
   activeTenantIds,
   registerReportRenderers,
   rollupBehaviour,
+  rollupStaleCreditDays,
   rollupTenantDay,
 } from '@dos/core/reporting'
 import { logger } from '../logger.js'
@@ -162,6 +163,16 @@ export async function registerReportingJobs(boss: PgBoss, db: Db): Promise<void>
   await boss.work(REPORTING_ROLLUP_TENANT, { batchSize: 1 }, async ([job]) => {
     const parsed = parseJob(job?.data)
     if (!parsed) return
+    // QA DOS-254: a day of this month rolled before credit notes were counted is re-rolled once, BEFORE
+    // today, so today's run writes the owner summary last and "Sales this month" is net at once.
+    if (parsed.day === businessDate().date) {
+      const caughtUp = await rollupStaleCreditDays(db, parsed.tenantId, parsed.day)
+      if (caughtUp.length > 0)
+        logger.info(
+          { tenantId: parsed.tenantId, days: caughtUp },
+          'reporting: credit-note catch-up',
+        )
+    }
     const result = await rollupTenantDay(db, parsed.tenantId, parsed.day)
     logger.debug({ ...result }, 'reporting: tenant rollup')
   })

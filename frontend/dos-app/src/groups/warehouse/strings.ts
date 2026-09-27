@@ -498,6 +498,11 @@ export const strings = {
   'w8.nearExpiry': 'Near expiry only',
   'w8.rows': 'STOCK BY LOT',
   'w8.rowsEmpty': 'No stock at this location',
+  // QA DOS-253 / DOS-223: searched and paged on the server, item by item
+  'w8.noMatch': 'No stock matches “{q}”',
+  'w8.count': '{count} batches',
+  'w8.countMore': '{count} batches shown — more below',
+  'w8.showMore': 'Show more',
   'w8.onHand': 'On hand',
   'w8.reserved': 'Held',
   'w8.free': 'Free',

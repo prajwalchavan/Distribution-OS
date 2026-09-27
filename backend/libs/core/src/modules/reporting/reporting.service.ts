@@ -241,6 +241,7 @@ export class ReportingService {
       return {
         asOf: (summary?.asOf ?? new Date()).toISOString(),
         todayInvoicedPaise: summary?.todayInvoicedPaise ?? todayRow?.invoicedPaise ?? 0,
+        todayCreditedPaise: fromDetail('todayCreditedPaise'),
         todayCollectedPaise: summary?.todayCollectedPaise ?? todayRow?.collectedPaise ?? 0,
         todayOrdersCount: todayRow?.ordersCount ?? 0,
         todayDeliveredStops: todayRow?.deliveredStops ?? 0,
@@ -251,6 +252,7 @@ export class ReportingService {
         onAccountPaise: fromDetail('onAccountPaise'),
         ageing,
         mtdSalesPaise: summary?.mtdSalesPaise ?? 0,
+        mtdCreditedPaise: fromDetail('mtdCreditedPaise'),
         mtdGrossMarginPaise: summary?.mtdGrossMarginPaise ?? 0,
         stockValuePaise: summary?.stockValuePaise ?? 0,
         nearExpiryValuePaise: summary?.nearExpiryValuePaise ?? 0,

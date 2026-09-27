@@ -530,7 +530,13 @@ export const DashboardDayPointSchema = z.object({
  */
 export const OwnerDashboardOutput = z.object({
   asOf: z.string(),
+  /** Every bill raised today, with GST, as billed: a bill credited later still counts here (it was raised). */
   todayInvoicedPaise: PaiseSchema,
+  /**
+   * Credit notes issued today, with GST (QA DOS-254): returns, short deliveries, whole bills credited. The
+   * owner reads "Invoiced ₹X · credited ₹Y", so the credit is never hidden inside a gross figure.
+   */
+  todayCreditedPaise: PaiseSchema,
   todayCollectedPaise: PaiseSchema,
   todayOrdersCount: z.number().int().nonnegative(),
   todayDeliveredStops: z.number().int().nonnegative(),
@@ -547,7 +553,14 @@ export const OwnerDashboardOutput = z.object({
   onAccountPaise: PaiseSchema,
   /** Open dues by ageing bucket over the whole tenant (the `<AgeingBuckets>` tile). */
   ageing: AgeingBucketsSchema,
+  /**
+   * Sales this month, with GST, NET of the credit notes issued this month (QA DOS-254): bills raised since
+   * the 1st less `mtdCreditedPaise`. Gross invoiced = `mtdSalesPaise + mtdCreditedPaise`.
+   */
   mtdSalesPaise: PaiseSchema,
+  /** Credit notes issued since the 1st, with GST, by the note's own date. */
+  mtdCreditedPaise: PaiseSchema,
+  /** Net sales ex-GST (credit notes subtracted) less the cost of goods sold (the cost of pieces a note put back on the rack subtracted). */
   mtdGrossMarginPaise: PaiseSchema,
   stockValuePaise: PaiseSchema,
   nearExpiryValuePaise: PaiseSchema,
@@ -1179,6 +1192,16 @@ export const StockValueInput = z.object({
   nearExpiryDays: QueryIntSchema.min(1).max(365).default(90),
   ...CursorInput,
 })
+/** Stock at cost for one brand, over EVERY row of the read (not the page). `brandId` null = items with no brand. */
+export const StockValueBrandSchema = z.object({
+  brandId: IdSchema.nullable(),
+  brandName: z.string().nullable(),
+  onHandPcs: PiecesSchema,
+  valuePaise: PaiseSchema,
+  nearExpiryValuePaise: PaiseSchema,
+})
+export type StockValueBrand = z.infer<typeof StockValueBrandSchema>
+
 export const StockValueOutput = z.object({
   items: z.array(StockValueRowSchema),
   nextCursor: z.string().nullable(),
@@ -1187,6 +1210,12 @@ export const StockValueOutput = z.object({
     valuePaise: PaiseSchema,
     nearExpiryValuePaise: PaiseSchema,
   }),
+  /**
+   * The split by brand of the SAME totals, largest value first (QA DOS-253): a chart of stock by brand is
+   * drawn from this, never from one page of `items` — the page is 200 rows of thousands, and a donut built
+   * from it showed ₹14.0L of ₹23.3L and left a whole brand out. `Σ byBrand.valuePaise = totals.valuePaise`.
+   */
+  byBrand: z.array(StockValueBrandSchema),
 })
 
 /** Window ≤ 31 days. `salespersonId` is FORCED to the caller for a salesperson (the role is refused anyway; kept for symmetry). */

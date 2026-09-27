@@ -252,6 +252,7 @@ export async function seedReporting(
       ordersCount:
         book.orderCountByDay.get(key) ?? dayOrders.filter((o) => o.state !== 'draft').length,
       invoicedPaise,
+      creditedPaise: book.creditedByDay.get(key) ?? 0,
       collectedPaise,
       outstandingPaise: due.outstanding,
       overduePaise: due.overdue,
@@ -295,6 +296,7 @@ export async function seedReporting(
     [
       'ordersCount',
       'invoicedPaise',
+      'creditedPaise',
       'collectedPaise',
       'outstandingPaise',
       'overduePaise',
@@ -604,6 +606,8 @@ export async function seedReporting(
 interface DayBook {
   orderCountByDay: Map<string, number>
   invoicedByDay: Map<string, number>
+  /** QA DOS-254: issued credit notes with GST, by note date. */
+  creditedByDay: Map<string, number>
   collectedByDay: Map<string, { total: number; byMode: DailyPaymentModeMix }>
   collectedByRetailerDay: Map<string, number>
   marginByDay: Map<string, { netSalesPaise: number; cogsPaise: number; byBrand: DailyMarginMix }>
@@ -699,6 +703,62 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
     }
     marginByDay.set(r.day, entry)
   }
+  // QA DOS-254: the day's credit notes, by note date — off net sales at their taxable value, and the cost of
+  // the saleable pieces a restocking note put back off COGS — the live rollup's rule (core rollup.ts).
+  const creditedByDay = new Map<string, number>()
+  for (const r of (
+    await db.execute(sql`
+      select to_char(cn.note_date, 'YYYY-MM-DD') as day, sum(cn.total_paise)::bigint as paise
+        from credit_notes cn
+       where cn.tenant_id = ${tenantId} and cn.state in ('issued', 'applied')
+       group by 1`)
+  ).rows as { day: string; paise: string | number }[])
+    creditedByDay.set(r.day, n(r.paise))
+  for (const r of (
+    await db.execute(sql`
+      with lot_cost as (
+        select distinct on (lot_id) lot_id,
+               case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
+          from tenant_product_costs
+         where tenant_id = ${tenantId} and lot_id is not null
+         order by lot_id, effective_from desc
+      ), cost as (
+        select distinct on (variant_id) variant_id,
+               case when landed_cost_paise > 0 then landed_cost_paise else purchase_rate_paise end as unit_cost
+          from tenant_product_costs
+         where tenant_id = ${tenantId}
+         order by variant_id, (lot_id is null) desc, effective_from desc
+      )
+      select to_char(cn.note_date, 'YYYY-MM-DD') as day, coalesce(p.brand_id, 'unknown') as brand_id,
+             sum(cl.taxable_paise)::bigint as taxable,
+             sum(case when cn.reason in ('short_delivery', 'return_saleable', 'return_damaged', 'cancellation')
+                       and cl.saleable
+                      then cl.qty_pcs * coalesce(lc.unit_cost, c.unit_cost, 0) else 0 end)::bigint as restocked_cost
+        from credit_note_lines cl
+        join credit_notes cn on cn.id = cl.credit_note_id and cn.tenant_id = cl.tenant_id
+        join invoice_lines il on il.id = cl.invoice_line_id and il.tenant_id = cl.tenant_id
+        join product_variants v on v.id = il.variant_id
+        join products p on p.id = v.product_id
+        left join lot_cost lc on lc.lot_id = il.lot_id
+        left join cost c on c.variant_id = il.variant_id
+       where cl.tenant_id = ${tenantId} and cn.state in ('issued', 'applied')
+       group by 1, 2`)
+  ).rows as {
+    day: string
+    brand_id: string
+    taxable: string | number
+    restocked_cost: string | number
+  }[]) {
+    const entry = marginByDay.get(r.day) ?? { netSalesPaise: 0, cogsPaise: 0, byBrand: {} }
+    entry.netSalesPaise -= n(r.taxable)
+    entry.cogsPaise -= n(r.restocked_cost)
+    const brand = entry.byBrand[r.brand_id] ?? { cogsPaise: 0, grossMarginPaise: 0 }
+    entry.byBrand[r.brand_id] = {
+      cogsPaise: brand.cogsPaise - n(r.restocked_cost),
+      grossMarginPaise: brand.grossMarginPaise - n(r.taxable) + n(r.restocked_cost),
+    }
+    marginByDay.set(r.day, entry)
+  }
   const schemeSpendByDay = new Map<string, { company: number; distributor: number }>()
   for (const r of (
     await db.execute(sql`
@@ -770,6 +830,7 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
   return {
     orderCountByDay,
     invoicedByDay,
+    creditedByDay,
     collectedByDay,
     collectedByRetailerDay,
     marginByDay,
@@ -908,9 +969,11 @@ export async function seedReportingClose(
   const monthStart = `${today.slice(0, 7)}-01`
   const [mtd] = (
     await db.execute(sql`
-      select coalesce(sum(invoiced_paise), 0)::bigint as mtd_sales
+      -- QA DOS-254: net of the month's credit notes, as the worker's refreshOwnerSummary writes it
+      select coalesce(sum(invoiced_paise), 0)::bigint as mtd_invoiced,
+             coalesce(sum(coalesce(credited_paise, 0)), 0)::bigint as mtd_credited
         from daily_tenant_stats where tenant_id = ${tenantId} and day between ${monthStart} and ${today}`)
-  ).rows as { mtd_sales: string | number }[]
+  ).rows as { mtd_invoiced: string | number; mtd_credited: string | number }[]
   const [margin] = (
     await db.execute(sql`
       select coalesce(sum(gross_margin_paise), 0)::bigint as mtd_margin,
@@ -924,9 +987,13 @@ export async function seedReportingClose(
   }[]
   const [todayRow] = (
     await db.execute(sql`
-      select invoiced_paise, collected_paise from daily_tenant_stats
+      select invoiced_paise, credited_paise, collected_paise from daily_tenant_stats
        where tenant_id = ${tenantId} and day = ${today}`)
-  ).rows as { invoiced_paise: string | number; collected_paise: string | number }[]
+  ).rows as {
+    invoiced_paise: string | number
+    credited_paise: string | number | null
+    collected_paise: string | number
+  }[]
   const [dues] = (
     await db.execute(sql`
       select coalesce(sum(outstanding_paise), 0)::bigint as outstanding,
@@ -965,7 +1032,7 @@ export async function seedReportingClose(
       todayCollectedPaise: n(todayRow?.collected_paise),
       totalOutstandingPaise: n(dues?.outstanding),
       overduePaise: n(dues?.overdue),
-      mtdSalesPaise: n(mtd?.mtd_sales),
+      mtdSalesPaise: n(mtd?.mtd_invoiced) - n(mtd?.mtd_credited),
       mtdGrossMarginPaise: n(margin?.mtd_margin),
       stockValuePaise: n(margin?.stock_value),
       nearExpiryValuePaise: n(margin?.near_expiry),
@@ -973,6 +1040,8 @@ export async function seedReportingClose(
       activeTrips: n(active?.active),
       detail: {
         cashInTransitPaise: n(inTransit?.paise),
+        todayCreditedPaise: n(todayRow?.credited_paise),
+        mtdCreditedPaise: n(mtd?.mtd_credited),
         // DOS-016: the same sum the rollup writes, so the demo tile and the demo books agree.
         onAccountPaise: n(dues?.unallocated),
         ageingB0_7: n(dues?.b0_7),
@@ -1141,6 +1210,8 @@ async function seedRollupHistory(
       day: key,
       ordersCount,
       invoicedPaise,
+      // QA DOS-254: a backdated day carries no credit notes, and says so (NULL would ask the worker to re-roll it).
+      creditedPaise: 0,
       collectedPaise,
       outstandingPaise,
       overduePaise,
@@ -1236,6 +1307,7 @@ async function seedRollupHistory(
     [
       'ordersCount',
       'invoicedPaise',
+      'creditedPaise',
       'collectedPaise',
       'outstandingPaise',
       'overduePaise',
