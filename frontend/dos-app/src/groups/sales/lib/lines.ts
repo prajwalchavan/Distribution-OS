@@ -16,9 +16,6 @@
  */
 import type { DraftLine } from './pricing'
 
-/** The units a line on an order may have been entered in (`EnteredUnitSchema`). */
-export type AnyEnteredUnit = 'piece' | 'inner' | 'case'
-
 /**
  * Pieces in `qty` of `unit`, as the server counts them TODAY (`packSizeFor` in
  * `backend/libs/core/src/modules/orders/pricing-lines.ts`): a piece is one, and an inner is priced at
@@ -56,7 +53,8 @@ export function repeatOf(
   for (const line of lines) {
     const caseSize = Math.max(1, caseSizeOf(line.variant_id))
     const qtyPcs =
-      line.qty_pcs ?? piecesOfEntered(line.entered_qty, line.entered_unit, line.pack_size_at_entry ?? caseSize)
+      line.qty_pcs ??
+      piecesOfEntered(line.entered_qty, line.entered_unit, line.pack_size_at_entry ?? caseSize)
     if (qtyPcs <= 0) continue
     const asCases = line.entered_unit === 'case' && line.entered_qty * caseSize === qtyPcs
     out.push({

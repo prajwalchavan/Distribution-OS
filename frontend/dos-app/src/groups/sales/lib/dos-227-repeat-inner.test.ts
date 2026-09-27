@@ -65,7 +65,15 @@ describe('DOS-227 repeat last order', () => {
   it('sends a case line as pieces once its case size has moved, so the count does not change', () => {
     // 2 cs of 24 = 48 pc last time; the case is 12 today — `2 case` would now book 24.
     const [line] = repeatOf(
-      [{ variant_id: 'v', entered_qty: 2, entered_unit: 'case', pack_size_at_entry: 24, qty_pcs: 48 }],
+      [
+        {
+          variant_id: 'v',
+          entered_qty: 2,
+          entered_unit: 'case',
+          pack_size_at_entry: 24,
+          qty_pcs: 48,
+        },
+      ],
       () => 12,
       newId,
     )
@@ -76,7 +84,13 @@ describe('DOS-227 repeat last order', () => {
     const lines = repeatOf(
       [
         ...so0836,
-        { variant_id: CAMPA, entered_qty: 5, entered_unit: 'piece', pack_size_at_entry: 1, qty_pcs: 0 },
+        {
+          variant_id: CAMPA,
+          entered_qty: 5,
+          entered_unit: 'piece',
+          pack_size_at_entry: 1,
+          qty_pcs: 0,
+        },
       ],
       caseSizeOf,
       newId,
