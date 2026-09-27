@@ -18,6 +18,8 @@ import {
   Stack,
   TrendChart,
   Txt,
+  formatINR,
+  paise,
   useColors,
   useGo,
   useStrings,
@@ -146,6 +148,16 @@ export default function Profit(): React.JSX.Element {
               {
                 label: t('o1.mtdSales'),
                 value: <Money value={dashboard.data?.mtdSalesPaise ?? 0} size="moneyM" />,
+                // QA DOS-254: net of the month's credit notes, and the margin beside it is too.
+                delta:
+                  dashboard.data === undefined || dashboard.data.mtdCreditedPaise === 0
+                    ? t('o1.mtdNet')
+                    : t('o1.mtdSplit', {
+                        invoiced: formatINR(
+                          paise(dashboard.data.mtdSalesPaise + dashboard.data.mtdCreditedPaise),
+                        ),
+                        credited: formatINR(paise(dashboard.data.mtdCreditedPaise)),
+                      }),
               },
               {
                 label: t('o17.stockValue'),

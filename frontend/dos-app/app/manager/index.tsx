@@ -285,6 +285,14 @@ export default function Today(): React.JSX.Element {
                 {
                   label: t('m1.invoicedToday'),
                   value: <Money value={d?.todayInvoicedPaise ?? 0} size="moneyM" />,
+                  // QA DOS-254: what today's credit notes took back, beside what was billed.
+                  delta:
+                    d === undefined || d.todayCreditedPaise === 0
+                      ? undefined
+                      : t('m1.creditedToday', {
+                          amount: formatINR(paise(d.todayCreditedPaise)),
+                          net: formatINR(paise(d.todayInvoicedPaise - d.todayCreditedPaise)),
+                        }),
                   spark: (d?.last7Days ?? []).map((day) => day.invoicedPaise),
                 },
                 {
