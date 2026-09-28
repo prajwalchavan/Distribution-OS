@@ -1,6 +1,6 @@
 {
   "id": "beadf498-3c7b-48dc-8d11-169fc571f789",
-  "prevId": "39bc2a82-a149-4c1a-90bd-756f6d213842",
+  "prevId": "723e6d08-395e-4636-890c-d213b0d7f33b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10773,39 +10773,6 @@
           "method": "btree",
           "with": {}
         },
-        "stock_lots_identity_idx": {
-          "name": "stock_lots_identity_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "variant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "batch_no",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "mrp_paise",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "stock_lots_expiry_idx": {
           "name": "stock_lots_expiry_idx",
           "columns": [
@@ -10857,7 +10824,19 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "stock_lots_identity_key": {
+          "name": "stock_lots_identity_key",
+          "nullsNotDistinct": true,
+          "columns": [
+            "tenant_id",
+            "variant_id",
+            "batch_no",
+            "mrp_paise",
+            "expiry_date"
+          ]
+        }
+      },
       "policies": {
         "stock_lots_read": {
           "name": "stock_lots_read",
@@ -12212,6 +12191,13 @@
         },
         "damaged_qty_pcs": {
           "name": "damaged_qty_pcs",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "expired_qty_pcs": {
+          "name": "expired_qty_pcs",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,

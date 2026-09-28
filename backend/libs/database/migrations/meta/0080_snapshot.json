@@ -1,6 +1,6 @@
 {
   "id": "3664c248-98d1-4862-816f-370c0a6d9c22",
-  "prevId": "39bc2a82-a149-4c1a-90bd-756f6d213842",
+  "prevId": "beadf498-3c7b-48dc-8d11-169fc571f789",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10773,39 +10773,6 @@
           "method": "btree",
           "with": {}
         },
-        "stock_lots_identity_idx": {
-          "name": "stock_lots_identity_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "variant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "batch_no",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "mrp_paise",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "stock_lots_expiry_idx": {
           "name": "stock_lots_expiry_idx",
           "columns": [
@@ -10857,7 +10824,19 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "stock_lots_identity_key": {
+          "name": "stock_lots_identity_key",
+          "nullsNotDistinct": true,
+          "columns": [
+            "tenant_id",
+            "variant_id",
+            "batch_no",
+            "mrp_paise",
+            "expiry_date"
+          ]
+        }
+      },
       "policies": {
         "stock_lots_read": {
           "name": "stock_lots_read",
@@ -12234,6 +12213,13 @@
         },
         "damaged_qty_pcs": {
           "name": "damaged_qty_pcs",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "expired_qty_pcs": {
+          "name": "expired_qty_pcs",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -19306,6 +19292,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "reverses_write_off_id": {
+          "name": "reverses_write_off_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "receipt_id": {
+          "name": "receipt_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -19354,6 +19352,48 @@
             },
             {
               "expression": "invoice_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "write_offs_reverses_idx": {
+          "name": "write_offs_reverses_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "reverses_write_off_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "write_offs_receipt_idx": {
+          "name": "write_offs_receipt_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "receipt_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -19430,6 +19470,32 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
+        },
+        "write_offs_reverses_write_off_id_write_offs_id_fk": {
+          "name": "write_offs_reverses_write_off_id_write_offs_id_fk",
+          "tableFrom": "write_offs",
+          "tableTo": "write_offs",
+          "columnsFrom": [
+            "reverses_write_off_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "write_offs_receipt_id_receipts_id_fk": {
+          "name": "write_offs_receipt_id_receipts_id_fk",
+          "tableFrom": "write_offs",
+          "tableTo": "receipts",
+          "columnsFrom": [
+            "receipt_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -19447,9 +19513,13 @@
         }
       },
       "checkConstraints": {
-        "write_offs_amount_positive": {
-          "name": "write_offs_amount_positive",
-          "value": "amount_paise > 0"
+        "write_offs_amount_nonzero": {
+          "name": "write_offs_amount_nonzero",
+          "value": "amount_paise <> 0"
+        },
+        "write_offs_recovery_shape": {
+          "name": "write_offs_recovery_shape",
+          "value": "(reverses_write_off_id IS NULL AND receipt_id IS NULL AND amount_paise > 0) OR (reverses_write_off_id IS NOT NULL AND receipt_id IS NOT NULL)"
         }
       },
       "isRLSEnabled": true
