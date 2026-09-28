@@ -110,6 +110,16 @@ export async function createAllInOne(options: RunAllOptions = {}): Promise<AllIn
   const server = createServer((req, res) => {
     const url = req.url ?? '/'
     const prefix = matchPrefix(url, routers)
+    if (!prefix && isStoragePath(url)) {
+      // A signed file link carries no service prefix when `OBJECT_STORAGE_PUBLIC_URL` makes it
+      // absolute (DOS-291). The signature is the authorisation and every service carries the same
+      // `StorageController`, so any mounted one may answer it.
+      const [first] = routers.values()
+      if (first) {
+        first(req, res)
+        return
+      }
+    }
     if (!prefix) {
       // The root is the operator's view: which services this process is carrying, and where they are.
       if (url === '/health' || url === '/') {
@@ -161,6 +171,11 @@ function matchPrefix(url: string, routers: ReadonlyMap<string, unknown>): string
     if (url.startsWith(`${prefix}/`) || url.startsWith(`${prefix}?`)) return prefix
   }
   return undefined
+}
+
+/** `/storage/{key}?…` — the local object-storage driver's wire, with no service in front of it. */
+function isStoragePath(url: string): boolean {
+  return url.startsWith('/storage/')
 }
 
 /** Entry point of `backend/all-in-one`: mount everything, optionally the worker, and listen. */

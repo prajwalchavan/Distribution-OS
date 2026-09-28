@@ -2,6 +2,7 @@ import { Global, Module, type DynamicModule } from '@nestjs/common'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 import { SERVICE_INFO, type ServiceDefinition } from './define.js'
 import { DocsController } from './docs.controller.js'
+import { docsEnabled } from './docs-gate.js'
 import { StorageController } from './storage.controller.js'
 import { SupportAuditInterceptor } from './support-audit.interceptor.js'
 import { SwaggerController } from './swagger.controller.js'
@@ -20,7 +21,10 @@ export class ServiceModule {
         // distributor's owner has already said yes.
         { provide: APP_INTERCEPTOR, useClass: SupportAuditInterceptor },
       ],
-      controllers: [DocsController, SwaggerController, StorageController],
+      // The API reference is not served in production unless asked for (DOS-290); files always are.
+      controllers: docsEnabled()
+        ? [DocsController, SwaggerController, StorageController]
+        : [StorageController],
       exports: [SERVICE_INFO],
     }
   }
