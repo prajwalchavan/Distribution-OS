@@ -13,9 +13,11 @@ import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
 import { DeliveryController } from './delivery.controller.js'
 import {
+  billsPlannedOnTrips,
   inATripsHands,
   returnedOnTheRoad,
   TRIP_PREDICATES,
+  tripForLoading,
   vehicleTripOut,
 } from './delivery.internals.js'
 import {
@@ -93,6 +95,8 @@ export class DeliveryModule implements OnModuleInit {
     // which bills still ride a van that has not checked in (DOS-172).
     this.receivables.registerTripPredicates(TRIP_PREDICATES)
     this.loadSheets.registerRoadHold(returnedOnTheRoad)
+    // QA DOS-354 (verify): a load sheet takes only the bills of its own trip, which has not left.
+    this.loadSheets.registerTripCarriage({ bills: billsPlannedOnTrips, trip: tripForLoading })
     // QA DOS-248 / DOS-251: a bill still in a trip's hands is not the desk's to cancel or credit in full yet.
     this.billing.registerTripHold(inATripsHands)
     // QA DOS-358: a van whose trip is out is not unloaded by hand; inventory asks delivery which trip that is.

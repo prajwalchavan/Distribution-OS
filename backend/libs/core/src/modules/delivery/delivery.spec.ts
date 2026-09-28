@@ -3757,13 +3757,8 @@ describeDb('delivery (DATABASE_URL)', () => {
 
     // And the bill the godown DID load is delivered at the same stop, so the gate refuses only the
     // bill that is not on the van.
+    // Planned on the trip first: a sheet loads only the bills of its own trip (QA DOS-354 verify).
     const loaded = await billedOrder(retailerA, variantA, 'dos148-ok')
-    await loadOut(
-      app,
-      { godown: packer, approver: manager },
-      { tripId: trip, orderIds: [loaded.orderId], tag: `dos148-ok-${run}` },
-    )
-    expect(await orderState(loaded.orderId)).toBe('dispatched')
     const okStop = uuidv7()
     expect(
       (
@@ -3774,6 +3769,12 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(200)
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: trip, orderIds: [loaded.orderId], tag: `dos148-ok-${run}` },
+    )
+    expect(await orderState(loaded.orderId)).toBe('dispatched')
     const okTrip = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
     const okDelivery = okTrip.body.item.stops.find((s) => s.id === okStop)?.deliveries[0]?.id ?? ''
     const done = await call<{ item: DeliveryDetailBody }>(

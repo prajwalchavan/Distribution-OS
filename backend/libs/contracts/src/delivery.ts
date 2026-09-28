@@ -834,8 +834,10 @@ export const StartLoadingOutput = TripItemOutput
  * `load_sheet_not_confirmed` (`data.loadSheetIds`) while any load sheet of the trip is still a draft: one
  * linked to the trip, or one carrying a bill planned on one of its stops. 409 `bill_not_loaded`
  * (`data.orderIds`) while a bill planned on the trip is still `packed`: a bill leaves the godown only
- * through a confirmed load sheet, whose confirm dispatches it (QA DOS-172). Both refusals come before the
- * consent check. Depart dispatches nothing: a trip whose bills the load-out dispatched, or one with no bill
+ * through a confirmed load sheet, whose confirm dispatches it (QA DOS-172). 409 `bill_not_on_this_load`
+ * (`data.orderIds`) while a dispatched bill planned on the trip was counted out on another load than a
+ * confirmed sheet of this trip — its pieces are not on this van; check the trip in (QA DOS-354 verify). The
+ * refusals come before the consent check. Depart dispatches nothing: a trip whose bills the load-out dispatched, or one with no bill
  * and van sales on, departs (coordination §4 item 4).
  */
 export const DepartTripInput = MutationBase.extend({

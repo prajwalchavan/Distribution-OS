@@ -1488,12 +1488,14 @@ export class TripsService {
       ))
         found.set(order.orderId, { state: order.state, orderNo: order.orderNo })
     const notLoaded: string[] = []
+    const dispatched: string[] = []
     for (const orderId of orderIds) {
       const order = found.get(orderId)
       if (order === undefined || order.state === 'packed') {
         notLoaded.push(orderId)
         continue
       }
+      if (order.state === 'dispatched') dispatched.push(orderId)
       if (
         order.state === 'dispatched' ||
         order.state === 'delivered' ||
@@ -1509,6 +1511,49 @@ export class TripsService {
         message: `${String(notLoaded.length)} bill(s) on trip ${trip.tripNo ?? trip.id} have not been counted out at the godown: ${notLoaded.map((id) => found.get(id)?.orderNo ?? id).join(', ')}; build and confirm the load sheet first`,
         data: { code: 'bill_not_loaded', orderIds: notLoaded },
       })
+    /*
+     * QA DOS-354 (verify): "dispatched" is not "on this van". A bill counted out on another load — a sheet of no
+     * trip, or of another trip, written before a sheet took only its own trip's bills — was swept off that van
+     * as free stock at the other trip's settlement; planned on this trip it departed, and the door answered
+     * "Only 0 pc … in the vehicle". A trip leaves only with the bills a confirmed sheet of ITS OWN loaded. The
+     * way out is the check-in of this trip: the bill comes back undelivered and is loaded again from the dock
+     * or the godown ("Bring them from the godown").
+     */
+    if (dispatched.length === 0) return
+    const ownLoad = new Set(
+      (await this.loadSheets.confirmedForTrip(tx, trip.id)).flatMap((s) => s.orderIds),
+    )
+    const offLoad = dispatched.filter((orderId) => !ownLoad.has(orderId))
+    if (offLoad.length === 0) return
+    const planned = await tx
+      .select({ orderId: deliveries.orderId, invoiceId: deliveries.invoiceId })
+      .from(deliveries)
+      .where(
+        and(
+          eq(deliveries.tripId, trip.id),
+          sql`${deliveries.outcome} is null`,
+          inArray(deliveries.orderId, offLoad),
+        ),
+      )
+    const refs = await this.billing.invoiceRefs(
+      tx,
+      planned.map((d) => d.invoiceId),
+    )
+    const bills = offLoad.map((orderId) => {
+      const invoiceId = planned.find((d) => d.orderId === orderId)?.invoiceId
+      return (
+        (invoiceId === undefined ? undefined : refs.get(invoiceId)?.invoiceNo) ??
+        found.get(orderId)?.orderNo ??
+        orderId
+      )
+    })
+    const vehicle = await loadVehicle(tx, trip.vehicleId)
+    const tripName = trip.tripNo ?? 'this trip'
+    const one = offLoad.length === 1
+    throw new ORPCError('CONFLICT', {
+      message: `${bills.join(', ')} ${one ? 'was' : 'were'} counted out at the godown on another load, not on trip ${tripName}'s own load sheet, so ${one ? 'its' : 'their'} pieces are not on ${vehicle.regNo}. A trip leaves only with the bills loaded for it: check trip ${tripName} in — ${one ? 'the bill comes' : 'the bills come'} back undelivered — and load ${one ? 'it' : 'them'} again from the dock or the godown.`,
+      data: { code: 'bill_not_on_this_load', orderIds: offLoad },
+    })
   }
 
   /**

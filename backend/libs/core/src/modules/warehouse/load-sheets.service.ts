@@ -156,6 +156,35 @@ export type RoadHoldLookup = (
   invoiceIds: readonly string[],
 ) => Promise<Map<string, { tripId: string; tripNo: string | null }>>
 
+/** A trip as the load-out names it: number, state and the vehicle location its load goes to (QA DOS-354). */
+export interface LoadingTrip {
+  tripId: string
+  tripNo: string | null
+  state: string
+  vehicleLocationId: string | null
+  vehicle: string | null
+}
+
+/**
+ * "Which trip carries each of these bills" and "this trip, as the load-out needs it" (QA DOS-354 verify,
+ * architect ruling 8). Delivery owns trips and their planned deliveries, so it supplies both at start-up
+ * (`DeliveryModule.onModuleInit` → `registerTripCarriage`), the `registerRoadHold` pattern.
+ */
+export interface TripCarriage {
+  /** Invoice id → the not-settled, not-cancelled trip holding an outcome-null delivery of it. */
+  bills(tx: Db, invoiceIds: readonly string[]): Promise<Map<string, LoadingTrip>>
+  /** One trip, or null; `lock` takes it `FOR UPDATE`. */
+  trip(tx: Db, tripId: string, opts: { lock: boolean }): Promise<LoadingTrip | null>
+}
+
+/** How a refusal names a trip's state: "out on the road", "checked in", … */
+const TRIP_STATE_WORDS: Record<string, string> = {
+  closing: 'checked in',
+  settled: 'settled',
+  settled_with_variance: 'settled',
+  cancelled: 'cancelled',
+}
+
 /**
  * The load-out: what goes onto a vehicle, the blind package count at the gate, the godown → vehicle
  * movement of the counted van stock, the Rule 55 delivery challan and the order's `packed → dispatched`
@@ -189,6 +218,12 @@ export class LoadSheetsService {
   private roadHold: RoadHoldLookup = () =>
     Promise.resolve(new Map<string, { tripId: string; tripNo: string | null }>())
 
+  /**
+   * A warehouse with no delivery module has no trips, so no sheet is held to one until delivery says otherwise.
+   * Every service that serves load sheets mounts delivery (pinned by `service/definitions.test.ts`).
+   */
+  private carriage: TripCarriage | null = null
+
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
@@ -204,6 +239,11 @@ export class LoadSheetsService {
    */
   registerRoadHold(lookup: RoadHoldLookup): void {
     this.roadHold = lookup
+  }
+
+  /** Delivery supplies which trip carries a bill, and the trip itself, at start-up (QA DOS-354 verify). */
+  registerTripCarriage(carriage: TripCarriage): void {
+    this.carriage = carriage
   }
 
   /**
@@ -297,6 +337,15 @@ export class LoadSheetsService {
               tripIds: [...new Set(held.map((h) => h.trip.tripId))],
             },
           })
+        // QA DOS-354 (verify): a bill is loaded only onto the trip that carries it. A sheet that names no trip
+        // is the trip's its bills all ride; one that names a trip takes only that trip's bills.
+        const tripId = await this.tripThatCarries(
+          tx,
+          { tripId: input.tripId ?? null, toLocationId: vehicle.id, orderIds },
+          invoiceOf,
+          byOrder,
+          { lock: false },
+        )
 
         const invoices = await this.billing.invoiceRefs(
           tx,
@@ -309,7 +358,7 @@ export class LoadSheetsService {
 
         const row = await this.insertSheet(tx, {
           id: input.id,
-          tripId: input.tripId ?? null,
+          tripId,
           sheetDate: input.sheetDate ?? businessDate().date,
           fromLocationId,
           toLocationId: vehicle.id,
@@ -451,31 +500,43 @@ export class LoadSheetsService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // The trip first, then the sheet — the order `trips.cancel` and `trips.depart` take them in — so the
+        // trip is neither cancelled nor sent off between the check below and the load (QA DOS-354 verify).
+        const peek = await this.findSheet(tx, input.id)
+        if (peek.status === 'draft' && peek.tripId !== null && this.carriage !== null)
+          await this.carriage.trip(tx, peek.tripId, { lock: true })
         const sheet = await this.lockSheet(tx, input.id)
         if (sheet.status !== 'draft')
           throw new ORPCError('CONFLICT', {
-            message: `load sheet ${sheet.id} is ${sheet.status}; only a draft is checked out`,
+            message: `${await this.sheetWords(tx, sheet)} is ${sheet.status}; only a draft is checked out`,
           })
         // QA DOS-355, again at the gate: a sheet drafted before the rule, or a bill cancelled since the sheet
         // was drafted, never leaves on a challan without its tax invoice. Nothing has moved yet.
+        let tripId = sheet.tripId
         if (sheet.orderIds.length > 0) {
           const packs = await tx
             .select()
             .from(packConfirmations)
             .where(inArray(packConfirmations.orderId, sheet.orderIds))
           const orders = await this.orders.fulfilmentOrders(tx, sheet.orderIds)
-          await this.assertEveryPackBilled(
+          const byOrder = new Map(orders.map((o) => [o.orderId, o]))
+          await this.assertEveryPackBilled(tx, sheet.orderIds, packs, byOrder)
+          // QA DOS-354 (verify), again at the gate: every bill counted out is a bill of THIS sheet's trip, which
+          // has not left and loads this vehicle — so no bill is ever dispatched with no trip to bring it back,
+          // and no settlement of another trip sweeps its pieces off the van as free stock.
+          tripId = await this.tripThatCarries(
             tx,
-            sheet.orderIds,
-            packs,
-            new Map(orders.map((o) => [o.orderId, o])),
+            sheet,
+            new Map(packs.map((p) => [p.orderId, p.invoiceId])),
+            byOrder,
+            { lock: true },
           )
         }
         const selfApproving =
           ctx.actorRole === 'owner' || ctx.actorRole === 'manager' || ctx.actorRole === 'system'
         if (sheet.approvedBy === null && !selfApproving)
           throw new ORPCError('CONFLICT', {
-            message: `load sheet ${sheet.id} has no manager approval yet; the manager gives the load-out PIN from the manager app first`,
+            message: `${await this.sheetWords(tx, sheet)} has no manager approval yet; the manager gives the load-out PIN from the manager app first`,
             data: { code: 'approval_required' },
           })
         const approver = sheet.approvedBy ?? ctx.actorId
@@ -650,6 +711,7 @@ export class LoadSheetsService {
         const drafted = await this.valueVanStock(tx, sheet.vanStock)
         const confirmed = await this.updateSheet(tx, sheet.id, {
           status: 'confirmed',
+          tripId,
           vanStock: counted.vanStock,
           countedPackages: input.countedPackages,
           varianceNote: input.varianceNote ?? null,
@@ -705,7 +767,7 @@ export class LoadSheetsService {
           return { item: await loadSheetDetail(tx, sheet, this.deps()) }
         if (sheet.status !== 'draft')
           throw new ORPCError('CONFLICT', {
-            message: `load sheet ${sheet.id} is ${sheet.status}; the goods have left with challan ${sheet.challanNo ?? '(none)'} and come back through delivery, not here`,
+            message: `${await this.sheetWords(tx, sheet)} is ${sheet.status}; the goods have left with challan ${sheet.challanNo ?? '(none)'} and come back through delivery, not here`,
           })
         const cancelled = await this.updateSheet(tx, sheet.id, {
           status: 'cancelled',
@@ -737,7 +799,7 @@ export class LoadSheetsService {
         const sheet = await this.lockSheet(tx, input.id)
         if (sheet.status !== 'draft')
           throw new ORPCError('CONFLICT', {
-            message: `load sheet ${sheet.id} is ${sheet.status}; only a draft sheet is staged`,
+            message: `${await this.sheetWords(tx, sheet)} is ${sheet.status}; only a draft sheet is staged`,
           })
         // The same arithmetic `confirm` refuses on, bill by bill (QA DOS-247): what the dock holds for the
         // bill, then what it holds for nobody; the rest is fetched from the godown's FREE pieces and held for
@@ -933,6 +995,115 @@ export class LoadSheetsService {
       message: `${named.join(', ')} ${unbilled.length === 1 ? 'is' : 'are'} packed but not billed. Goods never leave on a challan without their tax invoice: bill ${unbilled.length === 1 ? 'it' : 'them'} first on the billing desk (Packed, not billed), then put ${unbilled.length === 1 ? 'it' : 'them'} on the load sheet.`,
       data: { code: 'pack_not_billed', orderIds: unbilled },
     })
+  }
+
+  /**
+   * A BILL IS LOADED ONLY ONTO THE TRIP THAT CARRIES IT (QA DOS-354 verify, architect ruling 8: "a loaded trip is
+   * not cancelled, it is checked in" — which needs every loaded bill to have a trip to check in). A sheet with no
+   * trip dispatched INV/9031 with nothing to bring it back; a trip's sheet carrying a bill planned on no trip, or on
+   * another, dispatched INV/9034 onto a van whose settlement then counted its pieces back as free godown stock,
+   * and the bill stood "dispatched" with nothing on the van or the dock. So, for a sheet that carries bills, at
+   * create and again at confirm, 409 before anything moves:
+   *
+   *   - `bill_not_planned`  a bill planned on no trip: plan it on the trip first;
+   *   - `bill_not_on_trip`  a bill planned on another trip than the one the sheet names;
+   *   - `bills_on_several_trips`  a sheet that names no trip, whose bills ride different trips (one sheet per trip);
+   *   - `trip_left`         the trip is checked in, settled or cancelled: nothing more is loaded for it (a trip on
+   *                         the road may still take a late bill its van comes back for — it checks in like any);
+   *   - `wrong_vehicle`     the sheet loads another vehicle than the trip's own.
+   *
+   * A sheet that names no trip belongs to the one trip all its bills ride (the DOS-137 sheet built for a vehicle):
+   * the answer is that trip's id, which `create` stores and `confirm` writes, so every confirmed sheet that
+   * carries bills names its trip — the trip's cancel, check-in and departure read it from there. A sheet of van
+   * stock only is free stock for the crew to sell and keeps whatever trip it names. `lock` takes the trip row
+   * `FOR UPDATE` (confirm). With no delivery module mounted there are no trips, and nothing is checked.
+   */
+  private async tripThatCarries(
+    tx: Db,
+    sheet: { tripId: string | null; toLocationId: string; orderIds: readonly string[] },
+    invoiceOf: ReadonlyMap<string, string | null>,
+    orders: ReadonlyMap<string, { orderNo: string | null; retailerName: string }>,
+    opts: { lock: boolean },
+  ): Promise<string | null> {
+    const carriage = this.carriage
+    if (carriage === null || sheet.orderIds.length === 0) return sheet.tripId
+    const invoiceIds = sheet.orderIds
+      .map((orderId) => invoiceOf.get(orderId) ?? null)
+      .filter((id): id is string => id !== null)
+    const riding = await carriage.bills(tx, invoiceIds)
+    const refs = await this.billing.invoiceRefs(tx, invoiceIds)
+    const billOf = (orderId: string): string => {
+      const invoiceId = invoiceOf.get(orderId) ?? null
+      const order = orders.get(orderId)
+      const bill =
+        (invoiceId === null ? null : refs.get(invoiceId)?.invoiceNo) ?? order?.orderNo ?? orderId
+      return order === undefined || order.retailerName === ''
+        ? bill
+        : `${bill} · ${order.retailerName}`
+    }
+    const tripOf = (orderId: string): LoadingTrip | undefined => {
+      const invoiceId = invoiceOf.get(orderId) ?? null
+      return invoiceId === null ? undefined : riding.get(invoiceId)
+    }
+    const tripName = (t: { tripNo: string | null }): string => t.tripNo ?? 'its trip'
+    const them = (n: number, one: string, many: string): string => (n === 1 ? one : many)
+
+    const named =
+      sheet.tripId === null ? null : await carriage.trip(tx, sheet.tripId, { lock: opts.lock })
+    if (sheet.tripId !== null && named === null)
+      throw new ORPCError('NOT_FOUND', {
+        message: 'The trip this load sheet names does not exist; build the sheet from its trip.',
+        data: { code: 'trip_not_found', tripId: sheet.tripId },
+      })
+
+    const unplanned = sheet.orderIds.filter((orderId) => tripOf(orderId) === undefined)
+    if (unplanned.length > 0)
+      throw new ORPCError('CONFLICT', {
+        message: `${unplanned.map(billOf).join(', ')} ${them(unplanned.length, 'is', 'are')} not planned on any trip. A bill is loaded only onto the trip that carries it, so that the trip's check-in brings back whatever does not reach the shop: plan ${them(unplanned.length, 'it', 'them')} on ${named === null ? 'a trip' : `trip ${tripName(named)}`} first (Trips), then put ${them(unplanned.length, 'it', 'them')} on that trip's load sheet.`,
+        data: { code: 'bill_not_planned', orderIds: unplanned },
+      })
+
+    let trip: LoadingTrip
+    if (named !== null) {
+      const elsewhere = sheet.orderIds.filter((orderId) => tripOf(orderId)?.tripId !== named.tripId)
+      if (elsewhere.length > 0)
+        throw new ORPCError('CONFLICT', {
+          message: `${elsewhere.map((orderId) => `${billOf(orderId)} rides trip ${tripName(tripOf(orderId) ?? { tripNo: null })}`).join('; ')}, not trip ${tripName(named)}. A bill is loaded only onto the trip that carries it: take ${them(elsewhere.length, 'it', 'them')} off this sheet and load ${them(elsewhere.length, 'it', 'them')} on ${them(elsewhere.length, 'its', 'their')} own trip's sheet.`,
+          data: {
+            code: 'bill_not_on_trip',
+            orderIds: elsewhere,
+            tripIds: [...new Set(elsewhere.map((orderId) => tripOf(orderId)?.tripId ?? ''))],
+          },
+        })
+      trip = named
+    } else {
+      const trips = new Map<string, LoadingTrip>()
+      for (const orderId of sheet.orderIds) {
+        const t = tripOf(orderId)
+        if (t !== undefined) trips.set(t.tripId, t)
+      }
+      const [only] = [...trips.values()]
+      if (trips.size > 1 || only === undefined)
+        throw new ORPCError('CONFLICT', {
+          message: `The bills on this sheet ride different trips (${sheet.orderIds.map((orderId) => `${billOf(orderId)} on ${tripName(tripOf(orderId) ?? { tripNo: null })}`).join('; ')}). A load sheet is one trip's load: build one sheet per trip.`,
+          data: { code: 'bills_on_several_trips', tripIds: [...trips.keys()] },
+        })
+      trip = opts.lock ? ((await carriage.trip(tx, only.tripId, { lock: true })) ?? only) : only
+    }
+
+    if (trip.state !== 'planned' && trip.state !== 'loading' && trip.state !== 'active')
+      throw new ORPCError('CONFLICT', {
+        message: `Trip ${tripName(trip)} is ${TRIP_STATE_WORDS[trip.state] ?? trip.state}, so nothing more is loaded for it: its check-in has already counted what came back. Plan ${them(sheet.orderIds.length, 'the bill', 'the bills')} on a trip that is still to come back, then build that trip's sheet.`,
+        data: { code: 'trip_left', tripId: trip.tripId, tripState: trip.state },
+      })
+    if (trip.vehicleLocationId !== sheet.toLocationId) {
+      const van = (await vehicleRegNos(tx, [sheet.toLocationId])).get(sheet.toLocationId)
+      throw new ORPCError('CONFLICT', {
+        message: `Trip ${tripName(trip)} goes out on ${trip.vehicle ?? 'another vehicle'}, and this sheet loads ${van ?? 'a different vehicle'}. Build the sheet for the trip's own vehicle, so the crew finds its load on the van it drives.`,
+        data: { code: 'wrong_vehicle', tripId: trip.tripId },
+      })
+    }
+    return trip.tripId
   }
 
   /**

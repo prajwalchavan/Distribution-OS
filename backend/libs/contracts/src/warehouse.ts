@@ -726,7 +726,11 @@ export const LoadSheetVanStockInput = z.object({
  * still ride a trip that has not checked in (409 `bill_on_road`, `data.orderIds` / `data.tripIds`, QA
  * DOS-172), its pack must carry a live bill (409 `pack_not_billed`, QA DOS-355 — checked again at
  * confirm, so no challan is issued for goods with no tax invoice), and `toLocationId` must be an active
- * `vehicle` location. The orders are
+ * `vehicle` location. A bill is loaded only onto the trip that carries it (QA DOS-354 verify), here and again
+ * at confirm: 409 `bill_not_planned` (on no trip), `bill_not_on_trip` (on another trip than `tripId`),
+ * `bills_on_several_trips` (no `tripId`, and the bills ride different trips), `trip_left` (the trip is
+ * checked in, settled or cancelled) or `wrong_vehicle` (`toLocationId` is not the trip's vehicle). A sheet
+ * that carries bills and names no trip is stored with the one trip they all ride. The orders are
  * kept in the order the caller supplies — "last stop first" is the app's job, because reading
  * `trip_stops` would make warehouse depend on delivery (coordination §4 item 3).
  */
