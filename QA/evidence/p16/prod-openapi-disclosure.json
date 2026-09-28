@@ -1,0 +1,32 @@
+{
+  "note": "Metadata only. Real customer PII values are deliberately NOT recorded here.",
+  "host": "https://api.distributionos.in",
+  "service": "owner",
+  "endpoints_unauthenticated": [
+    "/owner/docs (Scalar)",
+    "/owner/swagger (Swagger UI)",
+    "/owner/docs/openapi.json"
+  ],
+  "liveTenantIdInDocs": "01a0dc97-\u2026 (redacted)",
+  "operations": 351,
+  "operationsWithRealExamples": 254,
+  "distinctRealRowUuidsEmbedded": 145,
+  "piiFieldCategoriesEmbedded": [
+    "phone",
+    "altPhone",
+    "gstin",
+    "buyerGstin",
+    "supplierGstin",
+    "username",
+    "shopName",
+    "ownerName",
+    "legalName",
+    "name(x11)",
+    "upiVpa",
+    "upiLink",
+    "city",
+    "pincode",
+    "bankName"
+  ],
+  "mentionsDemoPasswordText": true
+}

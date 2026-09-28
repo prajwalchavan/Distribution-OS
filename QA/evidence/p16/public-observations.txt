@@ -1,0 +1,16 @@
+Phase 16 public observations (14 unauthenticated GET/HEAD/OPTIONS requests, no credentials, no payloads). 2026-09-28.
+
+REQ1 HEAD https://www.distributionos.in/  -> 200; headers: x-content-type-options: nosniff, referrer-policy: strict-origin-when-cross-origin, access-control-allow-origin: *; NO Strict-Transport-Security, NO Content-Security-Policy, NO X-Frame-Options. server: cloudflare.
+REQ2 GET  https://api.distributionos.in/health -> 200 JSON {"status":"ok","mode":"all-in-one","services":[... all 8 services with roles + contractKeys ...]}  (full topology disclosed unauthenticated). NO HSTS.
+REQ3 GET  https://api.distributionos.in/owner/docs      -> 200 text/html (Scalar API reference, unauthenticated)
+REQ4 GET  https://api.distributionos.in/owner/swagger   -> 200 text/html (Swagger UI, unauthenticated)
+REQ5 GET  https://api.distributionos.in/owner/docs/openapi.json -> 200, 1,367,456 bytes; embeds REAL live-tenant data (see prod-openapi-disclosure.json).
+REQ6 GET  https://api.distributionos.in/storage/tenant/x/logo/y/z.png?expires=9999999999&signature=abc -> 404 {"error":"no service is mounted at this path","services":[...]}  (local-driver file URLs are unroutable in all-in-one).
+REQ7 GET  https://api.distributionos.in/nope-unknown-route -> 404 all-in-one "no service is mounted" (lists all service prefixes).
+REQ8 GET  https://api.distributionos.in/owner/orders (no token) -> 401 {"message":"sign in required"} (clean, no leak).
+REQ9 OPTIONS https://api.distributionos.in/auth/auth/login  Origin: https://evil.example -> 404, NO access-control-allow-origin (foreign origin refused). vary: Origin.
+REQ10 OPTIONS https://api.distributionos.in/auth/auth/login Origin: https://www.distributionos.in -> 204, access-control-allow-origin: https://www.distributionos.in (allowed origin only; credentials not enabled).
+REQ11 GET https://www.distributionos.in/ -> bundle entry: /_expo/static/js/web/entry-6a209773c40fce21df47b11f0ff3454f.js
+REQ12 GET the JS bundle (3,507,044 bytes) -> scanned: NO secrets/keys/tokens/demo-password; only https://api.distributionos.in (+ harmless localhost dev defaults).
+REQ13 HEAD http://distributionos.in/  -> 301 -> https://distributionos.in/ (Cloudflare Always-Use-HTTPS).
+REQ14 HEAD https://distributionos.in/ -> 200. No HSTS header anywhere.

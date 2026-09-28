@@ -1,0 +1,14 @@
+{
+  "N": 500,
+  "concurrency": 50,
+  "totalMs": 526,
+  "rps": 951,
+  "statuses": {
+    "200": 500
+  },
+  "latency": {
+    "median": 45,
+    "p95": 98,
+    "max": 139
+  }
+}

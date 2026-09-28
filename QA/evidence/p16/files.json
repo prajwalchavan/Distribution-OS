@@ -1,0 +1,63 @@
+{
+  "uploadUrl": {
+    "status": 200,
+    "objectKey": "tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/logo/01a0999a-28c3-7341-93f5-e0e84b0189a1/01a0e5bc-1753-7cfe-a09f-12f0881f98a8.png",
+    "inline": false,
+    "method": "PUT",
+    "urlSigned": true
+  },
+  "put": {
+    "status": 404
+  },
+  "readUrl": {
+    "status": 200,
+    "urlSigned": true,
+    "returnsRawKey": false
+  },
+  "fetch": {
+    "status": 404,
+    "contentType": "application/json",
+    "bytes": 142
+  },
+  "tamper": {
+    "badSignature": 404,
+    "noSignature": 404,
+    "expiresInPast": 404,
+    "expiresBumped_sigCoversExpiry": 404
+  },
+  "crossTenantReadUrl": {
+    "status": 400,
+    "body": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"object key tenant/82f5c562-b7eb-7521-8e19-4aa6befc64f8/logo/82f5c562-b7eb-7521-8e19-4aa6befc64f8/0"
+  },
+  "key_traversal": {
+    "status": 400,
+    "body": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"illegal object key segment \\\"..\\\" in tenant/01a0999a-28c3-"
+  },
+  "key_dotdot": {
+    "status": 400,
+    "body": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"illegal object key segment \\\"..\\\" in tenant/01a0999a-28c3-"
+  },
+  "key_absolute": {
+    "status": 400,
+    "body": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"illegal object key segment \\\"\\\" in /etc/passwd\",\"data\":{\"c"
+  },
+  "key_backslash": {
+    "status": 400,
+    "body": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"object key contains an illegal character: tenant\\\\01a0999a"
+  },
+  "key_bad": {
+    "status": 400,
+    "body": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"object key not-a-key does not belong to tenant 01a0999a-28"
+  },
+  "storageTraversalNoSig": {
+    "status": 403
+  },
+  "retailerReadsForeignInvoice": {
+    "status": 403,
+    "body": "{\"defined\":false,\"code\":\"FORBIDDEN\",\"status\":403,\"message\":\"a retailer may not open this invoices file\"}"
+  },
+  "signedUrlAfterLogout": {
+    "status": 404,
+    "note": "signed URLs are stateless; valid until expiry regardless of session"
+  }
+}

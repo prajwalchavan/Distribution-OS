@@ -31,5 +31,5 @@ fi
 for e in live demo; do [ -f /opt/dos/env/$e.env ] || continue; echo "== migrate $e"; ( set -a; . /opt/dos/env/$e.env; set +a; pnpm db:migrate 2>&1 | tail -1 ); done
 echo "== restart"; sudo systemctl restart dos-api@live dos-api@demo
 for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3100/health | grep -q 200 && { echo "   live api up (:3100)"; break; }; sleep 2; done
-curl -s -o /dev/null -w "   demo api %{http_code} (:3200)\n" http://127.0.0.1:3200/health'
+for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3200/health | grep -q 200 && { echo "   demo api up (:3200)"; break; }; sleep 2; done'
 curl -s -m 10 -o /dev/null -w 'public https://api.distributionos.in/health → %{http_code}\n' https://api.distributionos.in/health

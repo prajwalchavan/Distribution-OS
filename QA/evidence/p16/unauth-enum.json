@@ -1,0 +1,309 @@
+{
+  "at": "2026-09-28T01:49:09.178Z",
+  "perService": {
+    "auth": {
+      "none:200": 6,
+      "garbage:200": 6,
+      "none:401": 10,
+      "garbage:401": 10,
+      "none:400": 1,
+      "garbage:400": 1
+    },
+    "owner": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 350,
+      "garbage:401": 350
+    },
+    "manager": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 350,
+      "garbage:401": 350
+    },
+    "sales": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 202,
+      "garbage:401": 202
+    },
+    "warehouse": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 257,
+      "garbage:401": 257
+    },
+    "delivery": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 265,
+      "garbage:401": 265
+    },
+    "retailer": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 195,
+      "garbage:401": 195
+    },
+    "admin": {
+      "none:200": 1,
+      "garbage:200": 1,
+      "none:401": 16,
+      "garbage:401": 16
+    }
+  },
+  "notUnauthorized": [
+    {
+      "service": "auth",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:09.216Z\"}"
+    },
+    {
+      "service": "auth",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:09.225Z\"}"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/login",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6IjJZUTZBMjNnY0dMNjM3YmQ0TTM3TkF5NUlRZmItV3VZbFFQVzFReUZSX00iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTk5YS0yOGMzLTczNDEtO"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/login",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6IjJZUTZBMjNnY0dMNjM3YmQ0TTM3TkF5NUlRZmItV3VZbFFQVzFReUZSX00iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOiIwMWEwOTk5YS0yOGMzLTczNDEtO"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/logout",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true}"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/logout",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true}"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/platform/login",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6IjJZUTZBMjNnY0dMNjM3YmQ0TTM3TkF5NUlRZmItV3VZbFFQVzFReUZSX00iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOm51bGwsInJvbGUiOiJwbGF0Zm9yb"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/platform/login",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"accessToken\":\"eyJhbGciOiJFZERTQSIsImtpZCI6IjJZUTZBMjNnY0dMNjM3YmQ0TTM3TkF5NUlRZmItV3VZbFFQVzFReUZSX00iLCJ0eXAiOiJKV1QifQ.eyJ0aWQiOm51bGwsInJvbGUiOiJwbGF0Zm9yb"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/forgot-password",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true}"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/forgot-password",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true}"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/reset-password",
+      "mode": "none",
+      "status": 400,
+      "roles": "public",
+      "reply": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"token is not a password reset token\"}"
+    },
+    {
+      "service": "auth",
+      "method": "POST",
+      "path": "/auth/reset-password",
+      "mode": "garbage",
+      "status": 400,
+      "roles": "public",
+      "reply": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"token is not a password reset token\"}"
+    },
+    {
+      "service": "auth",
+      "method": "GET",
+      "path": "/.well-known/jwks.json",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"keys\":[{\"crv\":\"Ed25519\",\"x\":\"S1dU4aimf-HQoV8ABD6Oloy-zbJlZD9TrCrJSeOJzn0\",\"kty\":\"OKP\",\"kid\":\"2YQ6A23gcGL637bd4M37NAy5IQfb-WuYlQPW1QyFR_M\",\"alg\":\"EdDSA\",\"use\":"
+    },
+    {
+      "service": "auth",
+      "method": "GET",
+      "path": "/.well-known/jwks.json",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"keys\":[{\"crv\":\"Ed25519\",\"x\":\"S1dU4aimf-HQoV8ABD6Oloy-zbJlZD9TrCrJSeOJzn0\",\"kty\":\"OKP\",\"kid\":\"2YQ6A23gcGL637bd4M37NAy5IQfb-WuYlQPW1QyFR_M\",\"alg\":\"EdDSA\",\"use\":"
+    },
+    {
+      "service": "owner",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:09.507Z\"}"
+    },
+    {
+      "service": "owner",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:09.510Z\"}"
+    },
+    {
+      "service": "manager",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:10.761Z\"}"
+    },
+    {
+      "service": "manager",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:10.763Z\"}"
+    },
+    {
+      "service": "sales",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:11.956Z\"}"
+    },
+    {
+      "service": "sales",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:11.958Z\"}"
+    },
+    {
+      "service": "warehouse",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:12.638Z\"}"
+    },
+    {
+      "service": "warehouse",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:12.640Z\"}"
+    },
+    {
+      "service": "delivery",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:13.517Z\"}"
+    },
+    {
+      "service": "delivery",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:13.519Z\"}"
+    },
+    {
+      "service": "retailer",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:14.384Z\"}"
+    },
+    {
+      "service": "retailer",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:14.386Z\"}"
+    },
+    {
+      "service": "admin",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "none",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:15.092Z\"}"
+    },
+    {
+      "service": "admin",
+      "method": "GET",
+      "path": "/health/ping",
+      "mode": "garbage",
+      "status": 200,
+      "roles": "public",
+      "reply": "{\"ok\":true,\"version\":\"0.0.0\",\"db\":\"up\",\"time\":\"2026-09-28T01:49:15.094Z\"}"
+    }
+  ]
+}

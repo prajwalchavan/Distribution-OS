@@ -1,0 +1,150 @@
+{
+  "created": {
+    "sqli_quote": {
+      "status": 200,
+      "id": "01a0e5b9-ae8e-7144-a2ad-8746c7ba399e",
+      "reply": "ok"
+    },
+    "sqli_or": {
+      "status": 200,
+      "id": "01a0e5b9-aebe-70e4-9a26-de78abd1db8e",
+      "reply": "ok"
+    },
+    "sqli_union": {
+      "status": 200,
+      "id": "01a0e5b9-aecb-7a30-a641-979e4d0f7956",
+      "reply": "ok"
+    },
+    "xss_script": {
+      "status": 200,
+      "id": "01a0e5b9-aee5-7c44-b798-ad45184abdd2",
+      "reply": "ok"
+    },
+    "xss_img": {
+      "status": 200,
+      "id": "01a0e5b9-aef2-78cf-9831-cb5ac2ca3597",
+      "reply": "ok"
+    },
+    "formula_hyperlink": {
+      "status": 200,
+      "id": "01a0e5b9-aefe-7292-97af-0f6763b6cab2",
+      "reply": "ok"
+    },
+    "formula_cmd": {
+      "status": 200,
+      "id": "01a0e5b9-af0c-70fd-a89c-cbde955a0fda",
+      "reply": "ok"
+    },
+    "formula_plus": {
+      "status": 200,
+      "id": "01a0e5b9-af18-7b54-999b-6fae20638146",
+      "reply": "ok"
+    },
+    "unicode_rtl": {
+      "status": 200,
+      "id": "01a0e5b9-af26-756b-b60b-937b1b58a8ba",
+      "reply": "ok"
+    },
+    "unicode_null": {
+      "status": 500,
+      "id": "01a0e5b9-af34-7635-bb71-09f0025d3ba8",
+      "reply": "{\"defined\":false,\"code\":\"INTERNAL_SERVER_ERROR\",\"status\":500,\"message\":\"Internal server error\"}"
+    },
+    "unicode_combining": {
+      "status": 200,
+      "id": "01a0e5b9-af3c-7ecd-a2eb-5addf5b3dcb2",
+      "reply": "ok"
+    },
+    "long_10k": {
+      "status": 400,
+      "id": "01a0e5b9-af49-7334-adab-7c779f2760cc",
+      "reply": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"Input validation failed\",\"data\":{\"issues\":[{\"origin\":\"string\",\"code\":\"too_big\",\"maximum\":120,\"inclusive\":true,\"path\":[\"name\"],\"message\":\"T"
+    }
+  },
+  "readback": {
+    "sqli_quote": {
+      "status": 200,
+      "verbatim": false
+    },
+    "sqli_or": {
+      "status": 200,
+      "verbatim": false
+    },
+    "sqli_union": {
+      "status": 200,
+      "verbatim": false
+    },
+    "xss_script": {
+      "status": 200,
+      "verbatim": false
+    },
+    "xss_img": {
+      "status": 200,
+      "verbatim": false
+    },
+    "formula_hyperlink": {
+      "status": 200,
+      "verbatim": false
+    },
+    "formula_cmd": {
+      "status": 200,
+      "verbatim": false
+    },
+    "formula_plus": {
+      "status": 200,
+      "verbatim": false
+    },
+    "unicode_rtl": {
+      "status": 200,
+      "verbatim": false
+    },
+    "unicode_combining": {
+      "status": 200,
+      "verbatim": false
+    }
+  },
+  "query": {
+    "q_or": {
+      "status": 200,
+      "ms": 5,
+      "leak": null,
+      "sample": "{\"items\":[],\"nextCursor\":null}"
+    },
+    "q_sleep": {
+      "status": 200,
+      "ms": 4,
+      "leak": null,
+      "sample": "{\"items\":[],\"nextCursor\":null}"
+    },
+    "limit_inj": {
+      "status": 400,
+      "ms": 2,
+      "leak": null,
+      "sample": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"Input validation failed\",\"data\":{\"issues\":[{\"expected\":\"nu"
+    },
+    "cursor_inj": {
+      "status": 200,
+      "ms": 10,
+      "leak": null,
+      "sample": "{\"items\":[],\"nextCursor\":null}"
+    },
+    "limit_neg": {
+      "status": 400,
+      "ms": 2,
+      "leak": null,
+      "sample": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"Input validation failed\",\"data\":{\"issues\":[{\"origin\":\"numb"
+    },
+    "limit_huge": {
+      "status": 400,
+      "ms": 1,
+      "leak": null,
+      "sample": "{\"defined\":false,\"code\":\"BAD_REQUEST\",\"status\":400,\"message\":\"Input validation failed\",\"data\":{\"issues\":[{\"origin\":\"numb"
+    },
+    "sort_inj": {
+      "status": 200,
+      "ms": 8,
+      "leak": "{\"items\":[{\"id\":\"01a0e5b9-ae8e-7144-a2ad-8746c7ba399e\",\"name\":\"Kirana'); DROP TABLE retailers;--\",\"ownerName\":\"QA\",\"phone\":\"+919806113194\",\"altPhone\":null,\"address\":{\"line1\":\"1\",\"area\":\"A\",\"city\":\"Kal",
+      "sample": "{\"items\":[{\"id\":\"01a0e5b9-ae8e-7144-a2ad-8746c7ba399e\",\"name\":\"Kirana'); DROP TABLE retailers;--\",\"ownerName\":\"QA\",\"phon"
+    }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "target": "iqbal.shaikh",
+  "oneUsernameManyPasswords": {
+    "statuses": {
+      "401": 4,
+      "423": 196
+    },
+    "firstLockAt": 5,
+    "sampleLockBody": "{\"defined\":true,\"code\":\"LOCKED\",\"status\":423,\"message\":\"Too many failed attempts. Try again in 15 minutes.\",\"data\":{\"lockedUntil\":\"2026-09-28T02:06:12.468Z\",\"minutes\":15}}",
+    "timings": [
+      [
+        1,
+        401,
+        74
+      ],
+      [
+        2,
+        401,
+        29
+      ],
+      [
+        3,
+        401,
+        30
+      ],
+      [
+        4,
+        401,
+        41
+      ],
+      [
+        5,
+        423,
+        29
+      ],
+      [
+        6,
+        423,
+        5
+      ],
+      [
+        7,
+        423,
+        4
+      ],
+      [
+        8,
+        423,
+        4
+      ],
+      [
+        50,
+        423,
+        4
+      ],
+      [
+        100,
+        423,
+        6
+      ],
+      [
+        150,
+        423,
+        4
+      ],
+      [
+        200,
+        423,
+        3
+      ]
+    ],
+    "correctPasswordWhileLocked": {
+      "status": 423,
+      "body": "{\"defined\":true,\"code\":\"LOCKED\",\"status\":423,\"message\":\"Too many failed attempts. Try again in 15 minutes.\",\"data\":{\"lockedUntil\":\"2026-09-28T02:06:12.468Z\",\"mi"
+    }
+  },
+  "manyUsernamesOnePassword": {
+    "statuses": {
+      "401": 200
+    },
+    "msMin": 24,
+    "msMax": 70,
+    "msSum": 5577,
+    "msAvg": 28
+  },
+  "timingOracle": {
+    "unknownUser": {
+      "median": 26,
+      "min": 24,
+      "max": 28
+    },
+    "knownUserWrongPw": {
+      "median": 4,
+      "min": 3,
+      "max": 29
+    }
+  }
+}

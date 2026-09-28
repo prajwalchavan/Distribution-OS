@@ -997,3 +997,5 @@ One lane (`worktree-wf_be1f8178-550-30`) merged `--no-ff` into main, no conflict
 | 2026-09-27 | UX-O-6, UX-O-7, DOS-260 | Money owed opens on the shops that owe with Show all, On account and Net per shop (`unallocatedCreditPaise`, expand-only); the shop panel gives phone, last payment and each bill's dates, remainder and days late | 3e0b76c2 |
 | 2026-09-27 | UX-O-8 | Credit notes, supplier bills, GRNs, exports and messages list newest first on their own date, keyset-paged; indexes in migration 0073 | 3e0b76c2 |
 | 2026-09-27 | UX-F-5 | Every password field has Show / Hide (kit `secure` TextInput, web and native); starts hidden | 17eccb06 |
+| 2026-09-28 | DOS-290, DOS-293 | The API reference (`/docs`, `/docs/openapi.json`, `/swagger`) is not served in production unless `API_DOCS=on`, and never builds its examples from a distributor's rows; `fresh=1` is ignored there | 2bc18716 (merge a3eb5981) |
+| 2026-09-28 | DOS-291 | The all-in-one router hands a signed file link with no service prefix (`/storage/…`) to a mounted service, so bills, photos, logos and exports open on the live server | bfda0433 (merge a3eb5981) |

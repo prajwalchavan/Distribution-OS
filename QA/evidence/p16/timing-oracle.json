@@ -1,0 +1,26 @@
+{
+  "unknownUsernameValidFormat": {
+    "statuses": {
+      "401": 40
+    },
+    "timing": {
+      "n": 40,
+      "min": 25,
+      "median": 26,
+      "p90": 32,
+      "max": 53
+    }
+  },
+  "knownUsernameWrongPassword": {
+    "statuses": {
+      "401": 10
+    },
+    "timing": {
+      "n": 10,
+      "min": 25,
+      "median": 27,
+      "p90": 46,
+      "max": 46
+    }
+  }
+}
