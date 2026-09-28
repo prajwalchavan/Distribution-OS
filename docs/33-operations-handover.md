@@ -10,7 +10,7 @@ runs natively on the VM.
 | --- | --- | --- | --- |
 | Website (the one app, all six roles) | Cloudflare Pages project `dos` → `https://www.distributionos.in` (apex redirects) | static export, published by `frontend/scripts/pages-deploy.sh dos` | 200 on `/` |
 | API (all-in-one: auth + six services + inline worker) | Oracle Always Free VM, Mumbai, `92.4.84.106` (2 OCPU / 12 GB arm64, Ubuntu 24.04) | `systemd` unit `dos-api@live` on :3100 (`/opt/dos/env/live.env`, database `dos_live`) | `https://api.distributionos.in/health` |
-| Demo copy | same VM | `dos-api@demo` on :3200 (`/opt/dos/env/demo.env`, database `dos_demo`, seed logins `Dos@1234`) — VM-local only | `curl 127.0.0.1:3200/health` on the VM |
+| Demo copy (dummy data for testers) | same VM | `dos-api@demo` on :3200 (`/opt/dos/env/demo.env`, database `dos_demo`) — VM-local only until it gets a public name. `bash backend/infra/oracle-vm/demo-setup.sh` (founder, from the Mac, safe to repeat) gives it its own keys, file secret, folder and database login `dos_demo`, one tester password (`/opt/dos/env/demo-login.pw`, copied to `~/.config/dos/demo-login.txt`) and the nightly rebuild `/opt/dos/demo-rebuild.sh` (cron 03:00 IST, log `/var/backups/dos/demo-rebuild.log`) | `curl 127.0.0.1:3200/health` on the VM; the script prints its own PASS / FAIL lines |
 | Database | same VM, Postgres 17 on 127.0.0.1:5432 only | `postgresql` service; role `dos` (password in `/opt/dos/env/db.pw`) | no inbound 5432 (checked from outside) |
 | Public address for the API | Cloudflare named tunnel `dos-mac` | `dos-tunnel.service` on the VM (`/opt/dos/env/tunnel.env`), outbound-only; the VM opens no port but 22 | 200 through the tunnel one minute after a reboot |
 | Android app | the founder's phone (APK, debug-signed, arm64) | download link in `~/.config/dos/apk-download.url` (30 days); build command in §5 | installed and signed in 2026-09-26 |
@@ -31,7 +31,7 @@ sudo -u postgres psql -d dos_live -c '\dt' | tail -5            # the data
 
 ## 3. Deploying a change
 
-1. Backend (API): `bash backend/infra/oracle-vm/deploy.sh` — rsync, install, build, migrate live + demo, restart, public health.
+1. Backend (API): `bash backend/infra/oracle-vm/deploy.sh` — rsync, install, build, migrate live + demo, restart, public health. A demo migration that fails is reported and does not stop the live release.
 2. Website: `cd frontend && CLOUDFLARE_API_TOKEN="$(cat ~/.config/dos/cloudflare.token)" CLOUDFLARE_ACCOUNT_ID=6730952ae1e2212f14c52d66a5339d35 DOMAIN=distributionos.in PAGES_PROJECT=dos PAGES_BRANCH=main EXPO_PUBLIC_API_URL=https://api.distributionos.in EXPO_PUBLIC_AUTH_URL=https://api.distributionos.in/auth ./scripts/pages-deploy.sh dos` (the script exports with `--clear`; a cached export ships a stale API URL — S-192).
 3. Android: §5.
 4. Rollback: `git checkout <previous sha>` on the Mac, run 1 and 2 again. Migrations are expand-only and stay.
