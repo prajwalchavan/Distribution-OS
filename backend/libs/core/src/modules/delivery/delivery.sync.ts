@@ -7,7 +7,6 @@ import {
   RecordExpenseInput,
 } from '@dos/contracts'
 import type { Db } from '@dos/db'
-import { ORPCError } from '@orpc/server'
 import { REFERENCE_REFUSALS } from '../receivables/index.js'
 import { SyncRejection } from '../sync/index.js'
 import type { CollectionsService } from './collections.service.js'
