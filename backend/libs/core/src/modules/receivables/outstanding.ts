@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type { AgeingBucket, OpenBill, RetailerOutstanding } from '@dos/contracts'
-import { businessDate, daysBetween } from '@dos/domain'
+import { businessDate, daysBetween, netOfOnAccountRollup } from '@dos/domain'
 import { ageingSnapshots, retailerOutstandingSummary, retailers, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 
@@ -271,6 +271,103 @@ async function loadCreditNoteCredit(
   return map
 }
 
+/**
+ * WHAT THE SHOP OWES NET OF ITS MONEY ON ACCOUNT (QA DOS-312, architect ruling 3, 2026-09-28).
+ *
+ * The rollup's `outstanding_paise`, `overdue_paise` and buckets stay GROSS — they are what the bills say,
+ * and the books identity above depends on them. What the shop is CHASED for, held for and aged by is
+ * the same bills after its money on account (`unallocated_credit_paise`: receipts and credit notes no
+ * bill has claimed) has paid its OLDEST open bills first — exactly the FIFO order `loadOpenBills` returns
+ * and the allocation walks. The receivables lane applies that money for real; until it has, and for every
+ * row that predates it, these two functions are the ONE definition every reader counts with:
+ *  - `netOfOnAccount` walks one shop's open bills (the credit check: net oldest due date, net bill count);
+ *  - `netFromRollup` nets a stored rollup row (registers, cards, the shop's own screen, reminders).
+ * They agree by construction: overdue bills are the earliest due, and every bucket is a due-date band,
+ * so paying the oldest bills first is subtracting from the oldest bucket first.
+ */
+export interface NetDues {
+  /** `max(0, outstanding − on account)`: what the shop is asked for, bills on the van left out. */
+  duesPaise: number
+  /** The overdue part of that: on-account money pays the overdue bills before any other. */
+  overduePaise: number
+  /** Open bills that money on account does not fully cover. */
+  openBills: number
+  /** The oldest due date among those bills; null when the shop owes nothing net. */
+  oldestDueDate: string | null
+  /** The six ageing buckets after the oldest were paid first. */
+  buckets: number[]
+}
+
+export function netOfOnAccount(
+  bills: readonly OpenBillRow[],
+  onAccountPaise: number,
+  asOf: string,
+): NetDues {
+  let credit = Math.max(0, onAccountPaise)
+  const buckets = [0, 0, 0, 0, 0, 0]
+  let dues = 0
+  let overdue = 0
+  let openBills = 0
+  let oldestDueDate: string | null = null
+  // loadOpenBills' own order: due date, then invoice date, then number — the FIFO the allocation uses.
+  for (const bill of bills) {
+    if (bill.undelivered) continue
+    const open = openPaiseOf(bill)
+    if (open <= 0) continue
+    const covered = Math.min(credit, open)
+    credit -= covered
+    const left = open - covered
+    if (left <= 0) continue
+    dues += left
+    openBills += 1
+    const i = bucketIndex(daysBetween(bill.due, asOf))
+    buckets[i] = at(buckets, i) + left
+    if (bill.due < asOf) overdue += left
+    if (!oldestDueDate || bill.due < oldestDueDate) oldestDueDate = bill.due
+  }
+  return { duesPaise: dues, overduePaise: overdue, openBills, oldestDueDate, buckets }
+}
+
+/**
+ * The same netting over a stored rollup row, where only the sums are at hand: `@dos/domain`'s
+ * `netOfOnAccountRollup`, the one statement of the rule that the phones use on their synced copy too.
+ */
+export function netFromRollup(row: {
+  outstandingPaise: number
+  overduePaise: number
+  unallocatedCreditPaise: number
+  buckets: readonly number[]
+}): Pick<NetDues, 'duesPaise' | 'overduePaise' | 'buckets'> {
+  const net = netOfOnAccountRollup(row)
+  return { duesPaise: net.duesPaise, overduePaise: net.overduePaise, buckets: [...net.buckets] }
+}
+
+/**
+ * The SQL twin of `netFromRollup` for the dues register, over `retailer_outstanding_summary s`: the
+ * net overdue and dues per shop, and bucket `i` (0 = 0–7 days … 5 = 90+) net of the money on account
+ * that paid every older bucket first — `max(0, min(bucket, Σ buckets from the oldest through this one
+ * − on account))`.
+ */
+const ROLLUP_BUCKET_COLUMNS = [
+  's.bucket_0_7_paise',
+  's.bucket_8_15_paise',
+  's.bucket_16_30_paise',
+  's.bucket_31_60_paise',
+  's.bucket_61_90_paise',
+  's.bucket_90_plus_paise',
+] as const
+
+const ON_ACCOUNT_SQL = 'greatest(0, s.unallocated_credit_paise)'
+
+export const NET_DUES_SQL = sql.raw(`greatest(0, s.outstanding_paise - ${ON_ACCOUNT_SQL})`)
+export const NET_OVERDUE_SQL = sql.raw(`greatest(0, s.overdue_paise - ${ON_ACCOUNT_SQL})`)
+
+export function netBucketSql(i: number): SQL {
+  const column = ROLLUP_BUCKET_COLUMNS[i] ?? ROLLUP_BUCKET_COLUMNS[0]
+  const olderThroughThis = ROLLUP_BUCKET_COLUMNS.slice(i).join(' + ')
+  return sql.raw(`greatest(0, least(${column}, (${olderThroughThis}) - ${ON_ACCOUNT_SQL}))`)
+}
+
 export type OutstandingRow = typeof retailerOutstandingSummary.$inferInsert
 
 /**
@@ -359,25 +456,35 @@ export async function writeOutstanding(tx: Db, rows: OutstandingRow[]): Promise<
 }
 
 export function toRetailerOutstanding(row: OutstandingRow): RetailerOutstanding {
+  const gross = [
+    row.bucket0to7Paise ?? 0,
+    row.bucket8to15Paise ?? 0,
+    row.bucket16to30Paise ?? 0,
+    row.bucket31to60Paise ?? 0,
+    row.bucket61to90Paise ?? 0,
+    row.bucket90PlusPaise ?? 0,
+  ]
+  // DOS-312: gross and on account stay as they are; the net is added beside them, never instead.
+  const net = netFromRollup({
+    outstandingPaise: row.outstandingPaise ?? 0,
+    overduePaise: row.overduePaise ?? 0,
+    unallocatedCreditPaise: row.unallocatedCreditPaise ?? 0,
+    buckets: gross,
+  })
   return {
     retailerId: row.retailerId,
     outstandingPaise: row.outstandingPaise ?? 0,
     overduePaise: row.overduePaise ?? 0,
     undeliveredPaise: row.undeliveredPaise ?? 0,
     unallocatedCreditPaise: row.unallocatedCreditPaise ?? 0,
+    netDuesPaise: net.duesPaise,
+    netOverduePaise: net.overduePaise,
     openBills: row.openBills ?? 0,
     oldestDueDate: row.oldestDueDate ?? null,
     oldestInvoiceDate: row.oldestInvoiceDate ?? null,
     lastReceiptAt: row.lastReceiptAt ? row.lastReceiptAt.toISOString() : null,
     lastReceiptPaise: row.lastReceiptPaise ?? null,
-    buckets: bucketsOf([
-      row.bucket0to7Paise ?? 0,
-      row.bucket8to15Paise ?? 0,
-      row.bucket16to30Paise ?? 0,
-      row.bucket31to60Paise ?? 0,
-      row.bucket61to90Paise ?? 0,
-      row.bucket90PlusPaise ?? 0,
-    ]),
+    buckets: bucketsOf(gross),
     asOf: row.asOf,
   }
 }

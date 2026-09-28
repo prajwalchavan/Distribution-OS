@@ -9,8 +9,9 @@
  *
  * Both halves are PURE here, and neither re-implements the credit rule: the first reads the submit
  * reply's `state` and `approvalFlags`, the second reads the verdict's own reasons. The chip never
- * disables Place — stop and strict HOLD the order, they do not refuse it at the doorway
- * (docs/plans/receivables.md §4.14) — and the server's submit-time check stays the decision.
+ * disables Place — strict HOLDS the order, and since QA DOS-314 a stopped shop's order on credit is
+ * refused by the server with a sentence the screen shows — and the server's submit-time check stays the
+ * decision.
  */
 import type { OrderOutcome } from './outcome'
 
@@ -59,14 +60,23 @@ export function placedCopy(
 export interface CreditVerdictLike {
   readonly creditMode: 'indicate' | 'strict' | 'stop'
   readonly reasons: readonly string[]
-  /** Limit − outstanding − this order: negative is over the limit, in paise. */
+  /**
+   * Limit − (open bills + confirmed orders not billed yet − money on account) − this order: negative is
+   * over the limit, in paise (QA DOS-312/313).
+   */
   readonly headroomPaise: number
   readonly overdueDays: number
+  /** QA DOS-314: the owner stopped credit — an order on credit is refused, not held. */
+  readonly creditStopped?: boolean | undefined
+  /** QA DOS-225: the shop pays on delivery — no credit is given, so no limit applies. */
+  readonly payOnDelivery?: boolean | undefined
 }
 
 export interface CreditChipCopy {
   readonly family: 'brick' | 'ochre'
   readonly key:
+    | 's3.creditStopped'
+    | 's3.creditStoppedPod'
     | 's3.creditWillHoldOver'
     | 's3.creditWillHoldOverNet'
     | 's3.creditWillHoldOverdue'
@@ -121,7 +131,21 @@ export function creditChipCopy(
   verdict: CreditVerdictLike | null | undefined,
   basis: CreditBasis,
 ): CreditChipCopy | null {
-  if (verdict == null || verdict.reasons.length === 0) return null
+  if (verdict == null) return null
+  /*
+   * QA DOS-314 (architect ruling 5): stop means stop — the office refuses an order on credit for this
+   * shop and says why; a pay-on-delivery order of a stopped shop is held for the desk (DOS-225). Place
+   * stays pressable either way: the server's own sentence is what the rep reads if it refuses.
+   */
+  if (verdict.creditStopped === true)
+    return {
+      family: 'brick',
+      key: verdict.payOnDelivery === true ? 's3.creditStoppedPod' : 's3.creditStopped',
+      overPaise: 0,
+      overdueDays: 0,
+    }
+  // QA DOS-225: a pay-on-delivery shop is given no credit, so there is no limit to be over.
+  if (verdict.payOnDelivery === true || verdict.reasons.length === 0) return null
   const holds = verdict.creditMode === 'strict' || verdict.creditMode === 'stop'
   const family = holds ? 'brick' : 'ochre'
   const overPaise = Math.max(0, -verdict.headroomPaise)

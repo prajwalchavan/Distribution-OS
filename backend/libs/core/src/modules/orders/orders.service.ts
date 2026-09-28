@@ -47,6 +47,7 @@ import {
 } from '../../platform/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { QuoteService } from '../pricing/index.js'
+import { checkCredit, loadRetailerCredit, lockShopCredit } from '../receivables/index.js'
 import {
   approvalFlags,
   assertPackablePlace,
@@ -54,7 +55,10 @@ import {
   availablePcs,
   callerReaches,
   createDraft,
+  creditNoticeOf,
+  creditStopped,
   emitOrderEvent,
+  isPayOnDelivery,
   isUniqueViolation,
   lastPlacedOrder,
   listOrders,
@@ -92,6 +96,7 @@ import {
   priceOrderLines,
   repriceApprovedBargains,
   type EnteredLine,
+  type OrderTotals,
   type RepricedLines,
 } from './pricing-lines.js'
 
@@ -373,10 +378,12 @@ export class OrdersService {
     await recordTransition(tx, next, order.state, to, 'submit', deviceId, null)
     await emitOrderEvent(tx, next, 'OrderSubmitted')
     if (flags.length === 0) {
+      // The credit gate has just run on this transaction under the shop's lock (`approvalFlags`); a van
+      // sale paid in full at the door passed it on purpose (DOS-240), so confirm does not ask again.
       const confirmed =
         ctx.actorRole === 'retailer'
-          ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId))
-          : await this.confirmInTx(tx, next, deviceId)
+          ? await asSystem(tx, () => this.confirmInTx(tx, next, deviceId, { creditChecked: true }))
+          : await this.confirmInTx(tx, next, deviceId, { creditChecked: true })
       return { item: confirmed.item, flags, creditNotice, creditWaived }
     }
     // One gate per kind, except `bargain`: one gate per request it waits on, naming that request, so deciding
@@ -413,6 +420,16 @@ export class OrdersService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockOrder(tx, input.id)
+        // QA DOS-314: the desk's own confirm is an approval too — an order on credit for a shop whose
+        // credit the owner stopped is confirmed by nobody (a pay-on-delivery order gives no credit).
+        // QA DOS-313: and it measures the shop again (`confirmInTx` → `holdForCredit`): an order that
+        // would take a holding shop over its limit is held on a credit gate instead of confirmed.
+        if (order.state !== 'confirmed') {
+          await lockShopCredit(tx, order.retailerId)
+          const shop = await loadRetailerCredit(tx, order.retailerId)
+          if (shop.creditMode === 'stop' && !isPayOnDelivery(order, shop))
+            throw creditStopped(shop.name, order.orderNo, 'approve')
+        }
         return this.confirmInTx(tx, order, input.deviceId ?? null)
       }),
     )
@@ -430,8 +447,22 @@ export class OrdersService {
    * (`repriceApprovedBargains`). Then the authoritative stock check runs on those lines (the ATP the rep saw was
    * only a hint). A line the location cannot cover is reserved short and reported — never refused, because the
    * warehouse decides what to do with a shortage, not the API.
+   *
+   * CONFIRMING PUTS THE SHOP'S CREDIT TO USE (QA DOS-313, architect ruling 4). An order that waited on
+   * a rate or a below-floor gate was not promised while it waited, so the credit check at submit could
+   * not count it, and orders placed meanwhile may have used the headroom. So every confirm that is not
+   * the submit's own auto-confirm (whose gate has just run) measures the shop again, under the shop's
+   * lock, at the order's charged total: if the shop's mode holds and this order would breach, the order
+   * is NOT confirmed — it is held on a `credit_limit` gate for the desk, exactly as submit would have
+   * held it, and the reply is the order still `submitted`. An order whose credit the desk has already
+   * released (an approved `credit_limit` gate) is not measured again.
    */
-  async confirmInTx(tx: Db, order: OrderRow, deviceId: string | null): Promise<ConfirmOut> {
+  async confirmInTx(
+    tx: Db,
+    order: OrderRow,
+    deviceId: string | null,
+    options: { creditChecked?: boolean } = {},
+  ): Promise<ConfirmOut> {
     // DOS-078: an idempotent re-confirm reads the stored record back, never an empty list.
     if (order.state === 'confirmed')
       return { item: await this.detail(tx, order), shortages: order.stockShortages }
@@ -480,6 +511,10 @@ export class OrdersService {
         })
         .where(eq(salesOrderLines.id, line.id))
     const lines = repriced?.lines ?? stored
+    if (!options.creditChecked) {
+      const held = await this.holdForCredit(tx, order, repriced?.totals ?? null, deviceId, now)
+      if (held) return { item: await this.detail(tx, held), shortages: [] }
+    }
     const locationId = order.fulfilFromLocationId ?? (await warehouseLocation(tx))
     const shortages: Shortage[] = []
     for (const line of lines) {
@@ -534,6 +569,86 @@ export class OrdersService {
       deviceId,
     })
     return { item: await this.detail(tx, next), shortages }
+  }
+
+  /**
+   * QA DOS-313 at the approval door: measure the shop again before an order that waited on a decision is
+   * confirmed. Answers the order row, now held on a pending `credit_limit` gate, when the shop's mode holds
+   * and this order at its charged total would breach; `null` when it may be confirmed.
+   *
+   * The lock is the same per-shop credit lock every submit takes (`lockShopCredit`), so an order placed
+   * for the same shop at the same moment either counts this one once it is confirmed, or is counted by
+   * it. A stopped shop's order on credit never gets here — the approval and the desk's confirm refuse it
+   * first (DOS-314) — and a pay-on-delivery order is measured as submit measures it (DOS-225). What the
+   * desk reads on the new gate is the same credit notice submit writes (`creditNoticeOf`).
+   */
+  private async holdForCredit(
+    tx: Db,
+    order: OrderRow,
+    repricedTotals: OrderTotals | null,
+    deviceId: string | null,
+    now: Date,
+  ): Promise<OrderRow | null> {
+    const [released] = await tx
+      .select({ id: approvals.id })
+      .from(approvals)
+      .where(
+        and(
+          eq(approvals.orderId, order.id),
+          eq(approvals.kind, 'credit_limit'),
+          eq(approvals.status, 'approved'),
+        ),
+      )
+      .limit(1)
+    if (released) return null
+    await lockShopCredit(tx, order.retailerId)
+    const shop = await loadRetailerCredit(tx, order.retailerId)
+    const totalPaise = repricedTotals?.totalPaise ?? order.totalPaise
+    const credit = await checkCredit(tx, order.retailerId, totalPaise, {
+      payOnDelivery: isPayOnDelivery(order, shop),
+    })
+    if (!credit.breached) return null
+    const ctx = currentTenant()
+    const flags = [...new Set([...order.approvalFlags, 'credit_limit'])]
+    const [held] = await tx
+      .update(salesOrders)
+      .set({
+        ...(repricedTotals ?? {}),
+        approvalFlags: flags,
+        creditNotice: creditNoticeOf(credit),
+        updatedAt: now,
+      })
+      .where(eq(salesOrders.id, order.id))
+      .returning()
+    const next = held ?? order
+    await tx.insert(approvals).values({
+      id: uuidv7(),
+      tenantId: ctx.tenantId,
+      kind: 'credit_limit',
+      orderId: next.id,
+      entityType: 'sales_order',
+      entityId: next.id,
+      // the gate is on the order of whoever placed it; the decision that raised it is in the audit row
+      requestedBy: next.createdBy,
+      status: 'pending',
+      payload: { orderNo: next.orderNo, totalPaise: next.totalPaise, flag: 'credit_limit' },
+    })
+    await writeAudit(tx, {
+      action: 'order.credit_hold',
+      entityType: 'sales_order',
+      entityId: next.id,
+      before: { state: order.state, approvalFlags: order.approvalFlags },
+      after: {
+        state: next.state,
+        approvalFlags: flags,
+        reasons: credit.reasons,
+        exposurePaise: credit.exposurePaise ?? null,
+        orderTotalPaise: totalPaise,
+        creditLimitPaise: credit.creditLimitPaise,
+      },
+      deviceId,
+    })
+    return next
   }
 
   /**

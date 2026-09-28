@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, gt, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, isNull, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CatalogSearchInput,
@@ -53,6 +53,45 @@ export const variantSummaryColumns = {
   status: productVariants.status,
 }
 
+/**
+ * THE CATALOGUE ORDER (architect ruling 2026-09-28, the simulation's UX-O-8): every list of the
+ * catalogue and of a price list reads by BRAND A–Z (a product with no brand files under its maker),
+ * then ITEM A–Z (the product's name), then PACK SIZE smallest first (kilograms and litres counted in
+ * grams and millilitres, so 1 kg follows 500 g), then the variant's own name, and the id only breaks
+ * a tie. Case-insensitive, so "amul" does not sort after "Zydus". Lists that carry a date stay newest
+ * first (ruling of 21 Sep); a catalogue has no date.
+ *
+ * Keyset paging walks the same five keys: `catalogAfter(cursor)` compares a row with the keys of the
+ * cursor's own variant, read inside the query, so the cursor stays the plain variant id the clients
+ * already hold and an unknown id matches nothing (the DOS-009 convention). The keys span four tables,
+ * so no single index can hand the rows back in this order: the list is sorted in memory, bounded by
+ * what it filters to — the tenant's listings, one price list, or the rows a search matched.
+ */
+const CATALOG_BRAND_KEY = sql`lower(coalesce(${brands.name}, ${manufacturers.name}))`
+const CATALOG_ITEM_KEY = sql`lower(${products.name})`
+const CATALOG_PACK_KEY = sql`(case when ${productVariants.netUnit} in ('kg', 'l') then ${productVariants.netQty}::bigint * 1000 else ${productVariants.netQty}::bigint end)`
+const CATALOG_NAME_KEY = sql`lower(${productVariants.name})`
+
+export const CATALOG_ORDER: SQL[] = [
+  asc(CATALOG_BRAND_KEY),
+  asc(CATALOG_ITEM_KEY),
+  asc(CATALOG_PACK_KEY),
+  asc(CATALOG_NAME_KEY),
+  asc(productVariants.id),
+]
+
+export function catalogAfter(cursorVariantId: string): SQL {
+  return sql`(${CATALOG_BRAND_KEY}, ${CATALOG_ITEM_KEY}, ${CATALOG_PACK_KEY}, ${CATALOG_NAME_KEY}, ${productVariants.id}) > (
+    select lower(coalesce(cb.name, cm.name)), lower(cp.name),
+           (case when cv.net_unit in ('kg', 'l') then cv.net_qty::bigint * 1000 else cv.net_qty::bigint end),
+           lower(cv.name), cv.id
+      from product_variants cv
+      join products cp on cp.id = cv.product_id
+      join manufacturers cm on cm.id = cp.manufacturer_id
+      left join brands cb on cb.id = cp.brand_id
+     where cv.id = ${cursorVariantId})`
+}
+
 export function variantSearchPredicate(q: string | undefined): SQL | undefined {
   if (!q) return undefined
   const pattern = `%${q.replace(/[%_]/g, '')}%`
@@ -78,7 +117,7 @@ export class CatalogService {
         input.includeProposed
           ? inArray(productVariants.status, ['active', 'proposed'])
           : eq(productVariants.status, 'active'),
-        input.cursor ? gt(productVariants.id, input.cursor) : undefined,
+        input.cursor ? catalogAfter(input.cursor) : undefined,
       ]
       const rows = await tx
         .select(variantSummaryColumns)
@@ -87,7 +126,8 @@ export class CatalogService {
         .innerJoin(manufacturers, eq(manufacturers.id, products.manufacturerId))
         .leftJoin(brands, eq(brands.id, products.brandId))
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(asc(productVariants.id))
+        // Brand, item, pack size — the catalogue order (UX-O-8), keyset-paged on the same keys.
+        .orderBy(...CATALOG_ORDER)
         .limit(input.limit + 1)
       const items: VariantSummary[] = rows.slice(0, input.limit)
       const last = items[items.length - 1]

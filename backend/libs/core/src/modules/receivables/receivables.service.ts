@@ -1830,7 +1830,8 @@ export class ReceivablesService {
             ).map((r) => r.id)
         const wanted = input.overdueOnly
           ? (await Promise.all(ids.map(async (id) => ({ id, out: await loadOutstanding(tx, id) }))))
-              .filter((r) => r.out.overduePaise > 0)
+              // DOS-312: a shop whose money on account covers its late bills is not chased for them.
+              .filter((r) => (r.out.netOverduePaise ?? r.out.overduePaise) > 0)
               .map((r) => r.id)
           : ids
         for (const retailerId of wanted) {

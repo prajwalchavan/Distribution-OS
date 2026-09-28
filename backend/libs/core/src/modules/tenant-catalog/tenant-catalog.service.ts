@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CostsListInput,
@@ -39,7 +39,12 @@ import {
   requireRole,
   STAFF,
 } from '../../platform/index.js'
-import { variantSearchPredicate, variantSummaryColumns } from '../catalog/index.js'
+import {
+  CATALOG_ORDER,
+  catalogAfter,
+  variantSearchPredicate,
+  variantSummaryColumns,
+} from '../catalog/index.js'
 import {
   brandLabels,
   matchVariant,
@@ -401,7 +406,7 @@ export class TenantCatalogService {
         variantSearchPredicate(input.q),
         input.brandId ? eq(products.brandId, input.brandId) : undefined,
         input.listedOnly ? eq(tenantProducts.listed, true) : undefined,
-        input.cursor ? gt(productVariants.id, input.cursor) : undefined,
+        input.cursor ? catalogAfter(input.cursor) : undefined,
       ]
       const base = tx
         .select(listingColumns)
@@ -426,7 +431,8 @@ export class TenantCatalogService {
           )
       const rows = await joined
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(asc(productVariants.id))
+        // Brand, item, pack size — the catalogue order (UX-O-8), keyset-paged on the same keys.
+        .orderBy(...CATALOG_ORDER)
         .limit(input.limit + 1)
       const items: TenantProduct[] = rows.slice(0, input.limit)
       const last = items[items.length - 1]
@@ -617,7 +623,9 @@ function toCost(row: typeof tenantProductCosts.$inferSelect): Cost {
 }
 
 /**
- * DOS-104 — the variant ids this distributor has LISTED, in its own catalogue order.
+ * DOS-104 — the variant ids this distributor has LISTED, in the catalogue order: brand, item A–Z, pack
+ * size (`CATALOG_ORDER`, architect ruling 2026-09-28 on UX-O-8), the order every other list of the
+ * catalogue and of a price list reads in.
  *
  * `pricing.rates` prices exactly these at one piece, so the rate list a shop opens is the catalogue it
  * is looking at and nothing else. A plain function on the caller's transaction (no Nest DI, no role
@@ -631,8 +639,12 @@ export async function listedVariantIds(tx: Db, tenantId: string, limit = 1_000):
   const rows = await tx
     .select({ variantId: tenantProducts.variantId })
     .from(tenantProducts)
+    .innerJoin(productVariants, eq(productVariants.id, tenantProducts.variantId))
+    .innerJoin(products, eq(products.id, productVariants.productId))
+    .innerJoin(manufacturers, eq(manufacturers.id, products.manufacturerId))
+    .leftJoin(brands, eq(brands.id, products.brandId))
     .where(and(eq(tenantProducts.tenantId, tenantId), eq(tenantProducts.listed, true)))
-    .orderBy(asc(tenantProducts.sortOrder), asc(tenantProducts.id))
+    .orderBy(...CATALOG_ORDER)
     .limit(limit)
   return rows.map((r) => r.variantId)
 }

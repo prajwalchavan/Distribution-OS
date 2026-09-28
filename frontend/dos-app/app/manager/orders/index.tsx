@@ -74,6 +74,8 @@ import {
   type OrderResolution,
 } from '../../../src/groups/manager/lib/bargain-order'
 import { waitingOnKinds } from '../../../src/groups/manager/lib/waiting-on'
+import { creditAskTotal, owedNet, promisedPaise } from '../../../src/groups/manager/lib/credit-line'
+import { heldForCredit } from '../../../src/credit-hold'
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/keys'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
@@ -136,6 +138,7 @@ export default function OrderQueue(): React.JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [acting, setActing] = useState<'confirm' | 'cancel' | 'release' | null>(null)
   const [reason, setReason] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const span = rangeOf(range)
   /*
@@ -169,15 +172,17 @@ export default function OrderQueue(): React.JSX.Element {
   const waitingOn = (order?.approvals ?? []).filter((a) => a.status === 'pending')
 
   /*
-   * The credit line of UX-01 M4. It is asked with THIS order's own total, so `headroomPaise` is the
-   * headroom AFTER the order — the number the manager is actually deciding about.
+   * The credit line of UX-01 M4. A waiting order is asked with its own total, so `headroomPaise` is the
+   * headroom AFTER the order — the number the manager is actually deciding about. A confirmed order is
+   * already in the shop's exposure (QA DOS-313), so it is asked with nothing on top (`creditAskTotal`).
    */
+  const ask = creditAskTotal({ state: order?.state ?? 'draft', totalPaise: order?.totalPaise ?? 0 })
   const credit = useQuery(
-    ['credit', order?.retailerId ?? 'none', order?.totalPaise ?? 0],
+    ['credit', order?.retailerId ?? 'none', ask.totalPaise],
     () =>
       api.api.receivables.creditCheck({
         retailerId: order?.retailerId ?? '',
-        orderTotalPaise: order?.totalPaise ?? 0,
+        orderTotalPaise: ask.totalPaise,
       }),
     { enabled: order !== undefined },
   )
@@ -261,7 +266,8 @@ export default function OrderQueue(): React.JSX.Element {
 
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
-    { invalidates: [['orders'], ['warehouse'], ['billing'], ['reporting']] },
+    /* QA DOS-313: a confirm may raise a credit gate instead, so the gates are refreshed too. */
+    { invalidates: [['approvals'], ['orders'], ['warehouse'], ['billing'], ['reporting']] },
   )
   const cancelOrder = useMutation(
     (input: { id: string; reason: string }, meta) =>
@@ -434,7 +440,13 @@ export default function OrderQueue(): React.JSX.Element {
       setActing(null)
       setReason('')
     }
-    if (acting === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, stayOpen)
+    if (acting === 'confirm')
+      void confirmOrder.mutateAsync(order.id).then((result) => {
+        done()
+        // QA DOS-313: the confirm measured the shop again and held the order for credit.
+        if (heldForCredit(result.item))
+          setToast(t('m2.heldForCredit', { order: result.item.orderNo ?? '' }))
+      }, stayOpen)
     if (acting === 'cancel')
       void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, stayOpen)
     if (acting === 'release')
@@ -446,13 +458,18 @@ export default function OrderQueue(): React.JSX.Element {
     const c = credit.data
     if (c === undefined) return t('m2.creditUnknown')
     if (c.creditMode === 'stop' && c.breached) return t('m2.creditBlocked')
-    const head = t('m2.creditLine', {
-      owed: formatINR(paise(c.outstandingPaise)),
-      limit: c.creditLimitPaise === null ? t('app.none') : formatINR(paise(c.creditLimitPaise)),
-    })
+    // QA DOS-312/313: the dues net of money on account, and the orders not billed yet the check counts.
+    const promised = promisedPaise(c)
+    const head = [
+      t('m2.creditLine', {
+        owed: formatINR(paise(owedNet(c))),
+        limit: c.creditLimitPaise === null ? t('app.none') : formatINR(paise(c.creditLimitPaise)),
+      }),
+      ...(promised > 0 ? [t('m2.creditPromised', { amount: formatINR(paise(promised)) })] : []),
+    ].join(' · ')
     if (!c.breached) return `${head} · ${t('m2.creditClear')}`
-    const over = c.headroomPaise < 0 ? -c.headroomPaise : 0
-    return `${head} · ${t('m2.creditOver', { over: formatINR(paise(over)) })}`
+    const over = formatINR(paise(c.headroomPaise < 0 ? -c.headroomPaise : 0))
+    return `${head} · ${ask.waiting ? t('m2.creditOver', { over }) : t('m2.creditOverNow', { over })}`
   }
 
   const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
@@ -534,7 +551,6 @@ export default function OrderQueue(): React.JSX.Element {
     orderNo: string | null
   } | null>(null)
   const [note, setNote] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
 
   const commitDecision = (): void => {
     if (deciding === null) return
@@ -554,6 +570,9 @@ export default function OrderQueue(): React.JSX.Element {
          */
         if (result.order?.state === 'confirmed')
           setToast(t('m2.orderConfirmed', { order: result.order.orderNo ?? '' }))
+        // QA DOS-313: the last approval measured the shop again and held the order for credit.
+        else if (heldForCredit(result.order))
+          setToast(t('m2.heldForCredit', { order: result.order?.orderNo ?? '' }))
       }, stayOpen)
       return
     }
@@ -804,13 +823,23 @@ export default function OrderQueue(): React.JSX.Element {
                       }
                     >
                       {t('m2.creditNoticeLine', {
-                        owed: formatINR(paise(order.creditNotice.outstandingPaise)),
+                        // QA DOS-312: the dues the order was checked against, net of money on account.
+                        owed: formatINR(paise(owedNet(order.creditNotice))),
                         limit: formatINR(paise(order.creditNotice.creditLimitPaise)),
                         mode: word(order.creditNotice.creditMode),
                       })}
                     </Txt>
                     <Txt field="label" desk="meta" color={colors.text.secondary}>
-                      {order.creditNotice.reasons.map(word).join(' · ')}
+                      {[
+                        ...(promisedPaise(order.creditNotice) > 0
+                          ? [
+                              t('m2.creditPromised', {
+                                amount: formatINR(paise(promisedPaise(order.creditNotice))),
+                              }),
+                            ]
+                          : []),
+                        ...order.creditNotice.reasons.map(word),
+                      ].join(' · ')}
                     </Txt>
                   </Stack>
                 </Field>

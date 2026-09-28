@@ -92,7 +92,7 @@ import {
   reservableLocationId,
   type LedgerEntryInput,
 } from '../inventory/index.js'
-import { OrdersService } from '../orders/index.js'
+import { orderPaymentTerms, OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   addDays,
@@ -1464,7 +1464,16 @@ export class BillingService {
         ? await this.orders.findOrder(tx, row.orderId)
         : undefined
     const closedBy = (await this.settlementByInvoice(tx, [row])).get(row.id)
-    return { ...detail, awaitingDispatch: order?.state === 'packed', ...closedBy }
+    // QA DOS-225: the bill says the terms it was sold on — "Pay on delivery" for a pay-on-delivery order.
+    const terms =
+      order?.paymentTerms ??
+      (row.orderId === null ? null : await orderPaymentTerms(tx, row.orderId))
+    return {
+      ...detail,
+      awaitingDispatch: order?.state === 'packed',
+      ...closedBy,
+      ...(terms === null ? {} : { paymentTerms: terms }),
+    }
   }
 
   /**

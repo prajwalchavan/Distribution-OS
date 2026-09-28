@@ -127,6 +127,12 @@ export const CreditNoticeSchema = CreditCheckOutput.pick({
   headroomPaise: true,
   overdueDays: true,
   orderTotalPaise: true,
+  // QA DOS-312/313/314/225, expand-only: the parts of the exposure and why the order was held.
+  unbilledOrdersPaise: true,
+  unallocatedCreditPaise: true,
+  exposurePaise: true,
+  creditStopped: true,
+  payOnDelivery: true,
 })
 export type CreditNotice = z.infer<typeof CreditNoticeSchema>
 

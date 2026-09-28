@@ -24,7 +24,9 @@ import { istMoment, personWord } from '../../platform/refusal-words.js'
 import { BargainsService } from '../pricing/index.js'
 import { retailerRefs } from '../retailers/index.js'
 import { userLabels } from '../tenancy/index.js'
+import { loadRetailerCredit, lockShopCredit } from '../receivables/index.js'
 import { ApprovalHooks, HOOKED_KINDS } from './approval-hooks.js'
+import { creditStopped, isPayOnDelivery } from './orders.internals.js'
 import { toApproval, toApprovalQueueItem, type ApprovalRow } from './orders.mappers.js'
 import { OrdersService } from './orders.service.js'
 
@@ -156,6 +158,19 @@ export class ApprovalsService {
           }
         }
 
+        // QA DOS-314 (architect ruling 5): an order on credit for a shop whose credit the owner stopped is
+        // not approved by anybody — the manager and the owner alike, whatever gate it waits on (a credit
+        // hold, or a rate that would confirm it). Rejecting it still works, and changing the shop's credit
+        // mode is what lifts it. A pay-on-delivery order gives no credit, so the desk may release it
+        // (DOS-225). An approval that may confirm the order takes the shop's credit lock first (DOS-313),
+        // so a submit for the same shop at the same moment counts this order once it is confirmed.
+        if (input.decision === 'approve' && order) {
+          await lockShopCredit(tx, order.retailerId)
+          const shop = await loadRetailerCredit(tx, order.retailerId)
+          if (shop.creditMode === 'stop' && !isPayOnDelivery(order, shop))
+            throw creditStopped(shop.name, order.orderNo, 'approve')
+        }
+
         const [decided] = await tx
           .update(approvals)
           .set({
@@ -218,6 +233,9 @@ export class ApprovalsService {
         }
         if (await this.stillPending(tx, approval.orderId, approval.id))
           return { item, order: await this.orders.detail(tx, order) }
+        // QA DOS-313: the last approval confirms the order only if the shop's credit still allows it —
+        // an order that waited on a rate was not counted while it waited. If it would now take a holding
+        // shop over its limit, `confirmInTx` holds it on a new credit gate and the reply says `submitted`.
         const confirmed = await this.orders.confirmInTx(tx, order, input.deviceId ?? null)
         return { item, order: confirmed.item }
       }),

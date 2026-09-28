@@ -39,6 +39,18 @@ export function renderInvoice(invoice: InvoiceDetail, o: InvoiceRenderOptions): 
   return o.format === 'thermal80' ? renderThermal(invoice, o) : renderSheet(invoice, o)
 }
 
+/**
+ * QA DOS-225: a pay-on-delivery bill says so, so the shop and the crew read the same thing — the money
+ * is taken at the door. A bill on credit prints its due date alone, as before. A bill of an order on
+ * advance terms says what is ASKED ("Pay in advance"), never that it was paid: the order may have been
+ * released on credit by the desk, and whether it is paid is the bill's own payment state, not its terms.
+ */
+function termsRow(inv: InvoiceDetail): [string, string][] {
+  if (inv.paymentTerms === 'ON') return [['Terms', 'Pay on delivery']]
+  if (inv.paymentTerms === 'PRE') return [['Terms', 'Pay in advance']]
+  return []
+}
+
 function renderSheet(inv: InvoiceDetail, o: InvoiceRenderOptions): Buffer {
   const pdf = new PdfWriter(PAGE_SIZES[o.format === 'a5' ? 'a5' : 'a4'])
   const sheet = new Sheet(pdf, o.format === 'a5' ? 24 : 36)
@@ -53,6 +65,7 @@ function renderSheet(inv: InvoiceDetail, o: InvoiceRenderOptions): Buffer {
       ['Invoice no', inv.invoiceNo ?? '(draft)'],
       ['Invoice date', prettyDate(inv.invoiceDate)],
       ['Due date', prettyDate(inv.dueDate)],
+      ...termsRow(inv),
       ['Place of supply', inv.placeOfSupplyState],
       ...(inv.ewayBillNo ? [['E-way bill', inv.ewayBillNo] as [string, string]] : []),
       ...(inv.irn
@@ -260,6 +273,7 @@ function renderThermal(inv: InvoiceDetail, o: InvoiceRenderOptions): Buffer {
       ['Invoice', inv.invoiceNo ?? '(draft)'],
       ['Date', prettyDate(inv.invoiceDate)],
       ['Due', prettyDate(inv.dueDate)],
+      ...termsRow(inv),
       ['Copy', COPY_LABELS[o.copy] ?? o.copy],
     ],
     { size: 7.5, valueX: sheet.left + 42 },

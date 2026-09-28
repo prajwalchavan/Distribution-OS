@@ -25,6 +25,7 @@ import {
   useLocalState,
   useOutstandingByShop,
 } from '../../../src/groups/sales/lib/local'
+import { netDuesOf } from '../../../src/groups/sales/lib/net-dues'
 import { LocalAsync, PageTabs, TwoLine, duesFamily, useCan } from '../../../src/groups/sales/lib/ui'
 
 const PAGE = 60
@@ -110,15 +111,15 @@ export default function Shops(): React.JSX.Element {
                     <Row gap={2} align="center">
                       <Money
                         value={
-                          due === undefined || due.outstanding_paise === 0
+                          due === undefined || netDuesOf(due).duesPaise === 0
                             ? null
-                            : due.outstanding_paise
+                            : netDuesOf(due).duesPaise
                         }
                         size="moneyM"
                       />
                       <StatusChip
                         label={shop.tier ?? '—'}
-                        family={duesFamily(due?.overdue_paise ?? 0, due?.outstanding_paise ?? 0)}
+                        family={duesFamily(netDuesOf(due).overduePaise, netDuesOf(due).duesPaise)}
                       />
                     </Row>
                   }

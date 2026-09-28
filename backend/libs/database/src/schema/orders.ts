@@ -97,6 +97,13 @@ export interface CreditNotice {
   headroomPaise: number
   overdueDays: number
   orderTotalPaise: number
+  /** QA DOS-312/313 (2026-09-28): the parts of the exposure the check compared with the limit. */
+  unbilledOrdersPaise?: number
+  unallocatedCreditPaise?: number
+  exposurePaise?: number
+  /** QA DOS-314 / DOS-225: why the order was held (credit stopped) or not (pays on delivery). */
+  creditStopped?: boolean
+  payOnDelivery?: boolean
 }
 
 export const salesOrders = pgTable(
@@ -169,6 +176,14 @@ export const salesOrders = pgTable(
     index('sales_orders_state_idx').on(t.tenantId, t.state, t.createdAt),
     index('sales_orders_salesperson_idx').on(t.tenantId, t.salespersonId, t.createdAt),
     index('sales_orders_no_idx').on(t.tenantId, t.orderNo),
+    /**
+     * QA DOS-313 (migration 0080): the credit check counts a shop's confirmed orders that are not billed
+     * yet on every submit. Partial on the three states it reads, so the lookup touches the handful of
+     * orders in flight rather than the shop's whole history.
+     */
+    index('sales_orders_credit_open_idx')
+      .on(t.tenantId, t.retailerId)
+      .where(sql`${t.state} in ('confirmed', 'picking', 'packed')`),
     tenantOrOwnRetailerPolicy('sales_orders_read', 'retailer_id'),
     ...staffWritePolicy('sales_orders_write'),
     // The retailer app may create and edit its own draft/submitted orders for a linked retailer.

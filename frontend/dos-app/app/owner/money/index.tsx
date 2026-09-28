@@ -62,6 +62,12 @@ import { billFacts } from '../../../src/groups/owner/lib/bill-facts'
 import { useWord } from '../../../src/groups/owner/lib/words'
 
 const BUCKETS = ['b0_7', 'b8_15', 'b16_30', 'b31_60', 'b61_90', 'b90plus'] as const
+
+/** What is still late after money on account (DOS-312); a server before that field reads gross. */
+const netOverdueOf = (row: {
+  readonly overduePaise: number
+  readonly netOverduePaise?: number | undefined
+}): number => row.netOverduePaise ?? row.overduePaise
 type BucketId = (typeof BUCKETS)[number]
 const BUCKET_LABEL: Readonly<Record<BucketId, string>> = {
   b0_7: '0–7',
@@ -233,13 +239,20 @@ export default function OutstandingListItem(): React.JSX.Element {
     }),
     textColumn('beat', t('word.beat'), (row) => names.beat(row.beatId)),
     moneyColumn('dues', t('o10.dues'), (row) => row.outstandingPaise),
-    moneyColumn('overdue', t('o10.overdue'), (row) => row.overduePaise, {
+    /*
+     * QA DOS-312 (architect ruling 3, "keep both and add the net"): "Overdue" is the GROSS overdue of
+     * the bills, the same figure the owner's home and the ladder above show, and beside it what is still
+     * late once the shop's money on account has paid its oldest bills. Only the net one is red: a shop in
+     * credit is never shown as late for money it has paid. One word, one amount, on every screen.
+     */
+    moneyColumn('overdue', t('o10.overdue'), (row) => row.overduePaise),
+    moneyColumn('overdueNet', t('o10.overdueNet'), (row) => netOverdueOf(row), {
       cell: (row) => (
         <Money
-          value={row.overduePaise}
+          value={netOverdueOf(row)}
           size="cell"
           symbol={false}
-          tone={row.overduePaise > 0 ? 'critical' : 'default'}
+          tone={netOverdueOf(row) > 0 ? 'critical' : 'default'}
         />
       ),
     }),
@@ -394,7 +407,8 @@ export default function OutstandingListItem(): React.JSX.Element {
           <Chips
             testID="money-shop-filter"
             items={[
-              { id: 'overdue', label: t('o10.overdue'), selected: overdueOnly },
+              // The server's `overdueOnly` reads the net overdue (DOS-312), so the chip says so.
+              { id: 'overdue', label: t('o10.overdueNetFilter'), selected: overdueOnly },
               {
                 id: 'all',
                 label:
@@ -430,6 +444,13 @@ export default function OutstandingListItem(): React.JSX.Element {
                 code: t('word.total'),
                 dues: <Money value={shown?.outstandingPaise ?? 0} size="cell" symbol={false} />,
                 overdue: <Money value={shown?.overduePaise ?? 0} size="cell" symbol={false} />,
+                overdueNet: (
+                  <Money
+                    value={shown === undefined ? 0 : netOverdueOf(shown)}
+                    size="cell"
+                    symbol={false}
+                  />
+                ),
                 onAccount: (
                   <Money value={shown?.unallocatedCreditPaise ?? 0} size="cell" symbol={false} />
                 ),
@@ -468,7 +489,10 @@ export default function OutstandingListItem(): React.JSX.Element {
                 <Money value={shop.data.outstandingPaise} size="moneyM" />
               </Field>
               <Field label={t('o10.overdue')}>
-                <Money value={shop.data.overduePaise} size="cell" tone="critical" />
+                <Money value={shop.data.overduePaise} size="cell" />
+              </Field>
+              <Field label={t('o10.overdueNet')}>
+                <Money value={netOverdueOf(shop.data)} size="cell" tone="critical" />
               </Field>
               <Field label={t('o10.oldest')}>{shortDate(shop.data.oldestDueDate)}</Field>
               {/*

@@ -147,6 +147,10 @@ export const strings = {
   'm2.creditClear': 'Clear',
   'm2.creditLine': 'Owes {owed} · limit {limit}',
   'm2.creditOver': 'This order takes it {over} over the limit',
+  /* QA DOS-313: a confirmed order is already counted, so the line says where the shop stands. */
+  'm2.creditOverNow': 'Over the limit by {over}',
+  /* QA DOS-313: confirmed orders not billed yet, which the credit check counts against the limit. */
+  'm2.creditPromised': '{amount} of orders not billed yet',
   'm2.creditBlocked': 'Credit is blocked for this shop',
   'm2.creditUnknown': 'Credit not checked',
   'm2.empty': 'No order is waiting',
@@ -161,6 +165,9 @@ export const strings = {
   'm2.decisionNote': 'Note for the person who asked',
   'm2.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
   'm2.orderConfirmed': '{order} confirmed — stock held',
+  /* QA DOS-313: the decision measured the shop again and held the order instead of confirming it. */
+  'm2.heldForCredit':
+    '{order} is held for credit — with it the shop goes over its limit. Approve or reject its credit gate first.',
   'm2.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'm2.confirmBody': 'Stock is reserved when this is confirmed. There is no undo.',
   'm2.subtotal': 'Subtotal',
@@ -953,6 +960,14 @@ export const strings = {
   'm12.document': 'Document',
   'm12.mode': 'Mode',
   'm12.collected': 'Collected ₹',
+  // QA DOS-321 / DOS-317 / DOS-312: credit notes beside sales, distinct GST documents, net dues.
+  'm12.credited': 'Credit notes ₹',
+  'm12.gstDocuments': '{bills} bills · {cancelled} cancelled · {notes} credit notes',
+  'm12.onAccount': 'On account ₹',
+  // QA DOS-312: the gross overdue the home shows, and beside it what is late after money on account.
+  'm12.overdue': 'Overdue ₹',
+  'm12.overdueNet': 'Overdue after on account ₹',
+  'm12.netDue': 'Net due ₹',
   'm12.bucket': 'Age',
   'm12.owed': 'Owed ₹',
   'm12.empty': 'Nothing in this window',

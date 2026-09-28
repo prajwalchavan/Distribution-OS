@@ -50,6 +50,7 @@ import {
   today,
 } from '../../../src/groups/sales/lib/dates'
 import { keepKey } from '../../../src/groups/sales/lib/keep'
+import { netDuesOf } from '../../../src/groups/sales/lib/net-dues'
 import { shopQueryKey, shopToShow } from '../../../src/groups/sales/lib/new-shop'
 import {
   schemesForShop,
@@ -101,6 +102,8 @@ export default function ShopCard(): React.JSX.Element {
   )
   const shop = shopToShow(deviceShop, serviceShop.data?.item)
   const dues = useOutstanding(retailerId)
+  // QA DOS-312: the card reads the shop's dues net of the money it has already paid on account.
+  const net = netDuesOf(dues)
   const orders = useShopOrders(retailerId, 25)
   const lastOrder = useLastOrderOf(retailerId)
   const invoices = useShopInvoices(retailerId, 40)
@@ -175,14 +178,8 @@ export default function ShopCard(): React.JSX.Element {
         <Row gap={2} wrap>
           <StatusChip
             testID="shop-owes"
-            label={t('s2.owes', { amount: rupees(dues?.outstanding_paise ?? 0) })}
-            family={
-              (dues?.overdue_paise ?? 0) > 0
-                ? 'brick'
-                : (dues?.outstanding_paise ?? 0) > 0
-                  ? 'ochre'
-                  : 'moss'
-            }
+            label={t('s2.owes', { amount: rupees(net.duesPaise) })}
+            family={net.overduePaise > 0 ? 'brick' : net.duesPaise > 0 ? 'ochre' : 'moss'}
             figure
           />
           <StatusChip
@@ -190,9 +187,9 @@ export default function ShopCard(): React.JSX.Element {
             family="neutral"
             figure
           />
-          {(dues?.overdue_paise ?? 0) > 0 ? (
+          {net.overduePaise > 0 ? (
             <StatusChip
-              label={t('s2.overdue', { amount: rupees(dues?.overdue_paise ?? 0) })}
+              label={t('s2.overdue', { amount: rupees(net.overduePaise) })}
               family="brick"
               solid
               figure
@@ -239,12 +236,12 @@ export default function ShopCard(): React.JSX.Element {
               <AgeingBuckets
                 testID="shop-ageing"
                 buckets={{
-                  '0-7': dues?.bucket_0_7_paise ?? 0,
-                  '8-15': dues?.bucket_8_15_paise ?? 0,
-                  '16-30': dues?.bucket_16_30_paise ?? 0,
-                  '31-60': dues?.bucket_31_60_paise ?? 0,
-                  '61-90': dues?.bucket_61_90_paise ?? 0,
-                  '90+': dues?.bucket_90_plus_paise ?? 0,
+                  '0-7': net.buckets[0] ?? 0,
+                  '8-15': net.buckets[1] ?? 0,
+                  '16-30': net.buckets[2] ?? 0,
+                  '31-60': net.buckets[3] ?? 0,
+                  '61-90': net.buckets[4] ?? 0,
+                  '90+': net.buckets[5] ?? 0,
                 }}
               />
             </Panel>
@@ -267,19 +264,32 @@ export default function ShopCard(): React.JSX.Element {
                 >
                   {creditNow.data === undefined
                     ? t('s2.creditOffline', {
-                        owed: formatINR(paise(dues?.outstanding_paise ?? 0)),
+                        owed: formatINR(paise(net.duesPaise)),
                         limit: formatINR(paise(shop.credit_limit_paise ?? 0)),
                       })
-                    : creditNow.data.headroomPaise >= 0
-                      ? t('s2.creditHeadroom', {
-                          amount: formatINR(paise(creditNow.data.headroomPaise)),
-                          mode: word(shop.credit_mode),
-                        })
-                      : t('s2.creditOver', {
-                          amount: formatINR(paise(-creditNow.data.headroomPaise)),
-                          mode: word(shop.credit_mode),
-                        })}
+                    : creditNow.data.creditStopped === true
+                      ? t('s2.creditStoppedLine', { mode: word(shop.credit_mode) })
+                      : creditNow.data.payOnDelivery === true
+                        ? t('s2.payOnDeliveryLine')
+                        : creditNow.data.headroomPaise >= 0
+                          ? t('s2.creditHeadroom', {
+                              amount: formatINR(paise(creditNow.data.headroomPaise)),
+                              mode: word(shop.credit_mode),
+                            })
+                          : t('s2.creditOver', {
+                              amount: formatINR(paise(-creditNow.data.headroomPaise)),
+                              mode: word(shop.credit_mode),
+                            })}
                 </Txt>
+                {(creditNow.data?.unbilledOrdersPaise ?? 0) > 0 &&
+                creditNow.data?.creditStopped !== true &&
+                creditNow.data?.payOnDelivery !== true ? (
+                  <Txt field="label" desk="meta" color={colors.text.secondary}>
+                    {t('s2.creditPromised', {
+                      amount: formatINR(paise(creditNow.data?.unbilledOrdersPaise ?? 0)),
+                    })}
+                  </Txt>
+                ) : null}
               </Stack>
             </Panel>
 

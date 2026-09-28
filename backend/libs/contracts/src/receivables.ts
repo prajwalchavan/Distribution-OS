@@ -225,6 +225,14 @@ export const RetailerOutstandingSchema = z.object({
    */
   undeliveredPaise: PaiseSchema,
   unallocatedCreditPaise: PaiseSchema,
+  /**
+   * QA DOS-312 (architect ruling 3, 2026-09-28), expand-only: what the shop is asked for once its money
+   * on account has paid its oldest open bills — `max(0, outstandingPaise − unallocatedCreditPaise)` — and
+   * the overdue part of it. The gross figures above are unchanged; a shop in credit reads 0 here and is
+   * never chased, held or shown as overdue for money it has already paid.
+   */
+  netDuesPaise: PaiseSchema.optional(),
+  netOverduePaise: PaiseSchema.optional(),
   openBills: z.number().int(),
   oldestDueDate: z.string().nullable(),
   oldestInvoiceDate: z.string().nullable(),
@@ -271,6 +279,13 @@ export const OutstandingListItemSchema = z.object({
    * The header's `totals.unallocatedCreditPaise` is the sum of this over the same filtered rows.
    */
   unallocatedCreditPaise: PaiseSchema,
+  /**
+   * QA DOS-312 (architect ruling 3), expand-only: the shop's dues and overdue once its money on account
+   * has paid its oldest bills first — the figures it is chased for. `overdueOnly` and `sort=overdue`
+   * read the net overdue, so a shop in credit is never listed as overdue.
+   */
+  netDuesPaise: PaiseSchema.optional(),
+  netOverduePaise: PaiseSchema.optional(),
 })
 export type OutstandingListItem = z.infer<typeof OutstandingListItemSchema>
 
@@ -716,6 +731,14 @@ export const OutstandingListOutput = z.object({
     unallocatedCreditPaise: PaiseSchema,
     retailers: z.number().int(),
     buckets: AgeingBucketsSchema,
+    /**
+     * QA DOS-312, expand-only: the same totals net of money on account, shop by shop (a shop's credit
+     * never pays another shop's bills): Σ net dues, Σ net overdue, and the ageing after each shop's
+     * money paid its own oldest bills first. The gross figures above are unchanged.
+     */
+    netDuesPaise: PaiseSchema.optional(),
+    netOverduePaise: PaiseSchema.optional(),
+    netBuckets: AgeingBucketsSchema.optional(),
   }),
 })
 
@@ -737,13 +760,42 @@ export const CreditCheckOutput = z.object({
    * shop's dues, but its exposure: `headroomPaise` and the breach reasons count it, the dues do not.
    */
   undeliveredPaise: PaiseSchema,
+  /**
+   * QA DOS-312 / DOS-313 (architect rulings 3 and 4, 2026-09-28), expand-only. What the check compares with
+   * the limit is `exposurePaise` = open bills (`outstandingPaise`) + bills on a van (`undeliveredPaise`)
+   * + confirmed orders not billed yet (`unbilledOrdersPaise`, at their order value; a cancelled or
+   * refused order is not counted) − money on account (`unallocatedCreditPaise`). It can be below zero:
+   * a shop that paid in advance has that much more room.
+   */
+  unbilledOrdersPaise: PaiseSchema.optional(),
+  /** Confirmed orders of the shop with no bill yet; the bill-count limit counts them as bills to come. */
+  unbilledOrders: z.number().int().optional(),
+  unallocatedCreditPaise: PaiseSchema.optional(),
+  exposurePaise: PaiseSchema.optional(),
+  /**
+   * Open bills the shop's money on account does not already cover, and — below — the oldest due date
+   * among them and how late it is: a bill the shop has paid for is never counted as late (DOS-312).
+   */
   openBills: z.number().int(),
   oldestDueDate: z.string().nullable(),
   overdueDays: z.number().int(),
   orderTotalPaise: PaiseSchema,
-  /** `creditLimitPaise − (outstandingPaise + undeliveredPaise) − orderTotalPaise`. */
+  /** `creditLimitPaise − exposurePaise − orderTotalPaise`. */
   headroomPaise: PaiseSchema,
-  /** `indicate` annotates and never breaches; `strict` and `stop` do. */
+  /**
+   * QA DOS-314 (architect ruling 5), expand-only: the owner has set this shop's credit mode to `stop`.
+   * No order on credit is accepted for it and nobody can approve one; only changing the mode lifts it.
+   */
+  creditStopped: z.boolean().optional(),
+  /**
+   * QA DOS-225 (architect ruling), expand-only: the shop pays on delivery, so no credit is given and its
+   * order is not held for credit — unless credit is stopped (then it is held for the desk).
+   */
+  payOnDelivery: z.boolean().optional(),
+  /**
+   * `indicate` annotates and never breaches; `strict` breaches on a reason; `stop` always breaches (no
+   * order on credit); a pay-on-delivery shop breaches only when its credit is stopped.
+   */
   breached: z.boolean(),
   reasons: z.array(CreditBreachReasonSchema),
 })

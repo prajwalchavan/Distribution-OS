@@ -616,6 +616,12 @@ export const DailyTenantStatSchema = z.object({
   day: IsoDateSchema,
   ordersCount: z.number().int().nonnegative(),
   invoicedPaise: PaiseSchema,
+  /**
+   * QA DOS-321, expand-only: credit notes issued that day, with GST, by note date — the column the owner's
+   * home already reads (DOS-254). Net sales = `invoicedPaise − creditedPaise`. `null` for a day rolled up
+   * before credit notes were counted (migration 0069).
+   */
+  creditedPaise: PaiseSchema.nullable().optional(),
   collectedPaise: PaiseSchema,
   /** Open dues at the end of the day; `overduePaise` is the part past its due date. */
   outstandingPaise: PaiseSchema,
@@ -1090,6 +1096,8 @@ export const DailyTenantStatsOutput = z.object({
   totals: z.object({
     ordersCount: z.number().int().nonnegative(),
     invoicedPaise: PaiseSchema,
+    /** QA DOS-321, expand-only: the window's credit notes, a day not yet counted read as nothing. */
+    creditedPaise: PaiseSchema.optional(),
     collectedPaise: PaiseSchema,
     deliveredStops: z.number().int().nonnegative(),
     partialStops: z.number().int().nonnegative(),

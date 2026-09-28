@@ -87,7 +87,7 @@ export interface StatementSummary {
   to: string
   openingPaise: number
   closingPaise: number
-  /** Overdue as of today (the rollup), whatever the window. */
+  /** Overdue as of today (the rollup) net of money on account (DOS-312), whatever the window. */
   overduePaise: number
   /** What the shop owes today net of money on account, never below zero: the pay link's amount. */
   duePaise: number
@@ -125,7 +125,8 @@ export async function loadStatementSummary(
     to: input.to,
     openingPaise,
     closingPaise,
-    overduePaise: outstanding.overduePaise,
+    // DOS-312: overdue net of money on account, like the dues beside it — never late for money it paid.
+    overduePaise: outstanding.netOverduePaise ?? outstanding.overduePaise,
     duePaise: Math.max(0, outstanding.outstandingPaise - outstanding.unallocatedCreditPaise),
     openBills: outstanding.openBills,
   }

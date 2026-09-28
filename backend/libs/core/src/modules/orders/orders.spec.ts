@@ -127,7 +127,10 @@ describeDb('orders (DATABASE_URL)', () => {
   const managerId = uuidv7()
   const retailerA = uuidv7() // credit mode `indicate`, linked to shopUserId
   const retailerB = uuidv7() // credit mode `strict` with a ₹10 limit
-  const retailerC = uuidv7() // credit mode `stop` with a ₹10 limit (DOS-020)
+  // credit mode `strict` with a ₹10 limit (DOS-020). It was `stop` until QA DOS-314 (architect ruling 5,
+  // 2026-09-28): a stopped shop's order on credit is now refused where it is placed and never reaches the
+  // approval queue this test is about (credit.spec.ts pins that); `strict` holds it on the same gate.
+  const retailerC = uuidv7()
   const retailerD = uuidv7() // DOS-081: `indicate` with room to spare — no notice at all
   const variantA = uuidv7() // 100 pcs in the godown
   const variantB = uuidv7() // no stock at all
@@ -273,7 +276,7 @@ describeDb('orders (DATABASE_URL)', () => {
         phone: `+91905${run}3`,
         stateCode: '27',
         tier: 'C',
-        creditMode: 'stop',
+        creditMode: 'strict',
         creditLimitPaise: 1000,
       },
       {
@@ -1003,8 +1006,8 @@ describeDb('orders (DATABASE_URL)', () => {
     expect(lines[0]?.n).toBe(1)
   })
 
-  it("DOS-020: confirm on a credit-stop shop's order refuses while approvals are pending and decides none of them", async () => {
-    // Retailer C is on credit `stop` and over its ₹10 limit, so submit holds the order on a `credit_limit` gate.
+  it("DOS-020: confirm on a credit-held shop's order refuses while approvals are pending and decides none of them", async () => {
+    // Retailer C is on credit `strict` and over its ₹10 limit, so submit holds the order on a `credit_limit` gate.
     // A second gate (below floor) is written as a fixture row the way the demo seed writes one: the engine in
     // this spec cannot price a line below its floor.
     const id = uuidv7()

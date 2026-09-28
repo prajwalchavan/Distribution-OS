@@ -26,6 +26,7 @@ import { useSyncStatus, useTable } from '@dos/offline/react'
 import { storage } from '@dos/ui/platform'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { catalogOrderKey, compareCatalogOrder, type CatalogOrderKey } from './catalog-order'
 import { istWeekday, today } from './dates'
 
 // ---------------------------------------------------------------------------
@@ -216,6 +217,11 @@ export interface LocalProduct {
 export interface LocalBrand {
   id: string
   manufacturer_id: string | null
+  name: string
+}
+
+export interface LocalManufacturer {
+  id: string
   name: string
 }
 
@@ -643,6 +649,8 @@ export interface CatalogItem {
   orderIncrement: number
   maxPerOrder: number | null
   sortOrder: number
+  /** Where the item sits in the catalogue order (`catalogOrderKey`). */
+  orderKey: CatalogOrderKey
 }
 
 export function useCatalog(): { items: CatalogItem[]; loading: boolean } {
@@ -652,11 +660,13 @@ export function useCatalog(): { items: CatalogItem[]; loading: boolean } {
   const variants = useTable<LocalVariant>('product_variants', {})
   const products = useTable<LocalProduct>('products', {})
   const brands = useTable<LocalBrand>('brands', {})
+  const manufacturers = useTable<LocalManufacturer>('manufacturers', {})
 
   const items = useMemo(() => {
     const byVariant = new Map(variants.rows.map((row) => [row.id, row]))
     const byProduct = new Map(products.rows.map((row) => [row.id, row]))
     const byBrand = new Map(brands.rows.map((row) => [row.id, row]))
+    const byMaker = new Map(manufacturers.rows.map((row) => [row.id, row]))
     const out: CatalogItem[] = []
     for (const tp of tenantProducts.rows) {
       const variant = byVariant.get(tp.variant_id)
@@ -679,15 +689,33 @@ export function useCatalog(): { items: CatalogItem[]; loading: boolean } {
         orderIncrement: tp.order_increment,
         maxPerOrder: tp.max_per_order,
         sortOrder: tp.sort_order ?? 0,
+        orderKey: catalogOrderKey({
+          brandName: brand?.name ?? null,
+          manufacturerName:
+            product?.manufacturer_id == null
+              ? null
+              : (byMaker.get(product.manufacturer_id)?.name ?? null),
+          productName: product?.name ?? variant.name,
+          netQty: variant.net_qty,
+          netUnit: variant.net_unit,
+          variantName: variant.name,
+          variantId: variant.id,
+        }),
       })
     }
-    out.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+    // Brand, item, pack size — the catalogue order the owner's and the manager's lists read in.
+    out.sort((a, b) => compareCatalogOrder(a.orderKey, b.orderKey))
     return out
-  }, [tenantProducts.rows, variants.rows, products.rows, brands.rows])
+  }, [tenantProducts.rows, variants.rows, products.rows, brands.rows, manufacturers.rows])
 
   return {
     items,
-    loading: tenantProducts.loading || variants.loading || products.loading || brands.loading,
+    loading:
+      tenantProducts.loading ||
+      variants.loading ||
+      products.loading ||
+      brands.loading ||
+      manufacturers.loading,
   }
 }
 

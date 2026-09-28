@@ -27,6 +27,8 @@ export interface TenantDayRow {
   day: string
   ordersCount: number
   invoicedPaise: number
+  /** QA DOS-321: the day's credit notes; null for a day rolled up before they were counted (0069). */
+  creditedPaise: number | null
   collectedPaise: number
   outstandingPaise: number
   overduePaise: number
@@ -97,6 +99,7 @@ export async function tenantDays(tx: Db, from: string, to: string): Promise<Tena
     day: r.day,
     ordersCount: r.ordersCount,
     invoicedPaise: r.invoicedPaise,
+    creditedPaise: r.creditedPaise ?? null,
     collectedPaise: r.collectedPaise,
     outstandingPaise: r.outstandingPaise,
     overduePaise: r.overduePaise,

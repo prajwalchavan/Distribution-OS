@@ -147,3 +147,33 @@ describe('DOS-066 review — the stop itself carries the overdue lines', () => {
     expect(d3).not.toMatch(/disabled=\{[^}]*overdue/)
   })
 })
+
+describe('DOS-312 the door counts what the shop has already paid', () => {
+  it('DOS-312 a shop whose money on account covers its late bill is not overdue at the door', () => {
+    // R-0047 in the QA run: ₹5,000 on account beside one ₹867 bill 20 days late.
+    const door = doorDues(
+      {
+        ...VAIBHAV,
+        outstanding_paise: 86_700,
+        overdue_paise: 86_700,
+        unallocated_credit_paise: 500_000,
+        oldest_due_date: '2026-08-24',
+      },
+      'strict',
+      '2026-09-13',
+    )
+    expect(door).toMatchObject({ outstandingPaise: 0, overduePaise: 0, daysLate: 0, tone: 'clear' })
+    expect(overdueLine(t, door, money)).toBeNull()
+  })
+
+  it('DOS-312 part of the late money is paid: the door says what is still late', () => {
+    const door = doorDues(
+      { ...VAIBHAV, unallocated_credit_paise: 217_600 },
+      'indicate',
+      '2026-09-13',
+    )
+    expect(door.outstandingPaise).toBe(7_522_800 - 217_600)
+    expect(door.overduePaise).toBe(5_217_600 - 217_600)
+    expect(overdueLine(t, door, money)).toBe('Overdue ₹50,000.00 · oldest due 10 Jul')
+  })
+})

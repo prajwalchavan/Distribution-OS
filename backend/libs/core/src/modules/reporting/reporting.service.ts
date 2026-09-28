@@ -948,6 +948,7 @@ export class ReportingService {
         (acc, r) => ({
           ordersCount: acc.ordersCount + r.ordersCount,
           invoicedPaise: acc.invoicedPaise + r.invoicedPaise,
+          creditedPaise: acc.creditedPaise + (r.creditedPaise ?? 0),
           collectedPaise: acc.collectedPaise + r.collectedPaise,
           deliveredStops: acc.deliveredStops + r.deliveredStops,
           partialStops: acc.partialStops + r.partialStops,
@@ -956,6 +957,7 @@ export class ReportingService {
         {
           ordersCount: 0,
           invoicedPaise: 0,
+          creditedPaise: 0,
           collectedPaise: 0,
           deliveredStops: 0,
           partialStops: 0,
@@ -982,6 +984,8 @@ export class ReportingService {
         day: r.day,
         ordersCount: r.ordersCount,
         invoicedPaise: r.invoicedPaise,
+        // DOS-321: the credit notes of the day beside what was billed, as the owner's home shows them.
+        creditedPaise: r.creditedPaise,
         collectedPaise: r.collectedPaise,
         outstandingPaise: r.outstandingPaise,
         overduePaise: r.overduePaise,

@@ -20,6 +20,7 @@ import {
   Stack,
   StatusChip,
   TextInput,
+  Toast,
   Txt,
   formatCount,
   useColors,
@@ -56,6 +57,7 @@ import { waitingOnKinds } from '../../../src/groups/owner/lib/waiting-on'
 import { readAllReservations, reservedPcs } from '../../../src/groups/owner/lib/reservations'
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/owner/lib/keys'
 import { useWord } from '../../../src/groups/owner/lib/words'
+import { heldForCredit } from '../../../src/credit-hold'
 
 const STATE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   draft: 'neutral',
@@ -136,6 +138,7 @@ export default function Orders(): React.JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [confirming, setConfirming] = useState<'confirm' | 'cancel' | 'release' | null>(null)
   const [reason, setReason] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const span = rangeOf(range)
   /*
@@ -201,7 +204,8 @@ export default function Orders(): React.JSX.Element {
 
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
-    { invalidates: [['orders'], ['warehouse'], ['reporting']] },
+    /* QA DOS-313: a confirm may raise a credit gate instead, so the gates are refreshed too. */
+    { invalidates: [['approvals'], ['orders'], ['warehouse'], ['reporting']] },
   )
   const cancelOrder = useMutation(
     (input: { id: string; reason: string }, meta) =>
@@ -278,7 +282,13 @@ export default function Orders(): React.JSX.Element {
       setConfirming(null)
       setReason('')
     }
-    if (confirming === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, stayOpen)
+    if (confirming === 'confirm')
+      void confirmOrder.mutateAsync(order.id).then((result) => {
+        done()
+        // QA DOS-313: the confirm measured the shop again and held the order for credit.
+        if (heldForCredit(result.item))
+          setToast(t('o5.heldForCredit', { order: result.item.orderNo ?? '' }))
+      }, stayOpen)
     if (confirming === 'cancel')
       void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, stayOpen)
     if (confirming === 'release')
@@ -558,6 +568,15 @@ export default function Orders(): React.JSX.Element {
         }
         onConfirm={commit}
         testID="order-dialog"
+      />
+
+      <Toast
+        open={toast !== null}
+        message={toast ?? ''}
+        onDismiss={() => {
+          setToast(null)
+        }}
+        testID="orders-toast"
       />
     </Screen>
   )

@@ -1,6 +1,19 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, asc, eq, gt, inArray, isNull, lte, ne, or, sql, type SQL } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  eq,
+  getTableColumns,
+  gt,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   BoundsListInput,
@@ -23,8 +36,12 @@ import type {
   UpsertPriceListOutput,
 } from '@dos/contracts'
 import {
+  brands,
+  manufacturers,
   priceListItems,
   priceLists,
+  productVariants,
+  products,
   repAutoApproveBounds,
   retailerPriceOverrides,
   withTenant,
@@ -40,8 +57,29 @@ import {
   requireRole,
   STAFF,
 } from '../../platform/index.js'
+import { CATALOG_ORDER } from '../catalog/index.js'
 import { variantNames } from '../tenant-catalog/index.js'
 import { todayIst } from './quote.service.js'
+
+/**
+ * A price list's rates in the CATALOGUE ORDER — brand, item, pack size (architect ruling 2026-09-28,
+ * `CATALOG_ORDER`) — never in variant-id order, which read as random on the owner's and the manager's
+ * Prices screens. One query for every list of the reply; the join only orders, the row is the rate.
+ */
+async function itemsInCatalogOrder(
+  tx: Db,
+  where: SQL,
+): Promise<(typeof priceListItems.$inferSelect)[]> {
+  return tx
+    .select(getTableColumns(priceListItems))
+    .from(priceListItems)
+    .innerJoin(productVariants, eq(productVariants.id, priceListItems.variantId))
+    .innerJoin(products, eq(products.id, productVariants.productId))
+    .innerJoin(manufacturers, eq(manufacturers.id, products.manufacturerId))
+    .leftJoin(brands, eq(brands.id, products.brandId))
+    .where(where)
+    .orderBy(...CATALOG_ORDER)
+}
 
 type PriceListsIn = z.infer<typeof PriceListsListInput>
 type PriceListsOut = z.infer<typeof PriceListsListOutput>
@@ -85,16 +123,13 @@ export class PricingService {
         .orderBy(asc(priceLists.name))
       const items =
         input.withItems && lists.length > 0
-          ? await tx
-              .select()
-              .from(priceListItems)
-              .where(
-                inArray(
-                  priceListItems.priceListId,
-                  lists.map((l) => l.id),
-                ),
-              )
-              .orderBy(asc(priceListItems.variantId))
+          ? await itemsInCatalogOrder(
+              tx,
+              inArray(
+                priceListItems.priceListId,
+                lists.map((l) => l.id),
+              ),
+            )
           : []
       // One name lookup for the whole reply, over the union of every list's items (never per list).
       const names = await variantNames(
@@ -203,11 +238,7 @@ export class PricingService {
               updatedAt: new Date(),
             },
           })
-        const items = await tx
-          .select()
-          .from(priceListItems)
-          .where(eq(priceListItems.priceListId, list.id))
-          .orderBy(asc(priceListItems.variantId))
+        const items = await itemsInCatalogOrder(tx, eq(priceListItems.priceListId, list.id))
         return {
           item: toPriceList(
             list,
