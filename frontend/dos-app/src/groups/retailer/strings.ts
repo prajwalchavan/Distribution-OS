@@ -52,26 +52,94 @@ export const strings = {
   'app.onlineOnly': 'This app needs a connection. Nothing is kept on this phone.',
 
   // --- navigation ------------------------------------------------------------------------------
-  'nav.home': 'Home',
-  'nav.order': 'Place order',
-  'nav.orders': 'My orders',
+  /*
+   * The four entries a shopping app has (founder, 2026-09-28): Shop, Orders, Money, Me. Every other
+   * page is reachable from inside those, and on a phone from the ⋯ sheet as well. Plain words a
+   * shopkeeper says, <= 20 characters, no accounting or software word.
+   */
+  'nav.tabShop': 'Shop',
+  'nav.tabOrders': 'Orders',
+  'nav.tabMoney': 'Money',
+  'nav.tabMe': 'Me',
+  'nav.moreSection': 'MORE',
   'nav.dues': 'Money due',
-  'nav.bills': 'My bills',
-  'nav.receipts': 'Receipts',
-  'nav.statement': 'Statement',
+  'nav.bills': 'Bills',
+  'nav.receipts': 'Payments',
+  'nav.statement': 'Account book',
   'nav.deals': 'Offers',
-  'nav.returns': 'Returns',
+  'nav.returns': 'Returns and help',
   'nav.inbox': 'Messages',
-  'nav.shop': 'My shop',
-  'nav.account': 'My account',
+  'nav.shop': 'Shop details',
+  'nav.account': 'Phones and login',
+  // The Money page's own tab row: one short word each, so four fit a phone without being cut.
+  'tab.due': 'Due',
+  'tab.bills': 'Bills',
+  'tab.paid': 'Paid',
+  'tab.history': 'History',
+  /** The account menu's second line under the person's name — never the machine word "retailer". */
+  'app.shopOwner': 'Shop owner',
 
-  // --- R2 distributor cards --------------------------------------------------------------------
-  'r2.title': 'Home',
-  'r2.distributors': 'YOUR DISTRIBUTORS',
-  'r2.openHere': 'You are looking at {name}',
-  'r2.switch': 'Open {name}',
+  // --- R2 the shop front (founder, 2026-09-28: "a shopping app feel, not some complex feel") ----
+  'r2.title': 'Shop',
+  'r2.change': 'Change',
+  'r2.distributors': 'Your distributors',
+  'r2.openHere': 'Buying here now',
+  'r2.switch': 'Buy from here',
+  'r2.call': 'Call',
   'r2.switching': 'Opening',
   'r2.oneOnly': 'You buy from one distributor on this app.',
+  'r2.searchItems': 'Search items',
+  'r2.matches': '{count} items match',
+  'r2.matchOne': '1 item matches',
+  'r2.noMatch': 'Nothing matches "{query}"',
+  'r2.moreMatches': 'Showing the first {count}. Type more to find the rest.',
+  'r2.lastOrderTitle': 'Your last order',
+  'r2.lastOrderLine': '{count} items, about {amount} at today’s prices',
+  'r2.lastOrderLineOne': '1 item, about {amount} at today’s prices',
+  'r2.lastOrderCount': '{count} items',
+  'r2.lastOrderCountOne': '1 item',
+  'r2.lastOrderAdds': 'Adds these to what is already in your basket',
+  'r2.addLastOrder': 'Add last order',
+  'r2.yourItems': 'Your items',
+  'r2.seeAll': 'See all items',
+  'r2.byBrand': 'Shop by brand',
+  'r2.brandItems': '{count} items',
+  'r2.brandItemsOne': '1 item',
+  'r2.otherItems': 'Other items',
+  'r2.offers': 'Offers',
+  'r2.seeOffers': 'See all offers',
+  'r2.onTheWay': 'On the way · expected {when}',
+  'r2.onTheWayNoEta': 'On the way',
+  'r2.atYourShop': 'At your shop now',
+  'r2.nothingOwed': 'Nothing to pay',
+  'r2.seeOrder': 'See order',
+  'r2.perPiece': 'a piece + GST',
+  /*
+   * Stock on a tile, before the + as well as after it, in the order screen's own words (`r7.outOfStock`,
+   * `r7.lowStock`); this one is for a basket that already holds more than the godown has.
+   */
+  'r2.stockShort': 'Only {pieces} pc left. You may get less.',
+  /*
+   * The kit stepper's own warning, said the shop's way. The kit's "Only {cases} cs available — rest
+   * short-supplied" is a godown's sentence, and it counts whole cases: "Only 0 cs available" for 4
+   * pieces left (retailer check, 2026-09-28). This catalogue is merged over the kit's
+   * (`<ThemeProvider strings>`), so the order screen's stepper says this instead.
+   */
+  'qty.onlyAvailable': 'Fewer in stock. You may get less.',
+  'r2.lastOrders': 'Last orders',
+  'r2.seeAllOrders': 'See all orders',
+  'r2.contact': 'Call or message {name}',
+  'r2.empty': 'Nothing is listed by {name} yet',
+  // An offer in the few words a tile has room for; the full sentence stays on the Offers page.
+  'r2.offerFree': '{reward} free',
+  'r2.offerFreeOn': '{reward} free on {min} {unit}',
+  'r2.offerPct': '{pct} off',
+  'r2.offerPctOn': '{pct} off on {min} {unit}',
+  'r2.offerAmountOn': '{amount} off on {min} {unit}',
+  'r2.offerPerUnit': '{amount} off a {unit}',
+  'r2.unitCaseOne': 'case',
+  'r2.unitPc': 'pc',
+  'r2.unitPcOne': 'piece',
   'r2.duesElsewhere': 'Open a distributor to see what is owed there.',
   // DOS-102: one home for a shop that buys from several distributors — every card carries its own
   // dues, its last bill and any van on the way, and this is the total across all of them.
@@ -87,23 +155,39 @@ export const strings = {
   'r2.vanComing': '{count} deliveries coming',
   'r2.shop': 'Your shop',
   'r2.owes': 'You owe',
-  'r2.overdue': 'Past its date',
-  'r2.openBills': 'Bills still open',
+  'r2.overdue': 'Overdue',
+  'r2.openBills': 'Bills to pay',
   'r2.lastBill': 'Last bill',
   'r2.lastPaid': 'Last payment',
   'r2.orderAgain': 'Order again',
-  'r2.orderAgainBody': 'The same items as your last order, at today’s prices.',
-  'r2.newOrder': 'Start a new order',
   'r2.payNow': 'Pay now',
-  'r2.recentOrders': 'YOUR LAST ORDERS',
-  'r2.nextDelivery': 'ON THE WAY',
-  'r2.noDelivery': 'Nothing out for delivery',
   'r2.noOrders': 'You have not ordered yet',
   'r2.noShop': 'This distributor has not linked your shop yet',
   'r2.noShopBody': 'Ask {name} to link your shop to this login.',
 
+  // --- Me (founder, 2026-09-28: the fourth entry a shopping app has) ------------------------------
+  'me.title': 'Me',
+  'me.distributors': 'Your distributors',
+  'me.shopLine': '{shop} · {name}',
+  'me.password': 'Change password',
+  'me.signOut': 'Sign out',
+  /*
+   * No device word: the same dialog opens on a counter PC, and DOS-179 keeps every sentence about a
+   * machine holding something out of the catalogues unless `keepClaim` has been asked (retailer check,
+   * 2026-09-28). What is emptied is the basket, wherever it is kept.
+   */
+  'me.signOutTitle': 'Sign out?',
+  'me.signOutBody': 'Your basket is emptied. Orders you have placed stay with your distributor.',
+  'me.stay': 'Stay signed in',
+
+  // --- the brand page ---------------------------------------------------------------------------------
+  'rb.none': 'Nothing of this brand is listed right now',
+  'rb.back': 'Back to the shop',
+
   // --- R7 catalog and order editor ---------------------------------------------------------------
-  'r7.title': 'Place an order',
+  'r7.title': 'Your order',
+  'r7.removed': '{count} items in your basket are no longer sold by {name}, so they were taken out',
+  'r7.repeatAdded': 'Your last order was added to the items already in your basket',
   'r7.search': 'Search the price list',
   'r7.catalog': 'PRICE LIST',
   'r7.chosen': 'IN YOUR ORDER',
@@ -115,7 +199,8 @@ export const strings = {
   'r7.ratesFailed': 'Prices could not be loaded just now. Pull down to try again.',
   'r7.noGstRate':
     'These prices cannot be shown yet: {name} has not set the GST rate for HSN {codes}. Ask them to set it, then open this screen again.',
-  'r7.case': '{size} pc case',
+  // "Case of 24", the way it is said across a counter, not "24 pc case" (retailer check, 2026-09-28).
+  'r7.case': 'Case of {size}',
   'r7.mrp': 'MRP {amount}',
   'r7.outOfStock': 'Out of stock',
   'r7.lowStock': 'Only {pieces} pc left',
@@ -137,7 +222,7 @@ export const strings = {
   'r7.place': 'Place order',
   'r7.placing': 'Sending your order',
   'r7.placed': 'Order placed',
-  'r7.placedBody': 'Order {no} has gone to {name}. You will see it under My orders.',
+  'r7.placedBody': 'Order {no} has gone to {name}. You will see it under Orders.',
   'r7.failed': 'The order was not sent',
   'r7.note': 'Anything to tell them',
   'r7.deliveryDate': 'When do you want it',
@@ -156,7 +241,8 @@ export const strings = {
   'r7.clear': 'Empty this order',
 
   // --- R8 orders ---------------------------------------------------------------------------------
-  'r8.title': 'My orders',
+  // The page the Orders tab opens carries the tab's own word (retailer check, 2026-09-28).
+  'r8.title': 'Orders',
   'r8.all': 'All',
   'r8.open': 'Still coming',
   'r8.done': 'Delivered',
@@ -196,7 +282,8 @@ export const strings = {
   'r3.title': 'Money you owe',
   'r3.summary': 'THE TOTAL',
   'r3.outstanding': 'You owe',
-  'r3.overdue': 'Past its date',
+  // The same word the home's More says (retailer check, 2026-09-28: one thing, one word).
+  'r3.overdue': 'Overdue',
   'r3.credit': 'Money with them',
   'r3.oldest': 'Oldest bill due',
   'r3.bills': 'BILL BY BILL, OLDEST FIRST',

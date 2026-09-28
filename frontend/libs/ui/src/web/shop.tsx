@@ -66,6 +66,7 @@ export function ProductTile({
   onChange,
   onOpenPieces,
   availablePieces,
+  stock,
   disabled = false,
   disabledReason,
   onPress,
@@ -165,6 +166,20 @@ export function ProductTile({
       )}
       {/* The button sits at the foot of the tile, so a row of tiles lines its buttons up. */}
       <div style={{ marginTop: 'auto', paddingTop: space[3] }}>
+        {/* Stock in the caller's words, BEFORE the + as well as after it: a shop sees "Out of
+            stock" before it adds, not only once the stepper has an answer to argue with. */}
+        {stock === undefined ? null : (
+          <Txt
+            field="label"
+            desk="meta"
+            as="div"
+            color={theme.colors.status.ochre.fg}
+            style={{ marginBottom: space[1] }}
+            testID={testID === undefined ? undefined : `${testID}-stock`}
+          >
+            {stock}
+          </Txt>
+        )}
         {pieces > 0 ? (
           <QtyStepper
             layout="stacked"
@@ -295,6 +310,7 @@ export function BrandTile({
 export function CartBar({
   count,
   total,
+  approximate = false,
   actionLabel,
   onAction,
   loading,
@@ -307,6 +323,8 @@ export function CartBar({
   // An empty cart draws no bar at all — not even the screen's strip around this content.
   useHideBottomBar(empty)
   if (empty) return null
+  // "about" only in front of a figure: an em dash is already "not known yet".
+  const about = approximate && total !== null
   return (
     <div
       data-testid={testID}
@@ -321,11 +339,21 @@ export function CartBar({
         <Txt field="label" desk="meta" as="div" color={theme.colors.text.secondary}>
           {count === 1 ? theme.t('shop.oneItem') : theme.t('shop.items', { count })}
         </Txt>
-        <Money
-          value={total}
-          size="moneyL"
-          testID={testID === undefined ? undefined : `${testID}-total`}
-        />
+        <div
+          style={{ display: 'flex', alignItems: 'baseline', gap: space[1] }}
+          data-approximate={about ? 'true' : undefined}
+        >
+          {about ? (
+            <Txt field="label" desk="meta" color={theme.colors.text.secondary}>
+              {theme.t('shop.about')}
+            </Txt>
+          ) : null}
+          <Money
+            value={total}
+            size="moneyL"
+            testID={testID === undefined ? undefined : `${testID}-total`}
+          />
+        </div>
       </div>
       <div style={{ flex: 1, minWidth: 0, maxWidth: 360 }}>
         <Button
