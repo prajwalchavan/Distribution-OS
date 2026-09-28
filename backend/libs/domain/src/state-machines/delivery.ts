@@ -16,7 +16,10 @@ export const tripMachine = defineMachine<TripState, TripEvent>({
   terminal: ['settled', 'settled_with_variance', 'cancelled'],
   transitions: {
     planned: { start_loading: 'loading', cancel: 'cancelled' },
-    loading: { depart: 'active', cancel: 'cancelled' },
+    // QA DOS-354 (architect ruling, 2026-09-28): a trip whose load-out was confirmed is not cancelled, it is
+    // checked in — even when the vehicle never left the gate. `return` from `loading` is that check-in; the
+    // service refuses it for a trip nothing was loaded onto (cancel that one).
+    loading: { depart: 'active', cancel: 'cancelled', return: 'closing' },
     active: { return: 'closing' },
     // settlement outside the owner's tolerance needs owner approval and is recorded as variance
     closing: { settle: 'settled', settle_with_variance: 'settled_with_variance' },

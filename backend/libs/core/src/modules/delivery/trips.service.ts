@@ -599,8 +599,17 @@ export class TripsService {
         const trip = await lockTrip(tx, input.id)
         assertCrewOrDesk(trip, DOORSTEP)
         if (trip.state === 'closing') return { item: await this.detail(tx, trip) }
-        const to = tripTransition(trip.state, 'return')
         const now = whenOr(input.occurredAt, new Date())
+        /*
+         * QA DOS-354 (architect ruling 8): a trip whose load-out was confirmed is checked in even when it never
+         * left the gate — the machine's `loading → closing`, and a `planned` trip the godown loaded anyway walks
+         * `start_loading` first. Its bills that were never counted out come off it; its draft sheets end.
+         */
+        const from =
+          trip.state === 'planned' || trip.state === 'loading'
+            ? await this.checkInBeforeLeaving(tx, trip, now, input.deviceId ?? null)
+            : trip.state
+        const to = tripTransition(from, 'return')
         for (const stop of await stopsOf(tx, trip.id)) {
           if (STOP_TERMINAL.has(stop.state)) continue
           await this.failStopInTx(tx, stop, 'other', 'trip returned', now, input.deviceId ?? null)
@@ -629,7 +638,15 @@ export class TripsService {
     )
   }
 
-  /** Only from `planned` / `loading`. Stops → `skipped` (the one non-machine stop write, documented). */
+  /**
+   * Only from `planned` / `loading`, and only BEFORE the load-out (QA DOS-354, architect ruling 8): a trip the
+   * godown has counted out onto the vehicle — a confirmed load sheet of this trip, or a bill planned on it that
+   * is already dispatched — is refused 409 `trip_loaded`, and the sentence sends the desk to the check-in, which
+   * brings the bills back undelivered, their pieces back to the dock at the godown's count, and frees them. A
+   * cancel before the load-out frees every bill for another trip: stops → `skipped` (the one non-machine stop
+   * write, documented), and the trip's DRAFT load sheets are cancelled with it, so none of them can later
+   * dispatch a bill with no trip to carry it.
+   */
   async cancel(input: CancelIn): Promise<CancelOut> {
     requireRole(PIN_HOLDERS)
     const db = requireDb(this.db)
@@ -639,6 +656,20 @@ export class TripsService {
         const trip = await lockTrip(tx, input.id)
         if (trip.state === 'cancelled') return { item: await this.detail(tx, trip) }
         const to = tripTransition(trip.state, 'cancel')
+        const loaded = await this.loadOf(tx, trip)
+        if (loaded.challans.length > 0 || loaded.dispatched.length > 0) {
+          const tripName = trip.tripNo ?? trip.id
+          const what = [
+            loaded.challans.length > 0 ? `challan ${loaded.challans.join(', ')}` : null,
+            loaded.dispatched.length > 0 ? `bill(s) ${loaded.dispatched.join(', ')}` : null,
+          ]
+            .filter((part): part is string => part !== null)
+            .join('; ')
+          throw new ORPCError('CONFLICT', {
+            message: `Trip ${tripName} has already been loaded (${what}), so it is not cancelled: check the vehicle in instead. Its bills come back undelivered, the godown counts their pieces off the van onto the dock, and the bills can then be planned on another trip.`,
+            data: { code: 'trip_loaded', loadSheetIds: loaded.sheetIds },
+          })
+        }
         const now = new Date()
         await tx
           .update(tripStops)
@@ -649,6 +680,15 @@ export class TripsService {
               sql`${tripStops.state} not in ('delivered', 'partial', 'failed', 'skipped')`,
             ),
           )
+        // A draft sheet moves nothing; cancelled with the trip, its bills are free for another sheet. As
+        // `system`: the desk may cancel a trip, and the sheet's own write policy is the godown's.
+        await asSystemRole(tx, () =>
+          this.loadSheets.cancelDraftsForTrip(
+            tx,
+            trip.id,
+            `trip ${trip.tripNo ?? trip.id} cancelled: ${input.reason}`,
+          ),
+        )
         const next = await this.updateTrip(tx, trip.id, { state: to, endedAt: now })
         await emitDeliveryEvent(tx, 'trip', next.id, 'TripCancelled', {
           ...tripEventPayload(next),
@@ -1276,6 +1316,155 @@ export class TripsService {
       throw new ORPCError('CONFLICT', {
         message: `trip ${trip.tripNo ?? trip.id} is ${trip.state}; the crew works a stop while the trip is active`,
       })
+  }
+
+  /**
+   * What the godown has already counted out for a trip (QA DOS-354): its confirmed load sheets (with their challan
+   * numbers) and the bills planned on it whose orders are already `dispatched` — a sheet built for the vehicle may
+   * leave `trip_id` empty, so the bills are asked too. One bounded read per 200 orders.
+   */
+  private async loadOf(
+    tx: Db,
+    trip: TripRow,
+  ): Promise<{ sheetIds: string[]; challans: string[]; dispatched: string[] }> {
+    const confirmed = await this.loadSheets.confirmedForTrip(tx, trip.id)
+    const planned = await tx
+      .select({ orderId: deliveries.orderId, invoiceId: deliveries.invoiceId })
+      .from(deliveries)
+      .where(and(eq(deliveries.tripId, trip.id), sql`${deliveries.outcome} is null`))
+    const orderIds = [
+      ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
+    ]
+    const dispatchedOrders = new Set<string>()
+    for (let at = 0; at < orderIds.length; at += MAX_ORDERS_PER_READ)
+      for (const order of await this.orders.fulfilmentOrders(
+        tx,
+        orderIds.slice(at, at + MAX_ORDERS_PER_READ),
+      ))
+        if (order.state === 'dispatched') dispatchedOrders.add(order.orderId)
+    const dispatchedBills = planned.filter(
+      (d) => d.orderId !== null && dispatchedOrders.has(d.orderId),
+    )
+    const refs = await this.billing.invoiceRefs(
+      tx,
+      dispatchedBills.map((d) => d.invoiceId),
+    )
+    return {
+      sheetIds: confirmed.map((s) => s.id),
+      challans: confirmed.map((s) => s.challanNo ?? 'a challan'),
+      dispatched: [
+        ...new Set(dispatchedBills.map((d) => refs.get(d.invoiceId)?.invoiceNo ?? d.invoiceId)),
+      ],
+    }
+  }
+
+  /**
+   * THE CHECK-IN OF A LOADED TRIP THAT NEVER LEFT (QA DOS-354, architect ruling 8: "a loaded trip is not
+   * cancelled, it is checked in"). Refused 409 `trip_not_loaded` when nothing was counted out — that trip is
+   * cancelled instead. Otherwise, before the ordinary check-in runs:
+   *
+   *   - a bill planned on the trip that the godown never counted out (its order still `packed`) comes off it,
+   *     exactly as `dropBill` takes it off — its planned delivery row goes, a stop left with no bill is
+   *     `skipped` — so it is back on the planning board and the check-in never "fails" a bill that never left;
+   *   - the trip's DRAFT load sheets are cancelled (nothing had moved on them);
+   *   - a `planned` trip the godown loaded anyway walks `start_loading` through the machine first.
+   *
+   * The loaded bills then go through the check-in every trip goes through: their stops fail ("trip returned"),
+   * their orders go back to `packed`, the bills are flagged undelivered, and the settlement counts the van so
+   * their pieces go onto the dock, held for them, and the bills can be planned again. Returns the state the
+   * `return` event applies from. Audited.
+   */
+  private async checkInBeforeLeaving(
+    tx: Db,
+    trip: TripRow,
+    now: Date,
+    deviceId: string | null,
+  ): Promise<TripRow['state']> {
+    const tripName = trip.tripNo ?? trip.id
+    const loaded = await this.loadOf(tx, trip)
+    if (loaded.sheetIds.length === 0 && loaded.dispatched.length === 0)
+      throw new ORPCError('CONFLICT', {
+        message: `Trip ${tripName} has not been loaded, so there is nothing to check in: cancel it instead, and its bills go back on the planning board.`,
+        data: { code: 'trip_not_loaded', tripState: trip.state },
+      })
+    const from = trip.state === 'planned' ? tripTransition(trip.state, 'start_loading') : trip.state
+    const planned = await asSystemRole(tx, () =>
+      tx
+        .select()
+        .from(deliveries)
+        .where(and(eq(deliveries.tripId, trip.id), sql`${deliveries.outcome} is null`))
+        .orderBy(asc(deliveries.id))
+        .for('update'),
+    )
+    const orderIds = [
+      ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
+    ]
+    const dispatched = new Set<string>()
+    for (let at = 0; at < orderIds.length; at += MAX_ORDERS_PER_READ)
+      for (const order of await this.orders.fulfilmentOrders(
+        tx,
+        orderIds.slice(at, at + MAX_ORDERS_PER_READ),
+      ))
+        if (order.state === 'dispatched') dispatched.add(order.orderId)
+    const notLoaded = planned.filter((d) => d.orderId === null || !dispatched.has(d.orderId))
+    let skipped = 0
+    if (notLoaded.length > 0) {
+      await asSystemRole(tx, () =>
+        tx.delete(deliveries).where(
+          inArray(
+            deliveries.id,
+            notLoaded.map((d) => d.id),
+          ),
+        ),
+      )
+      for (const stopId of new Set(notLoaded.map((d) => d.stopId))) {
+        const [left] = await tx
+          .select({ n: sql<number>`count(*)::int` })
+          .from(deliveries)
+          .where(eq(deliveries.stopId, stopId))
+        if (Number(left?.n ?? 0) > 0) continue
+        const done = await tx
+          .update(tripStops)
+          .set({
+            state: 'skipped',
+            failureNote: 'not loaded: the trip was checked in before it left',
+            completedAt: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(tripStops.id, stopId),
+              sql`${tripStops.state} not in ('delivered', 'partial', 'failed', 'skipped')`,
+            ),
+          )
+          .returning({ id: tripStops.id })
+        skipped += done.length
+      }
+      if (skipped > 0)
+        await this.updateTrip(tx, trip.id, {
+          plannedStops: Math.max(0, trip.plannedStops - skipped),
+        })
+    }
+    const cancelledSheets = await asSystemRole(tx, () =>
+      this.loadSheets.cancelDraftsForTrip(
+        tx,
+        trip.id,
+        `trip ${tripName} was checked in before it left`,
+      ),
+    )
+    await writeAudit(tx, {
+      action: 'trip.check_in_before_departure',
+      entityType: 'trip',
+      entityId: trip.id,
+      before: { state: trip.state, loadSheetIds: loaded.sheetIds },
+      after: {
+        billsTakenOff: notLoaded.map((d) => d.invoiceId),
+        stopsSkipped: skipped,
+        draftSheetsCancelled: cancelledSheets,
+      },
+      deviceId,
+    })
+    return from
   }
 
   /**

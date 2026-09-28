@@ -68,6 +68,9 @@ describe('state machines', () => {
       'settled_with_variance',
     )
     expect(tripMachine.can('active', 'cancel')).toBe(false)
+    // QA DOS-354: a loaded trip that never left is checked in, not cancelled; a planned one is not checked in.
+    expect(tripMachine.next('loading', 'return')).toBe('closing')
+    expect(tripMachine.can('planned', 'return')).toBe(false)
     expect(
       stopMachine.next(
         stopMachine.next(stopMachine.next('pending', 'start'), 'arrive'),
