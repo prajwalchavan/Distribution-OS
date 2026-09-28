@@ -27,7 +27,9 @@ import { valuationByLocation, type ValuationFilter, type ValuationRow } from './
  * row and the derived balance commit together with the business fact that caused them. Balances never go below
  * zero — the damaged / expiry bin included since QA DOS-350 (architect ruling 1, 2026-09-28): `post()` refuses
  * the movement in words before it writes, and the CHECK constraint plus migration 0075's balance trigger are
- * the guarantee underneath. Ledger rows carry UNIQUE(tenant_id, idempotency_key), so re-posting the same entry
+ * the guarantee underneath. Nothing leaves the damaged bin for sale (QA DOS-352, ruling 2): `post()` refuses a
+ * sale, a pack, a load or any move out of a damaged place into one that is not, whoever calls it
+ * (`binExitsForSale`). Ledger rows carry UNIQUE(tenant_id, idempotency_key), so re-posting the same entry
  * is a harmless no-op and never double-counts.
  */
 
@@ -300,11 +302,13 @@ export class InventoryService {
       .select({
         id: locations.id,
         name: locations.name,
+        kind: locations.kind,
         negativeAllowed: locations.negativeAllowed,
       })
       .from(locations)
       .where(and(eq(locations.tenantId, tenantId), inArray(locations.id, locationIds)))
     const byLocation = new Map(locs.map((l) => [l.id, l]))
+    const leavingTheBin = binExitsForSale(entries, byLocation)
     // DOS-048: the words a refusal needs, READ BEFORE THE WRITE. The CHECK constraint that refuses a
     // below-zero move aborts the whole transaction, so once it has fired nothing can be looked up any
     // more — "insufficient stock: lot <uuid> at location <uuid>" was all a loader ever got. Two bounded
@@ -340,6 +344,15 @@ export class InventoryService {
         .onConflictDoNothing({ target: [stockLedger.tenantId, stockLedger.idempotencyKey] })
         .returning()
       if (!row) continue // already posted under this key; its balance moved then
+      // QA DOS-352, ruling 2: nothing leaves the damaged bin for sale, whoever the mover is. Checked for a
+      // row this call really writes, so a replay of one posted before the rule keeps answering as it did.
+      const exit = leavingTheBin.get(e.idempotencyKey)
+      if (exit)
+        throw damagedNotForSale({
+          ...exit,
+          item: lotLabels.get(e.lotId) ?? `lot ${e.lotId}`,
+          pcs: -e.qtyDelta,
+        })
       written.push(row)
       const key = balanceKey(e.lotId, e.locationId)
       const label = {
@@ -1379,6 +1392,90 @@ function belowZero(e: {
   return new ORPCError('BAD_REQUEST', {
     message,
     data: { lotId: e.lotId, locationId: e.locationId, qtyDelta: e.qtyDelta },
+  })
+}
+
+/**
+ * The reasons that take pieces OFF THE BOOKS at a damaged place — the desk's write-off (`damage`,
+ * `expiry_writeoff`), a correction (`adjustment`, the owner's fix of a carton binned by mistake), a count
+ * (`cycle_count`) and an opening figure. They move the pieces nowhere, so they are the bin's exits (ruling 2:
+ * "a write-off and a return to the brand"; a return to the brand leaves the books the same way).
+ */
+const BIN_EXIT_REASONS: ReadonlySet<StockReason> = new Set<StockReason>([
+  'damage',
+  'expiry_writeoff',
+  'adjustment',
+  'cycle_count',
+  'opening',
+])
+
+interface BinExit {
+  lotId: string
+  fromLocationId: string
+  from: string
+  /** Where the call would put the pieces; null for a sale or any other way out that lands nowhere. */
+  toLocationId: string | null
+  to: string | null
+  reason: StockReason
+}
+
+/**
+ * NOTHING LEAVES THE DAMAGED BIN FOR SALE — IN THE LEDGER ITSELF (QA DOS-352, architect ruling 2 of 2026-09-28).
+ * The first guard lived in `stock.transfer` alone, and the blind check put bin pieces back into sale through
+ * three other movers: an order packed from the bin (the pack's `transfer_out` onto the dock, then billed), a load
+ * sheet sourced from it (onto a van as van stock), and a place re-saved as a godown. Every mover posts here, so
+ * the rule is decided here, per entry, from the call's own entries:
+ *
+ *   - a write-off, a correction, a count or an opening at the bin (`BIN_EXIT_REASONS`) goes: it moves nothing
+ *     anywhere — unless the same call puts the same lot into a place that is not a bin, which is a move;
+ *   - a `transfer_out` goes when every piece of that lot the call puts anywhere lands in a damaged place (bin to
+ *     bin, a claim shelf);
+ *   - anything else out of a damaged place — a sale, a pack onto the dock, a load onto a van, a move into a
+ *     godown, a return reversed out of it — is refused, 409 `damaged_not_for_sale`, naming the pieces and where
+ *     they would have gone.
+ *
+ * Returns the refused entries by idempotency key; `post` throws for the first one it would really write.
+ */
+function binExitsForSale(
+  entries: readonly LedgerEntryInput[],
+  byLocation: ReadonlyMap<string, { name: string; kind: string }>,
+): Map<string, BinExit> {
+  const refused = new Map<string, BinExit>()
+  for (const e of entries) {
+    const from = byLocation.get(e.locationId)
+    if (e.qtyDelta >= 0 || from?.kind !== 'damaged') continue
+    const onward = entries.filter((o) => o.qtyDelta > 0 && o.lotId === e.lotId && o !== e)
+    const intoSale = onward.find((o) => byLocation.get(o.locationId)?.kind !== 'damaged')
+    const allowed =
+      intoSale === undefined &&
+      (BIN_EXIT_REASONS.has(e.reason) || (e.reason === 'transfer_out' && onward.length > 0))
+    if (allowed) continue
+    refused.set(e.idempotencyKey, {
+      lotId: e.lotId,
+      fromLocationId: e.locationId,
+      from: from.name,
+      toLocationId: intoSale?.locationId ?? null,
+      to: intoSale ? (byLocation.get(intoSale.locationId)?.name ?? null) : null,
+      reason: e.reason,
+    })
+  }
+  return refused
+}
+
+/** The words of ruling 2 — the same as `stock.transfer`'s, with the pieces and where they would have gone. */
+function damagedNotForSale(
+  exit: BinExit & { item: string; pcs: number },
+): ORPCError<'CONFLICT', Record<string, unknown>> {
+  const where = exit.to === null ? 'be sold from it' : `be moved to ${exit.to}`
+  return new ORPCError('CONFLICT', {
+    message: `Pieces in ${exit.from} never go back for sale, so ${String(exit.pcs)} pc of ${exit.item} cannot ${where}. They leave the bin only by a write-off or a return to the brand. If a carton went into the bin by mistake, the owner corrects it with a stock adjustment and a reason.`,
+    data: {
+      code: 'damaged_not_for_sale',
+      lotId: exit.lotId,
+      fromLocationId: exit.fromLocationId,
+      toLocationId: exit.toLocationId,
+      reason: exit.reason,
+    },
   })
 }
 
