@@ -172,6 +172,14 @@ export const strings = {
   'd1.tripState': 'Trip is {state}',
   'd1.otherTrips': 'Your other trips',
   'd1.plannedFor': 'Planned for {date}',
+  /*
+   * DOS-179 — what the home says while records wait for a signal; `keepKey('homePending', …)` chooses.
+   * Counted first so one reads as well as many (verify-1 m3), and in a driver's words, not "writes".
+   */
+  'd1.pending':
+    '{count} waiting to send. This phone keeps it all and sends it when there is a signal.',
+  'd1.pendingTab':
+    '{count} waiting to send. Held in this tab only, not saved — it goes when there is a signal; close this tab and it is gone.',
 
   /*
    * THE HOME AS A LIST OF JOBS (founder, 2026-09-28: "when the delivery guy opens the app it must have
@@ -183,6 +191,12 @@ export const strings = {
    */
   'home.summary': '{done} of {total} done · {amount} still to collect',
   'home.summaryNothingLeft': '{done} of {total} done · nothing left to collect',
+  'home.summaryDone': '{done} of {total} done · now check in the vehicle',
+  'home.summaryDoneMoney': '{done} of {total} done · {amount} not taken · now check in the vehicle',
+  // The word beside the figure on a card: what the money is.
+  'home.toCollect': 'To collect',
+  'home.onCredit': 'On credit',
+  'home.doneOnCredit': '{amount} on credit',
   'home.loadTitle': "Today's load",
   'home.loadTitleFor': 'Load for {date}',
   'home.shops': '{count} shops',
@@ -232,6 +246,8 @@ export const strings = {
   'home.confirmBill': '{no} · {pieces} pc',
   'home.confirmBody':
     'These bills are recorded as delivered in full at {shop}. You type the money next.',
+  'home.confirmBody.one':
+    'This bill is recorded as delivered in full at {shop}. You type the money next.',
   'home.confirmDeliver': 'Yes, all delivered',
   // What a toast says was recorded.
   'home.arrived': 'Arrived at {shop}',

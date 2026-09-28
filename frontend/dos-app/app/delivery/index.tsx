@@ -65,22 +65,24 @@ import {
   allDoorsDone,
   billsToDeliver,
   cartonsLoaded,
+  creditedByInvoice,
   doorNeedsPhoto,
   heldOnPhone,
   homeSummary,
   loadReadiness,
-  moneyPutOff,
   nextJobId,
-  putMoneyOff,
+  onCreditTerms,
   readyToDeliverAll,
   sheetsForTrip,
   stopJob,
+  summaryKey,
   type StopJob,
 } from '../../src/groups/delivery/lib/home'
 import { DeliverAllDialog, MoneySheet } from '../../src/groups/delivery/lib/home-sheets'
 import { useArrive, useDeliverAll, useTakeMoney } from '../../src/groups/delivery/lib/home-writes'
 import type { DoorMoney } from '../../src/groups/delivery/lib/door-writes'
 import { keepKey } from '../../src/groups/delivery/lib/keep'
+import { useMoneyPutOff } from '../../src/groups/delivery/lib/put-off'
 import {
   addressLine,
   bool,
@@ -89,10 +91,12 @@ import {
   pickCurrentTrip,
   tripEntryHref,
   useHydrated,
+  useLocalCreditNotesOf,
   useLocalDeliveryLinesOf,
   useLocalInvoiceLinesOf,
   useLocalInvoices,
   useLocalLoadSheets,
+  useLocalOutstandingOf,
   useLocalRetailers,
   useLocalStops,
   useLocalTripDeliveries,
@@ -102,7 +106,14 @@ import {
   type LocalDelivery,
   type LocalStop,
 } from '../../src/groups/delivery/lib/local'
-import { FillingNote, Panel, StopChip, pl, stopFamily } from '../../src/groups/delivery/lib/ui'
+import {
+  FillingNote,
+  Panel,
+  StopChip,
+  pl,
+  stopFamily,
+  useMyUserId,
+} from '../../src/groups/delivery/lib/ui'
 
 /** One stop as the list draws it: the row, its bills, and what `stopJob` made of them. */
 interface StopCard {
@@ -136,9 +147,17 @@ export default function TodaysDeliveries(): React.JSX.Element {
   const sheets = useLocalLoadSheets(tripId)
   const retailerIds = useMemo(() => stops.rows.map((stop) => stop.retailer_id), [stops.rows])
   const { byId: shops } = useLocalRetailers(retailerIds)
-  const { byId: invoices } = useLocalInvoices(
-    useMemo(() => deliveries.rows.map((row) => row.invoice_id), [deliveries.rows]),
-  )
+  const invoiceIds = useMemo(() => deliveries.rows.map((row) => row.invoice_id), [deliveries.rows])
+  const { byId: invoices } = useLocalInvoices(invoiceIds)
+  /*
+   * verify-1 M1 — what each door still owes comes off the phone too: the credit notes against its
+   * bills (a part delivery raises one) and what the shop owes in all (`leftToCollect`).
+   */
+  const creditNotes = useLocalCreditNotesOf(invoiceIds)
+  const credited = useMemo(() => creditedByInvoice(creditNotes.rows), [creditNotes.rows])
+  const { byRetailer: dues } = useLocalOutstandingOf(retailerIds)
+  const myUserId = useMyUserId()
+  const stopIds = useMemo(() => stops.rows.map((stop) => stop.id), [stops.rows])
 
   /* The tenant's proof policy rides on `TripDetail` — the same read, and the same default, as D4. */
   const tripDetail = useQuery(
@@ -159,7 +178,7 @@ export default function TodaysDeliveries(): React.JSX.Element {
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [paying, setPaying] = useState<string | null>(null)
   const [moneyError, setMoneyError] = useState<string | null>(null)
-  const [deferred, setDeferred] = useState<ReadonlySet<string>>(moneyPutOff)
+  const { deferred, putOff } = useMoneyPutOff(myUserId, tripId, stopIds)
   /*
    * Stable, because the kit's toast restarts its four seconds whenever this changes — and this screen
    * re-renders on every sync tick, so an inline arrow kept a toast on screen for as long as the phone
@@ -177,31 +196,49 @@ export default function TodaysDeliveries(): React.JSX.Element {
     return out
   }, [deliveries.rows])
 
-  /** Every receipt this trip holds for a shop — the ones still on this phone included. */
-  const takenByShop = useMemo(() => {
-    const out = new Map<string, number>()
-    for (const row of receipts.rows)
-      out.set(row.retailer_id, (out.get(row.retailer_id) ?? 0) + row.amount_paise)
-    return out
+  /**
+   * Every receipt this trip holds for a shop — the ones still on this phone included — and, apart,
+   * the part of it the office has not counted yet (still queued or sending).
+   */
+  const { takenByShop, heldByShop } = useMemo(() => {
+    const taken = new Map<string, number>()
+    const held = new Map<string, number>()
+    for (const row of receipts.rows) {
+      taken.set(row.retailer_id, (taken.get(row.retailer_id) ?? 0) + row.amount_paise)
+      if (heldOnPhone(row._pending))
+        held.set(row.retailer_id, (held.get(row.retailer_id) ?? 0) + row.amount_paise)
+    }
+    return { takenByShop: taken, heldByShop: held }
   }, [receipts.rows])
 
   const cards = useMemo<StopCard[]>(
     () =>
       stops.rows.map((stop) => {
         const bills = billsByStop.get(stop.id) ?? []
+        const shop = shops.get(stop.retailer_id)
+        const owes = dues.get(stop.retailer_id)
         return {
           id: stop.id,
           stop,
           bills,
           job: stopJob({
             state: stop.state,
-            bills: bills.map((bill) => ({ outcome: bill.outcome, pending: bill._pending ?? null })),
+            bills: bills.map((bill) => ({
+              outcome: bill.outcome,
+              pending: bill._pending ?? null,
+              totalPaise: invoices.get(bill.invoice_id)?.total_paise ?? null,
+              creditedPaise: credited.get(bill.invoice_id) ?? 0,
+            })),
             plannedPaise: stop.planned_collection_paise,
             takenPaise: takenByShop.get(stop.retailer_id) ?? 0,
+            heldPaise: heldByShop.get(stop.retailer_id) ?? 0,
+            shopOwesPaise:
+              owes === undefined ? null : owes.outstanding_paise + (owes.undelivered_paise ?? 0),
+            onCredit: onCreditTerms(shop?.payment_terms, shop?.credit_mode),
           }),
         }
       }),
-    [stops.rows, billsByStop, takenByShop],
+    [stops.rows, billsByStop, shops, dues, invoices, credited, takenByShop, heldByShop],
   )
 
   /* The lines of the bills a "Delivered, all items" would record — only the stops the van is AT. */
@@ -339,7 +376,7 @@ export default function TodaysDeliveries(): React.JSX.Element {
   }
 
   const onNoMoney = (stop: LocalStop): void => {
-    setDeferred(putMoneyOff(stop.id))
+    putOff(stop.id)
     haptics.tap()
     setToast(t('home.noMoneyToast', { shop: shopName(stop) }))
   }
@@ -361,6 +398,8 @@ export default function TodaysDeliveries(): React.JSX.Element {
    */
   const doneLine = (card: StopCard): string => {
     const taken = takenByShop.get(card.stop.retailer_id) ?? 0
+    /* A credit shop's bills went on its account: that, not "no money taken", is what happened. */
+    const onAccount = taken === 0 && card.job.creditPaise > 0
     if (!wide) {
       if (card.stop.state === 'failed' || card.stop.state === 'skipped')
         return card.stop.failure_reason === null
@@ -368,10 +407,15 @@ export default function TodaysDeliveries(): React.JSX.Element {
           : wordFor(t, card.stop.failure_reason)
       if (card.stop.state === 'partial') return wordFor(t, 'partial')
       if (taken > 0) return t('home.doneTaken', { amount: money(taken) })
+      if (onAccount) return t('home.onCredit')
       return card.stop.state === 'arrived' ? t('home.doneHeld') : wordFor(t, card.stop.state)
     }
     const moneyWords =
-      taken > 0 ? t('home.doneTaken', { amount: money(taken) }) : t('home.doneNoMoney')
+      taken > 0
+        ? t('home.doneTaken', { amount: money(taken) })
+        : onAccount
+          ? t('home.doneOnCredit', { amount: money(card.job.creditPaise) })
+          : t('home.doneNoMoney')
     if (card.stop.state === 'failed' || card.stop.state === 'skipped')
       return t('home.doneLine', {
         what:
@@ -556,6 +600,30 @@ export default function TodaysDeliveries(): React.JSX.Element {
     }
   }
 
+  /**
+   * The figure on a card, with the word that says what it is (verify-1 m6: "₹2,405.00" alone could be
+   * the bill, the dues or the money taken). What is left to collect here, or — at a credit shop that
+   * owes nothing at the door — what goes on its account.
+   */
+  const figureFor = (job: StopJob): React.JSX.Element | undefined => {
+    if (job.kind === 'finished') return undefined
+    const [word, value] =
+      job.leftPaise > 0
+        ? [t('home.toCollect'), job.leftPaise]
+        : job.creditPaise > 0
+          ? [t('home.onCredit'), job.creditPaise]
+          : [null, 0]
+    if (word === null) return undefined
+    return (
+      <Row gap={2} align="center">
+        <Txt field="label" desk="meta" color={colors.text.secondary}>
+          {word}
+        </Txt>
+        <Money value={value} size="moneyM" />
+      </Row>
+    )
+  }
+
   const stopCard = (card: StopCard): React.JSX.Element => {
     const { stop, job } = card
     const isNext = onTheRoad && card.id === nextId
@@ -563,16 +631,25 @@ export default function TodaysDeliveries(): React.JSX.Element {
       stop.failure_reason === null
         ? (addressLine(shops.get(stop.retailer_id)?.address) ?? undefined)
         : wordFor(t, stop.failure_reason)
-    const { primary, secondary } = actionsFor(card, isNext)
+    const actions = actionsFor(card, isNext)
+    /*
+     * ONE FILLED BUTTON ON THE PAGE (verify-1 m6). Four waiting stops each carried the same dark "I am
+     * here", and only the small "Do this next" said which one to drive to. A card that is not next
+     * keeps its step, outlined, beside the others; the kit drops a third rather than squeeze it.
+     */
+    const primary = isNext ? actions.primary : undefined
+    const secondary =
+      isNext || actions.primary === undefined
+        ? actions.secondary
+        : [actions.primary, ...(actions.secondary ?? [])]
+    const figure = figureFor(job)
     return (
       <JobCard
         key={stop.id}
         testID={`d1-stop-${stop.id}`}
         title={t('home.stopTitle', { n: stop.sequence, shop: shopName(stop) })}
         {...(where === undefined ? {} : { subtitle: where })}
-        {...(job.kind === 'finished' || job.leftPaise === 0
-          ? {}
-          : { trailing: <Money value={job.leftPaise} size="moneyM" /> })}
+        {...(figure === undefined ? {} : { trailing: figure })}
         chip={chipFor(card)}
         state={job.kind === 'finished' ? 'done' : isNext ? 'next' : 'default'}
         onPress={() => {
@@ -632,7 +709,7 @@ export default function TodaysDeliveries(): React.JSX.Element {
   const cartons = cartonsLoaded(tripSheets)
   const collectedPaise = receipts.rows.reduce((sum, row) => sum + row.amount_paise, 0)
 
-  const summaryLine = t(summary.leftPaise > 0 ? 'home.summary' : 'home.summaryNothingLeft', {
+  const summaryLine = t(summaryKey({ leftPaise: summary.leftPaise, allDone: road && allDone }), {
     done: summary.done,
     total: summary.total,
     amount: money(summary.leftPaise),
@@ -922,10 +999,16 @@ export default function TodaysDeliveries(): React.JSX.Element {
       </Panel>,
     )
 
+  /*
+   * "All done" is the LAST job, so it is the last card (verify-1 m4). At the top it was inserted above
+   * a driver who had just taken the last money lower down — off screen, with the page pushed down under
+   * his thumb — and nothing pointed to it. At the end it appears where he already is, and the summary
+   * line above the list says "check in the vehicle" for the driver who opens the app afterwards.
+   */
   const jobs: React.JSX.Element[] = beforeTheRoad
     ? [loadCard]
     : road
-      ? [...(allDone ? [allDoneCard] : []), ...cards.map(stopCard)]
+      ? [...cards.map(stopCard), ...(allDone ? [allDoneCard] : [])]
       : [checkedInCard, ...cards.map(stopCard)]
 
   return (
@@ -953,13 +1036,15 @@ export default function TodaysDeliveries(): React.JSX.Element {
         </JobList>
 
         {/*
-          DOS-179 — "{count} writes are still on this phone" is only true of a store that keeps. On a
+          DOS-179 — "waiting to send, this phone keeps it" is only true of a store that keeps. On a
           browser with no OPFS the strip at the top of THIS screen already reads "· Not kept in this
-          browser", so the sentence asks the store like every other keep verb in this app.
+          browser", so the sentence asks the store like every other keep verb in this app. Its words
+          are the home's own since verify-1 m3 (founder, 2026-09-28, rule 5: a driver's words — "1
+          writes are held" was neither a sentence nor a word he uses); D8 keeps `d8.pending`.
         */}
         {status.pending === 0 ? null : (
           <Txt field="label" desk="meta" color={colors.text.secondary} testID="d1-pending">
-            {t(keepKey('pending', status.persistent), { count: status.pending })}
+            {t(keepKey('homePending', status.persistent), { count: status.pending })}
           </Txt>
         )}
 

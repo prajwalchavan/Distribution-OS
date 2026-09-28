@@ -113,6 +113,9 @@ describe('<RupeeInput>', () => {
     expect(html).toContain('To collect')
     expect(html).toContain('22,620')
     expect(html).toContain('value=""')
+    // The figure comes BEFORE the field's label, so the label sits on its field and the figure is
+    // never read as the answer to it (delivery home, verify-1 m7).
+    expect(html.indexOf('To collect')).toBeLessThan(html.indexOf('Cash collected'))
   })
 })
 

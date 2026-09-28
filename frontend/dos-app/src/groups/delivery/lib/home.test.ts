@@ -12,17 +12,21 @@ import {
   allDoorsDone,
   billsToDeliver,
   cartonsLoaded,
+  creditedByInvoice,
   doorNeedsPhoto,
   heldOnPhone,
   homeSummary,
+  leftToCollect,
   loadReadiness,
   moneyPutOff,
   nextJobId,
+  onCreditTerms,
   putMoneyOff,
   readyToDeliverAll,
   sheetOrderIds,
   sheetsForTrip,
   stopJob,
+  summaryKey,
   type HomeLoadSheet,
 } from './home'
 
@@ -37,6 +41,7 @@ describe('one stop, as a job', () => {
         kind: 'waiting',
         openBills: 1,
         leftPaise: 500_00,
+        creditPaise: 0,
         doorDone: false,
       })
   })
@@ -59,7 +64,13 @@ describe('one stop, as a job', () => {
       plannedPaise: 500_00,
       takenPaise: 0,
     })
-    expect(job).toEqual({ kind: 'money', openBills: 0, leftPaise: 500_00, doorDone: true })
+    expect(job).toEqual({
+      kind: 'money',
+      openBills: 0,
+      leftPaise: 500_00,
+      creditPaise: 0,
+      doorDone: true,
+    })
     expect(
       stopJob({
         state: 'arrived',
@@ -109,7 +120,7 @@ describe('one stop, as a job', () => {
         plannedPaise: 900_00,
         takenPaise: 0,
       }),
-    ).toEqual({ kind: 'finished', openBills: 0, leftPaise: 0, doorDone: true })
+    ).toEqual({ kind: 'finished', openBills: 0, leftPaise: 0, creditPaise: 0, doorDone: true })
   })
 
   it('a door with no bill of its own (old dues) is "here" until the money is taken', () => {
@@ -119,11 +130,143 @@ describe('one stop, as a job', () => {
   })
 })
 
+describe('verify-1 M1: what is left to collect is what the door still owes', () => {
+  /* TRIP-0005 as the check measured it: two bills, ₹1,189.00 and ₹1,215.00, planned at their total. */
+  const bills = [
+    { outcome: 'partial', totalPaise: 1_189_00, creditedPaise: 64_00 },
+    { outcome: 'delivered', totalPaise: 1_215_00 },
+  ]
+
+  it('a part delivery’s credit note comes off: ₹2,340.00, not ₹2,404.00', () => {
+    expect(
+      leftToCollect({ plannedPaise: 2_404_00, bills, takenPaise: 0, shopOwesPaise: 2_340_00 }),
+    ).toBe(2_340_00)
+    // With no dues row on the phone the credit note alone gives the same answer.
+    expect(leftToCollect({ plannedPaise: 2_404_00, bills, takenPaise: 0 })).toBe(2_340_00)
+  })
+
+  it('the ₹2,340.00 taken finishes the door — no ₹64.00 left asking for money that is not owed', () => {
+    const job = stopJob({
+      state: 'delivered',
+      bills,
+      plannedPaise: 2_404_00,
+      takenPaise: 2_340_00,
+      shopOwesPaise: 0,
+    })
+    expect(job).toMatchObject({ kind: 'finished', leftPaise: 0 })
+    // …even with the shop's dues row not pulled yet: the credit note is enough.
+    expect(
+      stopJob({ state: 'delivered', bills, plannedPaise: 2_404_00, takenPaise: 2_340_00 }).kind,
+    ).toBe('finished')
+    expect(allDoorsDone([{ id: 's', job }], 1, new Set())).toBe(true)
+  })
+
+  it('a bill that did not go in at all is not asked for; a whole return is its credit note', () => {
+    expect(
+      leftToCollect({
+        plannedPaise: 2_404_00,
+        bills: [
+          { outcome: 'failed', totalPaise: 1_189_00 },
+          { outcome: 'delivered', totalPaise: 1_215_00 },
+        ],
+        takenPaise: 0,
+      }),
+    ).toBe(1_215_00)
+    expect(
+      leftToCollect({
+        plannedPaise: 2_404_00,
+        bills: [
+          { outcome: 'returned', totalPaise: 1_189_00, creditedPaise: 1_189_00 },
+          { outcome: 'delivered', totalPaise: 1_215_00 },
+        ],
+        takenPaise: 0,
+      }),
+    ).toBe(1_215_00)
+  })
+
+  it('never more than the shop owes in all, less the money on this phone the office has not counted', () => {
+    // A bill settled at the desk after the plan was made is not asked for twice.
+    expect(
+      leftToCollect({
+        plannedPaise: 2_404_00,
+        bills,
+        takenPaise: 0,
+        shopOwesPaise: 1_000_00,
+      }),
+    ).toBe(1_000_00)
+    // ₹300.00 taken with no signal: off the plan, and off the dues the office has not updated yet.
+    expect(
+      leftToCollect({
+        plannedPaise: 636_00,
+        takenPaise: 300_00,
+        heldPaise: 300_00,
+        shopOwesPaise: 636_00,
+      }),
+    ).toBe(336_00)
+    // A shop that owes more (old bills) keeps the door's own figure.
+    expect(
+      leftToCollect({ plannedPaise: 2_404_00, bills, takenPaise: 0, shopOwesPaise: 50_000_00 }),
+    ).toBe(2_340_00)
+  })
+
+  it('old dues the planner agreed stay asked for', () => {
+    expect(
+      leftToCollect({
+        plannedPaise: 3_404_00,
+        bills: [{ outcome: 'delivered', totalPaise: 2_404_00 }],
+        takenPaise: 0,
+        shopOwesPaise: 9_000_00,
+      }),
+    ).toBe(3_404_00)
+  })
+
+  it('credit notes that count: issued or set against the bill; never a draft or a cancelled one', () => {
+    const credited = creditedByInvoice([
+      { invoice_id: 'i1', state: 'issued', total_paise: 64_00 },
+      { invoice_id: 'i1', state: 'applied', total_paise: 10_00 },
+      { invoice_id: 'i1', state: 'draft', total_paise: 500_00 },
+      { invoice_id: 'i2', state: 'cancelled', total_paise: 500_00 },
+    ])
+    expect(Object.fromEntries(credited)).toEqual({ i1: 74_00 })
+  })
+})
+
+describe('verify-1 m1: a shop on credit owes nothing at the door', () => {
+  const credit = {
+    state: 'delivered',
+    bills: [{ outcome: 'delivered', totalPaise: 211_00 }],
+    plannedPaise: 211_00,
+    takenPaise: 0,
+    onCredit: true,
+  }
+
+  it('its delivered bills go on its account: the card is finished, and says so', () => {
+    expect(stopJob(credit)).toMatchObject({ kind: 'finished', leftPaise: 0, creditPaise: 211_00 })
+    expect(homeSummary([{ job: stopJob(credit) }], 1).leftPaise).toBe(0)
+  })
+
+  it('what the planner added over its bills is still asked for', () => {
+    expect(stopJob({ ...credit, plannedPaise: 711_00 })).toMatchObject({
+      kind: 'money',
+      leftPaise: 500_00,
+    })
+  })
+
+  it('credit terms, unless the office has stopped the shop’s credit', () => {
+    expect(onCreditTerms('POST_FULFILLMENT', 'indicate')).toBe(true)
+    expect(onCreditTerms('POST_FULFILLMENT', null)).toBe(true)
+    expect(onCreditTerms('POST_FULFILLMENT', 'stop')).toBe(false)
+    expect(onCreditTerms('ON', 'indicate')).toBe(false)
+    expect(onCreditTerms(undefined, undefined)).toBe(false)
+  })
+})
+
 describe('which card is next, and when the day is done', () => {
   const job = (kind: 'waiting' | 'here' | 'money' | 'finished', left = 0) => ({
     kind,
     openBills: 0,
     leftPaise: left,
+    creditPaise: 0,
     doorDone: kind === 'money' || kind === 'finished',
   })
 
@@ -136,6 +279,28 @@ describe('which card is next, and when the day is done', () => {
     expect(nextJobId(jobs, new Set())).toBe('b')
     // "No money now" lets the next shop be the one to drive to; the money card stays where it is.
     expect(nextJobId(jobs, new Set(['b']))).toBe('c')
+  })
+
+  it('the door the van is at comes first, whatever its place in the trip', () => {
+    const jobs = [
+      { id: 'a', job: job('waiting', 100) },
+      { id: 'b', job: job('here', 200) },
+    ]
+    expect(nextJobId(jobs, new Set())).toBe('b')
+  })
+
+  it('once every door is done the summary line says what is left: check the vehicle in', () => {
+    expect(summaryKey({ leftPaise: 100, allDone: false })).toBe('home.summary')
+    expect(summaryKey({ leftPaise: 0, allDone: false })).toBe('home.summaryNothingLeft')
+    expect(summaryKey({ leftPaise: 0, allDone: true })).toBe('home.summaryDone')
+    expect(summaryKey({ leftPaise: 100, allDone: true })).toBe('home.summaryDoneMoney')
+    for (const key of [
+      'home.summary',
+      'home.summaryNothingLeft',
+      'home.summaryDone',
+      'home.summaryDoneMoney',
+    ])
+      expect(catalogue[key], key).toBeDefined()
   })
 
   it('all done only when every door is over — money put off included — and the whole trip is here', () => {
@@ -306,8 +471,9 @@ describe('the words a driver reads (rule 5: plain, at most 20 characters)', () =
   })
 
   it('no accounting or office words on the home or in the navigation', () => {
+    // verify-1 m3 added the software words: "1 writes are held in this tab only" was on the home.
     const office =
-      /\b(float|expense|expenses|load sheet|settle|settlement|allocat\w*|outstanding|ledger|sync|pending)\b/i
+      /\b(float|expense|expenses|load sheet|settle|settlement|allocat\w*|outstanding|ledger|sync|pending|writes?|queued?|outbox)\b/i
     const shown = Object.entries(catalogue).filter(
       ([key]) =>
         key.startsWith('home.') ||
@@ -318,6 +484,8 @@ describe('the words a driver reads (rule 5: plain, at most 20 characters)', () =
           'd1.collectedToday',
           'd1.addExpense',
           'd1.loadPlanned',
+          'd1.pending',
+          'd1.pendingTab',
         ].includes(key),
     )
     expect(shown.filter(([, value]) => office.test(value))).toEqual([])

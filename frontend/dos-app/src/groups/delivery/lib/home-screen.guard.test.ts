@@ -151,7 +151,10 @@ describe('the founder’s decisions of 2026-09-28', () => {
     )
     expect(dialog).toContain("t('home.confirmBill'")
     expect(dialog).toContain('{shop}')
-    expect(dialog).toContain("t('home.confirmBody'")
+    // The sentence under the bills, in the number of bills it names (verify-1 m3): "this bill" for one.
+    expect(dialog).toMatch(
+      /t\(bills\.length === 1 \? 'home\.confirmBody\.one' : 'home\.confirmBody', \{ shop \}\)/,
+    )
     expect(dialog).toContain("confirmLabel={t('home.confirmDeliver')}")
   })
 

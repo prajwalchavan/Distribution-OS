@@ -142,6 +142,13 @@ export interface LocalOutstanding {
   retailer_id: string
   outstanding_paise: number
   overdue_paise: number
+  /**
+   * Bills of this shop that came back on a van and are NOT in `outstanding_paise` (QA DOS-197) — a
+   * bill re-planned on today's trip is one of them until it is handed over, so "what the shop owes in
+   * all" is the two added together. Optional in this type only because the older readers of this row
+   * never asked for it; the manifest carries the column.
+   */
+  undelivered_paise?: number | null
   unallocated_credit_paise: number
   open_bills: number
   oldest_due_date: string | null
@@ -478,6 +485,49 @@ export function useLocalOutstanding(retailerId: string | null): {
     ),
   )
   return { row: rows[0] ?? null, loading }
+}
+
+/** The dues rows of several shops at once — the home asks what each shop on the trip owes in all. */
+export function useLocalOutstandingOf(retailerIds: readonly string[]): {
+  byRetailer: Map<string, LocalOutstanding>
+  loading: boolean
+} {
+  const wanted = useIdSet(retailerIds)
+  const query = useMemo(() => byIdQuery('retailer_id', wanted), [wanted])
+  const { rows, loading } = useTable<LocalOutstanding>('retailer_outstanding_summary', query)
+  return useMemo(
+    () => ({
+      byRetailer: new Map(rows.map((row) => [row.retailer_id, row])),
+      loading: wanted.length > 0 && loading,
+    }),
+    [rows, loading, wanted.length],
+  )
+}
+
+/** A credit note as the crew's phone holds it (`credit_notes`, pulled for 90 days like the bills). */
+export interface LocalCreditNote {
+  id: string
+  credit_note_no: string | null
+  invoice_id: string
+  retailer_id: string
+  state: string
+  delivery_id: string | null
+  total_paise: number
+}
+
+/**
+ * The credit notes against the given bills. A part delivery raises one at the office for what came
+ * back (`deliveries.record`), so this is how the home learns that a door owes less than its bills
+ * (verify-1 M1): the goods that did not go in are not money to collect.
+ */
+export function useLocalCreditNotesOf(invoiceIds: readonly string[]): {
+  rows: LocalCreditNote[]
+  loading: boolean
+} {
+  const wanted = useIdSet(invoiceIds)
+  const query = useMemo(() => byIdQuery('invoice_id', wanted), [wanted])
+  const { rows, loading } = useTable<LocalCreditNote>('credit_notes', query)
+  return { rows, loading: wanted.length > 0 && loading }
 }
 
 /**

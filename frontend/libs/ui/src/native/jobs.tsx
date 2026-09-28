@@ -67,7 +67,15 @@ export function JobCard({
   const next = state === 'next'
 
   if (state === 'done') {
-    /* One quiet line: the tick, the name, the state word. Still opens the detail when it can. */
+    /*
+     * One quiet line: the tick, the name, the state word. Still opens the detail when it can. A faint
+     * outline, so the touch floor's height reads as a slim row and not as a gap — see the web half.
+     */
+    const outline = {
+      borderWidth: 1,
+      borderColor: theme.colors.border.faint,
+      borderRadius: radius.md,
+    }
     const line = (
       <View
         style={{
@@ -94,16 +102,18 @@ export function JobCard({
       </View>
     )
     return onPress === undefined ? (
-      <View testID={testID}>{line}</View>
+      <View testID={testID} style={outline}>
+        {line}
+      </View>
     ) : (
       <Pressable
         testID={testID}
         accessibilityRole="button"
         onPress={onPress}
         style={({ pressed }) => ({
+          ...outline,
           minHeight: theme.touchSize,
           justifyContent: 'center',
-          borderRadius: radius.md,
           backgroundColor: pressed ? theme.colors.bg.raised : 'transparent',
         })}
       >

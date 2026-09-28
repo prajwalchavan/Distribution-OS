@@ -92,8 +92,9 @@ export function DeliverAllDialog({
               </Txt>
             ))}
           </Stack>
-          <Txt field="body" desk="body">
-            {t('home.confirmBody', { shop })}
+          <Txt field="body" desk="body" testID="d1-confirm-body">
+            {/* One bill is "this bill", not "these bills" (verify-1 m3). */}
+            {t(bills.length === 1 ? 'home.confirmBody.one' : 'home.confirmBody', { shop })}
           </Txt>
           {online ? null : (
             <Txt

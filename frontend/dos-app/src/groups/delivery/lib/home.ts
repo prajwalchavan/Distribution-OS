@@ -36,16 +36,126 @@ export interface StopJobBill {
   outcome: string | null
   /** `deliveries._pending`: a write this phone holds for the bill. */
   pending?: string | null | undefined
+  /** The bill's face value (`invoices.total_paise`); null while the bill is not on this phone. */
+  totalPaise?: number | null | undefined
+  /** The credit notes the office has issued against this bill (`creditedByInvoice`). */
+  creditedPaise?: number | undefined
 }
 
 export interface StopJob {
   kind: StopJobKind
   /** Bills with no outcome and no write held on this phone — what "Delivered, all items" records. */
   openBills: number
-  /** Still to collect here: the office's plan for this stop less what this trip has taken at the shop. */
+  /** Still to collect here (`leftToCollect`): what the driver is asked to bring back from this door. */
   leftPaise: number
+  /**
+   * The bills a credit shop takes on its account (verify-1 m1): not money for the driver's bag, but
+   * the one figure worth printing on the card of a shop that owes nothing at the door.
+   */
+  creditPaise: number
   /** The goods side is over — every bill recorded (at the office or on this phone), or the stop closed. */
   doorDone: boolean
+}
+
+/**
+ * The facts `leftToCollect` weighs. Only `plannedPaise` and `takenPaise` are required: with nothing
+ * else known the answer is the office's plan less the money this trip has taken, as it always was.
+ */
+export interface DoorMoneyFacts {
+  /** `trip_stops.planned_collection_paise`: the bills' totals, plus any old dues the planner agreed. */
+  plannedPaise: number | null
+  /** The bills riding on this stop: their outcome, face value and credit notes. */
+  bills?: readonly StopJobBill[] | undefined
+  /** Every receipt this trip holds for the shop — the ones still on this phone included. */
+  takenPaise: number
+  /** The part of `takenPaise` the office has not counted yet (`_pending` queued or sending). */
+  heldPaise?: number | undefined
+  /**
+   * What the shop owes the office in all, as the phone last pulled it (`retailer_outstanding_summary`:
+   * outstanding + undelivered). Null when the phone holds no row for the shop.
+   */
+  shopOwesPaise?: number | null | undefined
+  /** The shop buys on credit (`onCreditTerms`): its bills go on its account, not into the bag. */
+  onCredit?: boolean | undefined
+}
+
+/**
+ * WHAT IS LEFT TO COLLECT AT ONE DOOR (verify-1 M1).
+ *
+ * The card used to say the office's plan for the stop less this trip's receipts, and nothing else.
+ * After a part delivery the office raises a credit note for what came back, the shop owes that much
+ * less, and the card went on asking for it: measured on TRIP-0005, "Still to collect here ₹2,404.00"
+ * while the money screen said "Owes ₹2,340.00"; the driver took the ₹2,340.00, both bills were paid
+ * at the office, and the card stayed "Unpaid ₹64.00 · Take money" with All done hidden for good.
+ *
+ * So the plan is taken down by everything that means the door owes less, all of it already on the
+ * phone — which keeps this screen working with no signal (docs/23 §5.4):
+ *   - a bill that did not go in at all (`failed`: it rides back on the van, nothing is credited);
+ *   - the credit notes against the door's bills (`credit_notes`: short, damaged, returned goods);
+ *   - for a shop on credit terms, the bills themselves — they go on its account; only what the planner
+ *     added over them (agreed old dues) is asked at the door (verify-1 m1);
+ *   - every receipt this trip holds for the shop, the money actually in the driver's bag.
+ * And it is never more than the shop owes in all, less the money on this phone the office has not
+ * counted yet: a bill settled at the desk since the plan was made is not asked for twice.
+ *
+ * The cap adds `undelivered_paise` back on purpose. A bill that came back on an earlier van and rides
+ * again today is out of `outstanding_paise` until it is handed over, and a cap without it would tell
+ * the driver to collect nothing for goods he is carrying.
+ */
+export function leftToCollect(facts: DoorMoneyFacts): number {
+  const bills = facts.bills ?? []
+  const face = (bill: StopJobBill): number => Math.max(0, bill.totalPaise ?? 0)
+  const billed = bills.reduce((sum, bill) => sum + face(bill), 0)
+  const notHandedOver = bills
+    .filter((bill) => bill.outcome === 'failed')
+    .reduce((sum, bill) => sum + face(bill), 0)
+  const credited = bills.reduce((sum, bill) => sum + Math.max(0, bill.creditedPaise ?? 0), 0)
+  const planned = Math.max(0, facts.plannedPaise ?? 0)
+  const asked =
+    facts.onCredit === true
+      ? Math.max(0, planned - billed)
+      : Math.max(0, planned - notHandedOver - credited)
+  const left = Math.max(0, asked - Math.max(0, facts.takenPaise))
+  if (facts.shopOwesPaise === null || facts.shopOwesPaise === undefined) return left
+  return Math.min(left, Math.max(0, facts.shopOwesPaise - Math.max(0, facts.heldPaise ?? 0)))
+}
+
+/** What a credit shop takes on its account at this door: its bills, less what did not go in. */
+function onAccountPaise(bills: readonly StopJobBill[]): number {
+  return bills.reduce(
+    (sum, bill) =>
+      bill.outcome === 'failed'
+        ? sum
+        : sum + Math.max(0, (bill.totalPaise ?? 0) - Math.max(0, bill.creditedPaise ?? 0)),
+    0,
+  )
+}
+
+/**
+ * A shop whose bills are not collected at the door: on credit terms (`POST_FULFILLMENT`) and not
+ * stopped. A shop whose credit the office has STOPPED pays before the goods go in (DOS-066), so its
+ * money is asked for like any other.
+ */
+export function onCreditTerms(
+  paymentTerms: string | null | undefined,
+  creditMode: string | null | undefined,
+): boolean {
+  return paymentTerms === 'POST_FULFILLMENT' && creditMode !== 'stop'
+}
+
+/**
+ * The credit notes that count against a bill, by bill: issued (or already set against it). A draft
+ * is not a credit yet and a cancelled one never was.
+ */
+export function creditedByInvoice(
+  notes: readonly { invoice_id: string; state: string; total_paise: number }[],
+): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const note of notes) {
+    if (note.state !== 'issued' && note.state !== 'applied') continue
+    out.set(note.invoice_id, (out.get(note.invoice_id) ?? 0) + Math.max(0, note.total_paise))
+  }
+  return out
 }
 
 /**
@@ -57,23 +167,22 @@ export interface StopJob {
  * A write the office REFUSED (`rejected`) is not recorded: that bill is open again and the tray says
  * why.
  *
- * WHAT IS LEFT TO COLLECT is the office's own plan for the stop (`planned_collection_paise`, the bills'
- * totals unless the planner set old dues) less every receipt this trip holds for the shop — including
- * the ones still on this phone, which is the money actually in the driver's bag. A failed stop asks
- * for nothing more.
+ * WHAT IS LEFT TO COLLECT is `leftToCollect` above. A failed stop asks for nothing more, and a door
+ * whose goods are in and whose money is all taken — or owed on credit — is finished.
  */
-export function stopJob(input: {
-  state: string
-  bills: readonly StopJobBill[]
-  plannedPaise: number | null
-  takenPaise: number
-}): StopJob {
+export function stopJob(
+  input: {
+    state: string
+    bills: readonly StopJobBill[]
+  } & DoorMoneyFacts,
+): StopJob {
   const openBills = input.bills.filter(
     (bill) => bill.outcome === null && !heldOnPhone(bill.pending),
   ).length
   if (input.state === 'failed' || input.state === 'skipped')
-    return { kind: 'finished', openBills: 0, leftPaise: 0, doorDone: true }
-  const leftPaise = Math.max(0, (input.plannedPaise ?? 0) - Math.max(0, input.takenPaise))
+    return { kind: 'finished', openBills: 0, leftPaise: 0, creditPaise: 0, doorDone: true }
+  const leftPaise = leftToCollect(input)
+  const creditPaise = input.onCredit === true ? onAccountPaise(input.bills) : 0
   const doorDone =
     isStopTerminal(input.state) ||
     (input.state === 'arrived' && input.bills.length > 0 && openBills === 0)
@@ -82,20 +191,33 @@ export function stopJob(input: {
       kind: input.state === 'arrived' ? 'here' : 'waiting',
       openBills,
       leftPaise,
+      creditPaise,
       doorDone: false,
     }
-  return { kind: leftPaise > 0 ? 'money' : 'finished', openBills, leftPaise, doorDone: true }
+  return {
+    kind: leftPaise > 0 ? 'money' : 'finished',
+    openBills,
+    leftPaise,
+    creditPaise,
+    doorDone: true,
+  }
 }
 
 /**
- * WHICH CARD IS "DO THIS NEXT": the first, in trip order, that still has work — unless it is only
- * money the driver has already asked for and been told "later" ("No money now"), which records
- * nothing and leaves that card as it is, but lets the next shop be the one to drive to.
+ * WHICH CARD IS "DO THIS NEXT".
+ *
+ * The door the van is AT comes first: a driver who reached stop 3 before stop 2 is standing at stop 3,
+ * and since only the next card carries a filled button (verify-1 m6) that is the card that must have
+ * it. Otherwise it is the first, in trip order, that still has work — unless it is only money the
+ * driver has already asked for and been told "later" ("No money now"), which records nothing and
+ * leaves that card as it is, but lets the next shop be the one to drive to.
  */
 export function nextJobId(
   jobs: readonly { id: string; job: StopJob }[],
   deferredMoney: ReadonlySet<string>,
 ): string | null {
+  const here = jobs.find(({ job }) => job.kind === 'here')
+  if (here !== undefined) return here.id
   const next = jobs.find(
     ({ id, job }) => job.kind !== 'finished' && !(job.kind === 'money' && deferredMoney.has(id)),
   )
@@ -123,8 +245,9 @@ export function allDoorsDone(
 
 /**
  * The doors whose money the driver has put off, for as long as the app is running — so walking into a
- * stop and back does not make the same shop the next job again. Nothing is recorded anywhere: "No money
- * now" is a decision about what to do NEXT, not a fact about the shop.
+ * stop and back does not make the same shop the next job again. Nothing is recorded at the office: "No
+ * money now" is a decision about what to do NEXT, not a fact about the shop. `put-off.ts` also keeps
+ * the list in this device's own storage, so a reload does not bring the card back (verify-1 m2).
  */
 const later = new Set<string>()
 
@@ -135,6 +258,16 @@ export function putMoneyOff(stopId: string): ReadonlySet<string> {
 
 export function moneyPutOff(): ReadonlySet<string> {
   return new Set(later)
+}
+
+/**
+ * WHICH SUMMARY SENTENCE. When every door is over the line says what is left to do — check the vehicle
+ * in — because the card with that button sits at the END of the list (verify-1 m4: at the top it
+ * appeared above a driver who had just taken the last money lower down, and nothing pointed to it).
+ */
+export function summaryKey(input: { leftPaise: number; allDone: boolean }): string {
+  if (input.allDone) return input.leftPaise > 0 ? 'home.summaryDoneMoney' : 'home.summaryDone'
+  return input.leftPaise > 0 ? 'home.summary' : 'home.summaryNothingLeft'
 }
 
 /** The ONE line above the list: how many doors are done, of how many, and what is still to collect. */
