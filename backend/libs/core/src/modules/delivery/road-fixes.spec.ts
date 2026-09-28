@@ -826,7 +826,15 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     const [stored] = (
       await db.execute(sql`select payload::text as payload from approvals where id = ${approvalId}`)
     ).rows as { payload: string }[]
-    expect(stored?.payload).not.toMatch(/cost|valuePaise|750/)
+    expect(stored?.payload).not.toMatch(/cost|valuePaise/)
+    // …and no number in it is the lot's cost (a regex on the text matched a random UUID's "…b37508f5", QA verify 3)
+    const numbersIn = (v: unknown): number[] =>
+      typeof v === 'number'
+        ? [v]
+        : v !== null && typeof v === 'object'
+          ? Object.values(v).flatMap(numbersIn)
+          : []
+    expect(numbersIn(JSON.parse(stored?.payload ?? '{}')).map(Math.abs)).not.toContain(750)
 
     // a manager may not accept a trip's variance: refused, and the request stays pending
     const byManager = await call(app, manager, 'POST', `/approvals/${approvalId}/decide`, {
