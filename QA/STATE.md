@@ -31,7 +31,24 @@ Last updated: 2026-09-28, 12:52 IST — round 1 of the home screens is on main `
 - **Architect rulings here:** the shopkeeper's Pay screen may start at what the shop owes (the rule "money is typed, never pre-filled" is for money a person has COUNTED — crew and desk); the driver's cash float on the start screen stays pre-filled from the distributor's setting (DOS-146 stands).
 - **Rounds 2 and 3 (manager + godown, sales + owner): not started.** The founder was shown three screenshots of round 1 and asked to object to the direction before they are built.
 
-## RUNNING (12:15 IST) — stock fixes, round 2: workflow "stock-fixes-round-2", run `wf_bc9f9dd4-44d` (session ee0ec8c4; lanes on Opus)
+## INTEGRATION OF THE FOUR FIX LANES — branch `integrate/fixes-0928`, worktree `.claude/worktrees/integrate-fixes` (merged by the main session 18:05 IST, 28 Sep); repair and blind check of the MERGED tree running
+
+**Merged in the fixed order, by the main session:** `fix/stock-bin-expiry` `278afb3d` → `fix/stock-states` `cc4358db` → `fix/money-receipts` `e5e7c6b1` → `fix/money-credit-desk` `2b07ea4c`; head `c417cff2`. Conflicts resolved by hand: `backend/package.json` (both check scripts kept), `_journal.json` (0074, 0075, 0078, 0079, 0080 in order; `when` strictly rising), `vansales.spec.ts` (both new tests kept), `collect.tsx` + `door-writes.ts` (the cheque confirmation goes through `collectionRecordInput`), `contracts/billing.ts`, `receivables/index.ts`, `billing/invoices.service.ts` (both sides kept), six generated READMEs (to regenerate). **NOT yet built or tested as one tree** — that is the workflow's first job.
+
+**Known work on the merged tree (the workflow's brief):** drizzle snapshots 0074, 0078, 0080 were each generated on 0073's and must be chained; READMEs regenerated; `bin-exits.spec.ts` V8 expects a wave at the bin to be 200 and the states lane refuses it 409; `vansales.spec.ts` has two tests on driver 6; two specs share a run suffix and collide on an HSN when run in parallel; the API example for `inventory.locations.upsert` mints an id that is now refused; QA tools to bring in line with the rulings (`QA/tools/p7` reconcile R5b and R5c, s3-credit C4, s3b-inactive; `QA/tools/p10` stock-reconcile C5/C6 `unpack`); **the one open blocker, N1** (ruling in docs/22 §8: an order is never served from a van).
+
+**Then (main session):** full gates on the merged tree, fast-forward main, `deploy.sh`, release checks against live over SSH if the permission check allows (else the founder), findings status lines, change log.
+
+## ENDED 17:58 IST — stock fixes, round 2: workflow "stock-fixes-round-2", run `wf_bc9f9dd4-44d`
+
+| Lane | Branch, head | Blind check | What is left |
+| --- | --- | --- | --- |
+| bin | `fix/stock-bin-expiry` `278afb3d` | checks 3 FAIL (a crafted id could take the dock's or the godown's seat) → repair → **check 4 PASS** | minors: the API example id; a database that already holds an intruder place is locked in and no check names it (none on main or live by the builder's account — to be checked on live by `check:stock-negative`'s sibling before deploy); a count opened at a switched-off place has no cancel |
+| states | `fix/stock-states` `cc4358db` | check 3 FAIL (two races, fixed with a per-van lock) → repair → **check 4 FAIL on one blocker, N1**: an order whose serve-from place is a van that is out takes a loaded bill's pieces; undo of a pack and a bill cancel put pieces back onto a van | N1 is repaired on the merged tree (block above) |
+
+Reports: `scratchpad/fix-bin-verify-3.md`, `fix-bin-verify-4.md`, `fix-states-verify-3.md`, `fix-states-verify-4.md`, and each lane's build report.
+
+### (as launched) stock fixes, round 2: workflow "stock-fixes-round-2", run `wf_bc9f9dd4-44d` (session ee0ec8c4; lanes on Opus)
 
 Round 1 (`wf_5eade436-dc1`) ENDED: both lanes built, were failed by their blind check, were repaired once, and were failed again on NEW roads the second check found. Nothing is merged. What the branches hold now: `fix/stock-bin-expiry` `640adbed` (migrations 0074 lot identity with expiry, 0075 bin and expiry guarantees), `fix/stock-states` `76bab536` (no migration).
 
