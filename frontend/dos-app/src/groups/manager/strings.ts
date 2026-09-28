@@ -147,6 +147,10 @@ export const strings = {
   'm2.creditClear': 'Clear',
   'm2.creditLine': 'Owes {owed} · limit {limit}',
   'm2.creditOver': 'This order takes it {over} over the limit',
+  /* QA DOS-313: a confirmed order is already counted, so the line says where the shop stands. */
+  'm2.creditOverNow': 'Over the limit by {over}',
+  /* QA DOS-313: confirmed orders not billed yet, which the credit check counts against the limit. */
+  'm2.creditPromised': '{amount} of orders not billed yet',
   'm2.creditBlocked': 'Credit is blocked for this shop',
   'm2.creditUnknown': 'Credit not checked',
   'm2.empty': 'No order is waiting',

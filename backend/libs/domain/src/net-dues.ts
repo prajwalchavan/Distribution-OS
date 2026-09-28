@@ -22,6 +22,15 @@ export interface NetOfOnAccount {
   readonly buckets: readonly number[]
 }
 
+/**
+ * `max(0, dues − on account)`: what a shop owes once the money it paid that no bill has claimed is
+ * counted, money on account below zero read as none. The owner's and the manager's credit lines show this
+ * as "Owes", the same figure the rep's shop card and the shop's own dues screen show.
+ */
+export function netDuesPaise(outstandingPaise: number, unallocatedCreditPaise: number): number {
+  return Math.max(0, outstandingPaise - Math.max(0, unallocatedCreditPaise))
+}
+
 export function netOfOnAccountRollup(row: {
   readonly outstandingPaise: number
   readonly overduePaise: number
@@ -38,7 +47,7 @@ export function netOfOnAccountRollup(row: {
     buckets[i] = gross - covered
   }
   return {
-    duesPaise: Math.max(0, row.outstandingPaise - credit),
+    duesPaise: netDuesPaise(row.outstandingPaise, credit),
     overduePaise: Math.max(0, row.overduePaise - credit),
     buckets,
   }

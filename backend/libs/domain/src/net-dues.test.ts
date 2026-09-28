@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { netOfOnAccountRollup } from './net-dues.js'
+import { netDuesPaise, netOfOnAccountRollup } from './net-dues.js'
 
 describe('netOfOnAccountRollup (DOS-312)', () => {
   it('a shop in credit owes nothing net and is late for nothing', () => {
@@ -23,6 +23,12 @@ describe('netOfOnAccountRollup (DOS-312)', () => {
     expect(net.buckets).toEqual([10_000, 0, 15_000, 0, 0, 0])
     expect(net.duesPaise).toBe(25_000)
     expect(net.overduePaise).toBe(15_000)
+  })
+
+  it('netDuesPaise is the dues line the desk and the rep both read', () => {
+    expect(netDuesPaise(86_700, 500_000)).toBe(0)
+    expect(netDuesPaise(60_000, 35_000)).toBe(25_000)
+    expect(netDuesPaise(1_000, -500)).toBe(1_000)
   })
 
   it('reads money on account below zero as none', () => {

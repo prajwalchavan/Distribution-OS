@@ -21,6 +21,7 @@
  */
 import type { ApprovalTripSettlement } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
+import { netDuesPaise } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -257,13 +258,19 @@ export default function Approvals(): React.JSX.Element {
   const creditLine = (): string => {
     const c = credit.data
     if (c === undefined) return t('o3.creditUnknown')
+    // QA DOS-312/313: "Owes" is net of the money on account — the rep's figure — and the confirmed
+    // orders not billed yet, which the check also counts against the limit, are named beside it.
+    const promised = Math.max(0, c.unbilledOrdersPaise ?? 0)
     const parts = [
       t('o3.creditLine', {
-        owed: formatINR(paise(c.outstandingPaise)),
+        owed: formatINR(paise(netDuesPaise(c.outstandingPaise, c.unallocatedCreditPaise ?? 0))),
         limit: formatINR(paise(c.creditLimitPaise)),
       }),
+      ...(promised > 0 ? [t('o3.creditPromised', { amount: formatINR(paise(promised)) })] : []),
     ]
-    if (c.creditMode === 'stop') parts.push(t('o3.creditStop'))
+    // QA DOS-314 / DOS-225: stop refuses every approval on credit; a pay-on-delivery order gives none.
+    if (c.creditMode === 'stop')
+      parts.push(c.payOnDelivery === true ? t('o3.creditStopPod') : t('o3.creditStop'))
     if (c.reasons.includes('limit_exceeded'))
       parts.push(t('o3.creditOver', { over: formatINR(paise(-c.headroomPaise)) }))
     if (c.reasons.includes('overdue_days_exceeded'))

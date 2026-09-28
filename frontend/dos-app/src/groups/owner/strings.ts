@@ -211,7 +211,15 @@ export const strings = {
   'o3.reason': 'Reason',
   'o3.credit': 'Credit',
   'o3.creditLine': 'Owes {owed} · limit {limit}',
-  'o3.creditStop': 'Shop is on credit stop',
+  /*
+   * QA DOS-314 (architect ruling 5): stop means stop — nobody, the owner included, approves an order on
+   * credit for this shop; the server refuses the approval with its own sentence.
+   */
+  'o3.creditStop': 'Shop is on credit stop — reject this, or change the shop’s credit mode first',
+  /* QA DOS-225: a pay-on-delivery order of a stopped shop gives no credit, so the desk may release it. */
+  'o3.creditStopPod': 'Shop is on credit stop — it pays on delivery, so no credit is given',
+  /* QA DOS-313: confirmed orders not billed yet, which the credit check counts against the limit. */
+  'o3.creditPromised': '{amount} of orders not billed yet',
   'o3.creditOver': 'This order takes it {over} over the limit',
   'o3.creditOverdue': 'Oldest bill {days} days past due · terms {terms} days',
   'o3.creditBills': '{count} bills open · limit {limit}',
