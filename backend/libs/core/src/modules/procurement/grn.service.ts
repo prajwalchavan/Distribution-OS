@@ -163,6 +163,11 @@ export class GrnService {
           throw new ORPCError('BAD_REQUEST', {
             message: 'goods are received into a warehouse or vehicle, not the damaged bin',
           })
+        // Vans and trips 1: nothing is received onto a van a trip holds — that trip's settlement would count it.
+        await this.inventory.assertVehicleNotOut(tx, location.id, {
+          untilSettled: true,
+          onto: true,
+        })
         const [live] = await tx
           .select({ id: grns.id, status: grns.status })
           .from(grns)
@@ -334,6 +339,11 @@ export class GrnService {
           throw new ORPCError('BAD_REQUEST', {
             message: `GRN is ${grn.status}; count every line before posting`,
           })
+        // Vans and trips 1, again when the pieces land (QA verify 3): a GRN opened for a van before its trip loaded.
+        await this.inventory.assertVehicleNotOut(tx, grn.locationId, {
+          untilSettled: true,
+          onto: true,
+        })
         const lines = await this.linesOf(tx, grn.id)
         const invoiceLines = await tx
           .select()

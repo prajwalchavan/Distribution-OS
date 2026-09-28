@@ -512,7 +512,8 @@ export const ImportBrandDmsInvoiceOutput = InvoiceItemOutput
  * Cancellation before dispatch only (docs/17 item 26). The NUMBER SURVIVES — GSTR-1 Table 13 wants the
  * series visibly consecutive — the goods come back on compensating ledger rows and the money on a
  * reversing journal entry. Refused once the order has left, once any payment is allocated to the bill,
- * or once a credit note stands against it; after that the only correction is a credit note.
+ * or once a credit note stands against it; after that the only correction is a credit note. A
+ * `restockLocationId` that is a vehicle a trip holds is refused 409 `vehicle_on_trip` (vans and trips 1).
  */
 export const CancelInvoiceInput = MutationBase.extend({
   id: IdSchema,
@@ -643,7 +644,9 @@ export const CreditNoteLineInput = z.object({
  * A draft correction against an issued (or partially paid, or paid) invoice, at the ORIGINAL rate and
  * the frozen tax of the line it corrects (ADR 0004). It moves no stock and posts no journal until it is
  * issued. `autoIssue` runs `issue` in the same transaction — the crew's one-tap doorstep short delivery.
- * Damaged or expired goods returned at the desk are booked as `return_damaged`.
+ * Damaged or expired goods returned at the desk are booked as `return_damaged`. A note issued by the desk whose
+ * saleable pieces would go back onto a vehicle a trip holds is refused 409 `vehicle_on_trip` (vans and trips 1);
+ * the crew's doorstep note puts a short delivery back onto its own van.
  */
 export const CreateCreditNoteInput = MutationBase.extend({
   id: IdSchema,

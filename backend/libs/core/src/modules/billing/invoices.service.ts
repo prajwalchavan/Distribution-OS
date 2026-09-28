@@ -1057,6 +1057,12 @@ export class BillingService {
         const to = invoiceTransition(invoice.state, 'cancel')
         if (invoice.source === 'pack' && invoice.orderId)
           await this.assertOffEveryTrip(tx, invoice, 'cancel it')
+        // Vans and trips 1 (QA verify 3): a cancelled bill's pieces are not put onto a van a trip holds.
+        if (input.restockLocationId !== undefined)
+          await this.inventory.assertVehicleNotOut(tx, input.restockLocationId, {
+            untilSettled: true,
+            onto: true,
+          })
         await this.restock(tx, invoice, input.restockLocationId)
         await this.reverseInvoiceEntry(tx, invoice)
         /*
