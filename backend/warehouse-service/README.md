@@ -11546,7 +11546,8 @@ request.json
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   }
 }
 ```
@@ -11794,7 +11795,8 @@ request.json
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   }
 }
 ```
@@ -12061,7 +12063,8 @@ request.json
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   }
 }
 ```
@@ -12297,7 +12300,8 @@ request.json
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   }
 }
 ```
@@ -12526,7 +12530,8 @@ curl "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   }
 }
 ```
@@ -12651,7 +12656,8 @@ curl "http://localhost:3004/invoices?retailerId=01a06dbc-35ed-7760-86f2-6c701c68
       "hasPdf": true,
       "paidPaise": 4000,
       "creditedPaise": 4000,
-      "recoveredPaise": 4000
+      "recoveredPaise": 4000,
+      "stateShown": "draft"
     }
   ],
   "nextCursor": null
@@ -13064,7 +13070,8 @@ request.json
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   }
 }
 ```
@@ -23859,7 +23866,8 @@ request.json
     "awaitingDispatch": true,
     "paidPaise": 4000,
     "creditedPaise": 4000,
-    "recoveredPaise": 4000
+    "recoveredPaise": 4000,
+    "stateShown": "draft"
   },
   "delivery": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",

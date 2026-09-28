@@ -594,6 +594,16 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       expect(door.body.allocations.find((a) => a.invoiceId === open.id)?.amountPaise).toBe(15_000)
       expect(await invoiceState(open.id)).toBe('partially_paid')
       await expectBooksAgree(shop.id)
+
+      // more than everything: the open bill is closed and only what is left after it goes on account
+      const more = await pay(accountant, shop.id, 20_000)
+      expect(more.status).toBe(200)
+      expect(more.body.recoveries).toEqual([])
+      expect(more.body.allocations.find((a) => a.invoiceId === open.id)?.amountPaise).toBe(15_000)
+      expect(more.body.unallocatedPaise).toBe(5_000)
+      expect(await invoiceState(open.id)).toBe('paid')
+      expect((await outstanding(shop.id)).unallocatedCreditPaise).toBe(5_000)
+      await expectBooksAgree(shop.id)
     })
 
     it('puts the write-off back when the money that recovered it is reversed or bounced, and keeps it off the desk', async () => {
@@ -824,6 +834,24 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       expect(confirm.body.totalPaise).toBe(16_800)
       expect(await accountBalance('UPI')).toBe(upiBefore - 16_800)
       expect(await accountBalance('BANK')).toBe(bankBefore + 16_800)
+
+      // confirming them again changes nothing: a second press is refused by name, and nothing moves
+      const twice = await call<Refusal>(app, accountant, 'POST', '/receipts/deposit', {
+        idempotencyKey: uuidv7(),
+        id: uuidv7(),
+        receiptIds: unconfirmed.body.items.map((r) => r.id),
+        depositedAt: new Date().toISOString(),
+      })
+      expect(twice.status).toBe(409)
+      expect(twice.body.message).toContain('deposited')
+      expect(await accountBalance('UPI')).toBe(upiBefore - 16_800)
+      expect(await accountBalance('BANK')).toBe(bankBefore + 16_800)
+      const left = await call<{ items: { id: string }[] }>(app, accountant, 'GET', '/receipts', {
+        mode: 'upi',
+        status: 'collected',
+        retailerId: shop.id,
+      })
+      expect(left.body.items).toEqual([])
       const banked = await call<{ totals: { countedPaise: number } }>(
         app,
         owner,

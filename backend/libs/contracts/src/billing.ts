@@ -289,6 +289,13 @@ export const InvoiceDetailSchema = InvoiceSchema.extend({
   paidPaise: PaiseSchema.optional(),
   creditedPaise: PaiseSchema.optional(),
   recoveredPaise: PaiseSchema.optional(),
+  /**
+   * DOS-320: the word the payment state is SHOWN with, derived from what closed the bill (never a state of the
+   * invoice machine): `credited` for a bill closed by credit notes alone — refused at the door and credited,
+   * never paid — otherwise `state` itself (a bill closed by money and credit notes reads `paid`, with
+   * `creditedPaise` beside it). Absent where `paidPaise` is.
+   */
+  stateShown: z.union([InvoiceStateSchema, z.literal('credited')]).optional(),
 })
 export type InvoiceDetail = z.infer<typeof InvoiceDetailSchema>
 
@@ -329,6 +336,13 @@ export const InvoiceListItemSchema = z.object({
   paidPaise: PaiseSchema.optional(),
   creditedPaise: PaiseSchema.optional(),
   recoveredPaise: PaiseSchema.optional(),
+  /**
+   * DOS-320: the word the payment state is SHOWN with, derived from what closed the bill (never a state of the
+   * invoice machine): `credited` for a bill closed by credit notes alone — refused at the door and credited,
+   * never paid — otherwise `state` itself (a bill closed by money and credit notes reads `paid`, with
+   * `creditedPaise` beside it). Absent where `paidPaise` is.
+   */
+  stateShown: z.union([InvoiceStateSchema, z.literal('credited')]).optional(),
 })
 export type InvoiceListItem = z.infer<typeof InvoiceListItemSchema>
 

@@ -29,6 +29,7 @@ import type {
   InvoiceGetOutput,
   InvoicePdfInput,
   InvoicePdfOutput,
+  InvoiceState,
   InvoicesListInput,
   InvoicesListOutput,
   InvoiceUpiQrInput,
@@ -47,6 +48,7 @@ import {
   allocate,
   businessDate,
   financialYear,
+  invoiceStateShown,
   paise,
   percentOf,
   roundToRupee,
@@ -320,6 +322,14 @@ export interface OffDockShort {
   neededPcs: number
   onDockPcs: number
   shortPcs: number
+}
+
+/** What closed the money on a bill (DOS-320, DOS-311), as billing's list and detail carry it. */
+interface InvoiceSettlement {
+  paidPaise: number
+  creditedPaise: number
+  recoveredPaise: number
+  stateShown: InvoiceState | 'credited'
 }
 
 @Injectable()
@@ -1419,13 +1429,24 @@ export class BillingService {
   private async settlementByInvoice(
     tx: Db,
     rows: readonly InvoiceRow[],
-  ): Promise<Map<string, { paidPaise: number; creditedPaise: number; recoveredPaise: number }>> {
+  ): Promise<Map<string, InvoiceSettlement>> {
     const live = rows.filter((r) => r.state !== 'draft' && r.state !== 'cancelled')
     if (live.length === 0) return new Map()
-    return this.receivables.invoiceSettlementMany(
+    const found = await this.receivables.invoiceSettlementMany(
       tx,
       live.map((r) => r.id),
     )
+    const out = new Map<string, InvoiceSettlement>()
+    for (const row of live) {
+      const money = found.get(row.id) ?? { paidPaise: 0, creditedPaise: 0, recoveredPaise: 0 }
+      // DOS-320: the word the state is shown with, derived — `credited` when credit notes alone closed the bill.
+      const shown = invoiceStateShown({ state: row.state, ...money })
+      out.set(row.id, {
+        ...money,
+        stateShown: shown === 'closed_by_credit_note' ? 'credited' : row.state,
+      })
+    }
+    return out
   }
 
   /** A draft was never posted to AR and a cancelled bill was reversed: neither owes anything. */
