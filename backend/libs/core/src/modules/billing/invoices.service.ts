@@ -81,6 +81,7 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
+import { istDateWord } from '../../platform/refusal-words.js'
 import {
   coverFromDock,
   dockLocationId,
@@ -88,7 +89,6 @@ import {
   pgConstraint,
   type LedgerEntryInput,
 } from '../inventory/index.js'
-import { istDateWord } from '../../platform/refusal-words.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
@@ -1016,7 +1016,7 @@ export class BillingService {
           const order = await this.orders.findOrder(tx, invoice.orderId)
           if (order && DISPATCHED_ORDER_STATES.has(order.state))
             throw new ORPCError('CONFLICT', {
-              message: `order ${order.id} is ${order.state}; after dispatch the only correction is a credit note`,
+              message: `order ${order.orderNo ?? order.id} is ${order.state}; after dispatch the only correction is a credit note`,
             })
         }
         const outstanding = await this.receivables.invoiceOutstandingPaise(tx, invoice.id)
