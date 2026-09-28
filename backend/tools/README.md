@@ -14,7 +14,7 @@ typecheck: it has two type errors on the `platform_admin` role that predate the 
 | `auth-keygen.mts`            | `pnpm auth:keygen`             | Generates the EdDSA signing key pair for auth-service.                                                                                                                                                                                                                |
 | `import-legacy-extracts.mts` | `pnpm import:legacy --help`    | Loads a distributor's old-software extracts (TradeEzee sheets, PDF, SQL Server backup); see `docs/32-legacy-import.md`.                                                                                                                                               |
 | `check-stock-cancels.mts`    | `pnpm check:stock-cancels`     | Release check (QA DOS-257): lists every cancelled bill whose stock rows do not net to zero (`--write-off` reruns migration 0072's write-off first); exits 1 while one is open.                                                                                        |
-| `check-stock-negative.mts`   | `pnpm check:stock-negative`    | Release check (QA DOS-350): lists every balance below zero with its item, batch and place, and warns on receipts merged into a lot of another expiry (DOS-356); `--clear-flags` reruns migration 0075's flag correction first; exits 1 while a balance is below zero. |
+| `check-stock-negative.mts`   | `pnpm check:stock-negative`    | Release check (QA DOS-350): names each balance below zero (item, batch, place); warns on receipts merged across expiries (DOS-356) and on switched-off places holding pieces; `--clear-flags` reruns 0075's flag fix first; exits 1 while a balance stays below zero. |
 
 ## `pnpm smoke` — the endpoint harness
 

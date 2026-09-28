@@ -155,6 +155,59 @@ export async function receiptsMergedAcrossExpiry(
   }))
 }
 
+/**
+ * A place that is switched off and still holds pieces (the third blind check): it drops out of every list while its
+ * pieces stay on the books. Since 0075 no place is switched off while it holds stock and none takes goods while
+ * off, so only a place left that way before (a godown switched off with stock, whose seat a newer godown took)
+ * shows here; its pieces come out by a stock transfer.
+ */
+export interface SwitchedOffHolding {
+  tenantId: string
+  tenantSlug: string
+  locationId: string
+  locationName: string
+  locationKind: string
+  onHandPcs: number
+  reservedPcs: number
+}
+
+/** Every switched-off place that holds or reserves pieces, across all tenants or one. */
+export async function switchedOffPlacesHoldingStock(
+  db: Db,
+  tenantId?: string,
+): Promise<SwitchedOffHolding[]> {
+  const rows = await withSystem(db, async (tx) => {
+    const res = await tx.execute(sql`
+      SELECT l.tenant_id, t.slug AS tenant_slug, l.id AS location_id, l.name AS location_name,
+             l.kind::text AS location_kind, sum(b.on_hand)::bigint AS on_hand, sum(b.reserved)::bigint AS reserved
+        FROM locations l
+        JOIN tenants t ON t.id = l.tenant_id
+        JOIN stock_balances b ON b.location_id = l.id AND b.tenant_id = l.tenant_id
+       WHERE NOT l.active AND (b.on_hand <> 0 OR b.reserved <> 0)
+         AND (${tenantId ?? null}::text IS NULL OR l.tenant_id = ${tenantId ?? null}::text)
+       GROUP BY l.tenant_id, t.slug, l.id, l.name, l.kind
+       ORDER BY t.slug, l.name, l.id`)
+    return res.rows as unknown as {
+      tenant_id: string
+      tenant_slug: string
+      location_id: string
+      location_name: string
+      location_kind: string
+      on_hand: number | string
+      reserved: number | string
+    }[]
+  })
+  return rows.map((r) => ({
+    tenantId: r.tenant_id,
+    tenantSlug: r.tenant_slug,
+    locationId: r.location_id,
+    locationName: r.location_name,
+    locationKind: r.location_kind,
+    onHandPcs: Number(r.on_hand),
+    reservedPcs: Number(r.reserved),
+  }))
+}
+
 /** What `dos_clear_negative_flags()` did: the migration's correction, idempotent, run again by hand. */
 export interface ClearedNegativeFlags {
   binsCleared: number

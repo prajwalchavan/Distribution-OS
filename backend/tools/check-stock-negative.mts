@@ -10,7 +10,9 @@
  *
  * It also prints, as a warning that does not fail the check, every posted receipt line merged before migration 0074
  * into a lot with ANOTHER expiry (QA DOS-356): such a lot's stock screens show one expiry for pieces that carry two,
- * and only a count can separate them.
+ * and only a count can separate them — and every switched-off place that still holds pieces (a godown switched off
+ * with stock before 0075, whose seat a newer godown took): it is missing from every list, and a stock transfer
+ * empties it.
  *
  * `--clear-flags` first runs 0075's correction again (`dos_clear_negative_flags`, idempotent) — for a database
  * restored from a dump taken before 0075. It needs a role that bypasses row level security (the migration owner),
@@ -27,6 +29,7 @@ import {
   loadDotenv,
   receiptsMergedAcrossExpiry,
   stockBelowZero,
+  switchedOffPlacesHoldingStock,
 } from '../libs/database/src/index.js'
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..')
@@ -53,8 +56,15 @@ try {
   }
   const below = await stockBelowZero(db)
   const merged = await receiptsMergedAcrossExpiry(db)
+  const off = await switchedOffPlacesHoldingStock(db)
   if (process.argv.includes('--json')) {
-    say(JSON.stringify({ belowZero: below, mergedAcrossExpiry: merged }, null, 2))
+    say(
+      JSON.stringify(
+        { belowZero: below, mergedAcrossExpiry: merged, switchedOffHolding: off },
+        null,
+        2,
+      ),
+    )
   } else {
     if (below.length === 0) say('no place shows a balance below zero')
     for (const b of below) {
@@ -70,6 +80,12 @@ try {
       say(
         `WARN        ${m.tenantSlug}  ${m.variantName} (${batch}): ${m.grnNo ?? m.grnId} received ${String(m.receivedPcs)} pc expiring ${m.lineExpiry} into a lot that shows ${m.lotExpiry ?? 'no expiry'}; count that lot and separate the pieces`,
       )
+    }
+    for (const o of off) {
+      say(
+        `WARN        ${o.tenantSlug}  ${o.locationName} (${o.locationKind}) is switched off and holds ${String(o.onHandPcs)} pc (${String(o.reservedPcs)} held): it is missing from every list; move the pieces out with a stock transfer`,
+      )
+      say(`            location ${o.locationId}`)
     }
   }
   if (below.length > 0) {
