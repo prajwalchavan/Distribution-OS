@@ -444,6 +444,7 @@ export default function PlaceOrder(): React.JSX.Element {
                       onPress={() => {
                         void cart.clear()
                       }}
+                      fullWidth={false}
                       testID="r7-clear"
                     />
                   }
