@@ -34,3 +34,8 @@ export { reservableLocationId } from './reservable-location.js'
  * relieves it when the crew counts the cartons onto the vehicle.
  */
 export { dockLocationId } from './reservable-location.js'
+/**
+ * Where an order may be packed from (QA DOS-352, ruling 2): a godown or a van-sale vehicle, never the damaged
+ * bin, the dock or a shop's floor. Orders asks it at draft, at a device upload and at confirm.
+ */
+export { fulfilPlaceRefusal, type FulfilPlaceRefusal } from './reservable-location.js'

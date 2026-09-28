@@ -49,6 +49,7 @@ import { InventoryService } from '../inventory/index.js'
 import { QuoteService } from '../pricing/index.js'
 import {
   approvalFlags,
+  assertPackablePlace,
   asSystem,
   availablePcs,
   callerReaches,
@@ -322,6 +323,8 @@ export class OrdersService {
   }> {
     const ctx = currentTenant()
     const to = transition(order.state, 'submit')
+    // QA DOS-352: never numbered or held while its place is the damaged bin, the dock or a shop's floor
+    await assertPackablePlace(tx, order)
     const lines = await tx
       .select()
       .from(salesOrderLines)
@@ -415,6 +418,9 @@ export class OrdersService {
     if (order.state === 'confirmed')
       return { item: await this.detail(tx, order), shortages: order.stockShortages }
     const to = transition(order.state, 'confirm')
+    // QA DOS-352 (ruling 2): the hold below is taken where the order is packed from, so that place must be one
+    // an order may be packed from — the approvals' last decision confirms through here too.
+    await assertPackablePlace(tx, order)
     const waiting = await tx
       .select({ id: approvals.id, kind: approvals.kind })
       .from(approvals)
