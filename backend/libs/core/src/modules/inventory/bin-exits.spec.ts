@@ -433,15 +433,31 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
       .set({ fulfilFromLocationId: bin })
       .where(eq(salesOrders.id, placed.id))
 
+    const binBefore = await onHandAt(binLot, bin)
+    const rowsBefore = await ledgerCount()
     const waveId = uuidv7()
-    const waved = await call<{
-      item: { locationId: string; lines: { id: string; orderLineId: string }[] }
-    }>(app, packer, 'POST', '/warehouse/picklists', {
+    const waved = await call<
+      Refusal & { item: { locationId: string; lines: { id: string; orderLineId: string }[] } }
+    >(app, packer, 'POST', '/warehouse/picklists', {
       idempotencyKey: `wave-bin-${run}`,
       id: waveId,
       orderIds: [placed.id],
     })
-    expect(waved.status, JSON.stringify(waved.body)).toBe(200)
+    // whichever door refuses it — the wave (the fulfilment lane's vans and trips ruling 6: a wave is not placed at
+    // the bin) or the pack (the ledger) — the pieces stay in the bin and no bill is made
+    if (waved.status !== 200) {
+      expect(waved.status, JSON.stringify(waved.body)).toBeGreaterThanOrEqual(400)
+      expect(waved.status).toBeLessThan(500)
+      expect(await onHandAt(binLot, bin)).toBe(binBefore)
+      expect(await onHandAt(binLot, dock)).toBe(0)
+      expect(await ledgerCount()).toBe(rowsBefore)
+      const none = await db
+        .select({ id: packConfirmations.id })
+        .from(packConfirmations)
+        .where(eq(packConfirmations.orderId, placed.id))
+      expect(none).toEqual([])
+      return
+    }
     expect(waved.body.item.locationId).toBe(bin)
     const row = waved.body.item.lines[0]
     const started = await call(app, packer, 'POST', `/warehouse/picklists/${waveId}/start`, {
