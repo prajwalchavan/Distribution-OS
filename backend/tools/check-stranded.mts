@@ -26,6 +26,14 @@
  *   batch-over-held          a batch at a godown holding more pieces for orders than stand there, with the orders
  *                            that hold them (QA DOS-353: a pick takes only its own held pieces plus free ones; a
  *                            count or a write-off of held pieces leaves the same, and needs the same look)
+ *   packed-unbilled-expired  a packed order with no live bill whose pack holds pieces of a batch that has expired
+ *                            since (vans and trips 4: the desk Unpacks it or Cancels the order on the billing desk)
+ *   trip-holds-dead-bill     a trip not yet settled that still carries a bill which cannot go out — delivered,
+ *                            part-delivered, closed or cancelled (vans and trips 3: its check-in takes it off)
+ *   dispatched-not-on-van    a dispatched bill riding a trip whose van holds fewer pieces of a batch than the bills
+ *                            riding on it need — the pieces were swept off it (vans and trips 1 and 2)
+ *   van-stock-no-trip        a van holding pieces while no trip of it is loading, out, checked in or loaded —
+ *                            its last settlement left them there, or another took them for its own
  *
  * Reads every tenant of `DATABASE_URL` (loaded through `loadDotenv()` like every script here, a real env var
  * wins) as the connection's own role, so run it with the migration owner, like `pnpm check:stock-cancels`.
@@ -138,7 +146,9 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
         select l.tenant_id, split_part(l.idempotency_key, ':', 2) as order_id,
                split_part(l.idempotency_key, ':', 3) as order_line_id, -sum(l.qty_delta)::bigint as moved
           from stock_ledger l
-         where l.ref_type = 'pack' and l.qty_delta < 0 and l.idempotency_key like 'pack:%'
+         -- the pack's rack legs, less what an unpack put back (vans and trips 4)
+         where (l.ref_type = 'pack' and l.qty_delta < 0 and l.idempotency_key like 'pack:%')
+            or (l.ref_type = 'unpack' and l.qty_delta > 0 and l.idempotency_key like 'unpack:%')
          group by 1, 2, 3)
       select t.slug as tenant, coalesce(o.order_no, o.id) as document,
              'line ' || ol.line_no || ': the pick records ' || p.picked || ' pc, the pack moved ' ||
@@ -184,6 +194,97 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
         join tenants t on t.id = b.tenant_id
        where loc.kind = 'warehouse' and b.reserved > b.on_hand
        order by t.slug, v.name`,
+  },
+  {
+    kind: 'packed-unbilled-expired',
+    query: sql`
+      select t.slug as tenant, coalesce(o.order_no, o.id) as document,
+             'packed with no bill, and ' || p.pcs || ' pc of ' || v.name || ' batch ' ||
+             coalesce(nullif(lot.batch_no, ''), '(none)') || ' in its cartons expired on ' || lot.expiry_date ||
+             ': Unpack it or Cancel the order on the billing desk' as detail
+        from sales_orders o
+        join tenants t on t.id = o.tenant_id
+        join lateral (
+          select l.lot_id,
+                 -sum(l.qty_delta) filter (where (l.ref_type = 'pack' and l.qty_delta < 0)
+                                             or (l.ref_type = 'unpack' and l.qty_delta > 0))::bigint as pcs
+            from stock_ledger l
+           where l.tenant_id = o.tenant_id and l.ref_type in ('pack', 'unpack') and l.ref_id = o.id
+           group by l.lot_id) p on p.pcs > 0
+        join stock_lots lot on lot.id = p.lot_id
+        join product_variants v on v.id = lot.variant_id
+       where o.state = 'packed'
+         and not exists (select 1 from invoices i
+                          where i.order_id = o.id and i.state not in ('cancelled', 'draft'))
+         and lot.expiry_date < (now() at time zone 'Asia/Kolkata')::date
+       order by t.slug, o.order_no`,
+  },
+  {
+    kind: 'trip-holds-dead-bill',
+    query: sql`
+      select t.slug as tenant, coalesce(tr.trip_no, tr.id) as document,
+             'trip is ' || tr.state::text || ' and still carries ' || coalesce(i.invoice_no, i.id) ||
+             case when i.state = 'cancelled' then ', a cancelled bill'
+                  else ' (order ' || coalesce(o.order_no, o.id) || ' is ' || o.state::text || ')' end ||
+             ', which cannot go out: its check-in takes it off the trip' as detail
+        from deliveries d
+        join trips tr on tr.id = d.trip_id
+        join tenants t on t.id = tr.tenant_id
+        join invoices i on i.id = d.invoice_id
+        left join sales_orders o on o.id = d.order_id
+       where d.outcome is null and tr.state in ('planned', 'loading', 'active', 'closing')
+         and (i.state in ('cancelled', 'draft')
+              or o.state in ('delivered', 'partially_delivered', 'closed', 'cancelled'))
+       order by t.slug, tr.trip_no`,
+  },
+  {
+    kind: 'dispatched-not-on-van',
+    query: sql`
+      with riding as (
+        select tr.tenant_id, v.location_id as van, v.reg_no, tr.trip_no, o.order_no, i.invoice_no,
+               il.lot_id, (il.qty_pcs + il.free_qty_pcs)::bigint as pcs
+          from deliveries d
+          join trips tr on tr.id = d.trip_id and tr.state in ('planned', 'loading', 'active')
+          join vehicles v on v.id = tr.vehicle_id
+          join sales_orders o on o.id = d.order_id and o.state = 'dispatched'
+          join invoices i on i.id = d.invoice_id and i.state not in ('cancelled', 'draft')
+          join invoice_lines il on il.invoice_id = i.id and il.lot_id is not null
+         where d.outcome is null),
+      short as (
+        select r.tenant_id, r.van, r.lot_id, sum(r.pcs)::bigint as need, coalesce(max(b.on_hand), 0)::bigint as have
+          from riding r
+          left join stock_balances b on b.tenant_id = r.tenant_id and b.location_id = r.van and b.lot_id = r.lot_id
+         group by 1, 2, 3)
+      select t.slug as tenant, coalesce(r.invoice_no, r.order_no) as document,
+             'dispatched on ' || coalesce(r.trip_no, '(no number)') || ', but ' || r.reg_no || ' holds ' || s.have ||
+             ' pc of ' || v.name || ' batch ' || coalesce(nullif(lot.batch_no, ''), '(none)') ||
+             ' and the bills riding on it need ' || s.need as detail
+        from short s
+        join riding r on r.tenant_id = s.tenant_id and r.van = s.van and r.lot_id = s.lot_id
+        join stock_lots lot on lot.id = s.lot_id
+        join product_variants v on v.id = lot.variant_id
+        join tenants t on t.id = s.tenant_id
+       where s.have < s.need
+       order by t.slug, r.invoice_no`,
+  },
+  {
+    kind: 'van-stock-no-trip',
+    query: sql`
+      select t.slug as tenant, v.reg_no as document,
+             sum(b.on_hand)::bigint || ' pc in ' || count(*) || ' batch(es) stand on the van and no trip of it is ' ||
+             'loading, out, checked in or loaded' ||
+             coalesce('; its last trip ' || (select coalesce(tr.trip_no, tr.id) || ' is ' || tr.state::text
+                                              from trips tr where tr.vehicle_id = v.id
+                                             order by tr.trip_date desc, tr.id desc limit 1), '') as detail
+        from vehicles v
+        join tenants t on t.id = v.tenant_id
+        join stock_balances b on b.location_id = v.location_id and b.on_hand > 0
+       where not exists (select 1 from trips tr
+                          where tr.vehicle_id = v.id and tr.state in ('loading', 'active', 'closing'))
+         and not exists (select 1 from trips tr join load_sheets ls on ls.trip_id = tr.id and ls.status = 'confirmed'
+                          where tr.vehicle_id = v.id and tr.state = 'planned')
+       group by t.slug, v.id, v.reg_no
+       order by t.slug, v.reg_no`,
   },
 ]
 

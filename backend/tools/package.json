@@ -6,10 +6,11 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "lint": "eslint legacy import-legacy-extracts.mts check-stock-cancels.mts check-stranded.mts",
+    "lint": "eslint legacy import-legacy-extracts.mts check-stock-cancels.mts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "import:legacy": "tsx import-legacy-extracts.mts"
+    "import:legacy": "tsx import-legacy-extracts.mts",
+    "postlint": "eslint check-stranded.mts"
   },
   "devDependencies": {
     "@dos/config": "workspace:*",
