@@ -222,8 +222,51 @@ export interface ReservationListRow {
 
 const balanceKey = (lotId: string, locationId: string) => `${lotId}:${locationId}`
 
+/**
+ * The trip a vehicle location is out on — being loaded or on the road — or null (QA DOS-358). Supplied by
+ * delivery at start-up (`InventoryService.registerVehicleTrip`); runs inside the caller's transaction.
+ */
+export type VehicleTripLookup = (
+  tx: Db,
+  locationId: string,
+) => Promise<{
+  tripId: string
+  tripNo: string | null
+  state: 'loading' | 'active'
+  /** The registration plate, as the godown names the van. */
+  vehicle: string | null
+} | null>
+
 @Injectable()
 export class InventoryService {
+  /** No delivery module, no trips: nothing holds a vehicle until delivery says otherwise (QA DOS-358). */
+  private vehicleTrip: VehicleTripLookup = () => Promise.resolve(null)
+
+  /**
+   * Delivery answers "is this vehicle location out on a trip" at start-up (`DeliveryModule.onModuleInit`), the
+   * `registerRoadHold` pattern: inventory is upstream of delivery and never reads `trips` itself.
+   */
+  registerVehicleTrip(lookup: VehicleTripLookup): void {
+    this.vehicleTrip = lookup
+  }
+
+  /**
+   * A VAN IS NOT UNLOADED BY HAND WHILE ITS TRIP IS OUT (QA DOS-358, architect ruling 8 of 2026-09-28). The pieces
+   * on a vehicle whose trip is being loaded or is on the road belong to that trip's bills and its van sales;
+   * they come off at the door or at the trip's check-in, never by a hand transfer or a godown count — otherwise
+   * the bill is undeliverable ("Only 0 pc … in the vehicle") and its goods are sold again as free stock. 409
+   * `vehicle_on_trip`, naming the vehicle and the trip. A location that is not a vehicle is never refused here.
+   */
+  async assertVehicleNotOut(tx: Db, locationId: string): Promise<void> {
+    const out = await this.vehicleTrip(tx, locationId)
+    if (out === null) return
+    const trip = out.tripNo ?? 'its trip'
+    throw new ORPCError('CONFLICT', {
+      message: `${out.vehicle ?? 'This vehicle'} is on trip ${trip}, which ${out.state === 'active' ? 'is out on the road' : 'is being loaded'}: nothing comes off the van by hand until that trip is checked in. Check the trip in first; the godown then counts the van off.`,
+      data: { code: 'vehicle_on_trip', tripId: out.tripId, tripState: out.state },
+    })
+  }
+
   /** Location names for another module's labels (integrations' Tally godown mapping), one query. */
   async locationNames(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
     const unique = [...new Set(ids)]

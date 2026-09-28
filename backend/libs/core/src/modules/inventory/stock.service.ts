@@ -406,6 +406,8 @@ export class StockService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
+        // QA DOS-358: nothing comes off a van by hand while its trip is out (loading or on the road).
+        await this.inventory.assertVehicleNotOut(tx, input.fromLocationId)
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [
           {

@@ -219,6 +219,12 @@ export class SettlementService {
         )
         const dockPcs = toDock
         const rackPcs = input.qtyPcs - dockPcs
+        // QA DOS-358 (architect ruling 8): the godown counts a van off only once its trip is checked in. While a
+        // trip on this vehicle is being loaded or is on the road, its pieces belong to its bills and its van
+        // sales: nothing may go to the rack as free stock, and with no checked-in trip there is nothing to count
+        // for at all. A came-back bill's pieces of a trip that HAS checked in still go to the dock for it.
+        if (back.trips.length === 0 || rackPcs > 0)
+          await this.inventory.assertVehicleNotOut(tx, input.vehicleLocationId)
         const bills: UnloadOut['bills'] = []
         for (const o of owed) {
           if (toDock <= 0) break

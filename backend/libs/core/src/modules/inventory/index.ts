@@ -18,6 +18,7 @@ export {
   type ReservationListRow,
   type ReservationState,
   type ReserveInput,
+  type VehicleTripLookup,
 } from './inventory.service.js'
 /**
  * Stock on hand per variant and location (coordination §3.9, slice 9). A plain function so the worker's
