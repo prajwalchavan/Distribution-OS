@@ -1213,4 +1213,83 @@ describeDb('delivery — day-end counts every trip payment (DATABASE_URL)', () =
       expect((await tripNet(tripId)).CASH_VAN ?? 0).toBe(0)
     }
   }, 120_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // QA DOS-310 (architect ruling 2026-09-28): the crew's collection door keeps the payment-reference rule
+
+  it("DOS-310 the crew's collection door refuses a UTR already recorded, online (409) and offline (a sync error, no receipt), and asks before a cheque number another shop used", async () => {
+    type Refused = {
+      message?: string
+      data?: { code?: string; earlier?: { receiptNo: string | null } }
+    }
+    type Collected = { receipt: { id: string; receiptNo: string | null } }
+    const tripId = await onTheRoad('sm-310', 3, 'MR', 10_000)
+    const utr = `UTR310${run}`
+    const collectAt = (retailerId: string, extra: Record<string, unknown>) =>
+      call<Collected & Refused>(app, driver, 'POST', '/delivery/collections', {
+        idempotencyKey: uuidv7(),
+        id: uuidv7(),
+        receiptId: uuidv7(),
+        tripId,
+        retailerId,
+        amountPaise: 4_000,
+        ...extra,
+      })
+    const first = await collectAt(accountShopId, { mode: 'upi', reference: utr })
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    const firstNo = first.body.receipt.receiptNo ?? ''
+
+    // online: the same UTR at another shop's door, keyed with spaces and in lower case
+    const again = await collectAt(billedShopId, {
+      mode: 'upi',
+      reference: ` ${utr.toLowerCase()} `,
+    })
+    expect(again.status).toBe(409)
+    expect(again.body.data?.code).toBe('reference_already_recorded')
+    expect(again.body.message).toContain(firstNo)
+
+    // offline: the phone's `collections` op with the same UTR is a 2xx rejection in the same words, nothing written
+    const receiptId = uuidv7()
+    const opId = uuidv7()
+    const res = await upload([
+      {
+        opId,
+        op: 'PUT',
+        table: 'collections',
+        id: uuidv7(),
+        data: {
+          receipt_id: receiptId,
+          trip_id: tripId,
+          retailer_id: accountShopId,
+          mode: 'upi',
+          amount_paise: 4_000,
+          reference: utr,
+        },
+        clientTime: new Date().toISOString(),
+      },
+    ])
+    expect(res.status).toBe(200)
+    expect(res.body.accepted, JSON.stringify(res.body)).toBe(0)
+    expect(res.body.rejected.map((r) => r.code)).toEqual(['reference_already_recorded'])
+    expect(res.body.rejected[0]?.messageEn).toContain(firstNo)
+    expect(await receiptExists(receiptId)).toBe(false)
+
+    // a cheque number: the same shop twice is refused; another shop's is asked, then taken when the crew confirms
+    const cheque = {
+      mode: 'cheque',
+      reference: `310${run}`,
+      bankName: 'Cosmos Bank',
+      chequeDate: businessDate().date,
+    }
+    expect((await collectAt(accountShopId, cheque)).status).toBe(200)
+    const twice = await collectAt(accountShopId, cheque)
+    expect(twice.status).toBe(409)
+    expect(twice.body.data?.code).toBe('cheque_already_recorded')
+    const asked = await collectAt(billedShopId, cheque)
+    expect(asked.status).toBe(409)
+    expect(asked.body.data?.code).toBe('cheque_number_seen_elsewhere')
+    expect(asked.body.data?.earlier?.receiptNo).toBeTruthy()
+    const confirmed = await collectAt(billedShopId, { ...cheque, confirmReference: true })
+    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
+  }, 120_000)
 })
