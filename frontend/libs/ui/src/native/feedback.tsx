@@ -7,6 +7,7 @@ import { Image, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from 
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { keepSegment } from '../strings.js'
+import { useControlScale } from '../control-scale.js'
 import { useTheme } from '../theme.js'
 import {
   monogramSize,
@@ -608,12 +609,14 @@ export function ErrorState({
   testID,
 }: ErrorStateProps): React.JSX.Element {
   const theme = useTheme()
+  // On a centred form (sign-in) the message takes the fields' soft corner — see the web half.
+  const scale = useControlScale()
   return (
     <View
       testID={testID}
       style={{
         padding: space[5],
-        borderRadius: radius.md,
+        borderRadius: scale?.radius ?? radius.md,
         backgroundColor: theme.colors.status.brick.tint,
       }}
     >

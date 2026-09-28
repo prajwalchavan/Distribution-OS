@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { keepSegment } from '../strings.js'
+import { useControlScale } from '../control-scale.js'
 import { useTheme } from '../theme.js'
 import { cssShadow, monogramSize, radius, size as sizeTokens, space, typeDesk } from '../tokens.js'
 import type {
@@ -611,13 +612,15 @@ export function ErrorState({
   testID,
 }: ErrorStateProps): React.JSX.Element {
   const theme = useTheme()
+  // On a centred form (sign-in) the message takes the fields' soft corner, not a sharper one.
+  const scale = useControlScale()
   return (
     <div
       data-testid={testID}
       style={{
         padding: space[5],
         background: theme.colors.status.brick.tint,
-        borderRadius: radius.md,
+        borderRadius: scale?.radius ?? radius.md,
       }}
     >
       <Txt field="bodyStrong" desk="section" as="div" color={theme.colors.status.brick.fg}>

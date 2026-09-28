@@ -124,22 +124,31 @@ export function JobCard({
           {theme.t('job.next')}
         </Txt>
       ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: space[3] }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Txt field="title" desk="section" numberOfLines={1}>
-            {title}
-          </Txt>
-          {subtitle === undefined ? null : (
-            <Txt field="label" desk="meta" color={theme.colors.text.secondary} numberOfLines={1}>
-              {subtitle}
-            </Txt>
+      {/* The name gets the whole width and two lines; the figure sits on the chip's line — see the web half. */}
+      <Txt field="title" desk="section" numberOfLines={2}>
+        {title}
+      </Txt>
+      {subtitle === undefined ? null : (
+        <Txt field="label" desk="meta" color={theme.colors.text.secondary} numberOfLines={1}>
+          {subtitle}
+        </Txt>
+      )}
+      {chip === undefined && trailing === undefined ? null : (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: space[3],
+            marginTop: space[2],
+          }}
+        >
+          <View style={{ flexShrink: 1, minWidth: 0 }}>
+            {chip === undefined ? null : <StatusChip label={chip.label} family={chip.family} />}
+          </View>
+          {trailing === undefined ? null : (
+            <View style={{ alignItems: 'flex-end' }}>{trailing}</View>
           )}
-        </View>
-        {trailing === undefined ? null : <View style={{ alignItems: 'flex-end' }}>{trailing}</View>}
-      </View>
-      {chip === undefined ? null : (
-        <View style={{ marginTop: space[2] }}>
-          <StatusChip label={chip.label} family={chip.family} />
         </View>
       )}
     </View>

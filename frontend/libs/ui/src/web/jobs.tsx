@@ -128,30 +128,41 @@ export function JobCard({
           {theme.t('job.next')}
         </Txt>
       ) : null}
-      <span style={{ display: 'flex', alignItems: 'flex-start', gap: space[3], width: '100%' }}>
-        <span style={{ flex: 1, minWidth: 0, display: 'block' }}>
-          <Txt field="title" desk="section" as="div" numberOfLines={1}>
-            {title}
-          </Txt>
-          {subtitle === undefined ? null : (
-            <Txt
-              field="label"
-              desk="meta"
-              as="div"
-              color={theme.colors.text.secondary}
-              numberOfLines={1}
-            >
-              {subtitle}
-            </Txt>
+      {/*
+       * The name gets the whole width and two lines: on a 390 px phone a shop name beside a 20 sp
+       * figure came out "Shree Ganesh…", and the name is the one thing a driver reads first. The
+       * figure moves to the chip's line, at the right.
+       */}
+      <Txt field="title" desk="section" as="div" numberOfLines={2}>
+        {title}
+      </Txt>
+      {subtitle === undefined ? null : (
+        <Txt
+          field="label"
+          desk="meta"
+          as="div"
+          color={theme.colors.text.secondary}
+          numberOfLines={1}
+        >
+          {subtitle}
+        </Txt>
+      )}
+      {chip === undefined && trailing === undefined ? null : (
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: space[3],
+            marginTop: space[2],
+          }}
+        >
+          <span style={{ display: 'block', minWidth: 0 }}>
+            {chip === undefined ? null : <StatusChip label={chip.label} family={chip.family} />}
+          </span>
+          {trailing === undefined ? null : (
+            <span style={{ display: 'block', flexShrink: 0, textAlign: 'right' }}>{trailing}</span>
           )}
-        </span>
-        {trailing === undefined ? null : (
-          <span style={{ flexShrink: 0, display: 'block', textAlign: 'right' }}>{trailing}</span>
-        )}
-      </span>
-      {chip === undefined ? null : (
-        <span style={{ display: 'block', marginTop: space[2] }}>
-          <StatusChip label={chip.label} family={chip.family} />
         </span>
       )}
     </>

@@ -111,7 +111,7 @@ export default function ChangePassword(): React.JSX.Element {
           fullWidth
           testID="change-password-submit"
         />
-        <Txt field="label" desk="meta" color={colors.text.secondary} align="center">
+        <Txt field="label" desk="meta" color={colors.text.secondary}>
           {t('app.passwordRevokes')}
         </Txt>
       </Stack>
