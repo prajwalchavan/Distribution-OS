@@ -640,7 +640,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
     expect(Number((owed.rows[0] as { owed: string | number } | undefined)?.owed ?? 0)).toBe(0)
   }, 120_000)
 
-  it('DOS-261 / DOS-351 the crew is never offered an expired batch, and a sale the in-date pieces cannot cover is refused naming the expired ones', async () => {
+  it('DOS-261 / DOS-351 the crew is never offered an expired batch — it is listed with its date and nothing to sell — and a sale the in-date pieces cannot cover is refused naming the expired ones', async () => {
     const driver = driverAt(6)
     const { tripId } = await roadTrip('expired', driver)
     // 30 pieces of a batch that expired yesterday ride on the same van beside the 48 in-date ones
@@ -672,14 +672,15 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
       ])
     })
 
-    const listed = await call<{ items: { lotId: string; availablePcs: number }[] }>(
-      app,
-      driver,
-      'GET',
-      `/delivery/trips/${tripId}/van-stock`,
-    )
+    const listed = await call<{
+      items: { lotId: string; availablePcs: number; expiryDate: string | null }[]
+    }>(app, driver, 'GET', `/delivery/trips/${tripId}/van-stock`)
     expect(listed.status, JSON.stringify(listed.body)).toBe(200)
-    expect(listed.body.items.map((i) => [i.lotId, i.availablePcs])).toEqual([[lot, 48]])
+    // the expired batch is on the crew's list with its date, so they know why it stays on the van, and
+    // nothing of it is offered (the same rule as the fulfilment lane's, fix/stock-states)
+    expect(
+      Object.fromEntries(listed.body.items.map((i) => [i.lotId, [i.availablePcs, i.expiryDate]])),
+    ).toEqual({ [lot]: [48, '2028-01-31'], [expiredLot]: [0, yesterday] })
 
     const refused = await call<{ message: string }>(
       app,
