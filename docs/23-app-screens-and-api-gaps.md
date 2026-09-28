@@ -462,7 +462,7 @@ Challan print (W7) carries `seller` ✓; invoice print (W6) ✓ once billing is 
 
 ## 5. Delivery (`frontend/dos-app/app/delivery/`, delivery-service :3005, role `delivery`; phone, offline before pilot, GPS)
 
-One hand, the other has cash in it. No tab bar: a single stack that opens on the next stop. 12 screens.
+One hand, the other has cash in it. No tab bar: a single stack that opens on **Today's deliveries**, the stops as cards with their buttons on them (I am here · Delivered, all items · Take money), since 2026-09-28 (docs/22 §8). 12 screens. Backend gaps found while building it: the device has no per-stop figure of what the shop still owes (the home derives it from the plan, the credit notes and the trip's receipts), and the proof-photo policy is not pulled to the device (offline it assumes credit shops only).
 The whole `delivery` contract is **planned** (docs/plans/delivery.md §2); calls below name the planned procedures.
 
 ### 5.1 Screen inventory
@@ -544,7 +544,7 @@ note shown or shared at the door carry `seller` ✓; receipt has no seller block
 ## 6. Retailer (`frontend/dos-app/app/retailer/`, retailer-service :3006, role `retailer`; phone, online only)
 
 The detail view for a WhatsApp message: no registration form, no permissions, one card per linked distributor, reorder in 2 taps.
-13 screens, no tab bar.
+13 screens. Four tabs since 2026-09-28 (Shop, Orders, Money, Me): the home is a shop front — search, order again, the shop's own items, shop by brand, offers, and a cart bar that stays with the shopkeeper across screens (founder's requirement, docs/22 §8). Backend gap found while building it: `orders.list` carries no lines, so "Your items" costs up to five `orders.get` reads; a read such as `orders.recentItems` would make it one.
 
 ### 6.1 Screen inventory
 

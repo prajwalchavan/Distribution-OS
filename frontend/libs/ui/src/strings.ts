@@ -167,7 +167,7 @@ export const en = {
    * and logo are the chrome (UX-00 §11), which is what the landing says two seconds of.
    */
   'welcome.product': 'Distribution OS',
-  'welcome.tagline': 'Connecting a distribution business through six apps.',
+  'welcome.tagline': 'One app for your whole distribution business.',
   /* The console is not one of the six: its reader is our own staff, not a distributor's. */
   'welcome.console': 'Platform console',
   'welcome.signIn': 'Sign in',

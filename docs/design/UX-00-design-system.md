@@ -577,7 +577,7 @@ overlay. Every shortcut is printed on its button. **Numeric entry never re-sorts
 - **Tab bar** (`bg.surface`, hairline above, **69 dp + inset (76 dp warehouse)**, every tab the full bar height, `field.label` labels,
   active `accent.fg` with a filled icon, no pill): sales (**Beat · Orders · Shops · Me**) and warehouse (**Inbound · Pick · Pack · Load**; Me
   is the header avatar) have one — the tab lists and order are `docs/23` §3–§4 — **shown on root screens only**; a pushed screen replaces it
-  with the action bar. Delivery and retailer have no tab bar: single stacks opening on the next stop / the last bill.
+  with the action bar. Delivery has no tab bar: a single stack that opens on the list of today's deliveries with the buttons on each stop. **The shopkeeper has four tabs — Shop, Orders, Money, Me — and opens on the shop front** (founder, 2026-09-28, docs/22 §8: every app opens on its work; this replaces "retailer has no tab bar, opens on the last bill").
 - **Owner and manager on a phone** (`phone` size, 63 dp): no tab bar. The owner's stack is rooted on Today (O1: the strip 2×2, the ageing
   ladder, approval cards); Approvals (O3), Live map (O4) and Growth (O2, the charts one tap away) push from Today's rows, and the rail's other
   destinations are a "More" list screen. The manager's phone stack is rooted on Today (M1) and pushes only confirm-and-photograph screens —

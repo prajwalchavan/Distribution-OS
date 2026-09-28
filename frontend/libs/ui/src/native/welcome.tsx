@@ -92,9 +92,12 @@ export function Welcome({
             {theme.t(role === 'platform_admin' ? 'welcome.console' : 'welcome.tagline')}
           </Txt>
         </Stack>
-        <Txt field="title" desk="pageTitle" align="center" testID="welcome-app">
-          {appShortName(appTitle)}
-        </Txt>
+        {/* One app carries the product's own name: printing it twice told nobody anything. */}
+        {appShortName(appTitle) === theme.t('welcome.product') ? null : (
+          <Txt field="title" desk="pageTitle" align="center" testID="welcome-app">
+            {appShortName(appTitle)}
+          </Txt>
+        )}
         <Button
           label={theme.t('welcome.signIn')}
           onPress={enter}

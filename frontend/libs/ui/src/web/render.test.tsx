@@ -1181,7 +1181,7 @@ describe('docs/29 §1 Welcome', () => {
   it('docs/29 §1 Welcome — at 1280: wordmark, the six-app line, the app’s own name, one button', () => {
     const html = welcome('delivery', 'desk')
     expect(html).toContain('Distribution OS')
-    expect(html).toContain('Connecting a distribution business through six apps.')
+    expect(html).toContain('One app for your whole distribution business.')
     expect(html).toContain('Delivery')
     expect(html).toContain('welcome-sign-in')
     expect(html).not.toContain('the-sign-in-form')
@@ -1190,7 +1190,7 @@ describe('docs/29 §1 Welcome', () => {
   it('docs/29 §1 Welcome — at 390: the same four things, at the field floor', () => {
     const html = welcome('delivery', 'phone')
     expect(html).toContain('Distribution OS')
-    expect(html).toContain('Connecting a distribution business through six apps.')
+    expect(html).toContain('One app for your whole distribution business.')
     expect(html).toContain('Delivery')
     // One primary button, at the app's own touch floor rather than the 32 px desk one.
     expect(html).toContain('height:69px')
@@ -1199,7 +1199,7 @@ describe('docs/29 §1 Welcome', () => {
   it('docs/29 §1 Welcome — the console names itself, never the six apps a distributor runs', () => {
     const html = welcome('platform_admin', 'desk')
     expect(html).toContain('Platform console')
-    expect(html).not.toContain('through six apps')
+    expect(html).not.toContain('One app for your whole')
   })
 
   it('docs/29 §1 Welcome — a device that has been past it gets the sign-in form, not a second introduction', () => {

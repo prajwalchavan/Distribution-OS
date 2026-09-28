@@ -18,7 +18,7 @@ design they point at. Nothing here changes the server's security model — that 
 ## 1. Welcome and landing (build now — UI only, no contract change)
 
 **Welcome** — the first screen of every app, shown until a session exists on the device:
-the Distribution OS wordmark, one line — *"Connecting a distribution business through six apps."* —
+the Distribution OS wordmark, one line — *"One app for your whole distribution business."* (reworded 2026-09-28; the six apps became one on 2026-09-21) —
 this app's own name and icon ("Delivery"), and one button, **Sign in**, which opens today's form
 unchanged. It is shown once per device, not on every launch: a driver at 6 am opens straight into the
 trip. Implemented once as `Welcome` in `@dos/ui` (web and native), used by all seven `sign-in.tsx`
