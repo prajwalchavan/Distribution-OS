@@ -3850,6 +3850,57 @@ describeDb('row level security and ledger guarantees', () => {
     await rejectsWith(lot(null), /stock_lots_identity_key/)
   })
 
+  it('DOS-352: the damaged / expiry bin keeps its kind at the database — no update makes it another kind and no place becomes one; a new name and any other kind change still go', async () => {
+    /*
+     * Architect ruling 2 (2026-09-28), the blind check's V9: `sellable_stock` decides what may be sold by the
+     * place's kind, and one re-save of the bin as a godown made its damaged pieces every rep's availability.
+     * Migration 0075's trigger `locations_bin_kind_fixed` refuses the change to or from `damaged` for every
+     * writer, the owner connection included.
+     */
+    const [bin] = await db
+      .select({ id: locations.id, name: locations.name })
+      .from(locations)
+      .where(sql`${locations.tenantId} = ${tenantA} AND ${locations.kind} = 'damaged'`)
+      .orderBy(locations.id)
+      .limit(1)
+    const binId = bin?.id ?? ''
+    await rejectsWith(
+      db.update(locations).set({ kind: 'warehouse' }).where(eq(locations.id, binId)),
+      /no other place becomes one/,
+    )
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.update(locations).set({ kind: 'vehicle' }).where(eq(locations.id, binId)),
+      ),
+      /no other place becomes one/,
+    )
+    await rejectsWith(
+      db.update(locations).set({ kind: 'damaged' }).where(eq(locations.id, godownA)),
+      /no other place becomes one/,
+    )
+    const kindOf = async (id: string) =>
+      (await db.select({ kind: locations.kind }).from(locations).where(eq(locations.id, id)))[0]
+        ?.kind
+    expect(await kindOf(binId)).toBe('damaged')
+    expect(await kindOf(godownA)).toBe('warehouse')
+
+    // what still goes: the bin's new name, and a kind change that does not touch a bin
+    await db
+      .update(locations)
+      .set({ name: `Claim bin D352 ${run}` })
+      .where(eq(locations.id, binId))
+    await db
+      .update(locations)
+      .set({ name: bin?.name ?? '' })
+      .where(eq(locations.id, binId))
+    const floor = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: floor, tenantId: tenantA, kind: 'customer', name: `Floor D352 ${run}` })
+    await db.update(locations).set({ kind: 'in_transit' }).where(eq(locations.id, floor))
+    expect(await kindOf(floor)).toBe('in_transit')
+  })
+
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {
     expect(await as('retailer')((tx) => tx.select().from(grns))).toHaveLength(0)
     expect((await as('warehouse')((tx) => tx.select().from(grns))).map((g) => g.id)).toEqual([grnA])

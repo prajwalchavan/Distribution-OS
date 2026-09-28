@@ -114,6 +114,15 @@ const BIN_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'system']
 /** The adjustment reasons that move pieces INTO the bin when taken off any other place (ruling 6). */
 const TO_THE_BIN: ReadonlySet<string> = new Set(['damage', 'expiry_writeoff'])
 
+/** A location's kind as a godown hand names it, for the refusals of `upsertLocation`. */
+const KIND_WORDS: Readonly<Record<string, string>> = {
+  warehouse: 'godown',
+  vehicle: 'vehicle',
+  damaged: 'damaged / expiry bin',
+  in_transit: 'dock',
+  customer: 'shop floor',
+}
+
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
 const NEAR_EXPIRY_DAYS = 60
 
@@ -193,6 +202,7 @@ export class StockService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        await this.assertKindMayChange(tx, input.id, input.kind)
         const values = {
           kind: input.kind,
           name: input.name,
@@ -216,10 +226,62 @@ export class StockService {
             throw new ORPCError('CONFLICT', {
               message: `a location named "${input.name}" already exists`,
             })
+          // the database's own copy of the rule below (migration 0075), for a writer that raced the read
+          if (pgConstraint(err) === 'locations_bin_kind_fixed')
+            throw new ORPCError('CONFLICT', {
+              message:
+                'The damaged / expiry bin stays the bin and no other place becomes one: pieces in it never go back for sale. Add a new location instead.',
+              data: { code: 'location_kind_fixed', locationId: input.id },
+            })
           throw err
         }
       }),
     )
+  }
+
+  /**
+   * A PLACE KEEPS ITS KIND WHILE IT IS THE BIN OR HOLDS STOCK (QA DOS-352, architect ruling 2; the blind check's
+   * V9). `sellable_stock` decides what may be sold by the place's KIND, so re-saving the damaged / expiry bin as a
+   * godown put 161 damaged pieces in 14 lots straight into every rep's availability, and a hand transfer then
+   * moved them into the godown — one call, by the godown login, no ledger row. So:
+   *
+   *   - the bin stays the bin, and no place becomes one by a new kind (its pieces would leave sale with no ledger
+   *     row, and the brand's claim would read rows it never received) — 409 `location_kind_fixed`;
+   *   - any other place keeps its kind while pieces stand in it or are held there — 409 `location_holds_stock`.
+   *
+   * A new place, a new name and a kind change of an empty place still go. Migration 0075's trigger
+   * `locations_bin_kind_fixed` is the same bin rule at the database.
+   */
+  private async assertKindMayChange(tx: Db, locationId: string, kind: string): Promise<void> {
+    const { tenantId } = currentTenant()
+    const [was] = await tx
+      .select({ kind: locations.kind, name: locations.name })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+      .for('update')
+    if (!was || was.kind === kind) return
+    if (was.kind === 'damaged')
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} is the damaged / expiry bin and stays one: pieces in it never go back for sale, so it cannot be saved as a ${KIND_WORDS[kind] ?? kind}. They leave the bin only by a write-off or a return to the brand. For a new ${KIND_WORDS[kind] ?? kind}, add a new location.`,
+        data: { code: 'location_kind_fixed', locationId, kind: was.kind },
+      })
+    if (kind === 'damaged')
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} is a ${KIND_WORDS[was.kind] ?? was.kind} and cannot become a damaged / expiry bin: damaged and expired pieces are moved into the bin with a damage or expiry write-off. For another bin, add a new location.`,
+        data: { code: 'location_kind_fixed', locationId, kind: was.kind },
+      })
+    const [held] = await tx
+      .select({
+        pcs: sql<string>`coalesce(sum(abs(${stockBalances.onHand}) + ${stockBalances.reserved}), 0)::bigint`,
+      })
+      .from(stockBalances)
+      .where(and(eq(stockBalances.tenantId, tenantId), eq(stockBalances.locationId, locationId)))
+    const pcs = Number(held?.pcs ?? 0)
+    if (pcs > 0)
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} holds ${String(pcs)} pc, so it stays a ${KIND_WORDS[was.kind] ?? was.kind}: a new kind would change what those pieces may be sold as. Move them out first, or add a new location.`,
+        data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
+      })
   }
 
   /**

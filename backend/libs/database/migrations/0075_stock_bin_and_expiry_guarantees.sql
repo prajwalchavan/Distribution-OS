@@ -23,6 +23,11 @@
 --         the godown already reads. It fires only when the new row claims the flag (`WHEN (NEW.negative_allowed)`),
 --         so the ordinary balance update pays nothing. SECURITY DEFINER with a pinned search_path: it reads the
 --         place under FORCE RLS (0007's lesson).
+--      `locations_bin_kind_fixed`  NOTHING LEAVES THE BIN FOR SALE BY A NEW KIND (ruling 2, DOS-352; the blind
+--         check's V9). `sellable_stock` decides what may be sold by the place's kind, and one re-save of the bin as
+--         a godown put 161 damaged pieces into every rep's availability. An UPDATE that changes a location's kind
+--         to or from `damaged` is refused; a new bin, a renamed bin and any other kind change still go (the API
+--         also keeps the kind of a place that holds stock). Fires only when the kind really changes.
 --
 -- 2. EXPIRED GOODS ARE NEVER SOLD (ruling 3, DOS-261, the availability half of DOS-351). `sellable_stock` now leaves
 --    out every lot whose expiry date is before today's IST business date. Every availability read goes through it —
@@ -73,6 +78,26 @@ SELECT * FROM dos_clear_negative_flags();--> statement-breakpoint
 ALTER TABLE "locations" DROP CONSTRAINT IF EXISTS "locations_bin_never_negative";--> statement-breakpoint
 ALTER TABLE "locations" ADD CONSTRAINT "locations_bin_never_negative"
   CHECK (kind <> 'damaged' OR NOT negative_allowed);--> statement-breakpoint
+CREATE OR REPLACE FUNCTION dos_location_bin_kind_fixed() RETURNS trigger
+  LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+BEGIN
+  IF OLD.kind = 'damaged' OR NEW.kind = 'damaged' THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'check_violation',
+      CONSTRAINT = 'locations_bin_kind_fixed',
+      TABLE = 'locations',
+      MESSAGE = format(
+        'location %s is %s and cannot become %s: the damaged / expiry bin stays the bin and no other place becomes one (QA DOS-352)',
+        OLD.id, OLD.kind, NEW.kind);
+  END IF;
+  RETURN NEW;
+END;
+$$;--> statement-breakpoint
+DROP TRIGGER IF EXISTS locations_bin_kind_fixed ON locations;--> statement-breakpoint
+CREATE TRIGGER locations_bin_kind_fixed
+  BEFORE UPDATE OF kind ON locations
+  FOR EACH ROW WHEN (OLD.kind IS DISTINCT FROM NEW.kind)
+  EXECUTE FUNCTION dos_location_bin_kind_fixed();--> statement-breakpoint
 CREATE OR REPLACE FUNCTION dos_stock_balance_never_below_zero() RETURNS trigger
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
@@ -193,6 +218,12 @@ BEGIN
      WHERE c.relname = 'stock_balances' AND tg.tgname = 'stock_balances_never_below_zero' AND NOT tg.tgisinternal
   ) THEN
     RAISE EXCEPTION '0075: the below-zero guard on stock_balances is missing';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger tg JOIN pg_class c ON c.oid = tg.tgrelid
+     WHERE c.relname = 'locations' AND tg.tgname = 'locations_bin_kind_fixed' AND NOT tg.tgisinternal
+  ) THEN
+    RAISE EXCEPTION '0075: the guard that keeps the damaged / expiry bin a bin is missing';
   END IF;
   SELECT pg_get_viewdef('sellable_stock'::regclass, true) INTO def;
   IF position('kind' IN def) = 0 OR position('warehouse' IN def) = 0 THEN
