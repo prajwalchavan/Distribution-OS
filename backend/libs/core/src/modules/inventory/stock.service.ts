@@ -40,6 +40,7 @@ import {
   currentTenant,
   DB,
   idempotent,
+  isPrivilegeViolation,
   requireDb,
   requireRole,
   STAFF,
@@ -136,6 +137,13 @@ const KIND_WORDS: Readonly<Record<string, string>> = {
   customer: 'shop floor',
 }
 
+/** A place as it stood before an upsert: what `assertPlaceMayChange` read, locked. */
+interface PlaceWas {
+  kind: string
+  name: string
+  active: boolean
+}
+
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
 const NEAR_EXPIRY_DAYS = 60
 
@@ -215,7 +223,7 @@ export class StockService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        await this.assertPlaceMayChange(tx, input.id, input.kind, input.active)
+        const was = await this.assertPlaceMayChange(tx, input.id, input.kind, input.active)
         const values = {
           kind: input.kind,
           name: input.name,
@@ -224,11 +232,17 @@ export class StockService {
           active: input.active,
         }
         try {
-          const [row] = await tx
-            .insert(locations)
-            .values({ id: input.id, tenantId: ctx.tenantId, ...values })
-            .onConflictDoUpdate({ target: locations.id, set: { ...values, updatedAt: new Date() } })
-            .returning()
+          // A savepoint: when the database refuses the row (0075's guards), the refusal can still name the places.
+          const [row] = await tx.transaction((sp) =>
+            sp
+              .insert(locations)
+              .values({ id: input.id, tenantId: ctx.tenantId, ...values })
+              .onConflictDoUpdate({
+                target: locations.id,
+                set: { ...values, updatedAt: new Date() },
+              })
+              .returning(),
+          )
           if (!row)
             throw new ORPCError('INTERNAL_SERVER_ERROR', {
               message: 'location upsert returned nothing',
@@ -251,6 +265,16 @@ export class StockService {
               message:
                 'The godown, the dock and the damaged / expiry bin are fixed places: they stay switched on and keep their kind. You can rename one; for another place, add a new location.',
               data: { code: 'location_fixed', locationId: input.id },
+            })
+          if (pgConstraint(err) === 'locations_fixed_place_first')
+            throw await this.takesFixedSeat(tx, input.id, input.kind, was)
+          // The id is another distributor's place: the upsert's ON CONFLICT reached a row this tenant may not
+          // touch, and row security refused it (42501). A sentence, not a 500; the other place is untouched.
+          if (isPrivilegeViolation(err))
+            throw new ORPCError('CONFLICT', {
+              message:
+                'Nothing was saved: this location id already belongs to a place you cannot see. Add the place again from the app; a new place gets its own id.',
+              data: { code: 'location_id_taken', locationId: input.id },
             })
           throw err
         }
@@ -285,17 +309,17 @@ export class StockService {
     locationId: string,
     kind: string,
     active: boolean,
-  ): Promise<void> {
+  ): Promise<PlaceWas | undefined> {
     const { tenantId } = currentTenant()
     const [was] = await tx
       .select({ kind: locations.kind, name: locations.name, active: locations.active })
       .from(locations)
       .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
       .for('update')
-    if (!was) return
+    if (!was) return undefined
     const newKind = was.kind !== kind
     const switchedOff = was.active && !active
-    if (!newKind && !switchedOff) return
+    if (!newKind && !switchedOff) return was
     if (newKind) this.assertNotIntoOrOutOfBin(was, locationId, kind)
     if (was.active && isFixedPlaceKind(was.kind)) {
       const fixed = await findFixedPlace(tx, was.kind)
@@ -324,6 +348,55 @@ export class StockService {
         message: `${was.name} holds ${String(pcs)} pc, so it stays switched on: a place that is switched off drops out of every list while its pieces are still on the books. Move them out first, then switch it off.`,
         data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
       })
+    return was
+  }
+
+  /**
+   * NO PLACE TAKES THE SEAT OF THE GODOWN, THE DOCK OR THE BIN (vans and trips ruling 5; the third blind check's
+   * blocker). The fixed place of a kind is the first ACTIVE one by id — what every service reads — so a place
+   * created with a client-chosen id older than the dock's became the dock: the bills already packed onto the real
+   * dock could not be loaded, cancelled or moved again, and the fixed-place rule then kept the intruder. Migration
+   * 0075 refuses the row for every writer (`locations_fixed_place_first`: a new place, one switched on, one given
+   * that kind, while an active place of the kind sorts after it); this is its refusal in words. A place added
+   * today (UUIDv7) never sorts first, so only a crafted id or one minted on a device whose date is years behind
+   * reaches it — which is what the sentence says to check.
+   */
+  private async takesFixedSeat(
+    tx: Db,
+    locationId: string,
+    kind: string,
+    was: PlaceWas | undefined,
+  ): Promise<ORPCError<'CONFLICT', Record<string, unknown>>> {
+    const fixedKind = isFixedPlaceKind(kind) ? kind : null
+    const seat = fixedKind === null ? null : await findFixedPlace(tx, fixedKind)
+    const data = {
+      code: 'location_before_fixed',
+      locationId,
+      kind,
+      fixedLocationId: seat?.id ?? null,
+    }
+    if (fixedKind === null || seat === null)
+      return new ORPCError('CONFLICT', {
+        message:
+          'Nothing was saved: this place would take the place of the godown, the dock or the damaged / expiry bin, which are fixed places. Add a new location instead.',
+        data,
+      })
+    const { name: fixedName, job } = FIXED_PLACE_WORDS[fixedKind]
+    const kindWord = KIND_WORDS[kind] ?? kind
+    if (was === undefined)
+      return new ORPCError('CONFLICT', {
+        message: `Nothing was saved: a new ${kindWord} with this id would take the place of ${seat.name}, the distributor's ${fixedName} — ${job} — because its id comes before ${seat.name}'s. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.`,
+        data,
+      })
+    if (was.kind !== kind)
+      return new ORPCError('CONFLICT', {
+        message: `${was.name} cannot become a ${kindWord}: it was made before ${seat.name}, the distributor's ${fixedName}, and would take its place — ${job}. For another ${kindWord}, add a new location.`,
+        data,
+      })
+    return new ORPCError('CONFLICT', {
+      message: `${was.name} cannot be switched on as a ${kindWord}: it was made before ${seat.name}, the distributor's ${fixedName}, and would take its place — ${job}. Leave it switched off and move any pieces out of it with a stock transfer; for another ${kindWord}, add a new location.`,
+      data,
+    })
   }
 
   /** The bin half of `assertPlaceMayChange`: no place leaves or joins the `damaged` kind (ruling 2, V9). */

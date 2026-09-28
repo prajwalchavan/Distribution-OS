@@ -11,6 +11,14 @@
  * Every door is here: the godown login, a manager and the owner, the same request a second time; the write-off
  * and the goods receipt that depend on the bin; and a distributor that has no bin at all, which is answered in
  * words, never with a 500. The database half (the trigger, the correction of 0075) is in `rls.test.ts`.
+ *
+ * The third blind check found the door the second left open (BLOCKER): a place CREATED with a client-chosen id
+ * older than the dock's became "the first active place of its kind" — the dock every service reads — and every
+ * bill packed onto the real dock could then not be loaded, cancelled or moved; the fixed-place rule made the
+ * intruder permanent. No place takes the seat of the godown, the dock or the bin now: not by a new id, not by
+ * being switched on, not by a new kind. Its minors in this lane are here too: another distributor's place id is a
+ * sentence, not a 500; a switched-off place takes no goods; the owner's correction out of the bin carries its
+ * reason.
  */
 import { and, eq, sql } from 'drizzle-orm'
 import { businessDate, uuidv7 } from '@dos/domain'
@@ -27,12 +35,16 @@ import {
   suppliers,
   tenants,
   users,
+  withTenant,
+  type Db,
+  type TenantContext,
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { tenantStorage } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { ProcurementModule } from '../procurement/index.js'
-import { InventoryModule } from './index.js'
+import { damagedBinPlace, dockLocationId, InventoryModule, reservableLocationId } from './index.js'
 
 const url = process.env.DATABASE_URL
 const describeDb = url ? describe : describe.skip
@@ -78,8 +90,22 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
   let bin = ''
   let dock = ''
   let godownB = ''
+  let dockB = ''
   let app: NestFastifyApplication
   let billNo = 0
+
+  const ownerCtx: TenantContext = { tenantId, actorId: ownerId, actorRole: 'owner' }
+  const asOwner = <T>(fn: (tx: Db) => Promise<T>) =>
+    tenantStorage.run(ownerCtx, () => withTenant(db, ownerCtx, fn))
+  /** The three places every service reads, as the services find them. */
+  const fixedAsServicesSeeThem = () =>
+    asOwner(async (tx) => ({
+      godown: await reservableLocationId(tx),
+      dock: await dockLocationId(tx),
+      bin: (await damagedBinPlace(tx)).id,
+    }))
+  /** An id that sorts before every id the bootstrap minted today: what a crafted request or a device set years back sends. */
+  const early = (n: number) => `00000000-0000-7000-8${n.toString(16)}00-0000${run}`
 
   const onHandAt = async (lotId: string, locationId: string): Promise<number> => {
     const [row] = await db
@@ -178,6 +204,7 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
     bin = of(tenantId, 'damaged')
     dock = of(tenantId, 'in_transit')
     godownB = of(tenantB, 'warehouse')
+    dockB = of(tenantB, 'in_transit')
     // Distributor B's bin never held a piece, so the row can go: no switch or update can take it off any more.
     await db.delete(locations).where(eq(locations.id, of(tenantB, 'damaged')))
     app = await bootTestApp([InventoryModule, ProcurementModule])
@@ -435,132 +462,145 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
     expect(await onHandAt(lot, godown)).toBe(28)
   })
 
-  it('a distributor without its bin gets a sentence, never a 500: the godown’s damage write-off and a receipt with damaged pieces are refused with nothing written, and a receipt with nothing for the bin posts', async () => {
-    const lot = await newLot(ownerB, 'NB')
-    const open = await adjust(ownerB, {
+  it('vans and trips ruling 5 (third blind check, BLOCKER): no place takes the seat of the godown, the dock or the bin — a new place whose id comes before theirs is refused for the godown login, a manager and the owner, a second time too; an older place is not switched on or re-kinded into one; the goods on the dock stay the dock’s', async () => {
+    // goods standing on the dock, the way a packed bill leaves them
+    const lot = await newLot(owner, 'R5-E')
+    expect(
+      (await adjust(owner, { lotId: lot, locationId: godown, qtyDelta: 20, reason: 'opening' }))
+        .status,
+    ).toBe(200)
+    const staged = await call(app, store, 'POST', '/inventory/transfers', {
+      idempotencyKey: `to-dock-${run}`,
       lotId: lot,
-      locationId: godownB,
-      qtyDelta: 20,
-      reason: 'opening',
+      fromLocationId: godown,
+      toLocationId: dock,
+      qtyPcs: 6,
     })
-    expect(open.status, JSON.stringify(open.body)).toBe(200)
-    const rows = await ledgerCount(tenantB)
+    expect(staged.status, JSON.stringify(staged.body)).toBe(200)
+    const before = await fixedAsServicesSeeThem()
+    expect(before).toEqual({ godown, dock, bin })
+    const rows = await ledgerCount(tenantId)
 
-    const writeOff = await adjust(storeB, {
-      lotId: lot,
-      locationId: godownB,
-      qtyDelta: -2,
-      reason: 'damage',
-    })
-    expect(writeOff.status).toBe(409)
-    expect(writeOff.body.data?.code).toBe('place_missing')
-    expect(writeOff.body.message).toBe(noBin)
-    expect(await ledgerCount(tenantB)).toBe(rows)
-    expect(await onHandAt(lot, godownB)).toBe(20)
-
-    /** An approved supplier bill of one line, opened at the godown and counted by the godown login. */
-    const receipt = async (damagedPcs: number): Promise<string> => {
-      billNo += 1
-      const billId = uuidv7()
-      const taxable = 1000 * 24
-      const tax = (taxable * 1200) / 10000
-      const bill = await call<{ item: { status: string } }>(
-        app,
-        ownerB,
-        'POST',
-        '/procurement/supplier-invoices',
-        {
-          idempotencyKey: `bill-${String(billNo)}-${run}`,
-          id: billId,
-          supplierId: supplierB,
-          source: 'manual',
-          invoiceNo: `RW/${run}/${String(billNo)}`,
-          invoiceDate: day(0),
-          subtotalPaise: taxable,
-          discountPaise: 0,
-          cgstPaise: tax / 2,
-          sgstPaise: tax / 2,
-          igstPaise: 0,
-          cessPaise: 0,
-          freightPaise: 0,
-          roundOffPaise: 0,
-          totalPaise: taxable + tax,
-          lines: [
-            {
-              id: uuidv7(),
-              lineNo: 1,
-              description: item,
-              variantId,
-              hsnCode: '2202',
-              batchNo: `RW-${String(billNo)}-${run}`,
-              expiryDate: day(150),
-              mrpPaise: 2000,
-              printedQty: 24,
-              printedUnit: 'pcs',
-              qtyPcs: 24,
-              freeQtyPcs: 0,
-              ratePaise: 1000,
-              gstBps: 1200,
-              taxablePaise: taxable,
-              taxPaise: tax,
-              lineTotalPaise: taxable + tax,
-            },
-          ],
-        },
-      )
-      expect(bill.status, JSON.stringify(bill.body)).toBe(200)
-      const grnId = uuidv7()
-      const opened = await call(app, ownerB, 'POST', '/procurement/grns', {
-        idempotencyKey: `open-${grnId}`,
-        id: grnId,
-        supplierInvoiceId: billId,
-        locationId: godownB,
-      })
-      expect(opened.status, JSON.stringify(opened.body)).toBe(200)
-      const [line] = (await db.execute(sql`select id from grn_lines where grn_id = ${grnId}`))
-        .rows as { id: string }[]
-      const counted = await call(app, storeB, 'POST', `/procurement/grns/${grnId}/count`, {
-        idempotencyKey: `count-${grnId}`,
-        lines: [
-          { grnLineId: line?.id ?? '', countedQtyPcs: 24 - damagedPcs, damagedQtyPcs: damagedPcs },
-        ],
-      })
-      expect(counted.status, JSON.stringify(counted.body)).toBe(200)
-      return grnId
-    }
-    const grnStatus = async (id: string) =>
-      (
-        (await db.execute(sql`select status from grns where id = ${id}`)).rows as {
-          status: string
-        }[]
-      )[0]?.status
-
-    const withDamage = await receipt(2)
-    const refused = await call<Refusal>(
-      app,
-      ownerB,
-      'POST',
-      `/procurement/grns/${withDamage}/post`,
+    const seats = [
       {
-        idempotencyKey: `post-${withDamage}`,
+        kind: 'in_transit',
+        words:
+          "Nothing was saved: a new dock with this id would take the place of In transit, the distributor's dock — packed goods wait there for their van — because its id comes before In transit's. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.",
       },
-    )
-    expect(refused.status).toBe(409)
-    expect(refused.body.data?.code).toBe('place_missing')
-    expect(refused.body.message).toBe(noBin)
-    expect(await grnStatus(withDamage)).toBe('reconciled')
-    expect(await ledgerCount(tenantB)).toBe(rows)
+      {
+        kind: 'warehouse',
+        words:
+          "Nothing was saved: a new godown with this id would take the place of Godown, the distributor's godown — orders are held and packed there and goods are received into it — because its id comes before Godown's. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.",
+      },
+      {
+        kind: 'damaged',
+        words:
+          "Nothing was saved: a new damaged / expiry bin with this id would take the place of Damaged / expiry bin, the distributor's damaged / expiry bin — damaged and expired pieces go there and nowhere else — because its id comes before Damaged / expiry bin's. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.",
+      },
+    ]
+    for (const [a, actor] of [store, manager, owner].entries())
+      for (const [s, seat] of seats.entries()) {
+        const id = early(a * 3 + s)
+        for (const attempt of ['first', 'again']) {
+          const res = await upsert(actor, `early-${actor.role}-${seat.kind}`, {
+            id,
+            kind: seat.kind,
+            name: `Early ${seat.kind} ${actor.role} ${run}`,
+          })
+          expect(
+            res.status,
+            `${actor.role} ${seat.kind} ${attempt} ${JSON.stringify(res.body)}`,
+          ).toBe(409)
+          expect(res.body.data?.code).toBe('location_before_fixed')
+          expect(res.body.message).toBe(seat.words)
+        }
+        expect(await placeRow(id)).toBeUndefined()
+      }
 
-    const clean = await receipt(0)
-    const posted = await call<{ item: { status: string } }>(
-      app,
-      ownerB,
-      'POST',
-      `/procurement/grns/${clean}/post`,
-      { idempotencyKey: `post-${clean}` },
+    // switched off it may be saved (it holds no seat), but it is never switched on …
+    const offEarly = early(10)
+    const madeOff = await upsert(owner, 'early-off', {
+      id: offEarly,
+      kind: 'in_transit',
+      name: `Early dock ${run}`,
+      active: false,
+    })
+    expect(madeOff.status, JSON.stringify(madeOff.body)).toBe(200)
+    for (const actor of [store, owner]) {
+      const on = await upsert(actor, `early-on-${actor.role}`, {
+        id: offEarly,
+        kind: 'in_transit',
+        name: `Early dock ${run}`,
+      })
+      expect(on.status, JSON.stringify(on.body)).toBe(409)
+      expect(on.body.data?.code).toBe('location_before_fixed')
+      expect(on.body.message).toBe(
+        `Early dock ${run} cannot be switched on as a dock: it was made before In transit, the distributor's dock, and would take its place — packed goods wait there for their van. Leave it switched off and move any pieces out of it with a stock transfer; for another dock, add a new location.`,
+      )
+    }
+    expect(await placeRow(offEarly)).toMatchObject({ kind: 'in_transit', active: false })
+    // … and an older place of another kind does not become one
+    const earlyVan = early(11)
+    expect(
+      (
+        await upsert(owner, 'early-van', {
+          id: earlyVan,
+          kind: 'vehicle',
+          name: `Early van ${run}`,
+        })
+      ).status,
+    ).toBe(200)
+    const vanToGodown = await upsert(manager, 'early-van-godown', {
+      id: earlyVan,
+      kind: 'warehouse',
+      name: `Early van ${run}`,
+    })
+    expect(vanToGodown.status, JSON.stringify(vanToGodown.body)).toBe(409)
+    expect(vanToGodown.body.data?.code).toBe('location_before_fixed')
+    expect(vanToGodown.body.message).toBe(
+      `Early van ${run} cannot become a godown: it was made before Godown, the distributor's godown, and would take its place — orders are held and packed there and goods are received into it. For another godown, add a new location.`,
     )
-    expect(posted.status, JSON.stringify(posted.body)).toBe(200)
-    expect(posted.body.item.status).toBe('posted')
-    expect(await ledgerCount(tenantB)).toBe(rows + 1)
+    expect(await placeRow(earlyVan)).toMatchObject({ kind: 'vehicle', active: true })
+
+    // a place added today still goes, and takes no seat
+    const later = uuidv7()
+    expect(
+      (await upsert(store, 'later-dock', { id: later, kind: 'in_transit', name: `Dock 2 ${run}` }))
+        .status,
+    ).toBe(200)
+
+    // every service still reads the same three, and the dock still holds its goods
+    expect(await fixedAsServicesSeeThem()).toEqual(before)
+    expect(await onHandAt(lot, dock)).toBe(6)
+    expect(await ledgerCount(tenantId)).toBe(rows)
+  })
+
+  it('third blind check, minor: another distributor’s godown or dock named by id is a sentence, not a 500, and the other distributor’s place is untouched', async () => {
+    // another distributor's godown or dock, named by id: refused in words, the other distributor untouched
+    for (const [actor, id] of [
+      [owner, godownB],
+      [store, dockB],
+    ] as const) {
+      const res = await upsert(actor, `taken-${actor.role}`, {
+        id,
+        kind: 'warehouse',
+        name: `Taken ${actor.role} ${run}`,
+      })
+      expect(res.status, JSON.stringify(res.body)).toBe(409)
+      expect(res.body.data?.code).toBe('location_id_taken')
+      expect(res.body.message).toBe(
+        'Nothing was saved: this location id already belongs to a place you cannot see. Add the place again from the app; a new place gets its own id.',
+      )
+    }
+    expect(await placeRow(godownB)).toMatchObject({
+      kind: 'warehouse',
+      name: 'Godown',
+      active: true,
+    })
+    expect(await placeRow(dockB)).toMatchObject({
+      kind: 'in_transit',
+      name: 'In transit',
+      active: true,
+    })
   })
 })

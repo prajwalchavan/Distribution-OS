@@ -4008,6 +4008,138 @@ describeDb('row level security and ledger guarantees', () => {
     expect(on.map((r) => r.id).sort()).toEqual([godownR5, secondR5, offBin].sort())
   })
 
+  it('vans and trips ruling 5 (third blind check): no place takes the seat of the godown, the dock or the bin at the database — a place whose id comes before theirs is not inserted, switched on or re-kinded into one, by any writer; the fixed place still takes a new name through an upsert; app_rw and app_worker delete no place', async () => {
+    /*
+     * The fixed place of a kind is the first ACTIVE one by id — what every service reads. The trigger looked only at
+     * UPDATE, so app_rw inserted an `in_transit` place with id 00000000-…, which became "the dock", and then switched
+     * the real dock (holding 6 635 pc) off. Now the same function also runs BEFORE INSERT (trigger
+     * `locations_fixed_place_first`) and on a switch-on, a new kind, a new id or a new tenant.
+     */
+    const tenantS = uuidv7()
+    await db.insert(tenants).values({
+      id: tenantS,
+      slug: `seat-${run}`,
+      legalName: `Seats ${run}`,
+      stateCode: '27',
+    })
+    await bootstrapTenant(db, tenantS)
+    const firstOf = async (kind: 'warehouse' | 'damaged' | 'in_transit') =>
+      (
+        await db
+          .select({ id: locations.id })
+          .from(locations)
+          .where(
+            and(
+              eq(locations.tenantId, tenantS),
+              eq(locations.kind, kind),
+              eq(locations.active, true),
+            ),
+          )
+          .orderBy(locations.id)
+          .limit(1)
+      )[0]?.id ?? ''
+    const seats = {
+      warehouse: await firstOf('warehouse'),
+      in_transit: await firstOf('in_transit'),
+      damaged: await firstOf('damaged'),
+    }
+    expect(Object.values(seats).every((id) => id !== '')).toBe(true)
+    const asS =
+      (role: 'owner' | 'manager' | 'warehouse') =>
+      <T>(fn: (tx: Db) => Promise<T>) =>
+        withTenant(db, { tenantId: tenantS, actorId: owner, actorRole: role }, fn)
+    const early = (n: number) => `00000000-0000-7000-8${n.toString(16)}00-0000${run}`
+
+    // a crafted place of each fixed kind: the owner connection, app_rw as the godown login and as the owner, app_worker
+    for (const [n, kind] of (['warehouse', 'in_transit', 'damaged'] as const).entries()) {
+      const row = { id: early(n), tenantId: tenantS, kind, name: `Early ${kind} ${run}` }
+      await rejectsWith(db.insert(locations).values(row), /would take the place of/)
+      await rejectsWith(
+        asS('warehouse')((tx) => tx.insert(locations).values(row)),
+        /would take the place of/,
+      )
+      await rejectsWith(
+        asS('owner')((tx) => tx.insert(locations).values(row)),
+        /would take the place of/,
+      )
+      await rejectsWith(
+        withSystem(db, (tx) => tx.insert(locations).values(row)),
+        /would take the place of/,
+      )
+    }
+    // switched off it may exist, but it is not switched on — nor does an older place become one by a new kind or id
+    await db.insert(locations).values({
+      id: early(10),
+      tenantId: tenantS,
+      kind: 'in_transit',
+      name: `Early off ${run}`,
+      active: false,
+    })
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ active: true })
+        .where(eq(locations.id, early(10))),
+      /would take the place of/,
+    )
+    await db.insert(locations).values({
+      id: early(11),
+      tenantId: tenantS,
+      kind: 'vehicle',
+      name: `Early van ${run}`,
+    })
+    await rejectsWith(
+      asS('manager')((tx) =>
+        tx
+          .update(locations)
+          .set({ kind: 'warehouse' })
+          .where(eq(locations.id, early(11))),
+      ),
+      /would take the place of/,
+    )
+    const later = uuidv7()
+    await db.insert(locations).values({
+      id: later,
+      tenantId: tenantS,
+      kind: 'warehouse',
+      name: `Annex ${run}`,
+    })
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ id: early(12) })
+        .where(eq(locations.id, later)),
+      /would take the place of/,
+    )
+    // the fixed place re-saved the way the API saves it (INSERT … ON CONFLICT DO UPDATE) still takes a new name
+    await asS('warehouse')((tx) =>
+      tx
+        .insert(locations)
+        .values({
+          id: seats.in_transit,
+          tenantId: tenantS,
+          kind: 'in_transit',
+          name: `Dock ${run}`,
+        })
+        .onConflictDoUpdate({ target: locations.id, set: { name: `Dock ${run}` } }),
+    )
+    expect((await firstOf('warehouse')) === seats.warehouse).toBe(true)
+    expect((await firstOf('in_transit')) === seats.in_transit).toBe(true)
+    expect((await firstOf('damaged')) === seats.damaged).toBe(true)
+    // no product door deletes a place, so neither login may: a distributor's fresh bin stays
+    await rejectsWith(
+      asS('owner')((tx) => tx.delete(locations).where(eq(locations.id, seats.damaged))),
+      /permission denied/,
+    )
+    await rejectsWith(
+      withSystem(db, (tx) => tx.delete(locations).where(eq(locations.id, seats.damaged))),
+      /permission denied/,
+    )
+    expect(
+      await db.select({ id: locations.id }).from(locations).where(eq(locations.id, seats.damaged)),
+    ).toHaveLength(1)
+  })
+
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {
     expect(await as('retailer')((tx) => tx.select().from(grns))).toHaveLength(0)
     expect((await as('warehouse')((tx) => tx.select().from(grns))).map((g) => g.id)).toEqual([grnA])

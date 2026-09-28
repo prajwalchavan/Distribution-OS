@@ -130,7 +130,12 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
   const shopId = uuidv7()
   const offBeatShopId = uuidv7()
   const lotId = uuidv7()
-  const locationId = uuidv7()
+  /**
+   * A second godown of the distributor, minted AFTER `bootstrapTenant` in beforeAll: an id made before the
+   * bootstrap's would sort ahead of the distributor's own godown and take its seat, which migration 0075 refuses
+   * (vans and trips ruling 5).
+   */
+  let locationId = ''
   const invoiceId = uuidv7()
   const visitId = uuidv7()
   const variantId = uuidv7()
@@ -251,6 +256,7 @@ describeDb('sync coverage: every module registers its read set (DATABASE_URL)', 
       taxablePaise: 100_000,
       totalPaise: 100_000,
     })
+    locationId = uuidv7()
     await db
       .insert(locations)
       .values({ id: locationId, tenantId, name: `Godown ${run}`, kind: 'warehouse' })

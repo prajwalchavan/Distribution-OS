@@ -39,6 +39,18 @@
 --         switches back on the first place of a kind for a distributor that has places of that kind but none on —
 --         the state the blind check left behind; a distributor that has one on is not touched, no ledger row is
 --         written, and nothing is created.
+--      NO PLACE TAKES A FIXED PLACE'S SEAT (the third blind check's blocker). Because the fixed place IS "the first
+--         active of its kind by id", a place CREATED with a client-chosen id older than the dock's became the dock
+--         every service reads: the bills already packed onto the real dock could then not be loaded, cancelled or
+--         moved, and the rule above made the intruder permanent. The same function now also refuses (constraint
+--         name `locations_fixed_place_first`) a place that would become active of a fixed kind — inserted (trigger
+--         `locations_fixed_place_first`, BEFORE INSERT), switched on, given that kind, a new id or a new tenant —
+--         while the distributor already has an active place of that kind whose id sorts AFTER it. A place added
+--         later (a newer UUIDv7) never sorts first, so only a crafted id, or one minted on a device whose date is
+--         years behind, is refused. An INSERT whose id is already taken is left to the UPDATE its ON CONFLICT runs
+--         (the API's upsert of the fixed place itself still renames it) or to the primary key.
+--      NO LOGIN DELETES A PLACE. No product door deletes a location, and a fixed place that never held a piece had
+--         no foreign key to keep it; DELETE on `locations` is revoked from app_rw and app_worker.
 --
 -- 2. EXPIRED GOODS ARE NEVER SOLD (ruling 3, DOS-261, the availability half of DOS-351). `sellable_stock` now leaves
 --    out every lot whose expiry date is before today's IST business date. Every availability read goes through it —
@@ -91,41 +103,84 @@ ALTER TABLE "locations" ADD CONSTRAINT "locations_bin_never_negative"
   CHECK (kind <> 'damaged' OR NOT negative_allowed);--> statement-breakpoint
 CREATE OR REPLACE FUNCTION dos_location_bin_kind_fixed() RETURNS trigger
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE
+  takes_seat boolean := false;
+  was_id text := NULL;
+  seat_id text;
+  seat_name text;
 BEGIN
-  IF OLD.kind IS DISTINCT FROM NEW.kind AND (OLD.kind = 'damaged' OR NEW.kind = 'damaged') THEN
-    RAISE EXCEPTION USING
-      ERRCODE = 'check_violation',
-      CONSTRAINT = 'locations_bin_kind_fixed',
-      TABLE = 'locations',
-      MESSAGE = format(
-        'location %s is %s and cannot become %s: the damaged / expiry bin stays the bin and no other place becomes one (QA DOS-352)',
-        OLD.id, OLD.kind, NEW.kind);
+  IF TG_OP = 'UPDATE' THEN
+    IF OLD.kind IS DISTINCT FROM NEW.kind AND (OLD.kind = 'damaged' OR NEW.kind = 'damaged') THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'check_violation',
+        CONSTRAINT = 'locations_bin_kind_fixed',
+        TABLE = 'locations',
+        MESSAGE = format(
+          'location %s is %s and cannot become %s: the damaged / expiry bin stays the bin and no other place becomes one (QA DOS-352)',
+          OLD.id, OLD.kind, NEW.kind);
+    END IF;
+    -- The fixed place of its kind is the first ACTIVE one by id (what every service reads). VOLATILE on purpose:
+    -- inside one UPDATE of several rows the check sees the rows the statement already changed.
+    IF OLD.active
+       AND OLD.kind IN ('warehouse', 'damaged', 'in_transit')
+       AND (NOT NEW.active OR NEW.kind IS DISTINCT FROM OLD.kind OR NEW.id IS DISTINCT FROM OLD.id
+            OR NEW.tenant_id IS DISTINCT FROM OLD.tenant_id)
+       AND NOT EXISTS (
+         SELECT 1 FROM locations o
+          WHERE o.tenant_id = OLD.tenant_id AND o.kind = OLD.kind AND o.active AND o.id < OLD.id
+       ) THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'check_violation',
+        CONSTRAINT = 'locations_fixed_place',
+        TABLE = 'locations',
+        MESSAGE = format(
+          'location %s is the distributor''s %s: the godown, the dock and the damaged / expiry bin are fixed places that stay switched on and keep their kind (architect ruling 5 on vans and trips)',
+          OLD.id, OLD.kind);
+    END IF;
+    was_id := OLD.id;
+    takes_seat := NEW.active AND NEW.kind IN ('warehouse', 'damaged', 'in_transit')
+      AND (NOT OLD.active OR NEW.kind IS DISTINCT FROM OLD.kind OR NEW.id IS DISTINCT FROM OLD.id
+           OR NEW.tenant_id IS DISTINCT FROM OLD.tenant_id);
+  ELSE
+    -- INSERT. A row that already has this id is not a new place: an ON CONFLICT DO UPDATE is judged as the
+    -- UPDATE it becomes (the API's upsert of the fixed place itself renames it), a plain INSERT fails on the key.
+    takes_seat := NEW.active AND NEW.kind IN ('warehouse', 'damaged', 'in_transit')
+      AND NOT EXISTS (SELECT 1 FROM locations x WHERE x.id = NEW.id);
   END IF;
-  -- The fixed place of its kind is the first ACTIVE one by id (what every service reads). VOLATILE on purpose:
-  -- inside one UPDATE of several rows the check sees the rows the statement already changed.
-  IF OLD.active
-     AND OLD.kind IN ('warehouse', 'damaged', 'in_transit')
-     AND (NOT NEW.active OR NEW.kind IS DISTINCT FROM OLD.kind)
-     AND NOT EXISTS (
-       SELECT 1 FROM locations o
-        WHERE o.tenant_id = OLD.tenant_id AND o.kind = OLD.kind AND o.active AND o.id < OLD.id
-     ) THEN
-    RAISE EXCEPTION USING
-      ERRCODE = 'check_violation',
-      CONSTRAINT = 'locations_fixed_place',
-      TABLE = 'locations',
-      MESSAGE = format(
-        'location %s is the distributor''s %s: the godown, the dock and the damaged / expiry bin are fixed places that stay switched on and keep their kind (architect ruling 5 on vans and trips)',
-        OLD.id, OLD.kind);
+  IF takes_seat THEN
+    -- the distributor's fixed place of that kind as it stands, this row left out; the new row may not sort first
+    SELECT o.id, o.name INTO seat_id, seat_name
+      FROM locations o
+     WHERE o.tenant_id = NEW.tenant_id AND o.kind = NEW.kind AND o.active
+       AND o.id <> NEW.id AND (was_id IS NULL OR o.id <> was_id)
+     ORDER BY o.id
+     LIMIT 1;
+    IF seat_id IS NOT NULL AND NEW.id < seat_id THEN
+      RAISE EXCEPTION USING
+        ERRCODE = 'check_violation',
+        CONSTRAINT = 'locations_fixed_place_first',
+        TABLE = 'locations',
+        MESSAGE = format(
+          'location %s (%s) would take the place of %s (%s), the distributor''s %s: its id sorts before it, and the godown, the dock and the damaged / expiry bin are fixed places (architect ruling 5 on vans and trips, third blind check)',
+          NEW.id, NEW.name, seat_id, seat_name, NEW.kind);
+    END IF;
   END IF;
   RETURN NEW;
 END;
 $$;--> statement-breakpoint
 DROP TRIGGER IF EXISTS locations_bin_kind_fixed ON locations;--> statement-breakpoint
 CREATE TRIGGER locations_bin_kind_fixed
-  BEFORE UPDATE OF kind, active ON locations
-  FOR EACH ROW WHEN (OLD.kind IS DISTINCT FROM NEW.kind OR (OLD.active AND NOT NEW.active))
+  BEFORE UPDATE OF id, tenant_id, kind, active ON locations
+  FOR EACH ROW WHEN (
+    OLD.kind IS DISTINCT FROM NEW.kind OR OLD.active IS DISTINCT FROM NEW.active
+    OR OLD.id IS DISTINCT FROM NEW.id OR OLD.tenant_id IS DISTINCT FROM NEW.tenant_id)
   EXECUTE FUNCTION dos_location_bin_kind_fixed();--> statement-breakpoint
+DROP TRIGGER IF EXISTS locations_fixed_place_first ON locations;--> statement-breakpoint
+CREATE TRIGGER locations_fixed_place_first
+  BEFORE INSERT ON locations
+  FOR EACH ROW WHEN (NEW.active AND NEW.kind IN ('warehouse', 'damaged', 'in_transit'))
+  EXECUTE FUNCTION dos_location_bin_kind_fixed();--> statement-breakpoint
+REVOKE DELETE ON locations FROM app_rw, app_worker;--> statement-breakpoint
 CREATE OR REPLACE FUNCTION dos_restore_fixed_places(p_tenant text DEFAULT NULL)
 RETURNS bigint
 LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
@@ -281,6 +336,16 @@ BEGIN
    WHERE c.relname = 'locations' AND tg.tgname = 'locations_bin_kind_fixed' AND NOT tg.tgisinternal;
   IF position('active' IN def) = 0 THEN
     RAISE EXCEPTION '0075: the fixed-place guard must fire when a place is switched off; found %', def;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger tg JOIN pg_class c ON c.oid = tg.tgrelid
+     WHERE c.relname = 'locations' AND tg.tgname = 'locations_fixed_place_first' AND NOT tg.tgisinternal
+  ) THEN
+    RAISE EXCEPTION '0075: the guard that keeps a new place out of the godown''s, the dock''s and the bin''s seat is missing';
+  END IF;
+  IF has_table_privilege('app_rw', 'public.locations', 'DELETE')
+     OR has_table_privilege('app_worker', 'public.locations', 'DELETE') THEN
+    RAISE EXCEPTION '0075: app_rw and app_worker must not delete a location';
   END IF;
   SELECT count(*) INTO flagged
     FROM (SELECT tenant_id, kind FROM locations

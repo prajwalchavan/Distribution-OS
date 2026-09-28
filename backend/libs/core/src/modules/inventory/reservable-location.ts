@@ -32,6 +32,9 @@ export async function reservableLocationId(tx: Db): Promise<string> {
  * godown, a claim shelf or a van added later never displaces it. Nobody switches one off or changes its kind
  * (`StockService.upsertLocation`, and migration 0075's trigger `locations_bin_kind_fixed` for every writer):
  * with the bin switched off, a godown's damage write-off stopped reaching any bin and every goods receipt failed.
+ * Nor does any place take its seat: a place whose id sorts before it is not created, switched on or re-kinded into
+ * that kind (0075's `locations_fixed_place_first`, for every writer; `StockService.takesFixedSeat` words it) — a
+ * crafted id once made a new place "the dock", and the bills packed onto the real one had no way off it.
  */
 export const FIXED_PLACE_KINDS = ['warehouse', 'damaged', 'in_transit'] as const
 export type FixedPlaceKind = (typeof FIXED_PLACE_KINDS)[number]
