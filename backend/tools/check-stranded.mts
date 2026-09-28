@@ -12,12 +12,17 @@
  *                            a pack without a bill is no longer loaded)
  *   dispatched-no-trip       an order dispatched whose bill rides no trip that is planned, loading or on the road
  *                            (QA DOS-354 / DOS-355: loaded on a sheet of no trip, or of a trip since cancelled)
+ *   dispatched-off-its-trip  an order dispatched and planned on a trip that has not settled, but counted out on
+ *                            no confirmed load sheet of THAT trip — its pieces went onto another load, or none
+ *                            (QA DOS-354 verify: a sheet takes only its own trip's bills; the trip will not
+ *                            depart with it: check that trip in and load the bill again)
  *   trip-cancelled-loaded    a trip cancelled after its load-out was confirmed, with the bills on that sheet
  *                            (QA DOS-354: a loaded trip is checked in, not cancelled)
  *   pick-edited-after-pack   a packed order line whose recorded pick no longer equals what its pack moved off
  *                            the rack (QA DOS-361: a packed order's pick is not edited)
- *   bill-of-expired-batch    a live bill carrying a batch whose expiry date is before the bill's own date
- *                            (QA DOS-351: expired goods are never billed)
+ *   bill-of-expired-batch    a live bill carrying a batch whose expiry date is before the day the bill was
+ *                            issued (IST) or its own date, whichever is later — a bill dated back to before
+ *                            the expiry still sold expired goods (QA DOS-351: expired goods are never billed)
  *   batch-over-held          a batch at a godown holding more pieces for orders than stand there, with the orders
  *                            that hold them (QA DOS-353: a pick takes only its own held pieces plus free ones; a
  *                            count or a write-off of held pieces leaves the same, and needs the same look)
@@ -85,6 +90,29 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
        order by t.slug, o.order_no`,
   },
   {
+    kind: 'dispatched-off-its-trip',
+    query: sql`
+      select t.slug as tenant, coalesce(o.order_no, o.id) as document,
+             'order is dispatched' ||
+             coalesce(' (bill ' || (select string_agg(coalesce(i.invoice_no, i.id), ', ') from invoices i
+                                     where i.order_id = o.id and i.state not in ('cancelled', 'draft')) || ')', '') ||
+             ' and planned on ' || coalesce(tr.trip_no, tr.id) || ' (' || tr.state::text || '), but no confirmed load sheet of ' ||
+             coalesce(tr.trip_no, tr.id) || ' carries it' ||
+             coalesce('; it was counted out on ' || (select string_agg(coalesce(ls.challan_no, ls.id) ||
+                                                                       coalesce(' (' || other.trip_no || ')', ' (no trip)'), ', ')
+                                                      from load_sheets ls left join trips other on other.id = ls.trip_id
+                                                     where ls.tenant_id = o.tenant_id and ls.status = 'confirmed'
+                                                       and ls.order_ids @> jsonb_build_array(o.id)), '') as detail
+        from sales_orders o join tenants t on t.id = o.tenant_id
+        join deliveries d on d.order_id = o.id and d.outcome is null
+        join trips tr on tr.id = d.trip_id and tr.state in ('planned', 'loading', 'active')
+       where o.state = 'dispatched'
+         and not exists (select 1 from load_sheets ls
+                          where ls.trip_id = tr.id and ls.status = 'confirmed'
+                            and ls.order_ids @> jsonb_build_array(o.id))
+       order by t.slug, o.order_no`,
+  },
+  {
     kind: 'trip-cancelled-loaded',
     query: sql`
       select t.slug as tenant, coalesce(tr.trip_no, tr.id) as document,
@@ -129,11 +157,13 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
     kind: 'bill-of-expired-batch',
     query: sql`
       select t.slug as tenant, coalesce(i.invoice_no, i.id) as document,
-             'dated ' || i.invoice_date || ': ' || (il.qty_pcs + il.free_qty_pcs) || ' pc of ' || il.description ||
+             'dated ' || i.invoice_date || ', issued ' ||
+             coalesce(((i.issued_at at time zone 'Asia/Kolkata')::date)::text, '(not recorded)') || ': ' ||
+             (il.qty_pcs + il.free_qty_pcs) || ' pc of ' || il.description ||
              ' batch ' || coalesce(nullif(il.batch_no, ''), '(none)') || ' expired on ' || il.expiry_date as detail
         from invoices i join invoice_lines il on il.invoice_id = i.id join tenants t on t.id = i.tenant_id
        where i.state not in ('cancelled', 'draft') and il.expiry_date is not null
-         and il.expiry_date < i.invoice_date
+         and il.expiry_date < greatest(i.invoice_date, (i.issued_at at time zone 'Asia/Kolkata')::date)
        order by t.slug, i.invoice_no, il.line_no`,
   },
   {

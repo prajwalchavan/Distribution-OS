@@ -24,9 +24,9 @@
     "docs:readme": "tsx tools/generate-readmes.mts",
     "docs:readme:check": "tsx tools/generate-readmes.mts --check",
     "auth:keygen": "tsx tools/auth-keygen.mts",
+    "check:stranded": "tsx tools/check-stranded.mts",
     "smoke": "tsx tools/smoke-endpoints.mts",
     "check:stock-cancels": "tsx tools/check-stock-cancels.mts",
-    "check:stranded": "tsx tools/check-stranded.mts",
     "import:legacy": "pnpm --filter @dos/tools import:legacy",
     "clean": "turbo run clean && rm -rf node_modules"
   },
