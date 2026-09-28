@@ -13,6 +13,7 @@ import {
   type ProcedureExample,
 } from '../docs/examples.js'
 import { pickContract, SERVICE_INFO, servicePort, type ServiceDefinition } from './define.js'
+import { docsUseRows } from './docs-gate.js'
 
 const AUTH_PORT = 3000
 
@@ -24,6 +25,9 @@ const AUTH_PORT = 3000
  * Request examples are real rows of the seeded demo tenant (`docs/examples.ts`), so "Try it out →
  * Execute" in Swagger UI runs against data that exists. The document is cached per process;
  * `GET /docs/openapi.json?fresh=1` rebuilds it after a re-seed.
+ *
+ * In production the rows are a distributor's, so the examples come from the schemas alone and
+ * `fresh` is ignored (`docs-gate.ts`, DOS-290 and DOS-293).
  */
 @Controller('docs')
 export class DocsController {
@@ -36,12 +40,12 @@ export class DocsController {
   ) {
     // Not a registered provider: the docs controllers are the only consumers, and the cache lives
     // here so a service without a database still serves the document from the schemas alone.
-    this.examples = new DocExamplesService(db)
+    this.examples = new DocExamplesService(docsUseRows() ? db : null)
   }
 
   @Get('openapi.json')
   openapi(@Query('fresh') fresh?: string): Promise<unknown> {
-    if (isTruthy(fresh)) this.spec = this.generate(true)
+    if (isTruthy(fresh) && docsUseRows()) this.spec = this.generate(true)
     else this.spec ??= this.generate(false)
     return this.spec
   }
@@ -58,7 +62,7 @@ export class DocsController {
       info: {
         title: `${this.service.title} — Distribution OS`,
         version: process.env.APP_VERSION ?? '0.0.0',
-        description: `${describeAuth(this.service)}\n\n---\n\n${describeExamples(examples)}`,
+        description: describeDocument(this.service, examples),
       },
       servers: [{ url: `http://localhost:${servicePort(this.service)}` }],
       components: {
@@ -163,6 +167,13 @@ function applyBodyExample(operation: OpenApiOperation, example: ProcedureExample
   if (!example.body) return
   const media = operation.requestBody?.content?.['application/json']
   if (media) media.example = example.body
+}
+
+/** Production names no demo account and no seed: neither exists there, and the text is public. */
+function describeDocument(service: ServiceDefinition, examples: ExampleContext): string {
+  if (!docsUseRows())
+    return `Roles served by this service: ${service.roles.join(', ')}.\n\nThe examples come from the schemas alone.`
+  return `${describeAuth(service)}\n\n---\n\n${describeExamples(examples)}`
 }
 
 function describeAuth(service: ServiceDefinition): string {
