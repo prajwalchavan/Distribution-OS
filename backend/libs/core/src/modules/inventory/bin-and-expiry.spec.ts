@@ -150,14 +150,12 @@ describeDb('inventory: the damaged bin and what is available (DATABASE_URL)', ()
     })
 
   beforeAll(async () => {
-    await db
-      .insert(tenants)
-      .values({
-        id: tenantId,
-        slug: `bin-${run}`,
-        legalName: 'Bin and expiry test',
-        stateCode: '27',
-      })
+    await db.insert(tenants).values({
+      id: tenantId,
+      slug: `bin-${run}`,
+      legalName: 'Bin and expiry test',
+      stateCode: '27',
+    })
     await db.insert(users).values([
       { id: ownerId, phone: `+91904${run}1`, name: 'Owner' },
       { id: managerId, phone: `+91904${run}2`, name: 'Manager' },

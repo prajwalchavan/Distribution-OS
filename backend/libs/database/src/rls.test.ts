@@ -3714,15 +3714,13 @@ describeDb('row level security and ledger guarantees', () => {
       mrpPaise: 4000,
     })
     // a new row that claims the flag at the bin loses it, and so cannot start below zero
-    await db
-      .insert(stockBalances)
-      .values({
-        tenantId: tenantA,
-        lotId,
-        locationId: bin?.id ?? '',
-        onHand: 5,
-        negativeAllowed: true,
-      })
+    await db.insert(stockBalances).values({
+      tenantId: tenantA,
+      lotId,
+      locationId: bin?.id ?? '',
+      onHand: 5,
+      negativeAllowed: true,
+    })
     const flagAt = async (locationId: string) =>
       (
         await db
