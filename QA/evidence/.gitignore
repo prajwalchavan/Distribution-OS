@@ -7,3 +7,8 @@ p7/api.log
 p7/*-setup.wire.jsonl
 p8/openapi-*.json
 p10/openapi-*.json
+# Home screens: the reports are kept, the screenshots and page texts stay on disk (a few are added by hand).
+ux-homes/**/*.png
+ux-homes/**/*.txt
+ux-homes/**/*.jsonl
+ux-homes/**/*.log
