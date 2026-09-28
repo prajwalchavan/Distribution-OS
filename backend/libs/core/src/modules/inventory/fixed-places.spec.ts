@@ -441,6 +441,25 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
     }
     expect(await onHandAt(lot, bin)).toBe(10)
 
+    // "with a reason" (ruling 2): the owner's correction out of the bin with no written reason is refused, twice
+    const rowsBefore = await ledgerCount(tenantId)
+    for (const note of [undefined, '   ']) {
+      const bare = await adjust(owner, {
+        lotId: lot,
+        locationId: bin,
+        qtyDelta: -10,
+        reason: 'adjustment',
+        ...(note === undefined ? {} : { note }),
+      })
+      expect(bare.status, JSON.stringify(bare.body)).toBe(400)
+      expect(bare.body.data?.code).toBe('bin_correction_needs_note')
+      expect(bare.body.message).toBe(
+        'Write why these pieces leave Damaged / expiry bin without a write-off — for example "binned by mistake, carton is sound" — and save again: the owner\'s correction out of the bin always carries its reason.',
+      )
+    }
+    expect(await ledgerCount(tenantId)).toBe(rowsBefore)
+    expect(await onHandAt(lot, bin)).toBe(10)
+
     // the owner's correction: out of the bin, back onto the godown's books, who and why on both rows
     const out = await adjust(owner, {
       lotId: lot,

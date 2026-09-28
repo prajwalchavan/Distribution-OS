@@ -622,6 +622,22 @@ export class StockService {
               reason: input.reason,
             },
           })
+        // ...and "with a reason" (ruling 2): the owner's correction out of the bin says why in words, which the ledger
+        // row keeps as its note — the reason code alone ("adjustment") does not say that the carton was sound.
+        if (
+          place.kind === 'damaged' &&
+          input.qtyDelta < 0 &&
+          !TO_THE_BIN.has(input.reason) &&
+          (input.note ?? '').trim() === ''
+        )
+          throw new ORPCError('BAD_REQUEST', {
+            message: `Write why these pieces leave ${place.name} without a write-off — for example "binned by mistake, carton is sound" — and save again: the owner's correction out of the bin always carries its reason.`,
+            data: {
+              code: 'bin_correction_needs_note',
+              locationId: input.locationId,
+              reason: input.reason,
+            },
+          })
         if (input.qtyDelta < 0)
           await this.assertNotHeldOnDock(tx, input.locationId, input.lotId, -input.qtyDelta)
         const note = input.note ? { note: input.note } : {}
