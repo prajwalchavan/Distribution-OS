@@ -593,6 +593,17 @@ export const strings = {
   'm7d.action': 'Take it off',
   'm7d.done':
     '{bill} is off the trip and back on the planning board. If its goods can never be sent, open it under Billing › Bills issued and press “Could not send it”.',
+  /* QA DOS-354: a loaded trip that has not left is checked in, never cancelled. */
+  'm7c.title': '{trip} is loaded',
+  'm7c.body':
+    'The godown has counted this trip out onto the van, so its bills do not come off it here. Check the vehicle in: its bills come back undelivered, the godown counts their pieces off the van onto the dock, and they can be planned on another trip.',
+  'm7c.action': 'Check the vehicle in',
+  'm7c.dialogTitle': 'Check {trip} in',
+  'm7c.dialogBody':
+    'Nothing on {trip} has been delivered. Its loaded bills come back as undelivered and wait on the dock for their next trip; a bill that was never loaded comes off the trip and goes back on the planning board.',
+  'm7c.doneTitle': '{trip} checked in',
+  'm7c.done':
+    'Its bills are back on the planning board. Settle it under Money › Day-end once the godown has counted the van off.',
   /* DOS-233: a trip whose van also carries stock to sell at shops with no order. */
   'm7t.vanSales': 'What the van does',
   'm7t.billsOnly': 'Deliver bills',

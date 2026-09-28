@@ -42,6 +42,12 @@
  * be counted out, and the trip carrying it could never depart (`bill_not_loaded`): two shops' goods sat on the
  * van overnight. The trip's panel now lists the bills planned on it; the owner or the manager taps one to take
  * it off (`delivery.trips.dropBill`) with a reason, and it goes back on the planning board.
+ *
+ * A LOADED TRIP IS CHECKED IN, NOT CANCELLED (QA DOS-354, architect ruling of 2026-09-28). Once the godown has
+ * counted the trip out (`loadConfirmedAt`), its bills are on the van and taking one off can only be refused, so
+ * the panel offers the check-in instead (`delivery.trips.return`, `loading → closing`): the bills come back
+ * undelivered, the godown counts their pieces onto the dock, and the desk settles the trip on Day-end. The
+ * choice is `standingTripNext` (src/groups/manager/lib/trip-reach.ts), a pure function of the trip's detail.
  */
 import type { Delivery, PlanningBill, Trip } from '@dos/contracts'
 import { newId } from '@dos/api-client'
@@ -85,6 +91,7 @@ import {
   type TripPlan,
 } from '../../../src/groups/manager/lib/trip-plan'
 import {
+  standingTripNext,
   TRIP_TAKES_A_LATE_BILL,
   tripReach,
   undeliveredNext,
@@ -127,6 +134,7 @@ export default function DeskTrips(): React.JSX.Element {
   const mayReadUndelivered = can('delivery.deliveries.list')
   const mayCameBack = can('delivery.deliveries.cameBack')
   const mayDrop = can('delivery.trips.dropBill')
+  const mayCheckIn = can('delivery.trips.return')
 
   const [panel, setPanel] = useState<OpenPanel>(null)
   const [date, setDate] = useState(today)
@@ -208,6 +216,18 @@ export default function DeskTrips(): React.JSX.Element {
     stop.deliveries
       .filter((d) => d.outcome === null)
       .map((d) => ({ ...d, retailerName: stop.retailerName })),
+  )
+  /** QA DOS-354: a loaded trip that has not left is checked in; before its load-out, bills come off it. */
+  const standing =
+    openTrip.data === undefined
+      ? null
+      : standingTripNext(openTrip.data.item.state, openTrip.data.item.loadConfirmedAt)
+  const [checkingIn, setCheckingIn] = useState(false)
+  const [checkedIn, setCheckedIn] = useState<string | null>(null)
+  const checkIn = useMutation(
+    (input: { tripId: string }, meta) =>
+      api.api.delivery.trips.return({ id: input.tripId, idempotencyKey: meta.idempotencyKey }),
+    { invalidates: [['trips'], ['deliveries']] },
   )
   const [dropping, setDropping] = useState<(typeof plannedBills)[number] | null>(null)
   const [dropReason, setDropReason] = useState('')
@@ -463,6 +483,27 @@ export default function DeskTrips(): React.JSX.Element {
       }
     >
       <Stack gap={6}>
+        {checkedIn === null ? null : (
+          <Panel
+            title={t('m7c.doneTitle', { trip: checkedIn })}
+            actions={
+              <Button
+                label={t('m7n.dismiss')}
+                variant="ghost"
+                fullWidth={false}
+                onPress={() => {
+                  setCheckedIn(null)
+                }}
+                testID="trip-check-in-dismiss"
+              />
+            }
+            testID="trip-check-in-done"
+          >
+            <Txt field="body" desk="body">
+              {t('m7c.done')}
+            </Txt>
+          </Panel>
+        )}
         {cameBackDone === null ? null : (
           <Panel
             title={t('m7n.done', { bill: cameBackDone.bill })}
@@ -733,6 +774,28 @@ export default function DeskTrips(): React.JSX.Element {
           </Panel>
         ) : null}
 
+        {panel?.kind === 'add' && standing === 'checkIn' ? (
+          <Panel title={t('m7c.title', { trip: tripName(addTrip) })} testID="trip-check-in-panel">
+            <Stack gap={3}>
+              <Txt field="body" desk="body" color={colors.text.secondary}>
+                {t('m7c.body')}
+              </Txt>
+              {mayCheckIn ? (
+                <Button
+                  label={t('m7c.action')}
+                  variant="primary"
+                  fullWidth={false}
+                  onPress={() => {
+                    checkIn.reset()
+                    setCheckingIn(true)
+                  }}
+                  testID="trip-check-in"
+                />
+              ) : null}
+            </Stack>
+          </Panel>
+        ) : null}
+
         {panel?.kind === 'add' && (plannedBills.length > 0 || dropped !== null) ? (
           <Panel
             title={t('m7d.title', { trip: tripName(addTrip) })}
@@ -745,7 +808,7 @@ export default function DeskTrips(): React.JSX.Element {
                   {t('m7d.done', { bill: dropped })}
                 </Txt>
               )}
-              {mayDrop ? (
+              {mayDrop && standing !== 'checkIn' ? (
                 <Txt field="label" desk="meta" color={colors.text.secondary}>
                   {t('m7d.body')}
                 </Txt>
@@ -758,7 +821,7 @@ export default function DeskTrips(): React.JSX.Element {
                     primary={bill.retailerName}
                     secondary={bill.invoiceNo ?? bill.invoiceId.slice(0, 8)}
                     trailingMoney={bill.invoiceTotalPaise}
-                    {...(mayDrop
+                    {...(mayDrop && standing !== 'checkIn'
                       ? {
                           onPress: () => {
                             dropBill.reset()
@@ -861,6 +924,38 @@ export default function DeskTrips(): React.JSX.Element {
           if (stopPlan !== null) void addStop.mutateAsync(stopPlan).then(planned, stayOpen)
         }}
         testID="trip-add-dialog"
+      />
+
+      <Dialog
+        open={checkingIn && panel?.kind === 'add'}
+        onClose={() => {
+          setCheckingIn(false)
+        }}
+        title={t('m7c.dialogTitle', { trip: tripName(addTrip) })}
+        body={
+          <Stack gap={3}>
+            <Txt field="body" desk="body">
+              {t('m7c.dialogBody', { trip: tripName(addTrip) })}
+            </Txt>
+            <Refusal
+              of={[checkIn]}
+              scope={panel?.kind === 'add' ? panel.tripId : null}
+              testID="trip-check-in-refusal"
+            />
+          </Stack>
+        }
+        confirmLabel={t('m7c.action')}
+        busy={checkIn.status === 'pending'}
+        onConfirm={() => {
+          if (panel?.kind !== 'add') return
+          const name = tripName(addTrip)
+          void checkIn.mutateAsync({ tripId: panel.tripId }).then(() => {
+            setCheckingIn(false)
+            setPanel(null)
+            setCheckedIn(name)
+          }, stayOpen)
+        }}
+        testID="trip-check-in-dialog"
       />
 
       <Dialog
