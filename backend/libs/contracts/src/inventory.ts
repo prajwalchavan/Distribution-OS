@@ -238,6 +238,11 @@ export const BalanceSnapshotSchema = z.object({
 })
 export type BalanceSnapshot = z.infer<typeof BalanceSnapshotSchema>
 
+/**
+ * A hand adjustment. At a VEHICLE location it is refused 409 `vehicle_on_trip` while a trip of that vehicle is
+ * loading, on the road, or checked in and not yet settled (QA DOS-358): the van's pieces belong to its bills
+ * until the trip is settled, and the godown counts it off on the van check-in.
+ */
 export const AdjustStockInput = MutationBase.extend({
   lotId: IdSchema,
   locationId: IdSchema,
@@ -253,6 +258,11 @@ export const AdjustStockOutput = z.object({
   balance: BalanceSnapshotSchema,
 })
 
+/**
+ * A hand move between two places. Out of a VEHICLE it is refused 409 `vehicle_on_trip` while a trip of that
+ * vehicle is loading, on the road, or checked in and not yet settled (QA DOS-358): a checked-in van is counted
+ * off on the van check-in (`delivery.trips.unload`), which puts a returned bill's pieces on the dock for it.
+ */
 export const TransferStockInput = MutationBase.extend({
   lotId: IdSchema,
   fromLocationId: IdSchema,
@@ -340,6 +350,8 @@ const CycleCountItemOutput = z.object({ item: CycleCountDetailSchema })
  * Opens a count: one line per lot with a balance at the location (or only `lotIds`), `expectedPcs`
  * snapshotted from `stock_balances` at that moment and refreshed when the line is counted. Lines are
  * server-created — the client cannot know the lots in advance — under the count's client-generated id.
+ * A vehicle is not counted by hand while a trip of it is loading, on the road or not yet settled (409
+ * `vehicle_on_trip`, QA DOS-358); the same refusal stops the posting of a count opened before it left.
  */
 export const OpenCycleCountInput = MutationBase.extend({
   id: IdSchema,

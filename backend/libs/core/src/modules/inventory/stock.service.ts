@@ -376,6 +376,9 @@ export class StockService {
     const db = requireDb(this.db)
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // QA DOS-358: a van's books are not changed by hand until its trip is settled — not by a damage
+        // adjustment while it is on the road, not by an owner's correction while it is checked in.
+        await this.inventory.assertVehicleNotOut(tx, input.locationId, { untilSettled: true })
         await this.requireLot(tx, input.lotId)
         if (input.qtyDelta < 0)
           await this.assertNotHeldOnDock(tx, input.locationId, input.lotId, -input.qtyDelta)
@@ -406,8 +409,8 @@ export class StockService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
-        // QA DOS-358: nothing comes off a van by hand while its trip is out (loading or on the road).
-        await this.inventory.assertVehicleNotOut(tx, input.fromLocationId)
+        // QA DOS-358: nothing comes off a van by hand until its trip is settled (the van check-in counts it off).
+        await this.inventory.assertVehicleNotOut(tx, input.fromLocationId, { untilSettled: true })
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [
           {

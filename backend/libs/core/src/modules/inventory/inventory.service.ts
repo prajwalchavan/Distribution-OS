@@ -222,17 +222,22 @@ export interface ReservationListRow {
 
 const balanceKey = (lotId: string, locationId: string) => `${lotId}:${locationId}`
 
+/** The states of a trip in whose hands a vehicle's pieces are (QA DOS-358). */
+export type VehicleTripState = 'loading' | 'active' | 'closing'
+
 /**
- * The trip a vehicle location is out on — being loaded or on the road — or null (QA DOS-358). Supplied by
- * delivery at start-up (`InventoryService.registerVehicleTrip`); runs inside the caller's transaction.
+ * The trip a vehicle location is in the hands of — among `states`: being loaded, on the road, or checked in and
+ * not yet settled — or null (QA DOS-358). Supplied by delivery at start-up (`InventoryService.registerVehicleTrip`);
+ * runs inside the caller's transaction.
  */
 export type VehicleTripLookup = (
   tx: Db,
   locationId: string,
+  states: readonly VehicleTripState[],
 ) => Promise<{
   tripId: string
   tripNo: string | null
-  state: 'loading' | 'active'
+  state: VehicleTripState
   /** The registration plate, as the godown names the van. */
   vehicle: string | null
 } | null>
@@ -253,16 +258,35 @@ export class InventoryService {
   /**
    * A VAN IS NOT UNLOADED BY HAND WHILE ITS TRIP IS OUT (QA DOS-358, architect ruling 8 of 2026-09-28). The pieces
    * on a vehicle whose trip is being loaded or is on the road belong to that trip's bills and its van sales;
-   * they come off at the door or at the trip's check-in, never by a hand transfer or a godown count — otherwise
-   * the bill is undeliverable ("Only 0 pc … in the vehicle") and its goods are sold again as free stock. 409
-   * `vehicle_on_trip`, naming the vehicle and the trip. A location that is not a vehicle is never refused here.
+   * they come off at the door or at the trip's check-in, never by a hand transfer, a stock adjustment (either way,
+   * `damage` included) or a cycle count — otherwise the bill is undeliverable ("Only 22 pc … in the vehicle") and
+   * its goods are sold again as free stock. 409 `vehicle_on_trip`, naming the vehicle and the trip. A location
+   * that is not a vehicle is never refused here.
+   *
+   * `untilSettled` (the hand transfer, the adjustment, the count) keeps the van closed to hand changes after the
+   * check-in too, until the trip is settled: a checked-in van is counted off through the godown's van check-in
+   * (`delivery.trips.unload`), which puts a came-back bill's pieces on the dock FOR it; a hand transfer made them
+   * free godown stock and the bill's next load was refused `dock_short`. The van check-in itself passes without
+   * it — it is that count.
    */
-  async assertVehicleNotOut(tx: Db, locationId: string): Promise<void> {
-    const out = await this.vehicleTrip(tx, locationId)
+  async assertVehicleNotOut(
+    tx: Db,
+    locationId: string,
+    opts: { untilSettled?: boolean } = {},
+  ): Promise<void> {
+    const out = await this.vehicleTrip(
+      tx,
+      locationId,
+      opts.untilSettled === true ? ['loading', 'active', 'closing'] : ['loading', 'active'],
+    )
     if (out === null) return
+    const van = out.vehicle ?? 'This vehicle'
     const trip = out.tripNo ?? 'its trip'
     throw new ORPCError('CONFLICT', {
-      message: `${out.vehicle ?? 'This vehicle'} is on trip ${trip}, which ${out.state === 'active' ? 'is out on the road' : 'is being loaded'}: nothing comes off the van by hand until that trip is checked in. Check the trip in first; the godown then counts the van off.`,
+      message:
+        out.state === 'closing'
+          ? `${van} is on trip ${trip}, which has been checked in and is not settled yet: the godown counts the van off on Van check-in, which puts a returned bill's pieces on the dock for it. Nothing on the van is moved, adjusted or counted by hand until that trip is settled.`
+          : `${van} is on trip ${trip}, which ${out.state === 'active' ? 'is out on the road' : 'is being loaded'}: nothing on the van is moved, adjusted or counted by hand until that trip is checked in. Check the trip in first; the godown then counts the van off.`,
       data: { code: 'vehicle_on_trip', tripId: out.tripId, tripState: out.state },
     })
   }

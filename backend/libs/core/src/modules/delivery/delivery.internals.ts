@@ -407,20 +407,24 @@ export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> 
 }
 
 /**
- * The trip a vehicle LOCATION is out on — `loading` or `active` — with the plate, or null (QA DOS-358). Delivery
- * hands it to `InventoryService.registerVehicleTrip` at start-up, so a hand transfer out of the van and the
- * godown's van count (`trips.unload`) are both refused while the trip is out; inventory never reads `trips`.
- * Runs as `system` for the reason `ridingTrips` does: the godown's own RLS may not see every trip row.
+ * The trip a vehicle LOCATION is in the hands of — among `states` (`loading`, `active`, `closing`) — with the
+ * plate, or null (QA DOS-358). Delivery hands it to `InventoryService.registerVehicleTrip` at start-up, so a hand
+ * transfer, adjustment or count at the van and the godown's van count (`trips.unload`) are refused while the trip
+ * holds the van; inventory never reads `trips`. The trip on the road is named first, then the one loading, then
+ * the one checked in. Runs as `system` for the reason `ridingTrips` does: the godown's own RLS may not see every
+ * trip row.
  */
 export async function vehicleTripOut(
   tx: Db,
   locationId: string,
+  states: readonly ('loading' | 'active' | 'closing')[],
 ): Promise<{
   tripId: string
   tripNo: string | null
-  state: 'loading' | 'active'
+  state: 'loading' | 'active' | 'closing'
   vehicle: string | null
 } | null> {
+  if (states.length === 0) return null
   const { tenantId } = currentTenant()
   const [row] = await asSystemRole(tx, () =>
     tx
@@ -436,13 +440,18 @@ export async function vehicleTripOut(
         and(
           eq(trips.tenantId, tenantId),
           eq(vehicles.locationId, locationId),
-          inArray(trips.state, ['loading', 'active']),
+          inArray(trips.state, [...states]),
         ),
       )
-      .orderBy(sql`(${trips.state} = 'active') desc`, asc(trips.id))
+      .orderBy(
+        sql`(${trips.state} = 'active') desc`,
+        sql`(${trips.state} = 'loading') desc`,
+        asc(trips.id),
+      )
       .limit(1),
   )
-  if (!row || (row.state !== 'loading' && row.state !== 'active')) return null
+  if (!row || (row.state !== 'loading' && row.state !== 'active' && row.state !== 'closing'))
+    return null
   return { tripId: row.tripId, tripNo: row.tripNo, state: row.state, vehicle: row.vehicle }
 }
 

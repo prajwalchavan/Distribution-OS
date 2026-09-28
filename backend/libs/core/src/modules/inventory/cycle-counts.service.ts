@@ -87,6 +87,8 @@ export class CycleCountsService {
           .limit(1)
         if (!location)
           throw new ORPCError('NOT_FOUND', { message: `location ${input.locationId} not found` })
+        // QA DOS-358: a van is not counted by hand while a trip of it is loading, out or not yet settled.
+        await this.inventory.assertVehicleNotOut(tx, input.locationId, { untilSettled: true })
         const [clash] = await tx
           .select({ id: cycleCounts.id })
           .from(cycleCounts)
@@ -232,6 +234,9 @@ export class CycleCountsService {
           throw new ORPCError('CONFLICT', {
             message: `cycle count ${row.id} is ${row.status}; every line must be counted before posting`,
           })
+        // QA DOS-358: a count opened before the trip left is not posted while it is out (22 where 24 were
+        // loaded made a bill undeliverable at the door); nothing is written, the count stays `counted`.
+        await this.inventory.assertVehicleNotOut(tx, row.locationId, { untilSettled: true })
         const lines = await this.lines(tx, row.id)
         const entries: LedgerEntryInput[] = lines
           .filter((l) => l.countedQty !== null && l.countedQty - l.expectedQty !== 0)
