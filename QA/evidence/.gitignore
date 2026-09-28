@@ -2,3 +2,8 @@
 p12/openapi/
 p12/vertical-all.json
 p16/openapi-*.json
+p7/openapi-*.json
+p7/api.log
+p7/*-setup.wire.jsonl
+p8/openapi-*.json
+p10/openapi-*.json

@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "value": {
+    "items": [
+      {
+        "schemeId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+        "schemeName": "QA P7 Sunbake Glucose 110g 5% (company, claimable)",
+        "brandId": "a4ebffdb-e802-75e9-9614-d605563a9e65",
+        "brandName": "Sunbake",
+        "fundingSource": "company",
+        "rewardKind": "line_pct",
+        "qtyPcs": 0,
+        "amountPaise": 27180,
+        "invoiceCount": 1
+      }
+    ],
+    "nextCursor": null,
+    "totals": {
+      "amountPaise": 27180,
+      "qtyPcs": 0,
+      "companyFundedPaise": 27180,
+      "distributorFundedPaise": 0
+    }
+  }
+}

@@ -1,0 +1,2236 @@
+[
+  {
+    "id": "S4-setup",
+    "title": "Shops, a scheme shop, orders, bills and one trip",
+    "at": "2026-09-28T02:11:49.437Z",
+    "steps": [
+      {
+        "text": "schemes for RT4",
+        "data": {
+          "freeGoods": "ok",
+          "pct": "ok"
+        }
+      },
+      {
+        "text": "bills",
+        "data": {
+          "RT1": "INV/9026 59500",
+          "RT2": "INV/9027 59500",
+          "RT3": "INV/9028 52900",
+          "RT4": "INV/9029 57500",
+          "RT5": "INV/9030 59500",
+          "RT6": "INV/9031 59500",
+          "RT7": "INV/9032 59500",
+          "RT8": "INV/9033 59500",
+          "RT9": "INV/9034 59500",
+          "RT10": "INV/9035 59500"
+        }
+      },
+      {
+        "text": "RT4 bill lines (scheme)",
+        "data": [
+          {
+            "n": "Sunbake Glucose 55 g",
+            "qty": 24,
+            "free": 4,
+            "rate": 744,
+            "disc": 0,
+            "total": 21070,
+            "rules": [
+              "scheme"
+            ]
+          },
+          {
+            "n": "Neelam Sandal Soap 100 g",
+            "qty": 12,
+            "free": 0,
+            "rate": 2861,
+            "disc": 3433,
+            "total": 36461,
+            "rules": [
+              "scheme"
+            ]
+          }
+        ]
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S4-00-setup",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R1",
+    "title": "Full return at the door: the shop refuses everything (delivered 0, all returned, saleable)",
+    "at": "2026-09-28T02:11:55.122Z",
+    "steps": [
+      {
+        "text": "credit note(s)",
+        "data": []
+      },
+      {
+        "text": "bill after the door",
+        "data": {
+          "invoice_no": "INV/9030",
+          "state": "issued",
+          "total": 59500,
+          "open": 59500
+        }
+      },
+      {
+        "text": "stock moves of the delivery and its note",
+        "data": []
+      }
+    ],
+    "figures": [
+      {
+        "label": "after the door",
+        "shops": {
+          "R-9058": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 59500,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 59500,
+              "arJournal": 59500,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "delivery recorded",
+        "ok": true,
+        "detail": "failed cn -"
+      },
+      {
+        "name": "screens agree with SQL and AR",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "CN = the whole bill incl. GST; bill closed; shop owes nothing",
+        "ok": false,
+        "detail": "[]"
+      }
+    ],
+    "recon": {
+      "label": "S4-R1",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R2",
+    "title": "Part return at the door: 6 of 24 Glucose back, saleable",
+    "at": "2026-09-28T02:11:57.986Z",
+    "steps": [
+      {
+        "text": "credit note(s)",
+        "data": [
+          {
+            "id": "01a0e5c8-81f2-738b-b9b9-700d21e4a6f9",
+            "credit_note_no": "CN/9003",
+            "reason": "return_saleable",
+            "state": "issued",
+            "taxable_paise": 4464,
+            "tax": 804,
+            "cess_paise": 0,
+            "round_off_paise": 32,
+            "total_paise": 5300
+          }
+        ]
+      },
+      {
+        "text": "CN CN/9003 lines",
+        "data": [
+          {
+            "invoice_line_id": "01a0e5c8-66ab-7389-b793-708f395d8a94",
+            "qty_pcs": 6,
+            "saleable": true,
+            "rate_paise": 744,
+            "taxable_paise": 4464,
+            "tax_paise": 804,
+            "line_total_paise": 5268
+          }
+        ]
+      },
+      {
+        "text": "bill after the door",
+        "data": {
+          "invoice_no": "INV/9026",
+          "state": "partially_paid",
+          "total": 59500,
+          "open": 54200
+        }
+      },
+      {
+        "text": "stock moves of the delivery and its note",
+        "data": [
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_saleable",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "2c7b4801-3f88-77d1-8a25-7e903891f265",
+            "qty_delta": 6,
+            "where": "van MH-05-EF-9012"
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after the door",
+        "shops": {
+          "R-9054": {
+            "owner": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9945800,
+              "outstanding": 54200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9945800,
+              "outstanding": 54200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9945800,
+              "outstanding": 54200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "sql": {
+              "outstanding": 54200,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 1,
+              "net": 54200,
+              "arJournal": 54200,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "delivery recorded",
+        "ok": true,
+        "detail": "partial cn 01a0e5c8-81f2-738b-b9b9-700d21e4a6f9"
+      },
+      {
+        "name": "screens agree with SQL and AR",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "CN \u2248 6/24 of the Glucose line incl. GST (\u00b1 rounding)",
+        "ok": true,
+        "detail": "5300 vs 5268"
+      }
+    ],
+    "recon": {
+      "label": "S4-R2",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R3",
+    "title": "Wrong item at the door: 2 Cola sent back as wrong item, saleable",
+    "at": "2026-09-28T02:12:00.853Z",
+    "steps": [
+      {
+        "text": "credit note(s)",
+        "data": [
+          {
+            "id": "01a0e5c8-8d2c-71bb-b7d8-379468d2c9a3",
+            "credit_note_no": "CN/9004",
+            "reason": "return_saleable",
+            "state": "issued",
+            "taxable_paise": 4572,
+            "tax": 1280,
+            "cess_paise": 549,
+            "round_off_paise": -1,
+            "total_paise": 6400
+          }
+        ]
+      },
+      {
+        "text": "CN CN/9004 lines",
+        "data": [
+          {
+            "invoice_line_id": "01a0e5c8-6724-7618-b919-afa01b9831cc",
+            "qty_pcs": 2,
+            "saleable": true,
+            "rate_paise": 2286,
+            "taxable_paise": 4572,
+            "tax_paise": 1829,
+            "line_total_paise": 6401
+          }
+        ]
+      },
+      {
+        "text": "bill after the door",
+        "data": {
+          "invoice_no": "INV/9027",
+          "state": "partially_paid",
+          "total": 59500,
+          "open": 53100
+        }
+      },
+      {
+        "text": "stock moves of the delivery and its note",
+        "data": [
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_saleable",
+            "lot_id": "cb5df43d-cc5e-738c-8590-4813f843e143",
+            "location_id": "2c7b4801-3f88-77d1-8a25-7e903891f265",
+            "qty_delta": 2,
+            "where": "van MH-05-EF-9012"
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after the door",
+        "shops": {
+          "R-9055": {
+            "owner": {
+              "outstanding": 53100,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 53100
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9946900,
+              "outstanding": 53100,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 53100,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 53100
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9946900,
+              "outstanding": 53100,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 53100,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 53100
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9946900,
+              "outstanding": 53100,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 53100,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 53100
+            },
+            "sql": {
+              "outstanding": 53100,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 1,
+              "net": 53100,
+              "arJournal": 53100,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "delivery recorded",
+        "ok": true,
+        "detail": "partial cn 01a0e5c8-8d2c-71bb-b7d8-379468d2c9a3"
+      },
+      {
+        "name": "screens agree with SQL and AR",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S4-R3",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R4",
+    "title": "Damaged and expired at the door: 3 Marie damaged, 2 Glucose expired, not saleable",
+    "at": "2026-09-28T02:12:03.689Z",
+    "steps": [
+      {
+        "text": "credit note(s)",
+        "data": [
+          {
+            "id": "01a0e5c8-9840-7345-a7c5-7e0b8b9b5a25",
+            "credit_note_no": "CN/9005",
+            "reason": "return_damaged",
+            "state": "issued",
+            "taxable_paise": 8223,
+            "tax": 1480,
+            "cess_paise": 0,
+            "round_off_paise": -3,
+            "total_paise": 9700
+          }
+        ]
+      },
+      {
+        "text": "CN CN/9005 lines",
+        "data": [
+          {
+            "invoice_line_id": "01a0e5c8-6781-70d0-ae51-95f1a62acc03",
+            "qty_pcs": 3,
+            "saleable": false,
+            "rate_paise": 2245,
+            "taxable_paise": 6735,
+            "tax_paise": 1212,
+            "line_total_paise": 7947
+          },
+          {
+            "invoice_line_id": "01a0e5c8-6781-70d1-9c5c-7cec51eb1165",
+            "qty_pcs": 2,
+            "saleable": false,
+            "rate_paise": 744,
+            "taxable_paise": 1488,
+            "tax_paise": 268,
+            "line_total_paise": 1756
+          }
+        ]
+      },
+      {
+        "text": "bill after the door",
+        "data": {
+          "invoice_no": "INV/9028",
+          "state": "partially_paid",
+          "total": 52900,
+          "open": 43200
+        }
+      },
+      {
+        "text": "stock moves of the delivery and its note",
+        "data": [
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_damaged",
+            "lot_id": "436c4dd1-81b5-7041-83b5-982d1984adc6",
+            "location_id": "01a0999a-28e0-7225-9731-6abfd6e8d459",
+            "qty_delta": 3,
+            "where": "damaged"
+          },
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_damaged",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7225-9731-6abfd6e8d459",
+            "qty_delta": 2,
+            "where": "damaged"
+          }
+        ]
+      },
+      {
+        "text": "reason recorded on the CN",
+        "data": "return_damaged"
+      }
+    ],
+    "figures": [
+      {
+        "label": "after the door",
+        "shops": {
+          "R-9056": {
+            "owner": {
+              "outstanding": 43200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 43200
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9956800,
+              "outstanding": 43200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 43200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 43200
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9956800,
+              "outstanding": 43200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 43200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 43200
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9956800,
+              "outstanding": 43200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 43200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 43200
+            },
+            "sql": {
+              "outstanding": 43200,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 1,
+              "net": 43200,
+              "arJournal": 43200,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "delivery recorded",
+        "ok": true,
+        "detail": "partial cn 01a0e5c8-9840-7345-a7c5-7e0b8b9b5a25"
+      },
+      {
+        "name": "screens agree with SQL and AR",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S4-R4",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R8-door",
+    "title": "Scheme shop RT4 delivered in full",
+    "at": "2026-09-28T02:12:06.557Z",
+    "steps": [],
+    "figures": [],
+    "observations": [],
+    "checks": [
+      {
+        "name": "delivered",
+        "ok": true,
+        "detail": ""
+      }
+    ]
+  },
+  {
+    "id": "R1b",
+    "title": "The shop refuses at the door without a delivery record: stop failed \"refused\" (the bill comes back)",
+    "at": "2026-09-28T02:12:06.620Z",
+    "steps": [
+      {
+        "text": "bill",
+        "data": {
+          "invoice_no": "INV/9031",
+          "state": "issued",
+          "total": 59500,
+          "open": 59500,
+          "undelivered": "2026-09-28T07:42:06.635+05:30"
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "failed stop, still on the van",
+        "shops": {
+          "R-9059": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 59500,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 59500,
+              "arJournal": 59500,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "stop failed",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S4-R1b-failed",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R7-door",
+    "title": "RT7 delivered and paid in full at the door; RT8 delivered, unpaid",
+    "at": "2026-09-28T02:12:09.328Z",
+    "steps": [],
+    "figures": [],
+    "observations": [],
+    "checks": [
+      {
+        "name": "RT7 paid",
+        "ok": true,
+        "detail": ""
+      }
+    ]
+  },
+  {
+    "id": "S4-settle",
+    "title": "Check in and settle: what the van carries back and where each returned batch ends up",
+    "at": "2026-09-28T02:12:09.496Z",
+    "steps": [
+      {
+        "text": "check-in",
+        "data": "closing"
+      },
+      {
+        "text": "van returns (came-back bills)",
+        "data": "Input validation failed"
+      },
+      {
+        "text": "RT6 dues / undelivered",
+        "data": {
+          "dues": 0,
+          "undelivered": 59500,
+          "owner": {
+            "outstanding": 0,
+            "overdue": 0,
+            "onAccount": 0,
+            "undelivered": 59500,
+            "openBills": 0,
+            "net": 59500
+          },
+          "credit": {
+            "limit": 10000000,
+            "headroom": 9940500,
+            "outstanding": 0,
+            "undelivered": 59500,
+            "openBills": 0,
+            "overdueDays": 0,
+            "breached": false,
+            "reasons": []
+          }
+        }
+      },
+      {
+        "text": "expected van stock (returns included)",
+        "data": [
+          "Campa Cola 750 ml RCP20260822 26",
+          "Sunbake Glucose 55 g SB20260823 54"
+        ]
+      },
+      {
+        "text": "settlement stock moves",
+        "data": [
+          {
+            "ref_type": "trip_settlement",
+            "reason": "van_unload",
+            "lot_id": "cb5df43d-cc5e-738c-8590-4813f843e143",
+            "location_id": "2c7b4801-3f88-77d1-8a25-7e903891f265",
+            "qty_delta": -26,
+            "where": "van MH-05-EF-9012"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "transfer_in",
+            "lot_id": "cb5df43d-cc5e-738c-8590-4813f843e143",
+            "location_id": "01a0999a-28e0-7226-bcbe-bf36326406f5",
+            "qty_delta": 24,
+            "where": "in_transit"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "transfer_in",
+            "lot_id": "cb5df43d-cc5e-738c-8590-4813f843e143",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 2,
+            "where": "warehouse"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "van_unload",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "2c7b4801-3f88-77d1-8a25-7e903891f265",
+            "qty_delta": -54,
+            "where": "van MH-05-EF-9012"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "transfer_in",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7226-bcbe-bf36326406f5",
+            "qty_delta": 48,
+            "where": "in_transit"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "transfer_in",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 6,
+            "where": "warehouse"
+          }
+        ]
+      },
+      {
+        "text": "RT3 damaged/expired lots now",
+        "data": {
+          "436c4dd1-81b5-7041-83b5-982d1984adc6": {
+            "balances": [
+              "warehouse:9",
+              "damaged:3"
+            ],
+            "sellable": [
+              "warehouse:9"
+            ]
+          },
+          "bed23229-824c-776b-ae12-5aa23df5e205": {
+            "balances": [
+              "damaged:2",
+              "warehouse:126",
+              "in_transit:280"
+            ],
+            "sellable": [
+              "warehouse:6"
+            ]
+          }
+        }
+      },
+      {
+        "text": "every move of the damaged/expired lots on this trip",
+        "data": [
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_damaged",
+            "lot_id": "436c4dd1-81b5-7041-83b5-982d1984adc6",
+            "location_id": "01a0999a-28e0-7225-9731-6abfd6e8d459",
+            "qty_delta": 3,
+            "where": "damaged"
+          },
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_damaged",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7225-9731-6abfd6e8d459",
+            "qty_delta": 2,
+            "where": "damaged"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "van_unload",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "2c7b4801-3f88-77d1-8a25-7e903891f265",
+            "qty_delta": -54,
+            "where": "van MH-05-EF-9012"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "transfer_in",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7226-bcbe-bf36326406f5",
+            "qty_delta": 48,
+            "where": "in_transit"
+          },
+          {
+            "ref_type": "trip_settlement",
+            "reason": "transfer_in",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 6,
+            "where": "warehouse"
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after check-in (bill undelivered)",
+        "shops": {
+          "R-9059": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9940500,
+              "outstanding": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 59500,
+              "openBills": 0,
+              "net": 59500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 59500,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 59500,
+              "arJournal": 59500,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "settled",
+        "ok": true,
+        "detail": "settled"
+      },
+      {
+        "name": "damaged/expired door returns (5 pcs) end in the damaged bin, never the sellable godown (DOS-116)",
+        "ok": true,
+        "detail": "to damaged bin 5; pieces of those lots put back on the godown rack by this settlement 6"
+      }
+    ],
+    "recon": {
+      "label": "S4-settle",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R6",
+    "title": "Return after delivery, at the desk: RT8 returns 6 Glucose (saleable) \u2014 credit note restocks the godown",
+    "at": "2026-09-28T02:12:12.541Z",
+    "steps": [
+      {
+        "text": "accountant raises the return",
+        "data": {
+          "no": "CN/9006",
+          "state": "issued",
+          "total": 5300
+        }
+      },
+      {
+        "text": "CN + bill",
+        "data": {
+          "cns": [
+            {
+              "id": "01a0e5c8-ba95-7674-94ee-2990bf4e3b2d",
+              "credit_note_no": "CN/9006",
+              "reason": "return_saleable",
+              "state": "issued",
+              "taxable_paise": 4464,
+              "tax": 804,
+              "cess_paise": 0,
+              "round_off_paise": 32,
+              "total_paise": 5300
+            }
+          ],
+          "bill": {
+            "invoice_no": "INV/9033",
+            "state": "partially_paid",
+            "total": 59500,
+            "open": 54200
+          }
+        }
+      },
+      {
+        "text": "stock moves",
+        "data": [
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_saleable",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 6,
+            "where": "warehouse"
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after desk return",
+        "shops": {
+          "R-9061": {
+            "owner": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9945800,
+              "outstanding": 54200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9945800,
+              "outstanding": 54200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9945800,
+              "outstanding": 54200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 54200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 54200
+            },
+            "sql": {
+              "outstanding": 54200,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 1,
+              "net": 54200,
+              "arJournal": 54200,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "returning more pieces than were delivered and not yet returned is refused",
+        "ok": true,
+        "detail": "400 only 18 pcs of Sunbake Glucose 55 g are left to credit on INV/9033"
+      }
+    ],
+    "recon": {
+      "label": "S4-R6-desk-return",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R7",
+    "title": "Return after payment: RT7 paid in full, then returns 12 Cola (saleable) at the desk",
+    "at": "2026-09-28T02:12:15.316Z",
+    "steps": [
+      {
+        "text": "CN",
+        "data": {
+          "total": 38400,
+          "state": "issued"
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "after return on a paid bill",
+        "shops": {
+          "R-9060": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 38400,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -38400
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 38400,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -38400
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 38400,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -38400
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 38400,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -38400
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 38400,
+              "openBills": 0,
+              "net": -38400,
+              "arJournal": -38400,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "the credit sits on the shop's account (DOS-245); screens agree",
+        "ok": true,
+        "detail": "on account 38400"
+      }
+    ],
+    "recon": {
+      "label": "S4-R7-after-payment",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R8",
+    "title": "Return of scheme lines at the desk: RT4 returns 12 of 24 Glucose (12+2 free) and 6 of 12 soap (10% off)",
+    "at": "2026-09-28T02:12:17.996Z",
+    "steps": [
+      {
+        "text": "RT4 lines as billed",
+        "data": [
+          {
+            "n": "Sunbake Glucose 55 g",
+            "qty": 24,
+            "free": 4,
+            "rate": 744,
+            "disc": 0,
+            "taxable": 17856,
+            "total": 21070
+          },
+          {
+            "n": "Neelam Sandal Soap 100 g",
+            "qty": 12,
+            "free": 0,
+            "rate": 2861,
+            "disc": 3433,
+            "taxable": 30899,
+            "total": 36461
+          }
+        ]
+      },
+      {
+        "text": "CN",
+        "data": {
+          "total": 27300
+        }
+      },
+      {
+        "text": "CN CN/9008 lines",
+        "data": [
+          {
+            "invoice_line_id": "01a0e5c8-67db-73f4-a902-5e2a9b420628",
+            "qty_pcs": 12,
+            "saleable": true,
+            "rate_paise": 638,
+            "taxable_paise": 7652,
+            "tax_paise": 1378,
+            "line_total_paise": 9030
+          },
+          {
+            "invoice_line_id": "01a0e5c8-67db-73f5-a15c-f7847a3e2bf8",
+            "qty_pcs": 6,
+            "saleable": true,
+            "rate_paise": 2575,
+            "taxable_paise": 15449,
+            "tax_paise": 2780,
+            "line_total_paise": 18229
+          }
+        ]
+      },
+      {
+        "text": "what the shop was billed for those pieces (taxable, pro rata)",
+        "data": {
+          "glucose12": 8928,
+          "soap6": 15449.5
+        }
+      },
+      {
+        "text": "free pieces the shop keeps after returning half the qualifying pieces (see corrected observation: the credit is pro rata over paid + free pieces)",
+        "data": {
+          "freeGiven": 4,
+          "freeReturned": 0,
+          "stillEntitled": 2
+        }
+      },
+      {
+        "text": "return of every remaining Glucose piece incl. the free ones",
+        "data": {
+          "total": 12000
+        }
+      },
+      {
+        "text": "stock moves",
+        "data": [
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_saleable",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 12,
+            "where": "warehouse"
+          },
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_saleable",
+            "lot_id": "198474c4-1b0c-7ec8-a646-2bb8edcfc8c4",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 6,
+            "where": "warehouse"
+          },
+          {
+            "ref_type": "credit_note",
+            "reason": "sale_return_saleable",
+            "lot_id": "bed23229-824c-776b-ae12-5aa23df5e205",
+            "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+            "qty_delta": 16,
+            "where": "warehouse"
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after scheme returns",
+        "shops": {
+          "R-9057": {
+            "owner": {
+              "outstanding": 18200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 18200
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 9981800,
+              "outstanding": 18200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 18200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 18200
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 9981800,
+              "outstanding": 18200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 18200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 18200
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 9981800,
+              "outstanding": 18200,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 18200,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 18200
+            },
+            "sql": {
+              "outstanding": 18200,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 1,
+              "net": 18200,
+              "arJournal": 18200,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [
+      "CORRECTED on review: the credit note does not credit at the paid rate. CN/9008 credits Glucose at \u20b96.38 a piece = the line taxable \u20b9178.56 spread over the 28 pieces delivered (24 paid + 4 free), so 12 returned pieces are credited 12/28 of the line (\u20b976.52 taxable), which claws the free goods back pro rata. The earlier note (\"keeps all 4 free pieces, credited at the full paid rate\") was a misreading and is withdrawn."
+    ],
+    "checks": [
+      {
+        "name": "soap credited at the billed (10%-off) rate, not list (DOS-242)",
+        "ok": true,
+        "detail": "15449 vs 15449.5"
+      },
+      {
+        "name": "credit for the remaining pieces never exceeds what the shop still paid for on that line",
+        "ok": true,
+        "detail": "credited 12000 vs 12040 left on the line"
+      },
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S4-R8-scheme",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R9",
+    "title": "Replacement of damaged goods",
+    "at": "2026-09-28T02:12:20.798Z",
+    "steps": [
+      {
+        "text": "replacement / exchange endpoints",
+        "data": []
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [
+      {
+        "name": "a replacement (goods for goods, no money) can be recorded as one document",
+        "ok": false,
+        "detail": "none: a replacement is a credit note plus a new order and bill"
+      }
+    ]
+  },
+  {
+    "id": "R10",
+    "title": "Bill cancelled before dispatch (RT9: packed, billed, never loaded)",
+    "at": "2026-09-28T02:12:20.822Z",
+    "steps": [
+      {
+        "text": "bill and order after cancel",
+        "data": {
+          "bill": {
+            "invoice_no": "INV/9034",
+            "state": "cancelled",
+            "total": 59500,
+            "open": 59500
+          },
+          "order": {
+            "id": "01a0e5c8-64d9-735e-83d8-22e97882f222",
+            "order_no": "SO-0925",
+            "state": "cancelled",
+            "total_paise": 59500,
+            "subtotal_paise": 45288,
+            "retailer_id": "01a0e5c8-618e-70c2-b3bb-7a1b106e6b7b"
+          }
+        }
+      },
+      {
+        "text": "stock of its lots before \u2192 after",
+        "data": {
+          "cb5df43d-cc5e-738c-8590-4813f843e143": {
+            "before": [
+              "warehouse:5898",
+              "in_transit:816"
+            ],
+            "after": [
+              "warehouse:5910",
+              "in_transit:804"
+            ]
+          },
+          "2e621f87-e87d-7ce8-a621-afa4d7f67737": {
+            "before": [
+              "warehouse:1484",
+              "in_transit:32"
+            ],
+            "after": [
+              "warehouse:1492",
+              "in_transit:24"
+            ]
+          },
+          "bed23229-824c-776b-ae12-5aa23df5e205": {
+            "before": [
+              "damaged:2",
+              "in_transit:280",
+              "warehouse:160"
+            ],
+            "after": [
+              "damaged:2",
+              "in_transit:264",
+              "warehouse:176"
+            ]
+          }
+        }
+      },
+      {
+        "text": "journal",
+        "data": [
+          {
+            "ref_type": "invoice",
+            "code": "AR",
+            "amount_paise": 59500
+          },
+          {
+            "ref_type": "invoice",
+            "code": "OUTPUT_CESS",
+            "amount_paise": -3292
+          },
+          {
+            "ref_type": "invoice",
+            "code": "OUTPUT_CGST",
+            "amount_paise": -5447
+          },
+          {
+            "ref_type": "invoice",
+            "code": "OUTPUT_SGST",
+            "amount_paise": -5447
+          },
+          {
+            "ref_type": "invoice",
+            "code": "ROUND_OFF",
+            "amount_paise": -26
+          },
+          {
+            "ref_type": "invoice",
+            "code": "SALES",
+            "amount_paise": -45288
+          },
+          {
+            "ref_type": "invoice_cancel",
+            "code": "AR",
+            "amount_paise": -59500
+          },
+          {
+            "ref_type": "invoice_cancel",
+            "code": "OUTPUT_CESS",
+            "amount_paise": 3292
+          },
+          {
+            "ref_type": "invoice_cancel",
+            "code": "OUTPUT_CGST",
+            "amount_paise": 5447
+          },
+          {
+            "ref_type": "invoice_cancel",
+            "code": "OUTPUT_SGST",
+            "amount_paise": 5447
+          },
+          {
+            "ref_type": "invoice_cancel",
+            "code": "ROUND_OFF",
+            "amount_paise": 26
+          },
+          {
+            "ref_type": "invoice_cancel",
+            "code": "SALES",
+            "amount_paise": 45288
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after cancel",
+        "shops": {
+          "R-9062": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 0,
+              "arJournal": 0,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "cancel accepted",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "shop owes nothing; screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S4-R10-cancel",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R11",
+    "title": "Bill cancelled after payment was taken (RT10 paid \u20b9595 by UPI at the office, bill still in the godown)",
+    "at": "2026-09-28T02:12:23.732Z",
+    "steps": [
+      {
+        "text": "cancel a paid bill",
+        "data": "409 bill INV/9035 has money allocated against it, so it is not cancelled. Its goods have not left the godown: use \"Could not send it \u2014 credit the whole bill\": one credit note for the whole bill, and the shop keeps the money on account"
+      },
+      {
+        "text": "shop",
+        "data": {
+          "dues": 0,
+          "onAccount": 0,
+          "net": 0,
+          "ar": 0
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "after cancel attempt on a paid bill",
+        "shops": {
+          "R-9063": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 0,
+              "arJournal": 0,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "paid",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "cancel refused while money sits on the bill (docs/22 \u00a74: only before any money)",
+        "ok": true,
+        "detail": "bill INV/9035 has money allocated against it, so it is not cancelled. Its goods have not left the godown: use \"Could not send it \u2014 credit the whole bill\": one credit note for the whole bill, and the shop keeps the money on account"
+      }
+    ],
+    "recon": {
+      "label": "S4-R11-cancel-paid",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R1c",
+    "title": "Full refusal, final: the desk credits the whole came-back bill (RT5) \u2014 stock back from the dock, dues cleared",
+    "at": "2026-09-28T02:13:13.986Z",
+    "steps": [
+      {
+        "text": "whole-bill credit note",
+        "data": {
+          "no": "CN/9010",
+          "total": 59500,
+          "state": "issued"
+        }
+      },
+      {
+        "text": "bill after",
+        "data": {
+          "invoice_no": "INV/9030",
+          "state": "paid",
+          "undelivered_at": null,
+          "total": 59500,
+          "open": 0
+        }
+      },
+      {
+        "text": "stock moves of the note (from where to where)",
+        "data": [
+          {
+            "reason": "transfer_out",
+            "lot": "43e143",
+            "where": "in_transit",
+            "qty": -12
+          },
+          {
+            "reason": "transfer_in",
+            "lot": "43e143",
+            "where": "warehouse",
+            "qty": 12
+          },
+          {
+            "reason": "transfer_out",
+            "lot": "f5e205",
+            "where": "in_transit",
+            "qty": -24
+          },
+          {
+            "reason": "transfer_in",
+            "lot": "f5e205",
+            "where": "warehouse",
+            "qty": 24
+          }
+        ]
+      },
+      {
+        "text": "balances of its lots now",
+        "data": [
+          "warehouse:5922",
+          "damaged:2",
+          "in_transit:792",
+          "in_transit:240",
+          "warehouse:200"
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "RT5 after the whole-bill credit",
+        "shops": {
+          "R-9058": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 0,
+              "arJournal": 0,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "credit = bill total",
+        "ok": true,
+        "detail": "59500 vs 59500"
+      },
+      {
+        "name": "shop owes nothing, nothing left undelivered; screens agree",
+        "ok": true,
+        "detail": "{\"outstanding\":0,\"undelivered\":0,\"onAccount\":0,\"openBills\":0,\"net\":0,\"arJournal\":0,\"limit\":10000000,\"mode\":\"indicate\"}"
+      }
+    ],
+    "recon": {
+      "label": "S4-R1c-full-credit",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "R1d",
+    "title": "The other refused bill (RT6) goes out again on a new trip, is delivered and paid in cash",
+    "at": "2026-09-28T02:13:17.156Z",
+    "steps": [
+      {
+        "text": "re-planned and departed",
+        "data": "01a0e5c9-b6fd-72e2-ac18-c53199deea8a"
+      },
+      {
+        "text": "bill after delivery",
+        "data": {
+          "invoice_no": "INV/9031",
+          "state": "issued",
+          "undelivered_at": null,
+          "total": 59500,
+          "open": 59500
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "RT6 after re-delivery",
+        "shops": {
+          "R-9059": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "owner_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "accountant_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "rep_credit": {
+              "limit": 10000000,
+              "headroom": 10000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 0,
+              "arJournal": 0,
+              "limit": 10000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "delivered",
+        "ok": true,
+        "detail": "delivered"
+      },
+      {
+        "name": "paid",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "settled at the expected cash",
+        "ok": true,
+        "detail": "59500"
+      },
+      {
+        "name": "screens agree; nothing owed; nothing on the van",
+        "ok": true,
+        "detail": "{\"outstanding\":0,\"undelivered\":0,\"onAccount\":0,\"openBills\":0,\"net\":0,\"arJournal\":0,\"limit\":10000000,\"mode\":\"indicate\"}"
+      }
+    ],
+    "recon": {
+      "label": "S4-R1d-redeliver",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  }
+]

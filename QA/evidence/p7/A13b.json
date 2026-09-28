@@ -1,0 +1,13 @@
+{
+  "invoice": {
+    "id": "01a0e5c2-0acb-76ee-9a73-a2bc503c8fea",
+    "invoice_no": "INV/9019",
+    "state": "written_off",
+    "code": "R-9037"
+  },
+  "receipt": "RCPT-9027",
+  "allocateToWrittenOff": "409 bill INV/9019 is written_off; only an open bill takes money",
+  "pb5Bill": {
+    "invoice_no": "INV/9018"
+  }
+}

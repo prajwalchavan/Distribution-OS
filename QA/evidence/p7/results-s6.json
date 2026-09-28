@@ -1,0 +1,480 @@
+[
+  {
+    "id": "S6-wait",
+    "title": "Wait for the 15-minute rollup to run after the last document of the day",
+    "at": "2026-09-28T03:26:13.043Z",
+    "steps": [
+      {
+        "text": "last document change / rollup computed",
+        "data": {
+          "lastDoc": "2026-09-28T08:53:14.730821+05:30",
+          "computed": "2026-09-28T09:00:14.859+05:30"
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": []
+  },
+  {
+    "id": "S6-dashboard",
+    "title": "Owner dashboard (home) against the documents",
+    "at": "2026-09-28T03:30:43.812Z",
+    "steps": [
+      {
+        "text": "SQL for the same figures",
+        "data": {
+          "invoiced": 5960900,
+          "credited": 163900,
+          "collected_live": 11421210,
+          "collected_net_of_reversals": 11421210,
+          "orders": 171,
+          "outstanding": 437017800,
+          "overdue": 427677700,
+          "on_account": 3753400,
+          "cash_van": 15253600,
+          "ar": 433264400,
+          "mtd_invoiced": 203215200,
+          "mtd_credited": 455100,
+          "mtd_taxable": 170016758,
+          "approvals": 9,
+          "active_trips": 1
+        }
+      },
+      {
+        "text": "days this month where the rollup differs from the bills",
+        "data": []
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S6-01-dashboard",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2))"
+    }
+  },
+  {
+    "id": "S6-collections",
+    "title": "Collections register (day and collector) against receipts",
+    "at": "2026-09-28T03:30:52.915Z",
+    "steps": [
+      {
+        "text": "register (day) as served",
+        "data": "{\"items\":[{\"bucket\":\"2026-09-28\",\"bucketName\":null,\"cashPaise\":5500110,\"upiPaise\":4405600,\"bankTransferPaise\":1396500,\"chequePaise\":119000,\"adjustmentPaise\":0,\"totalPaise\":11421210,\"receiptCount\":157}],\"nextCursor\":null,\"totals\":{\"cashPaise\":5500110,\"upiPaise\":4405600,\"bankTransferPaise\":1396500,\"chequePaise\":119000,\"adjustmentPaise\":0,\"totalPaise\":11421210,\"receiptCount\":157}}"
+      },
+      {
+        "text": "SQL receipts today by mode (live = not undone; net = incl. reversal mirrors)",
+        "data": [
+          {
+            "mode": "adjustment",
+            "live": 0,
+            "net": 0,
+            "n": 1
+          },
+          {
+            "mode": "bank_transfer",
+            "live": 1396500,
+            "net": 1396500,
+            "n": 1
+          },
+          {
+            "mode": "cash",
+            "live": 5500110,
+            "net": 5500110,
+            "n": 19
+          },
+          {
+            "mode": "cheque",
+            "live": 119000,
+            "net": 119000,
+            "n": 3
+          },
+          {
+            "mode": "upi",
+            "live": 4405600,
+            "net": 4405600,
+            "n": 138
+          }
+        ]
+      },
+      {
+        "text": "SQL by collector",
+        "data": [
+          {
+            "username": "amol.vaidya",
+            "live": 10975400
+          },
+          {
+            "username": "ganesh.more",
+            "live": 326810
+          },
+          {
+            "username": "iqbal.shaikh",
+            "live": 59500
+          },
+          {
+            "username": "mahesh.sutar",
+            "live": 59500
+          }
+        ]
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S6-02-collections",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2))"
+    }
+  },
+  {
+    "id": "S6-ageing",
+    "title": "Outstanding / ageing register (all shops) against the documents",
+    "at": "2026-09-28T03:30:56.655Z",
+    "steps": [
+      {
+        "text": "ageing register rows",
+        "data": 91
+      },
+      {
+        "text": "a row (keys)",
+        "data": [
+          "retailerId",
+          "code",
+          "name",
+          "beatId",
+          "outstandingPaise",
+          "overduePaise",
+          "openBills",
+          "oldestDueDate",
+          "bucketPaise",
+          "creditMode",
+          "unallocatedCreditPaise"
+        ]
+      },
+      {
+        "text": "shops owing but missing from the register",
+        "data": []
+      },
+      {
+        "text": "shops whose register dues differ from documents",
+        "data": []
+      },
+      {
+        "text": "shops with only money on account (owed money BY the distributor)",
+        "data": {
+          "n": 6,
+          "s": 175900
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S6-03-ageing",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2))"
+    }
+  },
+  {
+    "id": "S6-trial-balance",
+    "title": "Trial balance (chart of accounts with balances) against the journal",
+    "at": "2026-09-28T03:30:59.934Z",
+    "steps": [
+      {
+        "text": "UPI clearing balance (never banked — DOS-256 known)",
+        "data": {
+          "upi": 304634985,
+          "upiReceiptsToday": {
+            "mode": "upi",
+            "live": 4405600,
+            "net": 4405600,
+            "n": 138
+          }
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S6-04-trial-balance",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2))"
+    }
+  },
+  {
+    "id": "S6-sales-gst",
+    "title": "Sales register and GST registers (billing and reporting doors) for today",
+    "at": "2026-09-28T03:31:03.241Z",
+    "steps": [
+      {
+        "text": "bills issued today incl. the cancelled one (GSTR-1 table 13 counts it)",
+        "data": 164
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S6-05-sales-gst",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2))"
+    }
+  },
+  {
+    "id": "S6-rollups",
+    "title": "Daily sales register and the collections series (both read the rollups) against the documents",
+    "at": "2026-09-28T03:31:06.570Z",
+    "steps": [
+      {
+        "text": "daily sales register today",
+        "data": {
+          "day": "2026-09-28",
+          "ordersCount": 171,
+          "invoicedPaise": 5960900,
+          "collectedPaise": 11421210,
+          "outstandingPaise": 437017800,
+          "overduePaise": 427677700,
+          "deliveredStops": 13,
+          "partialStops": 3,
+          "failedStops": 2,
+          "onTimeStops": 0,
+          "podStops": 16,
+          "orderedPcs": 2424,
+          "pickedPcs": 2424,
+          "activeRetailers": 33,
+          "byBrand": [
+            {
+              "key": "215e2935-1509-71d7-b3e9-9b23bca6ec3f",
+              "name": "Campa",
+              "invoicedPaise": 1750058,
+              "invoiceCount": 54
+            },
+            {
+              "key": "a4ebffdb-e802-75e9-9614-d605563a9e65",
+              "name": "Sunbake",
+              "invoicedPaise": 1260503,
+              "invoiceCount": 87
+            },
+            {
+              "key": "448ccb3c-1c14-73d8-a7ed-25ffb5dd9b41",
+              "name": "Neelam",
+              "invoicedPaise": 789285,
+              "invoiceCount": 56
+            },
+            {
+              "key": "7845dad6-75b8-785b-a6fc-6e1040caf7fe",
+              "name": "Annapurna",
+              "invoicedPaise": 738534,
+              "invoiceCount": 30
+            },
+            {
+              "key": "59edd38f-1eec-791b-8eee-1fb9d6e0e7f9",
+              "name": "Konkan Crunch",
+              "invoicedPaise": 610277,
+              "invoiceCount": 16
+            },
+            {
+              "key": "779361b4-0399-7c3c-abde-7675e66c031c",
+              "name": "Godavari",
+              "invoicedPaise": 470108,
+              "invoiceCount": 10
+            },
+            {
+              "key": "e9eb5384-a2a4-702a-a192-e4f90f46feb3",
+              "name": "Too Yumm",
+              "invoicedPaise": 341517,
+              "invoiceCount": 18
+            }
+          ],
+          "byCategory": [
+            {
+              "key": "Beverages",
+              "name": "Beverages",
+              "invoicedPaise": 1750058,
+              "invoiceCount": 54
+            },
+            {
+              "key": "Biscuits",
+              "name": "Biscuits",
+              "invoicedPaise": 1260503,
+              "invoiceCount": 87
+            },
+            {
+              "key": "Personal Care",
+              "name": "Personal Care",
+              "invoicedPaise": 789285,
+              "invoiceCount": 56
+            },
+            {
+              "key": "Packaged Food",
+              "name": "Packaged Food",
+              "invoicedPaise": 738534,
+              "invoiceCount": 30
+            },
+            {
+              "key": "Snacks - Namkeen",
+              "name": "Snacks - Namkeen",
+              "invoicedPaise": 610277,
+              "invoiceCount": 16
+            },
+            {
+              "key": "Dairy",
+              "name": "Dairy",
+              "invoicedPaise": 470108,
+              "invoiceCount": 10
+            },
+            {
+              "key": "Snacks - Makhana",
+              "name": "Snacks - Makhana",
+              "invoicedPaise": 341517,
+              "invoiceCount": 18
+            }
+          ],
+          "byBeat": [
+            {
+              "key": "59167a2e-7d76-7bb0-ab9e-fb332fd9c88a",
+              "name": "Kalyan West Market",
+              "invoicedPaise": 5960900,
+              "invoiceCount": 163
+            }
+          ],
+          "byPaymentMode": [
+            {
+              "mode": "upi",
+              "collectedPaise": 4405600
+            },
+            {
+              "mode": "cash",
+              "collectedPaise": 5500110
+            },
+            {
+              "mode": "cheque",
+              "collectedPaise": 119000
+            },
+            {
+              "mode": "bank_transfer",
+              "collectedPaise": 1396500
+            }
+          ],
+          "computedAt": "2026-09-28T03:30:14.859Z"
+        }
+      },
+      {
+        "text": "collections series",
+        "data": "{\"metric\":\"collected\",\"grain\":\"day\",\"unit\":\"paise\",\"from\":\"2026-09-28\",\"to\":\"2026-09-28\",\"compare\":\"none\",\"groupBy\":null,\"asOf\":\"2026-09-28T03:30:14.859Z\",\"points\":[{\"bucket\":\"2026-09-28\",\"value\":11421210,\"previous\":null}],\"groups\":[]}"
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S6-06-rollups",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2))"
+    }
+  },
+  {
+    "id": "S6-summary",
+    "title": "Every figure that differs",
+    "at": "2026-09-28T03:31:09.797Z",
+    "steps": [
+      {
+        "text": "figures compared",
+        "data": 103
+      },
+      {
+        "text": "figures that differ",
+        "data": [
+          {
+            "report": "dashboard",
+            "figure": "cash in transit vs Cash with delivery crews (book)",
+            "served": 0,
+            "sql": 15253600,
+            "diff": -15253600,
+            "note": "UX-O-14 known: the two can differ"
+          },
+          {
+            "report": "dashboard",
+            "figure": "MTD sales",
+            "served": 202760100,
+            "sql": 203215200,
+            "diff": -455100,
+            "note": "invoice totals incl. GST, month to date"
+          },
+          {
+            "report": "dashboard",
+            "figure": "MTD sales vs Σ daily_tenant_stats.invoiced this month (the rollup it reads)",
+            "served": 202760100,
+            "sql": 203215200,
+            "diff": -455100,
+            "note": ""
+          },
+          {
+            "report": "GST (billing)",
+            "figure": "documents (bills issued today, excl. cancelled)",
+            "served": 128,
+            "sql": 163,
+            "diff": -35,
+            "note": ""
+          },
+          {
+            "report": "GST (billing)",
+            "figure": "credit notes documents",
+            "served": 6,
+            "sql": 8,
+            "diff": -2,
+            "note": ""
+          },
+          {
+            "report": "GST (reporting)",
+            "figure": "documents (bills issued today, excl. cancelled)",
+            "served": 128,
+            "sql": 163,
+            "diff": -35,
+            "note": ""
+          },
+          {
+            "report": "GST (reporting)",
+            "figure": "credit notes documents",
+            "served": 6,
+            "sql": 8,
+            "diff": -2,
+            "note": ""
+          },
+          {
+            "report": "GST by HSN",
+            "figure": "documents (bills issued today, excl. cancelled)",
+            "served": 87,
+            "sql": 163,
+            "diff": -76,
+            "note": ""
+          },
+          {
+            "report": "GST by HSN",
+            "figure": "credit notes documents",
+            "served": 6,
+            "sql": 8,
+            "diff": -2,
+            "note": ""
+          },
+          {
+            "report": "daily sales register",
+            "figure": "credited",
+            "sql": 163900,
+            "diff": null,
+            "note": ""
+          }
+        ]
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": []
+  }
+]

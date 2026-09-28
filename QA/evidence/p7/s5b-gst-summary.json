@@ -1,0 +1,116 @@
+{
+  "from": "2026-09-28",
+  "to": "2026-09-28",
+  "supplyType": null,
+  "groupBy": "rate",
+  "rows": [
+    {
+      "hsnCode": null,
+      "gstBps": 500,
+      "cessBps": 0,
+      "qtyPcs": 266,
+      "freeQtyPcs": 0,
+      "taxablePaise": 1028626,
+      "cgstPaise": 15088,
+      "sgstPaise": 15088,
+      "igstPaise": 21249,
+      "cessPaise": 0,
+      "totalPaise": 1080051,
+      "documentCount": 45
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 1200,
+      "cessBps": 0,
+      "qtyPcs": 244,
+      "freeQtyPcs": 0,
+      "taxablePaise": 964626,
+      "cgstPaise": 48239,
+      "sgstPaise": 48239,
+      "igstPaise": 19281,
+      "cessPaise": 0,
+      "totalPaise": 1080385,
+      "documentCount": 23
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 1800,
+      "cessBps": 0,
+      "qtyPcs": 1338,
+      "freeQtyPcs": 10,
+      "taxablePaise": 1653891,
+      "cgstPaise": 110614,
+      "sgstPaise": 110614,
+      "igstPaise": 76489,
+      "cessPaise": 0,
+      "totalPaise": 1951608,
+      "documentCount": 127
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 2800,
+      "cessBps": 1200,
+      "qtyPcs": 552,
+      "freeQtyPcs": 0,
+      "taxablePaise": 1250054,
+      "cgstPaise": 155984,
+      "sgstPaise": 155984,
+      "igstPaise": 38021,
+      "cessPaise": 150015,
+      "totalPaise": 1750058,
+      "documentCount": 54
+    }
+  ],
+  "totals": {
+    "qtyPcs": 2400,
+    "freeQtyPcs": 10,
+    "taxablePaise": 4897197,
+    "cgstPaise": 329925,
+    "sgstPaise": 329925,
+    "igstPaise": 155040,
+    "cessPaise": 150015,
+    "totalPaise": 5862102,
+    "documentCount": 127
+  },
+  "creditNoteRows": [
+    {
+      "hsnCode": null,
+      "gstBps": 1800,
+      "cessBps": 0,
+      "qtyPcs": 75,
+      "freeQtyPcs": 0,
+      "taxablePaise": 68312,
+      "cgstPaise": 6148,
+      "sgstPaise": 6148,
+      "igstPaise": 0,
+      "cessPaise": 0,
+      "totalPaise": 80608,
+      "documentCount": 6
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 2800,
+      "cessBps": 1200,
+      "qtyPcs": 26,
+      "freeQtyPcs": 0,
+      "taxablePaise": 59436,
+      "cgstPaise": 8320,
+      "sgstPaise": 8320,
+      "igstPaise": 0,
+      "cessPaise": 7133,
+      "totalPaise": 83209,
+      "documentCount": 3
+    }
+  ],
+  "creditNoteTotals": {
+    "qtyPcs": 101,
+    "freeQtyPcs": 0,
+    "taxablePaise": 127748,
+    "cgstPaise": 14468,
+    "sgstPaise": 14468,
+    "igstPaise": 0,
+    "cessPaise": 7133,
+    "totalPaise": 163817,
+    "documentCount": 6
+  }
+}

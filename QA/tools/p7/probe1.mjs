@@ -1,0 +1,15 @@
+import * as L from './lib.mjs'
+import * as F from './flow.mjs'
+L.wireTo('probe1')
+const shop = await F.createShop('QA P7 Probe Kirana', { creditLimitPaise: 50_000_00 })
+console.log('shop', shop)
+const o = await F.placeOrder(shop.id, [{ variantId: 'f71bf137-50de-7182-a0d9-c83f1a613a57', qty: 12 }, { variantId: 'af45e021-a167-7d3f-a8f0-60ab037214cb', qty: 24 }])
+console.log('submitted', JSON.stringify(o.submitted).slice(0, 1500))
+console.log(await F.orderRow(o.orderId))
+const wh = await L.as('wh')
+const pm = L.mk()
+const pl = await L.tryCall(wh.warehouse.picklists.create({ ...pm, orderIds: [o.orderId], locationId: L.GODOWN }))
+console.log('picklist create', JSON.stringify(pl).slice(0, 800))
+await L.tryCall(wh.warehouse.picklists.start({ ...L.key(), id: pm.id }))
+const sheet = await L.tryCall(wh.warehouse.picklists.get({ id: pm.id }))
+console.log('sheet', JSON.stringify(sheet).slice(0, 3000))

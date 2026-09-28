@@ -1,0 +1,9 @@
+{
+  "first": "RCPT-9028",
+  "second": "RCPT-9028",
+  "sameReceipt": true,
+  "rows": {
+    "n": 1,
+    "s": 1234
+  }
+}

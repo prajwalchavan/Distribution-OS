@@ -1,0 +1,71 @@
+{
+  "scheme": "01a0e609-51c6-728a-b408-532d90b0a83e",
+  "order": "01a0e609-5209-7784-aeda-9daacf95aa6f",
+  "invoice": {
+    "orderId": "01a0e609-5209-7784-aeda-9daacf95aa6f",
+    "invoiceId": "01a0e609-53d7-72b8-a869-a4a224776c66",
+    "invoiceNo": "INV/9170",
+    "totalPaise": 98200,
+    "packed": {
+      "item": {
+        "id": "01a0e609-5377-738f-a536-8540111adb36",
+        "orderId": "01a0e609-5209-7784-aeda-9daacf95aa6f",
+        "picklistId": "01a0e609-52e7-7721-9e57-754384e0dc75",
+        "packages": 1,
+        "weightGrams": null,
+        "invoiceId": "01a0e609-53d7-72b8-a869-a4a224776c66",
+        "shortPacked": false,
+        "packedBy": "4c8b82ce-c45e-7102-898f-db1e0b0763f3",
+        "packedAt": "2026-09-28T03:22:46.076Z"
+      },
+      "lines": [
+        {
+          "orderLineId": "01a0e609-5209-7786-819e-15f43ce1a399",
+          "variantId": "40163e3b-6b81-78a0-bb58-369c22235acc",
+          "variantName": "Sunbake Glucose 110 g",
+          "orderedQtyPcs": 60,
+          "packedQtyPcs": 60,
+          "shortQtyPcs": 0,
+          "lots": [
+            {
+              "lotId": "2f6ae539-ef02-7466-8493-a843a450a003",
+              "batchNo": "SB20260628",
+              "qtyPcs": 1
+            },
+            {
+              "lotId": "4b264c94-b8cb-7993-beba-90d60ca05872",
+              "batchNo": "SB20260614",
+              "qtyPcs": 8
+            },
+            {
+              "lotId": "775e1599-85d6-7eae-80bb-58bf7d6c32b2",
+              "batchNo": "SB20260621",
+              "qtyPcs": 12
+            },
+            {
+              "lotId": "ac2c7bdb-ab27-7fb1-bf61-c66bc693515d",
+              "batchNo": "B20260614",
+              "qtyPcs": 8
+            },
+            {
+              "lotId": "d2aeeaf1-33fa-7358-bbae-2f6fcd379a34",
+              "batchNo": "SB20260705",
+              "qtyPcs": 16
+            },
+            {
+              "lotId": "eb47d288-e1cf-7010-ad42-891c7b456585",
+              "batchNo": "SB20260531",
+              "qtyPcs": 15
+            }
+          ]
+        }
+      ],
+      "invoice": {
+        "id": "01a0e609-53d7-72b8-a869-a4a224776c66",
+        "invoiceNo": "INV/9170",
+        "totalPaise": 98200
+      }
+    }
+  },
+  "claim": "01a0e609-5480-72e7-8d5c-3c46f22b7193"
+}

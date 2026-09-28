@@ -1,0 +1,53 @@
+Phase 7 reconciliation · db dos_test_p7_money · tenant tarsun (01a0999a-28c3-7341-93f5-e0e84b0189a1) · run 2026-09-28T02:12:12.765Z · IST business date 2026-09-28 · label S4-R6-desk-return
+
+R1 invoices: 885 (by state: paid 585, issued 225, partially_paid 71, cancelled 1, written_off 3)
+[PASS] R1a invoice total = receipts + cash discount + credit notes + write-offs + open, open >= 0 (no over-allocation)
+[PASS] R1b stored payment state agrees with the money on the bill
+[PASS] R1c every allocation names exactly one source (receipt | credit note | write-off)
+[PASS] R1d no money allocated from a draft or cancelled credit note
+[PASS] R1e a credit note is never allocated beyond its value
+[PASS] R1f a write-off settles exactly its amount on its bill
+
+R2 shops: 100 (86 with money)
+[PASS] R2a open bills + bills on the van − money on account = Sundry Debtors (AR) for the shop
+[PASS] R2b documents: invoiced − credit notes − receipts(net) − cash discount − write-offs = net dues
+[PASS] R2c money on account is never negative (receipts and credit notes not over-allocated)
+[PASS] R2d stored summary: dues, bills on the van, money on account and open-bill count = documents
+[PASS] R2e stored summary: overdue and the six ageing buckets = documents aged to today
+
+R3 aggregate: invoiced 14035764.00 − credit notes 23016.00 − receipts(net) 9653050.74 − cash discount 22215.26 − write-offs 2443.00
+             = dues 4370779.00 + on the van 1190.00 − on account 36930.00 = 4335039.00; AR account 4335039.00 (lines without a shop 0, 0.00)
+[PASS] R3a Σ shops net = AR account balance, and every AR line names its shop
+
+R4 journal: 8094 lines, trial balance total 0.00
+[PASS] R4a every journal entry balances and has lines; trial balance totals 0
+[PASS] R4b each bill has one entry: AR = total, Sales = subtotal, Discounts = discount, output taxes = header taxes
+[PASS] R4c a cancelled bill has its AR taken back in full; a live bill has none taken back
+[PASS] R4d each issued credit note has one entry with AR = −total; a draft or cancelled note has none
+[PASS] R4e each write-off: AR −amount, Bad debts +amount
+
+R5 receipts: 747 originals (fully allocated 719, wholly on account 15, part allocated + part on account 4, reversed 9); 9 mirrors
+[PASS] R5a every receipt is fully accounted: allocated + on account (>= 0), or reversed by one exact mirror; one entry each with AR = −(amount + cash discount)
+[PASS] R5b deposits: Bank debited by deposits = Σ receipts marked banked; only cash/cheque banked
+[KNOWN] R5c no live cheque / UPI / transfer reference recorded twice for the same shop — 1 row(s), 1 known (seed baseline or a filed finding)
+        (known: DOS-310) cheque CHQ088789 recorded 2× (RCPT-9021,RCPT-9022)
+
+R6 trips with money: 85 (85 settled)
+[KNOWN] R6a cash with crews nets to zero on every settled trip; nothing left on a trip that has no settlement row — 1 row(s), 1 known (seed baseline or a filed finding)
+        (known: seed baseline) TRIP-20260615-1 settled: CASH_VAN net 152536.00 (into van 152536.00)
+[KNOWN] R6b settlement: expected = float + cash collected − expenses; variance = handed over − expected; UPI = UPI collected — 1 row(s), 1 known (seed baseline or a filed finding)
+        (known: seed baseline) TRIP-20260615-1: stored expected 4521.04 vs float 5000.00 + cash 152536.00 − exp 478.96 = 157057.04; variance 0.00 vs 0.00; UPI 5748.00 vs 5748.00
+[PASS] R6c every CASH_VAN line belongs to a trip
+        (open trips still carrying cash: none)
+
+R7 rollups judged from 2026-09-28; seeded rows before it that differ from documents (information only): 269 of 347 days
+[STALE] R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day — 1 row(s)
+        2026-09-28: rollup inv 595.00 cn 0.00 rc 595.00 | docs inv 16566.00 cn 267.00 rc 70146.10 | computed 2026-09-28T07:30:43.458+05:30; docs changed 2026-09-28T07:42:12.596844+05:30
+[PASS] R7b daily_retailer_stats rows = documents of that shop and day (rows that exist)
+[STALE] R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today — 1 row(s)
+        owner_summary as of 2026-09-28T07:30:43.514+05:30: outstanding 4424374.00 overdue 4338735.00 | docs 4370779.00 / 4276777.00
+
+[PASS] R8a headers: taxable + CGST + SGST + IGST + cess + round-off = total = Σ lines + round-off; taxable = subtotal − discount
+[PASS] R8b round-off within ±50 paise and totals in whole rupees
+
+RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))

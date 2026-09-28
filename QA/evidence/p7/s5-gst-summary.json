@@ -1,0 +1,102 @@
+{
+  "from": "2026-09-28",
+  "to": "2026-09-28",
+  "supplyType": null,
+  "groupBy": "rate",
+  "rows": [
+    {
+      "hsnCode": null,
+      "gstBps": 500,
+      "cessBps": 0,
+      "qtyPcs": 19,
+      "freeQtyPcs": 0,
+      "taxablePaise": 137305,
+      "cgstPaise": 1820,
+      "sgstPaise": 1820,
+      "igstPaise": 3222,
+      "cessPaise": 0,
+      "totalPaise": 144167,
+      "documentCount": 19
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 1800,
+      "cessBps": 0,
+      "qtyPcs": 703,
+      "freeQtyPcs": 4,
+      "taxablePaise": 598409,
+      "cgstPaise": 52342,
+      "sgstPaise": 52342,
+      "igstPaise": 3036,
+      "cessPaise": 0,
+      "totalPaise": 706129,
+      "documentCount": 76
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 2800,
+      "cessBps": 1200,
+      "qtyPcs": 300,
+      "freeQtyPcs": 0,
+      "taxablePaise": 685800,
+      "cgstPaise": 96000,
+      "sgstPaise": 96000,
+      "igstPaise": 0,
+      "cessPaise": 82299,
+      "totalPaise": 960099,
+      "documentCount": 25
+    }
+  ],
+  "totals": {
+    "qtyPcs": 1022,
+    "freeQtyPcs": 4,
+    "taxablePaise": 1421514,
+    "cgstPaise": 150162,
+    "sgstPaise": 150162,
+    "igstPaise": 6258,
+    "cessPaise": 82299,
+    "totalPaise": 1810395,
+    "documentCount": 76
+  },
+  "creditNoteRows": [
+    {
+      "hsnCode": null,
+      "gstBps": 1800,
+      "cessBps": 0,
+      "qtyPcs": 75,
+      "freeQtyPcs": 0,
+      "taxablePaise": 68312,
+      "cgstPaise": 6148,
+      "sgstPaise": 6148,
+      "igstPaise": 0,
+      "cessPaise": 0,
+      "totalPaise": 80608,
+      "documentCount": 6
+    },
+    {
+      "hsnCode": null,
+      "gstBps": 2800,
+      "cessBps": 1200,
+      "qtyPcs": 26,
+      "freeQtyPcs": 0,
+      "taxablePaise": 59436,
+      "cgstPaise": 8320,
+      "sgstPaise": 8320,
+      "igstPaise": 0,
+      "cessPaise": 7133,
+      "totalPaise": 83209,
+      "documentCount": 3
+    }
+  ],
+  "creditNoteTotals": {
+    "qtyPcs": 101,
+    "freeQtyPcs": 0,
+    "taxablePaise": 127748,
+    "cgstPaise": 14468,
+    "sgstPaise": 14468,
+    "igstPaise": 0,
+    "cessPaise": 7133,
+    "totalPaise": 163817,
+    "documentCount": 6
+  }
+}

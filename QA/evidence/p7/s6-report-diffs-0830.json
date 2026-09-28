@@ -1,0 +1,825 @@
+[
+  {
+    "report": "dashboard",
+    "figure": "today invoiced",
+    "served": 1870100,
+    "sql": 1870100,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "today credited",
+    "served": 163900,
+    "sql": 163900,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "today collected (receipts not undone)",
+    "served": 7407610,
+    "sql": 7407610,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "today orders",
+    "served": 103,
+    "sql": 103,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "total outstanding (open bills)",
+    "served": 436919600,
+    "sql": 436919600,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "overdue",
+    "served": 427677700,
+    "sql": 427677700,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "money on account",
+    "served": 3732400,
+    "sql": 3732400,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "outstanding − on account vs Sundry Debtors",
+    "served": 433187200,
+    "sql": 433187200,
+    "diff": 0,
+    "note": "AR less bills on vans"
+  },
+  {
+    "report": "dashboard",
+    "figure": "cash in transit vs Cash with delivery crews (book)",
+    "served": 0,
+    "sql": 15253600,
+    "diff": -15253600,
+    "note": "UX-O-14 known: the two can differ"
+  },
+  {
+    "report": "dashboard",
+    "figure": "MTD sales",
+    "served": 198669300,
+    "sql": 199124400,
+    "diff": -455100,
+    "note": "invoice totals incl. GST, month to date"
+  },
+  {
+    "report": "dashboard",
+    "figure": "MTD sales vs Σ daily_tenant_stats.invoiced this month (the rollup it reads)",
+    "served": 198669300,
+    "sql": 199124400,
+    "diff": -455100,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "MTD credited",
+    "served": 455100,
+    "sql": 455100,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "pending approvals",
+    "served": 8,
+    "sql": 8,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "active trips",
+    "served": 1,
+    "sql": 1,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "ageing b0_7",
+    "served": 60736200,
+    "sql": 60736200,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "ageing b8_15",
+    "served": 100961600,
+    "sql": 100961600,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "ageing b16_30",
+    "served": 124205550,
+    "sql": 124205550,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "ageing b31_60",
+    "served": 123850050,
+    "sql": 123850050,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "ageing b61_90",
+    "served": 23651800,
+    "sql": 23651800,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "ageing b90plus",
+    "served": 3514400,
+    "sql": 3514400,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "sparkline today invoiced",
+    "served": 1870100,
+    "sql": 1870100,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "dashboard",
+    "figure": "sparkline today collected",
+    "served": 7407610,
+    "sql": 7407610,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "today adjustment",
+    "served": 0,
+    "sql": 0,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "today bank_transfer",
+    "served": 1396500,
+    "sql": 1396500,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "today cash",
+    "served": 5500110,
+    "sql": 5500110,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "today cheque",
+    "served": 119000,
+    "sql": 119000,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "today upi",
+    "served": 392000,
+    "sql": 392000,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "receipt count",
+    "served": 88,
+    "sql": 88,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "today total",
+    "served": 7407610,
+    "sql": 7407610,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "collector iqbal.shaikh",
+    "served": 59500,
+    "sql": 59500,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "collector ganesh.more",
+    "served": 326810,
+    "sql": 326810,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "collector amol.vaidya",
+    "served": 6961800,
+    "sql": 6961800,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "collections",
+    "figure": "collector mahesh.sutar",
+    "served": 59500,
+    "sql": 59500,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "ageing register",
+    "figure": "Σ dues",
+    "served": 436919600,
+    "sql": 436919600,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "ageing register",
+    "figure": "Σ money on account",
+    "served": 3732400,
+    "sql": 3732400,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "ageing register",
+    "figure": "shops listed with dues",
+    "served": 67,
+    "sql": 67,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "ageing register",
+    "figure": "shops holding only money on account, listed",
+    "served": 5,
+    "sql": 5,
+    "diff": 0,
+    "note": "a shop the distributor owes"
+  },
+  {
+    "report": "trial balance",
+    "figure": "AP",
+    "served": -1221163971,
+    "sql": -1221163971,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "AR",
+    "served": 433187200,
+    "sql": 433187200,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "BAD_DEBTS",
+    "served": 244300,
+    "sql": 244300,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "BANK",
+    "served": 237137965,
+    "sql": 237137965,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "BANK_CHARGES",
+    "served": 130000,
+    "sql": 130000,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "CASH",
+    "served": 399607152,
+    "sql": 399607152,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "CASH_DISCOUNT",
+    "served": 2221526,
+    "sql": 2221526,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "CASH_SHORT",
+    "served": 5000,
+    "sql": 5000,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "CASH_VAN",
+    "served": 15253600,
+    "sql": 15253600,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "CHEQUES",
+    "served": 17474698,
+    "sql": 17474698,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "CLAIMS_RECEIVABLE",
+    "served": 49488,
+    "sql": 49488,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "DAMAGES",
+    "served": -49488,
+    "sql": -49488,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "DISCOUNTS",
+    "served": 21491578,
+    "sql": 21491578,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "INPUT_CESS",
+    "served": 33564561,
+    "sql": 33564561,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "INPUT_CGST",
+    "served": 71076342,
+    "sql": 71076342,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "INPUT_IGST",
+    "served": 29308518,
+    "sql": 29308518,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "INPUT_SGST",
+    "served": 71076342,
+    "sql": 71076342,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "OPENING",
+    "served": -10617200,
+    "sql": -10617200,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "OUTPUT_CESS",
+    "served": -36583083,
+    "sql": -36583083,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "OUTPUT_CGST",
+    "served": -97120398,
+    "sql": -97120398,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "OUTPUT_IGST",
+    "served": -332285,
+    "sql": -332285,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "OUTPUT_SGST",
+    "served": -97120398,
+    "sql": -97120398,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "PURCHASES",
+    "served": 1019897302,
+    "sql": 1019897302,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "ROUND_OFF",
+    "served": -1230,
+    "sql": -1230,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "SALES",
+    "served": -1183123045,
+    "sql": -1183123045,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "SALES_RETURNS",
+    "served": 2081161,
+    "sql": 2081161,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "SCHEME_EXPENSE",
+    "served": -15775439,
+    "sql": -15775439,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "SCHEME_RECEIVABLE",
+    "served": 7458419,
+    "sql": 7458419,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "STOCK",
+    "served": 0,
+    "sql": 0,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "TRIP_EXPENSES",
+    "served": 0,
+    "sql": 0,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "UPI",
+    "served": 300621385,
+    "sql": 300621385,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "total of all balances",
+    "served": 0,
+    "sql": 0,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "trial balance",
+    "figure": "Sundry Debtors vs Σ shop nets (docs)",
+    "served": 433187200,
+    "sql": 433187200,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "sales register",
+    "figure": "rows (incl. the cancelled bill)",
+    "served": 96,
+    "sql": 96,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "sales register",
+    "figure": "Σ total",
+    "served": 1870100,
+    "sql": 1870100,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "sales register",
+    "figure": "Σ taxable",
+    "served": 1466802,
+    "sql": 1466802,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "taxable",
+    "served": 1466802,
+    "sql": 1466802,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "CGST",
+    "served": 155609,
+    "sql": 155609,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "SGST",
+    "served": 155609,
+    "sql": 155609,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "IGST",
+    "served": 6258,
+    "sql": 6258,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "cess",
+    "served": 85591,
+    "sql": 85591,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "documents (bills issued today, excl. cancelled)",
+    "served": 77,
+    "sql": 95,
+    "diff": -18,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "credit notes taxable",
+    "served": 127748,
+    "sql": 127748,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "credit notes tax (CGST+SGST+IGST+cess)",
+    "served": 36069,
+    "sql": 36069,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (billing)",
+    "figure": "credit notes documents",
+    "served": 6,
+    "sql": 8,
+    "diff": -2,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "taxable",
+    "served": 1466802,
+    "sql": 1466802,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "CGST",
+    "served": 155609,
+    "sql": 155609,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "SGST",
+    "served": 155609,
+    "sql": 155609,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "IGST",
+    "served": 6258,
+    "sql": 6258,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "cess",
+    "served": 85591,
+    "sql": 85591,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "documents (bills issued today, excl. cancelled)",
+    "served": 77,
+    "sql": 95,
+    "diff": -18,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "credit notes taxable",
+    "served": 127748,
+    "sql": 127748,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "credit notes tax (CGST+SGST+IGST+cess)",
+    "served": 36069,
+    "sql": 36069,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST (reporting)",
+    "figure": "credit notes documents",
+    "served": 6,
+    "sql": 8,
+    "diff": -2,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "taxable",
+    "served": 1466802,
+    "sql": 1466802,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "CGST",
+    "served": 155609,
+    "sql": 155609,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "SGST",
+    "served": 155609,
+    "sql": 155609,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "IGST",
+    "served": 6258,
+    "sql": 6258,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "cess",
+    "served": 85591,
+    "sql": 85591,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "documents (bills issued today, excl. cancelled)",
+    "served": 50,
+    "sql": 95,
+    "diff": -45,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "credit notes taxable",
+    "served": 127748,
+    "sql": 127748,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "credit notes tax (CGST+SGST+IGST+cess)",
+    "served": 36069,
+    "sql": 36069,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "GST by HSN",
+    "figure": "credit notes documents",
+    "served": 6,
+    "sql": 8,
+    "diff": -2,
+    "note": ""
+  },
+  {
+    "report": "daily sales register",
+    "figure": "invoiced",
+    "served": 1870100,
+    "sql": 1870100,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "daily sales register",
+    "figure": "collected",
+    "served": 7407610,
+    "sql": 7407610,
+    "diff": 0,
+    "note": ""
+  },
+  {
+    "report": "daily sales register",
+    "figure": "credited",
+    "sql": 163900,
+    "diff": null,
+    "note": ""
+  }
+]

@@ -1,0 +1,2043 @@
+[
+  {
+    "id": "A4a",
+    "title": "One desk receipt against outstanding, no bill named: allocated oldest bill first (seeded R-0020, 6 open bills)",
+    "at": "2026-09-28T02:04:28.002Z",
+    "steps": [
+      {
+        "text": "open bills oldest first",
+        "data": [
+          "INV/0571 due 2026-08-28 open 2097900",
+          "INV/0598 due 2026-09-01 open 1358700",
+          "INV/0701 due 2026-09-11 open 2685400",
+          "INV/0733 due 2026-09-15 open 2515900",
+          "INV/0773 due 2026-09-19 open 1998100",
+          "INV/0826 due 2026-09-25 open 1496200"
+        ]
+      },
+      {
+        "text": "allocations",
+        "data": [
+          {
+            "invoice_no": "INV/0571",
+            "amount_paise": 2097900
+          },
+          {
+            "invoice_no": "INV/0598",
+            "amount_paise": 1358700
+          },
+          {
+            "invoice_no": "INV/0701",
+            "amount_paise": 1342700
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "before",
+        "shops": {
+          "R-0020": {
+            "owner": {
+              "outstanding": 12152200,
+              "overdue": 12152200,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 6,
+              "net": 12152200
+            },
+            "owner_credit": {
+              "limit": 18000000,
+              "headroom": 5847800,
+              "outstanding": 12152200,
+              "undelivered": 0,
+              "openBills": 6,
+              "overdueDays": 31,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "accountant": {
+              "outstanding": 12152200,
+              "overdue": 12152200,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 6,
+              "net": 12152200
+            },
+            "accountant_credit": {
+              "limit": 18000000,
+              "headroom": 5847800,
+              "outstanding": 12152200,
+              "undelivered": 0,
+              "openBills": 6,
+              "overdueDays": 31,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "rep": {
+              "outstanding": 12152200,
+              "overdue": 12152200,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 6,
+              "net": 12152200
+            },
+            "rep_credit": {
+              "limit": 18000000,
+              "headroom": 5847800,
+              "outstanding": 12152200,
+              "undelivered": 0,
+              "openBills": 6,
+              "overdueDays": 31,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "driver": {
+              "outstanding": 12152200,
+              "overdue": 12152200,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 6,
+              "net": 12152200
+            },
+            "sql": {
+              "outstanding": 12152200,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 6,
+              "net": 12152200,
+              "arJournal": 12152200,
+              "limit": 18000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      },
+      {
+        "label": "after FIFO receipt",
+        "shops": {
+          "R-0020": {
+            "owner": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7352900
+            },
+            "owner_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "accountant": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7352900
+            },
+            "accountant_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "rep": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7352900
+            },
+            "rep_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "driver": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7352900
+            },
+            "sql": {
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 4,
+              "net": 7352900,
+              "arJournal": 7352900,
+              "limit": 18000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "receipt recorded",
+        "ok": true,
+        "detail": "RCPT-9013"
+      },
+      {
+        "name": "two oldest bills settled in full, the third in part, nothing else touched",
+        "ok": true,
+        "detail": "[\"INV/0571\",\"INV/0598\",\"INV/0701\"]"
+      },
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S2-A4a-fifo",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known seed rows: R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))"
+    }
+  },
+  {
+    "id": "A4b",
+    "title": "One desk receipt hand-picked to the newest and a middle bill (seeded R-0015, 5 open bills)",
+    "at": "2026-09-28T02:04:30.995Z",
+    "steps": [
+      {
+        "text": "open bills oldest first",
+        "data": [
+          "INV/0474 due 2026-08-18 open 2513900",
+          "INV/0572 due 2026-08-28 open 2230400",
+          "INV/0589 due 2026-08-31 open 1252800",
+          "INV/0661 due 2026-09-08 open 907100",
+          "INV/0766 due 2026-09-18 open 978900"
+        ]
+      },
+      {
+        "text": "allocations",
+        "data": [
+          {
+            "invoice_no": "INV/0589",
+            "amount_paise": 417600
+          },
+          {
+            "invoice_no": "INV/0766",
+            "amount_paise": 978900
+          }
+        ]
+      },
+      {
+        "text": "explicit split larger than the receipt itself",
+        "data": "409 the split comes to 7000 paise but the receipt is 5000"
+      }
+    ],
+    "figures": [
+      {
+        "label": "after hand-picked receipt",
+        "shops": {
+          "R-0015": {
+            "owner": {
+              "outstanding": 6486600,
+              "overdue": 6486600,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 6486600
+            },
+            "owner_credit": {
+              "limit": 18000000,
+              "headroom": 11513400,
+              "outstanding": 6486600,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 41,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "accountant": {
+              "outstanding": 6486600,
+              "overdue": 6486600,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 6486600
+            },
+            "accountant_credit": {
+              "limit": 18000000,
+              "headroom": 11513400,
+              "outstanding": 6486600,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 41,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "rep": {
+              "outstanding": 6486600,
+              "overdue": 6486600,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 6486600
+            },
+            "rep_credit": {
+              "limit": 18000000,
+              "headroom": 11513400,
+              "outstanding": 6486600,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 41,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "driver": {
+              "outstanding": 6486600,
+              "overdue": 6486600,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 6486600
+            },
+            "sql": {
+              "outstanding": 6486600,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 4,
+              "net": 6486600,
+              "arJournal": 6486600,
+              "limit": 18000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "receipt recorded with the named split",
+        "ok": true,
+        "detail": "RCPT-9014"
+      },
+      {
+        "name": "exactly the two named bills, by the named amounts",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "a hand-picked line larger than what the bill still owes is refused",
+        "ok": true,
+        "detail": "409 bill INV/0766 is paid; only an open bill takes money"
+      },
+      {
+        "name": "an explicit split may not exceed the money received",
+        "ok": true,
+        "detail": "refused"
+      },
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S2-A4b-handpicked",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known seed rows: R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))"
+    }
+  },
+  {
+    "id": "A6",
+    "title": "Receipt kept on account (strategy none), then the accountant allocates it, then removes one allocation",
+    "at": "2026-09-28T02:04:33.659Z",
+    "steps": [
+      {
+        "text": "allocations of the receipt after remove (net)",
+        "data": []
+      }
+    ],
+    "figures": [
+      {
+        "label": "on account",
+        "shops": {
+          "R-0020": {
+            "owner": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "owner_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "accountant": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "accountant_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "rep": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "rep_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "driver": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "sql": {
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "onAccount": 30000,
+              "openBills": 4,
+              "net": 7322900,
+              "arJournal": 7322900,
+              "limit": 18000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      },
+      {
+        "label": "after remove",
+        "shops": {
+          "R-0020": {
+            "owner": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "owner_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "accountant": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "accountant_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "rep": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "rep_credit": {
+              "limit": 18000000,
+              "headroom": 10647100,
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "openBills": 4,
+              "overdueDays": 17,
+              "breached": false,
+              "reasons": [
+                "overdue_days_exceeded"
+              ]
+            },
+            "driver": {
+              "outstanding": 7352900,
+              "overdue": 7352900,
+              "onAccount": 30000,
+              "undelivered": 0,
+              "openBills": 4,
+              "net": 7322900
+            },
+            "sql": {
+              "outstanding": 7352900,
+              "undelivered": 0,
+              "onAccount": 30000,
+              "openBills": 4,
+              "net": 7322900,
+              "arJournal": 7322900,
+              "limit": 18000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "receipt wholly on account",
+        "ok": true,
+        "detail": "{\"a\":0,\"u\":30000}"
+      },
+      {
+        "name": "accountant allocates the ₹300 to the newest bill",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "allocating more than the receipt has free is refused",
+        "ok": true,
+        "detail": "409 only 0 paise of this receipt is unallocated"
+      },
+      {
+        "name": "allocation removed; money back on account, no journal",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S2-A6-onaccount",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known seed rows: R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))"
+    }
+  },
+  {
+    "id": "A5a",
+    "title": "Payment before delivery: bill packed, the shop pays by UPI at the office, then the van delivers",
+    "at": "2026-09-28T02:04:36.392Z",
+    "steps": [
+      {
+        "text": "crew stop list",
+        "data": [
+          {
+            "retailer": "QA P7 PB2 Prepay Stores",
+            "toCollect": 59500
+          }
+        ]
+      },
+      {
+        "text": "crew next stop (what the door screen reads)",
+        "data": "{\"item\":{\"id\":\"01a0e5c1-c615-75f7-80d4-d2fe97365fc6\",\"tripId\":\"01a0e5c1-c615-75f5-9bc4-0385d98d035a\",\"sequence\":1,\"retailerId\":\"01a0e5c1-c4a8-70a5-b23d-69d083596f4d\",\"retailerName\":\"QA P7 PB2 Prepay Stores\",\"state\":\"pending\",\"failureReason\":null,\"failureNote\":null,\"plannedCollectionPaise\":59500,\"etaAt\":null,\"startedAt\":null,\"arrivedAt\":null,\"completedAt\":null,\"arrivedLat\":null,\"arrivedLng\":null,\"vehicleRegNo\":\"MH-05-CD-5678\",\"deliveries\":[{\"id\":\"dca9c0d9-2ba5-72bc-a829-ebaa15e91bb9\",\"invoiceId\":\"01a0e5c1-c58f-73b5-bede-7a531331a24c\",\"invoiceNo\":\"INV/9014\",\"orderId\":\"01a0e5c1-c4cf-70a2-91f0-856d7042ffab\",\"invoiceTotalPaise\":59500,\"outcome\":null,\"deliveredAt\":null,\"creditNoteId\":null}],\"createdAt\":\"2026-09-28T02:04:36.759Z\"},\"retailer\":{\"id\":\"01a0e5c1-c4a8-70a5-b23d-69d083596f4d\",\"name\":\"QA P7 PB2 Prepay Stores\",\"ownerName\":\"QA P7 PB2 Prepay Stores owner\",\"phone\":\"+919801067872\",\"address\":{\"line1\":\"QA p7 test shop\",\"city\":\"Kalyan\",\"pincode\":\"421301\"},\"lat\":null,\"lng\":null,\"gstin\":null,\"paymentTerms\":\"POST_FULFILLMENT\"},\"remaining\":1}"
+      },
+      {
+        "text": "trip 2 settled",
+        "data": {
+          "expected": 0,
+          "upi": 0,
+          "state": "settled"
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "after delivery of a prepaid bill",
+        "shops": {
+          "R-9033": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 0,
+              "arJournal": 0,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "UPI receipt allocated to the packed bill",
+        "ok": true,
+        "detail": "RCPT-9016"
+      },
+      {
+        "name": "bill paid before it left the godown",
+        "ok": true,
+        "detail": "paid"
+      },
+      {
+        "name": "delivered",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "screens agree; nothing owed",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "a prepaid bill puts no UPI or cash on the crew's settlement",
+        "ok": true,
+        "detail": "{\"cash\":0,\"upi\":0}"
+      }
+    ],
+    "recon": {
+      "label": "S2-A5a-before-delivery",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known seed rows: R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))"
+    }
+  },
+  {
+    "id": "A5b",
+    "title": "Advance: the shop pays ₹1,000 before any order; the order is then placed, billed and delivered",
+    "at": "2026-09-28T02:04:39.943Z",
+    "steps": [
+      {
+        "text": "credit check for a ₹595 order after a ₹1,000 advance (limit ₹1,000, strict)",
+        "data": {
+          "limit": 100000,
+          "headroom": 40500,
+          "outstanding": 0,
+          "undelivered": 0,
+          "openBills": 0,
+          "overdueDays": 0,
+          "breached": false,
+          "reasons": []
+        }
+      },
+      {
+        "text": "order submit",
+        "data": {
+          "state": "confirmed",
+          "flags": [],
+          "total": 59500
+        }
+      },
+      {
+        "text": "the new bill after billing",
+        "data": {
+          "invoice_no": "INV/9015",
+          "state": "issued",
+          "total": 59500,
+          "open": 59500
+        }
+      },
+      {
+        "text": "dues shown vs money on account",
+        "data": {
+          "outstanding": 59500,
+          "onAccount": 100000,
+          "net": -40500
+        }
+      },
+      {
+        "text": "credit check for another ₹595 after billing",
+        "data": {
+          "limit": 100000,
+          "headroom": -19000,
+          "outstanding": 59500,
+          "undelivered": 0,
+          "openBills": 1,
+          "overdueDays": 0,
+          "breached": true,
+          "reasons": [
+            "limit_exceeded"
+          ]
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "after advance",
+        "shops": {
+          "R-9034": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -100000
+            },
+            "owner_credit": {
+              "limit": 100000,
+              "headroom": 40500,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -100000
+            },
+            "accountant_credit": {
+              "limit": 100000,
+              "headroom": 40500,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -100000
+            },
+            "rep_credit": {
+              "limit": 100000,
+              "headroom": 40500,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -100000
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 100000,
+              "openBills": 0,
+              "net": -100000,
+              "arJournal": -100000,
+              "limit": 100000,
+              "mode": "strict"
+            }
+          }
+        }
+      },
+      {
+        "label": "advance + new bill",
+        "shops": {
+          "R-9034": {
+            "owner": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": -40500
+            },
+            "owner_credit": {
+              "limit": 100000,
+              "headroom": -19000,
+              "outstanding": 59500,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": true,
+              "reasons": [
+                "limit_exceeded"
+              ]
+            },
+            "accountant": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": -40500
+            },
+            "accountant_credit": {
+              "limit": 100000,
+              "headroom": -19000,
+              "outstanding": 59500,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": true,
+              "reasons": [
+                "limit_exceeded"
+              ]
+            },
+            "rep": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": -40500
+            },
+            "rep_credit": {
+              "limit": 100000,
+              "headroom": -19000,
+              "outstanding": 59500,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": true,
+              "reasons": [
+                "limit_exceeded"
+              ]
+            },
+            "driver": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 100000,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": -40500
+            },
+            "sql": {
+              "outstanding": 59500,
+              "undelivered": 0,
+              "onAccount": 100000,
+              "openBills": 1,
+              "net": -40500,
+              "arJournal": -40500,
+              "limit": 100000,
+              "mode": "strict"
+            }
+          }
+        }
+      },
+      {
+        "label": "advance applied",
+        "shops": {
+          "R-9034": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 40500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -40500
+            },
+            "owner_credit": {
+              "limit": 100000,
+              "headroom": 100000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 40500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -40500
+            },
+            "accountant_credit": {
+              "limit": 100000,
+              "headroom": 100000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 40500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -40500
+            },
+            "rep_credit": {
+              "limit": 100000,
+              "headroom": 100000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 40500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -40500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 40500,
+              "openBills": 0,
+              "net": -40500,
+              "arJournal": -40500,
+              "limit": 100000,
+              "mode": "strict"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [
+      "Money already paid in advance (₹1000) is NOT applied to the new bill: the bill stays open (₹595) and will age, go overdue and count against the credit gate, while the shop's net is ₹-405."
+    ],
+    "checks": [
+      {
+        "name": "advance on account",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "the accountant can apply the advance to the bill by hand",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S2-A5b-advance",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known seed rows: R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))"
+    }
+  },
+  {
+    "id": "A8",
+    "title": "A desk cash receipt allocated across two bills is reversed",
+    "at": "2026-09-28T02:04:42.925Z",
+    "steps": [],
+    "figures": [
+      {
+        "label": "after reversal",
+        "shops": {
+          "R-9035": {
+            "owner": {
+              "outstanding": 79800,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 2,
+              "net": 79800
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 4920200,
+              "outstanding": 79800,
+              "undelivered": 0,
+              "openBills": 2,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 79800,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 2,
+              "net": 79800
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 4920200,
+              "outstanding": 79800,
+              "undelivered": 0,
+              "openBills": 2,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 79800,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 2,
+              "net": 79800
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 4920200,
+              "outstanding": 79800,
+              "undelivered": 0,
+              "openBills": 2,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 79800,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 2,
+              "net": 79800
+            },
+            "sql": {
+              "outstanding": 79800,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 2,
+              "net": 79800,
+              "arJournal": 79800,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "both bills paid",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "reversal accepted",
+        "ok": true,
+        "detail": "RCPT-9019 -79800"
+      },
+      {
+        "name": "both bills reopened in full",
+        "ok": true,
+        "detail": "[{\"invoice_no\":\"INV/9016\",\"state\":\"issued\",\"total\":59500,\"open\":59500},{\"invoice_no\":\"INV/9017\",\"state\":\"issued\",\"total\":20300,\"open\":20300}]"
+      },
+      {
+        "name": "cash in hand went back down by exactly the receipt",
+        "ok": true,
+        "detail": "399388452 → 399308652"
+      },
+      {
+        "name": "a second reversal of the same receipt is refused",
+        "ok": true,
+        "detail": "409 receipt RCPT-9018 is already cancelled"
+      },
+      {
+        "name": "screens agree; the shop owes both bills again",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S2-A8-reversal",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known seed rows: R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1))"
+    }
+  },
+  {
+    "id": "A8b",
+    "title": "Undo S1's full cash payment (trip settled, cash banked): the money leaves the bank, not the van",
+    "at": "2026-09-28T02:04:46.015Z",
+    "steps": [
+      {
+        "text": "reversal journal",
+        "data": [
+          {
+            "code": "AR",
+            "amount_paise": 59500
+          },
+          {
+            "code": "BANK",
+            "amount_paise": -59500
+          }
+        ]
+      },
+      {
+        "text": "bank / cash / van before",
+        "data": [
+          {
+            "code": "BANK",
+            "s": 237137965
+          },
+          {
+            "code": "CASH",
+            "s": 399308652
+          },
+          {
+            "code": "CASH_VAN",
+            "s": 15253600
+          }
+        ]
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [
+      {
+        "name": "reversal accepted",
+        "ok": true,
+        "detail": "RCPT-9020"
+      },
+      {
+        "name": "the banked cash is taken from Bank",
+        "ok": true,
+        "detail": "[{\"code\":\"AR\",\"amount_paise\":59500},{\"code\":\"BANK\",\"amount_paise\":-59500}]"
+      }
+    ],
+    "recon": {
+      "label": "S2-A8b-reverse-banked",
+      "exit": 1,
+      "result": "RESULT: 1 INVARIANT(S) BROKEN — R6b settlement: expected = float + cash collected − expenses; variance = handed over − expected; UPI = UPI collected (1) · stale: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1)"
+    }
+  },
+  {
+    "id": "A9",
+    "title": "The same receipt twice: same idempotency key; then a new key with the same cheque number; then the same paper receipt from a device",
+    "at": "2026-09-28T02:04:48.603Z",
+    "steps": [
+      {
+        "text": "same id + same key replayed",
+        "data": "409 idempotencyKey was already used with a different request"
+      },
+      {
+        "text": "same key, different amount",
+        "data": "409 idempotencyKey was already used with a different request"
+      },
+      {
+        "text": "new id + new key, same cheque number, same amount",
+        "data": {
+          "receiptNo": "RCPT-9022",
+          "alloc": 0,
+          "unalloc": 59500
+        }
+      },
+      {
+        "text": "the same paper receipt (device + book no.) sent twice with new ids and keys",
+        "data": {
+          "a": "RCPT-9023",
+          "b": "RCPT-9023 id same as first"
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "after duplicates",
+        "shops": {
+          "R-9036": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 64500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -64500
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 64500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -64500
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 64500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -64500
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 64500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -64500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 64500,
+              "openBills": 0,
+              "net": -64500,
+              "arJournal": -64500,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "replay with the same key creates nothing new",
+        "ok": true,
+        "detail": "{\"n\":1,\"s\":59500}"
+      },
+      {
+        "name": "a second receipt for the same cheque number of the same shop is refused or flagged",
+        "ok": false,
+        "detail": "ACCEPTED as RCPT-9022: ₹595 now sits on the shop's account"
+      },
+      {
+        "name": "one receipt for one paper slip",
+        "ok": true,
+        "detail": "{\"n\":1}"
+      },
+      {
+        "name": "screens agree",
+        "ok": true,
+        "detail": ""
+      }
+    ],
+    "recon": {
+      "label": "S2-A9-duplicates",
+      "exit": 1,
+      "result": "RESULT: 2 INVARIANT(S) BROKEN — R5c no live cheque / UPI / transfer reference recorded twice for the same shop (1); R6b settlement: expected = float + cash collected − expenses; variance = handed over − expected; UPI = UPI collected (1) · stale: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1)"
+    }
+  },
+  {
+    "id": "A12",
+    "title": "Refund / return of money on account (S1 shop PA3 holds ₹105)",
+    "at": "2026-09-28T02:04:51.491Z",
+    "steps": [
+      {
+        "text": "a negative receipt (money out)",
+        "data": "400 Input validation failed"
+      },
+      {
+        "text": "mode adjustment ₹105",
+        "data": {
+          "receiptNo": "RCPT-9024",
+          "unalloc": 10500
+        }
+      },
+      {
+        "text": "refund/payout endpoints in the owner API",
+        "data": []
+      }
+    ],
+    "figures": [
+      {
+        "label": "PA3 after refund attempts",
+        "shops": {
+          "R-9029": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 10500,
+              "openBills": 0,
+              "net": -10500,
+              "arJournal": -10500,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [
+      "mode \"adjustment\" is a receipt (money IN, Dr Round off / Cr AR): it ADDS ₹105 more credit to the shop instead of paying the ₹105 back; reversed below to keep the books clean."
+    ],
+    "checks": [
+      {
+        "name": "a refund of money on account can be recorded",
+        "ok": false,
+        "detail": "no refund, payout or debit-note endpoint exists"
+      }
+    ],
+    "recon": {
+      "label": "S2-A12-refund",
+      "exit": 1,
+      "result": "RESULT: 2 INVARIANT(S) BROKEN — R5c no live cheque / UPI / transfer reference recorded twice for the same shop (1); R6b settlement: expected = float + cash collected − expenses; variance = handed over − expected; UPI = UPI collected (1) · stale: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1)"
+    }
+  },
+  {
+    "id": "A13",
+    "title": "Bad-debt write-off of the rest of a bill, then the shop pays it after all",
+    "at": "2026-09-28T02:04:54.205Z",
+    "steps": [
+      {
+        "text": "partial write-off of ₹10",
+        "data": {
+          "state": {
+            "invoice_no": "INV/9019",
+            "state": "partially_paid",
+            "total": 59500,
+            "open": 38500
+          }
+        }
+      },
+      {
+        "text": "the accountant writes off ₹1 (docs/22: accountant may record write-offs; contract summary says owner only)",
+        "data": "ACCEPTED"
+      },
+      {
+        "text": "the shop pays the written-off amount",
+        "data": {
+          "receiptNo": "RCPT-9027",
+          "alloc": 0,
+          "unalloc": 39500
+        }
+      },
+      {
+        "text": "shop after late payment",
+        "data": {
+          "dues": 0,
+          "onAccount": 39500,
+          "net": -39500,
+          "bill": {
+            "invoice_no": "INV/9019",
+            "state": "written_off",
+            "total": 59500,
+            "open": 0
+          },
+          "badDebtsTotal": 244300
+        }
+      },
+      {
+        "text": "next bill: dues and on-account side by side",
+        "data": {
+          "newBill": 59500,
+          "dues": 59500,
+          "onAccount": 39500,
+          "net": 20000
+        }
+      }
+    ],
+    "figures": [
+      {
+        "label": "after write-off",
+        "shops": {
+          "R-9037": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": 0
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 0,
+              "openBills": 0,
+              "net": 0,
+              "arJournal": 0,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      },
+      {
+        "label": "after the late payment",
+        "shops": {
+          "R-9037": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -39500
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -39500
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -39500
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -39500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 39500,
+              "openBills": 0,
+              "net": -39500,
+              "arJournal": -39500,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      },
+      {
+        "label": "next bill after the recovered money",
+        "shops": {
+          "R-9037": {
+            "owner": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 20000
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 4940500,
+              "outstanding": 59500,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 20000
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 4940500,
+              "outstanding": 59500,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 20000
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 4940500,
+              "outstanding": 59500,
+              "undelivered": 0,
+              "openBills": 1,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 59500,
+              "overdue": 0,
+              "onAccount": 39500,
+              "undelivered": 0,
+              "openBills": 1,
+              "net": 20000
+            },
+            "sql": {
+              "outstanding": 59500,
+              "undelivered": 0,
+              "onAccount": 39500,
+              "openBills": 1,
+              "net": 20000,
+              "arJournal": 20000,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "write-off of what is left accepted; bill written off",
+        "ok": true,
+        "detail": "{\"invoice_no\":\"INV/9019\",\"state\":\"written_off\",\"total\":59500,\"open\":0}"
+      },
+      {
+        "name": "a salesperson cannot write off",
+        "ok": true,
+        "detail": "403"
+      },
+      {
+        "name": "the recovered money is booked as a bad-debt recovery (the write-off undone), not as the shop's credit",
+        "ok": false,
+        "detail": "₹395 parked on the shop's account; bill stays written_off; Bad debts unchanged"
+      }
+    ],
+    "recon": {
+      "label": "S2-A13-writeoff",
+      "exit": 1,
+      "result": "RESULT: 2 INVARIANT(S) BROKEN — R5c no live cheque / UPI / transfer reference recorded twice for the same shop (1); R6b settlement: expected = float + cash collected − expenses; variance = handed over − expected; UPI = UPI collected (1) · stale: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = Σ open bills / Σ overdue today (1)"
+    }
+  },
+  {
+    "id": "A9b",
+    "title": "The same UPI UTR recorded twice (same shop), then once more against another shop",
+    "at": "2026-09-28T03:01:50.465Z",
+    "steps": [
+      {
+        "text": "same UTR, same shop, same amount, new id/key",
+        "data": {
+          "receiptNo": "RCPT-9104",
+          "unalloc": 10500
+        }
+      },
+      {
+        "text": "same UTR against another shop",
+        "data": {
+          "receiptNo": "RCPT-9105",
+          "alloc": 0,
+          "unalloc": 10500
+        }
+      },
+      {
+        "text": "UPI receipts carrying this UTR",
+        "data": [
+          {
+            "receipt_no": "RCPT-9103",
+            "same_shop": true,
+            "amount_paise": 10500
+          },
+          {
+            "receipt_no": "RCPT-9104",
+            "same_shop": true,
+            "amount_paise": 10500
+          },
+          {
+            "receipt_no": "RCPT-9105",
+            "same_shop": false,
+            "amount_paise": 10500
+          }
+        ]
+      }
+    ],
+    "figures": [
+      {
+        "label": "after duplicate UTRs",
+        "shops": {
+          "R-9068": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 10500,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -10500
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 10500,
+              "openBills": 0,
+              "net": -10500,
+              "arJournal": -10500,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          },
+          "R-9036": {
+            "owner": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 75000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -75000
+            },
+            "owner_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "accountant": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 75000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -75000
+            },
+            "accountant_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "rep": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 75000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -75000
+            },
+            "rep_credit": {
+              "limit": 5000000,
+              "headroom": 5000000,
+              "outstanding": 0,
+              "undelivered": 0,
+              "openBills": 0,
+              "overdueDays": 0,
+              "breached": false,
+              "reasons": []
+            },
+            "driver": {
+              "outstanding": 0,
+              "overdue": 0,
+              "onAccount": 75000,
+              "undelivered": 0,
+              "openBills": 0,
+              "net": -75000
+            },
+            "sql": {
+              "outstanding": 0,
+              "undelivered": 0,
+              "onAccount": 75000,
+              "openBills": 0,
+              "net": -75000,
+              "arJournal": -75000,
+              "limit": 5000000,
+              "mode": "indicate"
+            }
+          }
+        }
+      }
+    ],
+    "observations": [],
+    "checks": [
+      {
+        "name": "the second use of one UTR for the same shop is refused",
+        "ok": false,
+        "detail": "ACCEPTED RCPT-9104"
+      },
+      {
+        "name": "one UTR cannot pay two shops",
+        "ok": false,
+        "detail": "ACCEPTED RCPT-9105"
+      }
+    ],
+    "recon": {
+      "label": "S2-A9b-utr",
+      "exit": 1,
+      "result": "RESULT: 1 INVARIANT(S) BROKEN — R5c no live cheque / UPI / transfer reference recorded twice for the same shop (1) · stale: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7b daily_retailer_stats rows = documents of that shop and day (rows that exist) (1)"
+    }
+  }
+]

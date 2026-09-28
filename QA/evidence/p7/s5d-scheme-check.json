@@ -1,0 +1,22 @@
+{
+  "dist": {
+    "lineSchemes": {
+      "ok": 160
+    },
+    "orderPctTotal": {
+      "0": 65,
+      "1636": 1
+    },
+    "discountSplit": {
+      "bill = order line": 160
+    }
+  },
+  "detail": [
+    {
+      "bill": "INV/9130",
+      "basis": 49138,
+      "orderPct": 1636,
+      "expect": 0
+    }
+  ]
+}

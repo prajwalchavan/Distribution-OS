@@ -1,0 +1,483 @@
+{
+  "shops": {
+    "IN": {
+      "id": "01a0e5cb-b111-7480-8b95-69b94f4a7d77",
+      "name": "QA P7 RND Intra Traders",
+      "code": "R-9064"
+    },
+    "OUT": {
+      "id": "01a0e5cb-b16c-7732-93f2-0bdd462402e5",
+      "name": "QA P7 RND Gujarat Traders",
+      "code": "R-9065"
+    },
+    "B2C": {
+      "id": "01a0e5cb-b190-766b-ab2e-547c25138459",
+      "name": "QA P7 RND Walk-in Kirana",
+      "code": "R-9066"
+    }
+  },
+  "bills": [
+    {
+      "invoiceId": "01a0e605-a53f-7489-b083-44ea8d6b47df",
+      "invoiceNo": "INV/9104",
+      "shop": "IN",
+      "total": 11000,
+      "order": 11000
+    },
+    {
+      "invoiceId": "01a0e605-a5a6-7674-abd4-7f3298726aa6",
+      "invoiceNo": "INV/9105",
+      "shop": "OUT",
+      "total": 122600,
+      "order": 122600
+    },
+    {
+      "invoiceId": "01a0e605-a5e9-737a-9ba3-713a5be5e508",
+      "invoiceNo": "INV/9106",
+      "shop": "B2C",
+      "total": 113600,
+      "order": 113600
+    },
+    {
+      "invoiceId": "01a0e605-a646-73ff-92ba-74685854c91b",
+      "invoiceNo": "INV/9107",
+      "shop": "IN",
+      "total": 117600,
+      "order": 117600
+    },
+    {
+      "invoiceId": "01a0e605-a681-737b-965c-4f5f8132a592",
+      "invoiceNo": "INV/9108",
+      "shop": "OUT",
+      "total": 105500,
+      "order": 105500
+    },
+    {
+      "invoiceId": "01a0e605-a6c5-7122-ba36-3c78b368cbd8",
+      "invoiceNo": "INV/9109",
+      "shop": "B2C",
+      "total": 19900,
+      "order": 19900
+    },
+    {
+      "invoiceId": "01a0e605-a755-72b9-963f-5313e85a8898",
+      "invoiceNo": "INV/9110",
+      "shop": "IN",
+      "total": 15300,
+      "order": 15300
+    },
+    {
+      "invoiceId": "01a0e605-a7a1-7247-8838-4e7fd5e3bd7d",
+      "invoiceNo": "INV/9111",
+      "shop": "OUT",
+      "total": 10600,
+      "order": 10600
+    },
+    {
+      "invoiceId": "01a0e605-a7f9-706b-8828-f53b9ff8d8de",
+      "invoiceNo": "INV/9112",
+      "shop": "B2C",
+      "total": 95400,
+      "order": 95400
+    },
+    {
+      "invoiceId": "01a0e605-a838-7000-b3f0-5196559aded9",
+      "invoiceNo": "INV/9113",
+      "shop": "IN",
+      "total": 35700,
+      "order": 35700
+    },
+    {
+      "invoiceId": "01a0e605-a895-7768-b340-a7a4739247a1",
+      "invoiceNo": "INV/9114",
+      "shop": "OUT",
+      "total": 54200,
+      "order": 54200
+    },
+    {
+      "invoiceId": "01a0e605-a963-74a8-8b8f-125f45031d6f",
+      "invoiceNo": "INV/9115",
+      "shop": "B2C",
+      "total": 4800,
+      "order": 4800
+    },
+    {
+      "invoiceId": "01a0e605-a9c0-71a3-8b81-aa8822b98667",
+      "invoiceNo": "INV/9116",
+      "shop": "IN",
+      "total": 91300,
+      "order": 91300
+    },
+    {
+      "invoiceId": "01a0e605-aa02-774c-8d78-3678a980bc0d",
+      "invoiceNo": "INV/9117",
+      "shop": "OUT",
+      "total": 12700,
+      "order": 12700
+    },
+    {
+      "invoiceId": "01a0e605-aa55-7490-ad91-69c0d0b102c8",
+      "invoiceNo": "INV/9118",
+      "shop": "B2C",
+      "total": 104300,
+      "order": 104300
+    },
+    {
+      "invoiceId": "01a0e605-aa9f-7763-84bd-ae1491f6e6cb",
+      "invoiceNo": "INV/9119",
+      "shop": "IN",
+      "total": 58800,
+      "order": 58800
+    },
+    {
+      "invoiceId": "01a0e605-aae0-77d5-ad7b-b766382a23ca",
+      "invoiceNo": "INV/9120",
+      "shop": "OUT",
+      "total": 58300,
+      "order": 58300
+    },
+    {
+      "invoiceId": "01a0e605-ab22-72f2-9070-5c13e8fa3098",
+      "invoiceNo": "INV/9121",
+      "shop": "B2C",
+      "total": 79200,
+      "order": 79200
+    },
+    {
+      "invoiceId": "01a0e605-ab60-7049-a30f-4241bf4f641e",
+      "invoiceNo": "INV/9122",
+      "shop": "IN",
+      "total": 79700,
+      "order": 79700
+    },
+    {
+      "invoiceId": "01a0e605-abab-7138-8939-98bfe3982112",
+      "invoiceNo": "INV/9123",
+      "shop": "OUT",
+      "total": 114500,
+      "order": 114500
+    },
+    {
+      "invoiceId": "01a0e605-abf3-7172-b56c-0fe47a4b3368",
+      "invoiceNo": "INV/9124",
+      "shop": "B2C",
+      "total": 44000,
+      "order": 44000
+    },
+    {
+      "invoiceId": "01a0e605-ac31-73c8-8baa-6def94d3ae3c",
+      "invoiceNo": "INV/9125",
+      "shop": "IN",
+      "total": 38900,
+      "order": 38900
+    },
+    {
+      "invoiceId": "01a0e605-ad02-75dd-9b6f-5b0254c52c3f",
+      "invoiceNo": "INV/9126",
+      "shop": "OUT",
+      "total": 9600,
+      "order": 9600
+    },
+    {
+      "invoiceId": "01a0e605-ad52-719e-9773-95241610bc52",
+      "invoiceNo": "INV/9127",
+      "shop": "B2C",
+      "total": 79800,
+      "order": 79800
+    },
+    {
+      "invoiceId": "01a0e605-adb2-7162-93ec-1537fa7db865",
+      "invoiceNo": "INV/9128",
+      "shop": "IN",
+      "total": 73900,
+      "order": 73900
+    },
+    {
+      "invoiceId": "01a0e605-ae04-730e-b8a4-3f50663a6b8d",
+      "invoiceNo": "INV/9129",
+      "shop": "OUT",
+      "total": 71900,
+      "order": 71800
+    },
+    {
+      "invoiceId": "01a0e605-ae59-766b-a6c4-24cc31a7b9d4",
+      "invoiceNo": "INV/9130",
+      "shop": "B2C",
+      "total": 59200,
+      "order": 59200
+    },
+    {
+      "invoiceId": "01a0e605-ae95-72cc-ae2c-adcfaddc6b2d",
+      "invoiceNo": "INV/9131",
+      "shop": "IN",
+      "total": 28900,
+      "order": 28900
+    },
+    {
+      "invoiceId": "01a0e605-aedf-707e-b656-69871aa6bc6b",
+      "invoiceNo": "INV/9132",
+      "shop": "OUT",
+      "total": 38800,
+      "order": 38800
+    },
+    {
+      "invoiceId": "01a0e605-af35-75d0-8316-b085c9b3d7b1",
+      "invoiceNo": "INV/9133",
+      "shop": "B2C",
+      "total": 106200,
+      "order": 106200
+    },
+    {
+      "invoiceId": "01a0e605-af75-711a-946e-f00391968b8f",
+      "invoiceNo": "INV/9134",
+      "shop": "IN",
+      "total": 2600,
+      "order": 2600
+    },
+    {
+      "invoiceId": "01a0e605-afb4-75ea-b025-85212e66c1c2",
+      "invoiceNo": "INV/9135",
+      "shop": "OUT",
+      "total": 23800,
+      "order": 23800
+    },
+    {
+      "invoiceId": "01a0e605-b000-7782-8061-9328cde2a5e1",
+      "invoiceNo": "INV/9136",
+      "shop": "B2C",
+      "total": 71300,
+      "order": 71300
+    },
+    {
+      "invoiceId": "01a0e605-b0c6-7457-80a8-5bf2b5814135",
+      "invoiceNo": "INV/9137",
+      "shop": "IN",
+      "total": 73600,
+      "order": 73600
+    },
+    {
+      "invoiceId": "01a0e605-b10f-7578-bb35-ec1e185c540b",
+      "invoiceNo": "INV/9138",
+      "shop": "OUT",
+      "total": 78500,
+      "order": 78500
+    },
+    {
+      "invoiceId": "01a0e605-b14a-70b8-9436-77804f0499bc",
+      "invoiceNo": "INV/9139",
+      "shop": "B2C",
+      "total": 11400,
+      "order": 11400
+    },
+    {
+      "invoiceId": "01a0e605-b195-75da-8d5c-4df10ba8ec4d",
+      "invoiceNo": "INV/9140",
+      "shop": "IN",
+      "total": 115200,
+      "order": 115200
+    },
+    {
+      "invoiceId": "01a0e605-b1cf-7509-ad58-d8d5f4ace4ac",
+      "invoiceNo": "INV/9141",
+      "shop": "OUT",
+      "total": 17500,
+      "order": 17500
+    },
+    {
+      "invoiceId": "01a0e605-b200-7132-aefe-343d00783dc2",
+      "invoiceNo": "INV/9142",
+      "shop": "B2C",
+      "total": 31900,
+      "order": 31900
+    },
+    {
+      "invoiceId": "01a0e605-b254-70e3-96bf-99342674f637",
+      "invoiceNo": "INV/9143",
+      "shop": "IN",
+      "total": 92400,
+      "order": 92400
+    },
+    {
+      "invoiceId": "01a0e605-b296-75ba-bc2e-d5febdf05437",
+      "invoiceNo": "INV/9144",
+      "shop": "OUT",
+      "total": 98600,
+      "order": 98600
+    },
+    {
+      "invoiceId": "01a0e605-b2d5-7289-b72c-f35c607654ad",
+      "invoiceNo": "INV/9145",
+      "shop": "B2C",
+      "total": 84700,
+      "order": 84700
+    },
+    {
+      "invoiceId": "01a0e605-b30f-70de-84dd-d14772e6e48a",
+      "invoiceNo": "INV/9146",
+      "shop": "IN",
+      "total": 42000,
+      "order": 42000
+    },
+    {
+      "invoiceId": "01a0e605-b342-702c-b53f-4a56ae5a0eeb",
+      "invoiceNo": "INV/9147",
+      "shop": "OUT",
+      "total": 2100,
+      "order": 2100
+    },
+    {
+      "invoiceId": "01a0e605-b3ee-752a-91cc-d18a8bf599cd",
+      "invoiceNo": "INV/9148",
+      "shop": "B2C",
+      "total": 60500,
+      "order": 60500
+    },
+    {
+      "invoiceId": "01a0e605-b42e-7215-80ce-be9279d7eeaa",
+      "invoiceNo": "INV/9149",
+      "shop": "IN",
+      "total": 71900,
+      "order": 71900
+    },
+    {
+      "invoiceId": "01a0e605-b462-73a6-b6ba-4e499ba104e5",
+      "invoiceNo": "INV/9150",
+      "shop": "OUT",
+      "total": 54200,
+      "order": 54200
+    },
+    {
+      "invoiceId": "01a0e605-b497-77f5-9f44-10eceb089d04",
+      "invoiceNo": "INV/9151",
+      "shop": "B2C",
+      "total": 32600,
+      "order": 32600
+    },
+    {
+      "invoiceId": "01a0e605-b4eb-73b0-82e7-8ca371db4f63",
+      "invoiceNo": "INV/9152",
+      "shop": "IN",
+      "total": 111800,
+      "order": 111800
+    },
+    {
+      "invoiceId": "01a0e605-b52d-75fd-9e27-360241c1b5e4",
+      "invoiceNo": "INV/9153",
+      "shop": "OUT",
+      "total": 135100,
+      "order": 135100
+    },
+    {
+      "invoiceId": "01a0e605-b560-764b-878d-5661d52f45a6",
+      "invoiceNo": "INV/9154",
+      "shop": "B2C",
+      "total": 35200,
+      "order": 35200
+    },
+    {
+      "invoiceId": "01a0e605-b593-76af-b501-a8361a2f33d3",
+      "invoiceNo": "INV/9155",
+      "shop": "IN",
+      "total": 14700,
+      "order": 14700
+    },
+    {
+      "invoiceId": "01a0e605-b5fe-72e2-927a-b54278eccb96",
+      "invoiceNo": "INV/9156",
+      "shop": "OUT",
+      "total": 23200,
+      "order": 23200
+    },
+    {
+      "invoiceId": "01a0e605-b659-709d-9403-344c42e0ef3e",
+      "invoiceNo": "INV/9157",
+      "shop": "B2C",
+      "total": 121200,
+      "order": 121200
+    },
+    {
+      "invoiceId": "01a0e605-b68b-77b7-8f81-dd84cc4b9109",
+      "invoiceNo": "INV/9158",
+      "shop": "IN",
+      "total": 28500,
+      "order": 28500
+    },
+    {
+      "invoiceId": "01a0e605-b73e-70a9-9c8e-620c745a7d51",
+      "invoiceNo": "INV/9159",
+      "shop": "OUT",
+      "total": 41900,
+      "order": 41900
+    },
+    {
+      "invoiceId": "01a0e605-b78e-76f4-974e-da9572f9447f",
+      "invoiceNo": "INV/9160",
+      "shop": "B2C",
+      "total": 62900,
+      "order": 62900
+    },
+    {
+      "invoiceId": "01a0e605-b7db-724c-a4c5-94e5b6b2eaf9",
+      "invoiceNo": "INV/9161",
+      "shop": "IN",
+      "total": 144100,
+      "order": 144100
+    },
+    {
+      "invoiceId": "01a0e605-b81a-7666-b269-c3eba772b736",
+      "invoiceNo": "INV/9162",
+      "shop": "OUT",
+      "total": 21100,
+      "order": 21100
+    },
+    {
+      "invoiceId": "01a0e605-b852-7703-ac51-60156d6ab404",
+      "invoiceNo": "INV/9163",
+      "shop": "B2C",
+      "total": 36700,
+      "order": 36700
+    },
+    {
+      "invoiceId": "01a0e605-b891-7574-9cfa-5f0a4a9d7705",
+      "invoiceNo": "INV/9164",
+      "shop": "IN",
+      "total": 116400,
+      "order": 116400
+    },
+    {
+      "invoiceId": "01a0e605-b8c6-76b2-bb80-67c2b0a5d963",
+      "invoiceNo": "INV/9165",
+      "shop": "OUT",
+      "total": 41200,
+      "order": 41200
+    },
+    {
+      "invoiceId": "01a0e605-b904-7400-a941-ce31592d81a1",
+      "invoiceNo": "INV/9166",
+      "shop": "B2C",
+      "total": 26100,
+      "order": 26100
+    },
+    {
+      "invoiceId": "01a0e605-b94d-775a-b04a-82f12209df10",
+      "invoiceNo": "INV/9167",
+      "shop": "IN",
+      "total": 35300,
+      "order": 35300
+    },
+    {
+      "invoiceId": "01a0e605-b992-73b9-89f3-bfa07103eb8c",
+      "invoiceNo": "INV/9168",
+      "shop": "OUT",
+      "total": 94300,
+      "order": 94300
+    },
+    {
+      "invoiceId": "01a0e605-b9ce-7462-b5ef-f2eaa6dd1a53",
+      "invoiceNo": "INV/9169",
+      "shop": "B2C",
+      "total": 71400,
+      "order": 71400
+    }
+  ]
+}

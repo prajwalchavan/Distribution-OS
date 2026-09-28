@@ -1,0 +1,85 @@
+{
+  "colDay": {
+    "items": [
+      {
+        "bucket": "2026-09-28",
+        "bucketName": null,
+        "cashPaise": 5500110,
+        "upiPaise": 4405600,
+        "bankTransferPaise": 1396500,
+        "chequePaise": 119000,
+        "adjustmentPaise": 0,
+        "totalPaise": 11421210,
+        "receiptCount": 157
+      }
+    ],
+    "nextCursor": null,
+    "totals": {
+      "cashPaise": 5500110,
+      "upiPaise": 4405600,
+      "bankTransferPaise": 1396500,
+      "chequePaise": 119000,
+      "adjustmentPaise": 0,
+      "totalPaise": 11421210,
+      "receiptCount": 157
+    }
+  },
+  "colWho": {
+    "items": [
+      {
+        "bucket": "10fc2bd5-539e-7494-873a-b7ee6bb961d4",
+        "bucketName": "Iqbal Shaikh",
+        "cashPaise": 59500,
+        "upiPaise": 0,
+        "bankTransferPaise": 0,
+        "chequePaise": 0,
+        "adjustmentPaise": 0,
+        "totalPaise": 59500,
+        "receiptCount": 1
+      },
+      {
+        "bucket": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63",
+        "bucketName": "Ganesh More",
+        "cashPaise": 267310,
+        "upiPaise": 59500,
+        "bankTransferPaise": 0,
+        "chequePaise": 0,
+        "adjustmentPaise": 0,
+        "totalPaise": 326810,
+        "receiptCount": 6
+      },
+      {
+        "bucket": "9be27e0e-9211-7be6-9497-4bee998843a3",
+        "bucketName": "Amol Vaidya",
+        "cashPaise": 5113800,
+        "upiPaise": 4346100,
+        "bankTransferPaise": 1396500,
+        "chequePaise": 119000,
+        "adjustmentPaise": 0,
+        "totalPaise": 10975400,
+        "receiptCount": 149
+      },
+      {
+        "bucket": "b65c0c4c-4ae4-7470-985f-d78a89471863",
+        "bucketName": "Mahesh Sutar",
+        "cashPaise": 59500,
+        "upiPaise": 0,
+        "bankTransferPaise": 0,
+        "chequePaise": 0,
+        "adjustmentPaise": 0,
+        "totalPaise": 59500,
+        "receiptCount": 1
+      }
+    ],
+    "nextCursor": null,
+    "totals": {
+      "cashPaise": 5500110,
+      "upiPaise": 4405600,
+      "bankTransferPaise": 1396500,
+      "chequePaise": 119000,
+      "adjustmentPaise": 0,
+      "totalPaise": 11421210,
+      "receiptCount": 157
+    }
+  }
+}

@@ -1,0 +1,287 @@
+{
+  "items": [
+    {
+      "id": "01a0999a-28d9-71f2-91f6-bac158ccd906",
+      "code": "AP",
+      "name": "Sundry Creditors (suppliers)",
+      "kind": "liability",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -1221163971
+    },
+    {
+      "id": "01a0999a-28d9-71f1-ac7f-af6b5eec5b81",
+      "code": "AR",
+      "name": "Sundry Debtors (retailers)",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 433264400
+    },
+    {
+      "id": "01a0999a-28d9-720a-92f5-0e33b1bf1760",
+      "code": "BAD_DEBTS",
+      "name": "Bad debts written off",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 244300
+    },
+    {
+      "id": "01a0999a-28d9-71f6-8857-42ce7dcd437f",
+      "code": "BANK",
+      "name": "Bank",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 237137965
+    },
+    {
+      "id": "01a0999a-28d9-720b-88c9-6f7c5b7863ee",
+      "code": "BANK_CHARGES",
+      "name": "Bank charges",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 130000
+    },
+    {
+      "id": "01a0999a-28d9-71f3-9560-ebcbc7565629",
+      "code": "CASH",
+      "name": "Cash in hand",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 399607152
+    },
+    {
+      "id": "01a0999a-28d9-71fb-8dc3-1ddb717a2314",
+      "code": "CASH_DISCOUNT",
+      "name": "Cash discount allowed",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 2221526
+    },
+    {
+      "id": "01a0999a-28d9-720c-8267-946ea2515fa3",
+      "code": "CASH_SHORT",
+      "name": "Cash short/over on settlement",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 5000
+    },
+    {
+      "id": "01a0999a-28d9-71f4-91e9-7c36b022000d",
+      "code": "CASH_VAN",
+      "name": "Cash with delivery crews",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 15253600
+    },
+    {
+      "id": "01a0999a-28d9-71f7-8efb-f55c38291f4f",
+      "code": "CHEQUES",
+      "name": "Cheques in hand",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 17474698
+    },
+    {
+      "id": "01a0999a-28d9-71fe-8c30-33a2776b66d7",
+      "code": "CLAIMS_RECEIVABLE",
+      "name": "Claims receivable (damage/expiry)",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 49488
+    },
+    {
+      "id": "01a0999a-28d9-7208-93db-776e63c66bd4",
+      "code": "DAMAGES",
+      "name": "Damages and expiry write-off",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -49488
+    },
+    {
+      "id": "01a0999a-28d9-71fa-887b-3aa4d5dfb418",
+      "code": "DISCOUNTS",
+      "name": "Discounts allowed",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 21610135
+    },
+    {
+      "id": "8ae7b87a-aee9-4f09-b40a-ce441ecc6c93",
+      "code": "INPUT_CESS",
+      "name": "Input cess",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 33564561
+    },
+    {
+      "id": "01a0999a-28d9-7203-aae9-af98ddacbf47",
+      "code": "INPUT_CGST",
+      "name": "Input CGST",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 71076342
+    },
+    {
+      "id": "01a0999a-28d9-7205-8f0e-2a92cb8dcc24",
+      "code": "INPUT_IGST",
+      "name": "Input IGST",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 29308518
+    },
+    {
+      "id": "01a0999a-28d9-7204-aed2-0bb9fd3b699d",
+      "code": "INPUT_SGST",
+      "name": "Input SGST",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 71076342
+    },
+    {
+      "id": "01a0999a-28d9-720e-ba6d-003923abf468",
+      "code": "OPENING",
+      "name": "Opening balance equity",
+      "kind": "equity",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -10617200
+    },
+    {
+      "id": "01a0999a-28d9-7202-b4d6-66b765aeb7c3",
+      "code": "OUTPUT_CESS",
+      "name": "Output cess",
+      "kind": "liability",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -36647507
+    },
+    {
+      "id": "01a0999a-28d9-71ff-b59f-f9e7e2faf74d",
+      "code": "OUTPUT_CGST",
+      "name": "Output CGST",
+      "kind": "liability",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -97302202
+    },
+    {
+      "id": "01a0999a-28d9-7201-b487-17715e8f1744",
+      "code": "OUTPUT_IGST",
+      "name": "Output IGST",
+      "kind": "liability",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -481067
+    },
+    {
+      "id": "01a0999a-28d9-7200-b394-e9f9db616a3f",
+      "code": "OUTPUT_SGST",
+      "name": "Output SGST",
+      "kind": "liability",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -97302202
+    },
+    {
+      "id": "01a0999a-28d9-7206-910e-30a95a7bdf35",
+      "code": "PURCHASES",
+      "name": "Purchases",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 1019897302
+    },
+    {
+      "id": "01a0999a-28d9-7209-a0cc-cdb7b10b5d58",
+      "code": "ROUND_OFF",
+      "name": "Round off",
+      "kind": "income",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -1617
+    },
+    {
+      "id": "01a0999a-28d9-71f8-b16d-b3540b2480c2",
+      "code": "SALES",
+      "name": "Sales",
+      "kind": "income",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -1186755201
+    },
+    {
+      "id": "01a0999a-28d9-71f9-84ad-d95c578c2de7",
+      "code": "SALES_RETURNS",
+      "name": "Sales returns",
+      "kind": "income",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 2081161
+    },
+    {
+      "id": "01a0999a-28d9-71fc-a7ab-dd1254c70bac",
+      "code": "SCHEME_EXPENSE",
+      "name": "Scheme expense (distributor funded)",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": -15775439
+    },
+    {
+      "id": "01a0999a-28d9-71fd-9782-7609b160c8a5",
+      "code": "SCHEME_RECEIVABLE",
+      "name": "Scheme receivable from manufacturers",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 7458419
+    },
+    {
+      "id": "01a0999a-28d9-7207-a00f-aab661cdd46c",
+      "code": "STOCK",
+      "name": "Stock in hand",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 0
+    },
+    {
+      "id": "01a0999a-28d9-720d-8ab4-69aa94f07ebe",
+      "code": "TRIP_EXPENSES",
+      "name": "Delivery trip expenses",
+      "kind": "expense",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 0
+    },
+    {
+      "id": "01a0999a-28d9-71f5-b834-f3cff553cf60",
+      "code": "UPI",
+      "name": "UPI clearing",
+      "kind": "asset",
+      "tallyLedgerName": null,
+      "active": true,
+      "balancePaise": 304634985
+    }
+  ],
+  "totals": {
+    "debitPaise": 2666095894,
+    "creditPaise": -2666095894
+  }
+}

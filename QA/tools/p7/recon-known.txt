@@ -1,0 +1,6 @@
+TRIP-20260615-1 settled: CASH_VAN net 152536.00 (into van 152536.00)
+TRIP-20260615-1: stored expected 4521.04 vs float 5000.00 + cash 152536.00 − exp 478.96 = 157057.04; variance 0.00 vs 0.00; UPI 5748.00 vs 5748.00
+DOS-258|TRIP-0006: handed over (net of float) 545.00 but banked 595.00 from 1 receipt(s) — 50.00 more than the till received
+TRIP-20260615-1: handed over (net of float) -478.96 but banked 0.00 from 0 receipt(s) — 478.96 more than the till received
+DOS-310|cheque CHQ088789 recorded 2× across 1 shop(s) (RCPT-9021,RCPT-9022)
+DOS-310|upi UTR1790564510946 recorded 3× across 2 shop(s) (RCPT-9103,RCPT-9104,RCPT-9105)

@@ -1,0 +1,165 @@
+{
+  "cw": {
+    "id": "01a0e5c4-e18c-751b-9eef-dbe66c59eb05",
+    "name": "QA P7 CR1 Warn Stores",
+    "code": "R-9038"
+  },
+  "cs": {
+    "id": "01a0e5c4-edb0-776b-a70a-2dea6af1a8cb",
+    "name": "QA P7 CR2 Strict Stores",
+    "code": "R-9039"
+  },
+  "c2": {
+    "id": "01a0e5c4-fb76-70f0-b189-23b473d39c93",
+    "name": "QA P7 CR3 Two-orders Stores",
+    "code": "R-9040"
+  },
+  "cb": {
+    "id": "01a0e5c5-07cc-75e7-8207-71a714301ace",
+    "name": "QA P7 CR4 Stop Stores",
+    "code": "R-9041"
+  },
+  "cp": {
+    "id": "01a0e5c5-141a-7305-a148-fe682d38e9bb",
+    "name": "QA P7 CR5 POD Stores",
+    "code": "R-9042"
+  },
+  "desh": {
+    "id": "4d9bdf95-46d1-707f-ab62-cb1b205a4433",
+    "code": "R-0017"
+  },
+  "ramesh": {
+    "id": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+    "code": "R-0001"
+  },
+  "orders": {
+    "ow": "01a0e5c4-e2e5-7791-95d9-848937add96b",
+    "under": "01a0e5c4-edd6-71ef-a8fa-b0c7db3ada37",
+    "at": "01a0e5c4-ef27-71ca-b754-d504be615958",
+    "over": "01a0e5c4-f03a-73d2-b54a-6c123ad2fb98",
+    "first": "01a0e5c4-fb9e-7445-8c05-ae347df38eae",
+    "second": "01a0e5c4-fc0c-7795-986a-8a1067ea9e53",
+    "ob": "01a0e5c5-07f1-7468-a3c8-d05942bd60ae",
+    "ob2": "01a0e5c5-0860-71df-b0ae-b942a7e8dce5",
+    "ob3": "01a0e5c5-0895-7688-9263-1e2292fb5e8b",
+    "op": "01a0e5c5-143f-72c9-8fb6-5225d3efdd54",
+    "small": "01a0e5c5-29bc-772d-9fa9-83e0a5175bab",
+    "ro": "01a0e5c5-34b9-7780-922c-6afab7eb6244"
+  },
+  "bills": {
+    "ppBoth": [
+      {
+        "orderId": "01a0e5c4-fb9e-7445-8c05-ae347df38eae",
+        "invoiceId": "01a0e5c4-fc8d-7407-9731-e280b499ddf7",
+        "invoiceNo": "INV/9023",
+        "totalPaise": 59500,
+        "packed": {
+          "item": {
+            "id": "01a0e5c4-fc6f-7356-ad63-697030e60b01",
+            "orderId": "01a0e5c4-fb9e-7445-8c05-ae347df38eae",
+            "picklistId": "01a0e5c4-fc35-709d-a369-79290ee3d710",
+            "packages": 1,
+            "weightGrams": null,
+            "invoiceId": "01a0e5c4-fc8d-7407-9731-e280b499ddf7",
+            "shortPacked": false,
+            "packedBy": "4c8b82ce-c45e-7102-898f-db1e0b0763f3",
+            "packedAt": "2026-09-28T02:08:07.300Z"
+          },
+          "lines": [
+            {
+              "orderLineId": "01a0e5c4-fb9e-7447-bd74-c1c786073bf7",
+              "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+              "variantName": "Campa Cola 750 ml",
+              "orderedQtyPcs": 12,
+              "packedQtyPcs": 12,
+              "shortQtyPcs": 0,
+              "lots": [
+                {
+                  "lotId": "cb5df43d-cc5e-738c-8590-4813f843e143",
+                  "batchNo": "RCP20260822",
+                  "qtyPcs": 12
+                }
+              ]
+            },
+            {
+              "orderLineId": "01a0e5c4-fb9e-7448-bf85-319f84b117f1",
+              "variantId": "af45e021-a167-7d3f-a8f0-60ab037214cb",
+              "variantName": "Sunbake Glucose 55 g",
+              "orderedQtyPcs": 24,
+              "packedQtyPcs": 24,
+              "shortQtyPcs": 0,
+              "lots": [
+                {
+                  "lotId": "bed23229-824c-776b-ae12-5aa23df5e205",
+                  "batchNo": "SB20260823",
+                  "qtyPcs": 24
+                }
+              ]
+            }
+          ],
+          "invoice": {
+            "id": "01a0e5c4-fc8d-7407-9731-e280b499ddf7",
+            "invoiceNo": "INV/9023",
+            "totalPaise": 59500
+          }
+        }
+      },
+      {
+        "orderId": "01a0e5c4-fc0c-7795-986a-8a1067ea9e53",
+        "invoiceId": "01a0e5c4-fccf-74f0-bbb8-1014ddc853fd",
+        "invoiceNo": "INV/9024",
+        "totalPaise": 59500,
+        "packed": {
+          "item": {
+            "id": "01a0e5c4-fcb2-74e5-91bb-3590d0ad71f5",
+            "orderId": "01a0e5c4-fc0c-7795-986a-8a1067ea9e53",
+            "picklistId": "01a0e5c4-fc35-709d-a369-79290ee3d710",
+            "packages": 1,
+            "weightGrams": null,
+            "invoiceId": "01a0e5c4-fccf-74f0-bbb8-1014ddc853fd",
+            "shortPacked": false,
+            "packedBy": "4c8b82ce-c45e-7102-898f-db1e0b0763f3",
+            "packedAt": "2026-09-28T02:08:07.368Z"
+          },
+          "lines": [
+            {
+              "orderLineId": "01a0e5c4-fc0c-7797-8661-6b0f81847605",
+              "variantId": "f71bf137-50de-7182-a0d9-c83f1a613a57",
+              "variantName": "Campa Cola 750 ml",
+              "orderedQtyPcs": 12,
+              "packedQtyPcs": 12,
+              "shortQtyPcs": 0,
+              "lots": [
+                {
+                  "lotId": "cb5df43d-cc5e-738c-8590-4813f843e143",
+                  "batchNo": "RCP20260822",
+                  "qtyPcs": 12
+                }
+              ]
+            },
+            {
+              "orderLineId": "01a0e5c4-fc0c-7798-a99b-ae61c37ce189",
+              "variantId": "af45e021-a167-7d3f-a8f0-60ab037214cb",
+              "variantName": "Sunbake Glucose 55 g",
+              "orderedQtyPcs": 24,
+              "packedQtyPcs": 24,
+              "shortQtyPcs": 0,
+              "lots": [
+                {
+                  "lotId": "bed23229-824c-776b-ae12-5aa23df5e205",
+                  "batchNo": "SB20260823",
+                  "qtyPcs": 24
+                }
+              ]
+            }
+          ],
+          "invoice": {
+            "id": "01a0e5c4-fccf-74f0-bbb8-1014ddc853fd",
+            "invoiceNo": "INV/9024",
+            "totalPaise": 59500
+          }
+        }
+      }
+    ]
+  }
+}

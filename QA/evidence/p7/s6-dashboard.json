@@ -1,0 +1,48 @@
+{
+  "asOf": "2026-09-28T03:30:14.918Z",
+  "todayInvoicedPaise": 5960900,
+  "todayCreditedPaise": 163900,
+  "todayCollectedPaise": 11421210,
+  "todayOrdersCount": 171,
+  "todayDeliveredStops": 13,
+  "todayFailedStops": 2,
+  "cashInTransitPaise": 0,
+  "totalOutstandingPaise": 437017800,
+  "overduePaise": 427677700,
+  "onAccountPaise": 3753400,
+  "ageing": {
+    "b0_7": 60834400,
+    "b8_15": 100961600,
+    "b16_30": 124205550,
+    "b31_60": 123850050,
+    "b61_90": 23651800,
+    "b90plus": 3514400
+  },
+  "mtdSalesPaise": 202760100,
+  "mtdCreditedPaise": 455100,
+  "mtdGrossMarginPaise": 8602338,
+  "stockValuePaise": 237052538,
+  "nearExpiryValuePaise": 22260384,
+  "pendingApprovals": 9,
+  "activeTrips": 1,
+  "last7Days": [
+    {
+      "bucket": "2026-09-28",
+      "invoicedPaise": 5960900,
+      "collectedPaise": 11421210,
+      "ordersCount": 171
+    }
+  ],
+  "detail": {
+    "ageingB0_7": 60834400,
+    "ageingB8_15": 100961600,
+    "ageingB16_30": 124205550,
+    "ageingB31_60": 123850050,
+    "ageingB61_90": 23651800,
+    "ageingB90plus": 3514400,
+    "onAccountPaise": 3753400,
+    "mtdCreditedPaise": 455100,
+    "cashInTransitPaise": 0,
+    "todayCreditedPaise": 163900
+  }
+}

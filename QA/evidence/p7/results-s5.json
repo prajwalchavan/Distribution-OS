@@ -1,0 +1,766 @@
+[
+  {
+    "id": "S5-setup",
+    "title": "Three rounding shops (intra registered, inter-state registered, intra unregistered), awkward shop rates, four schemes",
+    "at": "2026-09-28T02:15:26.736Z",
+    "steps": [
+      {
+        "text": "shops",
+        "data": {
+          "IN": "R-9064 27AQPPR7717K1ZZ",
+          "OUT": "R-9065 24AQPPR7717K1Z5",
+          "B2C": "R-9066 unregistered"
+        }
+      },
+      {
+        "text": "scheme QA P7 RND Marie 7.5%",
+        "data": "ok"
+      },
+      {
+        "text": "scheme QA P7 RND Soap \u20b90.37 off per piece",
+        "data": "ok"
+      },
+      {
+        "text": "scheme QA P7 RND Glucose 55g 7+1",
+        "data": "ok"
+      },
+      {
+        "text": "scheme QA P7 RND 3.33% on \u20b9500+",
+        "data": "ok"
+      },
+      "orders placed: 66",
+      "bills issued: 66"
+    ],
+    "figures": [],
+    "observations": [
+      "COVERAGE WARNING: the first batch drew baskets with an LCG's low bits; all 66 bills used only 3 products (5 % and 18 %), one quantity each, no scheme discounts. Its arithmetic results are true but narrow; the second batch (S5b) is the real rounding study."
+    ],
+    "checks": [],
+    "recon": {
+      "label": "S5-00-billed",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "S5-compare",
+    "title": "Order vs bill vs independent recomputation vs PDF vs receipt vs journal vs registers, to the paisa",
+    "at": "2026-09-28T02:15:41.363Z",
+    "steps": [
+      {
+        "text": "distribution of differences (paise \u2192 count of bills)",
+        "data": {
+          "orderVsBill": {
+            "0": 66
+          },
+          "recomputeTotal": {
+            "0": 66
+          },
+          "recomputeTax": {
+            "0": 66
+          },
+          "pdfTotal": {
+            "0": 66
+          },
+          "headerVsLines": {
+            "0": 66
+          },
+          "roundOff": {
+            "within \u00b150": 66
+          }
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [
+      "COVERAGE WARNING: the first batch drew baskets with an LCG's low bits; all 66 bills used only 3 products (5 % and 18 %), one quantity each, no scheme discounts. Its arithmetic results are true but narrow; the second batch (S5b) is the real rounding study."
+    ],
+    "checks": [
+      {
+        "name": "order total = bill total on every bill",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "independent recomputation = bill total",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "independent tax + cess = header tax + cess",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "printed PDF total = bill total",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "\u03a3 lines + round-off = header total",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "intra-state bills split CGST = SGST",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "inter-state bills carry IGST only",
+        "ok": true,
+        "detail": ""
+      }
+    ]
+  },
+  {
+    "id": "S5-pay",
+    "title": "Every bill paid by UPI for exactly its total at the office",
+    "at": "2026-09-28T02:16:53.888Z",
+    "steps": [],
+    "figures": [],
+    "observations": [
+      "COVERAGE WARNING: the first batch drew baskets with an LCG's low bits; all 66 bills used only 3 products (5 % and 18 %), one quantity each, no scheme discounts. Its arithmetic results are true but narrow; the second batch (S5b) is the real rounding study."
+    ],
+    "checks": [
+      {
+        "name": "every bill paid to the paisa, nothing left on account",
+        "ok": true,
+        "detail": "0 not settled exactly"
+      }
+    ],
+    "recon": {
+      "label": "S5-01-paid",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1))"
+    }
+  },
+  {
+    "id": "S5-registers",
+    "title": "Sales register and GST summary for today against the documents",
+    "at": "2026-09-28T02:17:01.341Z",
+    "steps": [
+      {
+        "text": "sales register rows today",
+        "data": 95
+      },
+      {
+        "text": "a register row (keys)",
+        "data": [
+          "id",
+          "invoiceNo",
+          "externalInvoiceNo",
+          "invoiceDate",
+          "orderId",
+          "retailerId",
+          "buyerName",
+          "buyerGstin",
+          "supplyType",
+          "placeOfSupplyState",
+          "isInterState",
+          "taxablePaise",
+          "cgstPaise",
+          "sgstPaise",
+          "igstPaise",
+          "cessPaise",
+          "roundOffPaise",
+          "totalPaise",
+          "state",
+          "source",
+          "tallyLedgerName"
+        ]
+      },
+      {
+        "text": "register vs documents",
+        "data": [
+          "INV/9034 register 0 vs doc 59500",
+          "INV/9034 taxable 0 vs 45288"
+        ]
+      },
+      {
+        "text": "GST by rate from invoice lines (today)",
+        "data": [
+          {
+            "gst_bps": 500,
+            "taxable": 137305,
+            "cgst": 1820,
+            "sgst": 1820,
+            "igst": 3222,
+            "cess": 0
+          },
+          {
+            "gst_bps": 1800,
+            "taxable": 598409,
+            "cgst": 52342,
+            "sgst": 52342,
+            "igst": 3036,
+            "cess": 0
+          },
+          {
+            "gst_bps": 2800,
+            "taxable": 685800,
+            "cgst": 96000,
+            "sgst": 96000,
+            "igst": 0,
+            "cess": 82299
+          }
+        ]
+      },
+      {
+        "text": "GST summary as served (first 3000 chars)",
+        "data": "{\"from\":\"2026-09-28\",\"to\":\"2026-09-28\",\"supplyType\":null,\"groupBy\":\"rate\",\"rows\":[{\"hsnCode\":null,\"gstBps\":500,\"cessBps\":0,\"qtyPcs\":19,\"freeQtyPcs\":0,\"taxablePaise\":137305,\"cgstPaise\":1820,\"sgstPaise\":1820,\"igstPaise\":3222,\"cessPaise\":0,\"totalPaise\":144167,\"documentCount\":19},{\"hsnCode\":null,\"gstBps\":1800,\"cessBps\":0,\"qtyPcs\":703,\"freeQtyPcs\":4,\"taxablePaise\":598409,\"cgstPaise\":52342,\"sgstPaise\":52342,\"igstPaise\":3036,\"cessPaise\":0,\"totalPaise\":706129,\"documentCount\":76},{\"hsnCode\":null,\"gstBps\":2800,\"cessBps\":1200,\"qtyPcs\":300,\"freeQtyPcs\":0,\"taxablePaise\":685800,\"cgstPaise\":96000,\"sgstPaise\":96000,\"igstPaise\":0,\"cessPaise\":82299,\"totalPaise\":960099,\"documentCount\":25}],\"totals\":{\"qtyPcs\":1022,\"freeQtyPcs\":4,\"taxablePaise\":1421514,\"cgstPaise\":150162,\"sgstPaise\":150162,\"igstPaise\":6258,\"cessPaise\":82299,\"totalPaise\":1810395,\"documentCount\":76},\"creditNoteRows\":[{\"hsnCode\":null,\"gstBps\":1800,\"cessBps\":0,\"qtyPcs\":75,\"freeQtyPcs\":0,\"taxablePaise\":68312,\"cgstPaise\":6148,\"sgstPaise\":6148,\"igstPaise\":0,\"cessPaise\":0,\"totalPaise\":80608,\"documentCount\":6},{\"hsnCode\":null,\"gstBps\":2800,\"cessBps\":1200,\"qtyPcs\":26,\"freeQtyPcs\":0,\"taxablePaise\":59436,\"cgstPaise\":8320,\"sgstPaise\":8320,\"igstPaise\":0,\"cessPaise\":7133,\"totalPaise\":83209,\"documentCount\":3}],\"creditNoteTotals\":{\"qtyPcs\":101,\"freeQtyPcs\":0,\"taxablePaise\":127748,\"cgstPaise\":14468,\"sgstPaise\":14468,\"igstPaise\":0,\"cessPaise\":7133,\"totalPaise\":163817,\"documentCount\":6}}"
+      },
+      {
+        "text": "headers vs \u03a3 lines (today)",
+        "data": {
+          "headers": {
+            "taxable": 1421514,
+            "cgst": 150162,
+            "sgst": 150162,
+            "igst": 6258,
+            "cess": 82299,
+            "total": 1810600
+          },
+          "lines": {
+            "taxable": 1421514,
+            "cgst": 150162,
+            "sgst": 150162,
+            "igst": 6258,
+            "cess": 82299
+          }
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [
+      "COVERAGE WARNING: the first batch drew baskets with an LCG's low bits; all 66 bills used only 3 products (5 % and 18 %), one quantity each, no scheme discounts. Its arithmetic results are true but narrow; the second batch (S5b) is the real rounding study."
+    ],
+    "checks": [
+      {
+        "name": "invoice headers = \u03a3 their lines for taxable, CGST, SGST, IGST, cess (today)",
+        "ok": true,
+        "detail": "{\"hdr\":{\"taxable\":1421514,\"cgst\":150162,\"sgst\":150162,\"igst\":6258,\"cess\":82299,\"total\":1810600},\"lineTot\":{\"taxable\":1421514,\"cgst\":150162,\"sgst\":150162,\"igst\":6258,\"cess\":82299}}"
+      },
+      {
+        "name": "sales register = documents for today",
+        "ok": false,
+        "detail": "2 difference(s)"
+      }
+    ],
+    "recon": {
+      "label": "S5-02-registers",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (1); R6a (1); R6b (1)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1))"
+    }
+  },
+  {
+    "id": "S5b-setup",
+    "title": "Second rounding batch on the same three shops (their shop rates and four schemes stay): a proper random generator this time",
+    "at": "2026-09-28T03:18:38.492Z",
+    "steps": [
+      {
+        "text": "shops reused",
+        "data": {
+          "IN": "R-9064",
+          "OUT": "R-9065",
+          "B2C": "R-9066"
+        }
+      },
+      {
+        "text": "schemes in force",
+        "data": [
+          "QA P7 RND Marie 7.5% (line_pct 750)",
+          "QA P7 RND Soap \u20b90.37 off per piece (per_unit_amount 37)",
+          "QA P7 RND Glucose 55g 7+1 (free_qty 1)",
+          "QA P7 RND 3.33% on \u20b9500+ (order_pct 333)"
+        ]
+      },
+      "orders placed: 66",
+      "bills issued: 66"
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [],
+    "recon": {
+      "label": "S5b-00-billed",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7b daily_retailer_stats rows = documents of that shop and day (rows that exist) (3); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  },
+  {
+    "id": "S5b-compare",
+    "title": "Order vs bill vs independent recomputation vs PDF vs receipt vs journal vs registers, to the paisa",
+    "at": "2026-09-28T03:18:53.318Z",
+    "steps": [
+      {
+        "text": "distribution of differences (paise \u2192 count of bills)",
+        "data": {
+          "orderVsBill": {
+            "0": 65,
+            "100": 1
+          },
+          "recomputeTotal": {
+            "0": 66
+          },
+          "recomputeTax": {
+            "0": 66
+          },
+          "pdfTotal": {
+            "0": 66
+          },
+          "headerVsLines": {
+            "0": 66
+          },
+          "roundOff": {
+            "within \u00b150": 66
+          },
+          "schemes": {
+            "lines ok": 50,
+            "4 line(s) off": 7,
+            "2 line(s) off": 7,
+            "5 line(s) off": 1,
+            "6 line(s) off": 1
+          },
+          "orderPct": {
+            "0": 52,
+            "237": 1,
+            "728": 1,
+            "829": 1,
+            "857": 1,
+            "860": 1,
+            "872": 1,
+            "998": 1,
+            "1331": 1,
+            "1620": 1,
+            "1664": 1,
+            "2273": 1,
+            "2487": 1,
+            "2678": 1,
+            "3062": 1
+          }
+        }
+      },
+      {
+        "text": "coverage",
+        "data": {
+          "variants": 12,
+          "rates": 4,
+          "qtys": 15,
+          "lines": 185,
+          "discounted_lines": 130,
+          "free_lines": 6,
+          "inter_bills": 22,
+          "bills": 66
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [
+      "The \"scheme lines off\" and order-% distributions in this run came from the checker reading applied_rules per BATCH line; re-checked per ORDER line in QA/evidence/p7/s5d-scheme-check.json: 160/160 order lines carry exactly the 7.5 % / \u20b90.37 per piece / 7+1 amounts and discount = \u03a3 rule amounts; the order 3.33 % equals 3.33 % of the order net of line schemes on 65/66 bills; on INV/9130 it was given (\u20b916.36) although that net is \u20b9491.38 (< \u20b9500): the trigger reads the value before line schemes \u2014 a Phase 8 question, not filed here. The duplication itself is DOS-322."
+    ],
+    "checks": [
+      {
+        "name": "scheme amounts (7.5 % line, \u20b90.37/pc, 7+1 free) and discount = \u03a3 rule amounts on every line",
+        "ok": false,
+        "detail": "{\"lines ok\":50,\"4 line(s) off\":7,\"2 line(s) off\":7,\"5 line(s) off\":1,\"6 line(s) off\":1}"
+      },
+      {
+        "name": "order 3.33 % on \u20b9500+ = 3.33 % of the order net of line schemes (paise difference \u2192 bills)",
+        "ok": false,
+        "detail": "{\"0\":52,\"237\":1,\"728\":1,\"829\":1,\"857\":1,\"860\":1,\"872\":1,\"998\":1,\"1331\":1,\"1620\":1,\"1664\":1,\"2273\":1,\"2487\":1,\"2678\":1,\"3062\":1}"
+      },
+      {
+        "name": "order total = bill total on every bill",
+        "ok": false,
+        "detail": "{\"0\":65,\"100\":1}"
+      },
+      {
+        "name": "independent recomputation = bill total",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "independent tax + cess = header tax + cess",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "printed PDF total = bill total",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "\u03a3 lines + round-off = header total",
+        "ok": true,
+        "detail": "{\"0\":66}"
+      },
+      {
+        "name": "intra-state bills split CGST = SGST",
+        "ok": true,
+        "detail": ""
+      },
+      {
+        "name": "inter-state bills carry IGST only",
+        "ok": true,
+        "detail": ""
+      }
+    ]
+  },
+  {
+    "id": "S5b-pay",
+    "title": "Every bill paid by UPI for exactly its total at the office",
+    "at": "2026-09-28T03:20:07.239Z",
+    "steps": [],
+    "figures": [],
+    "observations": [],
+    "checks": [
+      {
+        "name": "every bill paid to the paisa, nothing left on account",
+        "ok": true,
+        "detail": "0 not settled exactly"
+      }
+    ],
+    "recon": {
+      "label": "S5b-01-paid",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7b daily_retailer_stats rows = documents of that shop and day (rows that exist) (3))"
+    }
+  },
+  {
+    "id": "S5b-registers",
+    "title": "Sales register and GST summary for today against the documents",
+    "at": "2026-09-28T03:20:15.207Z",
+    "steps": [
+      {
+        "text": "sales register rows today",
+        "data": 163
+      },
+      {
+        "text": "a register row (keys)",
+        "data": [
+          "id",
+          "invoiceNo",
+          "externalInvoiceNo",
+          "invoiceDate",
+          "orderId",
+          "retailerId",
+          "buyerName",
+          "buyerGstin",
+          "supplyType",
+          "placeOfSupplyState",
+          "isInterState",
+          "taxablePaise",
+          "cgstPaise",
+          "sgstPaise",
+          "igstPaise",
+          "cessPaise",
+          "roundOffPaise",
+          "totalPaise",
+          "state",
+          "source",
+          "tallyLedgerName"
+        ]
+      },
+      {
+        "text": "register vs documents",
+        "data": [
+          "INV/9034 register 0 vs doc 59500",
+          "INV/9034 taxable 0 vs 45288"
+        ]
+      },
+      {
+        "text": "GST by rate from invoice lines (today)",
+        "data": [
+          {
+            "gst_bps": 500,
+            "taxable": 1028626,
+            "cgst": 15088,
+            "sgst": 15088,
+            "igst": 21249,
+            "cess": 0
+          },
+          {
+            "gst_bps": 1200,
+            "taxable": 964626,
+            "cgst": 48239,
+            "sgst": 48239,
+            "igst": 19281,
+            "cess": 0
+          },
+          {
+            "gst_bps": 1800,
+            "taxable": 1653891,
+            "cgst": 110614,
+            "sgst": 110614,
+            "igst": 76489,
+            "cess": 0
+          },
+          {
+            "gst_bps": 2800,
+            "taxable": 1250054,
+            "cgst": 155984,
+            "sgst": 155984,
+            "igst": 38021,
+            "cess": 150015
+          }
+        ]
+      },
+      {
+        "text": "GST summary as served (first 3000 chars)",
+        "data": "{\"from\":\"2026-09-28\",\"to\":\"2026-09-28\",\"supplyType\":null,\"groupBy\":\"rate\",\"rows\":[{\"hsnCode\":null,\"gstBps\":500,\"cessBps\":0,\"qtyPcs\":266,\"freeQtyPcs\":0,\"taxablePaise\":1028626,\"cgstPaise\":15088,\"sgstPaise\":15088,\"igstPaise\":21249,\"cessPaise\":0,\"totalPaise\":1080051,\"documentCount\":45},{\"hsnCode\":null,\"gstBps\":1200,\"cessBps\":0,\"qtyPcs\":244,\"freeQtyPcs\":0,\"taxablePaise\":964626,\"cgstPaise\":48239,\"sgstPaise\":48239,\"igstPaise\":19281,\"cessPaise\":0,\"totalPaise\":1080385,\"documentCount\":23},{\"hsnCode\":null,\"gstBps\":1800,\"cessBps\":0,\"qtyPcs\":1338,\"freeQtyPcs\":10,\"taxablePaise\":1653891,\"cgstPaise\":110614,\"sgstPaise\":110614,\"igstPaise\":76489,\"cessPaise\":0,\"totalPaise\":1951608,\"documentCount\":127},{\"hsnCode\":null,\"gstBps\":2800,\"cessBps\":1200,\"qtyPcs\":552,\"freeQtyPcs\":0,\"taxablePaise\":1250054,\"cgstPaise\":155984,\"sgstPaise\":155984,\"igstPaise\":38021,\"cessPaise\":150015,\"totalPaise\":1750058,\"documentCount\":54}],\"totals\":{\"qtyPcs\":2400,\"freeQtyPcs\":10,\"taxablePaise\":4897197,\"cgstPaise\":329925,\"sgstPaise\":329925,\"igstPaise\":155040,\"cessPaise\":150015,\"totalPaise\":5862102,\"documentCount\":127},\"creditNoteRows\":[{\"hsnCode\":null,\"gstBps\":1800,\"cessBps\":0,\"qtyPcs\":75,\"freeQtyPcs\":0,\"taxablePaise\":68312,\"cgstPaise\":6148,\"sgstPaise\":6148,\"igstPaise\":0,\"cessPaise\":0,\"totalPaise\":80608,\"documentCount\":6},{\"hsnCode\":null,\"gstBps\":2800,\"cessBps\":1200,\"qtyPcs\":26,\"freeQtyPcs\":0,\"taxablePaise\":59436,\"cgstPaise\":8320,\"sgstPaise\":8320,\"igstPaise\":0,\"cessPaise\":7133,\"totalPaise\":83209,\"documentCount\":3}],\"creditNoteTotals\":{\"qtyPcs\":101,\"freeQtyPcs\":0,\"taxablePaise\":127748,\"cgstPaise\":14468,\"sgstPaise\":14468,\"igstPaise\":0,\"cessPaise\":7133,\"totalPaise\":163817,\"documentCount\":6}}"
+      },
+      {
+        "text": "headers vs \u03a3 lines (today)",
+        "data": {
+          "headers": {
+            "taxable": 4897197,
+            "cgst": 329925,
+            "sgst": 329925,
+            "igst": 155040,
+            "cess": 150015,
+            "total": 5862700
+          },
+          "lines": {
+            "taxable": 4897197,
+            "cgst": 329925,
+            "sgst": 329925,
+            "igst": 155040,
+            "cess": 150015
+          }
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [],
+    "checks": [
+      {
+        "name": "invoice headers = \u03a3 their lines for taxable, CGST, SGST, IGST, cess (today)",
+        "ok": true,
+        "detail": "{\"hdr\":{\"taxable\":4897197,\"cgst\":329925,\"sgst\":329925,\"igst\":155040,\"cess\":150015,\"total\":5862700},\"lineTot\":{\"taxable\":4897197,\"cgst\":329925,\"sgst\":329925,\"igst\":155040,\"cess\":150015}}"
+      },
+      {
+        "name": "sales register = documents for today",
+        "ok": false,
+        "detail": "2 difference(s)"
+      }
+    ],
+    "recon": {
+      "label": "S5b-02-registers",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7b daily_retailer_stats rows = documents of that shop and day (rows that exist) (3))"
+    }
+  },
+  {
+    "id": "S5c",
+    "title": "A company-funded 5 % scheme line picked from several batches: scheme spend and the brand claim",
+    "at": "2026-09-28T03:22:45.573Z",
+    "steps": [
+      {
+        "text": "scheme",
+        "data": "ok"
+      },
+      {
+        "text": "order line as priced",
+        "data": {
+          "id": "01a0e609-5209-7786-819e-15f43ce1a399",
+          "qty_pcs": 60,
+          "rate_paise": 1510,
+          "discount_paise": 7396,
+          "applied_rules": [
+            {
+              "kind": "scheme",
+              "ruleId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+              "version": 1,
+              "rewardKind": "line_pct",
+              "amountPaise": 4530
+            },
+            {
+              "kind": "scheme",
+              "ruleId": "01a0e5cb-b2b1-77d7-a30c-364ef3a07fcc",
+              "version": 1,
+              "rewardKind": "order_pct",
+              "amountPaise": 2866
+            }
+          ]
+        }
+      },
+      {
+        "text": "bill INV/9170 lines (one per batch)",
+        "data": [
+          {
+            "batch": "SB20260628",
+            "qty": 1,
+            "discount": 124,
+            "ruleAmount": 4530
+          },
+          {
+            "batch": "SB20260614",
+            "qty": 8,
+            "discount": 986,
+            "ruleAmount": 4530
+          },
+          {
+            "batch": "SB20260621",
+            "qty": 12,
+            "discount": 1479,
+            "ruleAmount": 4530
+          },
+          {
+            "batch": "B20260614",
+            "qty": 8,
+            "discount": 986,
+            "ruleAmount": 4530
+          },
+          {
+            "batch": "SB20260705",
+            "qty": 16,
+            "discount": 1972,
+            "ruleAmount": 4530
+          },
+          {
+            "batch": "SB20260531",
+            "qty": 15,
+            "discount": 1849,
+            "ruleAmount": 4530
+          }
+        ]
+      },
+      {
+        "text": "scheme money actually given on the bill vs \u03a3 applied_rules amounts over its lines",
+        "data": {
+          "given": 7396,
+          "recorded": 27180,
+          "lines": 6
+        }
+      },
+      {
+        "text": "scheme-spend register for this scheme (as served)",
+        "data": {
+          "schemeId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+          "schemeName": "QA P7 Sunbake Glucose 110g 5% (company, claimable)",
+          "brandId": "a4ebffdb-e802-75e9-9614-d605563a9e65",
+          "brandName": "Sunbake",
+          "fundingSource": "company",
+          "rewardKind": "line_pct",
+          "qtyPcs": 0,
+          "amountPaise": 27180,
+          "invoiceCount": 1
+        }
+      },
+      {
+        "text": "Sunbake claim policy",
+        "data": "ok"
+      },
+      {
+        "text": "claim opened",
+        "data": "ok"
+      },
+      {
+        "text": "claim built",
+        "data": "{\"item\":{\"id\":\"01a0e609-5480-72e7-8d5c-3c46f22b7193\",\"claimNo\":null,\"supplierId\":\"034767fe-b850-7c89-b0e8-89a93c6be516\",\"supplierName\":\"Shree Sai Marketing (Sunbake Super-Stockist)\",\"brandId\":\"a4ebffdb-e802-75e9-9614-d605563a9e65\",\"brandName\":\"Sunbake\",\"kind\":\"scheme\",\"status\":\"draft\",\"claimChannel\":\"dos\",\"periodFrom\":\"2026-09-28\",\"periodTo\":\"2026-09-28\",\"claimedPaise\":27180,\"settledPaise\":0,\"writ"
+      },
+      {
+        "text": "claim lines for INV/9170",
+        "data": {
+          "count": 6,
+          "claimed": 27180,
+          "sample": [
+            {
+              "id": "3767865f-7b78-758f-8a4a-387bea7be67b",
+              "claimId": "01a0e609-5480-72e7-8d5c-3c46f22b7193",
+              "lineNo": 5,
+              "status": "open",
+              "sourceType": "invoice",
+              "sourceId": "01a0e609-53d7-72bd-b0a4-e85593b4fe98:01a0e609-51c6-728a-b408-532d90b0a83e",
+              "schemeId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+              "retailerId": "01a0e5cb-b111-7480-8b95-69b94f4a7d77",
+              "variantId": "40163e3b-6b81-78a0-bb58-369c22235acc",
+              "lotId": null,
+              "batchNo": null,
+              "expiryDate": null,
+              "mrpPaise": 2000,
+              "qtyPcs": 16,
+              "caseSize": 72,
+              "ratePaise": null,
+              "basis": "scheme_amount",
+              "amountPaise": 4530,
+              "settledPaise": 0,
+              "detail": {
+                "invoiceNo": "INV/9170",
+                "ruleKind": "scheme",
+                "rewardKind": "line_pct",
+                "appliedRule": {
+                  "ruleId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+                  "version": 1,
+                  "kind": "scheme",
+                  "rewardKind": "line_pct",
+                  "amountPaise": 4530
+                },
+                "schemeName": "QA P7 Sunbake Glucose 110g 5% (company, claimable)",
+                "sourceDate": "2026-09-28"
+              },
+              "createdAt": "2026-09-28T03:22:46.314Z"
+            },
+            {
+              "id": "53f520c6-f8b0-71d3-815d-fbf1737f01b8",
+              "claimId": "01a0e609-5480-72e7-8d5c-3c46f22b7193",
+              "lineNo": 3,
+              "status": "open",
+              "sourceType": "invoice",
+              "sourceId": "01a0e609-53d7-72bb-9cdb-b16ac16a4d72:01a0e609-51c6-728a-b408-532d90b0a83e",
+              "schemeId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+              "retailerId": "01a0e5cb-b111-7480-8b95-69b94f4a7d77",
+              "variantId": "40163e3b-6b81-78a0-bb58-369c22235acc",
+              "lotId": null,
+              "batchNo": null,
+              "expiryDate": null,
+              "mrpPaise": 2000,
+              "qtyPcs": 12,
+              "caseSize": 72,
+              "ratePaise": null,
+              "basis": "scheme_amount",
+              "amountPaise": 4530,
+              "settledPaise": 0,
+              "detail": {
+                "invoiceNo": "INV/9170",
+                "ruleKind": "scheme",
+                "rewardKind": "line_pct",
+                "appliedRule": {
+                  "ruleId": "01a0e609-51c6-728a-b408-532d90b0a83e",
+                  "version": 1,
+                  "kind": "scheme",
+                  "rewardKind": "line_pct",
+                  "amountPaise": 4530
+                },
+                "schemeName": "QA P7 Sunbake Glucose 110g 5% (company, claimable)",
+                "sourceDate": "2026-09-28"
+              },
+              "createdAt": "2026-09-28T03:22:46.314Z"
+            }
+          ]
+        }
+      }
+    ],
+    "figures": [],
+    "observations": [
+      "Reading of the numbers: the bill's discount_paise (\u20b973.96) includes the distributor 3.33 % order scheme (\u20b928.66); the company 5 % scheme actually given is \u20b945.30 (order line: 60 \u00d7 \u20b915.10 \u00d7 5 %). Each of the 6 batch lines carries amountPaise 4530, so applied_rules, the scheme-spend register and the Sunbake claim all say \u20b9271.80 = 6 \u00d7 \u20b945.30: over-stated by \u20b9226.50 on one bill."
+    ],
+    "checks": [
+      {
+        "name": "the scheme is recorded once: \u03a3 rule amounts over the bill = the discount given",
+        "ok": false,
+        "detail": "given \u20b973.96, recorded \u20b9271.8 (6 batch lines)"
+      },
+      {
+        "name": "the brand is claimed once for the scheme money given",
+        "ok": false,
+        "detail": "given \u20b973.96, claimed \u20b9271.8"
+      }
+    ],
+    "recon": {
+      "label": "S5c-scheme-split",
+      "exit": 0,
+      "result": "RESULT: RECONCILED (known rows: R5c (2); R6a (1); R6b (1); R6d (2)) (stale rollups: R7a daily_tenant_stats (invoiced / credited / collected) = documents of that day (1); R7b daily_retailer_stats rows = documents of that shop and day (rows that exist) (3); R7c owner_summary outstanding / overdue = \u03a3 open bills / \u03a3 overdue today (1))"
+    }
+  }
+]

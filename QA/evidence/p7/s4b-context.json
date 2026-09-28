@@ -1,0 +1,18 @@
+{
+  "trip": {
+    "tripId": "01a0e5c9-b6fd-72e2-ac18-c53199deea8a",
+    "stops": [
+      {
+        "id": "01a0e5c9-b6fd-72e4-9c2c-59d891571094",
+        "sequence": 1,
+        "retailerId": "01a0e5c8-6107-75f9-9cbf-fca0f2974e63",
+        "invoiceIds": [
+          "01a0e5c8-6879-733a-baa7-dce08dbb8291"
+        ]
+      }
+    ],
+    "loadSheetId": "01a0e5c9-b759-7035-8149-147272e0e705",
+    "driverWho": "driver"
+  },
+  "cn": "01a0e5c9-aa98-77c3-8616-c5adf78b6ada"
+}
