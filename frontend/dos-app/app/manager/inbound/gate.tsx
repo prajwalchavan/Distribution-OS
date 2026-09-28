@@ -240,6 +240,17 @@ export default function GateCount(): React.JSX.Element {
                           {batch.warning === null ? batch.text : `${batch.text} · ${batch.warning}`}
                         </Txt>
                       )}
+                      {/* QA DOS-357: what is counted on an expired line goes into the bin, said first */}
+                      {line.expiredOnArrival === true ? (
+                        <Txt
+                          field="label"
+                          desk="meta"
+                          color={colors.status.brick.fg}
+                          testID={`gate-line-expired-${line.id}`}
+                        >
+                          {t('m19.expiredToBin')}
+                        </Txt>
+                      ) : null}
                       <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
                         {/*
                          * The expected figure appears only ONCE the line has a count. Before that the

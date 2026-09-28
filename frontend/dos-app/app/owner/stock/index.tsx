@@ -602,6 +602,21 @@ export default function StockScreen(): React.JSX.Element {
                 ]}
               />
             ) : null}
+            {direction === 'off' &&
+            offReason !== 'adjustment' &&
+            adjustLot !== null &&
+            !(locations.data?.items ?? []).some(
+              (loc) => loc.id === adjustLot.locationId && loc.kind === 'damaged',
+            ) ? (
+              <Txt
+                field="label"
+                desk="meta"
+                color={colors.text.secondary}
+                testID="stock-adjust-to-bin"
+              >
+                {t('o15.toBin')}
+              </Txt>
+            ) : null}
             <TextInput
               label={t('o15.pieces')}
               value={pieces}
@@ -649,11 +664,18 @@ export default function StockScreen(): React.JSX.Element {
               (result) => {
                 setAdjustLot(null)
                 setToast(
-                  t('o15.adjusted', {
-                    item: lot.variantName,
-                    batch: lot.batchNo || t('app.none'),
-                    count: result.balance.onHand,
-                  }),
+                  result.movedToBin === undefined
+                    ? t('o15.adjusted', {
+                        item: lot.variantName,
+                        batch: lot.batchNo || t('app.none'),
+                        count: result.balance.onHand,
+                      })
+                    : t('o15.movedToBin', {
+                        item: lot.variantName,
+                        batch: lot.batchNo || t('app.none'),
+                        pieces: count,
+                        bin: result.movedToBin.locationName,
+                      }),
                 )
               },
               () => {

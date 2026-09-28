@@ -146,12 +146,17 @@ export default function Stock(): React.JSX.Element {
       }),
     {
       invalidates: [['balances'], ['ledger']],
-      onSuccess: () => {
+      onSuccess: (result) => {
         haptics.success()
         setAdjusting(null)
         setDelta('')
         setNote('')
-        setToast(t('w8.adjusted'))
+        // ruling 6: a damaged or expired write-off here landed in the bin — say where the pieces went
+        setToast(
+          result.movedToBin === undefined
+            ? t('w8.adjusted')
+            : t('w8.movedToBin', { bin: result.movedToBin.locationName }),
+        )
       },
       onError: () => {
         haptics.error()
@@ -186,6 +191,18 @@ export default function Stock(): React.JSX.Element {
 
   const { caseSizeOf } = useLotCaseSize()
   const rows = paged.rows
+  /*
+   * THE BIN'S ONLY EXITS (QA DOS-352, architect rulings 2 and 6). Pieces in the damaged / expiry bin never
+   * go back for sale, so a bin row offers no Move; and the write-off from the bin is the desk's, so the
+   * godown's login gets the sentence instead of an Adjust the server would refuse.
+   */
+  const kindOf = new Map((locations.data?.items ?? []).map((one) => [one.id, one.kind]))
+  const inBin = (locationId: string): boolean => kindOf.get(locationId) === 'damaged'
+  const binDesk = role === 'owner' || role === 'manager'
+  const goesToBin =
+    adjusting !== null &&
+    !inBin(adjusting.locationId) &&
+    (reason === 'damage' || reason === 'expiry_writeoff')
   const deltaValue = Number.parseInt(delta, 10)
   // Pieces going OUT: a positive number, sent negative (iOS's decimal pad has no minus key, DOS-044).
   const deltaOk = Number.isSafeInteger(deltaValue) && deltaValue > 0
@@ -293,29 +310,42 @@ export default function Stock(): React.JSX.Element {
                       figure
                     />
                   </Row>
-                  <Row gap={8} wrap>
-                    <Button
-                      label={t('w8.adjust')}
-                      variant="secondary"
-                      onPress={() => {
-                        setAdjusting(row)
-                        setDelta('')
-                        setNote('')
-                        setReason('adjustment')
-                      }}
-                      testID={`w8-adjust-${row.lotId}`}
-                    />
-                    <Button
-                      label={t('w8.transfer')}
-                      variant="ghost"
-                      onPress={() => {
-                        setMoving(row)
-                        setMoveQty('')
-                        setMoveTo(null)
-                      }}
-                      testID={`w8-move-${row.lotId}`}
-                    />
-                  </Row>
+                  {inBin(row.locationId) && !binDesk ? (
+                    <Txt
+                      field="label"
+                      desk="meta"
+                      color={colors.text.secondary}
+                      testID={`w8-bin-exits-${row.lotId}`}
+                    >
+                      {t('w8.binExits')}
+                    </Txt>
+                  ) : (
+                    <Row gap={8} wrap>
+                      <Button
+                        label={t('w8.adjust')}
+                        variant="secondary"
+                        onPress={() => {
+                          setAdjusting(row)
+                          setDelta('')
+                          setNote('')
+                          setReason('adjustment')
+                        }}
+                        testID={`w8-adjust-${row.lotId}`}
+                      />
+                      {inBin(row.locationId) ? null : (
+                        <Button
+                          label={t('w8.transfer')}
+                          variant="ghost"
+                          onPress={() => {
+                            setMoving(row)
+                            setMoveQty('')
+                            setMoveTo(null)
+                          }}
+                          testID={`w8-move-${row.lotId}`}
+                        />
+                      )}
+                    </Row>
+                  )}
                 </Stack>
               ))}
               <Txt field="label" desk="meta" color={colors.text.secondary} testID="w8-count">
@@ -410,6 +440,11 @@ export default function Stock(): React.JSX.Element {
           <Txt field="body" desk="body" color={colors.text.secondary} testID="w8-add-is-desk">
             {t('w8.addIsDesk')}
           </Txt>
+          {goesToBin ? (
+            <Txt field="body" desk="body" color={colors.text.secondary} testID="w8-to-bin">
+              {t('w8.toBin')}
+            </Txt>
+          ) : null}
           {adjust.error === undefined ? null : (
             <Txt field="body" desk="body" color={colors.status.brick.fg}>
               {adjust.error.message}

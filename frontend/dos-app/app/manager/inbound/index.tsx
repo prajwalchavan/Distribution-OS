@@ -584,6 +584,25 @@ export default function Inbound(): React.JSX.Element {
                           {names.variant(line.variantId)}
                         </Txt>
                         <BatchWords label={batch} testID={`grn-line-batch-${line.id}`} />
+                        {/*
+                         * QA DOS-357, architect ruling 4: an expired batch's good pieces go into the
+                         * damaged / expiry bin at posting. Said on the line before the post, and what
+                         * the post did after it — from the server's own reading of the date.
+                         */}
+                        {line.expiredOnArrival === true ? (
+                          <Txt
+                            field="label"
+                            desk="meta"
+                            color={colors.status.brick.fg}
+                            testID={`grn-line-expired-${line.id}`}
+                          >
+                            {grn.status === 'posted'
+                              ? t('m4.expiredWentToBin', { pieces: line.expiredOnArrivalPcs ?? 0 })
+                              : t('m4.expiredToBin', {
+                                  pieces: line.expiredOnArrivalPcs ?? line.countedQtyPcs ?? 0,
+                                })}
+                          </Txt>
+                        ) : null}
                         <Txt field="label" desk="meta" color={colors.text.secondary} numeric>
                           {line.countedQtyPcs === null
                             ? t('m4.lineNotCounted')
@@ -644,6 +663,16 @@ export default function Inbound(): React.JSX.Element {
                   })}
                 </Txt>
               )}
+              {justPosted === undefined || expiredPcs(justPosted.lines) === 0 ? null : (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.status.brick.fg}
+                  testID="post-grn-done-expired"
+                >
+                  {t('m4.postedExpired', { pieces: expiredPcs(justPosted.lines) })}
+                </Txt>
+              )}
             </Stack>
           )}
         </Async>
@@ -674,6 +703,20 @@ export default function Inbound(): React.JSX.Element {
                   lines: grn.lines.length,
                   pieces: grn.lines.reduce((sum, line) => sum + (line.countedQtyPcs ?? 0), 0),
                   damaged: grn.lines.reduce((sum, line) => sum + line.damagedQtyPcs, 0),
+                  location: names.location(grn.locationId),
+                })}
+              </Txt>
+            ) : null}
+            {acting === 'post' && grn !== undefined && expiredPcs(grn.lines) > 0 ? (
+              <Txt
+                field="body"
+                desk="body"
+                color={colors.status.brick.fg}
+                numeric
+                testID="post-grn-expired"
+              >
+                {t('m4.postExpired', {
+                  pieces: expiredPcs(grn.lines),
                   location: names.location(grn.locationId),
                 })}
               </Txt>
@@ -736,6 +779,22 @@ export default function Inbound(): React.JSX.Element {
  * QA DOS-220: the words printed on the carton — batch and expiry — under a line, in ochre with the
  * days left when the batch is short-life. Nothing when the bill printed neither.
  */
+/**
+ * QA DOS-357: the pieces of a receipt that go (or, once posted, went) into the damaged / expiry bin as
+ * expired on arrival — the server's own figure per line, summed.
+ */
+function expiredPcs(
+  lines: readonly {
+    expiredOnArrival?: boolean | undefined
+    expiredOnArrivalPcs?: number | undefined
+  }[],
+): number {
+  return lines.reduce(
+    (sum, line) => sum + (line.expiredOnArrival === true ? (line.expiredOnArrivalPcs ?? 0) : 0),
+    0,
+  )
+}
+
 function BatchWords({
   label,
   testID,

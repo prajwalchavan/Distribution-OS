@@ -264,6 +264,16 @@ export default function GateCount(): React.JSX.Element {
               ) : null}
             </Stack>
           )}
+          {/*
+           * EXPIRED ON ARRIVAL, SAID BEFORE THE COUNT IS KEYED (QA DOS-357, architect ruling 4). The server
+           * reads the batch's expiry against today's IST date (`expiredOnArrival`): what this hand counts
+           * on this line will be posted into the damaged / expiry bin, never onto the godown's shelf.
+           */}
+          {line.expiredOnArrival === true ? (
+            <Txt field="body" desk="body" color={colors.status.brick.fg} testID="w3-pad-expired">
+              {t('w3.expiredToBin')}
+            </Txt>
+          ) : null}
           <Txt field="label" desk="meta" color={colors.text.secondary}>
             {t('w3.blind')}
           </Txt>
@@ -415,6 +425,16 @@ export default function GateCount(): React.JSX.Element {
                               ? batch.text
                               : `${batch.text} · ${batch.warning}`}
                           </Txt>
+                          {row.expiredOnArrival === true ? (
+                            <Txt
+                              field="label"
+                              desk="meta"
+                              color={colors.status.brick.fg}
+                              testID={`w3-line-expired-${row.id}`}
+                            >
+                              {t('w3.expiredToBinShort')}
+                            </Txt>
+                          ) : null}
                         </Stack>
                       )
                     }

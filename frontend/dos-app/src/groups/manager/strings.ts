@@ -283,6 +283,15 @@ export const strings = {
   'm4.grnCancelled': 'This receipt was cancelled',
   'm4.postedAs': 'Posted as {no}. The stock is in {location}.',
   'm4.postSummary': 'Lines: {lines} · {pieces} pc good · {damaged} pc damaged, into {location}',
+  // QA DOS-357, architect ruling 4: goods that arrive already expired go into the bin, not the godown.
+  'm4.expiredToBin':
+    'Past its expiry date: the {pieces} pc counted go into the Damaged / expiry bin, not the godown, and are claimed from the supplier.',
+  'm4.expiredWentToBin': 'Expired on arrival: {pieces} pc went into the Damaged / expiry bin.',
+  'm4.postExpired':
+    '{pieces} pc are past their expiry date and go into the Damaged / expiry bin, not {location}. The bill is still owed; they are claimed back from the supplier.',
+  'm4.postedExpired': '{pieces} pc went into the Damaged / expiry bin as expired on arrival.',
+  'm19.expiredToBin':
+    'Past its expiry date: the pieces counted here go into the Damaged / expiry bin, not the godown.',
   'm4.lineNotCounted': 'Not counted yet',
   'm4.typeBill': 'Type a supplier bill',
   'm1.grnToPost': 'Receipts to post',
@@ -996,6 +1005,11 @@ export const strings = {
   'm16.transferTitle': 'Move stock between places',
   'm16.transferFrom': 'From',
   'm16.transferTo': 'To',
+  // QA DOS-352 and architect ruling 6: the bin's only exits; damaged in the godown means moved to the bin.
+  'm16.binExits':
+    'Pieces in the Damaged / expiry bin never go back for sale: they leave it only by a write-off or a return to the brand. A carton put in the bin by mistake is corrected with an adjustment and a reason.',
+  'm16.toBin':
+    'Damaged or expired pieces taken off here go into the Damaged / expiry bin; write them off from the bin.',
   'm16.nearExpiry': 'Near expiry',
   'm16.empty': 'No stock row',
   // QA DOS-253: searched and paged on the server, item by item
