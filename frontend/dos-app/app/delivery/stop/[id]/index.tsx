@@ -45,6 +45,7 @@ import { deviceId } from '../../../../src/api'
 import { DOOR_DONE_CLEARED, doorDoneMessage } from '../../../../src/groups/delivery/lib/at-the-door'
 import { instantWithClock, longDate, shortDate } from '../../../../src/groups/delivery/lib/dates'
 import { takeApplied } from '../../../../src/groups/delivery/lib/door-money'
+import { arrivalFix } from '../../../../src/groups/delivery/lib/door-writes'
 import { doorDues, overdueLine } from '../../../../src/groups/delivery/lib/dues'
 import { keepKey } from '../../../../src/groups/delivery/lib/keep'
 import {
@@ -173,15 +174,14 @@ export default function StopScreen(): React.JSX.Element {
    * "I am at the shop" takes ONE fix and attaches it — evidence for the geofence, never a block
    * (`ArriveStopOutput.distanceM` is amber beyond the tenant's `geofenceMetres`, and a missing fix is
    * fine). It is not asked for on mount: UX-00 §12 has no permission prompts in front of a task.
+   * `arrivalFix` (door-writes.ts) is the same rule the home's "I am here" takes.
    */
   const arrive = (): void => {
     setBusy(true)
     void (async () => {
-      const fix = await platformLocation.current().catch(() => null)
+      const fix = await arrivalFix(() => platformLocation.current())
       setBusy(false)
-      move('arrived', {
-        ...(fix === null ? {} : { lat: fix.latitude, lng: fix.longitude }),
-      })
+      move('arrived', fix)
     })()
   }
 

@@ -262,10 +262,17 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
             close button obeys the app's own floor (UX-00 section 5.2) exactly as every other control
             on that sheet does — 32 px under a thumb was the smallest target in the kit.
           */}
+          {/*
+            NOT FULL WIDTH. Off the desk a `<Button>` fills its row by default, and in this header row
+            that squeezed the title to its narrowest: "Take money" on the driver's home broke into two
+            lines, one word each, beside a Close that had half the sheet to itself (delivery home,
+            2026-09-28, at 390 and 1280 px). Close keeps the app's touch floor, only its natural width.
+          */}
           <Button
             label={theme.t('action.close')}
             variant="ghost"
             onPress={onClose}
+            fullWidth={false}
             {...(desk ? { size: 'desk' as const } : {})}
           />
         </div>
