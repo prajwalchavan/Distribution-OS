@@ -1006,8 +1006,9 @@ export const strings = {
   'm16.transferFrom': 'From',
   'm16.transferTo': 'To',
   // QA DOS-352 and architect ruling 6: the bin's only exits; damaged in the godown means moved to the bin.
+  // Ruling 5 on vans and trips: the correction of a carton binned by mistake is the owner's alone.
   'm16.binExits':
-    'Pieces in the Damaged / expiry bin never go back for sale: they leave it only by a write-off or a return to the brand. A carton put in the bin by mistake is corrected with an adjustment and a reason.',
+    'Pieces in the Damaged / expiry bin never go back for sale: they leave it only by a write-off or a return to the brand. A carton put in the bin by mistake is corrected by the owner, with a stock adjustment and a reason.',
   'm16.toBin':
     'Damaged or expired pieces taken off here go into the Damaged / expiry bin; write them off from the bin.',
   'm16.nearExpiry': 'Near expiry',

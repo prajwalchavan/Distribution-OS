@@ -369,6 +369,72 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
     expect(await placeRow(godown)).toMatchObject({ kind: 'warehouse', active: true })
   })
 
+  it('stock ruling 2 / vans and trips ruling 5: a carton binned by mistake is the owner’s correction — a manager’s plain correction, hand count or opening out of the bin is refused, a manager’s write-off from the bin still goes', async () => {
+    const lot = await newLot(owner, 'R2-C')
+    const open = await adjust(owner, {
+      lotId: lot,
+      locationId: godown,
+      qtyDelta: 30,
+      reason: 'opening',
+    })
+    expect(open.status).toBe(200)
+    const binned = await call(app, store, 'POST', '/inventory/transfers', {
+      idempotencyKey: `into-bin-${run}`,
+      lotId: lot,
+      fromLocationId: godown,
+      toLocationId: bin,
+      qtyPcs: 12,
+      note: 'looked crushed',
+    })
+    expect(binned.status, JSON.stringify(binned.body)).toBe(200)
+    const rows = await ledgerCount(tenantId)
+
+    for (const reason of ['adjustment', 'cycle_count', 'opening'] as const) {
+      const refused = await adjust(manager, {
+        lotId: lot,
+        locationId: bin,
+        qtyDelta: -10,
+        reason,
+        note: 'binned by mistake',
+      })
+      expect(refused.status, reason).toBe(403)
+      expect(refused.body.data?.code).toBe('bin_correction_owner_only')
+      expect(refused.body.message).toBe(
+        "Only the owner takes pieces out of Damaged / expiry bin without writing them off: a carton put in the bin by mistake is the owner's correction, with a reason. A manager writes damaged or expired pieces off from the bin as a damage or expiry write-off.",
+      )
+    }
+    expect(await ledgerCount(tenantId)).toBe(rows)
+    expect(await onHandAt(lot, bin)).toBe(12)
+
+    // the desk's write-off from the bin is still the manager's (ruling 6)
+    for (const reason of ['damage', 'expiry_writeoff'] as const) {
+      const wo = await adjust(manager, { lotId: lot, locationId: bin, qtyDelta: -1, reason })
+      expect(wo.status, JSON.stringify(wo.body)).toBe(200)
+      expect(wo.body.movedToBin).toBeUndefined()
+    }
+    expect(await onHandAt(lot, bin)).toBe(10)
+
+    // the owner's correction: out of the bin, back onto the godown's books, who and why on both rows
+    const out = await adjust(owner, {
+      lotId: lot,
+      locationId: bin,
+      qtyDelta: -10,
+      reason: 'adjustment',
+      note: 'binned by mistake, carton is sound',
+    })
+    const inn = await adjust(owner, {
+      lotId: lot,
+      locationId: godown,
+      qtyDelta: 10,
+      reason: 'adjustment',
+      note: 'binned by mistake, carton is sound',
+    })
+    expect(out.status, JSON.stringify(out.body)).toBe(200)
+    expect(inn.status, JSON.stringify(inn.body)).toBe(200)
+    expect(await onHandAt(lot, bin)).toBe(0)
+    expect(await onHandAt(lot, godown)).toBe(28)
+  })
+
   it('a distributor without its bin gets a sentence, never a 500: the godown’s damage write-off and a receipt with damaged pieces are refused with nothing written, and a receipt with nothing for the bin posts', async () => {
     const lot = await newLot(ownerB, 'NB')
     const open = await adjust(ownerB, {

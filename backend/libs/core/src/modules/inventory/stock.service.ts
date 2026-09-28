@@ -117,6 +117,13 @@ const STOCK_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 's
  */
 const BIN_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'system']
 
+/**
+ * Who takes pieces out of the bin WITHOUT writing them off — the correction of a carton binned by mistake
+ * (architect ruling 2, and ruling 5 on vans and trips: the owner only). A manager's exits from the bin are the
+ * desk's write-offs (`damage`, `expiry_writeoff`).
+ */
+const BIN_CORRECTORS: readonly ActorRole[] = ['owner', 'system']
+
 /** The adjustment reasons that move pieces INTO the bin when taken off any other place (ruling 6). */
 const TO_THE_BIN: ReadonlySet<string> = new Set(['damage', 'expiry_writeoff'])
 
@@ -521,6 +528,26 @@ export class StockService {
           throw new ORPCError('FORBIDDEN', {
             message: `Pieces leave ${place.name} only by the desk's write-off or a return to the brand: ask the owner or a manager. The godown moves damaged and expired pieces into the bin and nothing out of it.`,
             data: { code: 'bin_writeoff_desk_only', locationId: input.locationId },
+          })
+        // A CARTON BINNED BY MISTAKE IS THE OWNER'S CORRECTION (ruling 2, and ruling 5 on vans and trips: "by the
+        // OWNER only"; the second blind check found it open to a manager). Pieces leave the bin without being
+        // written off — a plain correction, a count by hand, an opening — only by the owner; a manager takes
+        // pieces off the books at the bin only as a damage or expiry write-off (ruling 6, the desk's write-off).
+        // `stock.adjust` is the only door for such a row (the ledger's other movers never post `refType
+        // adjustment`), and the check sits before anything is written.
+        if (
+          place.kind === 'damaged' &&
+          input.qtyDelta < 0 &&
+          !TO_THE_BIN.has(input.reason) &&
+          !BIN_CORRECTORS.includes(ctx.actorRole)
+        )
+          throw new ORPCError('FORBIDDEN', {
+            message: `Only the owner takes pieces out of ${place.name} without writing them off: a carton put in the bin by mistake is the owner's correction, with a reason. A manager writes damaged or expired pieces off from the bin as a damage or expiry write-off.`,
+            data: {
+              code: 'bin_correction_owner_only',
+              locationId: input.locationId,
+              reason: input.reason,
+            },
           })
         if (input.qtyDelta < 0)
           await this.assertNotHeldOnDock(tx, input.locationId, input.lotId, -input.qtyDelta)
