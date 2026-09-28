@@ -200,15 +200,24 @@ export class RegistersService {
     return withTenant(db, currentTenant(), async (tx) => {
       const rows = await this.invoiceSummary(tx, input)
       const creditNoteRows = await this.creditNoteSummary(tx, input)
+      const documents = await this.documentCounts(tx, input)
       return {
         from: input.from,
         to: input.to,
         supplyType: input.supplyType ?? null,
         groupBy: input.groupBy,
         rows,
-        totals: totalsOf(rows),
+        totals: {
+          ...totalsOf(rows),
+          documentCount: documents.invoices,
+          cancelledDocumentCount: documents.cancelledInvoices,
+        },
         creditNoteRows,
-        creditNoteTotals: totalsOf(creditNoteRows),
+        creditNoteTotals: {
+          ...totalsOf(creditNoteRows),
+          documentCount: documents.creditNotes,
+          cancelledDocumentCount: documents.cancelledCreditNotes,
+        },
       }
     })
   }
@@ -579,6 +588,56 @@ export class RegistersService {
   }
 
   /**
+   * THE DOCUMENT COUNTS OF THE RETURN (QA DOS-317, architect ruling 7, 2026-09-28). A CA copies these
+   * into GSTR-1, so they are counted over the DOCUMENTS, never taken from the rows: one bill spread over
+   * three rates or five HSN codes is still one bill, whatever the grouping. Live bills and credit notes
+   * are counted with the same window and supply-type filter as the rows; cancelled ones are counted
+   * apart, because table 13 ("documents issued") lists them beside the net issued.
+   */
+  private async documentCounts(
+    tx: Db,
+    input: GstIn,
+  ): Promise<{
+    invoices: number
+    cancelledInvoices: number
+    creditNotes: number
+    cancelledCreditNotes: number
+  }> {
+    const { tenantId } = currentTenant()
+    const supply = input.supplyType ?? null
+    const bills = await tx.execute(sql`
+      SELECT COUNT(DISTINCT i.id) FILTER (WHERE i.state <> 'cancelled')::int AS live,
+             COUNT(DISTINCT i.id) FILTER (WHERE i.state = 'cancelled')::int  AS cancelled
+        FROM invoices i
+       WHERE i.tenant_id = ${tenantId}
+         AND i.state <> 'draft'
+         AND i.invoice_date BETWEEN ${input.from} AND ${input.to}
+         AND (${supply}::text IS NULL OR i.supply_type::text = ${supply})
+         AND (i.state = 'cancelled'
+              OR EXISTS (SELECT 1 FROM invoice_lines l WHERE l.tenant_id = i.tenant_id AND l.invoice_id = i.id))`)
+    const notes = await tx.execute(sql`
+      SELECT COUNT(DISTINCT c.id) FILTER (WHERE c.state IN ('issued', 'applied'))::int AS live,
+             COUNT(DISTINCT c.id) FILTER (WHERE c.state = 'cancelled')::int          AS cancelled
+        FROM credit_notes c
+        JOIN invoices i ON i.id = c.invoice_id
+       WHERE c.tenant_id = ${tenantId}
+         AND c.state IN ('issued', 'applied', 'cancelled')
+         AND c.note_date BETWEEN ${input.from} AND ${input.to}
+         AND (${supply}::text IS NULL OR i.supply_type::text = ${supply})
+         AND (c.state = 'cancelled'
+              OR EXISTS (SELECT 1 FROM credit_note_lines cl
+                          WHERE cl.tenant_id = c.tenant_id AND cl.credit_note_id = c.id))`)
+    const b = (bills.rows[0] ?? {}) as { live?: number; cancelled?: number }
+    const c = (notes.rows[0] ?? {}) as { live?: number; cancelled?: number }
+    return {
+      invoices: n(b.live),
+      cancelledInvoices: n(b.cancelled),
+      creditNotes: n(c.live),
+      cancelledCreditNotes: n(c.cancelled),
+    }
+  }
+
+  /**
    * Credit notes are reported SEPARATELY, as their own positive rows: GSTR-1 has its own table for them
    * and the filer subtracts, not us. The intra/inter split is recomputed from the note's own invoice
    * because `credit_note_lines` stores one combined tax figure; `round(x/2)` mirrors `percentOf(taxable,
@@ -634,7 +693,11 @@ function toSummaryRow(row: RawSummaryRow): GstSummaryRow {
   }
 }
 
-/** `documentCount` is a MAXIMUM, not a sum: one bill contributes to several HSN rows. */
+/**
+ * The value totals of a set of rows. `documentCount` here is only the rows' own maximum — a placeholder
+ * the caller replaces with the distinct count of documents (`documentCounts`, QA DOS-317): one bill
+ * contributes to several rate or HSN rows, so neither the sum nor the maximum of the rows is the count.
+ */
 function totalsOf(rows: readonly GstSummaryRow[]): GstSummaryTotals {
   const add = (pick: (r: GstSummaryRow) => number): number => rows.reduce((s, r) => s + pick(r), 0)
   return {

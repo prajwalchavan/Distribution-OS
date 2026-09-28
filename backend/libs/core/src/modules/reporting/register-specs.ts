@@ -62,6 +62,8 @@ export const REGISTER_SPECS: Record<ReportRegister, RegisterSpec> = {
           day: item.day,
           ordersCount: item.ordersCount,
           invoicedPaise: item.invoicedPaise,
+          // DOS-321: the day's credit notes beside what was billed (empty for a day not yet counted).
+          creditedPaise: item.creditedPaise ?? null,
           collectedPaise: item.collectedPaise,
           outstandingPaise: item.outstandingPaise,
           overduePaise: item.overduePaise,
