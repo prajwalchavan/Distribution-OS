@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { and, asc, desc, eq, inArray, lt, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, lt, sql, type SQL } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import type { StockReason } from '@dos/contracts'
 import { businessDate, uuidv7 } from '@dos/domain'
@@ -25,9 +25,10 @@ import { valuationByLocation, type ValuationFilter, type ValuationRow } from './
  * The stock ledger (ADR 0003). Every module that moves pieces (procurement on GRN, orders on pick, delivery on
  * van load/unload, returns) calls `post()` with the transaction it already holds from `withTenant`, so the ledger
  * row and the derived balance commit together with the business fact that caused them. Balances never go below
- * zero unless the location allows it (damaged bin); the CHECK constraint is the guarantee, this class turns it
- * into a readable error. Ledger rows carry UNIQUE(tenant_id, idempotency_key), so re-posting the same entry is a
- * harmless no-op and never double-counts.
+ * zero — the damaged / expiry bin included since QA DOS-350 (architect ruling 1, 2026-09-28): `post()` refuses
+ * the movement in words before it writes, and the CHECK constraint plus migration 0075's balance trigger are
+ * the guarantee underneath. Ledger rows carry UNIQUE(tenant_id, idempotency_key), so re-posting the same entry
+ * is a harmless no-op and never double-counts.
  */
 
 export type LedgerRow = typeof stockLedger.$inferSelect
@@ -341,19 +342,25 @@ export class InventoryService {
       if (!row) continue // already posted under this key; its balance moved then
       written.push(row)
       const key = balanceKey(e.lotId, e.locationId)
+      const label = {
+        item: lotLabels.get(e.lotId) ?? null,
+        location: loc.name,
+        // What is really there when this entry is posted: an earlier entry of the same call may
+        // already have moved this very balance.
+        onHand: balances.get(key)?.onHand ?? onHand.get(key) ?? 0,
+      }
+      // QA DOS-350: NO place goes below zero, the damaged / expiry bin included. Refused here, in words,
+      // before the balance moves; the CHECK (and 0075's trigger for a balance that was already below zero
+      // when the bin's flag was cleared) stays the guarantee when two movers race for the same pieces.
+      if (e.qtyDelta < 0 && !loc.negativeAllowed && label.onHand + e.qtyDelta < 0)
+        throw belowZero({ ...e, label })
       const balance = await this.applyBalance(tx, {
         lotId: e.lotId,
         locationId: e.locationId,
         onHandDelta: e.qtyDelta,
         reservedDelta: 0,
         negativeAllowed: loc.negativeAllowed,
-        label: {
-          item: lotLabels.get(e.lotId) ?? null,
-          location: loc.name,
-          // What is really there when this entry is posted: an earlier entry of the same call may
-          // already have moved this very balance.
-          onHand: balances.get(key)?.onHand ?? onHand.get(key) ?? 0,
-        },
+        label,
       })
       balances.set(key, balance)
     }
@@ -399,24 +406,28 @@ export class InventoryService {
     return { id: row.id, created: true }
   }
 
-  /** Lot identity is (variant, batch, MRP); expiry/mfg are filled in when first known. */
+  /**
+   * LOT IDENTITY IS (variant, batch, MRP, EXPIRY) — QA DOS-356, architect ruling 5 (2026-09-28). A receipt
+   * joins an existing batch only when all four are the same; a different expiry, a missing batch number with
+   * a different expiry, or an expiry where the lot has none (or none where it has one) makes its own lot. It
+   * used to be (variant, batch, MRP) with the expiry "filled in when first known", so a second receipt of a
+   * no-batch item that expires in October joined January's lot and every stock screen, the expiring list and
+   * FEFO believed January. Only the manufacturing date is still filled in when first known: it decides nothing.
+   */
   async findOrCreateLot(tx: Db, input: LotInput): Promise<{ lot: LotRow; created: boolean }> {
     const { tenantId } = currentTenant()
     const batchNo = input.batchNo ?? ''
+    const expiryDate = input.expiryDate ?? null
     const identity = and(
       eq(stockLots.tenantId, tenantId),
       eq(stockLots.variantId, input.variantId),
       eq(stockLots.batchNo, batchNo),
       eq(stockLots.mrpPaise, input.mrpPaise),
+      expiryDate === null ? isNull(stockLots.expiryDate) : eq(stockLots.expiryDate, expiryDate),
     )
     const [existing] = await tx.select().from(stockLots).where(identity)
     if (existing) {
-      const fill = {
-        ...(existing.expiryDate === null && input.expiryDate
-          ? { expiryDate: input.expiryDate }
-          : {}),
-        ...(existing.mfgDate === null && input.mfgDate ? { mfgDate: input.mfgDate } : {}),
-      }
+      const fill = existing.mfgDate === null && input.mfgDate ? { mfgDate: input.mfgDate } : {}
       if (Object.keys(fill).length === 0) return { lot: existing, created: false }
       const [updated] = await tx
         .update(stockLots)
@@ -441,7 +452,7 @@ export class InventoryService {
             batchNo,
             mrpPaise: input.mrpPaise,
             mfgDate: input.mfgDate ?? null,
-            expiryDate: input.expiryDate ?? null,
+            expiryDate,
           })
           .onConflictDoNothing({
             target: [
@@ -449,6 +460,7 @@ export class InventoryService {
               stockLots.variantId,
               stockLots.batchNo,
               stockLots.mrpPaise,
+              stockLots.expiryDate,
             ],
           })
           .returning()
@@ -471,10 +483,9 @@ export class InventoryService {
    * the call site. An absent or malformed row is the 30-day default `bootstrapTenant` seeds; only an
    * integer >= 0 counts, so the empty string the owner's screen saves when the field is CLEARED reads
    * as 30 — the number that screen keeps showing — and never as 0. `0` switches the rule off, so every
-   * batch is compliant and the order is plain FEFO again — with ONE deliberate difference: the cutoff
-   * is then today, and `sellable_stock` does not filter expired lots, so a batch that is ALREADY past
-   * its expiry sorts LAST rather than first. Safer than the plain FEFO it replaces, and still
-   * available: the rule only ever changes the ORDER, never what can be taken.
+   * batch is compliant and the order is plain FEFO again. The rule only ever changes the ORDER, never
+   * what can be taken: a batch that is already PAST its expiry is not in `sellable_stock` at all (QA
+   * DOS-261 / DOS-351, migration 0075), so no setting here can offer it.
    */
   async minShelfLifeDays(tx: Db): Promise<number> {
     const { tenantId } = currentTenant()
@@ -519,8 +530,18 @@ export class InventoryService {
    * `sellable_stock` at the location: batches with at least `inventory.min_shelf_life_days` left (or
    * no expiry at all) come first, earliest expiry first inside each group, then the oldest lot. A
    * short-dated batch is still taken when nothing else covers the line — the rule changes the ORDER,
-   * never what is available (QA DOS-054). All-or-nothing: if the location cannot cover the line
-   * nothing is held. Calling again for a line that already has pending reservations returns them.
+   * never what is available (QA DOS-054). An EXPIRED batch is never held (QA DOS-261, architect ruling
+   * 3, 2026-09-28): the view leaves out every lot whose expiry is before today's IST business date, so
+   * it is neither a candidate here nor counted by `availablePcs`. All-or-nothing: if the location cannot
+   * cover the line nothing is held, and the refusal names the item, the place and the expired pieces
+   * standing there. Calling again for a line that already has pending reservations returns them.
+   *
+   * A HOLD TAKEN BEFORE ITS BATCH EXPIRED (the day after confirm, or before migration 0075) is left as
+   * it is: still `pending`, still counted in `reserved`, so no other order is promised those pieces and
+   * the ledger and the balances keep agreeing. Nothing sells it: the wave's pick and the pack refuse an
+   * expired batch (the other half of ruling 3), a pick may take in-date free pieces for the line instead
+   * and the pack closes every hold of the line, and `reservations.release` gives it back so the next
+   * wave holds in-date stock only.
    */
   async reserve(tx: Db, input: ReserveInput): Promise<ReservationRow[]> {
     const { tenantId } = currentTenant()
@@ -564,7 +585,7 @@ export class InventoryService {
     }
     if (remaining > 0) {
       throw new ORPCError('BAD_REQUEST', {
-        message: `insufficient sellable stock for variant ${input.variantId} at location ${input.locationId}: short by ${remaining} pcs`,
+        message: await this.shortInWords(tx, input, input.qtyPcs - remaining, remaining),
         data: {
           variantId: input.variantId,
           locationId: input.locationId,
@@ -588,6 +609,47 @@ export class InventoryService {
         })),
       )
       .returning()
+  }
+
+  /**
+   * Why a hold could not be taken, in words (the van sale's refusal at a shop door): what can be sold of
+   * which item where, how many are short, and — the reason a van full of cartons still says no — how many
+   * pieces standing there are past their expiry date. Read after the candidates are known, so it costs
+   * nothing on the path that succeeds.
+   */
+  private async shortInWords(
+    tx: Db,
+    input: ReserveInput,
+    available: number,
+    short: number,
+  ): Promise<string> {
+    const { tenantId } = currentTenant()
+    const [variant] = await tx
+      .select({ name: productVariants.name })
+      .from(productVariants)
+      .where(eq(productVariants.id, input.variantId))
+    const [place] = await tx
+      .select({ name: locations.name })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, input.locationId)))
+    const today = businessDate().date
+    const expired = (
+      await tx.execute(sql`
+        select coalesce(sum(b.on_hand - b.reserved), 0)::bigint as pcs
+        from stock_balances b
+        join stock_lots l on l.id = b.lot_id
+        where b.tenant_id = ${tenantId} and b.location_id = ${input.locationId}
+          and l.variant_id = ${input.variantId} and l.expiry_date < ${today}
+          and b.on_hand - b.reserved > 0`)
+    ).rows[0] as { pcs: string | number } | undefined
+    const expiredPcs = Number(expired?.pcs ?? 0)
+    const item = variant?.name ?? `item ${input.variantId}`
+    const where = place?.name ?? `location ${input.locationId}`
+    return `Only ${String(available)} pc of ${item} can be sold from ${where}; ${String(short)} pc short.${
+      expiredPcs > 0
+        ? ` ${String(expiredPcs)} pc there are past their expiry date and are never sold.`
+        : ''
+    }`
   }
 
   /**
@@ -1273,12 +1335,11 @@ export class InventoryService {
       const constraint = pgConstraint(err)
       const named = b.label?.item ?? null
       if (constraint === 'stock_balances_on_hand_nonneg') {
-        throw new ORPCError('BAD_REQUEST', {
-          message:
-            named === null || b.label === undefined
-              ? `insufficient stock: lot ${b.lotId} at location ${b.locationId} would go below zero (delta ${b.onHandDelta})`
-              : `Only ${b.label.onHand} pc of ${named} are in ${b.label.location}; ${Math.abs(b.onHandDelta)} pc cannot go out.`,
-          data: { lotId: b.lotId, locationId: b.locationId, qtyDelta: b.onHandDelta },
+        throw belowZero({
+          lotId: b.lotId,
+          locationId: b.locationId,
+          qtyDelta: b.onHandDelta,
+          label: b.label,
         })
       }
       if (constraint === 'stock_balances_reserved_nonneg') {
@@ -1293,6 +1354,32 @@ export class InventoryService {
       throw err
     }
   }
+}
+
+/**
+ * THE BELOW-ZERO REFUSAL, one sentence for every place (DOS-048's words; QA DOS-350 made the damaged bin
+ * refuse the same way the godown always did). The pieces that are really there, of what, where, and how
+ * many cannot go out. A balance that was ALREADY below zero when migration 0075 cleared the bin's flag
+ * says so and asks for a count instead of "Only −50 pc". The ids stay in `data`.
+ */
+function belowZero(e: {
+  lotId: string
+  locationId: string
+  qtyDelta: number
+  label?: { item: string | null; location: string; onHand: number } | undefined
+}): ORPCError<'BAD_REQUEST', { lotId: string; locationId: string; qtyDelta: number }> {
+  const out = Math.abs(e.qtyDelta)
+  const { label } = e
+  const message =
+    label === undefined || label.item === null
+      ? `insufficient stock: lot ${e.lotId} at location ${e.locationId} would go below zero (delta ${String(e.qtyDelta)})`
+      : label.onHand < 0
+        ? `The books show ${String(label.onHand)} pc of ${label.item} in ${label.location}, below zero; nothing can go out of it until a count of ${label.location} corrects it. ${String(out)} pc cannot go out.`
+        : `Only ${String(label.onHand)} pc of ${label.item} are in ${label.location}; ${String(out)} pc cannot go out.`
+  return new ORPCError('BAD_REQUEST', {
+    message,
+    data: { lotId: e.lotId, locationId: e.locationId, qtyDelta: e.qtyDelta },
+  })
 }
 
 /** Drizzle wraps driver errors; the CHECK/UNIQUE name is on `cause.constraint`. */

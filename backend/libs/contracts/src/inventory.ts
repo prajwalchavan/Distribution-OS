@@ -52,6 +52,10 @@ export const UpsertLocationInput = MutationBase.extend({
   kind: LocationKindSchema,
   name: z.string().trim().min(1).max(80),
   vehicleId: IdSchema.nullable().optional(),
+  /**
+   * No stock location goes below zero (QA DOS-350, architect ruling 1, 2026-09-28): `true` is refused with a
+   * 400 `location_never_negative`. Kept in the contract because removing a field is not expand-only.
+   */
   negativeAllowed: z.boolean().default(false),
   active: z.boolean().default(true),
 })
@@ -93,6 +97,11 @@ export const StockLotSchema = z.object({
 })
 export type StockLot = z.infer<typeof StockLotSchema>
 
+/**
+ * A lot is (variant, batch, MRP, EXPIRY): the same batch number and MRP with another expiry — or with none
+ * where the lot has one — is another lot (QA DOS-356, architect ruling 5). Upserting the same four returns
+ * the lot that already has them.
+ */
 export const UpsertLotInput = MutationBase.extend({
   id: IdSchema,
   variantId: IdSchema,
@@ -251,6 +260,20 @@ export const AdjustStockInput = MutationBase.extend({
 export const AdjustStockOutput = z.object({
   entry: LedgerEntrySchema,
   balance: BalanceSnapshotSchema,
+  /**
+   * DAMAGED IN THE GODOWN MEANS MOVED TO THE BIN (architect ruling 6, 2026-09-28). A `damage` or
+   * `expiry_writeoff` taken off any place other than the damaged / expiry bin lands IN the bin under the
+   * same reason — the desk writes it off from there, and the brand's claim reads it there. This is that
+   * second row and the bin's balance after it; absent when the adjustment was posted at the bin itself (the
+   * desk's write-off) or was any other reason.
+   */
+  movedToBin: z
+    .object({
+      locationName: z.string(),
+      entry: LedgerEntrySchema,
+      balance: BalanceSnapshotSchema,
+    })
+    .optional(),
 })
 
 export const TransferStockInput = MutationBase.extend({
@@ -438,7 +461,8 @@ export const inventoryContract = {
       .route({
         method: 'POST',
         path: '/inventory/transfers',
-        summary: 'Move pieces of a lot between locations',
+        summary:
+          'Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place)',
       })
       .input(TransferStockInput)
       .output(TransferStockOutput),
@@ -452,7 +476,7 @@ export const inventoryContract = {
       .route({
         method: 'POST',
         path: '/inventory/lots',
-        summary: 'Find or create a lot (variant + batch + MRP)',
+        summary: 'Find or create a lot (variant + batch + MRP + expiry)',
       })
       .input(UpsertLotInput)
       .output(UpsertLotOutput),

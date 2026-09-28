@@ -104,6 +104,16 @@ export const STOCK_VIEWERS: readonly ActorRole[] = [
  */
 const STOCK_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
 
+/**
+ * Who takes pieces OFF the books at the damaged / expiry bin — a write-off, a return to the brand, a count
+ * found short (architect ruling 6, 2026-09-28: "the write-off is the desk's, from the bin"). The godown
+ * only puts pieces in.
+ */
+const BIN_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'system']
+
+/** The adjustment reasons that move pieces INTO the bin when taken off any other place (ruling 6). */
+const TO_THE_BIN: ReadonlySet<string> = new Set(['damage', 'expiry_writeoff'])
+
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
 const NEAR_EXPIRY_DAYS = 60
 
@@ -169,6 +179,16 @@ export class StockService {
 
   async upsertLocation(input: LocationIn): Promise<LocationOut> {
     requireRole(STOCK_WRITERS)
+    // QA DOS-350, architect ruling 1 (2026-09-28): no place goes below zero — not a godown, not a van,
+    // not the damaged / expiry bin, whose "may go negative for a claim cycle" let a hand transfer mint
+    // sellable stock from nothing. The field stays in the contract (expand-only) and `false` is the only
+    // answer it takes; refused before anything is written, a replayed key the same way.
+    if (input.negativeAllowed)
+      throw new ORPCError('BAD_REQUEST', {
+        message:
+          'No stock location may go below zero: every place shows only the pieces that are really in it. Save the location without "negative allowed"; a count corrects a place whose books are wrong.',
+        data: { code: 'location_never_negative' },
+      })
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
@@ -257,8 +277,9 @@ export class StockService {
    * the damaged bin, stock in transit and a second warehouse — pieces no order can reserve.
    *
    * Only items with something left to promise at the godown have a row, so a caller that has read every page
-   * may take a missing item as zero. No expiry filter, because `reserve()` has none. Open to every member,
-   * like `sellable` (TenantGuard + PERMISSIONS gate it), and a strict subset of what `sellable` shows.
+   * may take a missing item as zero. An expired batch is not counted (QA DOS-261, architect ruling 3): the
+   * view leaves it out, exactly as `reserve()` never holds it, so the hint and the hold agree. Open to every
+   * member, like `sellable` (TenantGuard + PERMISSIONS gate it), and a strict subset of what `sellable` shows.
    */
   async availability(input: AvailabilityIn): Promise<AvailabilityOut> {
     const db = requireDb(this.db)
@@ -377,8 +398,18 @@ export class StockService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
+        const place = await this.placeOf(tx, input.locationId)
+        // Architect ruling 6 (2026-09-28): the write-off is the DESK'S, from the bin. The godown puts
+        // damaged and expired pieces into the bin; only the owner or a manager takes them off the books
+        // there (a write-off, a return to the brand, a count). Refused before anything is written.
+        if (place.kind === 'damaged' && input.qtyDelta < 0 && !BIN_WRITERS.includes(ctx.actorRole))
+          throw new ORPCError('FORBIDDEN', {
+            message: `Pieces leave ${place.name} only by the desk's write-off or a return to the brand: ask the owner or a manager. The godown moves damaged and expired pieces into the bin and nothing out of it.`,
+            data: { code: 'bin_writeoff_desk_only', locationId: input.locationId },
+          })
         if (input.qtyDelta < 0)
           await this.assertNotHeldOnDock(tx, input.locationId, input.lotId, -input.qtyDelta)
+        const note = input.note ? { note: input.note } : {}
         const entry: Parameters<InventoryService['post']>[1][number] = {
           lotId: input.lotId,
           locationId: input.locationId,
@@ -386,14 +417,88 @@ export class StockService {
           reason: input.reason,
           refType: 'adjustment',
           idempotencyKey: input.idempotencyKey,
-          ...(input.note ? { note: input.note } : {}),
+          ...note,
         }
-        const { entries, balances } = await this.inventory.post(tx, [entry])
-        const written = entries[0] ?? (await this.ledgerByKey(tx, input.idempotencyKey))
-        const balance = balances[0] ?? (await this.balanceOf(tx, input.lotId, input.locationId))
-        return { entry: toEntry(written), balance: toBalance(balance) }
+        /*
+         * DAMAGED IN THE GODOWN MEANS MOVED TO THE BIN (architect ruling 6, QA phase 10 question 5). A
+         * `damage` or `expiry_writeoff` taken off a godown, a van or the dock used to write the pieces off
+         * the books there and then: nothing reached the bin, so the brand's damage / expiry claim — built
+         * from the rows posted INTO the bin — never saw them, and the desk never decided. They now leave the
+         * place and land in the damaged / expiry bin under the same reason, the pair keyed on this call, and
+         * the desk writes them off from there. A tenant without an active bin keeps the old write-off.
+         */
+        const bin =
+          input.qtyDelta < 0 && place.kind !== 'damaged' && TO_THE_BIN.has(input.reason)
+            ? await this.activeBin(tx)
+            : null
+        const binKey = `${input.idempotencyKey}:bin`
+        const pair: Parameters<InventoryService['post']>[1] =
+          bin === null
+            ? [entry]
+            : [
+                { ...entry, refId: input.idempotencyKey },
+                {
+                  ...entry,
+                  locationId: bin.id,
+                  qtyDelta: -input.qtyDelta,
+                  refId: input.idempotencyKey,
+                  idempotencyKey: binKey,
+                },
+              ]
+        const { entries, balances } = await this.inventory.post(tx, pair)
+        const written =
+          entries.find((e) => e.idempotencyKey === input.idempotencyKey) ??
+          (await this.ledgerByKey(tx, input.idempotencyKey))
+        const balance =
+          balances.find((b) => b.locationId === input.locationId) ??
+          (await this.balanceOf(tx, input.lotId, input.locationId))
+        if (bin === null) return { entry: toEntry(written), balance: toBalance(balance) }
+        const binEntry =
+          entries.find((e) => e.idempotencyKey === binKey) ?? (await this.ledgerByKey(tx, binKey))
+        const binBalance =
+          balances.find((b) => b.locationId === bin.id) ??
+          (await this.balanceOf(tx, input.lotId, bin.id))
+        return {
+          entry: toEntry(written),
+          balance: toBalance(balance),
+          movedToBin: {
+            locationName: bin.name,
+            entry: toEntry(binEntry),
+            balance: toBalance(binBalance),
+          },
+        }
       }),
     )
+  }
+
+  /** The kind and the name of one of this tenant's locations; 404 when it is not one. */
+  private async placeOf(tx: Db, locationId: string): Promise<{ kind: string; name: string }> {
+    const { tenantId } = currentTenant()
+    const [row] = await tx
+      .select({ kind: locations.kind, name: locations.name })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+      .limit(1)
+    if (!row) throw new ORPCError('NOT_FOUND', { message: `location ${locationId} not found` })
+    return row
+  }
+
+  /** The tenant's damaged / expiry bin (the first active one, as the GRN's gate-damage leg picks it). */
+  private async activeBin(tx: Db): Promise<{ id: string; name: string } | null> {
+    const { tenantId } = currentTenant()
+    const [row] = await tx
+      .select({ id: locations.id, name: locations.name })
+      .from(locations)
+      .where(
+        and(
+          eq(locations.tenantId, tenantId),
+          eq(locations.kind, 'damaged'),
+          eq(locations.active, true),
+        ),
+      )
+      .orderBy(asc(locations.id))
+      .limit(1)
+    return row ?? null
   }
 
   async transfer(input: TransferIn): Promise<TransferOut> {
@@ -405,6 +510,25 @@ export class StockService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
+        /*
+         * NOTHING LEAVES THE DAMAGED BIN FOR SALE (QA DOS-352, architect ruling 2, 2026-09-28). A godown
+         * login moved damaged cartons back into the godown and onto a van with one tap, no reason and no
+         * approval, and they were a rep's availability at once. The bin's only exits are a write-off and a
+         * return to the brand; a carton binned by mistake is corrected by the owner's stock adjustment with a
+         * reason, which records who and why. For every role. A move INTO the bin stays: that is "damaged in
+         * the godown" (ruling 6); bin to bin stays too.
+         */
+        const source = await this.placeOf(tx, input.fromLocationId)
+        const target = await this.placeOf(tx, input.toLocationId)
+        if (source.kind === 'damaged' && target.kind !== 'damaged')
+          throw new ORPCError('CONFLICT', {
+            message: `Pieces in ${source.name} never go back for sale, so they cannot be moved to ${target.name}. They leave the bin only by a write-off or a return to the brand. If a carton went into the bin by mistake, the owner corrects it with a stock adjustment and a reason.`,
+            data: {
+              code: 'damaged_not_for_sale',
+              fromLocationId: input.fromLocationId,
+              toLocationId: input.toLocationId,
+            },
+          })
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [
