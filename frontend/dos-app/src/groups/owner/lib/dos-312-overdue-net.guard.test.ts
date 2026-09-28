@@ -6,11 +6,13 @@
  * "Overdue" is the gross figure everywhere; the net one sits beside it under its own words. The desk's
  * dues register follows the same rule.
  *
- * Read as source: a screen pulls in expo-router, which does not resolve outside Metro.
+ * Read as source: a screen pulls in expo-router, which does not resolve outside Metro. The desk's
+ * screen and the desk's words are read as TEXT, never imported: a file of the owner's group imports
+ * nothing from another group (docs/31 §6.4a), and comparing two groups on purpose is done by opening
+ * a path (docs/31 §6.5).
  */
 import { beforeAll, describe, expect, it } from 'vitest'
 
-import { strings as managerStrings } from '../../manager/strings'
 import { strings as ownerStrings } from '../strings'
 
 interface NodeFs {
@@ -29,6 +31,13 @@ function withoutComments(code: string): string {
 
 let money = ''
 let desk = ''
+let deskWords = ''
+
+/** The value of one key in a words file read as text. */
+function word(source: string, key: string): string | undefined {
+  const found = new RegExp(`'${key.replace('.', '\\.')}': '([^']*)'`).exec(source)
+  return found?.[1]
+}
 beforeAll(async () => {
   const fs = (await import(NODE_FS)) as NodeFs
   const url = (await import(NODE_URL)) as NodeUrl
@@ -37,6 +46,7 @@ beforeAll(async () => {
   desk = withoutComments(
     fs.readFileSync(`${here}../../../../app/manager/registers/index.tsx`, 'utf8'),
   )
+  deskWords = fs.readFileSync(`${here}../../manager/strings.ts`, 'utf8')
 })
 
 describe('QA DOS-312: "Overdue" is one amount on every screen, and the net is beside it', () => {
@@ -75,7 +85,8 @@ describe('QA DOS-312: "Overdue" is one amount on every screen, and the net is be
   it('the two labels are different words', () => {
     expect(ownerStrings['o10.overdue']).toBe('Overdue ₹')
     expect(ownerStrings['o10.overdueNet']).not.toBe(ownerStrings['o10.overdue'])
-    expect(managerStrings['m12.overdue']).toBe('Overdue ₹')
-    expect(managerStrings['m12.overdueNet']).not.toBe(managerStrings['m12.overdue'])
+    expect(word(deskWords, 'm12.overdue')).toBe('Overdue ₹')
+    expect(word(deskWords, 'm12.overdueNet')).toBeDefined()
+    expect(word(deskWords, 'm12.overdueNet')).not.toBe(word(deskWords, 'm12.overdue'))
   })
 })
