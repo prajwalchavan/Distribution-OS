@@ -2145,7 +2145,7 @@ describeDb('billing (DATABASE_URL)', () => {
       vehicleLocationId: van,
     })
     expect(short.status).toBe(400)
-    expect(short.body.message).toMatch(/insufficient sellable stock/)
+    expect(short.body.message).toMatch(/^Only \d+ pc of .+ can be sold from .+; \d+ pc short\.$/)
   })
 
   it('stores a brand-DMS bill verbatim, moves no stock and never imports it twice', async () => {
