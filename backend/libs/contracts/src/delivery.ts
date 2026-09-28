@@ -851,7 +851,9 @@ export const DepartTripOutput = TripItemOutput
 /**
  * Check-in: `tripMachine.next(state, 'return')` → `closing`. Stops still pending / started / arrived
  * become `failed` (`other`, "trip returned") and their orders go `return_undelivered`; the pieces stay
- * on the van until the settlement counts them back.
+ * on the van until the settlement counts them back. A LOADED trip that never left (`loading`, its load-out
+ * confirmed) is checked in the same way (QA DOS-354): its bills that were never counted out come off it
+ * and its draft sheets are cancelled first; 409 `trip_not_loaded` when nothing was loaded (cancel it).
  */
 export const ReturnTripInput = MutationBase.extend({
   id: IdSchema,
@@ -861,7 +863,11 @@ export const ReturnTripInput = MutationBase.extend({
 })
 export const ReturnTripOutput = TripItemOutput
 
-/** Only from `planned` / `loading`: a trip that has left cannot be cancelled, it returns and settles. Stops → `skipped`. */
+/**
+ * Only from `planned` / `loading` and only BEFORE the load-out: a trip that has left, or one the godown has
+ * counted out onto the vehicle (409 `trip_loaded`, QA DOS-354), is checked in instead. Stops → `skipped`, and
+ * the trip's draft load sheets are cancelled with it, so every bill is free for another trip.
+ */
 export const CancelTripInput = MutationBase.extend({
   id: IdSchema,
   reason: z.string().trim().min(1).max(200),
@@ -909,7 +915,9 @@ export const VanReturnsOutput = z.object({
  * THE GODOWN COUNTS ONE LOT OFF A VAN (QA DOS-244). The counted pieces leave the vehicle; as many as the
  * vehicle's checked-in trip still owes its came-back bills of that lot go to the DOCK (staged for their next
  * load sheet, `trip_checkin` rows), the rest go to the godown as free stock. One transaction; a replay answers
- * the first reply. 409 `van_short` when the vehicle holds fewer pieces than counted.
+ * the first reply. 409 `van_short` when the vehicle holds fewer pieces than counted; 409 `vehicle_on_trip`
+ * while a trip on the vehicle is loading or on the road and the count would put pieces on the rack or no
+ * trip of it has checked in (QA DOS-358).
  */
 export const UnloadVanInput = MutationBase.extend({
   /** Client-generated id of this count; the ledger rows it writes are referenced by it. */
@@ -1615,7 +1623,8 @@ export const deliveryContract = {
       .route({
         method: 'POST',
         path: '/delivery/trips/{id}/return',
-        summary: 'Check in: active → closing; open stops fail and their orders go back to packed',
+        summary:
+          'Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed',
       })
       .input(ReturnTripInput)
       .output(ReturnTripOutput),
@@ -1623,7 +1632,8 @@ export const deliveryContract = {
       .route({
         method: 'POST',
         path: '/delivery/trips/{id}/cancel',
-        summary: 'Cancel a trip that has not left (planned / loading)',
+        summary:
+          'Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead',
       })
       .input(CancelTripInput)
       .output(CancelTripOutput),

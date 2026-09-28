@@ -621,6 +621,10 @@ export const RecordPickLineInput = z.object({
  * per order line may not exceed the requested pieces (400), and a row the wave created may not take
  * more than its own `requestedQtyPcs` (400; a new `id` is a split row, which asks for nothing of its
  * own); a short line needs a `shortReason`; taking a later-expiry lot is a warning, never a refusal.
+ * Refused 409 (architect rulings of 2026-09-28): a batch already past its expiry (`batch_expired`, QA
+ * DOS-351), more of a batch than the line's own held pieces plus the free ones (`held_for_another_order`,
+ * naming the order that holds the rest, QA DOS-353), and any row of an order already packed
+ * (`order_packed`, QA DOS-361). The offline upload rejects the same picks with the same code and sentence.
  */
 export const RecordPickInput = MutationBase.extend({
   id: IdSchema,
@@ -720,7 +724,9 @@ export const LoadSheetVanStockInput = z.object({
  * Builds the sheet WITHOUT moving anything: every order must be `packed`, have a pack confirmation and
  * not be on a draft sheet (409 `already on load sheet`; a confirmed sheet holds nothing), its bill must not
  * still ride a trip that has not checked in (409 `bill_on_road`, `data.orderIds` / `data.tripIds`, QA
- * DOS-172), and `toLocationId` must be an active `vehicle` location. The orders are
+ * DOS-172), its pack must carry a live bill (409 `pack_not_billed`, QA DOS-355 — checked again at
+ * confirm, so no challan is issued for goods with no tax invoice), and `toLocationId` must be an active
+ * `vehicle` location. The orders are
  * kept in the order the caller supplies — "last stop first" is the app's job, because reading
  * `trip_stops` would make warehouse depend on delivery (coordination §4 item 3).
  */
