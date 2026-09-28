@@ -1,6 +1,6 @@
 import { ORPCError } from '@orpc/server'
 import { and, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
-import { paise, percentOf, uuidv7 } from '@dos/domain'
+import { businessDate, paise, percentOf, uuidv7 } from '@dos/domain'
 import {
   auditLog,
   DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE,
@@ -203,6 +203,8 @@ export async function fefoLots(
   cutoff: string,
 ): Promise<FefoCandidate[]> {
   const { tenantId } = currentTenant()
+  // QA DOS-351 (architect ruling 3): an expired batch is never offered, whatever the view still counts.
+  const today = businessDate().date
   const rows = await tx.execute(sql`
     select lot_id, expiry_date, available from sellable_stock
      where tenant_id = ${tenantId} and variant_id = ${variantId} and location_id = ${locationId}
@@ -213,7 +215,7 @@ export async function fefoLots(
       expiryDate: r.expiry_date,
       available: Number(r.available),
     }))
-    .filter((r) => r.available > 0)
+    .filter((r) => r.available > 0 && (r.expiryDate === null || r.expiryDate >= today))
 }
 
 // ---------------------------------------------------------------------------------------------------------------

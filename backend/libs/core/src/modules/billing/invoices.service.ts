@@ -88,6 +88,7 @@ import {
   pgConstraint,
   type LedgerEntryInput,
 } from '../inventory/index.js'
+import { istDateWord } from '../../platform/refusal-words.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
@@ -539,6 +540,22 @@ export class BillingService {
       tx,
       moved.map((l) => l.lotId).filter((id) => id !== null),
     )
+    /*
+     * QA DOS-351 (architect ruling 3, 2026-09-28): expired goods are never sold. The pack refuses an expired
+     * batch before it moves anything; this is the last word for every other road to a bill — a parked pack
+     * billed later (`issueParkedPack`), a van sale — so a pick recorded before the rule cannot become a bill.
+     * Judged against the bill's own date: the day the goods are sold.
+     */
+    for (const line of moved) {
+      const lot = line.lotId === null ? undefined : lots.get(line.lotId)
+      if (lot === undefined || lot.expiryDate === null || lot.expiryDate >= invoiceDate) continue
+      const item =
+        variants.get(byId.get(line.orderLineId)?.variantId ?? '')?.description ?? 'this item'
+      throw new ORPCError('CONFLICT', {
+        message: `${order.orderNo ?? 'This order'} cannot be billed: ${String(line.qtyPcs + line.freeQtyPcs)} pc of it are ${item}${lot.batchNo === '' ? '' : ` batch ${lot.batchNo}`}, which expired on ${istDateWord(lot.expiryDate)} ${lot.expiryDate.slice(0, 4)}. Expired goods are never billed or sent — set those pieces aside for the expiry bin.`,
+        data: { code: 'batch_expired', lotId: lot.id, expiryDate: lot.expiryDate },
+      })
+    }
 
     const invoiceId = input.invoiceId ?? uuidv7()
     const priced: PricedLine[] = []

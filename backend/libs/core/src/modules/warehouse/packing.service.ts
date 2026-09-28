@@ -23,10 +23,19 @@ import {
   dayWindow,
   FULFILMENT_READERS,
   isUniqueViolation,
+  loadLots,
+  loadVariantInfo,
   MAX_PICK_ROWS,
   pgConstraint,
   WAREHOUSE_DESK,
 } from './warehouse.internals.js'
+import {
+  assertPackWithinShare,
+  batchWords,
+  expiredBatch,
+  isExpired,
+  todayIst,
+} from './stock-guards.js'
 import { packLines, toPackConfirmation, type PackRow } from './warehouse.mappers.js'
 
 type ConfirmIn = z.infer<typeof ConfirmPackInput>
@@ -98,6 +107,7 @@ export class PackingService {
             message: `nothing of ${order.orderNo ?? order.id} was picked, so there is nothing to pack or bill; the desk cancels the order or it is picked again`,
             data: { code: 'nothing_picked' },
           })
+        await this.assertStockRules(tx, order, locationId, packs)
 
         // 1 + 2: the pieces leave, the holds close, the order line records what was taken.
         const billingLines: IssueForPackLine[] = []
@@ -348,6 +358,56 @@ export class PackingService {
         freeQtyPcs: Math.min(total - paidQtyPcs, line.freeQtyPcs),
       }
     })
+  }
+
+  /**
+   * THE PICK IS RE-JUDGED BEFORE ANYTHING MOVES (architect rulings 3 and 7 of 2026-09-28), so a pick recorded
+   * before those rules existed — or the holds of an order packed straight off the shelf — cannot become a bill:
+   *
+   *  - QA DOS-351: no piece of a batch whose expiry is before today (IST) is packed or billed. The refusal names
+   *    the order, the item, the batch and the date; the short-dated batch still only warns at pick.
+   *  - QA DOS-353: per batch, the pieces leaving the rack are at most what the godown holds for this order plus
+   *    what it holds for nobody (read under the balance rows' lock; `postPick` moves them in this transaction),
+   *    so an order confirmed first keeps the pieces it was promised. The refusal names the order holding them.
+   */
+  private async assertStockRules(
+    tx: Db,
+    order: { id: string; orderNo: string | null },
+    locationId: string,
+    packs: readonly LinePack[],
+  ): Promise<void> {
+    const lots = await loadLots(
+      tx,
+      packs.flatMap((p) => p.picks.map((pick) => pick.lotId)),
+    )
+    const items = await loadVariantInfo(
+      tx,
+      [...lots.values()].map((l) => l.variantId),
+    )
+    const itemOf = (variantId: string): string | undefined => items.get(variantId)?.variantName
+    const today = todayIst()
+    for (const pack of packs)
+      for (const pick of pack.picks) {
+        const lot = lots.get(pick.lotId)
+        if (pick.qtyPcs <= 0 || lot === undefined || lot.expiryDate === null) continue
+        if (!isExpired(lot, today)) continue
+        throw expiredBatch({
+          what: batchWords(lot, itemOf(lot.variantId)),
+          expiryDate: lot.expiryDate,
+          pcs: pick.qtyPcs,
+          orderNo: order.orderNo,
+          atPack: true,
+        })
+      }
+    await assertPackWithinShare(
+      tx,
+      { inventory: this.inventory, orders: this.orders },
+      order,
+      locationId,
+      packs.map((p) => ({ orderLineId: p.line.orderLineId, picks: p.picks })),
+      lots,
+      itemOf,
+    )
   }
 
   /**

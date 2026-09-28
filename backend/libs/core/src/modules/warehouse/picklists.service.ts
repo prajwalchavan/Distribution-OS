@@ -47,9 +47,19 @@ import {
   isForeignKeyViolation,
   isUniqueViolation,
   loadLots,
+  loadVariantInfo,
   writeAudit,
   emitWarehouseEvent,
 } from './warehouse.internals.js'
+import {
+  assertPicksWithinShare,
+  batchWords,
+  expiredBatch,
+  isExpired,
+  orderAlreadyPacked,
+  packedOrders,
+  todayIst,
+} from './stock-guards.js'
 import {
   picklistDetail,
   picklistTotals,
@@ -289,8 +299,17 @@ export class PicklistsService implements OnModuleInit {
           limit: MAX_PICK_ROWS,
         })
         const heldByLine = new Map<string, { lotId: string; qtyPcs: number }[]>()
+        // QA DOS-351: a hold on a batch that has expired since it was taken is never suggested — the pick
+        // would refuse it. The line is suggested from in-date stock instead, as if it held nothing there.
+        const heldLots = await loadLots(
+          tx,
+          held.map((h) => h.lotId).filter((id): id is string => id !== null),
+        )
+        const today = todayIst()
         for (const hold of [...held].reverse()) {
           if (hold.lotId === null) continue
+          const heldLot = heldLots.get(hold.lotId)
+          if (heldLot !== undefined && isExpired(heldLot, today)) continue
           const group = heldByLine.get(hold.orderLineId) ?? []
           group.push({ lotId: hold.lotId, qtyPcs: hold.qtyPcs })
           heldByLine.set(hold.orderLineId, group)
@@ -707,6 +726,10 @@ export class PicklistsService implements OnModuleInit {
    *  - a row the wave created (requested > 0) may not take more than its own ask (400); extra pieces from
    *    another batch go on a split row (DOS-041);
    *  - a later-expiry lot is recorded with `fefo_override` and a WARNING, never a refusal;
+   *  - but an EXPIRED lot (expiry before today, IST) is refused, `batch_expired` (QA DOS-351); a line takes
+   *    from a batch at most its own held pieces plus the free ones, `held_for_another_order` naming the
+   *    order that holds the rest (QA DOS-353); and a row of an order already packed is never edited again,
+   *    `order_packed` (QA DOS-361) — `stock-guards.ts`, the same rules the pack re-checks;
    *  - a fully picked line is complete whichever rows carried the pieces; a short line is complete only
    *    once it has a reason AND every lot row the wave asked it on has been recorded (picked or shorted),
    *    so a short on one lot never explains a lot row nobody walked to (DOS-042). Until then the sheet
@@ -741,6 +764,18 @@ export class PicklistsService implements OnModuleInit {
       tx,
       input.map((l) => l.lotId),
     )
+    // The words the stock rules refuse in (QA DOS-351, 353, 361): the item names of these batches, the
+    // orders on this sheet that are already packed, and the day a batch is judged against.
+    const items = await loadVariantInfo(
+      tx,
+      [...lots.values()].map((l) => l.variantId),
+    )
+    const itemOf = (variantId: string): string | undefined => items.get(variantId)?.variantName
+    const packed = await packedOrders(
+      tx,
+      existing.map((r) => r.orderId),
+    )
+    const today = todayIst()
     const now = new Date()
     const warnings: PickWarning[] = []
     const inserts: (typeof pickLines.$inferInsert)[] = []
@@ -770,11 +805,27 @@ export class PicklistsService implements OnModuleInit {
           message: `line ${pick.orderLineId} was cancelled; put the pieces back`,
           data: { code: 'line_put_back' },
         })
+      // QA DOS-361: the order was packed off this wave already; its bill and its stock movement were made
+      // from these rows, so they are never edited again (online a 409, offline an `order_packed` rejection).
+      if (packed.has(template.orderId)) {
+        const [order] = await this.orders.fulfilmentOrders(tx, [template.orderId])
+        throw orderAlreadyPacked(order?.orderNo ?? 'This order')
+      }
       const lot = lots.get(pick.lotId)
       if (!lot) throw new ORPCError('NOT_FOUND', { message: `lot ${pick.lotId} not found` })
       if (lot.variantId !== template.variantId)
         throw new ORPCError('BAD_REQUEST', {
           message: `lot ${pick.lotId} is a different product from line ${pick.orderLineId}`,
+        })
+      // QA DOS-351 (architect ruling 3): an expired batch is refused whatever the sheet suggested and whether
+      // or not it overrides the suggestion. A short-dated one still only warns (`short_shelf_life` below).
+      if (pick.pickedQtyPcs > 0 && isExpired(lot, today) && lot.expiryDate !== null)
+        throw expiredBatch({
+          what: batchWords(lot, itemOf(lot.variantId)),
+          expiryDate: lot.expiryDate,
+          pcs: pick.pickedQtyPcs,
+          orderNo: null,
+          atPack: false,
         })
       // DOS-041: a row the wave created asks for its line's share on ONE batch, so it may not take more
       // than that share even while the line as a whole is still under — the pack would then take the
@@ -844,6 +895,18 @@ export class PicklistsService implements OnModuleInit {
     }
 
     this.assertNotOverPicked(working, sheet)
+    // QA DOS-353 (architect ruling 7): a line takes from a batch only what is held for it plus what is held
+    // for nobody; the pieces promised to another confirmed order stay on the rack for that order.
+    await assertPicksWithinShare(
+      tx,
+      { inventory: this.inventory, orders: this.orders },
+      sheet,
+      existing,
+      [...working.values()],
+      lots,
+      itemOf,
+      packed,
+    )
     if (inserts.length > 0) {
       try {
         await tx.insert(pickLines).values(inserts)
