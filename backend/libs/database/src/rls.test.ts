@@ -3963,14 +3963,12 @@ describeDb('row level security and ledger guarantees', () => {
 
     // a distributor of its own, so tenant A keeps exactly the places the other guarantees read
     const tenantR5 = uuidv7()
-    await db
-      .insert(tenants)
-      .values({
-        id: tenantR5,
-        slug: `r5-${run}`,
-        legalName: `Fixed places ${run}`,
-        stateCode: '27',
-      })
+    await db.insert(tenants).values({
+      id: tenantR5,
+      slug: `r5-${run}`,
+      legalName: `Fixed places ${run}`,
+      stateCode: '27',
+    })
     const godownR5 = uuidv7()
     const secondR5 = uuidv7()
     const offBin = uuidv7()
