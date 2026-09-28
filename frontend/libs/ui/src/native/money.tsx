@@ -508,12 +508,16 @@ export function QtyStepper({
   schemeLabel,
   size,
   onOpenPieces,
+  layout = 'row',
   testID,
 }: QtyStepperProps): React.JSX.Element {
   const theme = useTheme()
   const touch = size ?? theme.touch
   const height = sizeTokens[touch]
   const controlGap = touch === 'floor' ? gap.warehouse : space[3]
+  /* `stacked`: − and + share the width at the adjacent-target gap — see the web half. */
+  const stacked = layout === 'stacked'
+  const pairGap = touch === 'floor' ? gap.warehouse : gap.adjacent
   const state = qtyState({
     pieces,
     availablePieces: availablePieces ?? null,
@@ -557,7 +561,10 @@ export function QtyStepper({
         onChange(stepByCase(pieces, direction, caseSize))
       }}
       style={{
-        width: height,
+        width: stacked ? undefined : height,
+        /* Stacked, the two share the width and never push past it — see the web half. */
+        minWidth: stacked ? 0 : height,
+        flex: stacked ? 1 : undefined,
         height,
         alignItems: 'center',
         justifyContent: 'center',
@@ -584,36 +591,58 @@ export function QtyStepper({
     </Pressable>
   )
 
+  const piecesButton = onOpenPieces ? (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onOpenPieces}
+      style={{
+        height,
+        justifyContent: 'center',
+        alignItems: stacked ? 'center' : undefined,
+        marginTop: stacked ? pairGap : undefined,
+        paddingHorizontal: space[3],
+        borderRadius: radius.sm,
+        borderWidth: 1,
+        borderColor: theme.colors.border.strong,
+        backgroundColor: theme.colors.bg.surface,
+      }}
+    >
+      <Txt field="bodyStrong" desk="label">
+        {theme.t('qty.pieces')}
+      </Txt>
+    </Pressable>
+  ) : null
+
   return (
     <View testID={testID}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: controlGap }}>
-        {stepper(-1, '−', theme.t('qty.decrease'), inactive || pieces <= 0)}
-        <Txt field="moneyM" desk="cellMoney" numeric style={{ minWidth: 72, textAlign: 'center' }}>
-          {`${q.cases} ${theme.t('qty.case')}`}
-        </Txt>
-        {stepper(1, '+', theme.t('qty.increase'), inactive)}
-        {onOpenPieces ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onOpenPieces}
-            style={{
-              height,
-              justifyContent: 'center',
-              paddingHorizontal: space[3],
-              borderRadius: radius.sm,
-              borderWidth: 1,
-              borderColor: theme.colors.border.strong,
-              backgroundColor: theme.colors.bg.surface,
-            }}
+      {stacked ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: pairGap }}>
+          {stepper(-1, '−', theme.t('qty.decrease'), inactive || pieces <= 0)}
+          {stepper(1, '+', theme.t('qty.increase'), inactive)}
+        </View>
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: controlGap }}>
+          {stepper(-1, '−', theme.t('qty.decrease'), inactive || pieces <= 0)}
+          <Txt
+            field="moneyM"
+            desk="cellMoney"
+            numeric
+            style={{ minWidth: 72, textAlign: 'center' }}
           >
-            <Txt field="bodyStrong" desk="label">
-              {theme.t('qty.pieces')}
-            </Txt>
-          </Pressable>
-        ) : null}
-      </View>
-      {/* The case line is a FIGURE: moneyM, never label size. */}
-      <Txt field="moneyM" desk="cellMoney" numeric style={{ marginTop: space[1] }}>
+            {`${q.cases} ${theme.t('qty.case')}`}
+          </Txt>
+          {stepper(1, '+', theme.t('qty.increase'), inactive)}
+          {piecesButton}
+        </View>
+      )}
+      {/* The case line is a FIGURE: moneyM, never label size. Stacked, it is the value. */}
+      <Txt
+        field="moneyM"
+        desk="cellMoney"
+        numeric
+        style={{ marginTop: space[1] }}
+        {...(stacked ? { align: 'center' as const } : {})}
+      >
         {state === 'atZero'
           ? theme.t('qty.notOrdered')
           : caseLine(pieces, caseSize, theme.t) +
@@ -648,6 +677,7 @@ export function QtyStepper({
           </Txt>
         </View>
       ) : null}
+      {stacked ? piecesButton : null}
 
       {/* DOS-085: "one case less" at zero whole cases asks before it wipes the loose pieces. */}
       <Dialog

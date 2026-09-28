@@ -450,13 +450,22 @@ export function QtyStepper({
   schemeLabel,
   size,
   onOpenPieces,
+  layout = 'row',
   testID,
 }: QtyStepperProps): React.JSX.Element {
   const theme = useTheme()
   const touch = size ?? theme.touch
   const height = sizeTokens[touch]
   const controlGap = touch === 'floor' ? space[6] : space[3]
+  /*
+   * `stacked` puts − and + side by side with nothing between them but the gap UX-00 §5.2 asks of
+   * ADJACENT targets (19 dp, 25 on a warehouse screen): in a tile two-across on a 360 px phone that
+   * is the only arrangement in which both keep the 69 dp floor on BOTH axes (69 + 19 + 69 = 157).
+   */
+  const stacked = layout === 'stacked'
+  const pairGap = touch === 'floor' ? gap.warehouse : gap.adjacent
   const valueStyle = useTypeStyle('moneyM', 'cellMoney')
+  const pieceLabelStyle = useTypeStyle('bodyStrong', 'label')
   const state = qtyState({
     pieces,
     availablePieces: availablePieces ?? null,
@@ -500,7 +509,14 @@ export function QtyStepper({
         onChange(stepByCase(pieces, direction, caseSize))
       }}
       style={{
-        width: height,
+        width: stacked ? undefined : height,
+        /*
+         * Stacked, the two share the width and never push past it: 69 + 19 + 69 = 157 fits a tile
+         * from a 375 px phone up; on a 360 px phone each is 67.75 px wide (the height stays 69)
+         * rather than overflowing into the gap that keeps two tiles' buttons apart.
+         */
+        minWidth: stacked ? 0 : height,
+        flex: stacked ? '1 1 0' : undefined,
         height,
         borderRadius: radius.sm,
         cursor: off ? 'not-allowed' : 'pointer',
@@ -517,48 +533,72 @@ export function QtyStepper({
     </button>
   )
 
+  const piecesButton = onOpenPieces ? (
+    <button
+      type="button"
+      onClick={onOpenPieces}
+      style={{
+        height,
+        minHeight: height,
+        width: stacked ? '100%' : undefined,
+        marginTop: stacked ? pairGap : undefined,
+        padding: `0 ${space[3]}px`,
+        borderRadius: radius.sm,
+        border: `1px solid ${theme.colors.border.strong}`,
+        background: theme.colors.bg.surface,
+        color: theme.colors.text.primary,
+        fontFamily: 'inherit',
+        cursor: 'pointer',
+        ...(stacked ? pieceLabelStyle : {}),
+      }}
+    >
+      {theme.t('qty.pieces')}
+    </button>
+  ) : null
+
   return (
     <div data-testid={testID}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: controlGap }}>
-        {stepperButton(-1, '−', theme.t('qty.decrease'), inactive || pieces <= 0)}
-        <span
-          className="dos-num"
-          aria-live="polite"
-          style={{ minWidth: 64, textAlign: 'center', ...valueStyle }}
-        >
-          {q.cases}
-          <span style={{ color: theme.colors.text.secondary }}> {theme.t('qty.case')}</span>
-        </span>
-        {stepperButton(1, '+', theme.t('qty.increase'), inactive)}
-        {onOpenPieces ? (
-          <button
-            type="button"
-            onClick={onOpenPieces}
-            style={{
-              height,
-              minHeight: height,
-              padding: `0 ${space[3]}px`,
-              borderRadius: radius.sm,
-              border: `1px solid ${theme.colors.border.strong}`,
-              background: theme.colors.bg.surface,
-              color: theme.colors.text.primary,
-              fontFamily: 'inherit',
-              cursor: 'pointer',
-            }}
+      {stacked ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: pairGap }}>
+          {stepperButton(-1, '−', theme.t('qty.decrease'), inactive || pieces <= 0)}
+          {stepperButton(1, '+', theme.t('qty.increase'), inactive)}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: controlGap }}>
+          {stepperButton(-1, '−', theme.t('qty.decrease'), inactive || pieces <= 0)}
+          <span
+            className="dos-num"
+            aria-live="polite"
+            style={{ minWidth: 64, textAlign: 'center', ...valueStyle }}
           >
-            {theme.t('qty.pieces')}
-          </button>
-        ) : null}
+            {q.cases}
+            <span style={{ color: theme.colors.text.secondary }}> {theme.t('qty.case')}</span>
+          </span>
+          {stepperButton(1, '+', theme.t('qty.increase'), inactive)}
+          {piecesButton}
+        </div>
+      )}
+      {/*
+       * The case line is a FIGURE: moneyM, never label size (UX-00 4.2). Stacked, it IS the value,
+       * so it takes over the value's `aria-live` too.
+       */}
+      <div aria-live={stacked ? 'polite' : undefined}>
+        <Txt
+          field="moneyM"
+          desk="cellMoney"
+          as="div"
+          style={{ marginTop: space[1] }}
+          numeric
+          {...(stacked ? { align: 'center' as const } : {})}
+        >
+          {state === 'atZero'
+            ? theme.t('qty.notOrdered')
+            : caseLine(pieces, caseSize, theme.t) +
+              (availablePieces === null || availablePieces === undefined
+                ? ''
+                : ` · ${availableLine(availablePieces, caseSize, theme.t)}`)}
+        </Txt>
       </div>
-      {/* The case line is a FIGURE: moneyM, never label size (UX-00 4.2). */}
-      <Txt field="moneyM" desk="cellMoney" as="div" style={{ marginTop: space[1] }} numeric>
-        {state === 'atZero'
-          ? theme.t('qty.notOrdered')
-          : caseLine(pieces, caseSize, theme.t) +
-            (availablePieces === null || availablePieces === undefined
-              ? ''
-              : ` · ${availableLine(availablePieces, caseSize, theme.t)}`)}
-      </Txt>
       {state === 'overAvailable' && availablePieces !== null && availablePieces !== undefined ? (
         <Txt field="moneyM" desk="cellMoney" as="div" color={theme.colors.status.ochre.fg} numeric>
           {theme.t('qty.onlyAvailable', { cases: splitQty(availablePieces, caseSize).cases })}
@@ -587,6 +627,7 @@ export function QtyStepper({
           {schemeLabel}
         </span>
       ) : null}
+      {stacked ? piecesButton : null}
 
       {/* DOS-085: "one case less" at zero whole cases asks before it wipes the loose pieces. */}
       <Dialog

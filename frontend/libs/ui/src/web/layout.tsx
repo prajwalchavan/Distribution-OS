@@ -11,6 +11,8 @@
  */
 import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
+import { BottomBarContext } from '../bottom-bar.js'
+import { COMFORTABLE, ControlScaleContext } from '../control-scale.js'
 import { getRouterNavigate, type Navigate } from '../router-bridge.js'
 import { useTheme } from '../theme.js'
 import { gap, layout, radius as radii, space, type SemanticColors } from '../tokens.js'
@@ -512,12 +514,14 @@ export function Screen(props: ScreenProps): React.JSX.Element {
   const {
     title,
     context,
+    subtitle,
     actions,
     chips,
     scroll = true,
     bottomBar,
     readingWidth = true,
     pad,
+    centered = false,
     children,
     testID,
   } = props
@@ -525,6 +529,58 @@ export function Screen(props: ScreenProps): React.JSX.Element {
   const padding = px(pad) ?? (desk ? layout.deskPadding : layout.fieldGutter)
   const hasHeader = title !== undefined || context !== undefined || actions !== undefined
   const barGap = touch === 'floor' ? gap.warehouse : space[3]
+  /*
+   * A bar whose content has nothing to show (an empty `<CartBar>`) says so through this, and the
+   * strip — its padding and its hairline — is hidden rather than left as an empty white band.
+   */
+  const [barHidden, setBarHidden] = useState(false)
+
+  const bar =
+    bottomBar === undefined || bottomBar === null || bottomBar === false ? null : (
+      <div
+        className="dos-no-print"
+        style={{
+          display: barHidden ? 'none' : undefined,
+          background: colors.bg.surface,
+          borderTop: `1px solid ${colors.border.hairline}`,
+          paddingTop: space[3],
+          /*
+           * On a warehouse phone the bar's own buttons and the shell's tab bar are adjacent
+           * targets, and UX-00 §5.2 puts 25 dp between them there. Measured before this: the gate
+           * count's "Scan" sat 13 px above "Inbound". Only the 76 dp floor moves; every other
+           * app keeps the 12 px it was measured with.
+           */
+          paddingBottom: `calc(${String(barGap)}px + var(--dos-inset-bottom, env(safe-area-inset-bottom, 0px)))`,
+          paddingLeft: padding,
+          paddingRight: padding,
+        }}
+      >
+        <div
+          style={{
+            maxWidth: readingWidth ? layout.deskMaxWidth : undefined,
+            marginLeft: readingWidth ? 'auto' : undefined,
+            marginRight: readingWidth ? 'auto' : undefined,
+          }}
+        >
+          <BottomBarContext.Provider value={setBarHidden}>{bottomBar}</BottomBarContext.Provider>
+        </div>
+      </div>
+    )
+
+  if (centered) {
+    return (
+      <CenteredScreen
+        title={title}
+        context={context}
+        subtitle={subtitle}
+        padding={padding}
+        bar={bar}
+        testID={testID}
+      >
+        {children}
+      </CenteredScreen>
+    )
+  }
 
   const body = (
     <div
@@ -593,6 +649,11 @@ export function Screen(props: ScreenProps): React.JSX.Element {
                   {title}
                 </Txt>
               )}
+              {subtitle === undefined ? null : (
+                <Txt field="label" desk="meta" color={colors.text.secondary} as="div">
+                  {subtitle}
+                </Txt>
+              )}
             </div>
             {actions === undefined ? null : (
               /*
@@ -637,35 +698,114 @@ export function Screen(props: ScreenProps): React.JSX.Element {
         </div>
       )}
 
-      {bottomBar === undefined ? null : (
+      {bar}
+    </section>
+  )
+}
+
+/**
+ * `<Screen centered>` — the four screens that stand before the app (founder, 2026-09-28: the sign-in
+ * page "placed in the middle, not boxy").
+ *
+ * The window is the frame: the section is exactly the window's height and scrolls itself, because
+ * Expo's web root sets `body { overflow: hidden }` and a column taller than the window would
+ * otherwise be clipped with no way to reach the button — which is what a phone keyboard does to it.
+ * The column is centred with AUTO MARGINS, not `justify-content: center`: auto margins centre while
+ * there is room and fall to zero when there is not, so an overflowing form scrolls from its top
+ * instead of losing its heading above the fold. There is no header band and no hairline; the
+ * heading is part of the column, centred, and a field or button in it is at least
+ * `layout.formControlHeight` tall with `radius.lg` corners.
+ */
+function CenteredScreen({
+  title,
+  context,
+  subtitle,
+  padding,
+  bar,
+  testID,
+  children,
+}: {
+  title: string | undefined
+  context: string | undefined
+  subtitle: string | undefined
+  padding: number
+  bar: React.ReactNode
+  testID: string | undefined
+  children: React.ReactNode
+}): React.JSX.Element {
+  const { colors } = useTheme()
+  const hasHeading = title !== undefined || context !== undefined || subtitle !== undefined
+  return (
+    <section
+      data-testid={testID}
+      data-centered="true"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100dvh',
+        width: '100%',
+        background: colors.bg.ground,
+      }}
+    >
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
         <div
-          className="dos-no-print"
           style={{
-            background: colors.bg.surface,
-            borderTop: `1px solid ${colors.border.hairline}`,
-            paddingTop: space[3],
-            /*
-             * On a warehouse phone the bar's own buttons and the shell's tab bar are adjacent
-             * targets, and UX-00 §5.2 puts 25 dp between them there. Measured before this: the gate
-             * count's "Scan" sat 13 px above "Inbound". Only the 76 dp floor moves; every other
-             * app keeps the 12 px it was measured with.
-             */
-            paddingBottom: `calc(${String(barGap)}px + var(--dos-inset-bottom, env(safe-area-inset-bottom, 0px)))`,
+            marginTop: 'auto',
+            marginBottom: 'auto',
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            width: '100%',
+            maxWidth: layout.formWidth + padding * 2,
+            boxSizing: 'border-box',
+            paddingTop: `calc(${String(space[8])}px + var(--dos-inset-top, env(safe-area-inset-top, 0px)))`,
+            paddingBottom: `calc(${String(space[8])}px + var(--dos-inset-bottom, env(safe-area-inset-bottom, 0px)))`,
             paddingLeft: padding,
             paddingRight: padding,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: space[8],
           }}
         >
-          <div
-            style={{
-              maxWidth: readingWidth ? layout.deskMaxWidth : undefined,
-              marginLeft: readingWidth ? 'auto' : undefined,
-              marginRight: readingWidth ? 'auto' : undefined,
-            }}
-          >
-            {bottomBar}
-          </div>
+          {hasHeading ? (
+            <header style={{ display: 'flex', flexDirection: 'column', gap: space[2] }}>
+              {context === undefined ? null : (
+                <Txt
+                  field="label"
+                  desk="label"
+                  color={colors.text.secondary}
+                  as="div"
+                  align="center"
+                >
+                  {context}
+                </Txt>
+              )}
+              {title === undefined ? null : (
+                <Txt field="hero" desk="kpi" as="h1" align="center">
+                  {title}
+                </Txt>
+              )}
+              {subtitle === undefined ? null : (
+                <Txt field="body" desk="body" color={colors.text.secondary} as="p" align="center">
+                  {subtitle}
+                </Txt>
+              )}
+            </header>
+          ) : null}
+          <ControlScaleContext.Provider value={COMFORTABLE}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>{children}</div>
+          </ControlScaleContext.Provider>
         </div>
-      )}
+      </div>
+      {bar}
     </section>
   )
 }

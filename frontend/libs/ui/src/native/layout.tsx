@@ -5,10 +5,11 @@
  * identically on both. What differs is spent where a phone needs it: `FlatList` windowing rather than
  * a DOM spacer, `SafeAreaView` insets from the first frame, and a press feedback the OS recognises.
  */
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import {
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Pressable as RNPressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,8 @@ import {
 } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { BottomBarContext } from '../bottom-bar.js'
+import { COMFORTABLE, ControlScaleContext } from '../control-scale.js'
 import { getRouterNavigate } from '../router-bridge.js'
 import { useTheme } from '../theme.js'
 import { gap, layout, radius as radii, space, type SemanticColors } from '../tokens.js'
@@ -387,18 +390,55 @@ export function Screen(props: ScreenProps): React.JSX.Element {
   const {
     title,
     context,
+    subtitle,
     actions,
     chips,
     scroll = true,
     bottomBar,
     readingWidth = true,
     pad,
+    centered = false,
     children,
     testID,
   } = props
   const desk = density === 'desk'
   const padding = px(pad) ?? (desk ? layout.deskPadding : layout.fieldGutter)
   const hasHeader = title !== undefined || context !== undefined || actions !== undefined
+  /* An empty `<CartBar>` hides the strip itself — see `../bottom-bar.ts` and the web half. */
+  const [barHidden, setBarHidden] = useState(false)
+
+  const bar =
+    bottomBar === undefined || bottomBar === null || bottomBar === false ? null : (
+      <View
+        style={{
+          display: barHidden ? 'none' : 'flex',
+          backgroundColor: colors.bg.surface,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: colors.border.hairline,
+          paddingHorizontal: padding,
+          paddingTop: space[3],
+          /* UX-00 §5.2, warehouse: 25 dp between the bar's buttons and the shell's tab bar. */
+          paddingBottom: insets.bottom + (touch === 'floor' ? gap.warehouse : space[3]),
+        }}
+      >
+        <BottomBarContext.Provider value={setBarHidden}>{bottomBar}</BottomBarContext.Provider>
+      </View>
+    )
+
+  if (centered) {
+    return (
+      <CenteredScreen
+        title={title}
+        context={context}
+        subtitle={subtitle}
+        padding={padding}
+        bar={bar}
+        testID={testID}
+      >
+        {children}
+      </CenteredScreen>
+    )
+  }
 
   const body = (
     <View
@@ -436,6 +476,11 @@ export function Screen(props: ScreenProps): React.JSX.Element {
               {title}
             </Txt>
           )}
+          {subtitle === undefined ? null : (
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {subtitle}
+            </Txt>
+          )}
           {chips === undefined ? null : <View style={styles.chips}>{chips}</View>}
           {actions === undefined ? null : <View style={styles.actions}>{actions}</View>}
         </View>
@@ -451,21 +496,87 @@ export function Screen(props: ScreenProps): React.JSX.Element {
         <View style={styles.grow}>{body}</View>
       )}
 
-      {bottomBar === undefined ? null : (
-        <View
-          style={{
-            backgroundColor: colors.bg.surface,
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: colors.border.hairline,
+      {bar}
+    </View>
+  )
+}
+
+/**
+ * `<Screen centered>` for a phone — the same four screens and the same rules as the web half, whose
+ * header carries the whole argument. Two things are the phone's own: the insets come from
+ * `react-native-safe-area-context` (never a hard-coded top), and the column sits in a
+ * `KeyboardAvoidingView` + `ScrollView` whose content grows to the window and centres, so an open
+ * keyboard shrinks the space and the form scrolls instead of hiding the Sign in button under it
+ * ("padding" on both platforms, like the sheet of DOS-159).
+ */
+function CenteredScreen({
+  title,
+  context,
+  subtitle,
+  padding,
+  bar,
+  testID,
+  children,
+}: {
+  title: string | undefined
+  context: string | undefined
+  subtitle: string | undefined
+  padding: number
+  bar: ReactNode
+  testID: string | undefined
+  children: ReactNode
+}): React.JSX.Element {
+  const { colors } = useTheme()
+  const insets = useSafeAreaInsets()
+  const hasHeading = title !== undefined || context !== undefined || subtitle !== undefined
+  return (
+    <View testID={testID} style={[styles.grow, { backgroundColor: colors.bg.ground }]}>
+      <KeyboardAvoidingView behavior="padding" style={styles.grow}>
+        <ScrollView
+          style={styles.grow}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingTop: insets.top + space[8],
+            paddingBottom: insets.bottom + space[8],
             paddingHorizontal: padding,
-            paddingTop: space[3],
-            /* UX-00 §5.2, warehouse: 25 dp between the bar's buttons and the shell's tab bar. */
-            paddingBottom: insets.bottom + (touch === 'floor' ? gap.warehouse : space[3]),
           }}
         >
-          {bottomBar}
-        </View>
-      )}
+          <View
+            style={{
+              width: '100%',
+              maxWidth: layout.formWidth,
+              alignSelf: 'center',
+              gap: space[8],
+            }}
+          >
+            {hasHeading ? (
+              <View style={{ gap: space[2] }}>
+                {context === undefined ? null : (
+                  <Txt field="label" desk="label" color={colors.text.secondary} align="center">
+                    {context}
+                  </Txt>
+                )}
+                {title === undefined ? null : (
+                  <Txt field="hero" desk="kpi" as="h1" align="center">
+                    {title}
+                  </Txt>
+                )}
+                {subtitle === undefined ? null : (
+                  <Txt field="body" desk="body" color={colors.text.secondary} align="center">
+                    {subtitle}
+                  </Txt>
+                )}
+              </View>
+            ) : null}
+            <ControlScaleContext.Provider value={COMFORTABLE}>
+              <View>{children}</View>
+            </ControlScaleContext.Provider>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      {bar}
     </View>
   )
 }

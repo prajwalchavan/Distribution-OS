@@ -3,6 +3,7 @@
  */
 import { useId, useState } from 'react'
 
+import { scaledHeight, useControlScale } from '../control-scale.js'
 import { useStrings, useTheme } from '../theme.js'
 import { gap, radius, size as sizeTokens, space } from '../tokens.js'
 import type {
@@ -34,7 +35,9 @@ export function Button({
   testID,
 }: ButtonProps): React.JSX.Element {
   const theme = useTheme()
-  const height = sizeTokens[size ?? theme.touch]
+  // `<Screen centered>` lifts a button to the comfortable form height; never below the app's floor.
+  const scale = useControlScale()
+  const height = scaledHeight(sizeTokens[size ?? theme.touch], scale)
   const isDesk = (size ?? theme.touch) === 'desk'
   const labelStyle = useTypeStyle('bodyStrong', 'label')
   const shown = successLabel ?? label
@@ -54,7 +57,7 @@ export function Button({
           height,
           minHeight: height,
           width: (fullWidth ?? !isDesk) ? '100%' : undefined,
-          borderRadius: radius.md,
+          borderRadius: scale?.radius ?? radius.md,
           ...labelStyle,
         }}
       >
@@ -94,7 +97,8 @@ export function TextInput({
   const theme = useTheme()
   const t = useStrings()
   const id = useId()
-  const height = sizeTokens[size ?? theme.touch]
+  const scale = useControlScale()
+  const height = scaledHeight(sizeTokens[size ?? theme.touch], scale)
   const resolved = error ? 'error' : (state ?? 'default')
   const bodyStyle = useTypeStyle('body', 'body')
   const labelStyle = useTypeStyle('bodyStrong', 'label')
@@ -132,6 +136,7 @@ export function TextInput({
         height,
         minHeight: height,
         ...bodyStyle,
+        ...(scale === null ? {} : { borderRadius: scale.radius, paddingLeft: space[4] }),
         ...(secure ? { paddingRight: REVEAL_WIDTH } : {}),
       }}
     />
@@ -159,7 +164,12 @@ export function TextInput({
             onClick={() => {
               setRevealed((now) => !now)
             }}
-            style={{ height, width: REVEAL_WIDTH, ...labelStyle }}
+            style={{
+              height,
+              width: REVEAL_WIDTH,
+              ...labelStyle,
+              ...(scale === null ? {} : { borderRadius: scale.radius }),
+            }}
           >
             {t(revealed ? 'input.hide' : 'input.show')}
           </button>
