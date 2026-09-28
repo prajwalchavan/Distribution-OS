@@ -99,6 +99,19 @@ describe('all-in-one runtime', () => {
     expect(anonymous.status).toBe(401)
   })
 
+  it('hands a signed file link with no service prefix to a mounted service (DOS-291)', async () => {
+    // `OBJECT_STORAGE_PUBLIC_URL` makes the local driver's links absolute, so they arrive as a bare
+    // `/storage/…`. The storage controller must be the one to answer — here it refuses a bad
+    // signature — rather than the front router's "no service is mounted".
+    const bare = await get(port, '/storage/tenant/x/logo/y/z.png?expires=9999999999&signature=abc')
+    expect(bare.status).toBe(403)
+    expect(bare.body).toContain('invalid or expired storage link')
+    // ...and only that path: a neighbour of the name is still nobody's.
+    const neighbour = await get(port, '/storagex/tenant/x')
+    expect(neighbour.status).toBe(404)
+    expect(neighbour.body).toContain('no service is mounted')
+  })
+
   it('stays inside the memory budget a 2 GB VM can carry (docs/26 §7)', () => {
     // Eight processes cost ~1.2 GB; the point of this mode is that one costs a fraction of that.
     // Measured 2026-09-06: 377 MB from `dist/` on Node 24, 420 MB under the `@swc-node` dev
