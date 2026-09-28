@@ -385,17 +385,15 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     await db
       .insert(priceLists)
       .values({ id: priceListId, tenantId, name: `Default ${run}`, isDefault: true, active: true })
-    await db
-      .insert(priceListItems)
-      .values(
-        variants.map(([variantId]) => ({
-          id: uuidv7(),
-          tenantId,
-          priceListId,
-          variantId,
-          ratePaise: 800,
-        })),
-      )
+    await db.insert(priceListItems).values(
+      variants.map(([variantId]) => ({
+        id: uuidv7(),
+        tenantId,
+        priceListId,
+        variantId,
+        ratePaise: 800,
+      })),
+    )
 
     const tenantLocations = await db
       .select()
