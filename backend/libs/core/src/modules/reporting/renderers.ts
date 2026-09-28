@@ -75,7 +75,29 @@ function csvColumnsOf(
   const keys: string[] = []
   for (const row of rows)
     for (const key of Object.keys(row)) if (!keys.includes(key)) keys.push(key)
-  return keys.map((key) => ({ header: key, key }))
+  return keys.map((key) => ({ header: key, key, type: columnType(rows, key) }))
+}
+
+const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/
+
+/**
+ * QA DOS-292: `renderCsv` guards every text cell that a spreadsheet would run as a formula and leaves
+ * numbers alone, by the COLUMN's type. A register column is a number column when every value it
+ * carries is a number (a bigint the driver handed over as its digits included), so a negative amount
+ * stays a number; a column with any text in it — a shop name, a note — is text throughout.
+ */
+function columnType(rows: readonly Record<string, unknown>[], key: string): 'number' | 'text' {
+  let seen = false
+  for (const row of rows) {
+    const value = row[key]
+    if (value === null || value === undefined) continue
+    const numeric =
+      (typeof value === 'number' && Number.isFinite(value)) ||
+      (typeof value === 'string' && PLAIN_NUMBER.test(value))
+    if (!numeric) return 'text'
+    seen = true
+  }
+  return seen ? 'number' : 'text'
 }
 
 async function render(

@@ -78,23 +78,24 @@ async function salesRows(rc: ExportRenderContext): Promise<SalesRow[]> {
   return out
 }
 
-const SALES_COLUMNS: { header: string; key: keyof SalesRow }[] = [
-  { header: 'Invoice No', key: 'invoiceNo' },
-  { header: 'Date', key: 'date' },
-  { header: 'Shop', key: 'shop' },
-  { header: 'GSTIN', key: 'gstin' },
-  { header: 'Supply', key: 'supplyType' },
-  { header: 'Place of supply', key: 'pos' },
-  { header: 'Taxable (₹)', key: 'taxable' },
-  { header: 'CGST (₹)', key: 'cgst' },
-  { header: 'SGST (₹)', key: 'sgst' },
-  { header: 'IGST (₹)', key: 'igst' },
-  { header: 'Cess (₹)', key: 'cess' },
-  { header: 'Round off (₹)', key: 'roundOff' },
-  { header: 'Total (₹)', key: 'total' },
-  { header: 'State', key: 'state' },
-  { header: 'Source', key: 'source' },
-  { header: 'Tally ledger', key: 'tallyLedger' },
+/** QA DOS-292: `type` tells `renderCsv` which cells are amounts (a minus is a sign) and which are text. */
+const SALES_COLUMNS: { header: string; key: keyof SalesRow; type: 'number' | 'text' }[] = [
+  { header: 'Invoice No', key: 'invoiceNo', type: 'text' },
+  { header: 'Date', key: 'date', type: 'text' },
+  { header: 'Shop', key: 'shop', type: 'text' },
+  { header: 'GSTIN', key: 'gstin', type: 'text' },
+  { header: 'Supply', key: 'supplyType', type: 'text' },
+  { header: 'Place of supply', key: 'pos', type: 'text' },
+  { header: 'Taxable (₹)', key: 'taxable', type: 'number' },
+  { header: 'CGST (₹)', key: 'cgst', type: 'number' },
+  { header: 'SGST (₹)', key: 'sgst', type: 'number' },
+  { header: 'IGST (₹)', key: 'igst', type: 'number' },
+  { header: 'Cess (₹)', key: 'cess', type: 'number' },
+  { header: 'Round off (₹)', key: 'roundOff', type: 'number' },
+  { header: 'Total (₹)', key: 'total', type: 'number' },
+  { header: 'State', key: 'state', type: 'text' },
+  { header: 'Source', key: 'source', type: 'text' },
+  { header: 'Tally ledger', key: 'tallyLedger', type: 'text' },
 ]
 
 export async function renderSalesRegisterXlsx(rc: ExportRenderContext): Promise<RenderedExport> {
@@ -114,6 +115,7 @@ export async function renderSalesRegisterCsv(rc: ExportRenderContext): Promise<R
   const columns: CsvColumn<SalesRow>[] = SALES_COLUMNS.map((c) => ({
     header: c.header,
     key: c.key,
+    type: c.type,
   }))
   return {
     body: Buffer.from(renderCsv(rows, columns), 'utf8'),
@@ -131,6 +133,10 @@ interface OutstandingRow {
   shop: string
   outstanding: number
   overdue: number
+  /** QA DOS-312: money on account beside the gross dues, and the dues and overdue net of it. */
+  onAccount: number
+  netDues: number
+  netOverdue: number
   openBills: number
   oldestDue: string
   creditMode: string
@@ -151,6 +157,13 @@ async function outstandingRows(rc: ExportRenderContext): Promise<OutstandingRow[
         shop: r.name,
         outstanding: rupees(r.outstandingPaise),
         overdue: rupees(r.overduePaise),
+        onAccount: rupees(r.unallocatedCreditPaise),
+        netDues: rupees(
+          r.netDuesPaise ?? Math.max(0, r.outstandingPaise - r.unallocatedCreditPaise),
+        ),
+        netOverdue: rupees(
+          r.netOverduePaise ?? Math.max(0, r.overduePaise - r.unallocatedCreditPaise),
+        ),
         openBills: r.openBills,
         oldestDue: r.oldestDueDate ?? '',
         creditMode: r.creditMode,
@@ -162,14 +175,21 @@ async function outstandingRows(rc: ExportRenderContext): Promise<OutstandingRow[
   return out
 }
 
-const OUTSTANDING_COLUMNS: { header: string; key: keyof OutstandingRow }[] = [
-  { header: 'Code', key: 'code' },
-  { header: 'Shop', key: 'shop' },
-  { header: 'Outstanding (₹)', key: 'outstanding' },
-  { header: 'Overdue (₹)', key: 'overdue' },
-  { header: 'Open bills', key: 'openBills' },
-  { header: 'Oldest due', key: 'oldestDue' },
-  { header: 'Credit mode', key: 'creditMode' },
+const OUTSTANDING_COLUMNS: {
+  header: string
+  key: keyof OutstandingRow
+  type: 'number' | 'text'
+}[] = [
+  { header: 'Code', key: 'code', type: 'text' },
+  { header: 'Shop', key: 'shop', type: 'text' },
+  { header: 'Outstanding (₹)', key: 'outstanding', type: 'number' },
+  { header: 'Overdue (₹)', key: 'overdue', type: 'number' },
+  { header: 'On account (₹)', key: 'onAccount', type: 'number' },
+  { header: 'Net dues (₹)', key: 'netDues', type: 'number' },
+  { header: 'Net overdue (₹)', key: 'netOverdue', type: 'number' },
+  { header: 'Open bills', key: 'openBills', type: 'number' },
+  { header: 'Oldest due', key: 'oldestDue', type: 'text' },
+  { header: 'Credit mode', key: 'creditMode', type: 'text' },
 ]
 
 export async function renderOutstandingXlsx(rc: ExportRenderContext): Promise<RenderedExport> {
@@ -190,6 +210,7 @@ export async function renderOutstandingCsv(rc: ExportRenderContext): Promise<Ren
   const columns: CsvColumn<OutstandingRow>[] = OUTSTANDING_COLUMNS.map((c) => ({
     header: c.header,
     key: c.key,
+    type: c.type,
   }))
   return {
     body: Buffer.from(renderCsv(rows, columns), 'utf8'),
