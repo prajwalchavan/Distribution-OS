@@ -11543,7 +11543,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -11788,7 +11791,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -12052,7 +12058,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -12285,7 +12294,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -12511,7 +12523,10 @@ curl "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -12633,7 +12648,10 @@ curl "http://localhost:3004/invoices?retailerId=01a06dbc-35ed-7760-86f2-6c701c68
       "dueDate": "2026-09-04",
       "amountDuePaise": 4000,
       "hasIrn": true,
-      "hasPdf": true
+      "hasPdf": true,
+      "paidPaise": 4000,
+      "creditedPaise": 4000,
+      "recoveredPaise": 4000
     }
   ],
   "nextCursor": null
@@ -13043,7 +13061,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -23216,6 +23237,7 @@ Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill firs
 | `collectedAt` | datetime | no |
 | `note` | string | no |
 | `deviceId` | string | no |
+| `confirmReference` | boolean | no |
 
 **Example request**
 
@@ -23252,7 +23274,8 @@ request.json
   "clientReceiptNo": "SO-0042",
   "collectedAt": "2026-09-04T10:30:00.000Z",
   "note": "Confirmed on phone with the shopkeeper",
-  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "confirmReference": true
 }
 ```
 
@@ -23833,7 +23856,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   },
   "delivery": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",

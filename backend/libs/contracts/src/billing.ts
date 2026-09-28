@@ -279,6 +279,16 @@ export const InvoiceDetailSchema = InvoiceSchema.extend({
    * sheet and its delivery carry every line. Absent from a server older than DOS-248.
    */
   awaitingDispatch: z.boolean().optional(),
+  /**
+   * DOS-320 / DOS-311: what closed the money on this bill, read from its allocations by receivables — the
+   * receipts' money (a realised cash discount included, a recovery included), the credit notes, and on a
+   * written-off bill what later money recovered. A bill closed by credit notes alone reads "Credited", never
+   * "Paid" (`invoiceStateShown` in @dos/domain); the state itself is unchanged. Absent on a draft or cancelled
+   * bill, and from a server older than DOS-320. `recoveredPaise` is the money desk's figure (0 for other roles).
+   */
+  paidPaise: PaiseSchema.optional(),
+  creditedPaise: PaiseSchema.optional(),
+  recoveredPaise: PaiseSchema.optional(),
 })
 export type InvoiceDetail = z.infer<typeof InvoiceDetailSchema>
 
@@ -309,6 +319,16 @@ export const InvoiceListItemSchema = z.object({
   amountDuePaise: PaiseSchema,
   hasIrn: z.boolean(),
   hasPdf: z.boolean(),
+  /**
+   * DOS-320 / DOS-311: what closed the money on this bill, read from its allocations by receivables — the
+   * receipts' money (a realised cash discount included, a recovery included), the credit notes, and on a
+   * written-off bill what later money recovered. A bill closed by credit notes alone reads "Credited", never
+   * "Paid" (`invoiceStateShown` in @dos/domain); the state itself is unchanged. Absent on a draft or cancelled
+   * bill, and from a server older than DOS-320. `recoveredPaise` is the money desk's figure (0 for other roles).
+   */
+  paidPaise: PaiseSchema.optional(),
+  creditedPaise: PaiseSchema.optional(),
+  recoveredPaise: PaiseSchema.optional(),
 })
 export type InvoiceListItem = z.infer<typeof InvoiceListItemSchema>
 

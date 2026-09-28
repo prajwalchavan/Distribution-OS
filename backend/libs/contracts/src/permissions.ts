@@ -626,6 +626,8 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // The shop starts an online payment against its own bills; it credits no AR by itself.
   'receivables.payments.initiate': SHOPKEEPER_ONLY,
   'receivables.allocations.create': MONEY_DESK,
+  // DOS-312: "Apply money on account" is the same power as a hand allocation, for one shop or all.
+  'receivables.allocations.applyOnAccount': MONEY_DESK,
   'receivables.allocations.remove': MONEY_DESK,
   // Dues: the rep sees the shop's, the crew the shop's at the door, the shop its own; the tenant-wide
   // register and its history are the desk's alone (the crew needs one shop at a time, docs/23 §5.3).

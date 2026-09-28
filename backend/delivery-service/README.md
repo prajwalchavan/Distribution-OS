@@ -118,10 +118,11 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
-| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
+| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
+| POST | `/allocations/apply-on-account` | Apply a shop's money on account (or every shop's) to its oldest open bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
 | GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
 | GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |
@@ -10938,6 +10939,7 @@ Record money from a shop and allocate it to bills (desk and delivery crew) · co
 | `proofObjectKey` | string | no |
 | `strategy` | fifo | none | explicit | no |
 | `allocations` | object[] | no |
+| `confirmReference` | boolean | no |
 
 **Example request**
 
@@ -10973,7 +10975,8 @@ request.json
       "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
       "amountPaise": 4000
     }
-  ]
+  ],
+  "confirmReference": true
 }
 ```
 
@@ -11054,7 +11057,15 @@ request.json
       "b90plus": 1
     },
     "asOf": "2026-09-04"
-  }
+  },
+  "recoveries": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "writtenOffOn": "text",
+      "amountPaise": 4000
+    }
+  ]
 }
 ```
 
@@ -11366,7 +11377,15 @@ curl "http://localhost:3005/receipts/01a06d17-0be7-794a-8dab-9b14cf78673b" \
     "upiVpa": "text",
     "phone": "+919876543210"
   },
-  "withCrew": true
+  "withCrew": true,
+  "recoveries": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "writtenOffOn": "text",
+      "amountPaise": 4000
+    }
+  ]
 }
 ```
 
@@ -11725,7 +11744,7 @@ request.json
 
 ### POST `/receipts/deposit`
 
-Bank a batch of cash and cheque receipts · contract `receivables.receipts.deposit`
+Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end · contract `receivables.receipts.deposit`
 
 **Roles:** owner, manager, accountant
 
@@ -12274,6 +12293,156 @@ request.json
 {
   "statusCode": 403,
   "message": "the delivery role may not call POST /allocations",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
+### POST `/allocations/apply-on-account`
+
+Apply a shop's money on account (or every shop's) to its oldest open bills · contract `receivables.allocations.applyOnAccount`
+
+**Roles:** owner, manager, accountant
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `id` | uuid | yes |
+| `retailerId` | uuid | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3005/allocations/apply-on-account" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+  "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "shops": [
+    {
+      "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+      "retailerName": "text",
+      "appliedPaise": 4000,
+      "allocations": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+          "receiptId": "01a06da9-9601-7d56-805d-ee3f6c00168f",
+          "creditNoteId": "01a06dae-235c-7b23-851a-7232d396be6f",
+          "writeOffId": "01a06d59-68b7-766e-8494-96904895db18",
+          "amountPaise": 4000,
+          "allocatedAt": "2026-09-04T10:30:00.000Z",
+          "allocatedBy": "01a06d83-2db2-7449-8f15-c2bd4fbc3f1c"
+        }
+      ],
+      "invoices": [
+        {
+          "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+          "invoiceNo": "SO-0042",
+          "state": "draft",
+          "openPaise": 4000
+        }
+      ],
+      "outstanding": {
+        "retailerId": "01a06dbc-35ed-7760-86f2-6c701c68f2dd",
+        "outstandingPaise": 2680000,
+        "overduePaise": 4000,
+        "undeliveredPaise": 4000,
+        "unallocatedCreditPaise": 4000,
+        "openBills": 1,
+        "oldestDueDate": "2026-09-04",
+        "oldestInvoiceDate": "2026-09-04",
+        "lastReceiptAt": "2026-09-04T10:30:00.000Z",
+        "lastReceiptPaise": 4000,
+        "buckets": {
+          "b0_7": 1,
+          "b8_15": 1,
+          "b16_30": 1,
+          "b31_60": 1,
+          "b61_90": 1,
+          "b90plus": 1
+        },
+        "asOf": "2026-09-04"
+      }
+    }
+  ],
+  "appliedPaise": 4000,
+  "allocationCount": 1,
+  "more": true
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the delivery role may not call POST /allocations/apply-on-account",
   "error": "Forbidden"
 }
 ```
@@ -13915,7 +14084,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -14160,7 +14332,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -14424,7 +14599,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -14657,7 +14835,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -14883,7 +15064,10 @@ curl "http://localhost:3005/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -15005,7 +15189,10 @@ curl "http://localhost:3005/invoices?retailerId=01a06dbc-35ed-7760-86f2-6c701c68
       "dueDate": "2026-09-04",
       "amountDuePaise": 4000,
       "hasIrn": true,
-      "hasPdf": true
+      "hasPdf": true,
+      "paidPaise": 4000,
+      "creditedPaise": 4000,
+      "recoveredPaise": 4000
     }
   ],
   "nextCursor": null
@@ -15415,7 +15602,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   }
 }
 ```
@@ -25588,6 +25778,7 @@ Collect cash / UPI / cheque at the door: one receipt, allocated oldest bill firs
 | `collectedAt` | datetime | no |
 | `note` | string | no |
 | `deviceId` | string | no |
+| `confirmReference` | boolean | no |
 
 **Example request**
 
@@ -25624,7 +25815,8 @@ request.json
   "clientReceiptNo": "SO-0042",
   "collectedAt": "2026-09-04T10:30:00.000Z",
   "note": "Confirmed on phone with the shopkeeper",
-  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "confirmReference": true
 }
 ```
 
@@ -26205,7 +26397,10 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paidPaise": 4000,
+    "creditedPaise": 4000,
+    "recoveredPaise": 4000
   },
   "delivery": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
@@ -35549,6 +35744,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `receivables.receipts.bounce` | – | – | – | – | – | – | – |
 | `receivables.payments.initiate` | – | – | – | – | – | – | – |
 | `receivables.allocations.create` | – | – | – | – | – | – | – |
+| `receivables.allocations.applyOnAccount` | – | – | – | – | – | – | – |
 | `receivables.allocations.remove` | – | – | – | – | – | – | – |
 | `receivables.outstanding.get` | – | – | – | – | – | ✓ | – |
 | `receivables.outstanding.list` | – | – | – | – | – | – | – |

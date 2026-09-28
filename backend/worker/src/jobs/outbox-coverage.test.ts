@@ -43,6 +43,10 @@ const AUDIT_ONLY: ReadonlySet<string> = new Set([
   'InvoiceWrittenOff',
   'ChequeBounced',
   'ReceiptReversed',
+  // DOS-256: a UPI receipt confirmed at Day-end (the deposit's movement, UPI clearing → Bank)
+  'UpiConfirmed',
+  // DOS-311: money that recovered a written-off bill (the recovery is in the book and on the bill already)
+  'WriteOffRecovered',
   // orders (fulfilment steps; the shop hears confirm / cancel through notifications)
   'OrderPicking',
   'OrderPacked',

@@ -1819,7 +1819,7 @@ describeDb('receivables (DATABASE_URL)', () => {
    * rely on. OFFICE receipts only: where a trip's cash is credited when it is banked is a separate, open
    * accounting question and is deliberately not asserted here.
    */
-  it('DOS-034 (guard): the desk banks an office cash + cheque batch (DR BANK, CR CASH and CHEQUES), a batch holding a UPI receipt is refused whole with nothing deposited, and a banked cheque bounces against BANK', async () => {
+  it('DOS-034 (guard): the desk banks an office cash + cheque batch (DR BANK, CR CASH and CHEQUES), a batch holding a bank transfer is refused whole with nothing deposited (UPI is confirmed at Day-end since DOS-256), and a banked cheque bounces against BANK', async () => {
     const shopJ = uuidv7()
     const billJ = uuidv7()
     await db.insert(retailers).values({
@@ -1836,7 +1836,7 @@ describeDb('receivables (DATABASE_URL)', () => {
 
     /** Money taken at the office desk: no trip, so cash lands in CASH and a cheque in CHEQUES. */
     const take = async (
-      mode: 'cash' | 'cheque' | 'upi',
+      mode: 'cash' | 'cheque' | 'bank_transfer',
       amountPaise: number,
       extra: Record<string, unknown> = {},
     ): Promise<string> => {
@@ -1859,7 +1859,9 @@ describeDb('receivables (DATABASE_URL)', () => {
       bankName: 'Bank of Maharashtra',
     })
     const strayCashId = await take('cash', 5_000)
-    const upiId = await take('upi', 3_000, { reference: `UTR034${run}` })
+    // DOS-256 moved UPI to the Day-end confirmation (the deposit's own movement), so the receipt that has no
+    // business in a bank batch is now a bank transfer: already in the bank, nothing to carry.
+    const transferId = await take('bank_transfer', 3_000, { reference: `NEFT034${run}` })
     expect(await invoiceState(billJ)).toBe('paid')
     expect(await arBalance(shopJ)).toBe(0)
 
@@ -1885,19 +1887,19 @@ describeDb('receivables (DATABASE_URL)', () => {
       )
     }
 
-    // 1. a batch holding a UPI receipt is refused WHOLE: the cash beside it stays in hand, nothing is posted
+    // 1. a batch holding a bank transfer is refused WHOLE: the cash beside it stays in hand, nothing is posted
     const refusedBatch = uuidv7()
     const refused = await call<{ message: string }>(app, accountant, 'POST', '/receipts/deposit', {
       idempotencyKey: `dep-034-refused-${run}`,
       id: refusedBatch,
-      receiptIds: [strayCashId, upiId],
+      receiptIds: [strayCashId, transferId],
       depositedAt: new Date().toISOString(),
       depositRef: `DEP-034-X-${run}`,
     })
     expect(refused.status).toBe(409)
-    expect(refused.body.message).toContain('only cash and cheques are banked')
+    expect(refused.body.message).toContain('a bank transfer, already in the bank')
     expect(await statusOf(strayCashId)).toBe('collected')
-    expect(await statusOf(upiId)).toBe('collected')
+    expect(await statusOf(transferId)).toBe('collected')
     expect(await entryOf('deposit', refusedBatch)).toEqual({})
 
     // 2. office cash and a cheque banked together: DR BANK, CR CASH and CHEQUES, and the entry nets to zero

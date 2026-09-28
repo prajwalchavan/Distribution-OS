@@ -7,6 +7,8 @@ import type {
   AccountsListOutput,
   AgeingHistoryInput,
   AgeingHistoryOutput,
+  ApplyOnAccountInput,
+  ApplyOnAccountOutput,
   DocumentRender,
   ReceiptDocumentInput,
   Allocation,
@@ -48,7 +50,13 @@ import type {
   SendStatementsOutput,
   SettledInvoice,
 } from '@dos/contracts'
-import { businessDate, isBankableReceiptMode, upiIntent, uuidv7 } from '@dos/domain'
+import {
+  businessDate,
+  isBankableReceiptMode,
+  isConfirmableReceiptMode,
+  upiIntent,
+  uuidv7,
+} from '@dos/domain'
 import {
   allocations,
   auditLog,
@@ -96,6 +104,7 @@ import {
 import { checkCredit, type CreditVerdict } from './credit.js'
 import {
   AGEING_BATCH,
+  idList,
   loadOpenBills,
   loadOutstanding,
   openPaiseOf,
@@ -126,6 +135,21 @@ import {
 } from '../../platform/documents.js'
 import { sellerBranding } from '../tenancy/index.js'
 import { toAllocation, toReceipt, toWriteOff, type ReceiptRow } from './receivables.mappers.js'
+import { assertReferenceFree } from './references.js'
+import {
+  planRecoveries,
+  recoveriesFromLines,
+  recoveriesOf,
+  reinstateRecoveries,
+  writeRecoveries,
+  type RecoveryPlanLine,
+} from './recovery.js'
+import {
+  applyMoneyOnAccount,
+  lockShopMoney,
+  shopsWithMoneyOnAccount,
+  type AppliedOnAccount,
+} from './on-account.js'
 import {
   MAX_LEDGER_WINDOW_DAYS,
   listAccounts,
@@ -204,6 +228,8 @@ type RemoveAllocationIn = z.infer<typeof RemoveAllocationInput>
 type RemoveAllocationOut = z.infer<typeof RemoveAllocationOutput>
 type WriteOffIn = z.infer<typeof CreateWriteOffInput>
 type WriteOffOut = z.infer<typeof CreateWriteOffOutput>
+type ApplyOnAccountIn = z.infer<typeof ApplyOnAccountInput>
+type ApplyOnAccountOut = z.infer<typeof ApplyOnAccountOutput>
 type RebuildIn = z.infer<typeof RebuildAgeingInput>
 type RebuildOut = z.infer<typeof RebuildAgeingOutput>
 type StatementsIn = z.infer<typeof SendStatementsInput>
@@ -287,6 +313,8 @@ export interface RecordReceiptInput {
   proofObjectKey?: string | null | undefined
   strategy?: 'fifo' | 'none' | 'explicit' | undefined
   allocations?: { id: string; invoiceId: string; amountPaise: number }[] | undefined
+  /** DOS-310: the desk has seen the earlier receipt with this cheque number from another shop and confirms. */
+  confirmReference?: boolean | undefined
 }
 
 export type RecordReceiptResult = CreateReceiptOut
@@ -524,6 +552,9 @@ export class ReceivablesService {
         payBy: invoice.cashDiscountUntil,
       })
     }
+    // DOS-312: a new bill for a shop that holds money on account is met by it, oldest bill first — the same code
+    // as the desk's "Apply money on account", inside billing's own transaction, so billing never names our tables.
+    await applyMoneyOnAccount(tx, invoice.retailerId)
     await this.refreshOutstanding(tx, invoice.retailerId)
     return posted
   }
@@ -613,6 +644,8 @@ export class ReceivablesService {
           amountPaise,
         })
       }
+      // DOS-312: what its own bill could not take (the bill was paid) goes to the shop's oldest open bills.
+      await applyMoneyOnAccount(tx, note.retailerId, { creditNoteIds: [note.id] })
     }
     await this.refreshOutstanding(tx, note.retailerId)
     return posted
@@ -708,6 +741,58 @@ export class ReceivablesService {
   ): Promise<Map<string, number>> {
     const found = await loadInvoices(tx, invoiceIds)
     return new Map([...found.values()].map((i) => [i.id, i.totalPaise - i.allocatedPaise]))
+  }
+
+  /**
+   * What closed the money on each of these bills (DOS-320, DOS-311), in ONE query for a page: the receipts' money
+   * (a realised cash discount and a recovery included), the credit notes, and what later money recovered on a
+   * written-off bill. Billing shows "Credited" for a bill closed by credit notes alone (`invoiceStateShown`);
+   * `recoveredPaise` is read as the caller (`write_offs` is back office), so it is 0 outside the money desk.
+   */
+  async invoiceSettlementMany(
+    tx: Db,
+    invoiceIds: readonly string[],
+  ): Promise<Map<string, { paidPaise: number; creditedPaise: number; recoveredPaise: number }>> {
+    const ids = [...new Set(invoiceIds)]
+    const out = new Map<
+      string,
+      { paidPaise: number; creditedPaise: number; recoveredPaise: number }
+    >()
+    if (ids.length === 0) return out
+    const { tenantId } = currentTenant()
+    const byBill = await tx.execute(sql`
+      select a.invoice_id,
+             coalesce(sum(a.amount_paise) filter (where a.receipt_id is not null), 0) as paid,
+             coalesce(sum(a.amount_paise) filter (where a.credit_note_id is not null), 0) as credited
+        from allocations a
+       where a.tenant_id = ${tenantId} and a.invoice_id in (${idList(ids)})
+       group by a.invoice_id`)
+    for (const id of ids) out.set(id, { paidPaise: 0, creditedPaise: 0, recoveredPaise: 0 })
+    for (const row of byBill.rows as unknown as {
+      invoice_id: string
+      paid: string | number
+      credited: string | number
+    }[]) {
+      const held = out.get(row.invoice_id)
+      if (held) {
+        held.paidPaise = Number(row.paid)
+        held.creditedPaise = Number(row.credited)
+      }
+    }
+    const recovered = await tx.execute(sql`
+      select w.invoice_id, -coalesce(sum(w.amount_paise), 0) as recovered
+        from write_offs w
+       where w.tenant_id = ${tenantId} and w.invoice_id in (${idList(ids)})
+         and w.reverses_write_off_id is not null
+       group by w.invoice_id`)
+    for (const row of recovered.rows as unknown as {
+      invoice_id: string
+      recovered: string | number
+    }[]) {
+      const held = out.get(row.invoice_id)
+      if (held) held.recoveredPaise = Number(row.recovered)
+    }
+    return out
   }
 
   /** Credit control, shared by the order aggregate and the `creditCheck` procedure. */
@@ -823,9 +908,18 @@ export class ReceivablesService {
         })
       }
     }
+    // The shop's money lock (DOS-311/312): recovering its write-offs and paying its bills read what is still open,
+    // so two receipts of one shop take turns. Then DOS-310: the same cheque or UTR is never new money twice.
+    await lockShopMoney(tx, input.retailerId)
+    await assertReferenceFree(tx, {
+      retailerId: input.retailerId,
+      mode: input.mode,
+      reference: input.reference,
+      confirmReference: input.confirmReference,
+    })
     const drawnNo = await nextDocumentNumber(tx, 'RCPT', receivedAt)
 
-    const plan = await this.planAllocations(tx, input, paidOn)
+    const { recoveries, plan } = await this.planReceipt(tx, input, paidOn)
     const cashDiscountPaise = plan.reduce((s, l) => s + l.discountPaise, 0)
 
     const receiptNo = await this.insertNumberedReceipt(
@@ -854,7 +948,20 @@ export class ReceivablesService {
       receivedAt,
     )
 
-    const written: Allocation[] = []
+    // DOS-311: the written-off bills first, oldest write-off first — booked as bad debt recovered, never as the
+    // shop's credit. The receipt's own entry below stays DR cash / CR AR for the whole amount.
+    const recovered = await writeRecoveries(
+      tx,
+      {
+        id: input.id,
+        receiptNo,
+        retailerId: input.retailerId,
+        receivedBy: input.receivedBy ?? actorId,
+        at: receivedAt,
+      },
+      recoveries,
+    )
+    const written: Allocation[] = recovered.allocations.map(toAllocation)
     for (const line of plan) {
       const amountPaise = plannedAmount(line)
       const id = this.allocationIdFor(input, line.invoiceId)
@@ -879,6 +986,13 @@ export class ReceivablesService {
         })
       }
     }
+    // DOS-312: an explicit split that named fewer bills than the money covers leaves money on account while bills
+    // are open; it goes to the oldest of them, as a hand allocation would. FIFO never leaves any.
+    let applied: AppliedOnAccount | null = null
+    if ((input.strategy ?? 'fifo') === 'explicit') {
+      applied = await applyMoneyOnAccount(tx, input.retailerId, { receiptIds: [input.id] })
+      written.push(...applied.allocations)
+    }
 
     await postJournalEntry(tx, {
       entryDate: paidOn,
@@ -898,10 +1012,11 @@ export class ReceivablesService {
       ],
     })
 
-    const settled = await recomputeInvoiceStates(
-      tx,
-      plan.map((l) => l.invoiceId),
-    )
+    const settled = await recomputeInvoiceStates(tx, [
+      ...recovered.lines.map((l) => l.invoiceId),
+      ...plan.map((l) => l.invoiceId),
+      ...(applied?.allocations.map((a) => a.invoiceId) ?? []),
+    ])
     const outstanding = await this.refreshAndRead(tx, input.retailerId)
     await emitEvent(tx, 'receipt', input.id, 'ReceiptRecorded', {
       receiptId: input.id,
@@ -909,6 +1024,7 @@ export class ReceivablesService {
       retailerId: input.retailerId,
       amountPaise: input.amountPaise,
       cashDiscountPaise,
+      recoveredPaise: recovered.lines.reduce((sum, l) => sum + l.amountPaise, 0),
       tripId,
     })
     // The shop's paper (A5 original), queued in the same transaction as the money, the way billing
@@ -932,6 +1048,7 @@ export class ReceivablesService {
       cashDiscountPaise,
       unallocatedPaise: item.unallocatedPaise,
       outstanding,
+      recoveries: recoveriesFromLines(recovered.lines),
     }
   }
 
@@ -1025,6 +1142,8 @@ export class ReceivablesService {
         // The receipt is the third white-label document (docs/22 §4 D6): the distributor's own block.
         seller: await sellerBranding(tx),
         withCrew,
+        // DOS-311: "₹395.00 recovered from a bill written off on …"
+        recoveries: (await recoveriesOf(tx, [found.row.id])).get(found.row.id) ?? [],
       }
     })
   }
@@ -1116,17 +1235,25 @@ export class ReceivablesService {
               message: `receipt ${row.receiptNo ?? row.id} is ${row.status}, not collected`,
             })
           }
-          if (!isBankableReceiptMode(row.mode)) {
+          // DOS-256 (architect ruling 2026-09-28): UPI is confirmed at Day-end through this same movement, UPI
+          // clearing → Bank; a bank transfer is already in the bank and has nothing to move.
+          if (!isBankableReceiptMode(row.mode) && !isConfirmableReceiptMode(row.mode)) {
             throw new ORPCError('CONFLICT', {
-              message: `receipt ${row.receiptNo ?? row.id} is ${row.mode}; only cash and cheques are banked`,
+              message: `receipt ${row.receiptNo ?? row.id} is ${row.mode === 'bank_transfer' ? 'a bank transfer, already in the bank' : row.mode}; cash and cheques are banked and UPI is confirmed at Day-end, nothing else`,
+              data: { code: 'not_bankable', receiptId: row.id },
             })
           }
         }
         // Money a crew still carries is not the office's to bank (DOS-132, docs/22 §6): a receipt taken on a trip,
         // cash or a cheque, waits for that trip's settlement. One lookup over the batch's distinct trips; the whole
-        // batch is refused, so nothing is updated, posted or emitted.
+        // batch is refused, so nothing is updated, posted or emitted. UPI taken on a trip was never in the crew's
+        // hands (it lands in UPI clearing, not CASH_VAN), so its trip does not hold up its confirmation.
         const tripIds = [
-          ...new Set(rows.flatMap((row) => (row.tripId === null ? [] : [row.tripId]))),
+          ...new Set(
+            rows.flatMap((row) =>
+              row.tripId === null || isConfirmableReceiptMode(row.mode) ? [] : [row.tripId],
+            ),
+          ),
         ]
         if (tripIds.length > 0) {
           const open = await tx.execute(sql`
@@ -1137,7 +1264,12 @@ export class ReceivablesService {
              where not (${this.tripSettled(sql`v.id`, ctx.tenantId)})`)
           const unsettled = new Set((open.rows as { id: string }[]).map((row) => row.id))
           const refused = rows
-            .filter((row) => row.tripId !== null && unsettled.has(row.tripId))
+            .filter(
+              (row) =>
+                row.tripId !== null &&
+                unsettled.has(row.tripId) &&
+                !isConfirmableReceiptMode(row.mode),
+            )
             .map((row) => ({ id: row.id, no: row.receiptNo ?? row.id }))
             .sort((a, b) => (a.no < b.no ? -1 : a.no > b.no ? 1 : 0))
           if (refused.length > 0) {
@@ -1201,11 +1333,17 @@ export class ReceivablesService {
           ],
         })
         for (const row of rows) {
-          await emitEvent(tx, 'receipt', row.id, 'ChequeDeposited', {
-            receiptId: row.id,
-            depositRef: input.depositRef ?? null,
-            depositedAt: depositedAt.toISOString(),
-          })
+          await emitEvent(
+            tx,
+            'receipt',
+            row.id,
+            isConfirmableReceiptMode(row.mode) ? 'UpiConfirmed' : 'ChequeDeposited',
+            {
+              receiptId: row.id,
+              depositRef: input.depositRef ?? null,
+              depositedAt: depositedAt.toISOString(),
+            },
+          )
         }
         return { updated: rows.length, journalEntryId: posted.entryId, totalPaise }
       }),
@@ -1315,6 +1453,14 @@ export class ReceivablesService {
         if (!invoice) {
           throw new ORPCError('NOT_FOUND', { message: `invoice ${row.invoiceId} not found` })
         }
+        // A written-off bill is closed: money on it recovered the write-off (DOS-311) or was paid before it, and
+        // taking it off would leave the bill owing under a closed state. The receipt's reversal undoes both.
+        if (invoice.state === 'written_off') {
+          throw new ORPCError('CONFLICT', {
+            message: `bill ${invoice.invoiceNo ?? invoice.id} is written off and this money is part of how it closed; reverse the receipt instead, which puts the write-off back`,
+            data: { code: 'bill_written_off' },
+          })
+        }
         await tx
           .delete(allocations)
           .where(and(eq(allocations.tenantId, ctx.tenantId), eq(allocations.id, input.id)))
@@ -1353,6 +1499,62 @@ export class ReceivablesService {
           sourceUnallocatedPaise: source?.freePaise ?? 0,
           outstanding,
         }
+      }),
+    )
+  }
+
+  /**
+   * DOS-312, the desk's "Apply money on account" (one shop, or every shop holding money on account beside open
+   * bills, 200 a call): the shop's receipts and credit notes that no bill has claimed go to its oldest open bills,
+   * through `applyMoneyOnAccount` — the code that also runs at a receipt's remainder, a credit note on a paid bill
+   * and a new bill. Allocations like hand ones: no journal rows, each undone by `allocations.remove`.
+   */
+  async applyOnAccount(input: ApplyOnAccountIn): Promise<ApplyOnAccountOut> {
+    requireRole(BACK_OFFICE)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const APPLY_PAGE = 200
+        let ids: string[]
+        let more = false
+        if (input.retailerId) {
+          await this.requireRetailer(tx, input.retailerId)
+          ids = [input.retailerId]
+        } else {
+          const page = await shopsWithMoneyOnAccount(tx, APPLY_PAGE)
+          more = page.length > APPLY_PAGE
+          ids = page.slice(0, APPLY_PAGE)
+        }
+        const names = new Map(
+          ids.length === 0
+            ? []
+            : (
+                await tx
+                  .select({ id: retailers.id, name: retailers.name })
+                  .from(retailers)
+                  .where(and(eq(retailers.tenantId, ctx.tenantId), inArray(retailers.id, ids)))
+              ).map((row) => [row.id, row.name]),
+        )
+        const shops: ApplyOnAccountOut['shops'] = []
+        let appliedPaise = 0
+        let allocationCount = 0
+        for (const retailerId of ids) {
+          const applied = await applyMoneyOnAccount(tx, retailerId)
+          const outstanding = await this.refreshAndRead(tx, retailerId)
+          if (applied.appliedPaise === 0) continue
+          shops.push({
+            retailerId,
+            retailerName: names.get(retailerId) ?? retailerId,
+            appliedPaise: applied.appliedPaise,
+            allocations: applied.allocations,
+            invoices: applied.invoices,
+            outstanding,
+          })
+          appliedPaise += applied.appliedPaise
+          allocationCount += applied.allocations.length
+        }
+        return { shops, appliedPaise, allocationCount, more }
       }),
     )
   }
@@ -2025,6 +2227,7 @@ export class ReceivablesService {
       cashDiscountPaise: row.cashDiscountPaise,
       unallocatedPaise: item.unallocatedPaise,
       outstanding: await loadOutstanding(tx, retailerId),
+      recoveries: (await recoveriesOf(tx, [row.id])).get(row.id) ?? [],
     }
   }
 
@@ -2032,6 +2235,36 @@ export class ReceivablesService {
   private allocationIdFor(input: RecordReceiptInput, invoiceId: string): string {
     const explicit = input.allocations?.find((a) => a.invoiceId === invoiceId)
     return explicit?.id ?? uuidv7()
+  }
+
+  /**
+   * Where a new receipt's money goes, decided before the receipt is written (its realised cash discount is a
+   * column of the row): DOS-311 first — what stands written off on the shop's written-off bills, oldest first —
+   * then the bills. An explicit split is the desk's or the crew's own decision about those bills and is honoured
+   * first; the write-offs are recovered from what it leaves, and whatever is left after that goes to the oldest
+   * open bills (DOS-312, in `recordReceipt`). `none` keeps the rest on account, as the caller asked.
+   */
+  private async planReceipt(
+    tx: Db,
+    input: RecordReceiptInput,
+    paidOn: string,
+  ): Promise<{ recoveries: RecoveryPlanLine[]; plan: PlannedAllocation[] }> {
+    const strategy = input.strategy ?? 'fifo'
+    if (strategy === 'explicit') {
+      const plan = await this.planAllocations(tx, input, paidOn)
+      const spent = plan.reduce((sum, line) => sum + line.cashPaise, 0)
+      const recoveries = await planRecoveries(tx, input.retailerId, input.amountPaise - spent)
+      return { recoveries, plan }
+    }
+    const recoveries = await planRecoveries(tx, input.retailerId, input.amountPaise)
+    if (strategy === 'none') return { recoveries, plan: [] }
+    const recovered = recoveries.reduce((sum, line) => sum + line.amountPaise, 0)
+    const plan = await this.planAllocations(
+      tx,
+      { ...input, amountPaise: input.amountPaise - recovered },
+      paidOn,
+    )
+    return { recoveries, plan }
   }
 
   private async planAllocations(
@@ -2179,7 +2412,7 @@ export class ReceivablesService {
       .where(and(eq(allocations.tenantId, tenantId), eq(allocations.receiptId, original.id)))
       .orderBy(asc(allocations.id))
     const drawnNo = await nextDocumentNumber(tx, 'RCPT', input.at)
-    await this.insertNumberedReceipt(
+    const reversalNo = await this.insertNumberedReceipt(
       tx,
       {
         id: input.reversalId,
@@ -2210,6 +2443,12 @@ export class ReceivablesService {
         allocatedBy: actorId,
       })
     }
+    // DOS-311: money that had recovered a written-off bill is gone again, so the write-off stands again, exactly.
+    await reinstateRecoveries(
+      tx,
+      { id: original.id, receiptNo: original.receiptNo, retailerId: original.retailerId },
+      { id: input.reversalId, receiptNo: reversalNo, receivedBy: actorId, at: input.at },
+    )
     await releaseConditionsOf(tx, original.id, today)
 
     // Where the money is now (amendment (e)): banked cash or a banked cheque credits the bank, not the tin it came out

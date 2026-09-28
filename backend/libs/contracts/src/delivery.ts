@@ -1265,6 +1265,12 @@ export const RecordCollectionInput = MutationBase.extend({
   collectedAt: IsoDateTimeSchema.optional(),
   note: z.string().trim().max(300).optional(),
   deviceId: DeviceIdSchema.optional(),
+  /**
+   * DOS-310, the same rule as `receipts.create`: a UTR already on a live receipt of this distributor, or a
+   * cheque number already recorded for this shop, is refused (409, naming the earlier receipt); a cheque number
+   * another shop used is refused until the request says `confirmReference: true`.
+   */
+  confirmReference: z.boolean().optional(),
 }).superRefine((c, ctx) => {
   if (c.mode !== 'cash' && !c.reference)
     ctx.addIssue({

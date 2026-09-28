@@ -1903,7 +1903,8 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(dues.status).toBe(200)
     expect(dues.body).toMatchObject({ outstandingPaise: 0, unallocatedCreditPaise: credit })
 
-    // the next bill: the desk matches the note to it, and the shop owes the bill less the note
+    // the next bill: the note meets it at issue (QA DOS-312, architect ruling 2026-09-28: money on account is
+    // applied to the oldest open bill when a new bill is issued), and the shop owes the bill less the note
     const nextOrder = await placeOrder(
       rep,
       shopPaid,
@@ -1912,21 +1913,15 @@ describeDb('billing (DATABASE_URL)', () => {
     )
     const next = await issueFor(nextOrder, 'dos245b')
     expect(next.res.status).toBe(200)
-    const matched = await call<{ sourceUnallocatedPaise: number }>(
-      app,
-      accountant,
-      'POST',
-      '/allocations',
-      {
-        idempotencyKey: `dos245-match-${run}`,
-        id: uuidv7(),
-        sourceType: 'credit_note',
-        sourceId: noteId,
-        lines: [{ id: uuidv7(), invoiceId: next.invoiceId, amountPaise: credit }],
-      },
-    )
-    expect(matched.status).toBe(200)
-    expect(matched.body.sourceUnallocatedPaise).toBe(0)
+    // nothing of the note is left for the desk to match by hand
+    const matched = await call<{ message: string }>(app, accountant, 'POST', '/allocations', {
+      idempotencyKey: `dos245-match-${run}`,
+      id: uuidv7(),
+      sourceType: 'credit_note',
+      sourceId: noteId,
+      lines: [{ id: uuidv7(), invoiceId: next.invoiceId, amountPaise: credit }],
+    })
+    expect(matched.status).toBe(409)
     const settled = await arTie(shopPaid)
     expect(settled).toMatchObject({
       onAccount: 0,

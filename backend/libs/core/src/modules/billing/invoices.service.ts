@@ -1125,7 +1125,11 @@ export class BillingService {
         .limit(input.limit + 1)
       const page = rows.slice(0, input.limit)
       const due = await this.outstandingByInvoice(tx, page)
-      const items = page.map((row) => toInvoiceListItem(row, due.get(row.id) ?? 0))
+      const closedBy = await this.settlementByInvoice(tx, page)
+      const items = page.map((row) => ({
+        ...toInvoiceListItem(row, due.get(row.id) ?? 0),
+        ...closedBy.get(row.id),
+      }))
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
@@ -1402,7 +1406,26 @@ export class BillingService {
       row.source === 'pack' && row.orderId !== null && row.state !== 'cancelled'
         ? await this.orders.findOrder(tx, row.orderId)
         : undefined
-    return { ...detail, awaitingDispatch: order?.state === 'packed' }
+    const closedBy = (await this.settlementByInvoice(tx, [row])).get(row.id)
+    return { ...detail, awaitingDispatch: order?.state === 'packed', ...closedBy }
+  }
+
+  /**
+   * DOS-320 / DOS-311: what closed the money on a page of bills — receipts, credit notes, a recovery after a
+   * write-off — from `ReceivablesService.invoiceSettlementMany` (allocations are receivables' table), so a bill
+   * closed by credit notes alone reads "Credited" and a recovered written-off bill says what came back. A draft
+   * or a cancelled bill has none.
+   */
+  private async settlementByInvoice(
+    tx: Db,
+    rows: readonly InvoiceRow[],
+  ): Promise<Map<string, { paidPaise: number; creditedPaise: number; recoveredPaise: number }>> {
+    const live = rows.filter((r) => r.state !== 'draft' && r.state !== 'cancelled')
+    if (live.length === 0) return new Map()
+    return this.receivables.invoiceSettlementMany(
+      tx,
+      live.map((r) => r.id),
+    )
   }
 
   /** A draft was never posted to AR and a cancelled bill was reversed: neither owes anything. */

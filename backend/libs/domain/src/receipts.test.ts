@@ -1,5 +1,52 @@
 import { describe, expect, it } from 'vitest'
-import { isBankableReceiptMode, receiptMayBeDeposited, receiptMayBounce } from './receipts.js'
+import {
+  invoiceStateShown,
+  isBankableReceiptMode,
+  isConfirmableReceiptMode,
+  normaliseReference,
+  receiptMayBeConfirmed,
+  receiptMayBeDeposited,
+  receiptMayBounce,
+} from './receipts.js'
+
+describe('receiptMayBeConfirmed (DOS-256)', () => {
+  it('a UPI receipt still collected is confirmed at Day-end; nothing else is, and a confirmed one is not again', () => {
+    expect(isConfirmableReceiptMode('upi')).toBe(true)
+    for (const mode of ['cash', 'cheque', 'bank_transfer', 'adjustment', 'credit_note', '']) {
+      expect(isConfirmableReceiptMode(mode), mode).toBe(false)
+    }
+    expect(receiptMayBeConfirmed({ mode: 'upi', status: 'collected' })).toBe(true)
+    expect(receiptMayBeConfirmed({ mode: 'upi', status: 'deposited' })).toBe(false)
+    expect(receiptMayBeConfirmed({ mode: 'upi', status: 'cancelled' })).toBe(false)
+    expect(receiptMayBeConfirmed({ mode: 'cash', status: 'collected' })).toBe(false)
+  })
+})
+
+describe('normaliseReference (DOS-310)', () => {
+  it('compares a reference trimmed, without inner spaces and without regard to case', () => {
+    expect(normaliseReference(' utr 1790 5645 ')).toBe('UTR17905645')
+    expect(normaliseReference('Chq\t088789')).toBe('CHQ088789')
+    expect(normaliseReference('UTR17905645')).toBe(normaliseReference('utr17905645'))
+  })
+})
+
+describe('invoiceStateShown (DOS-320)', () => {
+  it('a bill closed only by credit notes reads credited; by money, or money and a note, paid', () => {
+    // CN/9010 closed INV/9030, refused at the door and never paid
+    expect(invoiceStateShown({ state: 'paid', paidPaise: 0, creditedPaise: 59_500 })).toBe(
+      'credited',
+    )
+    expect(invoiceStateShown({ state: 'paid', paidPaise: 59_500, creditedPaise: 0 })).toBe('paid')
+    expect(invoiceStateShown({ state: 'paid', paidPaise: 40_000, creditedPaise: 19_500 })).toBe(
+      'paid',
+    )
+    // a server that does not say what closed the bill keeps the state it sent
+    expect(invoiceStateShown({ state: 'paid' })).toBe('paid')
+    expect(invoiceStateShown({ state: 'partially_paid', paidPaise: 0, creditedPaise: 100 })).toBe(
+      'partially_paid',
+    )
+  })
+})
 
 describe('receiptMayBeDeposited', () => {
   it('DOS-034: only cash and cheques still collected go to the bank — UPI, bank transfer, adjustment and credit_note receipts are never cash in hand', () => {

@@ -73,6 +73,13 @@ export class ReceivablesController {
     )
   }
 
+  @Implement(contract.receivables.allocations.applyOnAccount)
+  applyOnAccount(@OwnsReply() _reply: unknown) {
+    return implement(contract.receivables.allocations.applyOnAccount).handler(({ input }) =>
+      this.receivables.applyOnAccount(input),
+    )
+  }
+
   @Implement(contract.receivables.allocations.remove)
   removeAllocation(@OwnsReply() _reply: unknown) {
     return implement(contract.receivables.allocations.remove).handler(({ input }) =>

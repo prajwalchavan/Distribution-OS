@@ -6,6 +6,7 @@ import { currentTenant } from '../../platform/index.js'
 import { SyncRejection } from '../sync/index.js'
 import { recomputeInvoiceStates } from './allocation.js'
 import type { ReceivablesService } from './receivables.service.js'
+import { REFERENCE_REFUSALS } from './references.js'
 
 /**
  * ADR 0007 / docs/07 §7.3 — what a delivery device may push after a day with no signal.
@@ -31,6 +32,13 @@ const TRIP_REFUSALS: ReadonlySet<string> = new Set([
   'trip_not_found',
   'trip_not_on_road',
 ])
+
+/**
+ * DOS-310: a UTR or a cheque number that already stands on a live receipt. The phone keeps the money in its
+ * pending list with the desk's own sentence, naming the earlier receipt (the tray keeps every refused money op;
+ * `@dos/offline` MONEY_TABLES), and the crew hands the slip to the cashier, who decides.
+ */
+const KEPT_REFUSALS: ReadonlySet<string> = new Set([...TRIP_REFUSALS, ...REFERENCE_REFUSALS])
 
 const str = (v: unknown): string | null =>
   typeof v === 'string' && v.trim().length > 0 ? v.trim() : null
@@ -88,6 +96,7 @@ export async function applyReceiptSync(
       note: str(data.note),
       proofObjectKey: str(data.proof_object_key),
       strategy: 'fifo',
+      confirmReference: data.confirm_reference === true,
     })
   } catch (error) {
     // DOS-169 + QA DOS-175: money the office refuses BECAUSE OF THE TRIP is a refusal the crew acts on (hand it to
@@ -95,7 +104,7 @@ export async function applyReceiptSync(
     // desk sees, never the generic `not_found` / `conflict` SyncService makes of any other 404 or 409. The door
     // stays 2xx either way (ADR 0007).
     const code = (error as { data?: { code?: unknown } | null } | null)?.data?.code
-    if (error instanceof ORPCError && typeof code === 'string' && TRIP_REFUSALS.has(code))
+    if (error instanceof ORPCError && typeof code === 'string' && KEPT_REFUSALS.has(code))
       throw new SyncRejection(code, error.message)
     throw error
   }

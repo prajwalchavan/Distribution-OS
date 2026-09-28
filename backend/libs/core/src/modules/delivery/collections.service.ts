@@ -63,6 +63,8 @@ export interface DoorstepCollectionInput {
   collectedAt?: string | undefined
   note?: string | undefined
   deviceId?: string | undefined
+  /** DOS-310: the crew confirms a cheque number another shop used is a different cheque. */
+  confirmReference?: boolean | undefined
 }
 
 /**
@@ -356,6 +358,7 @@ export class CollectionsService {
           ? ('explicit' as const)
           : ('fifo' as const),
       allocations: input.allocations,
+      confirmReference: input.confirmReference,
     }
   }
 
