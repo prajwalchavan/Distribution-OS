@@ -451,6 +451,23 @@ describeDb('the desk’s registers: GST documents, credit notes, CSV cells (DATA
     const orders = parseCsv(files.get('report_orders_csv') ?? '')
     const orderRoundOff = orders[0]?.indexOf('roundOffPaise') ?? -1
     expect(orders.map((r) => r[orderRoundOff])).toContain('-40')
+    // DOS-317 in the file too: each section ends on its total, with the DISTINCT documents and the
+    // cancelled ones apart — the column of per-rate counts alone sums a two-rate bill twice.
+    const gst = parseCsv(files.get('report_gstSalesRegister_csv') ?? '')
+    const head = gst[0] ?? []
+    const at = (name: string): number => head.indexOf(name)
+    const totalOf = (section: string) => gst.find((r) => r[at('section')] === section)
+    expect(totalOf('salesTotal')?.[at('documentCount')]).toBe('3')
+    expect(totalOf('salesTotal')?.[at('cancelledDocumentCount')]).toBe('1')
+    expect(totalOf('creditNoteTotal')?.[at('documentCount')]).toBe('3')
+    expect(totalOf('creditNoteTotal')?.[at('cancelledDocumentCount')]).toBe('1')
+    const perRow = gst
+      .filter((r) => r[at('section')] === 'sales')
+      .reduce((sum, r) => sum + Number(r[at('documentCount')]), 0)
+    expect(
+      perRow,
+      'the per-row counts, summed, overcount — which is why the total row exists',
+    ).toBe(4)
     // DOS-321 in the file too: the credit notes of the day beside what was billed.
     const daily = parseCsv(files.get('report_dailySales_csv') ?? '')
     const credited = daily[0]?.indexOf('creditedPaise') ?? -1

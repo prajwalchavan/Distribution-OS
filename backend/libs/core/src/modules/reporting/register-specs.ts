@@ -149,10 +149,18 @@ export const REGISTER_SPECS: Record<ReportRegister, RegisterSpec> = {
     read: async (stack, raw) => {
       const input = raw as z.infer<typeof GstSalesRegisterInput>
       const out = await stack.registers.gstSalesRegister(input)
-      // One file, two sections: outward supplies, then the credit notes the filer subtracts.
+      /*
+       * One file, two sections: outward supplies, then the credit notes the filer subtracts. Each section
+       * ends on its TOTAL row (QA DOS-317): the rows' own `documentCount` is per rate or per HSN, so a bill
+       * spread over two rates is in two rows and summing that column counts it twice. The total row
+       * carries the DISTINCT count the return's "documents issued" table asks for, and the cancelled ones
+       * apart (`cancelledDocumentCount`), exactly as the screen's totals do.
+       */
       return rows([
         ...out.rows.map((r) => ({ section: 'sales', ...r })),
+        { section: 'salesTotal', ...out.totals },
         ...out.creditNoteRows.map((r) => ({ section: 'creditNote', ...r })),
+        { section: 'creditNoteTotal', ...out.creditNoteTotals },
       ])
     },
   },
