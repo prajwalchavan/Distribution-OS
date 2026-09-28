@@ -167,16 +167,19 @@ export default function Registers(): React.JSX.Element {
     textColumn('shop', t('m12.shop'), (row) => row.name),
     textColumn('beat', t('m14.beat'), (row) => names.beat(row.beatId)),
     moneyColumn('owed', t('m12.owed'), (row) => row.outstandingPaise),
-    moneyColumn('overdue', t('m1.outstanding'), (row) => row.overduePaise, {
+    // QA DOS-312: late is what is late after the shop's money on account paid its oldest bills.
+    moneyColumn('overdue', t('m1.outstanding'), (row) => row.netOverduePaise ?? row.overduePaise, {
       cell: (row) => (
         <Money
-          value={row.overduePaise}
+          value={row.netOverduePaise ?? row.overduePaise}
           size="cell"
           symbol={false}
-          tone={row.overduePaise > 0 ? 'critical' : 'default'}
+          tone={(row.netOverduePaise ?? row.overduePaise) > 0 ? 'critical' : 'default'}
         />
       ),
     }),
+    moneyColumn('onAccount', t('m12.onAccount'), (row) => row.unallocatedCreditPaise),
+    moneyColumn('net', t('m12.netDue'), (row) => row.netDuesPaise ?? null),
     textColumn('bills', t('m6.invoices'), (row) => row.openBills, { align: 'right' }),
     textColumn('oldest', t('m14.oldest'), (row) => longDate(row.oldestDueDate)),
     {
@@ -224,6 +227,8 @@ export default function Registers(): React.JSX.Element {
     textColumn('day', t('m12.date'), (row) => longDate(row.day), { priority: 'identity' }),
     textColumn('orders', t('m2.title'), (row) => row.ordersCount, { align: 'right' }),
     moneyColumn('invoiced', t('m1.invoicedToday'), (row) => row.invoicedPaise),
+    // QA DOS-321: the day's credit notes beside what was billed (empty for a day not yet counted).
+    moneyColumn('credited', t('m12.credited'), (row) => row.creditedPaise ?? null),
     moneyColumn('collected', t('m12.collected'), (row) => row.collectedPaise),
     moneyColumn('outstanding', t('m12.owed'), (row) => row.outstandingPaise),
     textColumn('shops', t('m12.shop'), (row) => row.activeRetailers, { align: 'right' }),
@@ -376,6 +381,12 @@ export default function Registers(): React.JSX.Element {
               state="ready"
               totals={{
                 hsn: t('word.total'),
+                // QA DOS-317: distinct documents, whatever the grouping, and the cancelled ones apart.
+                rate: t('m12.gstDocuments', {
+                  bills: gst.data?.totals.documentCount ?? 0,
+                  cancelled: gst.data?.totals.cancelledDocumentCount ?? 0,
+                  notes: gst.data?.creditNoteTotals.documentCount ?? 0,
+                }),
                 taxable: (
                   <Money value={gst.data?.totals.taxablePaise ?? 0} size="cell" symbol={false} />
                 ),
@@ -460,7 +471,25 @@ export default function Registers(): React.JSX.Element {
                 ),
                 overdue: (
                   <Money
-                    value={outstanding.data?.totals.overduePaise ?? 0}
+                    value={
+                      outstanding.data?.totals.netOverduePaise ??
+                      outstanding.data?.totals.overduePaise ??
+                      0
+                    }
+                    size="cell"
+                    symbol={false}
+                  />
+                ),
+                onAccount: (
+                  <Money
+                    value={outstanding.data?.totals.unallocatedCreditPaise ?? 0}
+                    size="cell"
+                    symbol={false}
+                  />
+                ),
+                net: (
+                  <Money
+                    value={outstanding.data?.totals.netDuesPaise ?? 0}
                     size="cell"
                     symbol={false}
                   />

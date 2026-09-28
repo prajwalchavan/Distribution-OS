@@ -524,6 +524,8 @@ export const strings = {
   'o13.taxable': 'Taxable ₹',
   'o13.tax': 'GST ₹',
   'o13.total': 'Total ₹',
+  // QA DOS-317: the document counts of the return — distinct bills, cancelled apart, credit notes.
+  'o13.documents': '{bills} bills · {cancelled} cancelled · {notes} credit notes',
   'o13.due': 'Due ₹',
   'o13.state': 'State',
   'o13.pdf': 'Open bill',

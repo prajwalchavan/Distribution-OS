@@ -19,7 +19,7 @@
  * kit's string layer for the sentence — no component and no platform module, so it runs under vitest
  * with no Metro. No file in this app carries a literal English sentence, this one included.
  */
-import { daysBetween } from '@dos/domain'
+import { daysBetween, netOfOnAccountRollup } from '@dos/domain'
 import type { Translator } from '@dos/ui'
 
 import { shortDate, today } from './dates'
@@ -50,8 +50,19 @@ export function doorDues(
   on: string = today(),
 ): DoorDues {
   const stopped = creditMode === 'stop'
-  const outstandingPaise = dues?.outstanding_paise ?? 0
-  const overduePaise = dues?.overdue_paise ?? 0
+  /*
+   * QA DOS-312 (architect ruling 3, 2026-09-28): the door says what the shop owes NET of the money it
+   * has already paid on account — that money pays its oldest bills first — so a shop in credit is never
+   * shown as overdue for money it has paid. The rule is `@dos/domain`'s, the one the server uses.
+   */
+  const net = netOfOnAccountRollup({
+    outstandingPaise: dues?.outstanding_paise ?? 0,
+    overduePaise: dues?.overdue_paise ?? 0,
+    unallocatedCreditPaise: dues?.unallocated_credit_paise ?? 0,
+    buckets: [],
+  })
+  const outstandingPaise = net.duesPaise
+  const overduePaise = net.overduePaise
   const oldestDueDate = overduePaise > 0 ? (dues?.oldest_due_date ?? null) : null
   const daysLate = oldestDueDate === null ? 0 : Math.max(0, daysBetween(oldestDueDate, on))
   const tone: DoorTone = stopped

@@ -128,9 +128,18 @@ export default function Dues(): React.JSX.Element {
                     value: <Money value={summary?.outstandingPaise ?? null} size="cell" />,
                   },
                   {
+                    // QA DOS-312: late is what the money the shop has on account does not already pay.
                     label: t('r3.overdue'),
-                    value: <Money value={summary?.overduePaise ?? null} size="cell" />,
-                    tone: (summary?.overduePaise ?? 0) > 0 ? 'critical' : 'neutral',
+                    value: (
+                      <Money
+                        value={summary?.netOverduePaise ?? summary?.overduePaise ?? null}
+                        size="cell"
+                      />
+                    ),
+                    tone:
+                      (summary?.netOverduePaise ?? summary?.overduePaise ?? 0) > 0
+                        ? 'critical'
+                        : 'neutral',
                   },
                   {
                     label: t('r3.credit'),

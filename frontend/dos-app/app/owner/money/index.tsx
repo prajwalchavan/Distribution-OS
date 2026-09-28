@@ -233,13 +233,18 @@ export default function OutstandingListItem(): React.JSX.Element {
     }),
     textColumn('beat', t('word.beat'), (row) => names.beat(row.beatId)),
     moneyColumn('dues', t('o10.dues'), (row) => row.outstandingPaise),
-    moneyColumn('overdue', t('o10.overdue'), (row) => row.overduePaise, {
+    /*
+     * QA DOS-312 (architect ruling 3): overdue is what is still late once the shop's money on account
+     * has paid its oldest bills — a shop in credit is never shown as late for money it has paid. The
+     * dues stay gross beside it, with the money on account and the net, as DOS-260 laid them out.
+     */
+    moneyColumn('overdue', t('o10.overdue'), (row) => row.netOverduePaise ?? row.overduePaise, {
       cell: (row) => (
         <Money
-          value={row.overduePaise}
+          value={row.netOverduePaise ?? row.overduePaise}
           size="cell"
           symbol={false}
-          tone={row.overduePaise > 0 ? 'critical' : 'default'}
+          tone={(row.netOverduePaise ?? row.overduePaise) > 0 ? 'critical' : 'default'}
         />
       ),
     }),
@@ -429,7 +434,13 @@ export default function OutstandingListItem(): React.JSX.Element {
               totals={{
                 code: t('word.total'),
                 dues: <Money value={shown?.outstandingPaise ?? 0} size="cell" symbol={false} />,
-                overdue: <Money value={shown?.overduePaise ?? 0} size="cell" symbol={false} />,
+                overdue: (
+                  <Money
+                    value={shown?.netOverduePaise ?? shown?.overduePaise ?? 0}
+                    size="cell"
+                    symbol={false}
+                  />
+                ),
                 onAccount: (
                   <Money value={shown?.unallocatedCreditPaise ?? 0} size="cell" symbol={false} />
                 ),
@@ -468,7 +479,11 @@ export default function OutstandingListItem(): React.JSX.Element {
                 <Money value={shop.data.outstandingPaise} size="moneyM" />
               </Field>
               <Field label={t('o10.overdue')}>
-                <Money value={shop.data.overduePaise} size="cell" tone="critical" />
+                <Money
+                  value={shop.data.netOverduePaise ?? shop.data.overduePaise}
+                  size="cell"
+                  tone="critical"
+                />
               </Field>
               <Field label={t('o10.oldest')}>{shortDate(shop.data.oldestDueDate)}</Field>
               {/*

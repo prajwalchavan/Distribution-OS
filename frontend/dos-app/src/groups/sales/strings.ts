@@ -155,6 +155,10 @@ export const strings = {
   's2.creditHeadroom': 'Headroom {amount} · {mode}',
   's2.creditOver': 'Over the limit by {amount} · {mode}',
   's2.creditOffline': 'Owes {owed} of {limit} — checked again at submit',
+  // QA DOS-314 / DOS-225 / DOS-313: the verdict line of the shop card, in the office's own terms.
+  's2.creditStoppedLine': 'Credit stopped by the owner — no order on credit · {mode}',
+  's2.payOnDeliveryLine': 'Pays on delivery — no credit is given, the crew collects at the door',
+  's2.creditPromised': 'Includes {amount} of orders not billed yet',
   /*
    * DOS-093 — a shop added this morning has no rollup yet, and `behaviour` answers 404
    * `behaviour_not_computed`. That is the contract's own answer, not a fault: it is a sentence.
@@ -239,6 +243,10 @@ export const strings = {
   's3.creditWarnOverNet': 'Over the credit limit by {over} before GST (warn only)',
   's3.creditWarnOverdue': '{days} days overdue (warn only)',
   's3.creditWarnBills': 'Too many open bills (warn only)',
+  // QA DOS-314 / DOS-225: stop means stop; a pay-on-delivery shop of a stopped shop waits for the desk.
+  's3.creditStopped': 'Credit stopped by the owner — the office will not take this order on credit',
+  's3.creditStoppedPod':
+    'Credit stopped by the owner — the office checks this pay-on-delivery order before it goes',
   's3.placedTitle': 'Order placed',
   's3.placedBody': 'The office has it, with its number and its price.',
   /* DOS-082: named right below "Order placed" — the price the shop was quoted, and what it became. */

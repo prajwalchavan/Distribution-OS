@@ -81,6 +81,32 @@ describe('DOS-081: the credit chip before Place', () => {
     expect(creditChipCopy({ ...base, creditMode: 'stop' }, 'payable')?.family).toBe('brick')
   })
 
+  it('DOS-314: a stopped shop reads "credit stopped", whatever its reasons; a pay-on-delivery one is held for the desk', () => {
+    expect(creditChipCopy({ ...base, creditMode: 'stop', creditStopped: true }, 'payable')).toEqual(
+      {
+        family: 'brick',
+        key: 's3.creditStopped',
+        overPaise: 0,
+        overdueDays: 0,
+      },
+    )
+    expect(
+      creditChipCopy(
+        { ...base, reasons: [], creditMode: 'stop', creditStopped: true, payOnDelivery: true },
+        'payable',
+      )?.key,
+    ).toBe('s3.creditStoppedPod')
+  })
+
+  it('DOS-225: a pay-on-delivery shop is given no credit, so there is no chip to show', () => {
+    expect(
+      creditChipCopy(
+        { ...base, reasons: [], creditMode: 'strict', payOnDelivery: true },
+        'payable',
+      ),
+    ).toBeNull()
+  })
+
   it('says warn only for an indicate shop, in ochre', () => {
     expect(creditChipCopy({ ...base, creditMode: 'indicate' }, 'payable')).toEqual({
       family: 'ochre',

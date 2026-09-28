@@ -887,6 +887,11 @@ export const strings = {
   'm12.document': 'Document',
   'm12.mode': 'Mode',
   'm12.collected': 'Collected ₹',
+  // QA DOS-321 / DOS-317 / DOS-312: credit notes beside sales, distinct GST documents, net dues.
+  'm12.credited': 'Credit notes ₹',
+  'm12.gstDocuments': '{bills} bills · {cancelled} cancelled · {notes} credit notes',
+  'm12.onAccount': 'On account ₹',
+  'm12.netDue': 'Net due ₹',
   'm12.bucket': 'Age',
   'm12.owed': 'Owed ₹',
   'm12.empty': 'Nothing in this window',

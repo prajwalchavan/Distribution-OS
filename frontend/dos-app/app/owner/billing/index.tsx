@@ -353,6 +353,13 @@ export default function Billing(): React.JSX.Element {
             }}
             totals={{
               hsn: t('word.total'),
+              // QA DOS-317: distinct documents, whatever the grouping, and the cancelled ones apart —
+              // the counts a CA copies into the return.
+              rate: t('o13.documents', {
+                bills: gst.data?.totals.documentCount ?? 0,
+                cancelled: gst.data?.totals.cancelledDocumentCount ?? 0,
+                notes: gst.data?.creditNoteTotals.documentCount ?? 0,
+              }),
               taxable: (
                 <Money value={gst.data?.totals.taxablePaise ?? 0} size="cell" symbol={false} />
               ),
