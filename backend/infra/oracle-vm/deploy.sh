@@ -23,7 +23,7 @@ if [ -n "$F" ]; then
   echo "== rehearse migrations on a restore of $(basename "$F")"
   sudo -u postgres psql -qc "drop database if exists dos_migrate_rehearsal" 2>/dev/null
   sudo -u postgres createdb -O dos dos_migrate_rehearsal
-  # a copy of the real data: closed to every login but dos, the demo login included (demo-setup.sh)
+  # a copy of the real data: closed to every login but dos
   sudo -u postgres psql -qc "revoke connect on database dos_migrate_rehearsal from public"
   sudo -u postgres pg_restore -d dos_migrate_rehearsal --no-owner --role=dos "$F" >/dev/null 2>&1 || true
   ( set -a; . /opt/dos/env/live.env; set +a; DATABASE_URL="${DATABASE_URL%/*}/dos_migrate_rehearsal" pnpm db:migrate 2>&1 | tail -1 )
@@ -31,11 +31,10 @@ if [ -n "$F" ]; then
 fi
 /opt/dos/backup-local.sh | tail -1                 # a dump of the real data as it is NOW, before it is migrated
 echo "== migrate live"; ( set -a; . /opt/dos/env/live.env; set +a; pnpm db:migrate 2>&1 | tail -1 )
-# The demo never holds up a release of the real thing: it is dummy data, rebuilt from nothing every
-# night by /opt/dos/demo-rebuild.sh, and its database login is a limited one (demo-setup.sh).
+# The old demo copy (VM-local, not used by anybody) never holds up a release of the real thing.
 if [ -f /opt/dos/env/demo.env ]; then
   echo "== migrate demo"
-  ( set -a; . /opt/dos/env/demo.env; set +a; pnpm db:migrate 2>&1 | tail -1 ) || echo "   demo migration FAILED: live goes on; run /opt/dos/demo-rebuild.sh on the VM"
+  ( set -a; . /opt/dos/env/demo.env; set +a; pnpm db:migrate 2>&1 | tail -1 ) || echo "   demo migration FAILED: live goes on"
 fi
 echo "== restart"; sudo systemctl restart dos-api@live dos-api@demo
 for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3100/health | grep -q 200 && { echo "   live api up (:3100)"; break; }; sleep 2; done
