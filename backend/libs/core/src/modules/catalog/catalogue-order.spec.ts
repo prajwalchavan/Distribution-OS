@@ -53,7 +53,10 @@ describeDb('catalogue order: brand, item, pack size (DATABASE_URL)', () => {
     // no brand: filed under its maker, "Maker …", after the b's
     { brand: null, product: 'Loose Sugar', name: 'Loose Sugar 1 kg', qty: 1, unit: 'kg' },
   ] as const
-  const ids = expected.map(() => uuidv7())
+  // Ids that sort in the REVERSE of the ruling's order, so a list still ordered by id cannot pass.
+  const ids = expected.map(
+    (_, i) => `${run}-0000-7000-8000-${String(expected.length - i).padStart(12, '0')}`,
+  )
 
   beforeAll(async () => {
     await db
