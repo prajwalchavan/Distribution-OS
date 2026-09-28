@@ -10,8 +10,10 @@
  *     `trips.depart`, `stops.fail` and `deliveries.record` complete — which the database slice's seed
  *     only wrote for stops already delivered;
  *   - tomorrow's planned trip on the tempo (Ganesh + Raju, van sales on) with pending stops carrying
- *     ETAs, built from bills that are packed or dispatched and not yet riding on any trip, so
- *     `trips.startLoading → depart` has a trip to move and the delivery app opens on a plan.
+ *     ETAs, built from exactly the packed bills on the draft load sheet the warehouse seed drafted for it,
+ *     so the godown's sheet and the trip agree bill for bill. PLANNED AND DRAFTED, NEVER LOADED: today's
+ *     trip is still out on the same tempo, and a van carries one trip at a time (architect ruling of
+ *     2026-09-28, vans and trips 1) — the sheet is approved and counted out once today's trip is settled.
  *
  * Runs after every other seed (it reads the orders, invoices and load sheets they wrote). Deterministic
  * ids (`demoId`), `onConflictDoNothing` everywhere: a second `pnpm db:seed` adds nothing.
@@ -21,6 +23,7 @@ import {
   deliveries,
   featureFlags,
   invoices,
+  loadSheets,
   salesOrders,
   trips,
   tripStops,
@@ -35,6 +38,8 @@ import { activeTripId, plannedTripId } from './trip-plan.js'
 import { atIstTime, isoDate, nextWorkingDay } from './util.js'
 
 const MAX_PLANNED_STOPS = 14
+/** A trip carries at most 80 stops (`trips.create`); a day's draft sheet is far below it. */
+const MAX_SHEET_STOPS = 80
 
 export async function seedDeliveryRoad(
   db: Db,
@@ -84,7 +89,7 @@ export async function seedDeliveryRoad(
     })),
   )
 
-  // 3. tomorrow's planned trip: bills packed or dispatched that ride on no trip yet
+  // 3. tomorrow's planned trip: the packed bills on the draft sheet drafted for it, riding on no trip yet
   const [existing] = await db
     .select({ id: trips.id })
     .from(trips)
@@ -97,6 +102,21 @@ export async function seedDeliveryRoad(
       .where(eq(tripStops.tripId, DEMO_PLANNED_TRIP_ID))
     return { plannedTripId: DEMO_PLANNED_TRIP_ID, plannedStops: Number(count?.n ?? 0) }
   }
+  // Vans and trips 1 and 3 (2026-09-28): only PACKED bills — nothing is dispatched for tomorrow while today's trip
+  // is out on the tempo — and, when the godown drafted a sheet for this trip, exactly that sheet's bills, so the
+  // sheet takes no bill its trip does not carry (`bill_not_planned`). A prepaid bill goes out like any other.
+  const [draft] = await db
+    .select({ orderIds: loadSheets.orderIds })
+    .from(loadSheets)
+    .where(
+      and(
+        eq(loadSheets.tenantId, tenantId),
+        eq(loadSheets.tripId, DEMO_PLANNED_TRIP_ID),
+        eq(loadSheets.status, 'draft'),
+      ),
+    )
+    .limit(1)
+  const onSheet = draft?.orderIds ?? []
   const candidates = await db
     .select({
       id: invoices.id,
@@ -109,13 +129,14 @@ export async function seedDeliveryRoad(
     .where(
       and(
         eq(invoices.tenantId, tenantId),
-        inArray(salesOrders.state, ['packed', 'dispatched']),
-        inArray(invoices.state, ['issued', 'partially_paid']),
+        eq(salesOrders.state, 'packed'),
+        inArray(invoices.state, ['issued', 'partially_paid', 'paid']),
+        onSheet.length > 0 ? inArray(salesOrders.id, onSheet) : undefined,
         sql`not exists (select 1 from deliveries d where d.invoice_id = ${invoices.id})`,
       ),
     )
     .orderBy(invoices.id)
-    .limit(MAX_PLANNED_STOPS)
+    .limit(onSheet.length > 0 ? MAX_SHEET_STOPS : MAX_PLANNED_STOPS)
   // the next WORKING day: Monday's round on a Saturday, never a trip dated on the weekly off
   const tomorrow = nextWorkingDay()
   const tempo = delivery.vehicles.find((v) => v.key === 'tempo')
