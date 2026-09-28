@@ -170,6 +170,21 @@ export function RupeeInput({
 
   return (
     <div style={{ width: '100%' }}>
+      {/*
+        Cash collection prints the expected amount ABOVE the field and never pre-fills it — and above
+        the field's own LABEL too, so the label sits on its field. Read top to bottom the old order was
+        "Amount taken · Still to collect ₹2,405.00 · [ ]": the figure stood between the question and its
+        answer box, and read as the answer (delivery home, verify-1 m7). The native field shows the
+        figure on its pad, above the keys, and never between the label and the field either.
+      */}
+      {expected !== null && expected !== undefined ? (
+        <div style={{ marginBottom: space[3] }}>
+          <Txt field="label" desk="label" as="div" color={theme.colors.text.secondary}>
+            {expectedLabel ?? ''}
+          </Txt>
+          <Money value={expected} size="moneyL" />
+        </div>
+      ) : null}
       <Txt
         field="label"
         desk="label"
@@ -179,15 +194,6 @@ export function RupeeInput({
       >
         {label}
       </Txt>
-      {/* Cash collection prints the expected amount ABOVE the field and never pre-fills it. */}
-      {expected !== null && expected !== undefined ? (
-        <div style={{ marginBottom: space[2] }}>
-          <Txt field="label" desk="label" as="div" color={theme.colors.text.secondary}>
-            {expectedLabel ?? ''}
-          </Txt>
-          <Money value={expected} size="moneyL" />
-        </div>
-      ) : null}
       {/*
         THE WHOLE CONTROL IS THE TOUCH TARGET, not just the input inside it. The wrapper is the app's
         touch floor (69 / 76 dp); the `<input>` sits inside its 1 px border, so measured on a phone

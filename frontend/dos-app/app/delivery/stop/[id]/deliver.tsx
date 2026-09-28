@@ -57,6 +57,15 @@ import {
   pullAfterDoorstepWrite,
 } from '../../../../src/groups/delivery/lib/at-the-door'
 import { longDate } from '../../../../src/groups/delivery/lib/dates'
+import {
+  arrivalGeoProof,
+  billedPieces,
+  deliveryLinePayload,
+  deliveryRecordInput,
+  queuedDelivery,
+  type DeliveryLinePayload,
+  type DoorLineEntry,
+} from '../../../../src/groups/delivery/lib/door-writes'
 import { keepKey } from '../../../../src/groups/delivery/lib/keep'
 import {
   useHydrated,
@@ -66,7 +75,6 @@ import {
   useLocalRetailers,
   useLocalStop,
   useLocalTrip,
-  type LocalInvoiceLine,
 } from '../../../../src/groups/delivery/lib/local'
 import { podState, type PodFooter } from '../../../../src/groups/delivery/lib/pod'
 import {
@@ -96,24 +104,14 @@ const LINE_REASONS: readonly DeliveryLineReason[] = [
   'other',
 ]
 
-/** Exactly `RecordDeliveryInput.lines[]`, so one array serves the online call and the outbox op. */
-interface LinePayload {
-  id: string
-  invoiceLineId: string
-  deliveredQtyPcs: number
-  returnedQtyPcs: number
-  returnedSaleable: boolean
-  reason?: DeliveryLineReason
-}
-
-interface LineEntry {
-  /** Client id of the `delivery_lines` row; stable so a retry writes the same row. */
-  id: string
-  deliveredQtyPcs: number
-  returnedQtyPcs: number
-  returnedSaleable: boolean
-  reason: DeliveryLineReason | null
-}
+/*
+ * The line payload, the entry a line keeps while this screen is open, the arrival point and both
+ * halves of the doorstep write live in `src/groups/delivery/lib/door-writes.ts` (founder, 2026-09-28):
+ * the home's "Delivered, all items" writes exactly what this screen writes for a full bill, so the two
+ * build it with the same functions.
+ */
+type LinePayload = DeliveryLinePayload
+type LineEntry = DoorLineEntry
 
 /**
  * DOS-071 — the line under the proof panel, one key per state `pod.ts` can be in. The stale one was
@@ -127,9 +125,6 @@ const POD_META: Record<PodFooter, string> = {
   required_always: 'd4.podRequiredAlways',
   optional: 'd4.podNotRequired',
 }
-
-/** Free pieces are delivered and returned like any other piece (`RecordDeliveryInput`'s own rule). */
-const billedPieces = (line: LocalInvoiceLine): number => line.qty_pcs + line.free_qty_pcs
 
 /** The line whose pieces pad is open, with what it was showing when it opened. */
 interface PieceLine {
@@ -315,40 +310,23 @@ export default function AtTheDoor(): React.JSX.Element {
 
   const record = useMutation(
     (input: { lines: LinePayload[]; pod: QueuedPod[] }, meta) =>
-      api.api.delivery.deliveries.record({
-        idempotencyKey: meta.idempotencyKey,
-        id: row?.id ?? meta.id,
-        tripId: row?.trip_id ?? '',
-        stopId: row?.stop_id ?? '',
-        invoiceId: row?.invoice_id ?? '',
-        ...(receiver.trim() === '' ? {} : { receiverName: receiver.trim() }),
-        ...(note.trim() === '' ? {} : { note: note.trim() }),
-        deliveredAt: new Date().toISOString(),
-        deviceId: deviceId(),
-        lines: input.lines,
-        pod: input.pod.map((one) => ({
-          id: one.id,
-          kind: one.kind,
-          /*
-           * `PodEvidenceInput` refines to "a photo or signature carries EXACTLY ONE of objectKey /
-           * inline". `storeProof` answers whichever the SERVER asked for, and dropping the
-           * `objectKey` half of that answer sent a photo evidence row carrying neither — a 400 on
-           * the one write a driver cannot skip, reading "Input validation failed" at a shop door.
-           */
-          ...(one.objectKey === undefined ? {} : { objectKey: one.objectKey }),
-          ...(one.contentBase64 === undefined
-            ? {}
-            : {
-                inline: {
-                  mimeType: one.mimeType ?? 'image/jpeg',
-                  contentBase64: one.contentBase64,
-                },
-              }),
-          ...(one.payload === undefined ? {} : { payload: one.payload }),
-          ...(one.lat === undefined ? {} : { lat: one.lat }),
-          ...(one.lng === undefined ? {} : { lng: one.lng }),
-        })),
-      }),
+      /*
+       * `deliveryRecordInput` (door-writes.ts) builds the call, `podWire` inside it keeps exactly one
+       * of objectKey / inline per photo — the home's "Delivered, all items" builds it the same way.
+       */
+      api.api.delivery.deliveries.record(
+        deliveryRecordInput({
+          idempotencyKey: meta.idempotencyKey,
+          delivery: row,
+          fallbackId: meta.id,
+          receiver,
+          note,
+          deliveredAt: new Date().toISOString(),
+          deviceId: deviceId(),
+          lines: input.lines,
+          pod: input.pod,
+        }),
+      ),
     {
       invalidates: [['trip'], ['stops']],
       onSuccess: (result) => {
@@ -514,37 +492,18 @@ export default function AtTheDoor(): React.JSX.Element {
     setBusy(true)
     void (async () => {
       try {
-        /* Where the driver stood, as evidence — never a block (the geofence is amber, not a gate). */
-        const geo: QueuedPod[] =
-          stop?.arrived_lat !== null && stop?.arrived_lat !== undefined && stop.arrived_lng !== null
-            ? [
-                {
-                  id: uuidv7(),
-                  kind: 'geo',
-                  lat: stop.arrived_lat,
-                  lng: stop.arrived_lng ?? undefined,
-                },
-              ]
-            : []
+        /*
+         * Where the driver stood, as evidence — never a block (the geofence is amber, not a gate).
+         * DOS-070: `arrivalGeoProof` attaches a `geo` row only when there IS an arrival fix.
+         */
+        const geo: QueuedPod[] = arrivalGeoProof(stop, uuidv7)
         /** One evidence id for the photo, whichever way it travels. */
         const photoId = uuidv7()
         /** Where the office said the photo's bytes went, once it has said anything. */
         let stored: StoredProof | null = null
 
-        const payload: LinePayload[] = lines.rows.map((line) => {
-          const entry = entries[line.id]
-          const billed = billedPieces(line)
-          return {
-            id: entry?.id ?? uuidv7(),
-            invoiceLineId: line.id,
-            deliveredQtyPcs: entry?.deliveredQtyPcs ?? billed,
-            returnedQtyPcs: entry?.returnedQtyPcs ?? 0,
-            returnedSaleable: entry?.returnedSaleable ?? true,
-            ...(entry?.reason === null || entry?.reason === undefined
-              ? {}
-              : { reason: entry.reason }),
-          }
-        })
+        /* The driver's entries where there are any, the whole line where there are none. */
+        const payload: LinePayload[] = deliveryLinePayload(lines.rows, entries, uuidv7)
 
         const result = await recordOrSave({
           online: status.online,
@@ -606,27 +565,16 @@ export default function AtTheDoor(): React.JSX.Element {
                     }
                   : { id: photoId, kind: 'photo', objectKey: stored.objectKey },
               )
-            await queueDelivery({
-              id: row.id,
-              tripId: row.trip_id,
-              stopId: row.stop_id,
-              invoiceId: row.invoice_id,
-              retailerId: row.retailer_id,
-              orderId: row.order_id,
-              receiverName: receiver.trim(),
-              note: note.trim(),
-              lines: payload.map((line) => ({
-                id: line.id,
-                invoiceLineId: line.invoiceLineId,
-                deliveredQtyPcs: line.deliveredQtyPcs,
-                returnedQtyPcs: line.returnedQtyPcs,
-                returnedSaleable: line.returnedSaleable,
-                reason: line.reason,
-              })),
-              pod: [...pod, ...geo],
-              deviceId: deviceId(),
-              existing: row,
-            })
+            await queueDelivery(
+              queuedDelivery({
+                delivery: row,
+                receiver,
+                note,
+                lines: payload,
+                pod: [...pod, ...geo],
+                deviceId: deviceId(),
+              }),
+            )
           },
         })
         if (result.via === 'phone') {

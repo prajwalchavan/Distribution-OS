@@ -183,6 +183,11 @@ const CLASSIFIED: Readonly<Record<string, Readonly<Partial<Record<Kind, readonly
       'd.savedOnPhone',
       'd.offlineWrite',
       'd1.trackingHeld',
+      /*
+       * The driver's home says the pending line in its own words since verify-1 m3 (founder,
+       * 2026-09-28: plain words on every home); D8 keeps `d8.pending`. A keep claim like the rest.
+       */
+      'd1.pending',
       'd4.recordOffline',
       'd5.recordOffline',
       'd5.recordedQueued',

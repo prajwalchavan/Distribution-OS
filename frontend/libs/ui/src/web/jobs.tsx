@@ -65,7 +65,14 @@ export function JobCard({
   const next = state === 'next'
 
   if (state === 'done') {
-    /* One quiet line: the tick, the name, the state word. Still opens the detail when it can. */
+    /*
+     * One quiet line: the tick, the name, the state word. Still opens the detail when it can.
+     *
+     * It keeps the app's touch floor (UX-00 §5.2), so it is taller than its one line of text — and
+     * with no edge of its own that height read as an empty gap between rows (delivery home, verify-1
+     * m5: "~88 px gaps between one-line rows"). A faint outline makes it a slim row, still quieter
+     * than any open card: no surface, no shadow, no accent.
+     */
     const line = (
       <span
         style={{
@@ -91,8 +98,19 @@ export function JobCard({
         )}
       </span>
     )
+    const outline = `1px solid ${theme.colors.border.faint}`
     return onPress === undefined ? (
-      <div data-testid={testID} data-state="done" style={{ minHeight: space[10] }}>
+      <div
+        data-testid={testID}
+        data-state="done"
+        style={{
+          minHeight: space[10],
+          display: 'flex',
+          alignItems: 'center',
+          border: outline,
+          borderRadius: radius.md,
+        }}
+      >
         {line}
       </div>
     ) : (
@@ -107,6 +125,7 @@ export function JobCard({
           minHeight: theme.touchSize,
           padding: 0,
           background: 'transparent',
+          border: outline,
           borderRadius: radius.md,
         }}
       >

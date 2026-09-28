@@ -66,6 +66,12 @@ import {
   pullAfterDoorstepWrite,
 } from '../../../../src/groups/delivery/lib/at-the-door'
 import { keepApplied } from '../../../../src/groups/delivery/lib/door-money'
+import {
+  collectionRecordInput,
+  moneyNeedsReference,
+  queuedReceipt,
+  receiptNumber,
+} from '../../../../src/groups/delivery/lib/door-writes'
 import { longDate, today } from '../../../../src/groups/delivery/lib/dates'
 import { keepKey } from '../../../../src/groups/delivery/lib/keep'
 import {
@@ -238,30 +244,30 @@ export default function Collect(): React.JSX.Element {
 
   const collect = useMutation(
     (input: { mode: Mode; amountPaise: number; allocations: TaggedAllocation[] | null }, meta) =>
-      api.api.delivery.collections.record({
-        idempotencyKey: meta.idempotencyKey,
-        id: meta.id,
-        receiptId: uuidv7(),
-        tripId: stop?.trip_id ?? '',
-        stopId: stop?.id ?? '',
-        retailerId: stop?.retailer_id ?? '',
-        mode: input.mode,
-        amountPaise: input.amountPaise,
-        ...(reference.trim() === '' ? {} : { reference: reference.trim() }),
-        ...(input.mode === 'cheque' ? { chequeDate } : {}),
-        ...(bank.trim() === '' ? {} : { bankName: bank.trim() }),
-        ...(bookNo.trim() === '' ? {} : { clientReceiptNo: bookNo.trim() }),
-        /*
-         * DOS-062 — "unless tagged". An empty split is not sent at all: the server reads the presence
-         * of `allocations` as `strategy: 'explicit'`, and an empty explicit split would allocate
-         * nothing rather than falling back to the office's oldest-bill-first rule.
-         */
-        ...(input.allocations === null || input.allocations.length === 0
-          ? {}
-          : { allocations: input.allocations }),
-        collectedAt: new Date().toISOString(),
-        deviceId: deviceId(),
-      }),
+      /*
+       * `collectionRecordInput` (door-writes.ts) builds the call — the home's "Take money" sheet
+       * builds it with the same function. DOS-062 — "unless tagged": an empty split is not sent at
+       * all, because the server reads the presence of `allocations` as `strategy: 'explicit'`.
+       */
+      api.api.delivery.collections.record(
+        collectionRecordInput({
+          idempotencyKey: meta.idempotencyKey,
+          id: meta.id,
+          receiptId: uuidv7(),
+          stop,
+          money: {
+            mode: input.mode,
+            amountPaise: input.amountPaise,
+            reference,
+            chequeDate,
+            bankName: bank,
+            bookNo,
+          },
+          allocations: input.allocations,
+          collectedAt: new Date().toISOString(),
+          deviceId: deviceId(),
+        }),
+      ),
     {
       invalidates: [['trip'], ['settlement'], ['collections'], ['outstanding']],
       onSuccess: (result) => {
@@ -309,7 +315,7 @@ export default function Collect(): React.JSX.Element {
     },
   )
 
-  const needsReference = mode !== 'cash' && reference.trim() === ''
+  const needsReference = moneyNeedsReference({ mode, reference })
   const amountBad = amountPaise === null || amountPaise <= 0
 
   const commit = (): void => {
@@ -334,24 +340,20 @@ export default function Collect(): React.JSX.Element {
     setBusy(true)
     void (async () => {
       try {
-        const id = await queueReceipt({
-          tripId: stop.trip_id,
-          retailerId: stop.retailer_id,
-          mode,
-          amountPaise,
-          reference: reference.trim(),
-          ...(mode === 'cheque' ? { chequeDate } : {}),
-          bankName: bank.trim(),
-          clientReceiptNo: bookNo.trim(),
-          deviceId: deviceId(),
-          receivedBy: myUserId,
-        })
+        const id = await queueReceipt(
+          queuedReceipt({
+            stop,
+            money: { mode, amountPaise, reference, chequeDate, bankName: bank, bookNo },
+            deviceId: deviceId(),
+            receivedBy: myUserId,
+          }),
+        )
         haptics.success()
         router.replace(
           go.href(
             doorDoneHref(stopId ?? '', {
               code: 'moneyKept',
-              no: bookNo.trim() === '' ? id.slice(0, 8) : bookNo.trim(),
+              no: receiptNumber({ bookNo, id }),
             }),
           ),
         )
