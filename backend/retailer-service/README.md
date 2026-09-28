@@ -8615,7 +8615,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -8842,7 +8847,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9076,7 +9086,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9294,7 +9309,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9522,7 +9542,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9761,7 +9786,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -9976,7 +10006,12 @@ curl "http://localhost:3006/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -10171,7 +10206,12 @@ curl "http://localhost:3006/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -10386,7 +10426,12 @@ curl "http://localhost:3006/orders?state=draft&openOnly=true&retailerId=01a06dbc
         "creditLimitPaise": 2680000,
         "headroomPaise": 4000,
         "overdueDays": 7,
-        "orderTotalPaise": 2680000
+        "orderTotalPaise": 2680000,
+        "unbilledOrdersPaise": 4000,
+        "unallocatedCreditPaise": 4000,
+        "exposurePaise": 4000,
+        "creditStopped": true,
+        "payOnDelivery": true
       },
       "expectedDeliveryDate": "2026-09-04",
       "note": null,
@@ -10683,7 +10728,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -10970,6 +11020,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -11565,6 +11617,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -11881,6 +11935,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -12170,6 +12226,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -12300,6 +12358,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -12417,6 +12477,8 @@ curl "http://localhost:3006/receivables/outstanding/01a06dbc-35ed-7760-86f2-6c70
   "overduePaise": 4000,
   "undeliveredPaise": 4000,
   "unallocatedCreditPaise": 4000,
+  "netDuesPaise": 4000,
+  "netOverduePaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
   "oldestInvoiceDate": "2026-09-04",
@@ -12551,7 +12613,9 @@ curl "http://localhost:3006/receivables/outstanding?beatId=01a06d3e-cfdb-7635-85
       "oldestDueDate": "2026-09-04",
       "bucketPaise": 4000,
       "creditMode": "indicate",
-      "unallocatedCreditPaise": 4000
+      "unallocatedCreditPaise": 4000,
+      "netDuesPaise": 4000,
+      "netOverduePaise": 4000
     }
   ],
   "nextCursor": null,
@@ -12561,6 +12625,16 @@ curl "http://localhost:3006/receivables/outstanding?beatId=01a06d3e-cfdb-7635-85
     "unallocatedCreditPaise": 4000,
     "retailers": 1,
     "buckets": {
+      "b0_7": 1,
+      "b8_15": 1,
+      "b16_30": 1,
+      "b31_60": 1,
+      "b61_90": 1,
+      "b90plus": 1
+    },
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
+    "netBuckets": {
       "b0_7": 1,
       "b8_15": 1,
       "b16_30": 1,
@@ -12654,11 +12728,17 @@ curl "http://localhost:3006/receivables/credit-check?retailerId=01a06dbc-35ed-77
   "creditDays": 7,
   "outstandingPaise": 2680000,
   "undeliveredPaise": 4000,
+  "unbilledOrdersPaise": 4000,
+  "unbilledOrders": 1,
+  "unallocatedCreditPaise": 4000,
+  "exposurePaise": 4000,
   "openBills": 1,
   "oldestDueDate": "2026-09-04",
   "overdueDays": 7,
   "orderTotalPaise": 2680000,
   "headroomPaise": 4000,
+  "creditStopped": true,
+  "payOnDelivery": true,
   "breached": true,
   "reasons": [
     "limit_exceeded"
@@ -13001,6 +13081,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -13845,7 +13927,8 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   }
 }
 ```
@@ -14090,7 +14173,8 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   }
 }
 ```
@@ -14354,7 +14438,8 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   }
 }
 ```
@@ -14587,7 +14672,8 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   }
 }
 ```
@@ -14813,7 +14899,8 @@ curl "http://localhost:3006/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   }
 }
 ```
@@ -15345,7 +15432,8 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   }
 }
 ```
@@ -16367,7 +16455,8 @@ curl "http://localhost:3006/billing/gst-summary?from=2026-09-04&to=2026-09-04&su
     "igstPaise": 12000,
     "cessPaise": 12000,
     "totalPaise": 2680000,
-    "documentCount": 1
+    "documentCount": 1,
+    "cancelledDocumentCount": 1
   },
   "creditNoteRows": [
     {
@@ -16394,7 +16483,8 @@ curl "http://localhost:3006/billing/gst-summary?from=2026-09-04&to=2026-09-04&su
     "igstPaise": 12000,
     "cessPaise": 12000,
     "totalPaise": 2680000,
-    "documentCount": 1
+    "documentCount": 1,
+    "cancelledDocumentCount": 1
   }
 }
 ```
@@ -22090,6 +22180,8 @@ request.json
     "overduePaise": 4000,
     "undeliveredPaise": 4000,
     "unallocatedCreditPaise": 4000,
+    "netDuesPaise": 4000,
+    "netOverduePaise": 4000,
     "openBills": 1,
     "oldestDueDate": "2026-09-04",
     "oldestInvoiceDate": "2026-09-04",
@@ -22382,7 +22474,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
@@ -22590,7 +22687,8 @@ request.json
       "upiVpa": "text",
       "phone": "+919876543210"
     },
-    "awaitingDispatch": true
+    "awaitingDispatch": true,
+    "paymentTerms": "PRE"
   },
   "delivery": {
     "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
@@ -25751,7 +25849,12 @@ request.json
       "creditLimitPaise": 2680000,
       "headroomPaise": 4000,
       "overdueDays": 7,
-      "orderTotalPaise": 2680000
+      "orderTotalPaise": 2680000,
+      "unbilledOrdersPaise": 4000,
+      "unallocatedCreditPaise": 4000,
+      "exposurePaise": 4000,
+      "creditStopped": true,
+      "payOnDelivery": true
     },
     "expectedDeliveryDate": "2026-09-04",
     "note": null,
