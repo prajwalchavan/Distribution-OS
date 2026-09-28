@@ -239,6 +239,16 @@ export const receipts = pgTable(
 /**
  * A bad debt the owner has decided to stop chasing. Never a credit note (that is a tax document): a write-off
  * is a financial entry DR BAD_DEBTS / CR AR plus an `allocations` row that closes the bill.
+ *
+ * RECOVERY (QA DOS-311, architect ruling 2026-09-28). Money that later arrives from the shop recovers the
+ * written-off amount first. The write-off is never edited: a RECOVERY row is written beside it — the same shape
+ * with a negative amount, `reverses_write_off_id` naming the write-off it recovers and `receipt_id` the money
+ * that recovered it — with its own `allocations` row (negative: the write-off's hold on the bill is released)
+ * and its own entry DR AR / CR BAD_DEBTS, while the receipt's money settles the bill. The bill stays
+ * `written_off` and nets to zero, the shop's dues and its money on account do not move, and the write-off
+ * register sums to what is still written off. Reversing that receipt (a bounced cheque) writes a positive row
+ * with the same `reverses_write_off_id` and the reversal's `receipt_id`: the write-off stands again. Per
+ * original write-off, `amount + Σ its rows` never leaves `0 … amount` (migration 0079, checked at commit).
  */
 export const writeOffs = pgTable(
   'write_offs',
@@ -251,8 +261,9 @@ export const writeOffs = pgTable(
     retailerId: text('retailer_id')
       .notNull()
       .references(() => retailers.id),
+    /** Positive on a write-off; negative on a recovery; positive on the row that undoes a recovery. */
     amountPaise: paise('amount_paise').notNull(),
-    /** bad_debt | rounding | settlement | other */
+    /** bad_debt | rounding | settlement | other (a recovery row carries its write-off's reason) */
     reason: text('reason').notNull(),
     note: text('note'),
     approvedBy: text('approved_by')
@@ -260,12 +271,24 @@ export const writeOffs = pgTable(
       .references(() => users.id),
     journalEntryId: text('journal_entry_id').references(() => journalEntries.id),
     idempotencyKey: text('idempotency_key').notNull(),
+    /** DOS-311: the write-off this row recovers (or re-instates); null on a write-off itself. */
+    reversesWriteOffId: text('reverses_write_off_id').references((): AnyPgColumn => writeOffs.id),
+    /** DOS-311: the receipt that recovered it (or, on a re-instatement, the reversal of that receipt). */
+    receiptId: text('receipt_id').references(() => receipts.id),
     ...timestamps,
   },
   (t) => [
     uniqueIndex('write_offs_idempotency_idx').on(t.tenantId, t.idempotencyKey),
     index('write_offs_invoice_idx').on(t.tenantId, t.invoiceId),
-    check('write_offs_amount_positive', sql`amount_paise > 0`),
+    index('write_offs_reverses_idx').on(t.tenantId, t.reversesWriteOffId),
+    index('write_offs_receipt_idx').on(t.tenantId, t.receiptId),
+    // Nonzero, not positive: a recovery is the same row shape with a negative amount (DOS-311).
+    check('write_offs_amount_nonzero', sql`amount_paise <> 0`),
+    // A write-off itself is positive and names no receipt; a recovery row names both the write-off and the receipt.
+    check(
+      'write_offs_recovery_shape',
+      sql`(reverses_write_off_id IS NULL AND receipt_id IS NULL AND amount_paise > 0) OR (reverses_write_off_id IS NOT NULL AND receipt_id IS NOT NULL)`,
+    ),
     tenantRolePolicy('write_offs_back_office', BACK_OFFICE_ROLES),
   ],
 ).enableRLS()

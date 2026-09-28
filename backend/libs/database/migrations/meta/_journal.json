@@ -505,6 +505,20 @@
       "when": 1790800000000,
       "tag": "0073_owner_list_keyset_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1790900000400,
+      "tag": "0078_write_off_recovery_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1790900000500,
+      "tag": "0079_receipt_reference_and_recovery_guarantees",
+      "breakpoints": true
     }
   ]
 }
