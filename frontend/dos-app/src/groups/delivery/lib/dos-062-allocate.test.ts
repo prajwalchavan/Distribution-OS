@@ -47,6 +47,7 @@ import {
   liveTags,
   owedHereIsAsBilled,
   owedHerePaise,
+  paymentReferenceRefusal,
   recordRefusal,
   settledBillChip,
   tagAllocations,
@@ -379,6 +380,24 @@ describe('DOS-062 review — a tag is capped at what the office says the bill st
     expect(recordRefusal(t, { kind: 'business', message: 'This trip is closed.' }, true)).toBe(
       'This trip is closed.',
     )
+  })
+
+  it('DOS-310 a UTR or cheque number already recorded keeps the office sentence naming the earlier receipt, split or not', () => {
+    const refused = {
+      kind: 'conflict',
+      message:
+        'UPI reference UTR1790564510946 is already on receipt RCPT-9103 of QA P7 PB7, 28 Sep 2026, ₹105.00; one payment is recorded once. Open that receipt, or check the reference in the bank or UPI app',
+      data: { code: 'reference_already_recorded' },
+    }
+    expect(recordRefusal(t, refused, true)).toBe(refused.message)
+    expect(recordRefusal(t, refused, false)).toBe(refused.message)
+    expect(paymentReferenceRefusal(refused)).toBe('reference_already_recorded')
+    // the one the crew may answer: the same cheque number from another shop
+    expect(paymentReferenceRefusal({ data: { code: 'cheque_number_seen_elsewhere' } })).toBe(
+      'cheque_number_seen_elsewhere',
+    )
+    expect(paymentReferenceRefusal({ data: { code: 'trip_settled' } })).toBeNull()
+    expect(paymentReferenceRefusal({})).toBeNull()
   })
 })
 

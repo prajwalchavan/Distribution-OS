@@ -55,6 +55,8 @@ export const CHART_OF_ACCOUNTS = [
   { code: 'DAMAGES', name: 'Damages and expiry write-off', kind: 'expense' },
   { code: 'ROUND_OFF', name: 'Round off', kind: 'income' },
   { code: 'BAD_DEBTS', name: 'Bad debts written off', kind: 'expense' },
+  // QA DOS-311 (architect ruling 2026-09-28): money received after a write-off is income, not the shop's credit.
+  { code: 'BAD_DEBTS_RECOVERED', name: 'Bad debts recovered', kind: 'income' },
   { code: 'BANK_CHARGES', name: 'Bank charges', kind: 'expense' },
   { code: 'CASH_SHORT', name: 'Cash short/over on settlement', kind: 'expense' },
   { code: 'TRIP_EXPENSES', name: 'Delivery trip expenses', kind: 'expense' },

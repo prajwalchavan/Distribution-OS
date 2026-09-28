@@ -256,7 +256,9 @@ export function orderFamily(state: string): StatusFamily {
 /** The bill state families: what a shopkeeper cares about is whether money is still owed. */
 export function billFamily(state: string): StatusFamily {
   switch (state) {
+    // DOS-320: `closed_by_credit_note` is a bill closed by credit notes alone
     case 'paid':
+    case 'closed_by_credit_note':
       return 'moss'
     case 'partially_paid':
       return 'ochre'

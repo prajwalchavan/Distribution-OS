@@ -15,6 +15,7 @@
  * reissued bill has to read the way it was issued (docs/17 A3).
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
+import { invoiceStateShown } from '@dos/domain'
 import {
   Button,
   Group,
@@ -91,7 +92,10 @@ export default function BillDetail(): React.JSX.Element {
       chips={
         bill === undefined ? undefined : (
           <Row gap={2} wrap>
-            <StatusChip label={word(bill.state)} family={billFamily(bill.state)} />
+            <StatusChip
+              label={word(invoiceStateShown(bill))}
+              family={billFamily(invoiceStateShown(bill))}
+            />
             <StatusChip label={longDate(bill.invoiceDate)} family="neutral" />
           </Row>
         )

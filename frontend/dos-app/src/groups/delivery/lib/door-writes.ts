@@ -255,6 +255,8 @@ export interface CollectionRecordWire {
   allocations?: TaggedAllocation[]
   collectedAt: string
   deviceId: string
+  /** DOS-310: the crew has seen that this cheque number stands on another shop's receipt and says it is a different cheque. */
+  confirmReference?: true
 }
 
 /** A UPI payment needs its UTR and a cheque its number; cash needs neither (`RecordCollectionInput`). */
@@ -279,6 +281,8 @@ export function collectionRecordInput(input: {
   allocations: TaggedAllocation[] | null
   collectedAt: string
   deviceId: string
+  /** DOS-310: sent only when the crew has confirmed another shop's cheque number on the screen. */
+  confirmReference?: boolean
 }): CollectionRecordWire {
   const { money } = input
   const reference = money.reference.trim()
@@ -302,6 +306,7 @@ export function collectionRecordInput(input: {
       : { allocations: input.allocations }),
     collectedAt: input.collectedAt,
     deviceId: input.deviceId,
+    ...(input.confirmReference === true ? { confirmReference: true as const } : {}),
   }
 }
 

@@ -519,6 +519,20 @@
       "when": 1790900000100,
       "tag": "0075_stock_bin_and_expiry_guarantees",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1790900000400,
+      "tag": "0078_write_off_recovery_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1790900000500,
+      "tag": "0079_receipt_reference_and_recovery_guarantees",
+      "breakpoints": true
     }
   ]
 }

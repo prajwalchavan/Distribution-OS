@@ -545,6 +545,8 @@ export const strings = {
   'word.issued': 'To pay',
   'word.partially_paid': 'Part paid',
   'word.paid': 'Paid',
+  // DOS-320: a bill closed by credit notes alone, never paid
+  'word.closed_by_credit_note': 'Credited',
   'word.written_off': 'Written off',
   'word.pending': 'Not started',
   'word.started': 'On the way to you',

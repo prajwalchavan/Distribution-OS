@@ -18,13 +18,19 @@
  *     once that trip is settled — settling one above brings its cash and cheques into the register.
  *     Ticking rows raises a bar at the foot of the screen, in view however far the register is
  *     scrolled, and banking the batch with the slip number is one call that marks them all.
+ *  4. THE UPI IS CONFIRMED (DOS-256, architect ruling 2026-09-28). UPI money is already in the account;
+ *     nothing carries it to the bank, and nothing confirms it by itself either. The day's UPI payments
+ *     still `collected` are listed to tick against the bank or the UPI app, one by one or "Confirm all",
+ *     and confirming is the deposit's own movement — UPI clearing → Bank — so a confirmed payment reads
+ *     `deposited` and the owner's "Banked" counts it. A UPI payment a crew took on a trip is never in
+ *     the van, so it is listed and confirmed whether or not the trip has settled.
  *
- * The accountant does all three: this is the money desk. `trips.settle` is owner + manager +
+ * The accountant does all of it: this is the money desk. `trips.settle` is owner + manager +
  * accountant, `receipts.deposit` and `bounce` likewise.
  */
 import type { Receipt, Trip } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { receiptMayBeDeposited } from '@dos/domain'
+import { receiptMayBeConfirmed, receiptMayBeDeposited } from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -34,6 +40,7 @@ import {
   Register,
   RupeeInput,
   Screen,
+  Segments,
   Stack,
   StatusChip,
   TextInput,
@@ -73,7 +80,7 @@ import {
   type BounceIntent,
   type DepositIntent,
 } from '../../../src/groups/manager/lib/money-intents'
-import { shortInstant } from '../../../src/groups/manager/lib/dates'
+import { shortInstant, today } from '../../../src/groups/manager/lib/dates'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
 export default function DayEnd(): React.JSX.Element {
@@ -136,6 +143,31 @@ export default function DayEnd(): React.JSX.Element {
       limit: 200,
     }),
   )
+  /*
+   * DOS-256: the UPI payments waiting to be confirmed — today's, or every one still waiting. Not
+   * `withCrew`-filtered: UPI taken on a trip is in UPI clearing, never in the van.
+   */
+  const [upiScope, setUpiScope] = useState<'today' | 'all'>('today')
+  const [upiTicked, setUpiTicked] = useState<readonly string[]>([])
+  const [confirming, setConfirming] = useState<Date | null>(null)
+  const now = today()
+  const upi = useQuery(['receipts', 'collected', 'upi', upiScope, now], () =>
+    api.api.receivables.receipts.list({
+      status: 'collected',
+      mode: 'upi',
+      ...(upiScope === 'today' ? { from: now, to: now } : {}),
+      limit: 200,
+    }),
+  )
+  const upiRows = (upi.data?.items ?? []).filter((row) => receiptMayBeConfirmed(row))
+  const upiTickedTotal = upiRows
+    .filter((row) => upiTicked.includes(row.id))
+    .reduce((sum, row) => sum + row.amountPaise, 0)
+  const confirmUpi = useMutation(
+    (input: DepositIntent, meta) => api.api.receivables.receipts.deposit(depositBody(input, meta)),
+    { invalidates: [['receipts'], ['receivables'], ['reporting']] },
+  )
+
   const trips = useQuery(
     ['delivery', 'trips', 'closing'],
     () => api.api.delivery.trips.list({ limit: 50 }),
@@ -209,6 +241,25 @@ export default function DayEnd(): React.JSX.Element {
         <StatusChip
           label={ticked.includes(row.id) ? t('word.yes') : t('word.no')}
           family={ticked.includes(row.id) ? 'moss' : 'neutral'}
+        />
+      ),
+    },
+  ]
+
+  const upiColumns: readonly RegisterColumn<Receipt>[] = [
+    textColumn('no', t('m9.receiptNo'), (row) => row.receiptNo, { priority: 'identity' }),
+    textColumn('shop', t('m9.shop'), (row) => names.retailer(row.retailerId)),
+    textColumn('ref', t('m10.reference'), (row) => row.reference),
+    moneyColumn('amount', t('m9.amount'), (row) => row.amountPaise),
+    textColumn('at', t('m9.receivedAt'), (row) => shortInstant(row.receivedAt)),
+    {
+      key: 'ticked',
+      head: t('m10.upiTicked'),
+      priority: 'chip',
+      cell: (row) => (
+        <StatusChip
+          label={upiTicked.includes(row.id) ? t('word.yes') : t('word.no')}
+          family={upiTicked.includes(row.id) ? 'moss' : 'neutral'}
         />
       ),
     },
@@ -475,6 +526,87 @@ export default function DayEnd(): React.JSX.Element {
             />
           </Async>
         </Panel>
+
+        <Panel
+          title={t('m10.upiTitle')}
+          meta={mayBank ? t('m10.upiHint') : undefined}
+          testID="dayend-upi"
+        >
+          <Stack gap={3}>
+            <Segments
+              testID="dayend-upi-scope"
+              value={upiScope}
+              onChange={(id) => {
+                setUpiScope(id as 'today' | 'all')
+                setUpiTicked([])
+              }}
+              items={[
+                { id: 'today', label: t('m10.upiToday') },
+                { id: 'all', label: t('m10.upiAll') },
+              ]}
+            />
+            <Async
+              state={[upi]}
+              rows={4}
+              empty={upiRows.length === 0}
+              emptyMessage={t('m10.upiEmpty')}
+            >
+              <Register
+                testID="upi-register"
+                columns={upiColumns}
+                rows={upiRows}
+                rowKey={(row) => row.id}
+                frozen="no"
+                onSelect={
+                  mayBank
+                    ? (row) => {
+                        setUpiTicked((current) =>
+                          current.includes(row.id)
+                            ? current.filter((id) => id !== row.id)
+                            : [...current, row.id],
+                        )
+                      }
+                    : undefined
+                }
+                state="ready"
+                totals={{
+                  amount: (
+                    <Money
+                      value={upi.data?.totals.countedPaise ?? null}
+                      size="cell"
+                      symbol={false}
+                    />
+                  ),
+                }}
+              />
+            </Async>
+            {mayBank && upiRows.length > 0 ? (
+              <Stack gap={2}>
+                <Button
+                  label={t('m10.upiConfirmAll')}
+                  variant="secondary"
+                  onPress={() => {
+                    setUpiTicked(upiRows.map((row) => row.id))
+                    confirmUpi.reset()
+                    setConfirming(new Date())
+                  }}
+                  testID="upi-confirm-all"
+                />
+                <Button
+                  label={t('m10.upiConfirm')}
+                  variant="primary"
+                  disabled={upiTicked.length === 0}
+                  disabledReason={t('m10.upiHint')}
+                  onPress={() => {
+                    confirmUpi.reset()
+                    setConfirming(new Date())
+                  }}
+                  testID="upi-confirm"
+                />
+              </Stack>
+            ) : null}
+          </Stack>
+        </Panel>
       </Stack>
 
       <Dialog
@@ -515,6 +647,38 @@ export default function DayEnd(): React.JSX.Element {
           )
         }}
         testID="deposit-dialog"
+      />
+
+      <Dialog
+        open={confirming !== null}
+        onClose={() => {
+          setConfirming(null)
+        }}
+        title={t('m10.upiConfirmTitle')}
+        body={
+          <Stack gap={3}>
+            <Txt field="body" desk="body" numeric>
+              {t('m10.selected', {
+                count: upiTicked.length,
+                amount: formatINR(paise(upiTickedTotal)),
+              })}
+            </Txt>
+            <Txt field="label" desk="meta" color={colors.text.secondary}>
+              {t('m10.upiConfirmBody')}
+            </Txt>
+            <Refusal of={[confirmUpi]} testID="upi-confirm-refusal" />
+          </Stack>
+        }
+        confirmLabel={t('m10.upiConfirm')}
+        busy={confirmUpi.status === 'pending'}
+        onConfirm={() => {
+          if (confirming === null || upiTicked.length === 0) return
+          void confirmUpi.mutateAsync(depositIntent(upiTicked, '', confirming)).then(() => {
+            setUpiTicked([])
+            setConfirming(null)
+          }, stayOpenAnd(upi.refetch))
+        }}
+        testID="upi-confirm-dialog"
       />
 
       <Dialog

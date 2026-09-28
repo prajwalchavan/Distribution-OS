@@ -206,10 +206,11 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
-| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
+| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
+| POST | `/allocations/apply-on-account` | Apply a shop's money on account (or every shop's) to its oldest open bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
 | GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
 | GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |
@@ -565,10 +566,11 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
-| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
+| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
+| POST | `/allocations/apply-on-account` | Apply a shop's money on account (or every shop's) to its oldest open bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
 | GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
 | GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |
@@ -909,10 +911,11 @@ Full request/response samples are in `backend/sales-service/README.md`.
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
-| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
+| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
+| POST | `/allocations/apply-on-account` | Apply a shop's money on account (or every shop's) to its oldest open bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
 | GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
 | GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |
@@ -1385,10 +1388,11 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
-| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
+| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
+| POST | `/allocations/apply-on-account` | Apply a shop's money on account (or every shop's) to its oldest open bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
 | GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
 | GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |
@@ -1659,10 +1663,11 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | GET | `/receipts/{id}` | One receipt with its allocations and its reversal, if any | owner, manager, accountant, delivery, retailer |
 | GET | `/receipts/{id}/document` | The printable receipt (A5 or 80 mm thermal) with the distributor branding | owner, manager, accountant, delivery, retailer |
 | POST | `/receipts/{id}/reverse` | Reverse a receipt with a mirror receipt; the original is never edited | owner, manager, accountant |
-| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts | owner, manager, accountant |
+| POST | `/receipts/deposit` | Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end | owner, manager, accountant |
 | POST | `/receipts/{id}/bounce` | Return a bounced cheque and restore the outstanding exactly | owner, manager, accountant |
 | POST | `/receivables/payments/initiate` | A shop starts an online payment against its own bills | retailer |
 | POST | `/allocations` | Allocate on-account money or a credit note to specific bills | owner, manager, accountant |
+| POST | `/allocations/apply-on-account` | Apply a shop's money on account (or every shop's) to its oldest open bills | owner, manager, accountant |
 | POST | `/allocations/{id}/remove` | Undo one allocation without reversing the money | owner, manager, accountant |
 | GET | `/receivables/outstanding/{retailerId}` | One shop's dues with its open bills | owner, manager, accountant, salesperson, delivery, retailer |
 | GET | `/receivables/outstanding` | The ageing register: dues by shop, bucket and beat | owner, manager, accountant |

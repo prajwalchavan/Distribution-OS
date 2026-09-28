@@ -18,6 +18,8 @@ export {
   type CreditVerdict,
   type RetailerCredit,
 } from './credit.js'
+/** DOS-310: the codes of the "payment reference already recorded" refusals, for every door that keeps them. */
+export { REFERENCE_REFUSALS } from './references.js'
 /** The open balance of one bill, as a plain function for the document loaders (billing's renderer data). */
 export { invoiceOpenPaise } from './allocation.js'
 export {

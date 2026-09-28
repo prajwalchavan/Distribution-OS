@@ -1903,7 +1903,8 @@ describeDb('billing (DATABASE_URL)', () => {
     expect(dues.status).toBe(200)
     expect(dues.body).toMatchObject({ outstandingPaise: 0, unallocatedCreditPaise: credit })
 
-    // the next bill: the desk matches the note to it, and the shop owes the bill less the note
+    // the next bill: the note meets it at issue (QA DOS-312, architect ruling 2026-09-28: money on account is
+    // applied to the oldest open bill when a new bill is issued), and the shop owes the bill less the note
     const nextOrder = await placeOrder(
       rep,
       shopPaid,
@@ -1912,27 +1913,106 @@ describeDb('billing (DATABASE_URL)', () => {
     )
     const next = await issueFor(nextOrder, 'dos245b')
     expect(next.res.status).toBe(200)
-    const matched = await call<{ sourceUnallocatedPaise: number }>(
-      app,
-      accountant,
-      'POST',
-      '/allocations',
-      {
-        idempotencyKey: `dos245-match-${run}`,
-        id: uuidv7(),
-        sourceType: 'credit_note',
-        sourceId: noteId,
-        lines: [{ id: uuidv7(), invoiceId: next.invoiceId, amountPaise: credit }],
-      },
-    )
-    expect(matched.status).toBe(200)
-    expect(matched.body.sourceUnallocatedPaise).toBe(0)
+    // nothing of the note is left for the desk to match by hand
+    const matched = await call<{ message: string }>(app, accountant, 'POST', '/allocations', {
+      idempotencyKey: `dos245-match-${run}`,
+      id: uuidv7(),
+      sourceType: 'credit_note',
+      sourceId: noteId,
+      lines: [{ id: uuidv7(), invoiceId: next.invoiceId, amountPaise: credit }],
+    })
+    expect(matched.status).toBe(409)
     const settled = await arTie(shopPaid)
     expect(settled).toMatchObject({
       onAccount: 0,
       outstanding: next.res.body.item.totalPaise - credit,
     })
     expect(settled.rollup).toBe(settled.ar)
+  })
+
+  it('DOS-320: a bill closed by a credit note alone reads credited for the owner, the desk and the shop; one closed by money reads paid', async () => {
+    type Shown = {
+      state: string
+      stateShown?: string
+      paidPaise?: number
+      creditedPaise?: number
+    }
+    // shopMh's own money on account would meet a new bill at issue (DOS-312): read what it holds first, so the
+    // bill below is closed by the credit note alone whatever the earlier cases left on its account
+    const held = await call<{ unallocatedCreditPaise: number }>(
+      app,
+      accountant,
+      'GET',
+      `/receivables/outstanding/${shopMh}`,
+    )
+    expect(held.status).toBe(200)
+    const bill = await freshBill('dos320')
+    const before = await call<{ item: Shown & { amountDuePaise?: number } }>(
+      app,
+      owner,
+      'GET',
+      `/invoices/${bill.invoiceId}`,
+    )
+    expect(before.status).toBe(200)
+    if (held.body.unallocatedCreditPaise > 0) {
+      // money on account already met part of it: then money and the note close it, and it reads paid
+      expect(before.body.item.paidPaise ?? 0).toBeGreaterThan(0)
+    }
+    // the shop refused the whole bill at the door and the desk credited it in full
+    const note = await call<{ item: CreditNoteDetailBody }>(app, manager, 'POST', '/credit-notes', {
+      idempotencyKey: `cn-dos320-${run}`,
+      id: uuidv7(),
+      invoiceId: bill.invoiceId,
+      reason: 'return_saleable',
+      autoIssue: true,
+      lines: [{ id: uuidv7(), invoiceLineId: bill.lineId, qtyPcs: 12 }],
+    })
+    expect(note.status, JSON.stringify(note.body)).toBe(200)
+    const closedByNote = (before.body.item.paidPaise ?? 0) === 0
+    for (const who of [owner, manager, shop]) {
+      const read = await call<{ item: Shown }>(app, who, 'GET', `/invoices/${bill.invoiceId}`)
+      expect(read.status, who.role).toBe(200)
+      expect(read.body.item.state, who.role).toBe('paid')
+      expect(read.body.item.stateShown, who.role).toBe(closedByNote ? 'credited' : 'paid')
+      expect(read.body.item.creditedPaise, who.role).toBeGreaterThan(0)
+      const listed = await call<{ items: (Shown & { id: string })[] }>(
+        app,
+        who,
+        'GET',
+        '/invoices',
+        {
+          retailerId: shopMh,
+          limit: 200,
+        },
+      )
+      expect(listed.status, who.role).toBe(200)
+      expect(listed.body.items.find((i) => i.id === bill.invoiceId)?.stateShown, who.role).toBe(
+        closedByNote ? 'credited' : 'paid',
+      )
+    }
+    // a bill closed by money reads paid, the machine's own word
+    const paidBill = await freshBill('dos320-paid')
+    const due = await call<{ item: { amountDuePaise?: number; totalPaise: number } }>(
+      app,
+      owner,
+      'GET',
+      `/invoices/${paidBill.invoiceId}`,
+    )
+    const owed = due.body.item.amountDuePaise ?? due.body.item.totalPaise
+    if (owed > 0) {
+      const money = await call(app, accountant, 'POST', '/receipts', {
+        idempotencyKey: `dos320-pay-${run}`,
+        id: uuidv7(),
+        retailerId: shopMh,
+        mode: 'cash',
+        amountPaise: owed,
+        strategy: 'explicit',
+        allocations: [{ id: uuidv7(), invoiceId: paidBill.invoiceId, amountPaise: owed }],
+      })
+      expect(money.status, JSON.stringify(money.body)).toBe(200)
+    }
+    const paid = await call<{ item: Shown }>(app, owner, 'GET', `/invoices/${paidBill.invoiceId}`)
+    expect(paid.body.item).toMatchObject({ state: 'paid', stateShown: 'paid', creditedPaise: 0 })
   })
 
   type RefusalBody = {

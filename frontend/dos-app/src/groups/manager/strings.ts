@@ -687,6 +687,8 @@ export const strings = {
   'm6.invoiceNo': 'Bill no.',
   'm6.issuedAt': 'Issued',
   'm6.due': 'Still due ₹',
+  'm6.credited': 'Credited by credit notes ₹',
+  'm6.recovered': 'Recovered after the write-off ₹',
   'm6.payState': 'Payment',
   'm6.print': 'Print the bill',
   'm6.pdfQueued': 'The bill is being printed. Try again in a moment.',
@@ -804,6 +806,26 @@ export const strings = {
   'm9.notBankable': 'Only cash or a cheque in hand goes to the bank',
   'm9.withCrew': 'Still with the delivery crew — bank it once the trip is settled',
   'm9.notBounceable': 'Only a cheque in hand or banked can bounce',
+  // DOS-310: the same cheque number from another shop — the earlier receipt, and the desk's answer
+  'm9.chequeElsewhere':
+    'Cheque number {ref} is already on receipt {no} of {shop}, {date}, {amount}. If the cheque in your hand is a different one, record it.',
+  'm9.confirmCheque': 'It is a different cheque — record it',
+  // DOS-311: money that recovered a written-off bill
+  'm9.recovered': '{amount} recovered from bill {bill}, written off on {date}',
+  // DOS-256: UPI is confirmed, not banked
+  'm9.confirmUpi': 'Confirm the UPI payment',
+  'm9.upiConfirmed': 'This UPI payment is already confirmed',
+  // DOS-312: Apply money on account
+  'm9.applyOnAccount': 'Apply money on account',
+  'm9.applyTitle': 'Apply money on account',
+  'm9.applyBody':
+    'Money a shop paid that no bill has claimed goes to its oldest open bills, as if you had put it there by hand. Each one can be undone from its receipt.',
+  'm9.applyShop': 'Apply for this shop',
+  'm9.applyAll': 'Apply for every shop',
+  'm9.applied': '{amount} applied to {count} bills of {shops} shops',
+  'm9.appliedNone': 'Nothing to apply: no shop holds money on account beside an open bill',
+  'm9.appliedBills': '{count} bills',
+  'm9.appliedMore': 'More shops are waiting — press Apply for every shop again',
 
   // --- M10 Day-end: banking, cheques, trip settlement ------------------------------------------------
   'm10.tab': 'Day-end',
@@ -850,6 +872,19 @@ export const strings = {
   'm10.needsRef': 'Enter the bank slip number',
   'm10.tolerance': 'Tolerance {amount}',
   'm10.tickToBank': 'Tick the cash and cheques you are banking',
+  // DOS-256: the day's UPI payments, ticked against the bank or the UPI app
+  'm10.upiTitle': 'UPI to confirm',
+  'm10.upiHint': 'Tick each UPI payment you can see in the bank or the UPI app, then confirm.',
+  'm10.upiToday': 'Today',
+  'm10.upiAll': 'All waiting',
+  'm10.upiConfirm': 'Confirm the ticked',
+  'm10.upiConfirmAll': 'Confirm all',
+  'm10.upiConfirmTitle': 'Confirm UPI payments',
+  'm10.upiConfirmBody':
+    'Each ticked UPI payment moves from UPI clearing to the bank in the books and counts as banked.',
+  'm10.upiEmpty': 'No UPI payment is waiting to be confirmed',
+  'm10.upiTicked': 'Confirm',
+  'm10.reference': 'Reference',
   'm10.chequesHint': 'Tap a cheque the bank returned to mark it bounced',
 
   // --- M17 Claims ------------------------------------------------------------------------------------
@@ -1156,6 +1191,8 @@ export const strings = {
 
   // invoices and credit notes
   'word.partially_paid': 'Part paid',
+  // DOS-320: a bill closed by credit notes alone, never paid
+  'word.closed_by_credit_note': 'Credited',
   'word.written_off': 'Written off',
   'word.short_delivery': 'Short delivered',
   'word.return_saleable': 'Return, saleable',

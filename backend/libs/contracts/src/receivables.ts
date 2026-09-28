@@ -396,6 +396,16 @@ export const CreateReceiptInput = MutationBase.extend({
   proofObjectKey: z.string().trim().max(300).optional(),
   strategy: AllocationStrategySchema.default('fifo'),
   allocations: z.array(ReceiptAllocationInput).max(100).optional(),
+  /**
+   * DOS-310: a payment reference is used once. A UPI / transfer reference (UTR) already on a live receipt of
+   * this distributor is refused whoever the shop is (409 `reference_already_recorded`), and so is a cheque
+   * number already recorded for the SAME shop (409 `cheque_already_recorded`); a bounced, cancelled or
+   * reversed receipt frees its reference. The same cheque number from ANOTHER shop is refused 409
+   * `cheque_number_seen_elsewhere` with the earlier receipt in `data.earlier`, until the desk has looked at
+   * it and sends the request again with `confirmReference: true`. References are compared trimmed, without
+   * inner spaces and without regard to case.
+   */
+  confirmReference: z.boolean().optional(),
 }).refine(
   (r) =>
     r.strategy === 'explicit'
@@ -403,6 +413,38 @@ export const CreateReceiptInput = MutationBase.extend({
       : (r.allocations?.length ?? 0) === 0,
   'allocations are required for strategy `explicit` and must be empty for `fifo` and `none`',
 )
+/**
+ * DOS-311: money that recovered a written-off bill, one row per bill. Money received from a shop that has
+ * written-off bills goes to the written-off amount first, oldest first: the bill stays `written_off`, a
+ * recovery write-off (negative) takes the written-off amount back off it, the receipt's money settles it, and
+ * the book takes the money as income on "Bad debts recovered" (the write-off itself stays booked as a loss) —
+ * so the shop's dues and its money on account do not move by that amount. `writtenOffOn` is the IST date the bill was written off. Negative on the reversal of a
+ * receipt that had recovered one (the write-off stands again).
+ */
+export const WriteOffRecoverySchema = z.object({
+  invoiceId: IdSchema,
+  invoiceNo: z.string().nullable(),
+  writtenOffOn: z.string(),
+  amountPaise: PaiseSchema,
+})
+export type WriteOffRecovery = z.infer<typeof WriteOffRecoverySchema>
+
+/**
+ * The earlier receipt a payment reference already stands on (DOS-310), as `data.earlier` of the 409 and
+ * as the screen shows it before asking the desk to confirm a cheque number another shop used.
+ */
+export const EarlierReceiptSchema = z.object({
+  id: IdSchema,
+  receiptNo: z.string().nullable(),
+  retailerId: IdSchema,
+  retailerName: z.string(),
+  mode: ReceiptModeSchema,
+  reference: z.string(),
+  amountPaise: PaiseSchema,
+  receivedAt: z.string(),
+})
+export type EarlierReceipt = z.infer<typeof EarlierReceiptSchema>
+
 export const CreateReceiptOutput = z.object({
   item: ReceiptSchema,
   allocations: z.array(AllocationSchema),
@@ -410,6 +452,8 @@ export const CreateReceiptOutput = z.object({
   cashDiscountPaise: PaiseSchema,
   unallocatedPaise: PaiseSchema,
   outstanding: RetailerOutstandingSchema,
+  /** DOS-311: what this money recovered from written-off bills, before anything reached an open bill. */
+  recoveries: z.array(WriteOffRecoverySchema).optional(),
 })
 
 export const ReceiptsListInput = z.object({
@@ -458,6 +502,8 @@ export const ReceiptGetOutput = z.object({
    * money desk: it is not that caller's gate, and a shop cannot read trips under RLS.
    */
   withCrew: z.boolean().nullable(),
+  /** DOS-311: the written-off bills this money recovered ("₹395.00 recovered from a bill written off on …"). */
+  recoveries: z.array(WriteOffRecoverySchema).optional(),
 })
 
 /** A5 for the office printer, 80 mm thermal for the crew's Bluetooth printer at the door. */
@@ -489,12 +535,17 @@ export const ReverseReceiptOutput = z.object({
 })
 
 /**
- * Banking a batch of cash and cheque receipts. No AR movement: DR BANK, CR CASH / CHEQUES.
+ * Banking a batch of cash and cheque receipts, and CONFIRMING UPI receipts at Day-end (DOS-256). No AR
+ * movement: DR BANK, CR CASH / CHEQUES / UPI clearing, and every receipt of the batch reads `deposited`. UPI
+ * money is not carried anywhere: the desk ticks the day's UPI receipts against the bank or the UPI app and
+ * confirms them (one or all) through this same call; nothing confirms itself. A bank transfer is already in
+ * the bank and is refused here.
  *
  * Money a delivery crew still carries is not banked (DOS-132): a batch holding a receipt, cash or cheque, taken
  * on a trip that is not settled yet is refused whole with 409 `data.code = 'trip_cash_not_settled'` and
  * `data.receiptIds` (the refused receipts), and nothing is banked. Cash of a settled trip banks from CASH, because
- * the settlement already moved it out of CASH_VAN.
+ * the settlement already moved it out of CASH_VAN. UPI taken on a trip is never in the crew's hands, so the
+ * trip does not gate its confirmation.
  */
 export const DepositReceiptsInput = MutationBase.extend({
   /** Client-generated id of the deposit batch; becomes the journal entry's `ref_id`. */
@@ -580,6 +631,41 @@ export const CreateAllocationsOutput = z.object({
   sourceUnallocatedPaise: PaiseSchema,
   outstanding: RetailerOutstandingSchema,
 })
+
+/**
+ * DOS-312, the desk action "Apply money on account": the shop's money on account — receipts and credit notes
+ * no bill has claimed — is applied to its open bills, oldest money to the oldest bill (the FIFO order a
+ * receipt uses). Each application is an allocation like one made by hand (`allocations.create`: no journal
+ * rows, visible on the bill and on its receipt or credit note, undone with `allocations.remove`). The same
+ * code runs by itself when a receipt leaves money over while bills are open, when a credit note on a paid bill
+ * leaves money on account, and when a new bill is issued for a shop that holds some; this action is for money
+ * that was already sitting on account before that (nothing is applied by a migration).
+ *
+ * `retailerId` names one shop; without it every shop holding money on account beside open bills is done, up
+ * to 200 shops a call (`more` says there are others: call again). Bills on a van are not the shop's dues yet
+ * and are left alone, as FIFO leaves them.
+ */
+export const ApplyOnAccountInput = MutationBase.extend({
+  /** Client-generated id of this run. */
+  id: IdSchema,
+  retailerId: IdSchema.optional(),
+})
+export const AppliedOnAccountShopSchema = z.object({
+  retailerId: IdSchema,
+  retailerName: z.string(),
+  appliedPaise: PaiseSchema,
+  allocations: z.array(AllocationSchema),
+  invoices: z.array(SettledInvoiceSchema),
+  outstanding: RetailerOutstandingSchema,
+})
+export const ApplyOnAccountOutput = z.object({
+  /** Only the shops something was applied for. */
+  shops: z.array(AppliedOnAccountShopSchema),
+  appliedPaise: PaiseSchema,
+  allocationCount: z.number().int(),
+  more: z.boolean(),
+})
+export type AppliedOnAccount = z.infer<typeof ApplyOnAccountOutput>
 
 /** How the desk fixes a mis-keyed split without reversing the money. Never touches the journal. */
 export const RemoveAllocationInput = MutationBase.extend({
@@ -863,7 +949,7 @@ export const receivablesContract = {
       .route({
         method: 'POST',
         path: '/receipts/deposit',
-        summary: 'Bank a batch of cash and cheque receipts',
+        summary: 'Bank a batch of cash and cheque receipts, or confirm UPI receipts at Day-end',
       })
       .input(DepositReceiptsInput)
       .output(DepositReceiptsOutput),
@@ -895,6 +981,14 @@ export const receivablesContract = {
       })
       .input(CreateAllocationsInput)
       .output(CreateAllocationsOutput),
+    applyOnAccount: oc
+      .route({
+        method: 'POST',
+        path: '/allocations/apply-on-account',
+        summary: "Apply a shop's money on account (or every shop's) to its oldest open bills",
+      })
+      .input(ApplyOnAccountInput)
+      .output(ApplyOnAccountOutput),
     remove: oc
       .route({
         method: 'POST',

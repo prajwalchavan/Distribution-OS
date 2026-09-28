@@ -24,6 +24,7 @@
  */
 import type { BillingQueueItem, InvoiceListItem, PackListItem } from '@dos/contracts'
 import { newId } from '@dos/api-client'
+import { invoiceStateShown } from '@dos/domain'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
 import {
   billLineQty,
@@ -80,6 +81,8 @@ const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   issued: 'ochre',
   partially_paid: 'ochre',
   paid: 'moss',
+  // DOS-320: closed by credit notes alone
+  closed_by_credit_note: 'moss',
   written_off: 'neutral',
   cancelled: 'neutral',
 }
@@ -359,8 +362,12 @@ export default function BillingDesk(): React.JSX.Element {
       key: 'state',
       head: t('m6.payState'),
       priority: 'chip',
+      // DOS-320: a bill closed by credit notes alone reads Credited, never Paid
       cell: (row) => (
-        <StatusChip label={word(row.state)} family={INVOICE_FAMILY[row.state] ?? 'neutral'} />
+        <StatusChip
+          label={word(invoiceStateShown(row))}
+          family={INVOICE_FAMILY[invoiceStateShown(row)] ?? 'neutral'}
+        />
       ),
     },
   ]
@@ -646,10 +653,31 @@ export default function BillingDesk(): React.JSX.Element {
               <Field label={t('m12.date')}>{longDate(invoice.invoiceDate)}</Field>
               <Field label={t('m6.payState')}>
                 <StatusChip
-                  label={word(invoice.state)}
-                  family={INVOICE_FAMILY[invoice.state] ?? 'neutral'}
+                  label={word(invoiceStateShown(invoice))}
+                  family={INVOICE_FAMILY[invoiceStateShown(invoice)] ?? 'neutral'}
                 />
               </Field>
+              {/* DOS-320: paid AND credited shows the credited part; DOS-311: what came back after a write-off */}
+              {(invoice.creditedPaise ?? 0) > 0 &&
+              invoiceStateShown(invoice) !== 'closed_by_credit_note' ? (
+                <Field label={t('m6.credited')}>
+                  <Money
+                    value={invoice.creditedPaise ?? 0}
+                    size="cell"
+                    testID="invoice-credited-paise"
+                  />
+                </Field>
+              ) : null}
+              {(invoice.recoveredPaise ?? 0) > 0 ? (
+                <Field label={t('m6.recovered')}>
+                  <Money
+                    value={invoice.recoveredPaise ?? 0}
+                    size="cell"
+                    tone="positive"
+                    testID="invoice-recovered-paise"
+                  />
+                </Field>
+              ) : null}
               <Field label={t('m6.total')}>
                 <Money value={invoice.totalPaise} size="moneyM" />
               </Field>

@@ -526,6 +526,8 @@ export const strings = {
   'o13.total': 'Total ₹',
   'o13.due': 'Due ₹',
   'o13.state': 'State',
+  'o13.credited': 'Credited by credit notes ₹',
+  'o13.recovered': 'Recovered after the write-off ₹',
   'o13.pdf': 'Open bill',
   'o13.pdfQueued': 'The bill is being prepared — it will be offered here in a moment',
   'o13.pdfSlow': 'The bill is still being prepared; ask for it again',
@@ -902,6 +904,8 @@ export const strings = {
 
   // invoices and credit notes
   'word.partially_paid': 'Part paid',
+  // DOS-320: a bill closed by credit notes alone, never paid
+  'word.closed_by_credit_note': 'Credited',
   'word.written_off': 'Written off',
   'word.short_delivery': 'Short delivered',
   'word.return_saleable': 'Return, saleable',

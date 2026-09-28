@@ -54,6 +54,7 @@ import {
   owedHereIsAsBilled,
   owedHerePaise,
   owedOn,
+  paymentReferenceRefusal,
   recordRefusal,
   settledBillChip,
   tagAllocations,
@@ -128,6 +129,8 @@ export default function Collect(): React.JSX.Element {
   const [bank, setBank] = useState('')
   const [bookNo, setBookNo] = useState('')
   const [error, setError] = useState<string | null>(null)
+  /* DOS-310: the office asked whether this cheque number, already used by another shop, is a different cheque. */
+  const [askCheque, setAskCheque] = useState(false)
   const [busy, setBusy] = useState(false)
   /* DOS-062: the bills the driver has tagged, by invoice id — empty means the office's own rule. */
   const [tagged, setTagged] = useState<ReadonlySet<string>>(() => new Set<string>())
@@ -243,7 +246,15 @@ export default function Collect(): React.JSX.Element {
   const queueReceipt = useQueueReceipt()
 
   const collect = useMutation(
-    (input: { mode: Mode; amountPaise: number; allocations: TaggedAllocation[] | null }, meta) =>
+    (
+      input: {
+        mode: Mode
+        amountPaise: number
+        allocations: TaggedAllocation[] | null
+        confirmReference: boolean
+      },
+      meta,
+    ) =>
       /*
        * `collectionRecordInput` (door-writes.ts) builds the call — the home's "Take money" sheet
        * builds it with the same function. DOS-062 — "unless tagged": an empty split is not sent at
@@ -266,6 +277,7 @@ export default function Collect(): React.JSX.Element {
           allocations: input.allocations,
           collectedAt: new Date().toISOString(),
           deviceId: deviceId(),
+          confirmReference: input.confirmReference,
         }),
       ),
     {
@@ -311,6 +323,7 @@ export default function Collect(): React.JSX.Element {
          * that gets the money in: untag and record again. Every other refusal keeps its own words.
          */
         setError(recordRefusal(t, failed, splitSent.current))
+        setAskCheque(paymentReferenceRefusal(failed) === 'cheque_number_seen_elsewhere')
       },
     },
   )
@@ -318,8 +331,9 @@ export default function Collect(): React.JSX.Element {
   const needsReference = moneyNeedsReference({ mode, reference })
   const amountBad = amountPaise === null || amountPaise <= 0
 
-  const commit = (): void => {
+  const commit = (confirmReference = false): void => {
     setError(null)
+    setAskCheque(false)
     if (amountBad) return
     if (needsReference) {
       setError(t('d5.needsReference'))
@@ -334,7 +348,7 @@ export default function Collect(): React.JSX.Element {
         newId: uuidv7,
       })
       splitSent.current = allocations !== null && allocations.length > 0
-      collect.mutate({ mode, amountPaise, allocations })
+      collect.mutate({ mode, amountPaise, allocations, confirmReference })
       return
     }
     setBusy(true)
@@ -419,7 +433,9 @@ export default function Collect(): React.JSX.Element {
             loading={busy || collect.status === 'pending'}
             disabled={amountBad || needsReference}
             disabledReason={amountBad ? t('d5.amount') : t('d5.needsReference')}
-            onPress={commit}
+            onPress={() => {
+              commit()
+            }}
           />
         </Stack>
       }
@@ -624,6 +640,18 @@ export default function Collect(): React.JSX.Element {
             {error}
           </Txt>
         )}
+        {askCheque && status.online ? (
+          <Button
+            testID="d5-confirm-cheque"
+            label={t('d5.confirmCheque')}
+            variant="secondary"
+            fullWidth
+            loading={collect.status === 'pending'}
+            onPress={() => {
+              commit(true)
+            }}
+          />
+        ) : null}
       </Stack>
     </Screen>
   )

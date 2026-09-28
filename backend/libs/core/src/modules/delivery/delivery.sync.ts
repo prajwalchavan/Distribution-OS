@@ -7,6 +7,8 @@ import {
   RecordExpenseInput,
 } from '@dos/contracts'
 import type { Db } from '@dos/db'
+import { ORPCError } from '@orpc/server'
+import { REFERENCE_REFUSALS } from '../receivables/index.js'
 import { SyncRejection } from '../sync/index.js'
 import type { CollectionsService } from './collections.service.js'
 import type { DeliveriesService } from './deliveries.service.js'
@@ -229,6 +231,7 @@ export async function applyCollectionSync(
       collectedAt: str(data.collected_at) ?? op.clientTime,
       note: str(data.note),
       deviceId: str(data.device_id),
+      confirmReference: data.confirm_reference === true ? true : undefined,
     }),
   )
   const trip = await lockTrip(tx, input.tripId)
@@ -239,7 +242,16 @@ export async function applyCollectionSync(
       'trip_not_open',
       `trip ${trip.tripNo ?? trip.id} is ${trip.state}; money is collected while the trip is out`,
     )
-  await collections.collectInTx(tx, trip, { ...input, stopId: input.stopId ?? null })
+  try {
+    await collections.collectInTx(tx, trip, { ...input, stopId: input.stopId ?? null })
+  } catch (error) {
+    // DOS-310: a UTR or cheque number already on a live receipt keeps its own code and the desk's sentence, naming
+    // the earlier receipt, so the phone's pending list says what to do with the money (never the generic `conflict`).
+    const code = (error as { data?: { code?: unknown } | null } | null)?.data?.code
+    if (error instanceof ORPCError && typeof code === 'string' && REFERENCE_REFUSALS.has(code))
+      throw new SyncRejection(code, error.message)
+    throw error
+  }
 }
 
 /** `trip_expenses`: PUT. */
