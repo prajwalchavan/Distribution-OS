@@ -46,6 +46,7 @@ export function Txt({
   numeric,
   numberOfLines,
   wrap,
+  align,
 }: TxtProps): React.JSX.Element {
   const { colors } = useTheme()
   const base = useTypeStyle(field, desk)
@@ -74,6 +75,9 @@ export function Txt({
         color: color ?? colors.text.primary,
         margin: 0,
         ...base,
+        // `start`/`end` rather than `left`/`right`, so a right-to-left script some day reads right.
+        // Before the clamp: a clamped line keeps its `-webkit-box` and still aligns.
+        ...(align === undefined ? {} : { textAlign: align, display: 'block' }),
         ...clamp,
         ...breaking,
         ...style,

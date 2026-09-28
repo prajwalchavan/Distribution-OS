@@ -173,6 +173,23 @@ export const en = {
   'welcome.signIn': 'Sign in',
   'landing.app': '{name} app',
 
+  /*
+   * The job home and the shop (founder, 2026-09-28: every app opens on its work; the shopkeeper's
+   * home feels like a shopping app). Plain words a driver or a shopkeeper would say, <= 20 characters.
+   */
+  'job.next': 'Do this next',
+  'job.nothingWaiting': 'Nothing waiting',
+  'job.more': 'More',
+  'job.show': 'Show',
+  'job.hide': 'Hide',
+  /* Spoken with the count: "More, 6 things, closed". */
+  'job.moreSpoken': '{title}, {count} things',
+  'shop.add': 'Add',
+  'shop.addItem': 'Add {name}',
+  'shop.mrp': 'MRP {amount}',
+  'shop.oneItem': '1 item',
+  'shop.items': '{count} items',
+
   // The shell (UX-00 sections 8.1 and 8.2).
   'nav.sections': 'Sections',
   'nav.more': 'More',

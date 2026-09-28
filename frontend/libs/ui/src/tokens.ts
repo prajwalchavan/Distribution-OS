@@ -387,6 +387,17 @@ export const layout = {
   deskRowHeight: 32,
   /** Side panel opened from a register row. */
   sidePanelWidth: 360,
+  /**
+   * The screens before the app (sign-in, welcome, "Continue as", change password) sit in one column
+   * this wide, in the middle of the window (founder, 2026-09-28).
+   */
+  formWidth: 420,
+  /**
+   * The least a field or a button is tall on those screens. It only ever RAISES a control: on a phone
+   * the app's own floor (63 / 69 / 76) is already above it; on a desk it lifts the 32 px desk button,
+   * which read as "thin rectangular fields" on the one page everybody sees first.
+   */
+  formControlHeight: 52,
 } as const
 
 /**

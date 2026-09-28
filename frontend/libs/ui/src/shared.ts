@@ -23,6 +23,14 @@ export * from './relative-time.js'
 export * from './route-for.js'
 export * from './charts/geometry.js'
 export * from './types.js'
+export {
+  BRAND_TONES,
+  brandColors,
+  brandInitial,
+  brandTone,
+  tileColumns,
+  type BrandTone,
+} from './shop-blocks.js'
 
 // The formatters a screen is allowed to call directly. Money still renders through <Money>.
 export { formatINR, formatQty, paise, pieces } from '@dos/domain'

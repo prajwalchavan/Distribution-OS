@@ -62,6 +62,7 @@ export function Txt({
   // at any character, so the web half's `overflow-wrap: anywhere` has nothing to match here — the
   // prop exists on the ONE contract so a screen writes the same file for three targets.
   wrap: _wrap,
+  align,
 }: TxtProps): React.JSX.Element {
   const { colors } = useTheme()
   const base = useTypeStyle(field, desk)
@@ -76,6 +77,8 @@ export function Txt({
         base,
         { color: color ?? colors.text.primary },
         numeric === true ? styles.numeric : null,
+        // React Native's `textAlign` knows left/center/right; `start` is the default and needs nothing.
+        align === 'center' ? styles.alignCenter : align === 'end' ? styles.alignEnd : null,
         style,
       ]}
     >
@@ -133,4 +136,6 @@ export function Spinner({
 const styles = StyleSheet.create({
   numeric: { fontVariant: ['tabular-nums'] },
   upper: { textTransform: 'uppercase' },
+  alignCenter: { textAlign: 'center' },
+  alignEnd: { textAlign: 'right' },
 })
