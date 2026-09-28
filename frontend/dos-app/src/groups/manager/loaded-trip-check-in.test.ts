@@ -37,6 +37,8 @@ async function readScreen(): Promise<string> {
 describe('QA DOS-354: a loaded trip is checked in from the desk, never left with a dead button', () => {
   it('offers the check-in once the load-out is confirmed, and taking bills off before it', () => {
     expect(standingTripNext('loading', '2026-09-28T05:30:00.000Z')).toBe('checkIn')
+    // counted out while the trip was still `planned` (nobody pressed "start loading"): loaded all the same
+    expect(standingTripNext('planned', '2026-09-28T05:30:00.000Z')).toBe('checkIn')
     expect(standingTripNext('loading', null)).toBe('takeBillsOff')
     expect(standingTripNext('planned', null)).toBe('takeBillsOff')
     // a trip that has left is checked in by its crew on the road; the desk panel does not open for it

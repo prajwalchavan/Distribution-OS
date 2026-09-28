@@ -56,8 +56,9 @@ export function tripReach(tripState: string, mayAdd: boolean): TripReach {
  * WHAT THE DESK DOES ABOUT A TRIP THAT HAS NOT LEFT (QA DOS-354, architect ruling 8 of 2026-09-28): "a loaded
  * trip is not cancelled, it is checked in". Once the godown has counted the load out (`loadConfirmedAt` on
  * the trip's detail) the bills are on the van: taking one off is refused by the server, so the panel offers
- * the check-in (`delivery.trips.return`, `loading → closing`) instead of a button that can only fail. Before
- * the load-out the bills come off one by one (`delivery.trips.dropBill`, QA DOS-241).
+ * the check-in (`delivery.trips.return`, `loading → closing`; a `planned` trip walks `start_loading` first)
+ * instead of a button that can only fail. Before the load-out the bills come off one by one
+ * (`delivery.trips.dropBill`, QA DOS-241).
  */
 export type StandingTripNext = 'checkIn' | 'takeBillsOff'
 
@@ -65,6 +66,9 @@ export function standingTripNext(
   tripState: string,
   loadConfirmedAt: string | null,
 ): StandingTripNext | null {
-  if (tripState === 'loading' && loadConfirmedAt !== null) return 'checkIn'
+  // A `planned` trip the godown counted out without pressing "start loading" is loaded too: the server checks
+  // it in (planned → loading → closing) and refuses to take its bills off (QA DOS-354 verify, M7).
+  if ((tripState === 'loading' || tripState === 'planned') && loadConfirmedAt !== null)
+    return 'checkIn'
   return TRIP_TAKES_A_LATE_BILL.has(tripState) ? 'takeBillsOff' : null
 }
