@@ -864,7 +864,8 @@ describeDb('inventory (DATABASE_URL)', () => {
       note: 'DOS-037 control',
     })
     expect(moved.status).toBe(200)
-    expect(await ledgerRows()).toBe(before + 4)
+    // the count (1) + the damaged piece (2 since ruling 6: off the godown AND into the bin) + the move (2)
+    expect(await ledgerRows()).toBe(before + 5)
   })
 
   it('DOS-140: sellable offers the godown only — never the damaged bin, goods in transit or a shop — and answers a vehicle just when that vehicle is asked for', async () => {
@@ -1473,7 +1474,8 @@ describeDb('inventory (DATABASE_URL)', () => {
       })
       expect(open.status).toBe(200)
     }
-    // the Z0 batch is written off to zero: its balance row stays, at 0
+    // the Z0 batch is corrected to zero: its balance row stays, at 0 (a plain correction — a `damage`
+    // write-off would move the three pieces into the bin since ruling 6, and the bin row is not zero)
     const zeroLot = lots[3]?.[0] ?? ''
     expect(
       (
@@ -1482,7 +1484,7 @@ describeDb('inventory (DATABASE_URL)', () => {
           lotId: zeroLot,
           locationId: godown,
           qtyDelta: -3,
-          reason: 'damage',
+          reason: 'adjustment',
         })
       ).status,
     ).toBe(200)

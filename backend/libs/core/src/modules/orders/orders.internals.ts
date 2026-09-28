@@ -24,7 +24,7 @@ import {
   type Db,
 } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
-import { reservableLocationId } from '../inventory/index.js'
+import { fulfilPlaceRefusal, reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
 import { checkCredit, loadRetailerCredit } from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
@@ -71,6 +71,16 @@ export async function createDraft(
       message: 'a retailer may only place orders with source retailer_app',
     })
   await quotes.loadRetailer(tx, ctx, input.retailerId)
+  // QA DOS-352 (ruling 2): an order is packed from a godown or sold off a van, never from the damaged bin, the
+  // dock or a shop's floor. Refused before anything is written, for every placer and the van sale alike.
+  if (input.fulfilFromLocationId) {
+    const refusal = await fulfilPlaceRefusal(tx, input.fulfilFromLocationId)
+    if (refusal)
+      throw new ORPCError('BAD_REQUEST', {
+        message: refusal.message,
+        data: { code: refusal.code, locationId: refusal.locationId },
+      })
+  }
   const [clash] = await tx.select().from(salesOrders).where(eq(salesOrders.id, input.id))
   if (clash) throw orderIdTaken(input.id)
   const credit = await loadRetailerCredit(tx, input.retailerId)
@@ -106,6 +116,23 @@ export async function createDraft(
   if (!order)
     throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'order insert returned nothing' })
   return order
+}
+
+/**
+ * AN ORDER STORED WITH A PLACE NO ORDER IS PACKED FROM (QA DOS-352, ruling 2): drafted before the draft check
+ * existed — the QA lane's V8 order named the damaged bin, and its twelve damaged pieces were picked, packed and
+ * billed — or written by any path that check does not see. Submit and confirm refuse it before a number is
+ * allocated or a piece is held; the desk cancels it and places it again, and it is packed from the godown.
+ */
+export async function assertPackablePlace(tx: Db, order: OrderRow): Promise<void> {
+  if (!order.fulfilFromLocationId) return
+  const refusal = await fulfilPlaceRefusal(tx, order.fulfilFromLocationId)
+  if (!refusal) return
+  const which = order.orderNo ? `Order ${order.orderNo}` : 'This order'
+  throw new ORPCError('CONFLICT', {
+    message: `${which} is set to be packed from ${refusal.name ?? `location ${refusal.locationId}`}: ${refusal.why} Cancel it and place it again without a location; it is then packed from the godown.`,
+    data: { code: refusal.code, locationId: refusal.locationId },
+  })
 }
 
 function orderIdTaken(id: string): ORPCError<'CONFLICT', undefined> {

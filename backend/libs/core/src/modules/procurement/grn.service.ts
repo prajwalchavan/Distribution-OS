@@ -19,7 +19,7 @@ import type {
   ResolveDiscrepancyInput,
   ResolveDiscrepancyOutput,
 } from '@dos/contracts'
-import { multiply, paise, uuidv7 } from '@dos/domain'
+import { businessDate, multiply, paise, uuidv7 } from '@dos/domain'
 import {
   grnLines,
   grns,
@@ -45,7 +45,7 @@ import {
   requireRole,
   writeAudit,
 } from '../../platform/index.js'
-import { InventoryService, type LedgerEntryInput } from '../inventory/index.js'
+import { damagedBinPlace, InventoryService, type LedgerEntryInput } from '../inventory/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   toDiscrepancy,
@@ -359,22 +359,24 @@ export class GrnService {
           throw new ORPCError('NOT_FOUND', {
             message: `supplier invoice ${grn.supplierInvoiceId} not found`,
           })
-        const [damagedBin] = await tx
-          .select({ id: locations.id })
-          .from(locations)
-          .where(and(eq(locations.kind, 'damaged'), eq(locations.active, true)))
-          .orderBy(asc(locations.id))
-        if (!damagedBin)
-          throw new ORPCError('INTERNAL_SERVER_ERROR', {
-            message: 'tenant has no damaged location (bootstrap)',
-          })
+        /*
+         * The damaged / expiry bin, found only when a line sends pieces there (damaged at the gate, expired on
+         * arrival). It is a fixed place nobody can switch off (vans and trips ruling 5); a distributor without one
+         * gets the 409 `place_missing` sentence, never the old 500 — and a receipt with nothing for the bin posts.
+         */
+        let bin: { id: string } | null = null
+        const damagedBin = async (): Promise<{ id: string }> => (bin ??= await damagedBinPlace(tx))
         const variants = await tx
           .select({ id: productVariants.id, mrpPaise: productVariants.mrpPaise })
           .from(productVariants)
           .where(inArray(productVariants.id, [...new Set(lines.map((l) => l.variantId))]))
         const variantMrp = new Map(variants.map((v) => [v.id, v.mrpPaise]))
         const now = new Date()
+        // QA DOS-357, architect ruling 4: judged against the IST business date of the posting, in
+        // TypeScript (never `current_date`, which is UTC for five and a half hours every night).
+        const today = businessDate(now).date
         const entries: LedgerEntryInput[] = []
+        const expiredFindings: (typeof inboundDiscrepancies.$inferInsert)[] = []
         for (const line of lines) {
           const src = line.supplierInvoiceLineId
             ? invoiceLineById.get(line.supplierInvoiceLineId)
@@ -402,7 +404,40 @@ export class GrnService {
           line.lotId = lot.id
           const good = line.countedQtyPcs ?? 0
           const ref = { reason: 'grn' as const, refType: 'grn', refId: grn.id }
-          if (good > 0)
+          /*
+           * EXPIRED ON ARRIVAL GOES TO THE BIN, NOT THE GODOWN (QA DOS-357, architect ruling 4). A batch
+           * whose expiry is already before the day of posting was received as sellable godown stock without
+           * a word, and was billed to a shop a day later (DOS-351). Its good pieces now land in the damaged
+           * / expiry bin under the same `grn` reason; the purchase, the cost and the supplier's due are
+           * unchanged (the bill is owed as printed), so the receipt still equals the bill. The line records
+           * how many went, and a `damaged` gate finding carries them to the supplier claim — the one the
+           * shortage claim already reads for goods that arrived unsellable.
+           */
+          const expired = src.expiryDate !== null && src.expiryDate < today
+          if (expired && good > 0) {
+            entries.push({
+              ...ref,
+              lotId: lot.id,
+              locationId: (await damagedBin()).id,
+              qtyDelta: good,
+              idempotencyKey: `grn:${grn.id}:${line.id}:expired`,
+              note: 'expired on arrival',
+            })
+            await tx
+              .update(grnLines)
+              .set({ expiredQtyPcs: good, updatedAt: now })
+              .where(eq(grnLines.id, line.id))
+            line.expiredQtyPcs = good
+            expiredFindings.push({
+              id: uuidv7(),
+              tenantId: ctx.tenantId,
+              grnId: grn.id,
+              grnLineId: line.id,
+              kind: 'damaged',
+              qtyPcs: good,
+              note: `Expired on arrival: ${String(good)} pc${src.batchNo ? ` of batch ${src.batchNo}` : ''}, expiry ${src.expiryDate ?? ''}, received ${today} — put in the damaged / expiry bin, not the godown`,
+            })
+          } else if (good > 0)
             entries.push({
               ...ref,
               lotId: lot.id,
@@ -414,7 +449,7 @@ export class GrnService {
             entries.push({
               ...ref,
               lotId: lot.id,
-              locationId: damagedBin.id,
+              locationId: (await damagedBin()).id,
               qtyDelta: line.damagedQtyPcs,
               idempotencyKey: `grn:${grn.id}:${line.id}:damaged`,
               note: 'damaged at gate',
@@ -429,6 +464,8 @@ export class GrnService {
           })
         }
         await this.inventory.post(tx, entries)
+        if (expiredFindings.length > 0)
+          await tx.insert(inboundDiscrepancies).values(expiredFindings)
         const grnNo = grn.grnNo ?? (await nextDocumentNumber(tx, 'GRN', now))
         const [posted] = await tx
           .update(grns)

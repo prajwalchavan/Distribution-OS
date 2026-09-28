@@ -94,9 +94,9 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
@@ -7481,6 +7481,30 @@ request.json
     "onHand": 1,
     "reserved": 1,
     "version": 1
+  },
+  "movedToBin": {
+    "locationName": "text",
+    "entry": {
+      "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
+      "occurredAt": "2026-09-04T10:30:00.000Z",
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "qtyDelta": 24,
+      "reason": "opening",
+      "refType": "text",
+      "refId": "01a06dee-c83b-7a4d-837e-fb9a8786f9b5",
+      "actorId": "01a06d81-8fbe-749f-8c31-d150f1cb90ee",
+      "note": null,
+      "variantName": "Campa Cola 750 ml",
+      "batchNo": "SO-0042"
+    },
+    "balance": {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "onHand": 1,
+      "reserved": 1,
+      "version": 1
+    }
   }
 }
 ```
@@ -7547,7 +7571,7 @@ request.json
 
 ### POST `/inventory/transfers`
 
-Move pieces of a lot between locations · contract `inventory.stock.transfer`
+Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) · contract `inventory.stock.transfer`
 
 **Roles:** owner, manager, warehouse
 
@@ -7792,7 +7816,7 @@ curl "http://localhost:3003/inventory/ledger?lotId=01a06dc6-1c19-701b-8a21-982c1
 
 ### POST `/inventory/lots`
 
-Find or create a lot (variant + batch + MRP) · contract `inventory.lots.upsert`
+Find or create a lot (variant + batch + MRP + expiry) · contract `inventory.lots.upsert`
 
 **Roles:** owner, manager, warehouse
 

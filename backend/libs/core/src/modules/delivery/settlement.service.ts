@@ -1144,25 +1144,9 @@ export class SettlementService {
     return row
   }
 
-  private async warehouseLocation(tx: Db): Promise<string> {
-    const { tenantId } = currentTenant()
-    const [row] = await tx
-      .select({ id: locations.id })
-      .from(locations)
-      .where(
-        and(
-          eq(locations.tenantId, tenantId),
-          eq(locations.kind, 'warehouse'),
-          eq(locations.active, true),
-        ),
-      )
-      .orderBy(asc(locations.id))
-      .limit(1)
-    if (!row)
-      throw new ORPCError('BAD_REQUEST', {
-        message: 'this distributor has no active warehouse location (bootstrap it first)',
-      })
-    return row.id
+  /** The godown as every service finds it; a distributor without one gets inventory's 409 `place_missing` sentence. */
+  private warehouseLocation(tx: Db): Promise<string> {
+    return reservableLocationId(tx)
   }
 }
 

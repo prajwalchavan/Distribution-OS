@@ -40,6 +40,7 @@ import {
   currentTenant,
   DB,
   idempotent,
+  isPrivilegeViolation,
   requireDb,
   requireRole,
   STAFF,
@@ -61,7 +62,13 @@ import {
   type AvailabilityRaw,
   type SellableRaw,
 } from './inventory.mappers.js'
-import { findReservableLocationId } from './reservable-location.js'
+import {
+  damagedBinPlace,
+  findFixedPlace,
+  findReservableLocationId,
+  FIXED_PLACE_WORDS,
+  isFixedPlaceKind,
+} from './reservable-location.js'
 
 type LocationsIn = z.infer<typeof LocationsListInput>
 type LocationsOut = z.infer<typeof LocationsListOutput>
@@ -103,6 +110,39 @@ export const STOCK_VIEWERS: readonly ActorRole[] = [
  * `mayPostAdjustment` (DOS-044).
  */
 const STOCK_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'warehouse', 'system']
+
+/**
+ * Who takes pieces OFF the books at the damaged / expiry bin — a write-off, a return to the brand, a count
+ * found short (architect ruling 6, 2026-09-28: "the write-off is the desk's, from the bin"). The godown
+ * only puts pieces in.
+ */
+const BIN_WRITERS: readonly ActorRole[] = ['owner', 'manager', 'system']
+
+/**
+ * Who takes pieces out of the bin WITHOUT writing them off — the correction of a carton binned by mistake
+ * (architect ruling 2, and ruling 5 on vans and trips: the owner only). A manager's exits from the bin are the
+ * desk's write-offs (`damage`, `expiry_writeoff`).
+ */
+const BIN_CORRECTORS: readonly ActorRole[] = ['owner', 'system']
+
+/** The adjustment reasons that move pieces INTO the bin when taken off any other place (ruling 6). */
+const TO_THE_BIN: ReadonlySet<string> = new Set(['damage', 'expiry_writeoff'])
+
+/** A location's kind as a godown hand names it, for the refusals of `upsertLocation`. */
+const KIND_WORDS: Readonly<Record<string, string>> = {
+  warehouse: 'godown',
+  vehicle: 'vehicle',
+  damaged: 'damaged / expiry bin',
+  in_transit: 'dock',
+  customer: 'shop floor',
+}
+
+/** A place as it stood before an upsert: what `assertPlaceMayChange` read, locked. */
+interface PlaceWas {
+  kind: string
+  name: string
+  active: boolean
+}
 
 /** The near-expiry window `stock.balances?nearExpiryOnly=true` uses (days from today, IST). */
 const NEAR_EXPIRY_DAYS = 60
@@ -169,10 +209,21 @@ export class StockService {
 
   async upsertLocation(input: LocationIn): Promise<LocationOut> {
     requireRole(STOCK_WRITERS)
+    // QA DOS-350, architect ruling 1 (2026-09-28): no place goes below zero — not a godown, not a van,
+    // not the damaged / expiry bin, whose "may go negative for a claim cycle" let a hand transfer mint
+    // sellable stock from nothing. The field stays in the contract (expand-only) and `false` is the only
+    // answer it takes; refused before anything is written, a replayed key the same way.
+    if (input.negativeAllowed)
+      throw new ORPCError('BAD_REQUEST', {
+        message:
+          'No stock location may go below zero: every place shows only the pieces that are really in it. Save the location without "negative allowed"; a count corrects a place whose books are wrong.',
+        data: { code: 'location_never_negative' },
+      })
     const db = requireDb(this.db)
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        const was = await this.assertPlaceMayChange(tx, input.id, input.kind, input.active)
         const values = {
           kind: input.kind,
           name: input.name,
@@ -181,11 +232,17 @@ export class StockService {
           active: input.active,
         }
         try {
-          const [row] = await tx
-            .insert(locations)
-            .values({ id: input.id, tenantId: ctx.tenantId, ...values })
-            .onConflictDoUpdate({ target: locations.id, set: { ...values, updatedAt: new Date() } })
-            .returning()
+          // A savepoint: when the database refuses the row (0075's guards), the refusal can still name the places.
+          const [row] = await tx.transaction((sp) =>
+            sp
+              .insert(locations)
+              .values({ id: input.id, tenantId: ctx.tenantId, ...values })
+              .onConflictDoUpdate({
+                target: locations.id,
+                set: { ...values, updatedAt: new Date() },
+              })
+              .returning(),
+          )
           if (!row)
             throw new ORPCError('INTERNAL_SERVER_ERROR', {
               message: 'location upsert returned nothing',
@@ -196,10 +253,168 @@ export class StockService {
             throw new ORPCError('CONFLICT', {
               message: `a location named "${input.name}" already exists`,
             })
+          // the database's own copy of the rule below (migration 0075), for a writer that raced the read
+          if (pgConstraint(err) === 'locations_bin_kind_fixed')
+            throw new ORPCError('CONFLICT', {
+              message:
+                'The damaged / expiry bin stays the bin and no other place becomes one: pieces in it never go back for sale. Add a new location instead.',
+              data: { code: 'location_kind_fixed', locationId: input.id },
+            })
+          if (pgConstraint(err) === 'locations_fixed_place')
+            throw new ORPCError('CONFLICT', {
+              message:
+                'The godown, the dock and the damaged / expiry bin are fixed places: they stay switched on and keep their kind. You can rename one; for another place, add a new location.',
+              data: { code: 'location_fixed', locationId: input.id },
+            })
+          if (pgConstraint(err) === 'locations_fixed_place_first')
+            throw await this.takesFixedSeat(tx, input.id, input.kind, was)
+          // The id is another distributor's place: the upsert's ON CONFLICT reached a row this tenant may not
+          // touch, and row security refused it (42501). A sentence, not a 500; the other place is untouched.
+          if (isPrivilegeViolation(err))
+            throw new ORPCError('CONFLICT', {
+              message:
+                'Nothing was saved: this location id already belongs to a place you cannot see. Add the place again from the app; a new place gets its own id.',
+              data: { code: 'location_id_taken', locationId: input.id },
+            })
           throw err
         }
       }),
     )
+  }
+
+  /**
+   * A PLACE KEEPS ITS KIND WHILE IT IS THE BIN OR HOLDS STOCK (QA DOS-352, architect ruling 2; the blind check's
+   * V9). `sellable_stock` decides what may be sold by the place's KIND, so re-saving the damaged / expiry bin as a
+   * godown put 161 damaged pieces in 14 lots straight into every rep's availability, and a hand transfer then
+   * moved them into the godown — one call, by the godown login, no ledger row. So:
+   *
+   *   - the bin stays the bin, and no place becomes one by a new kind (its pieces would leave sale with no ledger
+   *     row, and the brand's claim would read rows it never received) — 409 `location_kind_fixed`;
+   *   - any other place keeps its kind while pieces stand in it or are held there — 409 `location_holds_stock`.
+   *
+   * THE GODOWN, THE DOCK AND THE BIN ARE FIXED PLACES (architect ruling 5 on vans and trips, 2026-09-28; the
+   * second blind check). The godown login switched the bin off in one call (`active: false`, 200): a damage
+   * write-off at the godown then reached no bin, and every goods receipt answered 500. The place every service
+   * uses as the godown, the dock or the bin — the first active of its kind, the one `bootstrapTenant` made — is
+   * never switched off and never changes kind, for every role: 409 `location_fixed`. A place the owner added
+   * himself (a second godown, a claim shelf, a van) is switched off only when it holds nothing — 409
+   * `location_holds_stock` otherwise, since a switched-off place drops out of every list while its pieces stay on
+   * the books.
+   *
+   * A new place, a new name, switching a place back on and a kind change of an empty place still go. Migration
+   * 0075's trigger `locations_bin_kind_fixed` is the bin rule and the fixed-place rule at the database.
+   */
+  private async assertPlaceMayChange(
+    tx: Db,
+    locationId: string,
+    kind: string,
+    active: boolean,
+  ): Promise<PlaceWas | undefined> {
+    const { tenantId } = currentTenant()
+    const [was] = await tx
+      .select({ kind: locations.kind, name: locations.name, active: locations.active })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+      .for('update')
+    if (!was) return undefined
+    const newKind = was.kind !== kind
+    const switchedOff = was.active && !active
+    if (!newKind && !switchedOff) return was
+    if (newKind) this.assertNotIntoOrOutOfBin(was, locationId, kind)
+    if (was.active && isFixedPlaceKind(was.kind)) {
+      const fixed = await findFixedPlace(tx, was.kind)
+      if (fixed?.id === locationId) {
+        const { name, job } = FIXED_PLACE_WORDS[was.kind]
+        throw new ORPCError('CONFLICT', {
+          message: `${was.name} is the ${name}: ${job}, so it is a fixed place — it stays switched on and stays the ${name}. You can rename it; for another place, add a new location.`,
+          data: { code: 'location_fixed', locationId, kind: was.kind },
+        })
+      }
+    }
+    const [held] = await tx
+      .select({
+        pcs: sql<string>`coalesce(sum(abs(${stockBalances.onHand}) + ${stockBalances.reserved}), 0)::bigint`,
+      })
+      .from(stockBalances)
+      .where(and(eq(stockBalances.tenantId, tenantId), eq(stockBalances.locationId, locationId)))
+    const pcs = Number(held?.pcs ?? 0)
+    if (pcs > 0 && newKind)
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} holds ${String(pcs)} pc, so it stays a ${KIND_WORDS[was.kind] ?? was.kind}: a new kind would change what those pieces may be sold as. Move them out first, or add a new location.`,
+        data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
+      })
+    if (pcs > 0)
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} holds ${String(pcs)} pc, so it stays switched on: a place that is switched off drops out of every list while its pieces are still on the books. Move them out first, then switch it off.`,
+        data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
+      })
+    return was
+  }
+
+  /**
+   * NO PLACE TAKES THE SEAT OF THE GODOWN, THE DOCK OR THE BIN (vans and trips ruling 5; the third blind check's
+   * blocker). The fixed place of a kind is the first ACTIVE one by id — what every service reads — so a place
+   * created with a client-chosen id older than the dock's became the dock: the bills already packed onto the real
+   * dock could not be loaded, cancelled or moved again, and the fixed-place rule then kept the intruder. Migration
+   * 0075 refuses the row for every writer (`locations_fixed_place_first`: a new place, one switched on, one given
+   * that kind, while an active place of the kind sorts after it); this is its refusal in words. A place added
+   * today (UUIDv7) never sorts first, so only a crafted id or one minted on a device whose date is years behind
+   * reaches it — which is what the sentence says to check.
+   */
+  private async takesFixedSeat(
+    tx: Db,
+    locationId: string,
+    kind: string,
+    was: PlaceWas | undefined,
+  ): Promise<ORPCError<'CONFLICT', Record<string, unknown>>> {
+    const fixedKind = isFixedPlaceKind(kind) ? kind : null
+    const seat = fixedKind === null ? null : await findFixedPlace(tx, fixedKind)
+    const data = {
+      code: 'location_before_fixed',
+      locationId,
+      kind,
+      fixedLocationId: seat?.id ?? null,
+    }
+    if (fixedKind === null || seat === null)
+      return new ORPCError('CONFLICT', {
+        message:
+          'Nothing was saved: this place would take the place of the godown, the dock or the damaged / expiry bin, which are fixed places. Add a new location instead.',
+        data,
+      })
+    const { name: fixedName, job } = FIXED_PLACE_WORDS[fixedKind]
+    const kindWord = KIND_WORDS[kind] ?? kind
+    if (was === undefined)
+      return new ORPCError('CONFLICT', {
+        message: `Nothing was saved: a new ${kindWord} with this id would take the place of ${seat.name}, the distributor's ${fixedName} — ${job} — because its id comes before ${seat.name}'s. Such an id comes from a device whose date is set in the past: check the date and time on the device, then add the place again.`,
+        data,
+      })
+    if (was.kind !== kind)
+      return new ORPCError('CONFLICT', {
+        message: `${was.name} cannot become a ${kindWord}: it was made before ${seat.name}, the distributor's ${fixedName}, and would take its place — ${job}. For another ${kindWord}, add a new location.`,
+        data,
+      })
+    return new ORPCError('CONFLICT', {
+      message: `${was.name} cannot be switched on as a ${kindWord}: it was made before ${seat.name}, the distributor's ${fixedName}, and would take its place — ${job}. Leave it switched off and move any pieces out of it with a stock transfer; for another ${kindWord}, add a new location.`,
+      data,
+    })
+  }
+
+  /** The bin half of `assertPlaceMayChange`: no place leaves or joins the `damaged` kind (ruling 2, V9). */
+  private assertNotIntoOrOutOfBin(
+    was: { kind: string; name: string },
+    locationId: string,
+    kind: string,
+  ): void {
+    if (was.kind === 'damaged')
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} is the damaged / expiry bin and stays one: pieces in it never go back for sale, so it cannot be saved as a ${KIND_WORDS[kind] ?? kind}. They leave the bin only by a write-off or a return to the brand. For a new ${KIND_WORDS[kind] ?? kind}, add a new location.`,
+        data: { code: 'location_kind_fixed', locationId, kind: was.kind },
+      })
+    if (kind === 'damaged')
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} is a ${KIND_WORDS[was.kind] ?? was.kind} and cannot become a damaged / expiry bin: damaged and expired pieces are moved into the bin with a damage or expiry write-off. For another bin, add a new location.`,
+        data: { code: 'location_kind_fixed', locationId, kind: was.kind },
+      })
   }
 
   /**
@@ -257,8 +472,9 @@ export class StockService {
    * the damaged bin, stock in transit and a second warehouse — pieces no order can reserve.
    *
    * Only items with something left to promise at the godown have a row, so a caller that has read every page
-   * may take a missing item as zero. No expiry filter, because `reserve()` has none. Open to every member,
-   * like `sellable` (TenantGuard + PERMISSIONS gate it), and a strict subset of what `sellable` shows.
+   * may take a missing item as zero. An expired batch is not counted (QA DOS-261, architect ruling 3): the
+   * view leaves it out, exactly as `reserve()` never holds it, so the hint and the hold agree. Open to every
+   * member, like `sellable` (TenantGuard + PERMISSIONS gate it), and a strict subset of what `sellable` shows.
    */
   async availability(input: AvailabilityIn): Promise<AvailabilityOut> {
     const db = requireDb(this.db)
@@ -377,8 +593,54 @@ export class StockService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
+        const place = await this.placeOf(tx, input.locationId)
+        // Architect ruling 6 (2026-09-28): the write-off is the DESK'S, from the bin. The godown puts
+        // damaged and expired pieces into the bin; only the owner or a manager takes them off the books
+        // there (a write-off, a return to the brand, a count). Refused before anything is written.
+        if (place.kind === 'damaged' && input.qtyDelta < 0 && !BIN_WRITERS.includes(ctx.actorRole))
+          throw new ORPCError('FORBIDDEN', {
+            message: `Pieces leave ${place.name} only by the desk's write-off or a return to the brand: ask the owner or a manager. The godown moves damaged and expired pieces into the bin and nothing out of it.`,
+            data: { code: 'bin_writeoff_desk_only', locationId: input.locationId },
+          })
+        // A CARTON BINNED BY MISTAKE IS THE OWNER'S CORRECTION (ruling 2, and ruling 5 on vans and trips: "by the
+        // OWNER only"; the second blind check found it open to a manager). Pieces leave the bin without being
+        // written off — a plain correction, a count by hand, an opening — only by the owner; a manager takes
+        // pieces off the books at the bin only as a damage or expiry write-off (ruling 6, the desk's write-off).
+        // `stock.adjust` is the only door for such a row (the ledger's other movers never post `refType
+        // adjustment`), and the check sits before anything is written.
+        if (
+          place.kind === 'damaged' &&
+          input.qtyDelta < 0 &&
+          !TO_THE_BIN.has(input.reason) &&
+          !BIN_CORRECTORS.includes(ctx.actorRole)
+        )
+          throw new ORPCError('FORBIDDEN', {
+            message: `Only the owner takes pieces out of ${place.name} without writing them off: a carton put in the bin by mistake is the owner's correction, with a reason. A manager writes damaged or expired pieces off from the bin as a damage or expiry write-off.`,
+            data: {
+              code: 'bin_correction_owner_only',
+              locationId: input.locationId,
+              reason: input.reason,
+            },
+          })
+        // ...and "with a reason" (ruling 2): the owner's correction out of the bin says why in words, which the ledger
+        // row keeps as its note — the reason code alone ("adjustment") does not say that the carton was sound.
+        if (
+          place.kind === 'damaged' &&
+          input.qtyDelta < 0 &&
+          !TO_THE_BIN.has(input.reason) &&
+          (input.note ?? '').trim() === ''
+        )
+          throw new ORPCError('BAD_REQUEST', {
+            message: `Write why these pieces leave ${place.name} without a write-off — for example "binned by mistake, carton is sound" — and save again: the owner's correction out of the bin always carries its reason.`,
+            data: {
+              code: 'bin_correction_needs_note',
+              locationId: input.locationId,
+              reason: input.reason,
+            },
+          })
         if (input.qtyDelta < 0)
           await this.assertNotHeldOnDock(tx, input.locationId, input.lotId, -input.qtyDelta)
+        const note = input.note ? { note: input.note } : {}
         const entry: Parameters<InventoryService['post']>[1][number] = {
           lotId: input.lotId,
           locationId: input.locationId,
@@ -386,14 +648,72 @@ export class StockService {
           reason: input.reason,
           refType: 'adjustment',
           idempotencyKey: input.idempotencyKey,
-          ...(input.note ? { note: input.note } : {}),
+          ...note,
         }
-        const { entries, balances } = await this.inventory.post(tx, [entry])
-        const written = entries[0] ?? (await this.ledgerByKey(tx, input.idempotencyKey))
-        const balance = balances[0] ?? (await this.balanceOf(tx, input.lotId, input.locationId))
-        return { entry: toEntry(written), balance: toBalance(balance) }
+        /*
+         * DAMAGED IN THE GODOWN MEANS MOVED TO THE BIN (architect ruling 6, QA phase 10 question 5). A
+         * `damage` or `expiry_writeoff` taken off a godown, a van or the dock used to write the pieces off
+         * the books there and then: nothing reached the bin, so the brand's damage / expiry claim — built
+         * from the rows posted INTO the bin — never saw them, and the desk never decided. They now leave the
+         * place and land in the damaged / expiry bin under the same reason, the pair keyed on this call, and
+         * the desk writes them off from there. The bin is a fixed place nobody can switch off (ruling 5 on vans
+         * and trips): a distributor without one is refused in words (409 `place_missing`) instead of the old
+         * silent write-off at the godown, which by-passed the desk and the brand's claim.
+         */
+        const bin =
+          input.qtyDelta < 0 && place.kind !== 'damaged' && TO_THE_BIN.has(input.reason)
+            ? await damagedBinPlace(tx)
+            : null
+        const binKey = `${input.idempotencyKey}:bin`
+        const pair: Parameters<InventoryService['post']>[1] =
+          bin === null
+            ? [entry]
+            : [
+                { ...entry, refId: input.idempotencyKey },
+                {
+                  ...entry,
+                  locationId: bin.id,
+                  qtyDelta: -input.qtyDelta,
+                  refId: input.idempotencyKey,
+                  idempotencyKey: binKey,
+                },
+              ]
+        const { entries, balances } = await this.inventory.post(tx, pair)
+        const written =
+          entries.find((e) => e.idempotencyKey === input.idempotencyKey) ??
+          (await this.ledgerByKey(tx, input.idempotencyKey))
+        const balance =
+          balances.find((b) => b.locationId === input.locationId) ??
+          (await this.balanceOf(tx, input.lotId, input.locationId))
+        if (bin === null) return { entry: toEntry(written), balance: toBalance(balance) }
+        const binEntry =
+          entries.find((e) => e.idempotencyKey === binKey) ?? (await this.ledgerByKey(tx, binKey))
+        const binBalance =
+          balances.find((b) => b.locationId === bin.id) ??
+          (await this.balanceOf(tx, input.lotId, bin.id))
+        return {
+          entry: toEntry(written),
+          balance: toBalance(balance),
+          movedToBin: {
+            locationName: bin.name,
+            entry: toEntry(binEntry),
+            balance: toBalance(binBalance),
+          },
+        }
       }),
     )
+  }
+
+  /** The kind and the name of one of this tenant's locations; 404 when it is not one. */
+  private async placeOf(tx: Db, locationId: string): Promise<{ kind: string; name: string }> {
+    const { tenantId } = currentTenant()
+    const [row] = await tx
+      .select({ kind: locations.kind, name: locations.name })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+      .limit(1)
+    if (!row) throw new ORPCError('NOT_FOUND', { message: `location ${locationId} not found` })
+    return row
   }
 
   async transfer(input: TransferIn): Promise<TransferOut> {
@@ -405,6 +725,25 @@ export class StockService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         await this.requireLot(tx, input.lotId)
+        /*
+         * NOTHING LEAVES THE DAMAGED BIN FOR SALE (QA DOS-352, architect ruling 2, 2026-09-28). A godown
+         * login moved damaged cartons back into the godown and onto a van with one tap, no reason and no
+         * approval, and they were a rep's availability at once. The bin's only exits are a write-off and a
+         * return to the brand; a carton binned by mistake is corrected by the owner's stock adjustment with a
+         * reason, which records who and why. For every role. A move INTO the bin stays: that is "damaged in
+         * the godown" (ruling 6); bin to bin stays too.
+         */
+        const source = await this.placeOf(tx, input.fromLocationId)
+        const target = await this.placeOf(tx, input.toLocationId)
+        if (source.kind === 'damaged' && target.kind !== 'damaged')
+          throw new ORPCError('CONFLICT', {
+            message: `Pieces in ${source.name} never go back for sale, so they cannot be moved to ${target.name}. They leave the bin only by a write-off or a return to the brand. If a carton went into the bin by mistake, the owner corrects it with a stock adjustment and a reason.`,
+            data: {
+              code: 'damaged_not_for_sale',
+              fromLocationId: input.fromLocationId,
+              toLocationId: input.toLocationId,
+            },
+          })
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [

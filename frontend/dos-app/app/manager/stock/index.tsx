@@ -100,6 +100,17 @@ export default function Stock(): React.JSX.Element {
   const locations = useQuery(['names', 'locations'], () => api.api.inventory.locations.list({}), {
     staleTime: 300_000,
   })
+  /*
+   * THE BIN'S ONLY EXITS (QA DOS-352, architect rulings 2 and 6): pieces in the damaged / expiry bin never
+   * go back for sale, so a bin row offers no Move and says why; and a damaged or expired write-off taken
+   * off any other place lands in the bin, which the adjust dialog says before it is posted.
+   */
+  const inBin = (id: string | undefined): boolean =>
+    (locations.data?.items ?? []).some((place) => place.id === id && place.kind === 'damaged')
+  const goesToBin =
+    adjusting !== null &&
+    !inBin(adjusting.locationId) &&
+    (reason === 'damage' || reason === 'expiry_writeoff')
   const filters = {
     nonZero: true,
     sort: 'item' as const,
@@ -456,16 +467,27 @@ export default function Stock(): React.JSX.Element {
               capitalize="sentences"
               testID="adjust-note"
             />
-            <Button
-              label={t('m16.transfer')}
-              variant="ghost"
-              onPress={() => {
-                setTransferring(adjusting)
-                setAdjusting(null)
-                setQty('')
-              }}
-              testID="open-transfer"
-            />
+            {goesToBin ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="adjust-to-bin">
+                {t('m16.toBin')}
+              </Txt>
+            ) : null}
+            {inBin(adjusting?.locationId) ? (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="bin-exits">
+                {t('m16.binExits')}
+              </Txt>
+            ) : (
+              <Button
+                label={t('m16.transfer')}
+                variant="ghost"
+                onPress={() => {
+                  setTransferring(adjusting)
+                  setAdjusting(null)
+                  setQty('')
+                }}
+                testID="open-transfer"
+              />
+            )}
             <Refusal of={[adjust]} testID="adjust-refusal" />
           </Stack>
         }

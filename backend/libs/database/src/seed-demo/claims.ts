@@ -1031,7 +1031,6 @@ async function seedExpiryMovements(
             locationId: row.locationId,
             onHand: delta,
             reserved: 0,
-            negativeAllowed: row.locationId === stock.damagedId,
           })
           .onConflictDoNothing()
       }

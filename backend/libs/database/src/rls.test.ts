@@ -1,5 +1,5 @@
-import { eq, inArray, sql } from 'drizzle-orm'
-import { uuidv7 } from '@dos/domain'
+import { and, eq, inArray, sql } from 'drizzle-orm'
+import { businessDate, uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, withSystem, withTenant, type Db } from './client.js'
 import {
@@ -113,6 +113,7 @@ import {
   writeOffs,
 } from './schema/index.js'
 import { invoiceCancelFootprints, writeOffInvoiceCancelPhantoms } from './stock-footprints.js'
+import { clearNegativeFlags, stockBelowZero } from './stock-negatives.js'
 import {
   FORBIDDEN_PULL_COLUMN_PATTERNS,
   SYNC_PULL_TABLES,
@@ -3608,7 +3609,7 @@ describeDb('row level security and ledger guarantees', () => {
     const floor = uuidv7()
     const binLot = uuidv7()
     await db.insert(locations).values([
-      { id: bin, tenantId: tenantA, kind: 'damaged', name: `Bin ${run}`, negativeAllowed: true },
+      { id: bin, tenantId: tenantA, kind: 'damaged', name: `Bin ${run}` },
       { id: transit, tenantId: tenantA, kind: 'in_transit', name: `Transit ${run}` },
       { id: floor, tenantId: tenantA, kind: 'customer', name: `Shop floor ${run}` },
     ])
@@ -3671,6 +3672,472 @@ describeDb('row level security and ledger guarantees', () => {
         ).rows as { location_id: string }[]
       ).map((r) => r.location_id),
     ).not.toContain(bin)
+  })
+
+  it('DOS-350: no damaged / expiry bin may let a balance go below zero; a balance row cannot claim a flag its place does not give; one already below zero only climbs back, and the release check names it', async () => {
+    /*
+     * Architect ruling 1 (2026-09-28). The bin was created "may go negative for a claim cycle" and the
+     * CHECK `on_hand >= 0 OR negative_allowed` reads the BALANCE ROW's copy of that flag, so a hand
+     * transfer out of the bin minted sellable stock. Migration 0075: the bin cannot carry the flag, a
+     * balance row cannot claim one its place does not give, and a balance already below zero (kept, not
+     * invented away) may only climb back towards zero.
+     */
+    await rejectsWith(
+      db.insert(locations).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        kind: 'damaged',
+        name: `Bin D350 ${run}`,
+        negativeAllowed: true,
+      }),
+      /locations_bin_never_negative/,
+    )
+    const [bin] = await db
+      .select({ id: locations.id, flag: locations.negativeAllowed })
+      .from(locations)
+      .where(sql`${locations.tenantId} = ${tenantA} AND ${locations.kind} = 'damaged'`)
+    expect(bin?.flag).toBe(false)
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ negativeAllowed: true })
+        .where(eq(locations.id, bin?.id ?? '')),
+      /locations_bin_never_negative/,
+    )
+
+    const lotId = uuidv7()
+    await db.insert(stockLots).values({
+      id: lotId,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `D350-${run}`,
+      mrpPaise: 4000,
+    })
+    // a new row that claims the flag at the bin loses it, and so cannot start below zero
+    await db.insert(stockBalances).values({
+      tenantId: tenantA,
+      lotId,
+      locationId: bin?.id ?? '',
+      onHand: 5,
+      negativeAllowed: true,
+    })
+    const flagAt = async (locationId: string) =>
+      (
+        await db
+          .select({ onHand: stockBalances.onHand, flag: stockBalances.negativeAllowed })
+          .from(stockBalances)
+          .where(and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, locationId)))
+      )[0]
+    expect(await flagAt(bin?.id ?? '')).toEqual({ onHand: 5, flag: false })
+    await rejectsWith(
+      db
+        .update(stockBalances)
+        .set({ onHand: -1 })
+        .where(and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, bin?.id ?? ''))),
+      /stock_balances_on_hand_nonneg/,
+    )
+    await rejectsWith(
+      db.insert(stockBalances).values({
+        tenantId: tenantA,
+        lotId,
+        locationId: godownA,
+        onHand: -1,
+        negativeAllowed: true,
+      }),
+      /no place goes below zero/,
+    )
+
+    // what 0075 leaves on a database whose bin had gone below zero: the place corrected, the row kept
+    const place = uuidv7()
+    await db.insert(locations).values({
+      id: place,
+      tenantId: tenantA,
+      kind: 'customer',
+      name: `Old consignment D350 ${run}`,
+      negativeAllowed: true,
+    })
+    await db
+      .insert(stockBalances)
+      .values({ tenantId: tenantA, lotId, locationId: place, onHand: -7, negativeAllowed: true })
+    await db.update(locations).set({ negativeAllowed: false }).where(eq(locations.id, place))
+    // 0075's own correction, run again, keeps it (clearing the flag would fail the CHECK) and counts it
+    const cleared = await clearNegativeFlags(db, tenantA)
+    expect(cleared.balancesKeptBelowZero).toBeGreaterThanOrEqual(1)
+    expect(await flagAt(place)).toEqual({ onHand: -7, flag: true })
+    expect(
+      (await stockBelowZero(db, tenantA))
+        .filter((b) => b.lotId === lotId)
+        .map((b) => [b.locationName, b.onHandPcs, b.balanceFlag, b.locationAllows]),
+    ).toEqual([[`Old consignment D350 ${run}`, -7, true, false]])
+
+    const where = and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, place))
+    await rejectsWith(
+      as('owner')((tx) => tx.update(stockBalances).set({ onHand: -8 }).where(where)),
+      /no place goes below zero/,
+    )
+    await db.update(stockBalances).set({ onHand: -3 }).where(where)
+    expect(await flagAt(place)).toEqual({ onHand: -3, flag: true })
+    await db.update(stockBalances).set({ onHand: 0 }).where(where)
+    expect(await flagAt(place)).toEqual({ onHand: 0, flag: false })
+    await rejectsWith(
+      db.update(stockBalances).set({ onHand: -1 }).where(where),
+      /stock_balances_on_hand_nonneg/,
+    )
+    expect((await stockBelowZero(db, tenantA)).filter((b) => b.lotId === lotId)).toEqual([])
+  })
+
+  it('DOS-261: sellable_stock leaves out a batch past its expiry on the IST business date, and keeps one expiring today, a short-dated one and one with no expiry', async () => {
+    const t = businessDate()
+    const day = (n: number) =>
+      new Date(Date.UTC(t.year, t.month - 1, t.day + n)).toISOString().slice(0, 10)
+    const lots = {
+      yesterday: [uuidv7(), day(-1)],
+      today: [uuidv7(), day(0)],
+      soon: [uuidv7(), day(5)],
+      never: [uuidv7(), null],
+    } as const
+    for (const [tag, [id, expiryDate]] of Object.entries(lots)) {
+      await db.insert(stockLots).values({
+        id,
+        tenantId: tenantA,
+        variantId: variant,
+        batchNo: `D261-${tag}-${run}`,
+        mrpPaise: 4000,
+        expiryDate,
+      })
+      await db
+        .insert(stockBalances)
+        .values({ tenantId: tenantA, lotId: id, locationId: godownA, onHand: 6 })
+    }
+    const ids = Object.values(lots).map(([id]) => id)
+    for (const role of ['owner', 'salesperson', 'retailer'] as const) {
+      const seen = (
+        (
+          await as(role)((tx) =>
+            tx.execute(
+              sql`select lot_id from sellable_stock where tenant_id = ${tenantA} and lot_id in (${sql.join(
+                ids.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+            ),
+          )
+        ).rows as { lot_id: string }[]
+      ).map((r) => r.lot_id)
+      expect(seen.sort(), role).toEqual([lots.today[0], lots.soon[0], lots.never[0]].sort())
+    }
+    // the books keep the expired pieces: this is what may be SOLD, not what is there
+    const onBooks = await db
+      .select({ lotId: stockBalances.lotId })
+      .from(stockBalances)
+      .where(and(eq(stockBalances.lotId, lots.yesterday[0]), eq(stockBalances.locationId, godownA)))
+    expect(onBooks).toHaveLength(1)
+  })
+
+  it('DOS-356: a lot is (variant, batch, MRP, expiry) — another expiry is another lot, the same four collide, and no expiry counts as one value', async () => {
+    const lot = (expiryDate: string | null) =>
+      db.insert(stockLots).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        variantId: variant,
+        batchNo: `D356-${run}`,
+        mrpPaise: 4500,
+        expiryDate,
+      })
+    await lot('2027-01-06')
+    await lot('2026-10-18')
+    await rejectsWith(lot('2027-01-06'), /stock_lots_identity_key/)
+    await lot(null)
+    await rejectsWith(lot(null), /stock_lots_identity_key/)
+  })
+
+  it('DOS-352: the damaged / expiry bin keeps its kind at the database — no update makes it another kind and no place becomes one; a new name and any other kind change still go', async () => {
+    /*
+     * Architect ruling 2 (2026-09-28), the blind check's V9: `sellable_stock` decides what may be sold by the
+     * place's kind, and one re-save of the bin as a godown made its damaged pieces every rep's availability.
+     * Migration 0075's trigger `locations_bin_kind_fixed` refuses the change to or from `damaged` for every
+     * writer, the owner connection included.
+     */
+    const [bin] = await db
+      .select({ id: locations.id, name: locations.name })
+      .from(locations)
+      .where(sql`${locations.tenantId} = ${tenantA} AND ${locations.kind} = 'damaged'`)
+      .orderBy(locations.id)
+      .limit(1)
+    const binId = bin?.id ?? ''
+    await rejectsWith(
+      db.update(locations).set({ kind: 'warehouse' }).where(eq(locations.id, binId)),
+      /no other place becomes one/,
+    )
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.update(locations).set({ kind: 'vehicle' }).where(eq(locations.id, binId)),
+      ),
+      /no other place becomes one/,
+    )
+    await rejectsWith(
+      db.update(locations).set({ kind: 'damaged' }).where(eq(locations.id, godownA)),
+      /no other place becomes one/,
+    )
+    const kindOf = async (id: string) =>
+      (await db.select({ kind: locations.kind }).from(locations).where(eq(locations.id, id)))[0]
+        ?.kind
+    expect(await kindOf(binId)).toBe('damaged')
+    expect(await kindOf(godownA)).toBe('warehouse')
+
+    // what still goes: the bin's new name, and a kind change that does not touch a bin
+    await db
+      .update(locations)
+      .set({ name: `Claim bin D352 ${run}` })
+      .where(eq(locations.id, binId))
+    await db
+      .update(locations)
+      .set({ name: bin?.name ?? '' })
+      .where(eq(locations.id, binId))
+    const floor = uuidv7()
+    await db
+      .insert(locations)
+      .values({ id: floor, tenantId: tenantA, kind: 'customer', name: `Floor D352 ${run}` })
+    await db.update(locations).set({ kind: 'in_transit' }).where(eq(locations.id, floor))
+    expect(await kindOf(floor)).toBe('in_transit')
+  })
+
+  it('vans and trips ruling 5: the godown, the dock and the damaged / expiry bin are fixed places at the database — no writer switches one off or changes its kind; a second godown still goes off, and a distributor left without its bin gets it back', async () => {
+    /*
+     * The second blind check: the godown login switched the bin off (`active: false`), a damage write-off at the
+     * godown then reached no bin and every goods receipt failed. Migration 0075's trigger `locations_bin_kind_fixed`
+     * now also refuses switching off or re-kinding the first ACTIVE place of each fixed kind (the one
+     * `bootstrapTenant` made, the one every service reads), for the owner connection and for app_rw alike.
+     */
+    const firstOf = async (kind: 'warehouse' | 'damaged' | 'in_transit') =>
+      (
+        await db
+          .select({ id: locations.id, name: locations.name })
+          .from(locations)
+          .where(
+            and(
+              eq(locations.tenantId, tenantA),
+              eq(locations.kind, kind),
+              eq(locations.active, true),
+            ),
+          )
+          .orderBy(locations.id)
+          .limit(1)
+      )[0] ?? { id: '', name: '' }
+    const godown = await firstOf('warehouse')
+    const dock = await firstOf('in_transit')
+    const bin = await firstOf('damaged')
+    expect([godown.id, dock.id, bin.id].every((id) => id !== '')).toBe(true)
+    for (const place of [godown, dock, bin]) {
+      await rejectsWith(
+        db.update(locations).set({ active: false }).where(eq(locations.id, place.id)),
+        /fixed places that stay switched on/,
+      )
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx.update(locations).set({ active: false }).where(eq(locations.id, place.id)),
+        ),
+        /fixed places that stay switched on/,
+      )
+    }
+    await rejectsWith(
+      db.update(locations).set({ kind: 'vehicle' }).where(eq(locations.id, godown.id)),
+      /fixed places that stay switched on/,
+    )
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.update(locations).set({ kind: 'warehouse' }).where(eq(locations.id, dock.id)),
+      ),
+      /fixed places that stay switched on/,
+    )
+    // what still goes: the godown takes a new name (and gets its own back)
+    await db
+      .update(locations)
+      .set({ name: `Main godown R5 ${run}` })
+      .where(eq(locations.id, godown.id))
+    await db.update(locations).set({ name: godown.name }).where(eq(locations.id, godown.id))
+    const stillOn = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(inArray(locations.id, [godown.id, dock.id, bin.id]), eq(locations.active, true)))
+    expect(stillOn).toHaveLength(3)
+
+    // a distributor of its own, so tenant A keeps exactly the places the other guarantees read
+    const tenantR5 = uuidv7()
+    await db.insert(tenants).values({
+      id: tenantR5,
+      slug: `r5-${run}`,
+      legalName: `Fixed places ${run}`,
+      stateCode: '27',
+    })
+    const godownR5 = uuidv7()
+    const secondR5 = uuidv7()
+    const offBin = uuidv7()
+    const laterOffBin = uuidv7()
+    await db.insert(locations).values([
+      { id: godownR5, tenantId: tenantR5, kind: 'warehouse', name: `Godown ${run}` },
+      { id: secondR5, tenantId: tenantR5, kind: 'warehouse', name: `Second godown ${run}` },
+      // the state the blind check left behind: the bin switched off before the guard existed
+      { id: offBin, tenantId: tenantR5, kind: 'damaged', name: `Bin ${run}`, active: false },
+      { id: laterOffBin, tenantId: tenantR5, kind: 'damaged', name: `Shelf ${run}`, active: false },
+    ])
+    // one statement over every godown of the distributor: refused whatever order it takes the rows in
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ active: false })
+        .where(and(eq(locations.tenantId, tenantR5), eq(locations.kind, 'warehouse'))),
+      /fixed places that stay switched on/,
+    )
+    // a place the owner added goes off and on again
+    await db.update(locations).set({ active: false }).where(eq(locations.id, secondR5))
+    await db.update(locations).set({ active: true }).where(eq(locations.id, secondR5))
+
+    // the correction 0075 runs once: the first bin comes back on, once, and nothing else moves
+    const restored = await db.execute<{ n: string }>(
+      sql`select dos_restore_fixed_places(${tenantR5}) as n`,
+    )
+    expect(Number(restored.rows[0]?.n)).toBe(1)
+    const again = await db.execute<{ n: string }>(
+      sql`select dos_restore_fixed_places(${tenantR5}) as n`,
+    )
+    expect(Number(again.rows[0]?.n)).toBe(0)
+    const on = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantR5), eq(locations.active, true)))
+    expect(on.map((r) => r.id).sort()).toEqual([godownR5, secondR5, offBin].sort())
+  })
+
+  it('vans and trips ruling 5 (third blind check): no place takes the seat of the godown, the dock or the bin at the database — a place whose id comes before theirs is not inserted, switched on or re-kinded into one, by any writer; the fixed place still takes a new name through an upsert; app_rw and app_worker delete no place', async () => {
+    /*
+     * The fixed place of a kind is the first ACTIVE one by id — what every service reads. The trigger looked only at
+     * UPDATE, so app_rw inserted an `in_transit` place with id 00000000-…, which became "the dock", and then switched
+     * the real dock (holding 6 635 pc) off. Now the same function also runs BEFORE INSERT (trigger
+     * `locations_fixed_place_first`) and on a switch-on, a new kind, a new id or a new tenant.
+     */
+    const tenantS = uuidv7()
+    await db.insert(tenants).values({
+      id: tenantS,
+      slug: `seat-${run}`,
+      legalName: `Seats ${run}`,
+      stateCode: '27',
+    })
+    await bootstrapTenant(db, tenantS)
+    const firstOf = async (kind: 'warehouse' | 'damaged' | 'in_transit') =>
+      (
+        await db
+          .select({ id: locations.id })
+          .from(locations)
+          .where(
+            and(
+              eq(locations.tenantId, tenantS),
+              eq(locations.kind, kind),
+              eq(locations.active, true),
+            ),
+          )
+          .orderBy(locations.id)
+          .limit(1)
+      )[0]?.id ?? ''
+    const seats = {
+      warehouse: await firstOf('warehouse'),
+      in_transit: await firstOf('in_transit'),
+      damaged: await firstOf('damaged'),
+    }
+    expect(Object.values(seats).every((id) => id !== '')).toBe(true)
+    const asS =
+      (role: 'owner' | 'manager' | 'warehouse') =>
+      <T>(fn: (tx: Db) => Promise<T>) =>
+        withTenant(db, { tenantId: tenantS, actorId: owner, actorRole: role }, fn)
+    const early = (n: number) => `00000000-0000-7000-8${n.toString(16)}00-0000${run}`
+
+    // a crafted place of each fixed kind: the owner connection, app_rw as the godown login and as the owner, app_worker
+    for (const [n, kind] of (['warehouse', 'in_transit', 'damaged'] as const).entries()) {
+      const row = { id: early(n), tenantId: tenantS, kind, name: `Early ${kind} ${run}` }
+      await rejectsWith(db.insert(locations).values(row), /would take the place of/)
+      await rejectsWith(
+        asS('warehouse')((tx) => tx.insert(locations).values(row)),
+        /would take the place of/,
+      )
+      await rejectsWith(
+        asS('owner')((tx) => tx.insert(locations).values(row)),
+        /would take the place of/,
+      )
+      await rejectsWith(
+        withSystem(db, (tx) => tx.insert(locations).values(row)),
+        /would take the place of/,
+      )
+    }
+    // switched off it may exist, but it is not switched on — nor does an older place become one by a new kind or id
+    await db.insert(locations).values({
+      id: early(10),
+      tenantId: tenantS,
+      kind: 'in_transit',
+      name: `Early off ${run}`,
+      active: false,
+    })
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ active: true })
+        .where(eq(locations.id, early(10))),
+      /would take the place of/,
+    )
+    await db.insert(locations).values({
+      id: early(11),
+      tenantId: tenantS,
+      kind: 'vehicle',
+      name: `Early van ${run}`,
+    })
+    await rejectsWith(
+      asS('manager')((tx) =>
+        tx
+          .update(locations)
+          .set({ kind: 'warehouse' })
+          .where(eq(locations.id, early(11))),
+      ),
+      /would take the place of/,
+    )
+    const later = uuidv7()
+    await db.insert(locations).values({
+      id: later,
+      tenantId: tenantS,
+      kind: 'warehouse',
+      name: `Annex ${run}`,
+    })
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ id: early(12) })
+        .where(eq(locations.id, later)),
+      /would take the place of/,
+    )
+    // the fixed place re-saved the way the API saves it (INSERT … ON CONFLICT DO UPDATE) still takes a new name
+    await asS('warehouse')((tx) =>
+      tx
+        .insert(locations)
+        .values({
+          id: seats.in_transit,
+          tenantId: tenantS,
+          kind: 'in_transit',
+          name: `Dock ${run}`,
+        })
+        .onConflictDoUpdate({ target: locations.id, set: { name: `Dock ${run}` } }),
+    )
+    expect((await firstOf('warehouse')) === seats.warehouse).toBe(true)
+    expect((await firstOf('in_transit')) === seats.in_transit).toBe(true)
+    expect((await firstOf('damaged')) === seats.damaged).toBe(true)
+    // no product door deletes a place, so neither login may: a distributor's fresh bin stays
+    await rejectsWith(
+      asS('owner')((tx) => tx.delete(locations).where(eq(locations.id, seats.damaged))),
+      /permission denied/,
+    )
+    await rejectsWith(
+      withSystem(db, (tx) => tx.delete(locations).where(eq(locations.id, seats.damaged))),
+      /permission denied/,
+    )
+    expect(
+      await db.select({ id: locations.id }).from(locations).where(eq(locations.id, seats.damaged)),
+    ).toHaveLength(1)
   })
 
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {

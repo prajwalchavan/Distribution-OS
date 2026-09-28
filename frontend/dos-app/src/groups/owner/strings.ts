@@ -597,6 +597,10 @@ export const strings = {
   'o15.piecesTooMany': 'Only {count} pcs are on hand here',
   'o15.why': 'Why (goes into the stock ledger)',
   'o15.adjusted': 'Stock adjusted: {item}, batch {batch} now {count} pcs',
+  // Architect ruling 6 (QA phase 10): damaged in the godown means moved to the bin; the desk writes off there.
+  'o15.toBin':
+    'Damaged or expired pieces taken off here go into the Damaged / expiry bin, not off the books: write them off from the bin.',
+  'o15.movedToBin': '{item}, batch {batch}: {pieces} pcs moved to {bin}',
   'o15.hint': 'Click a row to adjust that batch.',
   'o15.itemBatch': '{item} · {batch}',
   'o15.reasonWhen': '{reason} · {when}',

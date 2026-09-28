@@ -237,6 +237,10 @@ export const strings = {
   'w3.damaged': 'Damaged',
   'w3.countLabel': 'Good pieces',
   'w3.countSplit': 'Count the good pieces here. Damaged ones are counted on the next step.',
+  // QA DOS-357, architect ruling 4: goods that arrive already expired go into the bin, not the godown.
+  'w3.expiredToBin':
+    'Past its expiry date: the pieces you count here go into the Damaged / expiry bin, not the godown. The desk claims them back from the supplier.',
+  'w3.expiredToBinShort': 'Expired on arrival: goes into the Damaged / expiry bin, not the godown',
   'w3.damagedLabel': 'Pieces damaged',
   'w3.next': 'Next line',
   'w3.done': 'Save the count',
@@ -525,6 +529,12 @@ export const strings = {
   'w8.transferDo': 'Move the stock',
   'w8.transferFailed': 'Could not move it',
   'w8.transferred': 'Stock moved',
+  // QA DOS-352 and architect ruling 6: the bin's only exits; damaged in the godown means moved to the bin.
+  'w8.binExits':
+    'Damaged and expired pieces leave the bin only by the desk’s write-off or a return to the brand. A carton put here by mistake is corrected by the owner.',
+  'w8.toBin':
+    'Damaged or expired pieces go into the Damaged / expiry bin, not off the books: the desk writes them off from there.',
+  'w8.movedToBin': 'Moved to {bin}',
   'w8.ledger': 'LAST MOVEMENTS',
   'w8.ledgerEmpty': 'No movement recorded',
   'w8.reasonNeeded': 'Choose a reason',

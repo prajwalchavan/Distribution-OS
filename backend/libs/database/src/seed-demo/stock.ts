@@ -451,7 +451,7 @@ export async function seedStock(
 
   // Openings and GRNs first (all positive), then the issues: `postLedger` folds the deltas per lot and
   // location, so the order only matters for the row timestamps, which are already set above.
-  await postLedger(db, tenantId, ledgerRows, new Set([damaged.id]))
+  await postLedger(db, tenantId, ledgerRows)
 
   const lotsByVariantId = new Map<string, LotRef[]>()
   for (const [variantId, lots] of plan.lotsByVariantId) lotsByVariantId.set(variantId, [...lots])

@@ -6,6 +6,7 @@
     "auth-keygen.mts",
     "import-legacy-extracts.mts",
     "check-stock-cancels.mts",
+    "check-stock-negative.mts",
     "legacy",
     "vitest.config.ts"
   ]

@@ -9,6 +9,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import {
@@ -60,7 +61,13 @@ export const locations = pgTable(
     name: text('name').notNull(),
     /** For kind = vehicle: the delivery.vehicles id (plain id, delivery is downstream). */
     vehicleId: text('vehicle_id'),
-    /** Damaged/expiry bins may go negative during a claim cycle; selling locations never do. */
+    /**
+     * No stock location goes below zero (architect ruling 2026-09-28, QA DOS-350). The damaged / expiry
+     * bin was created with `true` "for a claim cycle", and a hand transfer out of it minted sellable stock
+     * from nothing; migration 0075 set every bin to `false`, and its CHECK `locations_bin_never_negative`
+     * keeps it there. The column stays for the balance rows' own copy (`stock_balances.negative_allowed`),
+     * which a balance already below zero before 0075 keeps until a count brings it back.
+     */
     negativeAllowed: boolean('negative_allowed').notNull().default(false),
     active: boolean('active').notNull().default(true),
     ...timestamps,
@@ -74,7 +81,13 @@ export const locations = pgTable(
   ],
 ).enableRLS()
 
-/** A batch of a variant at one MRP with one expiry. UNIQUE(tenant, variant, batch, mrp) per ADR 0003. */
+/**
+ * A batch of a variant at one MRP with one expiry. Identity is (tenant, variant, batch, MRP, EXPIRY), a
+ * missing expiry counting as one value (NULLS NOT DISTINCT). Until migration 0074 it was (tenant, variant,
+ * batch, MRP) — ADR 0003 — and a second receipt of the same item with no batch number joined the first
+ * lot and kept ITS expiry: 144 pieces that expire in October were recorded as expiring in January (QA
+ * DOS-356; architect ruling 5, 2026-09-28: a receipt never merges into a batch with a different expiry).
+ */
 export const stockLots = pgTable(
   'stock_lots',
   {
@@ -94,7 +107,9 @@ export const stockLots = pgTable(
   (t) => [
     /** Delta pull for the offline device: rows changed since its cursor (own sync, docs/22 §8). */
     index('stock_lots_updated_idx').on(t.tenantId, t.updatedAt),
-    uniqueIndex('stock_lots_identity_idx').on(t.tenantId, t.variantId, t.batchNo, t.mrpPaise),
+    unique('stock_lots_identity_key')
+      .on(t.tenantId, t.variantId, t.batchNo, t.mrpPaise, t.expiryDate)
+      .nullsNotDistinct(),
     index('stock_lots_expiry_idx').on(t.tenantId, t.expiryDate),
     tenantReadPolicy('stock_lots_read'),
     ...staffWritePolicy('stock_lots_write'),

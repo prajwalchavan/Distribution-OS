@@ -11,7 +11,7 @@ import type {
   VanSaleStockOutput,
   VanSaleStockRow,
 } from '@dos/contracts'
-import { formatINR, paise } from '@dos/domain'
+import { businessDate, formatINR, paise } from '@dos/domain'
 import {
   deliveries,
   deliveryLines,
@@ -116,9 +116,13 @@ export class VanSalesService {
         [...lots.values()].map((l) => l.variantId),
       )
       const items: VanSaleStockRow[] = []
+      // QA DOS-351 (architect ruling 3): an expired batch on the van is listed, with its date, but nothing of
+      // it is offered for sale — the van-sale bill refuses it (`BillingService.issueForPack`).
+      const today = businessDate().date
       for (const r of rows) {
         const lot = lots.get(r.lotId)
         if (!lot) continue
+        const expired = lot.expiryDate !== null && lot.expiryDate < today
         const sellable = r.onHand - r.reserved
         const forBills = Math.min(sellable, held.get(r.lotId) ?? 0)
         const variant = names.get(lot.variantId)
@@ -132,7 +136,7 @@ export class VanSalesService {
           // QA DOS-239: the crew SELLS in the distributor's sell-side case (the one the quote and the bill
           // use), so that comes first; the lot's own pack only when the catalogue names none.
           caseSize: variant?.sellCaseSize ?? lot.caseSize ?? null,
-          availablePcs: sellable - forBills,
+          availablePcs: expired ? 0 : sellable - forBills,
           heldForBillsPcs: forBills,
         })
       }

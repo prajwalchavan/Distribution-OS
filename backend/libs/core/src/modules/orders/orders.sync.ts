@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm'
 import type { SyncOp } from '@dos/contracts'
 import { salesOrderLines, salesOrders, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
+import { fulfilPlaceRefusal } from '../inventory/index.js'
 import { SyncRejection } from '../sync/index.js'
 import { callerReaches, ORDER_PLACERS } from './orders.internals.js'
 import type { OrdersService } from './orders.service.js'
@@ -86,6 +87,18 @@ export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService):
       `Order ${existing.orderNo ?? existing.id} is already ${existing.state}`,
       `ऑर्डर ${existing.orderNo ?? existing.id} पहले ही ${existing.state} है`,
     )
+  // QA DOS-352 (ruling 2): the device door answers the damaged bin, the dock or a shop's floor as the place an
+  // order is packed from exactly as `orders.create` does — the same sentence, as a sync rejection.
+  const place = str(data.fulfil_from_location_id)
+  if (place !== null) {
+    const refusal = await fulfilPlaceRefusal(tx, place)
+    if (refusal)
+      throw new SyncRejection(
+        refusal.code,
+        refusal.message,
+        'ऑर्डर गोदाम से पैक होता है, डैमेज / एक्सपायरी बिन, डॉक या दुकान से नहीं। बिना लोकेशन के ऑर्डर भेजें, वह गोदाम से पैक होगा।',
+      )
+  }
   if (existing) {
     await tx
       .update(salesOrders)

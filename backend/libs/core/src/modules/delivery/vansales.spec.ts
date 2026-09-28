@@ -95,7 +95,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
   // one driver per test: a driver is on one open trip a day, and each test reads its own stop's figure
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -638,5 +638,66 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
                        from retailer_outstanding_summary where retailer_id = ${retailerC}`),
     )
     expect(Number((owed.rows[0] as { owed: string | number } | undefined)?.owed ?? 0)).toBe(0)
+  }, 120_000)
+
+  it('DOS-261 / DOS-351 the crew is never offered an expired batch — it is listed with its date and nothing to sell — and a sale the in-date pieces cannot cover is refused naming the expired ones', async () => {
+    const driver = driverAt(6)
+    const { tripId } = await roadTrip('expired', driver)
+    // 30 pieces of a batch that expired yesterday ride on the same van beside the 48 in-date ones
+    const inventory = app.get(InventoryService)
+    const [vehicleLocation] = (
+      await db.execute(
+        sql`select l.id from locations l join trips t on t.vehicle_id = l.vehicle_id
+             where t.id = ${tripId} and l.tenant_id = ${tenantId}`,
+      )
+    ).rows as { id: string }[]
+    const yesterday = new Date(Date.now() + 5.5 * 3_600_000 - 86_400_000).toISOString().slice(0, 10)
+    let expiredLot = ''
+    await asOwner(async (tx) => {
+      const made = await inventory.findOrCreateLot(tx, {
+        variantId,
+        batchNo: `VS-EXP-${run}`,
+        mrpPaise: 2500,
+        expiryDate: yesterday,
+      })
+      expiredLot = made.lot.id
+      await inventory.post(tx, [
+        {
+          lotId: expiredLot,
+          locationId: vehicleLocation?.id ?? '',
+          qtyDelta: 30,
+          reason: 'opening',
+          idempotencyKey: `vs-exp-open-${run}`,
+        },
+      ])
+    })
+
+    const listed = await call<{
+      items: { lotId: string; availablePcs: number; expiryDate: string | null }[]
+    }>(app, driver, 'GET', `/delivery/trips/${tripId}/van-stock`)
+    expect(listed.status, JSON.stringify(listed.body)).toBe(200)
+    // the expired batch is on the crew's list with its date, so they know why it stays on the van, and
+    // nothing of it is offered (the same rule as the fulfilment lane's, fix/stock-states)
+    expect(
+      Object.fromEntries(listed.body.items.map((i) => [i.lotId, [i.availablePcs, i.expiryDate]])),
+    ).toEqual({ [lot]: [48, '2028-01-31'], [expiredLot]: [0, yesterday] })
+
+    const refused = await call<{ message: string }>(
+      app,
+      driver,
+      'POST',
+      '/delivery/van-sales',
+      d6Sale('expired', tripId, undefined, retailerA, 60),
+    )
+    expect(refused.status).toBe(400)
+    expect(refused.body.message).toMatch(
+      /^Only 48 pc of Namkeen 200 g can be sold from .+; 12 pc short\. 30 pc there are past their expiry date and are never sold\.$/,
+    )
+    // within what is in date, the sale goes through and takes the in-date batch only
+    const sold = await sell(driver, d6Sale('in-date', tripId, undefined, retailerA, 12))
+    const lines = (
+      await db.execute(sql`select lot_id from invoice_lines where invoice_id = ${sold.invoice.id}`)
+    ).rows as { lot_id: string }[]
+    expect(lines.map((l) => l.lot_id)).toEqual([lot])
   }, 120_000)
 })

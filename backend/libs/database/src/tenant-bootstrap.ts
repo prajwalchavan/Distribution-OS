@@ -226,13 +226,11 @@ export async function bootstrapTenant(
     .insert(locations)
     .values([
       { id: uuidv7(), tenantId, kind: 'warehouse', name: 'Godown' },
-      {
-        id: uuidv7(),
-        tenantId,
-        kind: 'damaged',
-        name: 'Damaged / expiry bin',
-        negativeAllowed: true,
-      },
+      // QA DOS-350, architect ruling 1 (2026-09-28): the bin never goes below zero. It was created with
+      // `negative_allowed = true`, and a hand transfer of more than it held put pieces that never existed
+      // into the godown. Migration 0075 corrected every tenant created before, and its CHECK
+      // `locations_bin_never_negative` refuses the flag on a bin.
+      { id: uuidv7(), tenantId, kind: 'damaged', name: 'Damaged / expiry bin' },
       { id: uuidv7(), tenantId, kind: 'in_transit', name: 'In transit' },
     ])
     .onConflictDoNothing()
