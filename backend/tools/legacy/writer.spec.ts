@@ -16,7 +16,7 @@ import {
   type Db,
 } from '@dos/db'
 import { uuidv7 } from '@dos/domain'
-import { eq, like, sql } from 'drizzle-orm'
+import { eq, inArray, like, sql } from 'drizzle-orm'
 import type pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildPlan, type Plan } from './plan.js'
@@ -43,7 +43,14 @@ const digits = (n: number): string => String(Math.floor(Math.random() * 10 ** n)
 
 describeDb('legacy writer (database)', () => {
   const run = randomBytes(4).toString('hex')
-  const stem = `88${digits(5)}` // an HSN prefix no curated row uses
+  /*
+   * The run's own HSN headings (`hsn_rates` is GLOBAL and unique on code + date): an 88xxxxx prefix no curated
+   * row uses, its five digits taken from the run suffix (an HSN is digits only, at most eight), and every rate
+   * row of them deleted in afterAll. They used to stay behind — a heading with its 2017 rate and the loaded
+   * 2025 rate both open, under a synthetic product — and failed the S-176 guarantee ("every HSN the catalogue
+   * sells under with one live rate") on any database this spec had run on before.
+   */
+  const stem = `88${String(Number.parseInt(run, 16) % 100_000).padStart(5, '0')}`
   const hsn = (n: number): string => `${stem}${String(n)}`
   const HSN = { plain: hsn(1), older: hsn(2), newer: hsn(3), fallback: hsn(4) }
   let pool: pg.Pool
@@ -215,6 +222,7 @@ describeDb('legacy writer (database)', () => {
   })
 
   afterAll(async () => {
+    await db.delete(hsnRates).where(inArray(hsnRates.hsnCode, Object.values(HSN)))
     await pool.end()
   })
 
