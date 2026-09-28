@@ -244,7 +244,8 @@ export const receipts = pgTable(
  * written-off amount first. The write-off is never edited: a RECOVERY row is written beside it — the same shape
  * with a negative amount, `reverses_write_off_id` naming the write-off it recovers and `receipt_id` the money
  * that recovered it — with its own `allocations` row (negative: the write-off's hold on the bill is released)
- * and its own entry DR AR / CR BAD_DEBTS, while the receipt's money settles the bill. The bill stays
+ * and its own entry DR AR / CR BAD_DEBTS, plus an entry DR BAD_DEBTS / CR BAD_DEBTS_RECOVERED (`ref_type`
+ * `writeoff_recovery`) that books the money as income, while the receipt's money settles the bill. The bill stays
  * `written_off` and nets to zero, the shop's dues and its money on account do not move, and the write-off
  * register sums to what is still written off. Reversing that receipt (a bounced cheque) writes a positive row
  * with the same `reverses_write_off_id` and the reversal's `receipt_id`: the write-off stands again. Per

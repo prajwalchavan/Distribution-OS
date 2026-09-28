@@ -417,8 +417,8 @@ export const CreateReceiptInput = MutationBase.extend({
  * DOS-311: money that recovered a written-off bill, one row per bill. Money received from a shop that has
  * written-off bills goes to the written-off amount first, oldest first: the bill stays `written_off`, a
  * recovery write-off (negative) takes the written-off amount back off it, the receipt's money settles it, and
- * the book reads DR AR / CR Bad debts for the recovery — so the shop's dues and its money on account do not
- * move by that amount. `writtenOffOn` is the IST date the bill was written off. Negative on the reversal of a
+ * the book takes the money as income on "Bad debts recovered" (the write-off itself stays booked as a loss) —
+ * so the shop's dues and its money on account do not move by that amount. `writtenOffOn` is the IST date the bill was written off. Negative on the reversal of a
  * receipt that had recovered one (the write-off stands again).
  */
 export const WriteOffRecoverySchema = z.object({

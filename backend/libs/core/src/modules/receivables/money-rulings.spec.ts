@@ -533,6 +533,7 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       }
       expect(await invoiceState(bill.id)).toBe('written_off')
       const badDebtsBefore = await accountBalance('BAD_DEBTS')
+      const recoveredBefore = await accountBalance('BAD_DEBTS_RECOVERED')
 
       // A13: the shop turns up and pays the ₹395.00 it owed
       const paid = await pay(accountant, pb6.id, 39_500)
@@ -548,7 +549,9 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       expect(paid.body.unallocatedPaise).toBe(0)
       expect(paid.body.outstanding.unallocatedCreditPaise).toBe(0)
       expect(await invoiceState(bill.id)).toBe('written_off')
-      expect(await accountBalance('BAD_DEBTS')).toBe(badDebtsBefore - 39_500)
+      // booked as bad debt recovered: the loss stays as it was booked, the ₹395.00 is income (a credit balance)
+      expect(await accountBalance('BAD_DEBTS')).toBe(badDebtsBefore)
+      expect(await accountBalance('BAD_DEBTS_RECOVERED')).toBe(recoveredBefore - 39_500)
       expect(await arBalance(pb6.id)).toBe(0)
       await expectBooksAgree(pb6.id)
 
@@ -617,6 +620,7 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
         reason: 'bad_debt',
       })
       const badDebts = await accountBalance('BAD_DEBTS')
+      const recovered = await accountBalance('BAD_DEBTS_RECOVERED')
       const cheque = await pay(accountant, shop.id, 20_000, {
         mode: 'cheque',
         reference: `REC${run}`,
@@ -650,6 +654,8 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       )
       expect(bounced.status).toBe(200)
       expect(await accountBalance('BAD_DEBTS')).toBe(badDebts)
+      // the income the cheque booked is taken back with it
+      expect(await accountBalance('BAD_DEBTS_RECOVERED')).toBe(recovered)
       expect(await invoiceState(bill.id)).toBe('written_off')
       const standing = await db.execute(sql`
         select coalesce(sum(amount_paise), 0) as s from write_offs
@@ -660,6 +666,7 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       // and the next money recovers it again
       const cash = await pay(accountant, shop.id, 20_000)
       expect(cash.body.recoveries?.[0]?.amountPaise).toBe(20_000)
+      expect(await accountBalance('BAD_DEBTS_RECOVERED')).toBe(recovered - 20_000)
       await expectBooksAgree(shop.id)
     })
   })

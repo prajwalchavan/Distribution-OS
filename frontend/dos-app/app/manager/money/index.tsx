@@ -414,8 +414,8 @@ export default function Receipts(): React.JSX.Element {
               </Panel>
 
               {/*
-                DOS-311: money that met a written-off bill recovered it — booked against Bad debts, not left
-                as the shop's credit. Said on the receipt, bill by bill, with the day it was written off.
+                DOS-311: money that met a written-off bill recovered it — booked as bad debts recovered, not
+                left as the shop's credit. Said on the receipt, bill by bill, with the day it was written off.
               */}
               {(detail.data?.recoveries ?? []).length === 0 ? null : (
                 <Stack gap={1} testID="receipt-recoveries">

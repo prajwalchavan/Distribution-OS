@@ -21,16 +21,23 @@ import { emitEvent, postJournalEntry } from './posting.js'
  * `written_off` bills, oldest write-off first. Per write-off it recovers:
  *   * a RECOVERY row in `write_offs` — the same shape, a negative amount, `reverses_write_off_id` = the
  *     write-off, `receipt_id` = the money; its own `allocations` row (negative) takes the write-off's hold off
- *     the bill; its own entry DR AR / CR Bad debts puts the debt back where the money can meet it;
+ *     the bill; its own entry DR AR / CR Bad debts undoes the write-off and puts the debt back where the money
+ *     can meet it (the mirror of the write-off's own DR Bad debts / CR AR);
+ *   * BAD DEBT RECOVERED: a second entry (`ref_type` `writeoff_recovery`, the recovery row's id) DR Bad debts /
+ *     CR Bad debts recovered, so the loss stays in "Bad debts written off" as it was booked and the money shows
+ *     as income on "Bad debts recovered" (`BAD_DEBTS_RECOVERED`, added to the chart by bootstrap and, for the
+ *     distributors that already exist, by migration 0079) — the ruling's "booked as bad debt recovered";
  *   * the receipt's own allocation to that bill (positive), in the caller's list like any other.
  * The bill stays `written_off` (and nets to zero), the receipt's entry is the ordinary DR cash / CR AR, so AR,
- * the shop's dues and its money on account come out exactly where they were: the ₹395.00 is income on Bad debts,
- * not the shop's credit. The trial balance still totals zero, and every write-off row of the register still has
- * DR Bad debts = its amount and an allocation of its amount — which is what the reconcile holds them to.
+ * the shop's dues and its money on account come out exactly where they were: in the book the ₹395.00 is
+ * DR cash / CR Bad debts recovered, not the shop's credit. The trial balance still totals zero, and every
+ * write-off row of the register still carries its own entry of AR and Bad debts for its amount and an
+ * allocation of its amount — which is what the reconcile holds them to.
  *
- * A receipt reversed or bounced after it recovered something re-instates it (`reinstateRecoveries`): a positive
- * row with the same `reverses_write_off_id` and the reversal's `receipt_id`, its allocation and DR Bad debts /
- * CR AR. Migration 0079 keeps every write-off between 0 and its amount at commit.
+ * A receipt reversed or bounced after it recovered something re-instates it (`reinstateRecoveries`): the income
+ * is taken back (DR Bad debts recovered / CR Bad debts), then a positive row with the same
+ * `reverses_write_off_id` and the reversal's `receipt_id`, its allocation and DR Bad debts / CR AR. Migration
+ * 0079 keeps every write-off between 0 and its amount at commit.
  *
  * `write_offs` is back office at the database. The crew's money recovers write-offs too (the rule is about the
  * money, not who took it), so the recovery runs as the system role for its own statements — the escalation the
@@ -58,6 +65,11 @@ export interface RecoveredLine {
 }
 
 const WRITE_OFF_READERS: ReadonlySet<string> = new Set(BACK_OFFICE)
+
+/** The income account a recovery is booked to (tenant-bootstrap.ts, migration 0079). */
+const RECOVERED_ACCOUNT = 'BAD_DEBTS_RECOVERED'
+/** The journal `ref_type` of the entry that books a recovery as income (and of the one that takes it back). */
+const RECOVERED_REF = 'writeoff_recovery'
 
 /** Run `fn` as the system role unless the caller may already read and write `write_offs`. */
 async function asBackOffice<T>(tx: Db, fn: () => Promise<T>): Promise<T> {
@@ -196,6 +208,18 @@ export async function writeRecoveries(
         reversesWriteOffId: line.writeOffId,
         receiptId: receipt.id,
       })
+      // The ruling's "booked as bad debt recovered": the loss stays as it was booked, the money is income.
+      await postJournalEntry(tx, {
+        entryDate: businessDate(receipt.at).date,
+        refType: RECOVERED_REF,
+        refId: recoveryId,
+        narration: `bad debt recovered by ${receipt.receiptNo}: income, the write-off stays booked as a loss`,
+        idempotencyKey: `journal:${RECOVERED_REF}:${recoveryId}`,
+        lines: [
+          { accountCode: 'BAD_DEBTS', amountPaise: amount },
+          { accountCode: RECOVERED_ACCOUNT, amountPaise: -amount },
+        ],
+      })
       // The write-off's hold on the bill comes off, and the money takes its place: the bill still nets to zero.
       await tx.insert(allocations).values({
         id: uuidv7(),
@@ -264,6 +288,18 @@ export async function reinstateRecoveries(
       if (row.amountPaise >= 0 || row.reversesWriteOffId === null) continue
       const amount = -row.amountPaise
       const reinstateId = uuidv7()
+      // the income the recovery booked goes first, then the write-off stands again as it was booked
+      await postJournalEntry(tx, {
+        entryDate: businessDate(reversal.at).date,
+        refType: RECOVERED_REF,
+        refId: reinstateId,
+        narration: `bad debt recovery taken back: ${original.receiptNo ?? original.id} undone by ${reversal.receiptNo}`,
+        idempotencyKey: `journal:${RECOVERED_REF}:${reinstateId}`,
+        lines: [
+          { accountCode: RECOVERED_ACCOUNT, amountPaise: amount },
+          { accountCode: 'BAD_DEBTS', amountPaise: -amount },
+        ],
+      })
       const entry = await postJournalEntry(tx, {
         entryDate: businessDate(reversal.at).date,
         refType: 'writeoff',

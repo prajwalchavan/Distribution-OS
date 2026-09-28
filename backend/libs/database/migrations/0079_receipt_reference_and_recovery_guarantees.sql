@@ -1,8 +1,8 @@
 -- Hand-written companion to 0078_write_off_recovery_expand.sql. QA phase 7 (money), DOS-310 (P0) and DOS-311 (P0);
 -- architect rulings of 2026-09-28 (docs/22 §8, "Architect rulings, money and credit" (1) and (2)).
 --
--- No table, column, policy or grant changes here and no row is written or rewritten: two guarantees for NEW rows,
--- one read for the release check, and the index both of them ride.
+-- No table, column, policy or grant changes here and no existing row is changed: two guarantees for NEW rows,
+-- one read for the release check, the index both of them ride, and one new account per distributor (4).
 --
 -- 1. A PAYMENT REFERENCE IS USED ONCE (DOS-310). The same cheque number and the same UPI UTR were accepted again
 --    as new money: UTR1790564510946 stood on three live receipts across two shops, CHQ088789 on two of one shop,
@@ -36,10 +36,20 @@
 --    row names an ORIGINAL of the same bill and shop, with a receipt of that shop. A DEFERRED constraint trigger
 --    like the journal balance: checked at COMMIT, on every new recovery row.
 --
+-- 4. BAD DEBTS RECOVERED (DOS-311). The recovered amount is booked as income on a new account of the chart,
+--    `BAD_DEBTS_RECOVERED` "Bad debts recovered" (tenant-bootstrap.ts adds it for a new distributor); every
+--    existing distributor gets it here, beside its `AP` account like 0067's `INPUT_CESS`. Additive: one account
+--    row per distributor that has a chart, nothing else written, and ON CONFLICT DO NOTHING makes it re-runnable.
+--
 -- SECURITY DEFINER with a pinned search_path (0007's lesson): under FORCE RLS a trigger running as the delivery
 -- crew — whose money also recovers write-offs — could not see `write_offs` (back office) nor another shop's
 -- receipt, and the check would pass by seeing nothing. Each function refuses to pass when it cannot see the row
 -- that fired it.
+INSERT INTO "accounts" ("id", "tenant_id", "code", "name", "kind")
+SELECT gen_random_uuid()::text, a."tenant_id", 'BAD_DEBTS_RECOVERED', 'Bad debts recovered', 'income'
+  FROM "accounts" a
+ WHERE a."code" = 'AP'
+ON CONFLICT ("tenant_id", "code") DO NOTHING;--> statement-breakpoint
 CREATE OR REPLACE FUNCTION dos_normalise_reference(p_reference text) RETURNS text
   LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
   SELECT upper(regexp_replace(coalesce(p_reference, ''), '\s', '', 'g'))
