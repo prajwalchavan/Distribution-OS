@@ -7,27 +7,16 @@
  * Every one of those pages already existed; this is where a shopkeeper finds them without knowing the
  * ⋯ menu is there.
  *
- * SIGNING OUT ASKS FIRST, because it empties the basket on this phone (`useLeave`), and says so.
+ * SIGNING OUT ASKS FIRST, because it empties the basket (`useLeave`), and says so. The dialog is
+ * `useLeaveConfirm`, the same one the ⋯ sheet and the account menu open (retailer check, 2026-09-28).
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
-import {
-  Dialog,
-  Group,
-  ListRow,
-  Screen,
-  Stack,
-  Txt,
-  routeFor,
-  useColors,
-  useGo,
-  useStrings,
-} from '@dos/ui'
+import { Group, ListRow, Screen, Stack, Txt, routeFor, useColors, useGo, useStrings } from '@dos/ui'
 import { useRouter } from 'expo-router'
-import { useState } from 'react'
 
 import { DistributorList } from '../../src/groups/retailer/lib/distributors'
 import { useMyShop } from '../../src/groups/retailer/lib/shop'
-import { useLeave } from '../../src/groups/retailer/lib/shopping'
+import { useLeaveConfirm } from '../../src/groups/retailer/lib/leave-confirm'
 import { Panel, useCan } from '../../src/groups/retailer/lib/ui'
 
 export default function Me(): React.JSX.Element {
@@ -39,8 +28,7 @@ export default function Me(): React.JSX.Element {
   const can = useCan()
   const { session } = useSession()
   const my = useMyShop()
-  const leave = useLeave()
-  const [asking, setAsking] = useState(false)
+  const leaveConfirm = useLeaveConfirm()
 
   const inbox = useQuery(
     ['notifications', 'unread'],
@@ -107,13 +95,7 @@ export default function Me(): React.JSX.Element {
               }}
               testID="me-password"
             />
-            <ListRow
-              primary={t('me.signOut')}
-              onPress={() => {
-                setAsking(true)
-              }}
-              testID="me-sign-out"
-            />
+            <ListRow primary={t('me.signOut')} onPress={leaveConfirm.ask} testID="me-sign-out" />
           </Group>
         </Panel>
 
@@ -122,21 +104,7 @@ export default function Me(): React.JSX.Element {
         </Panel>
       </Stack>
 
-      <Dialog
-        open={asking}
-        onClose={() => {
-          setAsking(false)
-        }}
-        title={t('me.signOutTitle')}
-        body={t('me.signOutBody')}
-        confirmLabel={t('me.signOut')}
-        cancelLabel={t('me.stay')}
-        onConfirm={() => {
-          setAsking(false)
-          leave()
-        }}
-        testID="me-sign-out-dialog"
-      />
+      {leaveConfirm.dialog}
     </Screen>
   )
 }

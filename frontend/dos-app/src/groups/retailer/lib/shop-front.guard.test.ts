@@ -13,7 +13,9 @@
  * - "Order again" is still two taps (UX-01 R3): the card pushes `/order?repeat=…` and nothing is written
  *   until "Place order";
  * - every shopping screen carries the cart bar, and a money amount is never pre-filled on the home;
- * - signing out empties every basket on the device.
+ * - signing out empties every basket on the device, and ASKS FIRST wherever it is offered;
+ * - on a phone the first screen sells: the chip is the shell's header and the last-order card is one
+ *   row with its button beside the words (retailer check, 2026-09-28: 0 "+ Add" above the fold).
  *
  * Read as source: a screen pulls in `react-native` through the kit's native entry, which only Metro
  * resolves. `@types/node` is deliberately absent from an app, so the Node functions come in through
@@ -111,7 +113,31 @@ describe('the home is a shop front', () => {
     // The four-figure strip exists only inside the "More" block.
     expect(home.indexOf('<KpiStrip')).toBeGreaterThan(more)
     expect(home).toMatch(/<MoreGroup[\s\S]*?<HomeMore \/>[\s\S]*?<\/MoreGroup>/)
-    expect(home).toMatch(/<Sheet[\s\S]*?<DistributorList/)
+    /*
+     * The cards behind the chip. Since the retailer check of 2026-09-28 the chip and its sheet are one
+     * component (`DistributorChip`, `./distributors.tsx`), so the phone shell's header and the desk
+     * page open the same cards; the home names the chip and the chip holds the sheet.
+     */
+    expect(home).toContain('<DistributorChip')
+    expect(await read('./distributors.tsx')).toMatch(
+      /export function DistributorChip[\s\S]*?<Sheet[\s\S]*?<DistributorList/,
+    )
+  })
+
+  it('on a phone the chip is the header, and the last order is one row: products on the first screen', async () => {
+    const layout = await read(`${APP}_layout.tsx`)
+    expect(layout).toMatch(
+      /header=\{chipIsTheName \? <DistributorChip place="header" \/> : undefined\}/,
+    )
+    expect(layout).toContain("viewport.kind === 'phone' && pathname === routeFor(GROUP, '/')")
+    const home = await read(`${APP}index.tsx`)
+    // No second chip row on a phone: the page draws it only on a desk.
+    expect(home).toContain('{phone ? null : <DistributorChip place="page" />}')
+    // The last-order card keeps its button BESIDE the words, never the kit JobCard's full-width one.
+    expect(home).not.toContain('<JobCard')
+    const card = home.slice(home.indexOf('function LastOrderCard('))
+    expect(card).toMatch(/<Row gap=\{3\} align="center">[\s\S]*?<Button[\s\S]*?fullWidth=\{false\}/)
+    expect(card).toContain('testID="r2-last-order"')
   })
 
   it('the money line comes after the products, and no amount is pre-filled on the home', async () => {
@@ -131,6 +157,16 @@ describe('the home is a shop front', () => {
     expect(home).not.toMatch(/orders\.(create|submit)\(/)
   })
 
+  it('a tile says its stock in the shop words, before the + as well as after it (retailer check)', async () => {
+    const tile = await read('./shop-ui.tsx')
+    expect(tile).toContain("t('r7.outOfStock')")
+    expect(tile).toContain("t('r7.lowStock'")
+    expect(tile).toContain("t('r2.stockShort'")
+    // The kit stepper's own availability line ("0 cs available — rest short-supplied") is not fed.
+    expect(tile).not.toContain('availablePieces=')
+    expect(strings['qty.onlyAvailable']).not.toMatch(/short-supplied|\bcs\b/)
+  })
+
   it('a brand page sells into the same basket and carries the same bar', async () => {
     const brand = await read(`${APP}brand/[id].tsx`)
     expect(brand).toContain('useShopping()')
@@ -146,13 +182,30 @@ describe('the home is a shop front', () => {
     expect(order.indexOf('go.replace(`/orders/${done.item.id}?placed=1`)')).toBeGreaterThan(placed)
   })
 
-  it('signing out empties every basket on the device, from the menu and from Me', async () => {
+  /*
+   * Until the retailer check of 2026-09-28 the menu passed `onSignOut: leave` and only Me asked first,
+   * so one stray tap in the ⋯ sheet emptied a half-built basket without a word. Both now open the same
+   * `useLeaveConfirm` dialog, whose confirm is the only caller of `leave()`.
+   */
+  it('signing out empties every basket on the device, and asks first from the menu and from Me', async () => {
     const layout = await read(`${APP}_layout.tsx`)
-    expect(layout).toContain('onSignOut: leave')
+    expect(layout).toContain('onSignOut: leaveConfirm.ask')
+    expect(layout).toContain('{leaveConfirm.dialog}')
+    expect(layout).not.toMatch(/onSignOut:\s*leave\b(?!Confirm)/)
     const me = await read(`${APP}profile.tsx`)
-    expect(me).toContain('leave()')
+    expect(me).toContain('onPress={leaveConfirm.ask}')
+    expect(me).toContain('{leaveConfirm.dialog}')
+    const confirm = await read('./leave-confirm.tsx')
+    expect(confirm).toMatch(/onConfirm=\{\(\) => \{\s*setAsking\(false\)\s*leave\(\)/)
+    expect(confirm).toContain("body={t('me.signOutBody')}")
     const shopping = await read('./shopping.ts')
     expect(shopping).toMatch(/clearAllCarts\(\)[\s\S]*?signOut\(\)/)
+  })
+
+  it('the sign-out dialog names the basket and no device (DOS-179: it opens on a counter PC too)', () => {
+    for (const key of ['me.signOutTitle', 'me.signOutBody'] as const)
+      expect(strings[key], key).not.toMatch(/\b(this|the)\s+(phone|device|browser)\b/i)
+    expect(strings['me.signOutBody']).toContain('basket')
   })
 })
 

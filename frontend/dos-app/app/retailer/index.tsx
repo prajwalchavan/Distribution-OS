@@ -2,8 +2,9 @@
  * R2 — the shop front: the shopkeeper's home (founder, 2026-09-28: "a shopping app feel, not some
  * complex feel"; "minimise the understanding effort").
  *
- * WHAT IT IS, TOP TO BOTTOM. The distributor that is open, as one chip. "Search items". "Order again",
- * one card, two taps to a placed order (UX-01 R3). "Your items" — what this shop buys most often, as
+ * WHAT IT IS, TOP TO BOTTOM. The distributor that is open, as one chip — in the phone shell's own
+ * header, at the top of the page on a desk (`DistributorChip`). "Search items". "Order again", one
+ * slim card with its button beside the words, two taps to a placed order (UX-01 R3). "Your items" — what this shop buys most often, as
  * tiles with the rate it pays and a big +. "Shop by brand". The offers running today, as a short row.
  * A van on its way, if there is one. One slim line for money. Everything the home used to open on —
  * the distributor cards, the four figures, the last orders, call and WhatsApp — is still here: the
@@ -16,6 +17,12 @@
  *
  * NO PHOTOS YET (founder, 2026-09-28): there is no image field in the catalogue, so a tile's picture is
  * its brand's initial on the brand's own colour (`<ProductTile>`).
+ *
+ * THE FIRST SCREEN OF A PHONE SELLS (retailer check, 2026-09-28). At 390 × 844 the old top — an
+ * 86 px header holding only "⋯", the chip on a row of its own, a 178 px last-order card with a
+ * full-width button, and wide gaps — left 0 complete tiles and 0 "+ Add" above the tab bar. The chip
+ * moved into the header, the last-order card became one row, and the gaps close up on a phone, so the
+ * first two of "Your items" stand whole, "+ Add" and all, before any scroll.
  *
  * EVERY READ IS FOR THE DISTRIBUTOR THAT IS OPEN, and there is never a merged view (UX-01 R11): the
  * chip names it, and the only place several distributors appear side by side is the sheet behind it,
@@ -32,7 +39,6 @@ import {
   Button,
   EmptyState,
   Group,
-  JobCard,
   KpiStrip,
   ListRow,
   Money,
@@ -42,10 +48,8 @@ import {
   Screen,
   Scroll,
   Search,
-  Sheet,
   Stack,
   StatusChip,
-  TenantLogo,
   TileGrid,
   Txt,
   formatMoney,
@@ -55,11 +59,11 @@ import {
   useStrings,
   useViewport,
 } from '@dos/ui'
+import type { JobAction } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
 import { links } from '@dos/ui/platform'
 import { useState } from 'react'
 
-import { absoluteUrl } from '../../src/config'
 import {
   NO_BRAND,
   brandsOf,
@@ -68,7 +72,7 @@ import {
   matchItems,
 } from '../../src/groups/retailer/lib/catalog'
 import { instantWithClock, longInstant, shortDate } from '../../src/groups/retailer/lib/dates'
-import { DistributorList, dialable, digitsOnly } from '../../src/groups/retailer/lib/distributors'
+import { DistributorChip, dialable, digitsOnly } from '../../src/groups/retailer/lib/distributors'
 import { offerSentence, scopeSentence } from '../../src/groups/retailer/lib/offer'
 import { usePiecesEntry } from '../../src/groups/retailer/lib/pieces'
 import { useMyShop } from '../../src/groups/retailer/lib/shop'
@@ -104,7 +108,18 @@ export default function Home(): React.JSX.Element {
   const retailerId = my.retailerId
 
   const [query, setQuery] = useState('')
-  const [picking, setPicking] = useState(false)
+  /*
+   * A search typed at one distributor is not carried to the next: the chip that switches may be in
+   * the shell's header, outside this screen, so the home notices the switch itself.
+   */
+  const tenantId = session?.tenant.id ?? null
+  const [queryTenant, setQueryTenant] = useState(tenantId)
+  if (queryTenant !== tenantId) {
+    setQueryTenant(tenantId)
+    setQuery('')
+  }
+  /** A phone closes up the gaps: the first screen is for products (see the header comment). */
+  const phone = viewport.kind === 'phone'
 
   const pieces = usePiecesEntry({
     nameOf: (variantId) => {
@@ -163,13 +178,9 @@ export default function Home(): React.JSX.Element {
 
   return (
     <Screen testID="r2-screen" bottomBar={<ShopCartBar shopping={shopping} />}>
-      <Stack gap={6}>
-        {/* --- 1. the distributor that is open ------------------------------------------------- */}
-        <DistributorChip
-          onPress={() => {
-            setPicking(true)
-          }}
-        />
+      <Stack gap={phone ? 4 : 6}>
+        {/* --- 1. the distributor that is open: in the header on a phone (`_layout.tsx`) ---------- */}
+        {phone ? null : <DistributorChip place="page" />}
 
         {/* --- 2. search --------------------------------------------------------------------- */}
         {my.unlinked ? null : (
@@ -234,11 +245,10 @@ export default function Home(): React.JSX.Element {
               )}
             </Panel>
           ) : (
-            <Stack gap={8}>
+            <Stack gap={phone ? 6 : 8}>
               {/* --- 3. order again ------------------------------------------------------- */}
               {last.state === 'ready' || last.state === 'reading' ? (
-                <JobCard
-                  testID="r2-last-order"
+                <LastOrderCard
                   title={t('r2.lastOrderTitle')}
                   subtitle={
                     last.state === 'reading'
@@ -377,7 +387,8 @@ export default function Home(): React.JSX.Element {
               </Row>
 
               {/* --- everything that is not shopping, folded ------------------------------- */}
-              <MoreGroup id="retailer.home.more" count={3} testID="r2-more">
+              {/* No count beside "More": "More 3" did not say what the 3 was (retailer check). */}
+              <MoreGroup id="retailer.home.more" testID="r2-more">
                 <HomeMore />
               </MoreGroup>
             </Stack>
@@ -385,21 +396,6 @@ export default function Home(): React.JSX.Element {
         </Async>
       </Stack>
 
-      <Sheet
-        open={picking}
-        onClose={() => {
-          setPicking(false)
-        }}
-        title={t('r2.distributors')}
-        testID="r2-picker"
-      >
-        <DistributorList
-          onSwitched={() => {
-            setPicking(false)
-            setQuery('')
-          }}
-        />
-      </Sheet>
       {pieces.sheet}
     </Screen>
   )
@@ -411,36 +407,68 @@ function roundRupees(paise: number): string {
 }
 
 /**
- * The distributor that is open, as one chip. With several, it is a button that opens their cards
- * (what each is owed, and the button to buy from another); with one, it is just the name.
+ * "Your last order": ONE slim card, the words on the left and "Order again" beside them (founder,
+ * 2026-09-28: the order-again card; UX-01 R3: two taps to a placed order). The kit's `<JobCard>` puts
+ * its primary button full width on a phone, under the words; here that made a 178 px card that, with
+ * the header, pushed every "+ Add" below the fold (retailer check, 2026-09-28). The body opens the
+ * order it repeats; the button is its own target beside it, never inside it (a button inside a button
+ * is dead to the touch on the web).
  */
-function DistributorChip({ onPress }: { onPress: () => void }): React.JSX.Element {
-  const t = useStrings()
+function LastOrderCard({
+  title,
+  subtitle,
+  onPress,
+  primary,
+}: {
+  title: string
+  subtitle?: string | undefined
+  onPress?: (() => void) | undefined
+  primary: JobAction
+}): React.JSX.Element {
   const colors = useColors()
-  const { session } = useSession()
-  const name = session?.tenant.displayName ?? ''
-  const logo = (
-    <TenantLogo
-      size="header"
-      name={name}
-      logoUrl={absoluteUrl('retailer', session?.tenant.logoUrl ?? null)}
-      withName
-    />
+  const words = (
+    <Stack gap={1}>
+      <Txt field="bodyStrong" desk="section" numberOfLines={1}>
+        {title}
+      </Txt>
+      {subtitle === undefined ? null : (
+        <Txt field="label" desk="meta" color={colors.text.secondary} numberOfLines={2}>
+          {subtitle}
+        </Txt>
+      )}
+    </Stack>
   )
-  if ((session?.memberships.length ?? 0) <= 1) return <Box testID="r2-chip">{logo}</Box>
   return (
-    <Box maxWidth={480}>
-      <Pressable onPress={onPress} label={t('r2.distributors')} testID="r2-chip">
-        <Box border="all" borderTone="faint" radius="lg" padX={3} padY={2} background="surface">
-          <Row gap={3} justify="between" align="center">
-            <Box grow>{logo}</Box>
-            {/* A no-break space: "Change" and its caret never part across two lines. */}
-            <Txt field="label" desk="label" color={colors.accent.fg} numberOfLines={1}>
-              {`${t('r2.change')}\u00a0▾`}
-            </Txt>
-          </Row>
+    <Box
+      border="all"
+      borderTone="faint"
+      radius="lg"
+      padX={3}
+      padY={2}
+      background="surface"
+      maxWidth={640}
+      testID="r2-last-order"
+    >
+      <Row gap={3} align="center">
+        <Box grow>
+          {onPress === undefined ? (
+            words
+          ) : (
+            <Pressable onPress={onPress} label={title} testID="r2-last-order-open">
+              {words}
+            </Pressable>
+          )}
         </Box>
-      </Pressable>
+        <Button
+          label={primary.label}
+          variant="primary"
+          onPress={primary.onPress}
+          fullWidth={false}
+          disabled={primary.disabled}
+          disabledReason={primary.disabledReason}
+          testID={primary.testID}
+        />
+      </Row>
     </Box>
   )
 }

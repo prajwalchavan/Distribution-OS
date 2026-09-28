@@ -261,11 +261,16 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
             `size="desk"` only for the DESK side panel. A bottom sheet is a phone surface, so its
             close button obeys the app's own floor (UX-00 section 5.2) exactly as every other control
             on that sheet does — 32 px under a thumb was the smallest target in the kit.
+
+            `fullWidth={false}`: at a touch floor a button is full width by default, and in this
+            row that made Close claim half of it — the title wrapped ("Your / distributors") and
+            Close floated in the middle of a wide sheet (retailer check, 2026-09-28).
           */}
           <Button
             label={theme.t('action.close')}
             variant="ghost"
             onPress={onClose}
+            fullWidth={false}
             {...(desk ? { size: 'desk' as const } : {})}
           />
         </div>

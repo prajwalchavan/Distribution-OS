@@ -887,6 +887,13 @@ export interface AppShellProps extends Testable {
   /** Hides the items this signed-in role may not reach. Default: everything is allowed. */
   can?: ((item: NavItem) => boolean) | undefined
   tenant?: TenantSwitcherProps | undefined
+  /**
+   * PHONE SHELL ONLY: what the header shows at its start, in place of the tenant switcher. The
+   * shopkeeper's home puts its distributor chip there (founder, 2026-09-28: the shop front), so the
+   * first screen of a phone is not spent on a header that holds nothing but "⋯" above a second row
+   * carrying the name. The desk shell ignores it: the rail head keeps the switcher.
+   */
+  header?: ReactNode | undefined
   /** The app's `<ConnectionStrip>`; the shell places it (rail foot on desk, under the header on a phone). */
   connection?: ReactNode | undefined
   /** The header search box. The phone shell moves it into the overflow sheet. */
@@ -1056,6 +1063,12 @@ export interface ProductTileProps extends Testable {
   /** The stepper's "Pieces" entry, kept reachable inside the tile. */
   onOpenPieces?: (() => void) | undefined
   availablePieces?: (number | null) | undefined
+  /**
+   * A few words about stock, in the caller's own words, printed just above the button whether or not
+   * the item is in the basket yet: "Out of stock", "Only 4 pc left". Absent prints nothing. A hint,
+   * never a block — `disabled` is what stops a tap.
+   */
+  stock?: string | undefined
   disabled?: boolean | undefined
   disabledReason?: string | undefined
   /** Tapping the tile's picture or name opens the item. */

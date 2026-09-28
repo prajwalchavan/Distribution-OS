@@ -66,6 +66,7 @@ export function ProductTile({
   onChange,
   onOpenPieces,
   availablePieces,
+  stock,
   disabled = false,
   disabledReason,
   onPress,
@@ -165,6 +166,20 @@ export function ProductTile({
       )}
       {/* The button sits at the foot of the tile, so a row of tiles lines its buttons up. */}
       <div style={{ marginTop: 'auto', paddingTop: space[3] }}>
+        {/* Stock in the caller's words, BEFORE the + as well as after it: a shop sees "Out of
+            stock" before it adds, not only once the stepper has an answer to argue with. */}
+        {stock === undefined ? null : (
+          <Txt
+            field="label"
+            desk="meta"
+            as="div"
+            color={theme.colors.status.ochre.fg}
+            style={{ marginBottom: space[1] }}
+            testID={testID === undefined ? undefined : `${testID}-stock`}
+          >
+            {stock}
+          </Txt>
+        )}
         {pieces > 0 ? (
           <QtyStepper
             layout="stacked"

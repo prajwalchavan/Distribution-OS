@@ -20,6 +20,7 @@ import { JobCard, JobList, MoreGroup } from './jobs.js'
 import { Screen } from './layout.js'
 import { Money } from './money.js'
 import { BrandTile, CartBar, ProductTile, TileGrid } from './shop.js'
+import { AppShell } from './shell.js'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -391,6 +392,41 @@ describe('<ProductTile> — a shopping app, before there are photographs', () =>
     expect(more.parentElement?.getAttribute('style')).toContain('gap: 19px')
   })
 
+  it('prints the caller s stock words above the + and above the stepper, and nothing without them', () => {
+    const stocked = (pieces: number, stock?: string): React.JSX.Element => (
+      <ProductTile
+        testID="basmati"
+        name="Annapurna Basmati 1 kg"
+        brand="Annapurna"
+        rate={120_00}
+        pieces={pieces}
+        caseSize={10}
+        onChange={() => undefined}
+        {...(stock === undefined ? {} : { stock })}
+      />
+    )
+    const before = render(stocked(0, 'Out of stock'))
+    expect(byTestId(before, 'basmati-stock').textContent).toBe('Out of stock')
+    // A hint, never a block: the + is still there and still pressable.
+    expect(byTestId(before, 'basmati-add').hasAttribute('disabled')).toBe(false)
+    act(() => {
+      mounted?.root.render(
+        <ThemeProvider touch="field" density="field">
+          {stocked(10, 'Only 4 pc left. You may get less.')}
+        </ThemeProvider>,
+      )
+    })
+    expect(byTestId(before, 'basmati-stock').textContent).toBe('Only 4 pc left. You may get less.')
+    act(() => {
+      mounted?.root.render(
+        <ThemeProvider touch="field" density="field">
+          {stocked(0)}
+        </ThemeProvider>,
+      )
+    })
+    expect(before.querySelector('[data-testid="basmati-stock"]')).toBeNull()
+  })
+
   it('prints the em dash for a rate it does not know, never ₹0.00', () => {
     const view = render(
       <ProductTile
@@ -595,5 +631,56 @@ describe('<Screen centered> — in the middle of the window, not boxy (founder, 
     expect(screen.getAttribute('data-centered')).toBeNull()
     expect(screen.querySelector('header')?.style.borderBottom).toContain('1px solid')
     expect(byTestId(view, 'f').style.height).toBe('32px')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The phone header slot (retailer check, 2026-09-28)
+// ---------------------------------------------------------------------------
+
+describe('<AppShell header> — a screen s own control where the switcher sits, on a phone only', () => {
+  const tenant = {
+    current: { id: 't1', name: 'Tarsun Enterprise', roleLabel: '' },
+    choices: [
+      { id: 't1', name: 'Tarsun Enterprise', roleLabel: '' },
+      { id: 't2', name: 'Kalyan Agencies', roleLabel: '' },
+    ],
+    onSwitch: () => undefined,
+  }
+  const sections = [{ primary: true, items: [{ href: '/r', label: 'Shop' }] }]
+
+  function shell(withHeader: boolean): React.JSX.Element {
+    return (
+      <AppShell
+        sections={sections}
+        activeHref="/r"
+        homeHref="/r"
+        onNavigate={() => undefined}
+        tenant={tenant}
+        {...(withHeader ? { header: <span data-testid="own-chip">Chip</span> } : {})}
+      >
+        <span>body</span>
+      </AppShell>
+    )
+  }
+
+  it('on a phone the header shows the screen s control and not the switcher', () => {
+    const view = render(shell(true))
+    const header = view.querySelector('header') as HTMLElement
+    expect(header.querySelector('[data-testid="own-chip"]')).not.toBeNull()
+    expect(header.textContent).not.toContain('Tarsun Enterprise')
+    // "⋯" stays: the header still opens the overflow sheet.
+    expect(header.querySelector('[aria-label="More"]')).not.toBeNull()
+  })
+
+  it('without it the phone header keeps the switcher, exactly as before', () => {
+    const view = render(shell(false))
+    expect((view.querySelector('header') as HTMLElement).textContent).toContain('Tarsun Enterprise')
+  })
+
+  it('the desk shell ignores it: the rail head keeps the switcher', () => {
+    const view = render(shell(true), 'desk')
+    expect(view.querySelector('[data-testid="own-chip"]')).toBeNull()
+    expect(view.textContent).toContain('Tarsun Enterprise')
   })
 })

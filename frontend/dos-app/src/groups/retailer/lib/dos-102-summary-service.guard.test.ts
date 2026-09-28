@@ -124,7 +124,16 @@ describe('DOS-102 no screen of this app reads an auth procedure through the tena
     // And the summary is still read — a rename must not let this pass by guarding a call that is gone.
     // Since 2026-09-28 the cards that read it are `lib/distributors.tsx`, which the home opens.
     expect(sources.get('src/lib/distributors.tsx')).toContain('api.auth.memberships.summary()')
-    expect(sources.get('index.tsx')).toContain('<DistributorList')
+    /*
+     * The home opens them through its distributor chip, whose sheet holds the cards. Since the retailer
+     * check of 2026-09-28 (founder's shop front, 2026-09-28) the chip and its sheet are one component,
+     * `DistributorChip`, drawn in the phone shell's header and at the top of the desk page — so the
+     * home names the chip and the chip names the cards. Same chain, one link longer; nothing weakened.
+     */
+    expect(sources.get('index.tsx')).toContain('<DistributorChip')
+    expect(sources.get('src/lib/distributors.tsx')).toMatch(
+      /export function DistributorChip[\s\S]*?<Sheet[\s\S]*?<DistributorList/,
+    )
 
     const throughTheTenantClient = [...sources]
       .filter(([, source]) => source.includes('api.api.auth.'))

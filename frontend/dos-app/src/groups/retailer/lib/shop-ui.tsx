@@ -65,6 +65,27 @@ export function ItemTile({
     .find((phrase): phrase is string => phrase !== null)
   const offer = applied ?? named
 
+  /*
+   * STOCK, IN THE ORDER SCREEN'S OWN WORDS, BEFORE THE + AS WELL AS AFTER IT (retailer check,
+   * 2026-09-28). The tile used to say nothing until something was in the basket, and then the kit
+   * stepper's line — "Only 0 cs available — rest short-supplied" for 4 pieces left of a 48-piece case,
+   * appended to "1 cs = 48 pc · 19 cs available", which wrapped in a two-across tile. So the tile no
+   * longer hands the stepper `availablePieces` and says it itself: nothing when there is plenty,
+   * "Out of stock", "Only 4 pc left", or — once the basket holds more than that — that the shop may
+   * get less. A hint, never a block: the distributor reserves stock when it confirms the order.
+   */
+  const available = shopping.stock.availableOf(item.variantId)
+  const stock =
+    available === null
+      ? undefined
+      : available <= 0
+        ? t('r7.outOfStock')
+        : pieces > available
+          ? t('r2.stockShort', { pieces: String(available) })
+          : available < item.caseSize
+            ? t('r7.lowStock', { pieces: String(available) })
+            : undefined
+
   return (
     <ProductTile
       name={displayName(item)}
@@ -82,7 +103,7 @@ export function ItemTile({
       onOpenPieces={() => {
         onOpenPieces(item.variantId)
       }}
-      availablePieces={shopping.stock.availableOf(item.variantId)}
+      {...(stock === undefined ? {} : { stock })}
       {...(testID === undefined ? {} : { testID })}
     />
   )

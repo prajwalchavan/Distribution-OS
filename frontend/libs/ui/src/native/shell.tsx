@@ -341,6 +341,7 @@ function PhoneShell({
   homeHref,
   onNavigate,
   tenant,
+  header,
   connection,
   search,
   account,
@@ -370,7 +371,10 @@ function PhoneShell({
           },
         ]}
       >
-        <View style={styles.grow}>{tenant ? <TenantSwitcher {...tenant} /> : null}</View>
+        {/* A screen's own `header` (the shop front's distributor chip) takes the switcher's place. */}
+        <View style={styles.grow}>
+          {header ?? (tenant ? <TenantSwitcher {...tenant} /> : null)}
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t('nav.more')}

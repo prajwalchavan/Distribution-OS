@@ -82,7 +82,15 @@ describe('DOS-102 the distributor cards ask before they print', () => {
 
   it('the home prints no summary figure of its own: it opens the cards', async () => {
     const home = await read('../../../../app/retailer/index.tsx')
-    expect(home).toContain('<DistributorList')
+    /*
+     * Through its chip since the retailer check of 2026-09-28 (the founder's shop front of the same
+     * day): `DistributorChip` carries the sheet with the cards, in the phone header and on the desk
+     * page. The home names the chip; the chip names the cards.
+     */
+    expect(home).toContain('<DistributorChip')
+    expect(await read('./distributors.tsx')).toMatch(
+      /export function DistributorChip[\s\S]*?<Sheet[\s\S]*?<DistributorList/,
+    )
     expect(home).not.toMatch(/across\.data\?\.[A-Za-z.]*\s*\?\?\s*0/)
     expect(home).not.toContain('totalOutstandingPaise')
   })

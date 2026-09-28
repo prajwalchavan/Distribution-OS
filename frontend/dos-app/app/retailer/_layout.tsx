@@ -39,7 +39,8 @@ import { Slot, usePathname, useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
 
 import { GROUPS, absoluteUrl } from '../../src/config'
-import { useLeave } from '../../src/groups/retailer/lib/shopping'
+import { DistributorChip } from '../../src/groups/retailer/lib/distributors'
+import { useLeaveConfirm } from '../../src/groups/retailer/lib/leave-confirm'
 import { SECTIONS, tabOf } from '../../src/groups/retailer/nav'
 import { strings } from '../../src/groups/retailer/strings'
 
@@ -48,12 +49,6 @@ const GROUP = 'retailer'
 
 export default function RetailerLayout(): React.JSX.Element | null {
   const { session, switchDistributor } = useSession()
-  /*
-   * SIGNING OUT EMPTIES EVERY BASKET ON THIS DEVICE (founder, 2026-09-28). The basket survives a
-   * restart now (`src/groups/retailer/lib/cart.ts`), so the next person to pick up the phone must not
-   * find the last one's order waiting in it.
-   */
-  const leave = useLeave()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -137,7 +132,6 @@ export default function RetailerLayout(): React.JSX.Element | null {
           account={{
             name: session.user.name,
             roleLabel: strings['app.shopOwner'],
-            onSignOut: leave,
             /*
              * ONLY WHAT THE NAVIGATION DOES NOT ALREADY CARRY. On a phone `AppShell` merges every nav
              * entry that is not a tab AND these items into one ⋯ sheet — and "Phones and login" is
@@ -169,7 +163,8 @@ interface ChromeProps {
   can: (item: NavItem) => boolean
   pathname: string
   tenant: TenantSwitcherProps
-  account: AccountMenu
+  /** `onSignOut` is Chrome's own: it asks first (`useLeaveConfirm`), inside the theme's strings. */
+  account: Omit<AccountMenu, 'onSignOut'>
   children: React.ReactNode
 }
 
@@ -187,12 +182,21 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
   /*
    * ONE NAME AT THE TOP OF THE SHOP, NOT TWO. The home opens on the distributor chip (founder,
    * 2026-09-28): the open distributor's logo and name, and the button that shows every distributor
-   * with what each is owed. On a phone the shell's header sits directly above it and printed the same
-   * logo and name again, with a second, different switcher. On the phone HOME the header therefore
-   * leaves the name to the chip; every other screen, and the desk rail everywhere, keeps it.
+   * with what each is owed. On the phone HOME the chip IS the header (`AppShell header`): the shell's
+   * switcher and a second row for the chip below it cost the first screen its products (retailer
+   * check, 2026-09-28: no "+ Add" above the fold at 390 × 844). Every other screen, and the desk rail
+   * everywhere, keeps the shell's own switcher.
    */
   const viewport = useViewport()
   const chipIsTheName = viewport.kind === 'phone' && pathname === routeFor(GROUP, '/')
+  /*
+   * SIGNING OUT EMPTIES EVERY BASKET ON THIS DEVICE (founder, 2026-09-28), and it ASKS FIRST from
+   * every place that signs out — the ⋯ sheet and the account menu here, and Me. The basket survives a
+   * restart now (`src/groups/retailer/lib/cart.ts`), so the next person to pick the device up must not
+   * find the last one's order waiting in it; and one stray tap in a menu must not throw a half-built
+   * order away without a word (retailer check, 2026-09-28: the menu's Sign out asked nothing).
+   */
+  const leaveConfirm = useLeaveConfirm()
 
   const inbox = useQuery(
     ['notifications', 'unread'],
@@ -228,7 +232,8 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
         router.push(href)
       }}
       tenant={chipIsTheName ? undefined : tenant}
-      account={account}
+      header={chipIsTheName ? <DistributorChip place="header" /> : undefined}
+      account={{ ...account, onSignOut: leaveConfirm.ask }}
       connection={
         <ConnectionStrip
           testID="connection"
@@ -240,6 +245,7 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
       }
     >
       {children}
+      {leaveConfirm.dialog}
     </AppShell>
   )
 }

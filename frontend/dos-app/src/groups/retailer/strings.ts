@@ -114,6 +114,18 @@ export const strings = {
   'r2.nothingOwed': 'Nothing to pay',
   'r2.seeOrder': 'See order',
   'r2.perPiece': 'a piece + GST',
+  /*
+   * Stock on a tile, before the + as well as after it, in the order screen's own words (`r7.outOfStock`,
+   * `r7.lowStock`); this one is for a basket that already holds more than the godown has.
+   */
+  'r2.stockShort': 'Only {pieces} pc left. You may get less.',
+  /*
+   * The kit stepper's own warning, said the shop's way. The kit's "Only {cases} cs available — rest
+   * short-supplied" is a godown's sentence, and it counts whole cases: "Only 0 cs available" for 4
+   * pieces left (retailer check, 2026-09-28). This catalogue is merged over the kit's
+   * (`<ThemeProvider strings>`), so the order screen's stepper says this instead.
+   */
+  'qty.onlyAvailable': 'Fewer in stock. You may get less.',
   'r2.lastOrders': 'Last orders',
   'r2.seeAllOrders': 'See all orders',
   'r2.contact': 'Call or message {name}',
@@ -159,9 +171,13 @@ export const strings = {
   'me.shopLine': '{shop} · {name}',
   'me.password': 'Change password',
   'me.signOut': 'Sign out',
-  'me.signOutTitle': 'Sign out on this phone?',
-  'me.signOutBody':
-    'Your basket on this phone is emptied. Orders you have placed stay with your distributor.',
+  /*
+   * No device word: the same dialog opens on a counter PC, and DOS-179 keeps every sentence about a
+   * machine holding something out of the catalogues unless `keepClaim` has been asked (retailer check,
+   * 2026-09-28). What is emptied is the basket, wherever it is kept.
+   */
+  'me.signOutTitle': 'Sign out?',
+  'me.signOutBody': 'Your basket is emptied. Orders you have placed stay with your distributor.',
   'me.stay': 'Stay signed in',
 
   // --- the brand page ---------------------------------------------------------------------------------
@@ -183,7 +199,8 @@ export const strings = {
   'r7.ratesFailed': 'Prices could not be loaded just now. Pull down to try again.',
   'r7.noGstRate':
     'These prices cannot be shown yet: {name} has not set the GST rate for HSN {codes}. Ask them to set it, then open this screen again.',
-  'r7.case': '{size} pc case',
+  // "Case of 24", the way it is said across a counter, not "24 pc case" (retailer check, 2026-09-28).
+  'r7.case': 'Case of {size}',
   'r7.mrp': 'MRP {amount}',
   'r7.outOfStock': 'Out of stock',
   'r7.lowStock': 'Only {pieces} pc left',
@@ -205,7 +222,7 @@ export const strings = {
   'r7.place': 'Place order',
   'r7.placing': 'Sending your order',
   'r7.placed': 'Order placed',
-  'r7.placedBody': 'Order {no} has gone to {name}. You will see it under My orders.',
+  'r7.placedBody': 'Order {no} has gone to {name}. You will see it under Orders.',
   'r7.failed': 'The order was not sent',
   'r7.note': 'Anything to tell them',
   'r7.deliveryDate': 'When do you want it',
@@ -224,7 +241,8 @@ export const strings = {
   'r7.clear': 'Empty this order',
 
   // --- R8 orders ---------------------------------------------------------------------------------
-  'r8.title': 'My orders',
+  // The page the Orders tab opens carries the tab's own word (retailer check, 2026-09-28).
+  'r8.title': 'Orders',
   'r8.all': 'All',
   'r8.open': 'Still coming',
   'r8.done': 'Delivered',
@@ -264,7 +282,8 @@ export const strings = {
   'r3.title': 'Money you owe',
   'r3.summary': 'THE TOTAL',
   'r3.outstanding': 'You owe',
-  'r3.overdue': 'Past its date',
+  // The same word the home's More says (retailer check, 2026-09-28: one thing, one word).
+  'r3.overdue': 'Overdue',
   'r3.credit': 'Money with them',
   'r3.oldest': 'Oldest bill due',
   'r3.bills': 'BILL BY BILL, OLDEST FIRST',

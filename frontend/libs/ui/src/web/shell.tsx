@@ -505,6 +505,7 @@ function PhoneShell({
   homeHref,
   onNavigate,
   tenant,
+  header,
   connection,
   search,
   account,
@@ -561,7 +562,10 @@ function PhoneShell({
           gap: space[2],
         }}
       >
-        <div style={{ flex: 1, minWidth: 0 }}>{tenant ? <TenantSwitcher {...tenant} /> : null}</div>
+        {/* A screen's own `header` (the shop front's distributor chip) takes the switcher's place. */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {header ?? (tenant ? <TenantSwitcher {...tenant} /> : null)}
+        </div>
         <button
           type="button"
           aria-label={t('nav.more')}

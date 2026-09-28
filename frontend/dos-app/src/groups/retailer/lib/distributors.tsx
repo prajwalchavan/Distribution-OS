@@ -21,7 +21,9 @@ import {
   Box,
   Button,
   Money,
+  Pressable,
   Row,
+  Sheet,
   Stack,
   StatusChip,
   TenantLogo,
@@ -39,6 +41,92 @@ import { instantWithClock, shortDate } from './dates'
 import { rememberDistributor } from './last-distributor'
 import { useMyShop } from './shop'
 import { duesFamily } from './ui'
+
+/**
+ * The distributor that is open, as one chip (founder, 2026-09-28: the shop front opens on it). With
+ * several distributors it is a button — "Change ▾" — that opens their cards in a sheet: what each is
+ * owed, and the button that opens another. With one it is just the name, not a button.
+ *
+ * TWO PLACES, ONE CHIP. On a phone it sits in the shell's own header (`AppShell header`), so the first
+ * screen of the shop front is not spent on an 86 px header that holds nothing but "⋯" above a second
+ * row carrying the same name — measured at 390 × 844 by the retailer check of 2026-09-28, where that
+ * pair and a tall last-order card pushed every "+ Add" below the fold. On a desk the rail head keeps
+ * the shell's switcher and the home draws this chip at the top of the page. The sheet travels with the
+ * chip, so both places open the same cards.
+ */
+export function DistributorChip({
+  place,
+  onSwitched,
+}: {
+  place: 'header' | 'page'
+  /** Called once another distributor is open; the sheet has already closed itself. */
+  onSwitched?: () => void
+}): React.JSX.Element {
+  const t = useStrings()
+  const colors = useColors()
+  const { session } = useSession()
+  const [picking, setPicking] = useState(false)
+  const name = session?.tenant.displayName ?? ''
+  const logo = (
+    <TenantLogo
+      size="header"
+      name={name}
+      logoUrl={absoluteUrl('retailer', session?.tenant.logoUrl ?? null)}
+      withName
+    />
+  )
+  if ((session?.memberships.length ?? 0) <= 1) return <Box testID="r2-chip">{logo}</Box>
+  const face = (
+    <Row gap={3} justify="between" align="center">
+      <Box grow>{logo}</Box>
+      {/* A no-break space: "Change" and its caret never part across two lines. */}
+      <Txt field="label" desk="label" color={colors.accent.fg} numberOfLines={1}>
+        {`${t('r2.change')}\u00a0▾`}
+      </Txt>
+    </Row>
+  )
+  return (
+    <>
+      <Box {...(place === 'page' ? { maxWidth: 480 } : {})}>
+        <Pressable
+          onPress={() => {
+            setPicking(true)
+          }}
+          label={t('r2.distributors')}
+          testID="r2-chip"
+        >
+          {/*
+            In the header the bar is already the chip's frame: no border of its own, so the
+            distributor's name gets the width a border and its padding would take ("Sai
+            Distributors, Dombivli" was cut after its first word at 390 px with one).
+          */}
+          {place === 'header' ? (
+            face
+          ) : (
+            <Box border="all" borderTone="faint" radius="lg" padX={3} padY={2} background="surface">
+              {face}
+            </Box>
+          )}
+        </Pressable>
+      </Box>
+      <Sheet
+        open={picking}
+        onClose={() => {
+          setPicking(false)
+        }}
+        title={t('r2.distributors')}
+        testID="r2-picker"
+      >
+        <DistributorList
+          onSwitched={() => {
+            setPicking(false)
+            onSwitched?.()
+          }}
+        />
+      </Sheet>
+    </>
+  )
+}
 
 export function DistributorList({
   onSwitched,
