@@ -603,4 +603,218 @@ describeDb('inventory: the fixed places and the owner’s correction (DATABASE_U
       active: true,
     })
   })
+
+  it('third blind check, minor: a switched-off place takes no goods — not by a hand transfer into an empty annex or van, not by an adjustment — and the pieces of a place left switched off still come out', async () => {
+    // a switched-off place takes nothing: an empty annex and an empty van, by hand
+    const lot = await newLot(owner, 'OFF')
+    expect(
+      (await adjust(owner, { lotId: lot, locationId: godown, qtyDelta: 20, reason: 'opening' }))
+        .status,
+    ).toBe(200)
+    const annex = uuidv7()
+    const van = uuidv7()
+    expect(
+      (await upsert(owner, 'off-annex', { id: annex, kind: 'warehouse', name: `Annex off ${run}` }))
+        .status,
+    ).toBe(200)
+    expect(
+      (await upsert(owner, 'off-van', { id: van, kind: 'vehicle', name: `Van off ${run}` })).status,
+    ).toBe(200)
+    for (const [id, name] of [
+      [annex, `Annex off ${run}`],
+      [van, `Van off ${run}`],
+    ] as const) {
+      const off = await upsert(owner, `switch-off-${name}`, {
+        id,
+        kind: id === annex ? 'warehouse' : 'vehicle',
+        name,
+        active: false,
+      })
+      expect(off.status, JSON.stringify(off.body)).toBe(200)
+    }
+    const rows = await ledgerCount(tenantId)
+    for (const [actor, id, name] of [
+      [store, annex, `Annex off ${run}`],
+      [manager, van, `Van off ${run}`],
+    ] as const) {
+      const moved = await call<Refusal>(app, actor, 'POST', '/inventory/transfers', {
+        idempotencyKey: `into-off-${id}`,
+        lotId: lot,
+        fromLocationId: godown,
+        toLocationId: id,
+        qtyPcs: 5,
+      })
+      expect(moved.status, JSON.stringify(moved.body)).toBe(409)
+      expect(moved.body.data?.code).toBe('location_switched_off')
+      expect(moved.body.message).toBe(
+        `Nothing was saved: ${name} is switched off, so no pieces go into it. Switch it back on first, or put them in another place.`,
+      )
+    }
+    const added = await adjust(owner, {
+      lotId: lot,
+      locationId: annex,
+      qtyDelta: 3,
+      reason: 'adjustment',
+      note: 'found',
+    })
+    expect(added.status).toBe(409)
+    expect(added.body.data?.code).toBe('location_switched_off')
+    expect(await ledgerCount(tenantId)).toBe(rows)
+    expect(await onHandAt(lot, godown)).toBe(20)
+
+    // a place left switched off holding pieces (before the rule): its pieces still come out, into the godown
+    const old = uuidv7()
+    expect(
+      (await upsert(owner, 'old-godown', { id: old, kind: 'warehouse', name: `Old godown ${run}` }))
+        .status,
+    ).toBe(200)
+    const moveIn = await call(app, store, 'POST', '/inventory/transfers', {
+      idempotencyKey: `into-old-${run}`,
+      lotId: lot,
+      fromLocationId: godown,
+      toLocationId: old,
+      qtyPcs: 4,
+    })
+    expect(moveIn.status, JSON.stringify(moveIn.body)).toBe(200)
+    await db.update(locations).set({ active: false }).where(eq(locations.id, old))
+    const out = await call(app, store, 'POST', '/inventory/transfers', {
+      idempotencyKey: `out-of-old-${run}`,
+      lotId: lot,
+      fromLocationId: old,
+      toLocationId: godown,
+      qtyPcs: 4,
+    })
+    expect(out.status, JSON.stringify(out.body)).toBe(200)
+    expect(await onHandAt(lot, old)).toBe(0)
+    expect(await onHandAt(lot, godown)).toBe(20)
+  })
+
+  it('a distributor without its bin gets a sentence, never a 500: the godown’s damage write-off and a receipt with damaged pieces are refused with nothing written, and a receipt with nothing for the bin posts', async () => {
+    const lot = await newLot(ownerB, 'NB')
+    const open = await adjust(ownerB, {
+      lotId: lot,
+      locationId: godownB,
+      qtyDelta: 20,
+      reason: 'opening',
+    })
+    expect(open.status, JSON.stringify(open.body)).toBe(200)
+    const rows = await ledgerCount(tenantB)
+
+    const writeOff = await adjust(storeB, {
+      lotId: lot,
+      locationId: godownB,
+      qtyDelta: -2,
+      reason: 'damage',
+    })
+    expect(writeOff.status).toBe(409)
+    expect(writeOff.body.data?.code).toBe('place_missing')
+    expect(writeOff.body.message).toBe(noBin)
+    expect(await ledgerCount(tenantB)).toBe(rows)
+    expect(await onHandAt(lot, godownB)).toBe(20)
+
+    /** An approved supplier bill of one line, opened at the godown and counted by the godown login. */
+    const receipt = async (damagedPcs: number): Promise<string> => {
+      billNo += 1
+      const billId = uuidv7()
+      const taxable = 1000 * 24
+      const tax = (taxable * 1200) / 10000
+      const bill = await call<{ item: { status: string } }>(
+        app,
+        ownerB,
+        'POST',
+        '/procurement/supplier-invoices',
+        {
+          idempotencyKey: `bill-${String(billNo)}-${run}`,
+          id: billId,
+          supplierId: supplierB,
+          source: 'manual',
+          invoiceNo: `RW/${run}/${String(billNo)}`,
+          invoiceDate: day(0),
+          subtotalPaise: taxable,
+          discountPaise: 0,
+          cgstPaise: tax / 2,
+          sgstPaise: tax / 2,
+          igstPaise: 0,
+          cessPaise: 0,
+          freightPaise: 0,
+          roundOffPaise: 0,
+          totalPaise: taxable + tax,
+          lines: [
+            {
+              id: uuidv7(),
+              lineNo: 1,
+              description: item,
+              variantId,
+              hsnCode: '2202',
+              batchNo: `RW-${String(billNo)}-${run}`,
+              expiryDate: day(150),
+              mrpPaise: 2000,
+              printedQty: 24,
+              printedUnit: 'pcs',
+              qtyPcs: 24,
+              freeQtyPcs: 0,
+              ratePaise: 1000,
+              gstBps: 1200,
+              taxablePaise: taxable,
+              taxPaise: tax,
+              lineTotalPaise: taxable + tax,
+            },
+          ],
+        },
+      )
+      expect(bill.status, JSON.stringify(bill.body)).toBe(200)
+      const grnId = uuidv7()
+      const opened = await call(app, ownerB, 'POST', '/procurement/grns', {
+        idempotencyKey: `open-${grnId}`,
+        id: grnId,
+        supplierInvoiceId: billId,
+        locationId: godownB,
+      })
+      expect(opened.status, JSON.stringify(opened.body)).toBe(200)
+      const [line] = (await db.execute(sql`select id from grn_lines where grn_id = ${grnId}`))
+        .rows as { id: string }[]
+      const counted = await call(app, storeB, 'POST', `/procurement/grns/${grnId}/count`, {
+        idempotencyKey: `count-${grnId}`,
+        lines: [
+          { grnLineId: line?.id ?? '', countedQtyPcs: 24 - damagedPcs, damagedQtyPcs: damagedPcs },
+        ],
+      })
+      expect(counted.status, JSON.stringify(counted.body)).toBe(200)
+      return grnId
+    }
+    const grnStatus = async (id: string) =>
+      (
+        (await db.execute(sql`select status from grns where id = ${id}`)).rows as {
+          status: string
+        }[]
+      )[0]?.status
+
+    const withDamage = await receipt(2)
+    const refused = await call<Refusal>(
+      app,
+      ownerB,
+      'POST',
+      `/procurement/grns/${withDamage}/post`,
+      {
+        idempotencyKey: `post-${withDamage}`,
+      },
+    )
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('place_missing')
+    expect(refused.body.message).toBe(noBin)
+    expect(await grnStatus(withDamage)).toBe('reconciled')
+    expect(await ledgerCount(tenantB)).toBe(rows)
+
+    const clean = await receipt(0)
+    const posted = await call<{ item: { status: string } }>(
+      app,
+      ownerB,
+      'POST',
+      `/procurement/grns/${clean}/post`,
+      { idempotencyKey: `post-${clean}` },
+    )
+    expect(posted.status, JSON.stringify(posted.body)).toBe(200)
+    expect(posted.body.item.status).toBe('posted')
+    expect(await ledgerCount(tenantB)).toBe(rows + 1)
+  })
 })

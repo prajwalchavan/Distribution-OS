@@ -304,6 +304,7 @@ export class InventoryService {
         name: locations.name,
         kind: locations.kind,
         negativeAllowed: locations.negativeAllowed,
+        active: locations.active,
       })
       .from(locations)
       .where(and(eq(locations.tenantId, tenantId), inArray(locations.id, locationIds)))
@@ -352,6 +353,15 @@ export class InventoryService {
           ...exit,
           item: lotLabels.get(e.lotId) ?? `lot ${e.lotId}`,
           pcs: -e.qtyDelta,
+        })
+      // A SWITCHED-OFF PLACE TAKES NO GOODS (the third blind check): a place is switched off only when it holds
+      // nothing, and it drops out of every list — yet a hand transfer or a load still put pieces into it, and
+      // `sellable_stock` counted them. Every mover posts here. Pieces still come OUT of a switched-off place (one
+      // left off holding stock before the rule is emptied that way).
+      if (e.qtyDelta > 0 && !loc.active)
+        throw new ORPCError('CONFLICT', {
+          message: `Nothing was saved: ${loc.name} is switched off, so no pieces go into it. Switch it back on first, or put them in another place.`,
+          data: { code: 'location_switched_off', locationId: e.locationId, lotId: e.lotId },
         })
       written.push(row)
       const key = balanceKey(e.lotId, e.locationId)
