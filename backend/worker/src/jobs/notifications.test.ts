@@ -11,6 +11,7 @@ import {
   loadDotenv,
   messages,
   retailerIdentities,
+  retailerOutstandingSummary,
   retailerLinks,
   retailers,
   templates,
@@ -22,7 +23,7 @@ import {
 import { businessDate, financialYear, uuidv7 } from '@dos/domain'
 import { stubProviders } from '@dos/core/notifications'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { registerNotificationsJobs, sendStatement } from './notifications.js'
+import { registerNotificationsJobs, sendStatement, sweepDuesReminders } from './notifications.js'
 import { clearOutboxHandlers, registeredEventTypes, type OutboxEvent } from './outbox-relay.js'
 
 loadDotenv()
@@ -299,5 +300,115 @@ describeDb('StatementRequested → one statement message (DATABASE_URL)', () => 
     const stranger = eventFor(uuidv7())
     expect((await sendStatement(db, stranger)).outcome).toBe('ignored')
     expect(await byKey(`Statement:${stranger.id}`)).toHaveLength(0)
+  })
+})
+
+/**
+ * QA DOS-312 (architect ruling 3, 2026-09-28): the 09:00 dues reminder chases what is late NET of the
+ * shop's money on account — the money pays its oldest bills first — so a shop in credit is never reminded
+ * of dues it has already paid, and a shop partly paid is reminded of what is still late.
+ */
+describeDb('dues reminders count money on account (DATABASE_URL)', () => {
+  const pool = createPool(url ?? '')
+  const db = createDb(pool)
+  const run = uuidv7().slice(-8)
+  const tenantId = uuidv7()
+  const inCredit = uuidv7()
+  const partly = uuidv7()
+
+  beforeAll(async () => {
+    await db
+      .insert(tenants)
+      .values({ id: tenantId, slug: `dues-${run}`, legalName: 'Dues Spec', stateCode: '27' })
+    await bootstrapTenant(db, tenantId)
+    const shops = [
+      { id: inCredit, name: 'In Credit Kirana', phone: `+9196${run}1` },
+      { id: partly, name: 'Partly Paid Stores', phone: `+9196${run}2` },
+    ]
+    await db.insert(retailers).values(
+      shops.map((shop, i) => ({
+        id: shop.id,
+        tenantId,
+        code: `DUE-${run}-${String(i)}`,
+        name: shop.name,
+        phone: shop.phone,
+        stateCode: '27',
+      })),
+    )
+    for (const shop of shops) {
+      const identityId = uuidv7()
+      await db
+        .insert(retailerIdentities)
+        .values({ id: identityId, phone: shop.phone, shopName: shop.name })
+      await db.insert(retailerLinks).values({
+        id: uuidv7(),
+        tenantId,
+        identityId,
+        retailerId: shop.id,
+        role: 'owner',
+        linkedBy: 'rep_onboarding',
+        status: 'active',
+        whatsappOptinAt: new Date(),
+        consentedAt: new Date(),
+      })
+    }
+    await db
+      .insert(templates)
+      .values(
+        (['whatsapp', 'sms'] as const).map((channel) => ({
+          id: uuidv7(),
+          tenantId: null,
+          key: 'dues_reminder',
+          channel,
+          locale: 'en-IN',
+          providerTemplateName: channel === 'whatsapp' ? 'dues_reminder_en' : null,
+          body: 'Overdue {{overdueRupees}} since {{oldestDueDate}} — {{distributorName}}',
+          variables: ['overdueRupees', 'oldestDueDate'],
+          active: true,
+        })),
+      )
+      .onConflictDoNothing()
+    // The rollup rows as receivables stores them: GROSS bills, money on account beside them.
+    await db.insert(retailerOutstandingSummary).values([
+      {
+        tenantId,
+        retailerId: inCredit,
+        outstandingPaise: 86_700,
+        overduePaise: 86_700,
+        unallocatedCreditPaise: 500_000,
+        openBills: 1,
+        oldestDueDate: day(-20),
+        bucket16to30Paise: 86_700,
+        asOf: day(0),
+      },
+      {
+        tenantId,
+        retailerId: partly,
+        outstandingPaise: 60_000,
+        overduePaise: 50_000,
+        unallocatedCreditPaise: 20_000,
+        openBills: 2,
+        oldestDueDate: day(-40),
+        bucket31to60Paise: 50_000,
+        bucket0to7Paise: 10_000,
+        asOf: day(0),
+      },
+    ])
+  })
+
+  afterAll(async () => {
+    await pool.end()
+  })
+
+  it('DOS-312: a shop in credit gets no dues reminder; a shop partly paid is reminded of what is still late', async () => {
+    await sweepDuesReminders(db)
+    const sent = await db
+      .select()
+      .from(messages)
+      .where(and(eq(messages.tenantId, tenantId), eq(messages.templateKey, 'dues_reminder')))
+    expect(sent.map((m) => m.refId)).not.toContain(inCredit)
+    const reminder = sent.find((m) => m.refId === partly)
+    expect(reminder, JSON.stringify(sent)).toBeDefined()
+    expect(reminder?.payload).toMatchObject({ overdueRupees: '₹300.00' })
   })
 })
