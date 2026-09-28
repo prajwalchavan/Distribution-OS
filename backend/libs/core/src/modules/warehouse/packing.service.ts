@@ -218,6 +218,10 @@ export class PackingService {
         input.status === 'awaiting_load'
           ? sql`not ${onDraftLoadSheet(packConfirmations.orderId)}`
           : undefined,
+        // QA DOS-355: a pack with no bill is not awaiting a load, it is awaiting its bill (the billing desk's
+        // "Packed, not billed"); `loadSheets.create` refuses it, so W7 never offers it. A bill cancelled since
+        // is dropped from the page below, with the bills still on the road.
+        input.status === 'awaiting_load' ? isNotNull(packConfirmations.invoiceId) : undefined,
         /*
          * Keyset on the cursor pack's own (created_at, id), read inside this tenant's transaction, so the
          * comparison keeps Postgres's microseconds. No filter in the subquery: a pack that went onto a
@@ -249,16 +253,24 @@ export class PackingService {
               scanned.map((p) => p.invoiceId).filter((id): id is string => id !== null),
             )
           : new Map<string, unknown>()
-      const page = scanned.filter((p) => p.invoiceId === null || !onTheRoad.has(p.invoiceId))
+      const invoices = await this.billing.invoiceRefs(
+        tx,
+        scanned.map((p) => p.invoiceId).filter((id): id is string => id !== null),
+      )
+      const billLive = (invoiceId: string | null): boolean => {
+        const state = invoiceId === null ? undefined : invoices.get(invoiceId)?.state
+        return state !== undefined && state !== 'draft' && state !== 'cancelled'
+      }
+      const page = scanned.filter((p) =>
+        input.status === 'awaiting_load'
+          ? billLive(p.invoiceId) && !onTheRoad.has(p.invoiceId ?? '')
+          : true,
+      )
       const orders = await this.orders.fulfilmentOrders(
         tx,
         page.map((p) => p.orderId),
       )
       const byOrder = new Map(orders.map((o) => [o.orderId, o]))
-      const invoices = await this.billing.invoiceRefs(
-        tx,
-        page.map((p) => p.invoiceId).filter((id): id is string => id !== null),
-      )
       const lastScanned = scanned[scanned.length - 1]
       return {
         items: page.map((p) => {

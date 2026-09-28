@@ -268,6 +268,8 @@ export class LoadSheetsService {
           throw new ORPCError('CONFLICT', {
             message: `these orders have no pack confirmation: ${unconfirmed.join(', ')}`,
           })
+        // QA DOS-355 (architect ruling 8): a pack without a bill is not loaded.
+        await this.assertEveryPackBilled(tx, orderIds, packs, byOrder)
         const clash = await this.onADraftSheet(tx, orderIds)
         if (clash.size > 0)
           throw new ORPCError('CONFLICT', {
@@ -454,6 +456,21 @@ export class LoadSheetsService {
           throw new ORPCError('CONFLICT', {
             message: `load sheet ${sheet.id} is ${sheet.status}; only a draft is checked out`,
           })
+        // QA DOS-355, again at the gate: a sheet drafted before the rule, or a bill cancelled since the sheet
+        // was drafted, never leaves on a challan without its tax invoice. Nothing has moved yet.
+        if (sheet.orderIds.length > 0) {
+          const packs = await tx
+            .select()
+            .from(packConfirmations)
+            .where(inArray(packConfirmations.orderId, sheet.orderIds))
+          const orders = await this.orders.fulfilmentOrders(tx, sheet.orderIds)
+          await this.assertEveryPackBilled(
+            tx,
+            sheet.orderIds,
+            packs,
+            new Map(orders.map((o) => [o.orderId, o])),
+          )
+        }
         const selfApproving =
           ctx.actorRole === 'owner' || ctx.actorRole === 'manager' || ctx.actorRole === 'system'
         if (sheet.approvedBy === null && !selfApproving)
@@ -881,6 +898,71 @@ export class LoadSheetsService {
         return { item: await challanDetail(tx, updated ?? challan, this.seller) }
       }),
     )
+  }
+
+  /**
+   * A PACK WITHOUT A BILL IS NOT LOADED (QA DOS-355, architect ruling 8 of 2026-09-28). Goods leave the godown on
+   * a Rule 55 challan only beside their tax invoice: a pack parked with `issueInvoice: false`, or one whose bill
+   * was cancelled, is refused 409 `pack_not_billed` at the moment it is added to a sheet and again at the gate,
+   * naming each order and saying where it is billed. So a challan is never issued for it and its order is never
+   * dispatched with no bill, no receivable and no door that could record it.
+   */
+  private async assertEveryPackBilled(
+    tx: Db,
+    orderIds: readonly string[],
+    packs: readonly { orderId: string; invoiceId: string | null }[],
+    orders: ReadonlyMap<string, { orderNo: string | null; retailerName: string }>,
+  ): Promise<void> {
+    const invoiceOf = new Map(packs.map((p) => [p.orderId, p.invoiceId]))
+    const refs = await this.billing.invoiceRefs(
+      tx,
+      packs.map((p) => p.invoiceId).filter((id): id is string => id !== null),
+    )
+    const unbilled = orderIds.filter((orderId) => {
+      const invoiceId = invoiceOf.get(orderId) ?? null
+      const state = invoiceId === null ? undefined : refs.get(invoiceId)?.state
+      return state === undefined || state === 'draft' || state === 'cancelled'
+    })
+    if (unbilled.length === 0) return
+    const named = unbilled.map((orderId) => {
+      const order = orders.get(orderId)
+      const no = order?.orderNo ?? orderId
+      return order === undefined || order.retailerName === '' ? no : `${no} · ${order.retailerName}`
+    })
+    throw new ORPCError('CONFLICT', {
+      message: `${named.join(', ')} ${unbilled.length === 1 ? 'is' : 'are'} packed but not billed. Goods never leave on a challan without their tax invoice: bill ${unbilled.length === 1 ? 'it' : 'them'} first on the billing desk (Packed, not billed), then put ${unbilled.length === 1 ? 'it' : 'them'} on the load sheet.`,
+      data: { code: 'pack_not_billed', orderIds: unbilled },
+    })
+  }
+
+  /**
+   * The DRAFT sheets built for a trip that is ending before it was loaded (QA DOS-354): cancelled with the trip's
+   * reason, so their bills are free for another sheet and no draft of a dead trip can still be counted out
+   * later and dispatch bills with no trip to carry them. Nothing had moved (a draft moves no stock). Asked by
+   * `delivery.trips.cancel` and by the check-in of a loaded trip that never left. Returns the sheets cancelled.
+   */
+  async cancelDraftsForTrip(tx: Db, tripId: string, reason: string): Promise<string[]> {
+    const { tenantId } = currentTenant()
+    const drafts = await tx
+      .select({ id: loadSheets.id })
+      .from(loadSheets)
+      .where(
+        and(
+          eq(loadSheets.tenantId, tenantId),
+          eq(loadSheets.tripId, tripId),
+          eq(loadSheets.status, 'draft'),
+        ),
+      )
+      .orderBy(loadSheets.id)
+      .for('update')
+    const now = new Date()
+    for (const draft of drafts)
+      await this.updateSheet(tx, draft.id, {
+        status: 'cancelled',
+        cancelledAt: now,
+        cancelReason: reason.slice(0, 200),
+      })
+    return drafts.map((d) => d.id)
   }
 
   // -------------------------------------------------------------------------------------------------------------
