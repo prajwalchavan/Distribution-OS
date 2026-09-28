@@ -258,12 +258,16 @@ export async function vehicleLocation(tx: Db, locationId: string): Promise<Vehic
     .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
     .limit(1)
   if (!row) throw new ORPCError('NOT_FOUND', { message: `location ${locationId} not found` })
+  // Named by the place, never by its id (QA verify 3, minor 8): a van → godown sheet was refused with a UUID.
   if (row.kind !== 'vehicle')
     throw new ORPCError('BAD_REQUEST', {
-      message: `location ${locationId} is a ${row.kind}; a load sheet goes onto a vehicle`,
+      message: `${row.name} is not a vehicle; a load sheet goes onto a vehicle. Stock comes off a van back into the godown on Van check-in, not on a load sheet.`,
+      data: { code: 'not_a_vehicle', locationKind: row.kind },
     })
   if (!row.active)
-    throw new ORPCError('BAD_REQUEST', { message: `vehicle location ${locationId} is not active` })
+    throw new ORPCError('BAD_REQUEST', {
+      message: `${row.regNo ?? row.name} is switched off (not active); a load sheet goes onto a vehicle in use.`,
+    })
   return { id: row.id, name: row.name, regNo: row.regNo }
 }
 

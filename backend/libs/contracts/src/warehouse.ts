@@ -559,8 +559,9 @@ export const FulfilmentQueueOutput = z.object({
  * FEFO-suggested lots, and THE ORDER STATE IS NOT TOUCHED, so an order can still be cancelled until
  * someone starts picking. Every order must be `confirmed`, have lines, share one
  * `fulfilFromLocationId` (409 otherwise) and not already be on a live picklist. The wave's place is a godown
- * or a van (architect ruling 6 of 2026-09-28): 409 `damaged_not_for_sale` for the damaged / expiry bin, 409
- * `source_not_sellable` for the dock or a shop's floor.
+ * (architect ruling 6 of 2026-09-28): 409 `damaged_not_for_sale` for the damaged / expiry bin, 409
+ * `source_not_sellable` for the dock or a shop's floor, and 409 `wave_not_where_orders_ship` for a van or for a
+ * place other than the one the orders ship from (QA verify 3: the pick was taken there and the pack refused).
  */
 export const CreatePicklistInput = MutationBase.extend({
   id: IdSchema,
@@ -772,7 +773,9 @@ export const LoadSheetVanStockInput = z.object({
  * checked in, settled or cancelled) or `wrong_vehicle` (`toLocationId` is not the trip's vehicle). A sheet
  * that carries bills and names no trip is stored with the one trip they all ride. The sheet is drawn from a
  * godown or a van (ruling 6 of 2026-09-28: 409 `damaged_not_for_sale` for the bin, `source_not_sellable` for
- * the dock or a shop's floor) that no trip holds (vans and trips 1: 409 `vehicle_on_trip`). The orders are
+ * the dock or a shop's floor) that no trip holds (vans and trips 1: 409 `vehicle_on_trip`). An order that is
+ * not packed is 409 `order_not_packed` (`data.orderIds`), named with its state; `toLocationId` that is not a
+ * vehicle is 400 `not_a_vehicle`, named by the place. The orders are
  * kept in the order the caller supplies — "last stop first" is the app's job, because reading
  * `trip_stops` would make warehouse depend on delivery (coordination §4 item 3).
  */
@@ -834,7 +837,10 @@ export const ApproveLoadSheetOutput = LoadSheetItemOutput
  * packed order `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
  * Before anything moves, the same van refusals as the approval (vans and trips 1 and ruling 6: 409
  * `vehicle_on_trip`, `trip_left`, `damaged_not_for_sale`, `source_not_sellable`), so a sheet drafted or
- * approved before the rule is refused at the gate too.
+ * approved before the rule is refused at the gate too. Which trip holds the van is read under a per-van lock
+ * held to the commit, so a departure or another sheet's gate on the same van at the same moment waits and then
+ * reads this load (QA verify 3). An order on the sheet that is no longer packed — cancelled or unpacked since
+ * it was drafted — is 409 `order_not_packed`, named with its state.
  */
 export const ConfirmLoadSheetInput = MutationBase.extend({
   id: IdSchema,

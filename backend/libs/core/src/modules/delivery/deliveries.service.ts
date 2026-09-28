@@ -172,9 +172,11 @@ export class DeliveriesService {
           throw new ORPCError('BAD_REQUEST', {
             message: `invoice ${invoice.invoiceNo ?? invoice.id} belongs to another shop than this stop`,
           })
+        // Vans and trips 3 (QA verify 3, minor 3): the same words and code as a bill already delivered elsewhere.
         if (invoice.state === 'draft' || invoice.state === 'cancelled')
           throw new ORPCError('CONFLICT', {
-            message: `invoice ${invoice.invoiceNo ?? invoice.id} is ${invoice.state}; only an issued bill is delivered`,
+            message: `bill ${invoice.invoiceNo ?? invoice.id} ${invoice.state === 'cancelled' ? 'was cancelled' : 'is a draft, not an issued bill'}, so it is not on this van and nothing of it is handed over here. Fail the stop for it, or leave it: the check-in takes it off the trip.`,
+            data: { code: 'bill_not_on_van', invoiceState: invoice.state, invoiceId: invoice.id },
           })
 
         // Vans and trips 3 (QA DOS-354 verify 2, M2): a bill planned here that was already handed over elsewhere

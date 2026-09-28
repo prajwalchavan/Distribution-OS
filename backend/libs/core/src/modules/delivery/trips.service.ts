@@ -2062,9 +2062,11 @@ export class TripsService {
     for (const invoiceId of invoiceIds) {
       const ref = refs.get(invoiceId)
       if (!ref) throw new ORPCError('NOT_FOUND', { message: `invoice ${invoiceId} not found` })
+      // Vans and trips 3, in the same words and code as a delivered bill (QA verify 3, minor 3).
       if (ref.state === 'draft' || ref.state === 'cancelled')
         throw new ORPCError('CONFLICT', {
-          message: `invoice ${ref.invoiceNo ?? invoiceId} is ${ref.state}; only an issued bill rides on a trip`,
+          message: `${ref.invoiceNo ?? 'This bill'} · ${retailer.name} ${ref.state === 'cancelled' ? 'was cancelled' : 'is a draft, not an issued bill'}, so it does not go out. A trip takes only bills that can still go out.`,
+          data: { code: 'bill_cannot_go_out', invoiceId, invoiceState: ref.state },
         })
       const bill = await this.billing.invoiceForDelivery(tx, invoiceId)
       if (bill.retailerId !== retailer.id)

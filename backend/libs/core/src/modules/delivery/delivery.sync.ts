@@ -1,3 +1,4 @@
+import { ORPCError } from '@orpc/server'
 import type { CollectionMode, StopFailureReason, SyncOp } from '@dos/contracts'
 import {
   PodEvidenceInput,
@@ -154,7 +155,19 @@ export async function applyDeliverySync(
       pod: Array.isArray(data.pod) ? data.pod.map(podFromDevice) : [],
     }),
   )
-  await deliveries.recordInTx(tx, input)
+  try {
+    await deliveries.recordInTx(tx, input)
+  } catch (error) {
+    // Vans and trips 3 (QA verify 3, minor 3): the door's "not on this van" refusal keeps its own code offline too,
+    // so the tray can say what the online door says; every other refusal keeps the generic code the specs pin.
+    const code =
+      error instanceof ORPCError && error.status >= 400 && error.status < 500
+        ? (error.data as { code?: unknown } | undefined)?.code
+        : undefined
+    if (code === 'bill_not_on_van' && error instanceof ORPCError)
+      throw new SyncRejection(code, error.message)
+    throw error
+  }
 }
 
 /** `pod_evidence`: PUT one piece of proof that arrived after the delivery ("proof pending"). */

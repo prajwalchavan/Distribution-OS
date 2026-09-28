@@ -322,7 +322,13 @@ export class LoadSheetsService {
         const notPacked = orderIds.filter((id) => byOrder.get(id)?.state !== 'packed')
         if (notPacked.length > 0)
           throw new ORPCError('CONFLICT', {
-            message: `only a packed order can be loaded; not packed: ${notPacked.join(', ')}`,
+            message: `only a packed order can be loaded; not packed: ${notPacked
+              .map((id) => {
+                const o = byOrder.get(id)
+                return o === undefined ? id : `${o.orderNo ?? id} (${o.state})`
+              })
+              .join(', ')}`,
+            data: { code: 'order_not_packed', orderIds: notPacked },
           })
         const packs =
           orderIds.length === 0
@@ -554,6 +560,22 @@ export class LoadSheetsService {
             .where(inArray(packConfirmations.orderId, sheet.orderIds))
           const orders = await this.orders.fulfilmentOrders(tx, sheet.orderIds)
           const byOrder = new Map(orders.map((o) => [o.orderId, o]))
+          // An order on a draft that has since been cancelled, or unpacked back to be picked, is named with what it
+          // is now — not "packed but not billed" (QA verify 3, minor 4). Nothing has moved.
+          const gone = sheet.orderIds.filter((id) => byOrder.get(id)?.state !== 'packed')
+          if (gone.length > 0) {
+            const named = gone.map((id) => {
+              const o = byOrder.get(id)
+              const no = o?.orderNo ?? id
+              const who =
+                o === undefined || o.retailerName === '' ? no : `${no} · ${o.retailerName}`
+              return `${who} is ${o?.state ?? 'gone'}`
+            })
+            throw new ORPCError('CONFLICT', {
+              message: `${named.join('; ')} — only a packed order is loaded, so this sheet is not counted out as drafted. Cancel the sheet and draft it again without ${gone.length === 1 ? 'that order' : 'those orders'}.`,
+              data: { code: 'order_not_packed', orderIds: gone },
+            })
+          }
           await this.assertEveryPackBilled(tx, sheet.orderIds, packs, byOrder)
           // QA DOS-354 (verify), again at the gate: every bill counted out is a bill of THIS sheet's trip, which
           // has not left and loads this vehicle — so no bill is ever dispatched with no trip to bring it back,

@@ -293,8 +293,26 @@ export class PicklistsService implements OnModuleInit {
         const locationId = this.singleLocation(orders, input.locationId)
         // Ruling 6 (vans and trips, 2026-09-28): a wave is never placed at the damaged / expiry bin — nothing
         // leaves it for sale — nor at the dock or a shop's floor; refused when the wave is made.
-        const refused = sourceRefusal(await placeOf(tx, locationId), locationId, 'wave')
+        const place = await placeOf(tx, locationId)
+        const refused = sourceRefusal(place, locationId, 'wave')
         if (refused !== null) throw refused
+        // QA verify 3, minor 5: a wave is picked where its orders ship from, and never on a van. One placed elsewhere
+        // took its pick there while the pack judged the order's own place, and refused "none free" with the godown
+        // full; one placed at a van packed from the godown.
+        const shipsFrom = orders.find((o) => o.fulfilFromLocationId !== null)?.fulfilFromLocationId
+        if (
+          place !== null &&
+          (place.kind === 'vehicle' || (shipsFrom != null && shipsFrom !== locationId))
+        ) {
+          const home = shipsFrom == null ? null : await placeOf(tx, shipsFrom)
+          throw new ORPCError('CONFLICT', {
+            message:
+              place.kind === 'vehicle'
+                ? `A wave is picked in the godown, not on ${place.name}: a van carries its trip's bills and van stock. Wave the orders from ${home?.name ?? 'the godown'}.`
+                : `${orders.length === 1 ? 'This order ships' : 'These orders ship'} from ${home?.name ?? 'another place'}, not ${place.name}: a wave is picked where its orders ship from. Wave ${orders.length === 1 ? 'it' : 'them'} from ${home?.name ?? 'that place'}.`,
+            data: { code: 'wave_not_where_orders_ship', locationId, shipsFrom: shipsFrom ?? null },
+          })
+        }
         const lines = await this.orders.fulfilmentLines(tx, orderIds)
         if (lines.length === 0)
           throw new ORPCError('BAD_REQUEST', { message: 'these orders have no lines to pick' })
