@@ -26,7 +26,12 @@ import {
 import { currentTenant } from '../../platform/index.js'
 import { reservableLocationId } from '../inventory/index.js'
 import { pendingBargainsForOrder, type QuoteService } from '../pricing/index.js'
-import { checkCredit, loadRetailerCredit } from '../receivables/index.js'
+import {
+  checkCredit,
+  loadRetailerCredit,
+  lockShopCredit,
+  type RetailerCredit,
+} from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
 import { ZERO_TOTALS } from './pricing-lines.js'
 
@@ -74,6 +79,8 @@ export async function createDraft(
   const [clash] = await tx.select().from(salesOrders).where(eq(salesOrders.id, input.id))
   if (clash) throw orderIdTaken(input.id)
   const credit = await loadRetailerCredit(tx, input.retailerId)
+  // QA DOS-315: a deactivated shop takes no new order, from any door that drafts one.
+  if (!credit.active) throw shopInactive(credit.name)
   let order: OrderRow | undefined
   try {
     // savepoint: the id may already belong to an order this caller cannot see — a retailer login only reads its
@@ -112,6 +119,55 @@ function orderIdTaken(id: string): ORPCError<'CONFLICT', undefined> {
   return new ORPCError('CONFLICT', { message: `order ${id} already exists` })
 }
 
+/**
+ * QA DOS-315 (architect ruling 6, 2026-09-28): a shop the owner deactivated takes no new order — from the
+ * rep, the desk, the shop's own app, "order again", a van sale or a device upload (which records it as a
+ * sync error). The orders it already has can still be billed, delivered or cancelled.
+ */
+export function shopInactive(name: string): ORPCError<'CONFLICT', { code: 'shop_inactive' }> {
+  return new ORPCError('CONFLICT', {
+    message: `${name} is deactivated and takes no new order. Its open orders can still be billed, delivered or cancelled; ask the owner to reactivate the shop to order again.`,
+    data: { code: 'shop_inactive' },
+  })
+}
+
+/**
+ * QA DOS-314 (architect ruling 5, 2026-09-28): "stop" means stop. An order on credit for a shop whose
+ * credit the owner stopped is refused when it is placed, and a hold already waiting cannot be approved —
+ * not by the manager, not by the owner. Only changing the shop's credit mode lifts it.
+ */
+export function creditStopped(
+  name: string,
+  orderNo: string | null,
+  at: 'place' | 'approve',
+): ORPCError<'CONFLICT', { code: 'credit_stopped' }> {
+  const what =
+    at === 'place'
+      ? 'no order on credit can be placed for this shop'
+      : `${orderNo ?? 'this order'} cannot be approved on credit, by the manager or by the owner`
+  const next =
+    at === 'place'
+      ? 'Only changing the shop’s credit mode lifts it — ask the owner.'
+      : 'Reject it, or change the shop’s credit mode first.'
+  return new ORPCError('CONFLICT', {
+    message: `The owner has stopped credit for ${name}: ${what}. ${next}`,
+    data: { code: 'credit_stopped' },
+  })
+}
+
+/**
+ * A pay-on-delivery order of a pay-on-delivery shop (QA DOS-225): the bill says pay on delivery and the
+ * crew collects at the stop, so no credit is given. Both must say it — the shop's terms, so a shop on
+ * credit cannot slip past its limit by marking one order "on delivery", and the order's, so an order
+ * marked for credit is checked as credit. A van sale is the delivery itself: unpaid there is credit.
+ */
+export function isPayOnDelivery(
+  order: Pick<OrderRow, 'paymentTerms' | 'source'>,
+  shop: Pick<RetailerCredit, 'paymentTerms'>,
+): boolean {
+  return order.source !== 'van_sale' && order.paymentTerms === 'ON' && shop.paymentTerms === 'ON'
+}
+
 /** Drizzle wraps driver errors; the SQLSTATE is on `cause.code`. 23505 = unique_violation. */
 export function isUniqueViolation(err: unknown): boolean {
   const e = err as { code?: string; cause?: { code?: string } }
@@ -145,11 +201,22 @@ export async function approvalFlags(
   creditWaived: boolean
 }> {
   const flags: ApprovalKind[] = []
-  const credit = await checkCredit(tx, order.retailerId, order.totalPaise)
+  // QA DOS-313: one credit decision per shop at a time, so an order placed at the same moment as
+  // another counts it (`lockShopCredit`), then the shop as it stands now.
+  await lockShopCredit(tx, order.retailerId)
+  const shop = await loadRetailerCredit(tx, order.retailerId)
+  if (!shop.active) throw shopInactive(shop.name)
+  const payOnDelivery = isPayOnDelivery(order, shop)
+  const credit = await checkCredit(tx, order.retailerId, order.totalPaise, { payOnDelivery })
   const paidInFull =
     options.paidAtDoorPaise !== undefined &&
     order.totalPaise > 0 &&
     options.paidAtDoorPaise >= order.totalPaise
+  // QA DOS-314: credit stopped refuses an order on credit where it is placed. A van sale keeps its own
+  // refusal (it holds on the flag below and says "take the money now" in the crew's words), and one
+  // paid in full at the door is not credit at all.
+  if (credit.creditStopped && !payOnDelivery && !paidInFull && order.source !== 'van_sale')
+    throw creditStopped(shop.name, order.orderNo, 'place')
   const creditWaived = credit.breached && paidInFull
   if (credit.breached && !paidInFull) flags.push('credit_limit')
   /*
@@ -159,7 +226,7 @@ export async function approvalFlags(
    * `flags.length === 0` auto-confirm is untouched.
    */
   const creditNotice: CreditNotice | null =
-    credit.reasons.length === 0
+    credit.reasons.length === 0 && !credit.breached
       ? null
       : {
           creditMode: credit.creditMode,
@@ -169,6 +236,11 @@ export async function approvalFlags(
           headroomPaise: credit.headroomPaise,
           overdueDays: credit.overdueDays,
           orderTotalPaise: credit.orderTotalPaise,
+          unbilledOrdersPaise: credit.unbilledOrdersPaise ?? 0,
+          unallocatedCreditPaise: credit.unallocatedCreditPaise ?? 0,
+          exposurePaise: credit.exposurePaise ?? 0,
+          creditStopped: credit.creditStopped ?? false,
+          payOnDelivery: credit.payOnDelivery ?? false,
         }
   const bargainIds = await pendingBargainsForOrder(tx, {
     retailerId: order.retailerId,

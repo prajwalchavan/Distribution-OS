@@ -1299,8 +1299,9 @@ describeDb('receivables (DATABASE_URL)', () => {
       stateCode: '27',
       tier: 'C',
       creditDays: 15,
-      // stop mode, ₹500 limit and ONE open bill allowed: a ₹500 bill fills both
-      creditMode: 'stop',
+      // strict mode, ₹500 limit and ONE open bill allowed: a ₹500 bill fills both. (Not `stop`: since QA
+      // DOS-314 a stopped shop is breached whatever it owes, which is not what this test measures.)
+      creditMode: 'strict',
       creditLimitPaise: 50_000,
       creditLimitBills: 1,
     })

@@ -24,7 +24,9 @@ import { istMoment, personWord } from '../../platform/refusal-words.js'
 import { BargainsService } from '../pricing/index.js'
 import { retailerRefs } from '../retailers/index.js'
 import { userLabels } from '../tenancy/index.js'
+import { loadRetailerCredit, lockShopCredit } from '../receivables/index.js'
 import { ApprovalHooks, HOOKED_KINDS } from './approval-hooks.js'
+import { creditStopped, isPayOnDelivery } from './orders.internals.js'
 import { toApproval, toApprovalQueueItem, type ApprovalRow } from './orders.mappers.js'
 import { OrdersService } from './orders.service.js'
 
@@ -154,6 +156,19 @@ export class ApprovalsService {
             item: toApproval(expired ?? approval),
             order: await this.orders.detail(tx, order),
           }
+        }
+
+        // QA DOS-314 (architect ruling 5): a credit hold on a shop whose credit the owner stopped is not
+        // approved by anybody — the manager and the owner alike. Rejecting it still works, and changing
+        // the shop's credit mode is what lifts it. A pay-on-delivery order held only because credit is
+        // stopped gives no credit, so the desk may release it (DOS-225).
+        // An approval that may confirm the order takes the shop's credit lock first (DOS-313), so a submit
+        // for the same shop at the same moment counts this order once it is confirmed.
+        if (input.decision === 'approve' && order) await lockShopCredit(tx, order.retailerId)
+        if (input.decision === 'approve' && approval.kind === 'credit_limit' && order) {
+          const shop = await loadRetailerCredit(tx, order.retailerId)
+          if (shop.creditMode === 'stop' && !isPayOnDelivery(order, shop))
+            throw creditStopped(shop.name, order.orderNo, 'approve')
         }
 
         const [decided] = await tx

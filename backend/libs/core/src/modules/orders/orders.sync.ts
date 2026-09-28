@@ -1,4 +1,5 @@
 import { asc, eq } from 'drizzle-orm'
+import { ORPCError } from '@orpc/server'
 import type { SyncOp } from '@dos/contracts'
 import { salesOrderLines, salesOrders, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
@@ -105,15 +106,29 @@ export async function applyOrderSync(tx: Db, op: SyncOp, orders: OrdersService):
       'The order has no retailer',
       'ऑर्डर में दुकान नहीं है',
     )
-  await orders.insertDraft(tx, {
-    id: op.id,
-    retailerId,
-    source: (str(data.source) ?? 'salesperson') as 'salesperson',
-    pricingDateMode: str(data.pricing_date_mode) === 'delivery' ? 'delivery' : 'order',
-    fulfilFromLocationId: str(data.fulfil_from_location_id),
-    expectedDeliveryDate: str(data.expected_delivery_date),
-    note: str(data.note),
-  })
+  try {
+    await orders.insertDraft(tx, {
+      id: op.id,
+      retailerId,
+      source: (str(data.source) ?? 'salesperson') as 'salesperson',
+      pricingDateMode: str(data.pricing_date_mode) === 'delivery' ? 'delivery' : 'order',
+      fulfilFromLocationId: str(data.fulfil_from_location_id),
+      expectedDeliveryDate: str(data.expected_delivery_date),
+      note: str(data.note),
+    })
+  } catch (err) {
+    // QA DOS-315: the offline door says what the online one says, as a sync error the rep can read.
+    if (
+      err instanceof ORPCError &&
+      (err.data as { code?: string } | undefined)?.code === 'shop_inactive'
+    )
+      throw new SyncRejection(
+        'shop_inactive',
+        err.message,
+        'यह दुकान बंद (निष्क्रिय) कर दी गई है — इसका नया ऑर्डर नहीं लिया जा सकता; मालिक से दुकान फिर चालू करवाएँ',
+      )
+    throw err
+  }
 }
 
 /** One line of a draft; the whole order is re-priced so the header always matches its lines. */

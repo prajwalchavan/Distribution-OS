@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 import type { PgBoss } from 'pg-boss'
 import { retailerOutstandingSummary, tripStops, trips, type Db } from '@dos/db'
 import { businessDate, uuidv7Time } from '@dos/domain'
@@ -163,29 +163,29 @@ export async function sweepDeliveryToday(db: Db): Promise<{ trips: number; queue
 export async function sweepDuesReminders(
   db: Db,
 ): Promise<{ tenants: number; queued: number; cooled: number }> {
+  // QA DOS-312: overdue NET of the shop's money on account — its money pays its oldest bills first, so
+  // a shop in credit is never reminded of dues it has already paid (receivables' `netFromRollup`).
+  const netOverdue = sql<number>`greatest(0, ${retailerOutstandingSummary.overduePaise} - greatest(0, ${retailerOutstandingSummary.unallocatedCreditPaise}))`
   const tenantRows = await db
     .selectDistinct({ tenantId: retailerOutstandingSummary.tenantId })
     .from(retailerOutstandingSummary)
-    .where(gt(retailerOutstandingSummary.overduePaise, 0))
+    .where(sql`${netOverdue} > 0`)
     .limit(1000)
   let queued = 0
   let cooled = 0
   for (const { tenantId } of tenantRows) {
-    const overdue = await db
-      .select({
-        retailerId: retailerOutstandingSummary.retailerId,
-        overduePaise: retailerOutstandingSummary.overduePaise,
-        oldestDueDate: retailerOutstandingSummary.oldestDueDate,
-      })
-      .from(retailerOutstandingSummary)
-      .where(
-        and(
-          eq(retailerOutstandingSummary.tenantId, tenantId),
-          gt(retailerOutstandingSummary.overduePaise, 0),
-        ),
-      )
-      .orderBy(sql`${retailerOutstandingSummary.overduePaise} desc`)
-      .limit(DUES_PER_TENANT)
+    const overdue = (
+      await db
+        .select({
+          retailerId: retailerOutstandingSummary.retailerId,
+          overduePaise: sql<string>`${netOverdue}::bigint`,
+          oldestDueDate: retailerOutstandingSummary.oldestDueDate,
+        })
+        .from(retailerOutstandingSummary)
+        .where(and(eq(retailerOutstandingSummary.tenantId, tenantId), sql`${netOverdue} > 0`))
+        .orderBy(sql`${netOverdue} desc`)
+        .limit(DUES_PER_TENANT)
+    ).map((row) => ({ ...row, overduePaise: Number(row.overduePaise) }))
     const r = await queueDuesReminders(db, tenantId, overdue)
     queued += r.queued
     cooled += r.cooled
