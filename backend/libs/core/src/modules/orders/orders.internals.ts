@@ -30,6 +30,7 @@ import {
   checkCredit,
   loadRetailerCredit,
   lockShopCredit,
+  type CreditVerdict,
   type RetailerCredit,
 } from '../receivables/index.js'
 import { toOrder, type OrderRow } from './orders.mappers.js'
@@ -141,6 +142,13 @@ export function creditStopped(
   orderNo: string | null,
   at: 'place' | 'approve',
 ): ORPCError<'CONFLICT', { code: 'credit_stopped' }> {
+  // The shop's own app carries no credit policy (ADR 0006), and to a shopkeeper "the owner" is himself:
+  // it is told what it can do, in its own terms, with the same code.
+  if (currentTenant().actorRole === 'retailer')
+    return new ORPCError('CONFLICT', {
+      message: `Your distributor is not taking orders on credit for ${name} right now. Please call your distributor to place this order.`,
+      data: { code: 'credit_stopped' },
+    })
   const what =
     at === 'place'
       ? 'no order on credit can be placed for this shop'
@@ -219,29 +227,7 @@ export async function approvalFlags(
     throw creditStopped(shop.name, order.orderNo, 'place')
   const creditWaived = credit.breached && paidInFull
   if (credit.breached && !paidInFull) flags.push('credit_limit')
-  /*
-   * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit goes through and
-   * the desk sees a NOTICE on it; strict and stop are still held by the gate above and carry the same
-   * notice. The flag list keeps meaning gates — an indicate breach adds none, so submit's
-   * `flags.length === 0` auto-confirm is untouched.
-   */
-  const creditNotice: CreditNotice | null =
-    credit.reasons.length === 0 && !credit.breached
-      ? null
-      : {
-          creditMode: credit.creditMode,
-          reasons: [...credit.reasons],
-          outstandingPaise: credit.outstandingPaise,
-          creditLimitPaise: credit.creditLimitPaise,
-          headroomPaise: credit.headroomPaise,
-          overdueDays: credit.overdueDays,
-          orderTotalPaise: credit.orderTotalPaise,
-          unbilledOrdersPaise: credit.unbilledOrdersPaise ?? 0,
-          unallocatedCreditPaise: credit.unallocatedCreditPaise ?? 0,
-          exposurePaise: credit.exposurePaise ?? 0,
-          creditStopped: credit.creditStopped ?? false,
-          payOnDelivery: credit.payOnDelivery ?? false,
-        }
+  const creditNotice = creditNoticeOf(credit)
   const bargainIds = await pendingBargainsForOrder(tx, {
     retailerId: order.retailerId,
     orderId: order.id,
@@ -255,6 +241,31 @@ export async function approvalFlags(
   )
   if (below) flags.push('below_floor')
   return { flags, bargainIds, creditNotice, creditWaived }
+}
+
+/**
+ * DOS-081 (founder, 2026-09-13): a "warn at the limit" shop's order over its limit goes through and
+ * the desk sees a NOTICE on it; strict and stop are held by the `credit_limit` gate and carry the same
+ * notice. The flag list keeps meaning gates — an indicate breach adds none, so submit's
+ * `flags.length === 0` auto-confirm is untouched. One builder, so the notice written at submit and the
+ * one written when a later decision holds the order for credit (QA DOS-313) read alike.
+ */
+export function creditNoticeOf(credit: CreditVerdict): CreditNotice | null {
+  if (credit.reasons.length === 0 && !credit.breached) return null
+  return {
+    creditMode: credit.creditMode,
+    reasons: [...credit.reasons],
+    outstandingPaise: credit.outstandingPaise,
+    creditLimitPaise: credit.creditLimitPaise,
+    headroomPaise: credit.headroomPaise,
+    overdueDays: credit.overdueDays,
+    orderTotalPaise: credit.orderTotalPaise,
+    unbilledOrdersPaise: credit.unbilledOrdersPaise ?? 0,
+    unallocatedCreditPaise: credit.unallocatedCreditPaise ?? 0,
+    exposurePaise: credit.exposurePaise ?? 0,
+    creditStopped: credit.creditStopped ?? false,
+    payOnDelivery: credit.payOnDelivery ?? false,
+  }
 }
 
 /** Pieces a location can still promise, from the ATP view (on hand − reserved) that reps also see. */

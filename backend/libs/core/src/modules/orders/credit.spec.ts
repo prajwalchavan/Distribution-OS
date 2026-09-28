@@ -123,10 +123,15 @@ describeDb('credit desk: who may order on credit (DATABASE_URL)', () => {
     podStop: uuidv7(), // DOS-225: pays on delivery with credit stopped
     inCredit: uuidv7(), // DOS-312: ₹5,000 on account beside a ₹867 bill 20 days late
     inactive: uuidv7(), // DOS-315: deactivated by the owner
+    gateLate: uuidv7(), // DOS-313: ₹1,000 limit, an order waits on a rate while another is confirmed
+    deskLate: uuidv7(), // DOS-313: ₹1,000 limit, the desk confirms an order that waited on nothing
+    warnLate: uuidv7(), // DOS-313: the same on "warn at the limit", which holds nothing
+    stopOwn: uuidv7(), // DOS-314: credit stopped, and the shop orders from its own app
   }
   let app: NestFastifyApplication
   let receivables: ReceivablesService
   let godown = ''
+  const identityId = uuidv7()
 
   const day = (offset: number): string => {
     const at = new Date(`${businessDate().date}T12:00:00.000Z`)
@@ -311,9 +316,12 @@ describeDb('credit desk: who may order on credit (DATABASE_URL)', () => {
       row(shop.podStop, 8, { creditMode: 'stop', creditLimitPaise: 0, paymentTerms: 'ON' }),
       row(shop.inCredit, 9, { creditMode: 'strict', creditLimitPaise: 50_000, creditDays: 7 }),
       row(shop.inactive, 10, { creditMode: 'indicate', creditLimitPaise: 100_000_000 }),
+      row(shop.gateLate, 11, { creditMode: 'strict', creditLimitPaise: 100_000 }),
+      row(shop.deskLate, 12, { creditMode: 'strict', creditLimitPaise: 100_000 }),
+      row(shop.warnLate, 13, { creditMode: 'indicate', creditLimitPaise: 100_000 }),
+      row(shop.stopOwn, 14, { creditMode: 'stop', creditLimitPaise: 100_000_000 }),
     ])
     // The deactivated shop has its own login, so the shop's own app is a door too.
-    const identityId = uuidv7()
     await db.insert(retailerIdentities).values({
       id: identityId,
       phone: `+91907${run}10`,
@@ -325,6 +333,16 @@ describeDb('credit desk: who may order on credit (DATABASE_URL)', () => {
       tenantId,
       identityId,
       retailerId: shop.inactive,
+      userId: shopUserId,
+      linkedBy: 'rep_onboarding',
+      status: 'active',
+    })
+    // …and so does the stopped shop, so the shop's own app meets the stop in its own words.
+    await db.insert(retailerLinks).values({
+      id: uuidv7(),
+      tenantId,
+      identityId,
+      retailerId: shop.stopOwn,
       userId: shopUserId,
       linkedBy: 'rep_onboarding',
       status: 'active',
@@ -456,6 +474,128 @@ describeDb('credit desk: who may order on credit (DATABASE_URL)', () => {
     expect(second.submitted.body.item.creditNotice?.reasons).toEqual(['bill_count_exceeded'])
   })
 
+  it('DOS-313: an order that waited on a rate is measured again when the rate is approved — over a strict limit it is held for credit, not confirmed', async () => {
+    // A: the rep asks ₹90 a piece instead of ₹100 and places the order; it waits on the rate, so it is
+    // not promised yet and the check at submit counts nothing for it.
+    const orderA = uuidv7()
+    const asked = await call<{ item: { status: string } }>(app, rep, 'POST', '/pricing/bargains', {
+      idempotencyKey: `late-ask-${run}`,
+      id: uuidv7(),
+      retailerId: shop.gateLate,
+      variantId,
+      askedRatePaise: 9_000,
+      qtyPcs: 5,
+      orderId: orderA,
+    })
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+    expect(asked.body.item.status).toBe('requested')
+    const draftA = await call(app, rep, 'POST', '/orders', {
+      idempotencyKey: `late-draft-${orderA}`,
+      id: orderA,
+      retailerId: shop.gateLate,
+      source: 'salesperson',
+      lines: [{ id: uuidv7(), variantId, enteredQty: 5, enteredUnit: 'piece' }],
+    })
+    expect(draftA.status, JSON.stringify(draftA.body)).toBe(200)
+    const submitA = await call<{ item: Detail }>(app, rep, 'POST', `/orders/${orderA}/submit`, {
+      idempotencyKey: `late-submit-${orderA}`,
+    })
+    expect(submitA.status, JSON.stringify(submitA.body)).toBe(200)
+    expect(submitA.body.item.state).toBe('submitted')
+    expect(submitA.body.item.approvalFlags).toEqual(['bargain'])
+
+    // B: ₹560 on the same ₹1,000 limit, confirmed — A is not promised yet, so B fits.
+    const b = await place(rep, shop.gateLate)
+    expect(b.submitted.body.item.state).toBe('confirmed')
+
+    // The owner approves A's rate. At ₹90 a piece A is ₹504, and with B that is ₹1,064 on ₹1,000.
+    const [rateGate] = await pendingApprovals(orderA)
+    expect(rateGate?.kind).toBe('bargain')
+    const approved = await call<{ order: Detail }>(
+      app,
+      owner,
+      'POST',
+      `/approvals/${rateGate?.id ?? ''}/decide`,
+      { idempotencyKey: `late-rate-${orderA}`, decision: 'approve' },
+    )
+    expect(approved.status, JSON.stringify(approved.body)).toBe(200)
+    expect(approved.body.order.state, 'held for credit, not confirmed').toBe('submitted')
+    expect(approved.body.order.totalPaise, 'at the rate the owner just approved').toBe(5 * 10_080)
+    expect(approved.body.order.approvalFlags).toEqual(['bargain', 'credit_limit'])
+    expect(approved.body.order.creditNotice).toMatchObject({
+      reasons: ['limit_exceeded'],
+      unbilledOrdersPaise: 5 * PIECE,
+      exposurePaise: 5 * PIECE,
+    })
+    const gates = await pendingApprovals(orderA)
+    const creditGate = gates.find((g) => g.kind === 'credit_limit' && g.status === 'pending')
+    expect(creditGate, 'a credit gate for the desk').toBeDefined()
+    expect(gates.find((g) => g.kind === 'bargain')?.status).toBe('approved')
+    const promised = await db
+      .select({ state: salesOrders.state, totalPaise: salesOrders.totalPaise })
+      .from(salesOrders)
+      .where(eq(salesOrders.retailerId, shop.gateLate))
+    const confirmedPaise = promised
+      .filter((o) => o.state === 'confirmed')
+      .reduce((sum, o) => sum + o.totalPaise, 0)
+    expect(confirmedPaise, 'never more than the ₹1,000 strict limit confirmed').toBe(5 * PIECE)
+
+    // Releasing the credit is the desk's decision, and it confirms A; it is not measured a third time.
+    const released = await call<{ order: Detail }>(
+      app,
+      manager,
+      'POST',
+      `/approvals/${creditGate?.id ?? ''}/decide`,
+      { idempotencyKey: `late-release-${orderA}`, decision: 'approve' },
+    )
+    expect(released.status, JSON.stringify(released.body)).toBe(200)
+    expect(released.body.order.state).toBe('confirmed')
+  })
+
+  it('DOS-313: the desk’s own confirm measures the shop again — over a strict limit it holds the order for credit; on "warn" it confirms', async () => {
+    // One ₹560 order confirmed, and one that reached the office waiting on nothing.
+    const bareOrder = async (retailerId: string): Promise<string> => {
+      const confirmed = await place(rep, retailerId)
+      expect(confirmed.submitted.body.item.state).toBe('confirmed')
+      const id = uuidv7()
+      const drafted = await call(app, rep, 'POST', '/orders', {
+        idempotencyKey: `desk-late-${id}`,
+        id,
+        retailerId,
+        source: 'salesperson',
+        lines: [{ id: uuidv7(), variantId, enteredQty: 5, enteredUnit: 'piece' }],
+      })
+      expect(drafted.status).toBe(200)
+      await db
+        .update(salesOrders)
+        .set({ state: 'submitted', orderNo: `SO-D${run}-${id.slice(-4)}` })
+        .where(eq(salesOrders.id, id))
+      return id
+    }
+    const strictId = await bareOrder(shop.deskLate)
+    const held = await call<{ item: Detail }>(app, manager, 'POST', `/orders/${strictId}/confirm`, {
+      idempotencyKey: `desk-late-confirm-${strictId}`,
+    })
+    expect(held.status, JSON.stringify(held.body)).toBe(200)
+    expect(held.body.item.state, '₹1,120 on a ₹1,000 strict limit').toBe('submitted')
+    expect(held.body.item.approvalFlags).toEqual(['credit_limit'])
+    const [gate] = await pendingApprovals(strictId)
+    expect(gate).toMatchObject({ kind: 'credit_limit', status: 'pending' })
+    // …and a second press answers the same way, it does not slip through the gate it raised.
+    const again = await call<Refusal>(app, owner, 'POST', `/orders/${strictId}/confirm`, {
+      idempotencyKey: `desk-late-again-${strictId}`,
+    })
+    expect(again.status).toBe(409)
+    expect(again.body.data?.code).toBe('approval_required')
+
+    const warnId = await bareOrder(shop.warnLate)
+    const warned = await call<{ item: Detail }>(app, manager, 'POST', `/orders/${warnId}/confirm`, {
+      idempotencyKey: `desk-late-confirm-${warnId}`,
+    })
+    expect(warned.status, JSON.stringify(warned.body)).toBe(200)
+    expect(warned.body.item.state, '"warn at the limit" holds nothing').toBe('confirmed')
+  })
+
   // ---------------------------------------------------------------------------------------------------
   // DOS-312 — money on account is counted
 
@@ -529,6 +669,16 @@ describeDb('credit desk: who may order on credit (DATABASE_URL)', () => {
     const check = await verdict(shop.stop, 100)
     expect(check.creditStopped).toBe(true)
     expect(check.breached).toBe(true)
+  })
+
+  it('DOS-314: the shop’s own app is refused in its own words, with no credit policy and no "owner" in them (ADR 0006)', async () => {
+    const refused = await place(shopkeeper, shop.stopOwn)
+    expect(refused.submitted.status, JSON.stringify(refused.submitted.body)).toBe(409)
+    expect(refused.submitted.body.data?.code).toBe('credit_stopped')
+    expect(refused.submitted.body.message).toBe(
+      `Your distributor is not taking orders on credit for Credit Shop 14 ${run} right now. Please call your distributor to place this order.`,
+    )
+    expect(refused.submitted.body.message).not.toMatch(/owner|limit|stopped/i)
   })
 
   it('DOS-314: a hold that was waiting when the owner stopped credit is approved by nobody — not the manager, not the owner — and rejecting it still works', async () => {

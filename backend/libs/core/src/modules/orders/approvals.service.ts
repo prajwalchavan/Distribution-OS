@@ -233,6 +233,9 @@ export class ApprovalsService {
         }
         if (await this.stillPending(tx, approval.orderId, approval.id))
           return { item, order: await this.orders.detail(tx, order) }
+        // QA DOS-313: the last approval confirms the order only if the shop's credit still allows it —
+        // an order that waited on a rate was not counted while it waited. If it would now take a holding
+        // shop over its limit, `confirmInTx` holds it on a new credit gate and the reply says `submitted`.
         const confirmed = await this.orders.confirmInTx(tx, order, input.deviceId ?? null)
         return { item, order: confirmed.item }
       }),
