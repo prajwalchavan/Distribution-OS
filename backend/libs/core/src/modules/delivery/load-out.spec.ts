@@ -209,6 +209,25 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     }
   }
 
+  /**
+   * A van of the test's own (architect ruling of 2026-09-28, vans and trips 1: a van carries one trip at a time). The
+   * shared van still holds the trips of the tests before, which never come home; a test that loads or sends out a
+   * trip while one of those holds it drives a van nobody else holds.
+   */
+  async function ownVehicle(tag: string): Promise<{ id: string; locationId: string }> {
+    const id = uuidv7()
+    const made = await post<{ item: { locationId: string } }>(owner, '/delivery/vehicles', {
+      idempotencyKey: `vehicle-own-${tag}-${run}`,
+      id,
+      regNo: `MH-05-L${tag.toUpperCase()}-${run.slice(-4)}`,
+      name: `Tempo DOS-172 ${tag}`,
+      kind: 'tempo',
+      capacityCases: 120,
+    })
+    expect(made.status, JSON.stringify(made.body)).toBe(200)
+    return { id, locationId: made.body.item.locationId }
+  }
+
   /** A trip planned by the desk for `driverOf`, then put on the dock by the godown. */
   async function loadingTrip(
     tag: string,
@@ -296,11 +315,17 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     throw new Error('packs.list?status=awaiting_load never ended its cursor walk')
   }
 
-  const newSheet = (actor: Actor, orderIds: string[], tag: string, tripId?: string) =>
+  const newSheet = (
+    actor: Actor,
+    orderIds: string[],
+    tag: string,
+    tripId?: string,
+    toLocationId: string = vehicleLocation,
+  ) =>
     post<RefusalBody & { item: { status: string } }>(actor, '/warehouse/load-sheets', {
       idempotencyKey: `sheet-${tag}-${run}`,
       id: uuidv7(),
-      toLocationId: vehicleLocation,
+      toLocationId,
       ...(tripId === undefined ? {} : { tripId }),
       orderIds,
     })
@@ -830,9 +855,13 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
   it('DOS-172: no trip departs with a bill nobody counted out', async () => {
     const day = tripDay(2)
     const billR = await billedOrder(retailerA, variantA, 'c-r')
-    const trip = await loadingTrip('c', day, driverId, [
-      { stopId: uuidv7(), retailerId: retailerA, invoiceIds: [billR.invoiceId] },
-    ])
+    const trip = await loadingTrip(
+      'c',
+      day,
+      driverId,
+      [{ stopId: uuidv7(), retailerId: retailerA, invoiceIds: [billR.invoiceId] }],
+      (await ownVehicle('c')).id,
+    )
 
     const refused = await post<RefusalBody>(driver, `/delivery/trips/${trip.id}/depart`, {
       idempotencyKey: `depart-c-early-${run}`,
@@ -1101,9 +1130,14 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     const day = tripDay(5)
     const bill = await billedOrder(retailerA, variantA, 'f-short')
     const lot = await billedLot(bill.invoiceId)
-    const trip = await loadingTrip('f', day, driverId, [
-      { stopId: uuidv7(), retailerId: retailerA, invoiceIds: [bill.invoiceId] },
-    ])
+    const van = await ownVehicle('f')
+    const trip = await loadingTrip(
+      'f',
+      day,
+      driverId,
+      [{ stopId: uuidv7(), retailerId: retailerA, invoiceIds: [bill.invoiceId] }],
+      van.id,
+    )
 
     // A carton of this lot leaves the dock behind the system's back — the picture the count exists to
     // catch — so the dock holds ONE PIECE FEWER than the sheet needs (the earlier tests' packs of the
@@ -1147,7 +1181,7 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
         ).n,
       )
 
-    const created = await newSheet(packer, [bill.orderId], 'f', trip.id)
+    const created = await newSheet(packer, [bill.orderId], 'f', trip.id, van.locationId)
     expect(created.status, JSON.stringify(created.body)).toBe(200)
     const sheetId = (created.body as unknown as { item: { id: string } }).item.id
     const approved = await post(manager, `/warehouse/load-sheets/${sheetId}/approve`, {
@@ -1156,7 +1190,7 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     expect(approved.status, JSON.stringify(approved.body)).toBe(200)
 
     const rowsBefore = await ledgerRows()
-    const vanBefore = await onHand(lot.lotId, vehicleLocation)
+    const vanBefore = await onHand(lot.lotId, van.locationId)
     const refused = await post<RefusalBody & { data?: { lotId?: string } }>(
       packer,
       `/warehouse/load-sheets/${sheetId}/confirm`,
@@ -1178,7 +1212,7 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     // Nothing happened: no ledger row, no challan, the van as it was, the order still packed, the sheet
     // still waiting for a count that is true.
     expect(await ledgerRows(), 'the refusal wrote nothing to the ledger').toBe(rowsBefore)
-    expect(await onHand(lot.lotId, vehicleLocation), 'nothing went on the van').toBe(vanBefore)
+    expect(await onHand(lot.lotId, van.locationId), 'nothing went on the van').toBe(vanBefore)
     expect(await onHand(lot.lotId, dockId), 'the dock is as it was').toBe(dockHolds)
     expect(await challans(sheetId), 'no challan was issued').toBe(0)
     expect(await orderState(bill.orderId)).toBe('packed')
@@ -1215,7 +1249,7 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     )
     expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
     expect(confirmed.body.dispatched).toEqual([bill.orderId])
-    expect(await onHand(lot.lotId, vehicleLocation)).toBe(vanBefore + lot.pcs)
+    expect(await onHand(lot.lotId, van.locationId)).toBe(vanBefore + lot.pcs)
     expect(await challans(sheetId)).toBe(1)
   }, 180_000)
 
@@ -1389,11 +1423,18 @@ describeDb('DOS-172 load-out (DATABASE_URL)', () => {
     expect(await onHand(lotB.lotId, dockId), 'and so is G3').toBe(dockB + lotB.pcs)
 
     // One sheet for the next trip takes all three, and its count dispatches them.
-    const trip2 = await loadingTrip('d-2', day, otherDriverId, [
-      { stopId: uuidv7(), retailerId: retailerA, invoiceIds: [g1.invoiceId] },
-      { stopId: uuidv7(), retailerId: retailerB, invoiceIds: [g2.invoiceId] },
-      { stopId: uuidv7(), retailerId: retailerC, invoiceIds: [g3.invoiceId] },
-    ])
+    // On the same own van: the first trip is settled, so the van is free again (vans and trips 1).
+    const trip2 = await loadingTrip(
+      'd-2',
+      day,
+      otherDriverId,
+      [
+        { stopId: uuidv7(), retailerId: retailerA, invoiceIds: [g1.invoiceId] },
+        { stopId: uuidv7(), retailerId: retailerB, invoiceIds: [g2.invoiceId] },
+        { stopId: uuidv7(), retailerId: retailerC, invoiceIds: [g3.invoiceId] },
+      ],
+      ownVehicleId,
+    )
     const second = await loadOut(app, crew, { tripId: trip2.id, orderIds: all, tag: `d-2-${run}` })
     expect(second.dispatched).toEqual(all)
     for (const orderId of all) expect(await orderState(orderId)).toBe('dispatched')

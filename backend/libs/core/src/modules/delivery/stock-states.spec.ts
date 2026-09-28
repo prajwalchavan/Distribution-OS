@@ -511,7 +511,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     expect(online.status, JSON.stringify(online.body)).toBe(409)
     expect(online.body.data?.code).toBe('batch_expired')
     expect(online.body.message).toBe(
-      `Choco Chip Cookies 120 g batch B-EXP-${run} expired on ${expiryPhrase(istDay(-1))}. Expired goods are never sold — set it aside for the expiry bin and pick an in-date batch.`,
+      `Choco Chip Cookies 120 g batch B-EXP-${run} expired on ${expiryPhrase(istDay(-1))}. Expired goods are never sold — pick an in-date batch, and move the expired pieces into the damaged / expiry bin with Move on the Stock screen.`,
     )
 
     // Offline: 2xx with a sync error carrying the SAME sentence, never a 4xx that would wedge the phone.
@@ -566,7 +566,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     expect(refused.status, JSON.stringify(refused.body)).toBe(409)
     expect(refused.body.data?.code).toBe('batch_expired')
     expect(refused.body.message).toBe(
-      `${o.orderNo} cannot be packed: 12 pc of it are Choco Chip Cookies 120 g batch B-EXP-${run}, which expired on ${expiryPhrase(istDay(-1))}. Expired goods are never billed or sent — set those pieces aside for the expiry bin and record the pick again from an in-date batch.`,
+      `${o.orderNo} cannot be packed: 12 pc of it are Choco Chip Cookies 120 g batch B-EXP-${run}, which expired on ${expiryPhrase(istDay(-1))}. Expired goods are never billed or sent — record the pick again from an in-date batch, and move the expired pieces into the damaged / expiry bin with Move on the Stock screen.`,
     )
     expect(await ledgerCount(expired), 'nothing moved').toBe(ledgerBefore)
     expect(await orderState(o.orderId)).toBe('picking')
@@ -1280,7 +1280,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     expect(backdated.status, JSON.stringify(backdated.body)).toBe(409)
     expect(backdated.body.data?.code).toBe('batch_expired')
     expect(backdated.body.message).toBe(
-      `${o.orderNo} cannot be billed: 12 pc of it are Haldi Powder 100 g batch Q1-${run}, which expired on ${expiryPhrase(istDay(-1))}. Expired goods are never billed or sent — set those pieces aside for the expiry bin.`,
+      `${o.orderNo} cannot be billed: 12 pc of it are Haldi Powder 100 g batch Q1-${run}, which expired on ${expiryPhrase(istDay(-1))}. Expired goods are never billed or sent — on the billing desk (Packed, not billed) press Unpack, and the order goes back to be picked from an in-date batch, or Cancel the order: either way its pieces come off the dock and the expired ones go into the expiry bin.`,
     )
   }, 180_000)
 
