@@ -544,11 +544,15 @@ export class BillingService {
      * QA DOS-351 (architect ruling 3, 2026-09-28): expired goods are never sold. The pack refuses an expired
      * batch before it moves anything; this is the last word for every other road to a bill — a parked pack
      * billed later (`issueParkedPack`), a van sale — so a pick recorded before the rule cannot become a bill.
-     * Judged against the bill's own date: the day the goods are sold.
+     * Judged against TODAY's IST business date, the day the goods are sold and leave (ruling 3: "an expiry date
+     * before today"), or the bill's own date when that is later: a bill dated back to before the batch expired
+     * does not make expired goods saleable today (QA DOS-351 verify: INV/9023, INV/9017).
      */
+    const today = businessDate().date
+    const soldOn = invoiceDate > today ? invoiceDate : today
     for (const line of moved) {
       const lot = line.lotId === null ? undefined : lots.get(line.lotId)
-      if (lot === undefined || lot.expiryDate === null || lot.expiryDate >= invoiceDate) continue
+      if (lot === undefined || lot.expiryDate === null || lot.expiryDate >= soldOn) continue
       const item =
         variants.get(byId.get(line.orderLineId)?.variantId ?? '')?.description ?? 'this item'
       throw new ORPCError('CONFLICT', {
