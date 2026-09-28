@@ -106,14 +106,14 @@ export async function upsertMany<T extends PgTable>(
  * not exist yet is refused with a clear message: it means the caller is issuing stock from a place that
  * never received any, which is the drift this helper exists to prevent.
  *
- * `negativeAllowedAt` names the locations (the damaged/expiry bin) whose fresh balance rows are created
- * with `negative_allowed = true`, exactly as the inventory bootstrap marks them.
+ * No place goes below zero, the damaged / expiry bin included (QA DOS-350, architect ruling 1): every
+ * balance row is created with `negative_allowed = false`, as `bootstrapTenant` now creates the bin, and a
+ * seed movement that would take a place below zero fails the seed the way it fails the API.
  */
 export async function postLedger(
   db: Db,
   tenantId: string,
   rows: (typeof stockLedger.$inferInsert)[],
-  negativeAllowedAt: ReadonlySet<string> = new Set(),
 ): Promise<void> {
   if (rows.length === 0) return
   const written: { lotId: string; locationId: string; qtyDelta: number }[] = []
@@ -153,7 +153,6 @@ export async function postLedger(
           locationId: d.locationId,
           onHand: 0,
           reserved: 0,
-          negativeAllowed: negativeAllowedAt.has(d.locationId),
         })),
       )
       .onConflictDoNothing()
@@ -168,7 +167,6 @@ export async function postLedger(
           locationId: d.locationId,
           onHand: d.qty,
           reserved: 0,
-          negativeAllowed: negativeAllowedAt.has(d.locationId),
         })),
       )
       .onConflictDoUpdate({
@@ -196,23 +194,9 @@ export async function postLedger(
         ),
       )
       .returning({ lotId: stockBalances.lotId })
-    if (moved.length === 0) {
-      if (!negativeAllowedAt.has(d.locationId)) {
-        throw new Error(
-          `postLedger: ${-d.qty} pcs issued from lot ${d.lotId} at ${d.locationId}, which holds no balance`,
-        )
-      }
-      await db
-        .insert(stockBalances)
-        .values({
-          tenantId,
-          lotId: d.lotId,
-          locationId: d.locationId,
-          onHand: d.qty,
-          reserved: 0,
-          negativeAllowed: true,
-        })
-        .onConflictDoNothing()
-    }
+    if (moved.length === 0)
+      throw new Error(
+        `postLedger: ${-d.qty} pcs issued from lot ${d.lotId} at ${d.locationId}, which holds no balance`,
+      )
   }
 }

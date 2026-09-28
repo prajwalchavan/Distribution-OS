@@ -1,5 +1,5 @@
-import { eq, inArray, sql } from 'drizzle-orm'
-import { uuidv7 } from '@dos/domain'
+import { and, eq, inArray, sql } from 'drizzle-orm'
+import { businessDate, uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool, withSystem, withTenant, type Db } from './client.js'
 import {
@@ -113,6 +113,7 @@ import {
   writeOffs,
 } from './schema/index.js'
 import { invoiceCancelFootprints, writeOffInvoiceCancelPhantoms } from './stock-footprints.js'
+import { clearNegativeFlags, stockBelowZero } from './stock-negatives.js'
 import {
   FORBIDDEN_PULL_COLUMN_PATTERNS,
   SYNC_PULL_TABLES,
@@ -3608,7 +3609,7 @@ describeDb('row level security and ledger guarantees', () => {
     const floor = uuidv7()
     const binLot = uuidv7()
     await db.insert(locations).values([
-      { id: bin, tenantId: tenantA, kind: 'damaged', name: `Bin ${run}`, negativeAllowed: true },
+      { id: bin, tenantId: tenantA, kind: 'damaged', name: `Bin ${run}` },
       { id: transit, tenantId: tenantA, kind: 'in_transit', name: `Transit ${run}` },
       { id: floor, tenantId: tenantA, kind: 'customer', name: `Shop floor ${run}` },
     ])
@@ -3671,6 +3672,184 @@ describeDb('row level security and ledger guarantees', () => {
         ).rows as { location_id: string }[]
       ).map((r) => r.location_id),
     ).not.toContain(bin)
+  })
+
+  it('DOS-350: no damaged / expiry bin may let a balance go below zero; a balance row cannot claim a flag its place does not give; one already below zero only climbs back, and the release check names it', async () => {
+    /*
+     * Architect ruling 1 (2026-09-28). The bin was created "may go negative for a claim cycle" and the
+     * CHECK `on_hand >= 0 OR negative_allowed` reads the BALANCE ROW's copy of that flag, so a hand
+     * transfer out of the bin minted sellable stock. Migration 0075: the bin cannot carry the flag, a
+     * balance row cannot claim one its place does not give, and a balance already below zero (kept, not
+     * invented away) may only climb back towards zero.
+     */
+    await rejectsWith(
+      db.insert(locations).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        kind: 'damaged',
+        name: `Bin D350 ${run}`,
+        negativeAllowed: true,
+      }),
+      /locations_bin_never_negative/,
+    )
+    const [bin] = await db
+      .select({ id: locations.id, flag: locations.negativeAllowed })
+      .from(locations)
+      .where(sql`${locations.tenantId} = ${tenantA} AND ${locations.kind} = 'damaged'`)
+    expect(bin?.flag).toBe(false)
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ negativeAllowed: true })
+        .where(eq(locations.id, bin?.id ?? '')),
+      /locations_bin_never_negative/,
+    )
+
+    const lotId = uuidv7()
+    await db.insert(stockLots).values({
+      id: lotId,
+      tenantId: tenantA,
+      variantId: variant,
+      batchNo: `D350-${run}`,
+      mrpPaise: 4000,
+    })
+    // a new row that claims the flag at the bin loses it, and so cannot start below zero
+    await db
+      .insert(stockBalances)
+      .values({
+        tenantId: tenantA,
+        lotId,
+        locationId: bin?.id ?? '',
+        onHand: 5,
+        negativeAllowed: true,
+      })
+    const flagAt = async (locationId: string) =>
+      (
+        await db
+          .select({ onHand: stockBalances.onHand, flag: stockBalances.negativeAllowed })
+          .from(stockBalances)
+          .where(and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, locationId)))
+      )[0]
+    expect(await flagAt(bin?.id ?? '')).toEqual({ onHand: 5, flag: false })
+    await rejectsWith(
+      db
+        .update(stockBalances)
+        .set({ onHand: -1 })
+        .where(and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, bin?.id ?? ''))),
+      /stock_balances_on_hand_nonneg/,
+    )
+    await rejectsWith(
+      db.insert(stockBalances).values({
+        tenantId: tenantA,
+        lotId,
+        locationId: godownA,
+        onHand: -1,
+        negativeAllowed: true,
+      }),
+      /no place goes below zero/,
+    )
+
+    // what 0075 leaves on a database whose bin had gone below zero: the place corrected, the row kept
+    const place = uuidv7()
+    await db.insert(locations).values({
+      id: place,
+      tenantId: tenantA,
+      kind: 'customer',
+      name: `Old consignment D350 ${run}`,
+      negativeAllowed: true,
+    })
+    await db
+      .insert(stockBalances)
+      .values({ tenantId: tenantA, lotId, locationId: place, onHand: -7, negativeAllowed: true })
+    await db.update(locations).set({ negativeAllowed: false }).where(eq(locations.id, place))
+    // 0075's own correction, run again, keeps it (clearing the flag would fail the CHECK) and counts it
+    const cleared = await clearNegativeFlags(db, tenantA)
+    expect(cleared.balancesKeptBelowZero).toBeGreaterThanOrEqual(1)
+    expect(await flagAt(place)).toEqual({ onHand: -7, flag: true })
+    expect(
+      (await stockBelowZero(db, tenantA))
+        .filter((b) => b.lotId === lotId)
+        .map((b) => [b.locationName, b.onHandPcs, b.balanceFlag, b.locationAllows]),
+    ).toEqual([[`Old consignment D350 ${run}`, -7, true, false]])
+
+    const where = and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, place))
+    await rejectsWith(
+      as('owner')((tx) => tx.update(stockBalances).set({ onHand: -8 }).where(where)),
+      /no place goes below zero/,
+    )
+    await db.update(stockBalances).set({ onHand: -3 }).where(where)
+    expect(await flagAt(place)).toEqual({ onHand: -3, flag: true })
+    await db.update(stockBalances).set({ onHand: 0 }).where(where)
+    expect(await flagAt(place)).toEqual({ onHand: 0, flag: false })
+    await rejectsWith(
+      db.update(stockBalances).set({ onHand: -1 }).where(where),
+      /stock_balances_on_hand_nonneg/,
+    )
+    expect((await stockBelowZero(db, tenantA)).filter((b) => b.lotId === lotId)).toEqual([])
+  })
+
+  it('DOS-261: sellable_stock leaves out a batch past its expiry on the IST business date, and keeps one expiring today, a short-dated one and one with no expiry', async () => {
+    const t = businessDate()
+    const day = (n: number) =>
+      new Date(Date.UTC(t.year, t.month - 1, t.day + n)).toISOString().slice(0, 10)
+    const lots = {
+      yesterday: [uuidv7(), day(-1)],
+      today: [uuidv7(), day(0)],
+      soon: [uuidv7(), day(5)],
+      never: [uuidv7(), null],
+    } as const
+    for (const [tag, [id, expiryDate]] of Object.entries(lots)) {
+      await db.insert(stockLots).values({
+        id,
+        tenantId: tenantA,
+        variantId: variant,
+        batchNo: `D261-${tag}-${run}`,
+        mrpPaise: 4000,
+        expiryDate,
+      })
+      await db
+        .insert(stockBalances)
+        .values({ tenantId: tenantA, lotId: id, locationId: godownA, onHand: 6 })
+    }
+    const ids = Object.values(lots).map(([id]) => id)
+    for (const role of ['owner', 'salesperson', 'retailer'] as const) {
+      const seen = (
+        (
+          await as(role)((tx) =>
+            tx.execute(
+              sql`select lot_id from sellable_stock where tenant_id = ${tenantA} and lot_id in (${sql.join(
+                ids.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
+            ),
+          )
+        ).rows as { lot_id: string }[]
+      ).map((r) => r.lot_id)
+      expect(seen.sort(), role).toEqual([lots.today[0], lots.soon[0], lots.never[0]].sort())
+    }
+    // the books keep the expired pieces: this is what may be SOLD, not what is there
+    const onBooks = await db
+      .select({ lotId: stockBalances.lotId })
+      .from(stockBalances)
+      .where(and(eq(stockBalances.lotId, lots.yesterday[0]), eq(stockBalances.locationId, godownA)))
+    expect(onBooks).toHaveLength(1)
+  })
+
+  it('DOS-356: a lot is (variant, batch, MRP, expiry) — another expiry is another lot, the same four collide, and no expiry counts as one value', async () => {
+    const lot = (expiryDate: string | null) =>
+      db.insert(stockLots).values({
+        id: uuidv7(),
+        tenantId: tenantA,
+        variantId: variant,
+        batchNo: `D356-${run}`,
+        mrpPaise: 4500,
+        expiryDate,
+      })
+    await lot('2027-01-06')
+    await lot('2026-10-18')
+    await rejectsWith(lot('2027-01-06'), /stock_lots_identity_key/)
+    await lot(null)
+    await rejectsWith(lot(null), /stock_lots_identity_key/)
   })
 
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {

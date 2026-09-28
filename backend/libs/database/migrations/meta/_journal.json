@@ -505,6 +505,20 @@
       "when": 1790800000000,
       "tag": "0073_owner_list_keyset_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1790900000000,
+      "tag": "0074_stock_lot_expiry_identity_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1790900000100,
+      "tag": "0075_stock_bin_and_expiry_guarantees",
+      "breakpoints": true
     }
   ]
 }

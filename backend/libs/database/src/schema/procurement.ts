@@ -283,6 +283,13 @@ export const grnLines = pgTable(
     expectedQtyPcs: pieces('expected_qty_pcs').notNull(),
     countedQtyPcs: pieces('counted_qty_pcs'),
     damagedQtyPcs: pieces('damaged_qty_pcs').notNull().default(0),
+    /**
+     * QA DOS-357, architect ruling 4 (2026-09-28): of the good pieces counted, how many were put into the
+     * damaged / expiry bin at posting because the batch's expiry was already before that day — "expired on
+     * arrival". Written once, by `grns.post`; 0 for every line that arrived in date. The purchase is
+     * unchanged (the distributor was billed for them); the gap is claimed back from the supplier.
+     */
+    expiredQtyPcs: pieces('expired_qty_pcs').notNull().default(0),
     ...timestamps,
   },
   (t) => [

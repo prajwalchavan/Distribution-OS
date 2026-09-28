@@ -3067,7 +3067,7 @@ export async function seedSales(
   await insertMany(db, journalLines, journalLineRows)
   await insertMany(db, allocations, allocationRows)
   await insertMany(db, cashDiscountConditions, cashDiscountRows)
-  await postLedger(db, tenantId, cnLedgerRows, new Set([stock.damagedId]))
+  await postLedger(db, tenantId, cnLedgerRows)
 
   // A COUNTER NEVER GOES BACKWARDS: these bump, never set, so a series the app has taken past this
   // point keeps its lead.
