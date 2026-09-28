@@ -167,9 +167,9 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
@@ -525,9 +525,9 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
@@ -883,9 +883,9 @@ Full request/response samples are in `backend/sales-service/README.md`.
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
@@ -1079,9 +1079,9 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
@@ -1358,9 +1358,9 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
@@ -1631,9 +1631,9 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | GET | `/inventory/availability` | Available-to-promise per item at the godown orders reserve from (the order screens' stock hint) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/inventory/balances` | On-hand and reserved per lot per location (stock keepers only) | owner, manager, accountant, warehouse, delivery |
 | POST | `/inventory/adjustments` | Post an opening/adjustment/damage/expiry/cycle-count ledger row (adding stock or opening stock: owner or manager only) | owner, manager, warehouse |
-| POST | `/inventory/transfers` | Move pieces of a lot between locations | owner, manager, warehouse |
+| POST | `/inventory/transfers` | Move pieces of a lot between locations (never out of the damaged / expiry bin to a sellable place) | owner, manager, warehouse |
 | GET | `/inventory/ledger` | Append-only stock ledger | owner, manager, accountant, warehouse, delivery |
-| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP) | owner, manager, warehouse |
+| POST | `/inventory/lots` | Find or create a lot (variant + batch + MRP + expiry) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts` | Open a physical count of a location (expected pieces taken at count time; blind for the godown) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/count` | Record counted pieces per lot (blind) | owner, manager, warehouse |
 | POST | `/inventory/cycle-counts/{id}/post` | Post the differences as cycle_count ledger rows (back office) | owner, manager |
