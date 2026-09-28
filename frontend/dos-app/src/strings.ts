@@ -22,6 +22,8 @@ export const strings = {
   'app.signedIn': 'Signed in',
   'app.signInFailed': 'Could not sign in',
   'app.signInHelp': 'Use the username your distributor gave you.',
+  /* The one friendly line under the product's name on the sign-in page (founder, 2026-09-28). */
+  'app.signInLine': 'Sign in to start your day.',
   'app.rememberDevice': 'Stay signed in on this device',
   'app.distributor': 'Distributor',
   'app.role': 'Role',

@@ -67,14 +67,14 @@ export default function ChangePassword(): React.JSX.Element {
   }
 
   return (
+    /* In the middle of the window, like sign-in (founder, 2026-09-28). The words are unchanged. */
     <Screen
+      centered
       title={t('app.changePassword')}
       context={forced ? APP.title : (session?.tenant.displayName ?? APP.title)}
+      subtitle={forced ? t('app.passwordForced') : t('app.passwordVoluntary')}
     >
-      <Stack gap={4} maxWidth={420}>
-        <Txt field="body" desk="body" color={colors.text.secondary}>
-          {forced ? t('app.passwordForced') : t('app.passwordVoluntary')}
-        </Txt>
+      <Stack gap={3}>
         <TextInput
           label={t('app.currentPassword')}
           value={current}
@@ -111,7 +111,7 @@ export default function ChangePassword(): React.JSX.Element {
           fullWidth
           testID="change-password-submit"
         />
-        <Txt field="label" desk="meta" color={colors.text.secondary}>
+        <Txt field="label" desk="meta" color={colors.text.secondary} align="center">
           {t('app.passwordRevokes')}
         </Txt>
       </Stack>
