@@ -1,0 +1,42 @@
+{
+ "shop": {
+  "id": "01a0e5f9-0727-75f9-a06d-018dc8a990ff",
+  "name": "QA P10 State Shop 97895"
+ },
+ "shop2": {
+  "id": "01a0e5f9-0774-70c1-ad62-47e14e6db156",
+  "name": "QA P10 State Shop B 97972"
+ },
+ "heldOrder": "01a0e5f9-08b2-7626-8c42-b3f9c48fa76c",
+ "T3": {
+  "tripId": "01a0e5f9-0eb5-7087-ad5b-d5417fbea97b",
+  "stops": [
+   {
+    "id": "01a0e5f9-0eb5-7089-9465-91ffaa0348eb",
+    "sequence": 1,
+    "retailerId": "01a0e5f9-0774-70c1-ad62-47e14e6db156",
+    "invoiceIds": [
+     "01a0e5f9-0e78-76d8-875d-b6dc304fc2d9"
+    ]
+   }
+  ],
+  "loadSheetId": "01a0e5f9-0f22-7118-86e3-72c33af5a360",
+  "driverWho": "driver3"
+ },
+ "bill2": {
+  "id": "01a0e5f9-0e78-76d8-875d-b6dc304fc2d9",
+  "invoice_no": "INV/9017",
+  "state": "issued",
+  "total_paise": 135500
+ },
+ "bill3": {
+  "id": "01a0e5f9-12c5-7329-8ab0-53fcb8d980b7",
+  "invoice_no": "INV/9018",
+  "state": "issued",
+  "total_paise": 48800
+ },
+ "npBill": {
+  "id": "01a0e5f9-0d3f-70b9-bbc9-8ae0380f41a1",
+  "invoice_no": "INV/9016"
+ }
+}

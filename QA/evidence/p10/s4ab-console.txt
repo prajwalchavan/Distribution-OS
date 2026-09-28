@@ -1,0 +1,53 @@
+node QA/tools/p10/s4-reservations.mjs — console output of S4a and S4b, copied verbatim (the script then stopped in S4c on a
+null lot id in a label helper, before it saved its JSON; S4c/S4d were finished by s4cd-continue.mjs on the same orders).
+Wire: wire/S4a.jsonl, wire/S4b.jsonl. Reconcile: recon/S4a-after.txt, recon/S4b-after.txt.
+
+=== S4a cancel at submitted (held), confirmed, picking; reject a held order — reserved must return each time
+  · D1 godown before {"on_hand":240,"reserved":0}
+  · strict-shop order {"submitted":"OK","state":"submitted","approvals":[{"kind":"credit_limit","status":"pending"}]}
+  PASS held order holds nothing — {"on_hand":240,"reserved":0}
+  · rep cancels the held order (submitted) "OK"
+  PASS after cancel at submitted: reserved unchanged — {"on_hand":240,"reserved":0}
+  · owner rejects the second held order {"decide":["OK"],"state":"cancelled"}
+  PASS after reject: reserved unchanged, order cancelled — {"on_hand":240,"reserved":0}
+  · approve the rejected order's gate afterwards "409 CONFLICT — the credit limit gate on SO-0885 was already rejected by Sunil Tarsun on 28 Sep, 8:30 am"
+  PASS a rejected / cancelled order cannot be approved back — {"state":"cancelled"}
+  · confirmed order D 24 {"state":"confirmed","D1":{"on_hand":240,"reserved":24}}
+  · rep cancels at confirmed "OK"
+  PASS after cancel at confirmed: reserved back to base — {"on_hand":240,"reserved":0}
+  · order D 36 picking, picker has picked all 36 (not packed) {"pick":"OK","state":"picking","D1":{"on_hand":240,"reserved":36}}
+  · rep cancels at picking "409 CONFLICT — order SO-0887 is being picked; only the desk can cancel it now [desk_only]"
+  PASS rep cannot cancel while picking (DOS-138)
+  · owner cancels at picking "OK"
+  PASS after desk cancel at picking: reserved back to base — {"on_hand":240,"reserved":0}
+  · pack the cancelled (picked) order "409 CONFLICT — order SO-0887 is cancelled; cartons are taped shut while it is confirmed, picking or packed"
+  PASS a cancelled order cannot be packed
+  · put-back lines [{"picked_qty_pcs":0,"put_back":true},{"picked_qty_pcs":36,"put_back":true}]
+  RECON: exit 1 RESULT: 5 DIFFERENCE ROW(S) FAIL C3_negative_or_overheld: 2 difference(s) | FAIL C6_billed_vs_moved: 3 difference(s)
+  (C3 = the two negative damaged-bin rows from S3c; C6 = the three seed bills. Nothing new.)
+
+=== S4b release holds, cancel an unstarted wave, re-line a confirmed order, cancel a packed bill (dock → godown)
+  · manager releases the holds of a confirmed order {"r":"OK","state":"confirmed","D1":{"on_hand":240,"reserved":0}}
+  PASS release: reserved back — {"on_hand":240,"reserved":0}
+  · rep re-lines the confirmed order down to 6 "409 CONFLICT — order 01a0e5f5-03d8-711a-892a-eb343fa89f47 is confirmed; only a draft can be re-lined"
+  PASS lines of a confirmed order cannot be replaced
+  · manager cancels the unstarted wave {"r":"OK","state":"confirmed","D1":{"on_hand":240,"reserved":0}}
+  FAIL wave cancel: order stays confirmed and keeps exactly its hold — {"on_hand":240,"reserved":0}
+  (tester's note: the wave cancel frees the confirmed order's 12-piece hold while the order stays confirmed. The code
+   documents this as intended — picklists.service.ts:548-553 "re-reserved when they are waved again (or at pack)" — so
+   it is recorded, not filed; see S4c for what an order without its hold can do.)
+  · packed + billed {"invoice":{"id":"01a0e5f5-0583-7429-b7a5-781d98405c92","invoice_no":"INV/9012","state":"issued","total_paise":128000},"godown":{"on_hand":228,"reserved":0},"dock":{"on_hand":12,"reserved":12}}
+  · owner cancels the bill while the pieces are on the dock "OK"
+  · after {"godown":{"on_hand":240,"reserved":0},"dock":{"on_hand":0,"reserved":0},"order":"cancelled","bill":{"invoice_no":"INV/9012","state":"cancelled"}}
+  PASS bill cancel: dock back to 0 on hand / 0 held, godown got the 12 back
+    ledger: transfer_out warehouse:Godown batch=P10-D1 -12 ref=pack
+    ledger: transfer_in in_transit:In transit batch=P10-D1 +12 ref=pack
+    ledger: transfer_out in_transit:In transit batch=P10-D1 -12 ref=invoice_cancel
+    ledger: transfer_in warehouse:Godown batch=P10-D1 +12 ref=invoice_cancel
+  RECON: exit 1 RESULT: 5 DIFFERENCE ROW(S) FAIL C3_negative_or_overheld: 2 difference(s) | FAIL C6_billed_vs_moved: 3 difference(s)
+
+=== S4c (first part, before the stop)
+  · D1 godown {"on_hand":240,"reserved":0,"free":240}
+  · order X for 180 (fits) {"state":"confirmed","D1":{"on_hand":240,"reserved":180}}
+  · order Y for 61 (one piece more than the 60 still free) {"state":"confirmed","shortages":[{"lineId":"01a0e5f5-08be-7704-a928-94453bac7fd0","variantId":"a4d86cbe-4dde-7eba-9fa3-a634b39205b6","reservedPcs":60,"shortQtyPcs":1,"requestedPcs":61}],"holds":[{"state":"pending","kind":"warehouse","lot_id":"01a0e5e0-55f1-73ff-b355-f056097fb5ac","qty":60}],"D1":{"on_hand":240,"reserved":240}}
+  PASS one piece over: confirmed with 60 held and the 1-piece shortage recorded

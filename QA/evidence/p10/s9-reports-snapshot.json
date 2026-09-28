@@ -1,0 +1,42 @@
+{
+ "at": "2026-09-28T03:12:14.042Z",
+ "dash": {
+  "stockValuePaise": 237641659,
+  "nearExpiryValuePaise": 16770114,
+  "asOf": "2026-09-12T12:30:00.000Z"
+ },
+ "register": {
+  "onHandPcs": 89639,
+  "valuePaise": 239735659,
+  "nearExpiryValuePaise": 22754384
+ },
+ "sql": {
+  "value_pos": 239735659,
+  "pcs_pos": 89639,
+  "pcs_negative": -138,
+  "value_negative": -138000,
+  "near90_value": 22754384,
+  "expired_value": 6757148,
+  "damaged_value": 2696042
+ },
+ "summaryRow": {
+  "as_of": "2026-09-12T18:00:00+05:30",
+  "stock_value_paise": 237641659,
+  "near_expiry_value_paise": 16770114
+ },
+ "godown": {
+  "api": {
+   "n": 802,
+   "pcs": 82263,
+   "reserved": 222
+  },
+  "sql": {
+   "n": 802,
+   "pcs": 82263,
+   "reserved": 222
+  }
+ },
+ "itemDiff": [],
+ "nearDiff": [],
+ "aDiff": []
+}

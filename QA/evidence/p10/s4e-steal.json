@@ -1,0 +1,124 @@
+[
+ {
+  "id": "S4e",
+  "title": "short-confirmed order Y2 picks its shortfall from pieces held for X2 (split pick row)",
+  "at": "2026-09-28T03:02:43.499Z",
+  "marker": "2026-09-28 08:32:43.53597+05:30",
+  "steps": [
+   {
+    "text": "E1 godown",
+    "data": {
+     "on_hand": 202,
+     "reserved": 0
+    }
+   },
+   {
+    "text": "X2 and Y2 confirmed",
+    "data": {
+     "X2": {
+      "id": "01a0e5f6-fa8c-703b-806b-a6d226bc18d1",
+      "order_no": "SO-0894",
+      "state": "confirmed",
+      "total_paise": 3757000
+     },
+     "Y2": {
+      "id": "01a0e5f6-fb3c-7306-aac4-b0a288079e36",
+      "order_no": "SO-0895",
+      "state": "confirmed",
+      "total_paise": 2504700
+     },
+     "Y2short": [
+      {
+       "lineId": "01a0e5f6-fb3c-7308-b529-7d3de78a86ef",
+       "variantId": "11356d48-7b70-7f7c-ac45-d2c894e5ef36",
+       "reservedPcs": 52,
+       "shortQtyPcs": 48,
+       "requestedPcs": 100
+      }
+     ],
+     "E1": {
+      "on_hand": 202,
+      "reserved": 202
+     }
+    }
+   },
+   {
+    "text": "Y2 sheet",
+    "data": [
+     {
+      "id": "01a0e5f6-fc11-74f2-89f7-9ad901ff5871",
+      "req": 52,
+      "lot": "01a0e5e0-55f5-7417-8745-dfe3d5ac2146"
+     },
+     {
+      "id": "01a0e5f6-fc11-74f3-8920-757c9a82eae8",
+      "req": 48,
+      "lot": null
+     }
+    ]
+   },
+   {
+    "text": "picker records the held part on its row and the short part as a split row on E1",
+    "data": {
+     "lines": [
+      52,
+      48
+     ],
+     "r": "OK"
+    }
+   },
+   {
+    "text": "pack + bill Y2",
+    "data": {
+     "r": "OK",
+     "invoice": "INV/9015",
+     "billed": 100
+    }
+   },
+   {
+    "text": "E1 godown after Y2 packed",
+    "data": {
+     "on_hand": 102,
+     "reserved": 150
+    }
+   },
+   {
+    "text": "X2 picks + packs its held quantity",
+    "data": {
+     "r": "400 BAD_REQUEST — Only 102 pc of Godavari Dairy Whitener 500 g (batch P10-E1) are in Godown; 150 pc cannot go out.",
+     "E1": {
+      "on_hand": 102,
+      "reserved": 150
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "reserved never exceeds on hand (X2 keeps its pieces)",
+    "ok": false,
+    "detail": {
+     "on_hand": 102,
+     "reserved": 150
+    }
+   },
+   {
+    "name": "X2, confirmed with its full hold, packs in full",
+    "ok": false,
+    "detail": "400 BAD_REQUEST — Only 102 pc of Godavari Dairy Whitener 500 g (batch P10-E1) are in Godown; 150 pc cannot go out."
+   }
+  ],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-E1 -100 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-E1 +100 ref=pack"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

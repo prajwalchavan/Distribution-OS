@@ -1,0 +1,51 @@
+node QA/tools/p10/s6c-trips.mjs — console output of S6c, S6d and S6e, copied verbatim. The script then stopped at the start of
+S6f (trips.create 409: driver tanaji already on TRIP-0006, the re-plan S6d had just been allowed to make) before it saved its
+JSON; S6d2, S6f and S6g were run by s6c2-continue.mjs. Wire: wire/S6c.jsonl, S6d.jsonl, S6e.jsonl. Reconcile: recon/S6c-after.txt,
+S6d-after.txt, S6e-after.txt. (Lines of the T3 settlement's van_unload of seed van stock are left out.)
+
+=== S6c DOS-251: a packed bill whose pieces are on a returning van cannot be cancelled; held dock pieces cannot be hand-moved
+  · T3 closed {"ret":"OK","settle":"OK"}
+  · bills on the dock {"X":"INV/9014","Y":"INV/9013","D1":{"in_transit:In transit":"240/240"}}
+  · hand-move dock pieces held for bill Y (transfer dock → godown, 60) [warehouse] "409 CONFLICT 240 pc of this batch on the dock are packed for bills, and only 0 are free to move by hand. Packed pieces leave the dock with their bill — its load sheet, its cancel or its credit note"
+  · write off dock pieces held for bills (adjust −10 at the dock) [owner] "409 CONFLICT 240 pc of this batch on the dock are packed for bills, and only 0 are free to move by hand. Packed pieces leave the dock with their bill — its load sheet, its cancel or its credit note"
+  · T4 out with bill X {"failedAt":null,"r":"departed","D1":{"vehicle:Vehicle MH-05-AB-1234":"180/0","in_transit:In transit":"60/60"}}
+  · cancel bill X while it is out on the van (dispatched) [owner] "409 CONFLICT order 01a0e5f5-0873-7041-bd2d-8ec207b3d51a is dispatched; after dispatch the only correction is a credit note"
+  · fail the stop "OK"
+  · T4 returns (closing): order back to packed, pieces still on the van {"ret":"OK","order":"packed","D1":{"vehicle:Vehicle MH-05-AB-1234":"180/0","in_transit:In transit":"60/60"}}
+  · record a delivery for bill X on the closing trip [delivery] "409 CONFLICT stop 01a0e5fa-4f3a-77d7-8dfb-70b9985aeef7 is already failed; a second attempt is a new stop"
+  · DOS-251: cancel packed bill X whose pieces are on the van, not the dock [owner] "409 CONFLICT Bill INV/9014 came back on TRIP-0004, which is not settled yet, so its cartons may still be on the van. Check the van in and settle TRIP-0004 first, then cancel it"
+  PASS DOS-251 regression: refused, and no piece moved — {"before":{"vehicle:Vehicle MH-05-AB-1234":"180/0","in_transit:In transit":"60/60"},"after":{"vehicle:Vehicle MH-05-AB-1234":"180/0","in_transit:In transit":"60/60"}}
+  · T4 settles: the pieces go van → dock for bill X {"settle":"OK","D1":{"in_transit:In transit":"240/240"}}
+  · cancel bill X now its pieces are back on the dock [owner] "200  accepted"
+  · after cancel {"bill":{"invoice_no":"INV/9014","state":"cancelled"},"order":"cancelled","D1":{"warehouse:Godown":"180/0","in_transit:In transit":"60/60"}}
+  · net stock of bill X over pack + cancel refs at godown + dock (should be 0) {"net":0}
+    ledger: transfer_out in_transit:In transit batch=P10-D1 -180 ref=load_sheet
+    ledger: transfer_in vehicle:Vehicle MH-05-AB-1234 batch=P10-D1 +180 ref=load_sheet
+    ledger: transfer_out in_transit:In transit batch=P10-D1 -180 ref=invoice_cancel
+    ledger: transfer_in warehouse:Godown batch=P10-D1 +180 ref=invoice_cancel
+  RECON: exit 1 RESULT: 6 DIFFERENCE ROW(S) FAIL C3_negative_or_overheld: 3 difference(s) | FAIL C6_billed_vs_moved: 3 difference(s)
+
+=== S6d lead: a trip cancelled after its load sheet was confirmed
+  · T5 loaded (load sheet confirmed), not departed {"failedAt":null,"trip":"loading","order":"dispatched","D1":{"warehouse:Godown":"180/0","vehicle:Vehicle MH-05-CD-5678":"60/0"}}
+  · cancel the trip after its load-out (trips.cancel from loading) [manager] "200  accepted"
+  · after the cancel {"trip":"cancelled","order":"dispatched","bill":{"invoice_no":"INV/9013","state":"issued","undelivered_at":null},"D1":{"warehouse:Godown":"180/0","vehicle:Vehicle MH-05-CD-5678":"60/0"},"sheet":{"status":"confirmed"}}
+  · cancel bill Y (order dispatched on a cancelled trip) [owner] "409 CONFLICT order 01a0e5f5-08be-7702-bb20-49b26f3f3128 is dispatched; after dispatch the only correction is a credit note"
+  · plan bill Y on a new trip [manager] "200  accepted"
+  · return (check in) the cancelled trip [delivery] "409 CONFLICT trip: cannot apply \"return\" in state \"cancelled\""
+  · settle the cancelled trip [manager] "409 CONFLICT trip TRIP-0005 is cancelled; a trip is settled after it returns (closing)"
+    ledger: transfer_out in_transit:In transit batch=P10-D1 -60 ref=load_sheet
+    ledger: transfer_in vehicle:Vehicle MH-05-CD-5678 batch=P10-D1 +60 ref=load_sheet
+  RECON: exit 1 RESULT: 6 DIFFERENCE ROW(S) FAIL C3_negative_or_overheld: 3 difference(s) | FAIL C6_billed_vs_moved: 3 difference(s)
+
+=== S6e lead: packed without a bill (issueInvoice false), then loaded and dispatched
+  · pack with issueInvoice false {"r":"OK","order":"packed"}
+  · orders.cancel on the packed, unbilled order [owner] "409 CONFLICT order SO-0900 is packed and billed; cancel the bill and the order goes with it"
+  · load sheet for the unbilled packed order (no trip) [warehouse] "200  accepted"
+  · manager approves it [manager] "200  accepted"
+  · confirm (count out) the unbilled order onto van C [warehouse] "200  accepted"
+  · after {"order":"dispatched","bills":[],"G":{"warehouse:Godown":"356/48","vehicle:Vehicle MH-05-EF-9012":"12/0","damaged:Damaged / expiry bin":"6/0","in_transit:In transit":"36/36"},"challan":{"challan_no":"DC-0088","status":"confirmed"}}
+    ledger: transfer_out warehouse:Godown batch=P10-G1 -12 ref=pack
+    ledger: transfer_in in_transit:In transit batch=P10-G1 +12 ref=pack
+    ledger: transfer_out in_transit:In transit batch=P10-G1 -12 ref=load_sheet
+    ledger: transfer_in vehicle:Vehicle MH-05-EF-9012 batch=P10-G1 +12 ref=load_sheet
+  RECON: exit 1 RESULT: 6 DIFFERENCE ROW(S) FAIL C3_negative_or_overheld: 3 difference(s) | FAIL C6_billed_vs_moved: 3 difference(s)

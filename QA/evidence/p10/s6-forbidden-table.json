@@ -1,0 +1,299 @@
+[
+ {
+  "move": "delivered → submitted (orders.submit on a delivered order)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order: cannot apply \"submit\" in state \"delivered\"",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "delivered → confirmed (orders.confirm)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order: cannot apply \"confirm\" in state \"delivered\"",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "delivered → cancelled (orders.cancel)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order: cannot apply \"cancel\" in state \"delivered\"",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "delivered bill → cancelled (invoices.cancel)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order 01a0e5e1-2b94-73e0-8024-d0115b24b724 is delivered; after dispatch the only correction is a credit note",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "delivered → packed again (packs.confirm)",
+  "role": "warehouse",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order SO-0879 is delivered; cartons are taped shut while it is confirmed, picking or packed",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "cancelled order → confirmed (orders.confirm)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order: cannot apply \"confirm\" in state \"cancelled\"",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "cancelled order → packed (packs.confirm)",
+  "role": "warehouse",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order SO-0889 is cancelled; cartons are taped shut while it is confirmed, picking or packed",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "cancelled bill → planned on a trip (trips.create)",
+  "role": "manager",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "invoice INV/9012 is cancelled; only an issued bill rides on a trip",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "rejected order → confirmed (orders.confirm)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order: cannot apply \"confirm\" in state \"cancelled\"",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "rejected order → packed (packs.confirm)",
+  "role": "warehouse",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order SO-0885 is cancelled; cartons are taped shut while it is confirmed, picking or packed",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "rejected order → re-submitted (orders.submit)",
+  "role": "rep",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "order: cannot apply \"submit\" in state \"cancelled\"",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "approve (first)",
+  "role": "owner",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "accepted (expected)"
+ },
+ {
+  "move": "approve twice (same gate, new key)",
+  "role": "manager",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "the credit limit gate on SO-0896 was already approved by Sunil Tarsun on 28 Sep, 8:34 am",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "confirm again after the approval confirmed it",
+  "role": "owner",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "ACCEPTED (finding)"
+ },
+ {
+  "move": "reject after approve (same gate)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "the credit limit gate on SO-0896 was already approved by Sunil Tarsun on 28 Sep, 8:34 am",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "pack an order never waved or picked (confirmed → packed)",
+  "role": "warehouse",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "ACCEPTED (finding)"
+ },
+ {
+  "move": "plan the same bill on a second trip (trips.create)",
+  "role": "manager",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "invoice INV/9017 is already planned on trip 01a0e5f9-0eb5-7087-ad5b-d5417fbea97b",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "load the dispatched bill onto another load sheet (loadSheets.create)",
+  "role": "warehouse",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "only a packed order can be loaded; not packed: 01a0e5f9-0dba-768d-becf-710203cff2e2",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "deliver a bill never loaded / not on this trip (deliveries.record)",
+  "role": "delivery",
+  "status": 400,
+  "code": "BAD_REQUEST",
+  "message": "invoice INV/9016 belongs to another shop than this stop",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "settle a trip that is still out with its stop open (trips.settle on active)",
+  "role": "manager",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "trip TRIP-0003 is active; a trip is settled after it returns (closing)",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "deliver the same bill twice (new id + key)",
+  "role": "delivery",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "stop 01a0e5f9-0eb5-7089-9465-91ffaa0348eb is already delivered; a second attempt is a new stop",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "pay the bill once (cash at the door)",
+  "role": "delivery",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "accepted (expected)"
+ },
+ {
+  "move": "pay the same bill again (different key, same amount)",
+  "role": "delivery",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "accepted (expected)"
+ },
+ {
+  "move": "cancel a bill that has a receipt (invoices.cancel)",
+  "role": "owner",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "bill INV/9018 has money allocated against it, so it is not cancelled. Its goods have not left the godown: use \"Could not send it — credit the whole bill\": one credit note for the whole bill, and the shop keeps the money ",
+  "dataCode": "bill_has_money",
+  "verdict": "refused"
+ },
+ {
+  "move": "start loading TRIP-0006",
+  "role": "warehouse",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "accepted (expected)"
+ },
+ {
+  "move": "build a load sheet for bill Y's (dispatched) order onto van C",
+  "role": "warehouse",
+  "status": 409,
+  "code": "CONFLICT",
+  "message": "only a packed order can be loaded; not packed: 01a0e5f5-08be-7702-bb20-49b26f3f3128",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "depart TRIP-0006 with no load sheet (bill Y already \"dispatched\")",
+  "role": "delivery",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "ACCEPTED (finding)"
+ },
+ {
+  "move": "deliver bill Y from van C (its 60 pieces are on van B)",
+  "role": "delivery",
+  "status": 400,
+  "code": "BAD_REQUEST",
+  "message": "Only 0 pc of Chamak Dishwash Gel 750 ml (batch P10-D1) are in Vehicle MH-05-EF-9012; 60 pc cannot go out.",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "unload the bill's 24 pieces off van A to the godown mid-trip (trips.unload)",
+  "role": "warehouse",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "ACCEPTED (finding)"
+ },
+ {
+  "move": "re-pick packed order A's line down to 5 (picklists.pick)",
+  "role": "warehouse",
+  "status": 400,
+  "code": "BAD_REQUEST",
+  "message": "line 01a0e5fb-6d38-7239-9cf7-b17d59bb8017 on PICK-0091 asks for 12 pcs; 17 were picked",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "credit draft 1: G 24 saleable",
+  "role": "owner",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "accepted (expected)"
+ },
+ {
+  "move": "credit draft 2: the same 24 again",
+  "role": "manager",
+  "status": 400,
+  "code": "BAD_REQUEST",
+  "message": "only 0 pcs of Neelam Tooth Brush 2+1 pack are left to credit on INV/9017",
+  "dataCode": null,
+  "verdict": "refused"
+ },
+ {
+  "move": "cancel draft 1",
+  "role": "owner",
+  "status": 200,
+  "code": null,
+  "message": "accepted",
+  "dataCode": null,
+  "verdict": "accepted (expected)"
+ }
+]

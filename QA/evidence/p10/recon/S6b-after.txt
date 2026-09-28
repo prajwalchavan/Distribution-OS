@@ -1,0 +1,18 @@
+STOCK RECONCILE S6b-after @ 2026-09-28T03:05:01.126Z
+totals {"ledger_rows":18820,"balance_rows":4290,"live_balance_rows":878,"lots":1277,"on_hand_total":89525,"reserved_total":6611,"ledger_total":89525,"pending_holds":37,"on_hand_by_kind":{"warehouse":82090,"vehicle":5,"in_transit":7059,"damaged":371}}
+PASS C1_ledger_vs_on_hand: 0 difference(s)
+PASS C2_reserved_vs_holds: 0 difference(s)
+FAIL C3_negative_or_overheld: 3 difference(s)
+    {"lot_id":"01a0e5e0-55d2-759e-8034-c3b4429bbd6a","location_id":"01a0999a-28e0-7225-9731-6abfd6e8d459","kind":"damaged","on_hand":-50,"reserved":0,"negative_allowed":true,"problem":"on_hand<0"}
+    {"lot_id":"01a0e5e0-55ed-70f4-bdda-5cb7024da831","location_id":"01a0999a-28e0-7225-9731-6abfd6e8d459","kind":"damaged","on_hand":-88,"reserved":0,"negative_allowed":true,"problem":"on_hand<0"}
+    {"lot_id":"01a0e5e0-55f5-7417-8745-dfe3d5ac2146","location_id":"01a0999a-28e0-7224-8c93-c81b22069a0d","kind":"warehouse","on_hand":102,"reserved":150,"negative_allowed":false,"problem":"reserved>on_hand"}
+PASS C4_sellable_view: 0 difference(s)
+PASS C5_ledger_references: 0 difference(s)
+FAIL C6_billed_vs_moved: 3 difference(s)
+    {"invoice_no":"INV/9006","source":"pack","invoice_id":"59a99e2e-efb8-74d9-9e9f-19719fe26c85","lot_id":"2791e4e8-2454-7e9f-9f39-66a1f086efbb","billed":132,"moved":0}
+    {"invoice_no":"INV/9001","source":"pack","invoice_id":"99b7d866-44a8-70db-a798-7bcd893e209a","lot_id":"3efe9c7a-46b8-7774-af34-31599a2a6578","billed":432,"moved":0}
+    {"invoice_no":"INV/9005","source":"pack","invoice_id":"4b5f9362-d030-7d5a-a6ac-45948250cf9b","lot_id":"c4698e9f-46f6-7b69-be78-d93e025bbce0","billed":960,"moved":0}
+PASS C7_delivered_vs_sold: 0 difference(s)
+PASS C8_holds_on_dead_documents: 0 difference(s)
+PASS C9_journal_unbalanced: 0 difference(s)
+RESULT: 6 DIFFERENCE ROW(S)

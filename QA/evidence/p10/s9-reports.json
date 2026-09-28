@@ -1,0 +1,165 @@
+[
+ {
+  "id": "S9",
+  "title": "stock reports = SQL at the same moment",
+  "at": "2026-09-28T03:12:13.648Z",
+  "marker": "2026-09-28 08:42:13.666813+05:30",
+  "steps": [
+   {
+    "text": "owner home (dashboard.owner)",
+    "data": {
+     "stockValuePaise": 237641659,
+     "nearExpiryValuePaise": 16770114,
+     "asOf": "2026-09-12T12:30:00.000Z"
+    }
+   },
+   {
+    "text": "stock-value register totals",
+    "data": {
+     "onHandPcs": 89639,
+     "valuePaise": 239735659,
+     "nearExpiryValuePaise": 22754384
+    }
+   },
+   {
+    "text": "SQL now",
+    "data": {
+     "value_pos": 239735659,
+     "pcs_pos": 89639,
+     "pcs_negative": -138,
+     "value_negative": -138000,
+     "near90_value": 22754384,
+     "expired_value": 6757148,
+     "damaged_value": 2696042
+    }
+   },
+   {
+    "text": "stock at cost includes the damaged bin and expired batches at full cost; negative balances are left out",
+    "data": {
+     "damaged_value": 2696042,
+     "expired_value": 6757148,
+     "pcs_negative": -138,
+     "value_negative": -138000
+    }
+   },
+   {
+    "text": "what the expiring-soon list holds",
+    "data": {
+     "rows": 640,
+     "withZeroOnHand": 517,
+     "alreadyExpiredRows": 231,
+     "alreadyExpiredPcs": 1406,
+     "kindsWithStock": [
+      "in_transit",
+      "warehouse",
+      "damaged"
+     ],
+     "ourExpiredBatch": [
+      {
+       "loc": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+       "onHand": 0,
+       "expiry": "2026-09-23"
+      },
+      {
+       "loc": "01a0999a-28e0-7226-bcbe-bf36326406f5",
+       "onHand": 48,
+       "expiry": "2026-09-23"
+      }
+     ]
+    }
+   },
+   {
+    "text": "pieces of already-expired batches counted in the rep's availability (godown)",
+    "data": {
+     "pcs": 987
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "stock-value register total = SQL (positive balances × lot cost)",
+    "ok": true,
+    "detail": {
+     "register": {
+      "onHandPcs": 89639,
+      "valuePaise": 239735659,
+      "nearExpiryValuePaise": 22754384
+     },
+     "sql": {
+      "value": 239735659,
+      "pcs": 89639
+     }
+    }
+   },
+   {
+    "name": "owner home stock at cost = SQL now",
+    "ok": false,
+    "detail": {
+     "home": 237641659,
+     "sql": 239735659,
+     "diff": -2094000,
+     "asOf": "2026-09-12T12:30:00.000Z"
+    }
+   },
+   {
+    "name": "owner home near-expiry (90 d) = SQL now",
+    "ok": false,
+    "detail": {
+     "home": 16770114,
+     "sql": 22754384
+    }
+   },
+   {
+    "name": "stock by item and batch (owner, q=P10-, sort=item) = SQL, every row",
+    "ok": true,
+    "detail": {
+     "rows": 30,
+     "sqlRows": 30,
+     "differences": []
+    }
+   },
+   {
+    "name": "godown stock list (warehouse login, nonZero, all pages) = SQL",
+    "ok": true,
+    "detail": {
+     "api": {
+      "n": 802,
+      "pcs": 82263,
+      "reserved": 222
+     },
+     "sql": {
+      "n": 802,
+      "pcs": 82263,
+      "reserved": 222
+     }
+    }
+   },
+   {
+    "name": "expiring-soon list (nearExpiryOnly, 60 d) = SQL set",
+    "ok": true,
+    "detail": {
+     "api": 640,
+     "sql": 640,
+     "differences": []
+    }
+   },
+   {
+    "name": "rep availability (godown ATP per item) = SQL sellable_stock at the godown",
+    "ok": true,
+    "detail": {
+     "items": 172,
+     "differences": []
+    }
+   }
+  ],
+  "ledger": null,
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

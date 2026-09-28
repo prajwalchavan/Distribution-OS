@@ -1,0 +1,221 @@
+[
+ {
+  "id": "S6a",
+  "title": "forbidden moves on delivered, cancelled and rejected documents",
+  "at": "2026-09-28T03:04:57.993Z",
+  "marker": "2026-09-28 08:34:58.021299+05:30",
+  "steps": [
+   {
+    "text": "delivered → submitted (orders.submit on a delivered order) [owner]",
+    "data": "409 CONFLICT order: cannot apply \"submit\" in state \"delivered\""
+   },
+   {
+    "text": "delivered → confirmed (orders.confirm) [owner]",
+    "data": "409 CONFLICT order: cannot apply \"confirm\" in state \"delivered\""
+   },
+   {
+    "text": "delivered → cancelled (orders.cancel) [owner]",
+    "data": "409 CONFLICT order: cannot apply \"cancel\" in state \"delivered\""
+   },
+   {
+    "text": "delivered bill → cancelled (invoices.cancel) [owner]",
+    "data": "409 CONFLICT order 01a0e5e1-2b94-73e0-8024-d0115b24b724 is delivered; after dispatch the only correction is a credit note"
+   },
+   {
+    "text": "delivered → packed again (packs.confirm) [warehouse]",
+    "data": "409 CONFLICT order SO-0879 is delivered; cartons are taped shut while it is confirmed, picking or packed"
+   },
+   {
+    "text": "cancelled order → confirmed (orders.confirm) [owner]",
+    "data": "409 CONFLICT order: cannot apply \"confirm\" in state \"cancelled\""
+   },
+   {
+    "text": "cancelled order → packed (packs.confirm) [warehouse]",
+    "data": "409 CONFLICT order SO-0889 is cancelled; cartons are taped shut while it is confirmed, picking or packed"
+   },
+   {
+    "text": "cancelled bill → planned on a trip (trips.create) [manager]",
+    "data": "409 CONFLICT invoice INV/9012 is cancelled; only an issued bill rides on a trip"
+   },
+   {
+    "text": "rejected order → confirmed (orders.confirm) [owner]",
+    "data": "409 CONFLICT order: cannot apply \"confirm\" in state \"cancelled\""
+   },
+   {
+    "text": "rejected order → packed (packs.confirm) [warehouse]",
+    "data": "409 CONFLICT order SO-0885 is cancelled; cartons are taped shut while it is confirmed, picking or packed"
+   },
+   {
+    "text": "rejected order → re-submitted (orders.submit) [rep]",
+    "data": "409 CONFLICT order: cannot apply \"submit\" in state \"cancelled\""
+   },
+   {
+    "text": "approve (first) [owner]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "approve twice (same gate, new key) [manager]",
+    "data": "409 CONFLICT the credit limit gate on SO-0896 was already approved by Sunil Tarsun on 28 Sep, 8:34 am"
+   },
+   {
+    "text": "confirm again after the approval confirmed it [owner]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "reject after approve (same gate) [owner]",
+    "data": "409 CONFLICT the credit limit gate on SO-0896 was already approved by Sunil Tarsun on 28 Sep, 8:34 am"
+   }
+  ],
+  "checks": [
+   {
+    "name": "the second approval / confirm did not hold the pieces twice (+48 only)",
+    "ok": true,
+    "detail": {
+     "before": 0,
+     "after": 48
+    }
+   }
+  ],
+  "ledger": [],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S6b",
+  "title": "pack never picked, bill on two trips, deliver an unplanned bill, deliver twice, settle with an open stop, cancel a bill with a receipt",
+  "at": "2026-09-28T03:04:59.330Z",
+  "marker": "2026-09-28 08:34:59.348304+05:30",
+  "steps": [
+   {
+    "text": "pack an order never waved or picked (confirmed → packed) [warehouse]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "never-picked pack result",
+    "data": {
+     "order": "packed",
+     "bill": {
+      "id": "01a0e5f9-0d3f-70b9-bbc9-8ae0380f41a1",
+      "invoice_no": "INV/9016"
+     },
+     "billed": 24,
+     "picks": 0
+    }
+   },
+   {
+    "text": "trip T3 out with bill2",
+    "data": {
+     "failedAt": null,
+     "r": "departed",
+     "bill": "INV/9017"
+    }
+   },
+   {
+    "text": "plan the same bill on a second trip (trips.create) [manager]",
+    "data": "409 CONFLICT invoice INV/9017 is already planned on trip 01a0e5f9-0eb5-7087-ad5b-d5417fbea97b"
+   },
+   {
+    "text": "load the dispatched bill onto another load sheet (loadSheets.create) [warehouse]",
+    "data": "409 CONFLICT only a packed order can be loaded; not packed: 01a0e5f9-0dba-768d-becf-710203cff2e2"
+   },
+   {
+    "text": "deliver a bill never loaded / not on this trip (deliveries.record) [delivery]",
+    "data": "400 BAD_REQUEST invoice INV/9016 belongs to another shop than this stop"
+   },
+   {
+    "text": "settle a trip that is still out with its stop open (trips.settle on active) [manager]",
+    "data": "409 CONFLICT trip TRIP-0003 is active; a trip is settled after it returns (closing)"
+   },
+   {
+    "text": "deliver bill2 (first)",
+    "data": "OK"
+   },
+   {
+    "text": "deliver the same bill twice (new id + key) [delivery]",
+    "data": "409 CONFLICT stop 01a0e5f9-0eb5-7089-9465-91ffaa0348eb is already delivered; a second attempt is a new stop"
+   },
+   {
+    "text": "pay the bill once (cash at the door) [delivery]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "pay the same bill again (different key, same amount) [delivery]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "bill2 after two payments",
+    "data": {
+     "state": "paid",
+     "total_paise": 135500,
+     "allocated": 135500,
+     "moneyOnAccount": 135500
+    }
+   },
+   {
+    "text": "accountant records ₹10 UPI against bill3",
+    "data": "OK"
+   },
+   {
+    "text": "cancel a bill that has a receipt (invoices.cancel) [owner]",
+    "data": "409 CONFLICT bill INV/9018 has money allocated against it, so it is not cancelled. Its goods have not left the godown: use \"Could not send it — credit the whole bill\": one credit note for the whole bill, and the shop keeps the money "
+   }
+  ],
+  "checks": [
+   {
+    "name": "deliver twice moved no more stock",
+    "ok": true,
+    "detail": {
+     "before": {
+      "warehouse:Godown": "380/48",
+      "damaged:Damaged / expiry bin": "6/0",
+      "in_transit:In transit": "24/24"
+     },
+     "after": {
+      "warehouse:Godown": "380/48",
+      "damaged:Damaged / expiry bin": "6/0",
+      "in_transit:In transit": "24/24"
+     }
+    }
+   },
+   {
+    "name": "the bill is never allocated more than its total (second payment sits on account)",
+    "ok": true,
+    "detail": {
+     "state": "paid",
+     "total_paise": 135500,
+     "allocated": 135500
+    }
+   }
+  ],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-G1 -24 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-G1 +24 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-G1 -24 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-G1 +24 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-C1 -24 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-C1 +24 ref=pack",
+   "transfer_out in_transit:In transit batch=P10-C1 -24 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-EF-9012 batch=P10-C1 +24 ref=load_sheet",
+   "transfer_out in_transit:In transit batch=P10-G1 -24 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-EF-9012 batch=P10-G1 +24 ref=load_sheet",
+   "sale vehicle:Vehicle MH-05-EF-9012 batch=P10-G1 -24 ref=delivery",
+   "sale vehicle:Vehicle MH-05-EF-9012 batch=P10-C1 -24 ref=delivery",
+   "transfer_out warehouse:Godown batch=P10-G1 -12 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-G1 +12 ref=pack"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

@@ -1,0 +1,17 @@
+BEGIN
+SET
+              set_config              | set_config | set_config 
+--------------------------------------+------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | owner      | qa-p10
+(1 row)
+
+INSERT 0 1
+psql:QA/tools/p10/dos-257-trigger.sql:12: ERROR:  cancelling invoice 01a0e5f5-0583-7429-b7a5-781d98405c92 would leave 12 pc of lot 01a0e5e0-55f1-73ff-b355-f056097fb5ac in stock beyond what the bill itself moved: a cancel only takes back the bill's own pieces, it never makes or loses stock (QA DOS-257)
+CONTEXT:  PL/pgSQL function dos_invoice_cancel_leaves_nothing() line 18 at RAISE
+psql:QA/tools/p10/dos-257-trigger.sql:13: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+ probe_rows_left 
+-----------------
+               0
+(1 row)
+

@@ -1,0 +1,480 @@
+[
+ {
+  "id": "S3a",
+  "title": "damaged in the godown: the godown login writes off 10 A (reason damage), then moves 10 A to the damaged bin",
+  "at": "2026-09-28T02:40:23.435Z",
+  "marker": "2026-09-28 08:10:23.454457+05:30",
+  "steps": [
+   {
+    "text": "wh adjust −10 damage at godown",
+    "data": "OK"
+   },
+   {
+    "text": "wh transfer 10 godown → damaged bin",
+    "data": "OK"
+   },
+   {
+    "text": "A places",
+    "data": {
+     "warehouse": "190/0",
+     "damaged": "30/0"
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "the damage adjustment wrote ONE row at the godown and nothing into the damaged bin",
+    "ok": true,
+    "detail": "recorded as observed above"
+   }
+  ],
+  "ledger": [
+   "damage warehouse:Godown batch=P10-A1 -10 ref=adjustment",
+   "transfer_out warehouse:Godown batch=P10-A1 -10 ref=transfer",
+   "transfer_in damaged:Damaged / expiry bin batch=P10-A1 +10 ref=transfer"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S3b",
+  "title": "damaged bin → sellable: can the godown / manager move damaged pieces back into the godown or onto a van?",
+  "at": "2026-09-28T02:40:23.988Z",
+  "marker": "2026-09-28 08:10:24.002038+05:30",
+  "steps": [
+   {
+    "text": "wh transfer 5 A damaged bin → godown",
+    "data": "OK"
+   },
+   {
+    "text": "wh transfer 5 A damaged bin → van C",
+    "data": "OK"
+   },
+   {
+    "text": "A places before / after",
+    "data": {
+     "beforeB": {
+      "warehouse": "190/0",
+      "damaged": "30/0"
+     },
+     "after": {
+      "warehouse": "195/0",
+      "vehicle": "5/0",
+      "damaged": "20/0"
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "damaged → godown by the godown login is refused",
+    "ok": false,
+    "detail": "OK"
+   },
+   {
+    "name": "damaged → van by the godown login is refused",
+    "ok": false,
+    "detail": "OK"
+   }
+  ],
+  "ledger": [
+   "transfer_out damaged:Damaged / expiry bin batch=P10-A1 -5 ref=transfer",
+   "transfer_in warehouse:Godown batch=P10-A1 +5 ref=transfer",
+   "transfer_out damaged:Damaged / expiry bin batch=P10-A1 -5 ref=transfer",
+   "transfer_in vehicle:Vehicle MH-05-EF-9012 batch=P10-A1 +5 ref=transfer"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S3c",
+  "title": "the damaged bin allows negative: move MORE out of it than it holds",
+  "at": "2026-09-28T02:40:24.398Z",
+  "marker": "2026-09-28 08:10:24.411278+05:30",
+  "steps": [
+   {
+    "text": "damaged bin holds of A",
+    "data": {
+     "on_hand": 20
+    }
+   },
+   {
+    "text": "wh transfer 70 A damaged bin → godown (bin holds 20)",
+    "data": "OK"
+   },
+   {
+    "text": "godown / bin after",
+    "data": {
+     "godownBefore": {
+      "on_hand": 195
+     },
+     "godownAfter": {
+      "on_hand": 265
+     },
+     "dmgAfter": {
+      "on_hand": -50
+     }
+    }
+   },
+   {
+    "text": "wh adjust −100 C at the damaged bin (bin holds 12)",
+    "data": "OK"
+   },
+   {
+    "text": "A places / C places",
+    "data": {
+     "A": {
+      "warehouse": "265/0",
+      "vehicle": "5/0",
+      "damaged": "-50/0"
+     },
+     "C": {
+      "warehouse": "384/0",
+      "damaged": "-88/0"
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "no piece is created: the transfer is refused or the bin stays ≥ 0",
+    "ok": false,
+    "detail": {
+     "godownDelta": 70,
+     "bin": -50
+    }
+   },
+   {
+    "name": "write-off beyond what the bin holds is refused",
+    "ok": false,
+    "detail": "OK"
+   }
+  ],
+  "ledger": [
+   "transfer_out damaged:Damaged / expiry bin batch=P10-A1 -70 ref=transfer",
+   "transfer_in warehouse:Godown batch=P10-A1 +70 ref=transfer",
+   "damage damaged:Damaged / expiry bin batch=P10-C1 -100 ref=adjustment"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S3d",
+  "title": "expired stock: reserve / pick / sell the already-expired batch P10-B-EXP while in-date batches exist",
+  "at": "2026-09-28T02:40:24.854Z",
+  "marker": "2026-09-28 08:10:24.867777+05:30",
+  "steps": [
+   {
+    "text": "order B 48",
+    "data": {
+     "order": {
+      "id": "01a0e5e2-8d55-71bd-9c03-308f019d3836",
+      "order_no": "SO-0883",
+      "state": "confirmed",
+      "total_paise": 125500
+     },
+     "holds": [
+      "pending warehouse P10-B-G1 48"
+     ]
+    }
+   },
+   {
+    "text": "suggested lot",
+    "data": [
+     "P10-B-G1"
+    ]
+   },
+   {
+    "text": "picker substitutes the EXPIRED batch P10-B-EXP",
+    "data": "OK"
+   },
+   {
+    "text": "pack + bill",
+    "data": {
+     "result": "OK",
+     "invoice": {
+      "id": "01a0e5e2-8e24-71fe-bf7b-32754a50adb9",
+      "invoice_no": "INV/9011",
+      "state": "issued",
+      "total_paise": 125500
+     }
+    }
+   },
+   {
+    "text": "bill lines",
+    "data": [
+     {
+      "batch_no": "P10-B-EXP",
+      "expiry_date": "2026-09-23",
+      "qty_pcs": 48
+     }
+    ]
+   },
+   {
+    "text": "pick line warning flags",
+    "data": [
+     {
+      "fefo_override": false,
+      "short_reason": null
+     },
+     {
+      "fefo_override": true,
+      "short_reason": null
+     }
+    ]
+   }
+  ],
+  "checks": [
+   {
+    "name": "reservation took the in-date P10-B-G1, not the short-dated or expired batch",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "an expired batch cannot be picked and billed",
+    "ok": false,
+    "detail": [
+     {
+      "batch_no": "P10-B-EXP",
+      "expiry_date": "2026-09-23",
+      "qty_pcs": 48
+     }
+    ]
+   }
+  ],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-B-EXP -48 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-B-EXP +48 ref=pack"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S3e",
+  "title": "expired stock written off by the godown (expiry_writeoff), and cycle count up/down by the desk",
+  "at": "2026-09-28T02:40:25.589Z",
+  "marker": "2026-09-28 08:10:25.602821+05:30",
+  "steps": [
+   {
+    "text": "P10-B-EXP at godown before",
+    "data": {
+     "on_hand": 0,
+     "reserved": 0
+    }
+   },
+   {
+    "text": "wh adjust +5 (adding stock by hand)",
+    "data": "403 FORBIDDEN — Only the owner or a manager can add stock or post opening stock. If the rack holds more than the books show, record a count and tell the desk; goods arriving come in on a GRN. [stock_add_desk_only]"
+   },
+   {
+    "text": "owner adjust +5 adjustment",
+    "data": "OK"
+   },
+   {
+    "text": "wh adjust −3 adjustment",
+    "data": "OK"
+   },
+   {
+    "text": "accountant adjust −1",
+    "data": "403 FORBIDDEN — Forbidden"
+   },
+   {
+    "text": "wh opens a cycle count of G and E",
+    "data": "OK"
+   },
+   {
+    "text": "wh counts G 428 (books 432), E 202 (books 200)",
+    "data": "OK"
+   },
+   {
+    "text": "wh posts the count",
+    "data": "403 FORBIDDEN — Forbidden"
+   },
+   {
+    "text": "manager posts the count",
+    "data": "OK"
+   },
+   {
+    "text": "places",
+    "data": {
+     "EXP": {
+      "in_transit": "48/48"
+     },
+     "SHORT": {
+      "warehouse": "98/0"
+     },
+     "G": {
+      "warehouse": "428/0"
+     },
+     "E": {
+      "warehouse": "202/0"
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "the godown login cannot add stock (DOS-044)",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "the accountant cannot move stock",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "the godown login cannot post a count",
+    "ok": true,
+    "detail": ""
+   }
+  ],
+  "ledger": [
+   "adjustment warehouse:Godown batch=P10-B-SHORT +5 ref=adjustment",
+   "adjustment warehouse:Godown batch=P10-B-SHORT -3 ref=adjustment",
+   "cycle_count warehouse:Godown batch=P10-E1 +2 ref=cycle_count",
+   "cycle_count warehouse:Godown batch=P10-G1 -4 ref=cycle_count"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S3f",
+  "title": "transfers: godown → van C and back by hand; van → dock by hand; a lot the dock holds for a bill",
+  "at": "2026-09-28T02:40:26.128Z",
+  "marker": "2026-09-28 08:10:26.140848+05:30",
+  "steps": [
+   {
+    "text": "wh transfer 20 E godown → van C",
+    "data": "OK"
+   },
+   {
+    "text": "wh transfer 20 E van C → godown",
+    "data": "OK"
+   },
+   {
+    "text": "wh transfer 10 E godown → dock (no bill)",
+    "data": "OK"
+   },
+   {
+    "text": "wh transfer 10 E dock → godown",
+    "data": "OK"
+   },
+   {
+    "text": "E places",
+    "data": {
+     "warehouse": "202/0"
+    }
+   }
+  ],
+  "checks": [],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-E1 -20 ref=transfer",
+   "transfer_in vehicle:Vehicle MH-05-EF-9012 batch=P10-E1 +20 ref=transfer",
+   "transfer_out vehicle:Vehicle MH-05-EF-9012 batch=P10-E1 -20 ref=transfer",
+   "transfer_in warehouse:Godown batch=P10-E1 +20 ref=transfer",
+   "transfer_out warehouse:Godown batch=P10-E1 -10 ref=transfer",
+   "transfer_in in_transit:In transit batch=P10-E1 +10 ref=transfer",
+   "transfer_out in_transit:In transit batch=P10-E1 -10 ref=transfer",
+   "transfer_in warehouse:Godown batch=P10-E1 +10 ref=transfer"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S3g",
+  "title": "return after delivery: desk credit note on delivered bill 1 (A 10 saleable, G 6 damaged)",
+  "at": "2026-09-28T02:40:26.521Z",
+  "marker": "2026-09-28 08:10:26.534489+05:30",
+  "steps": [
+   {
+    "text": "owner credit note return_saleable A 10 (autoIssue)",
+    "data": "OK"
+   },
+   {
+    "text": "owner credit note return_damaged G 6 (autoIssue)",
+    "data": "OK"
+   },
+   {
+    "text": "owner credit note return_damaged G 2 marked SALEABLE",
+    "data": "400 BAD_REQUEST — Neelam Tooth Brush 2+1 pack: damaged goods go to the damaged bin, not back on sale [return_not_saleable]"
+   },
+   {
+    "text": "owner credit note return_saleable A 95 (bill had 100, 10 already returned)",
+    "data": "400 BAD_REQUEST — only 90 pcs of Konkan Farsan Mix 400 g are left to credit on INV/9007"
+   },
+   {
+    "text": "A / G places",
+    "data": {
+     "A": {
+      "warehouse": "275/0",
+      "vehicle": "5/0",
+      "damaged": "-50/0"
+     },
+     "G": {
+      "warehouse": "428/0",
+      "damaged": "6/0"
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "a damaged return cannot be marked saleable (DOS-116)",
+    "ok": true,
+    "detail": "400 BAD_REQUEST — Neelam Tooth Brush 2+1 pack: damaged goods go to the damaged bin, not back on sale [return_not_saleable]"
+   },
+   {
+    "name": "returning more than was sold is refused",
+    "ok": true,
+    "detail": "400 BAD_REQUEST — only 90 pcs of Konkan Farsan Mix 400 g are left to credit on INV/9007"
+   }
+  ],
+  "ledger": [
+   "sale_return_saleable warehouse:Godown batch=P10-A1 +10 ref=credit_note",
+   "sale_return_damaged damaged:Damaged / expiry bin batch=P10-G1 +6 ref=credit_note"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

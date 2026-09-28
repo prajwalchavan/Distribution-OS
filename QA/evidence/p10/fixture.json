@@ -1,0 +1,318 @@
+{
+ "V": {
+  "A": "1c127a29-8c7d-7423-9309-a843be818fae",
+  "B": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+  "C": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+  "D": "a4d86cbe-4dde-7eba-9fa3-a634b39205b6",
+  "E": "11356d48-7b70-7f7c-ac45-d2c894e5ef36",
+  "F": "be2f1d1d-0a9f-70a2-88c2-d7913822c235",
+  "G": "5f360724-a903-7cf9-8d18-590689edb74a"
+ },
+ "grn1": {
+  "poId": "01a0e5e0-5534-7317-b066-29507708047a",
+  "poResult": "OK",
+  "supplierInvoiceId": "01a0e5e0-5565-757c-ab8f-998099326a7b",
+  "grnId": "01a0e5e0-5586-7221-9b30-95f2a58d015e",
+  "grnNo": "GRN-0129",
+  "lots": [
+   {
+    "grn_line_id": "01a0e5e0-5596-7180-88cd-7640e3098743",
+    "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+    "variant_id": "1c127a29-8c7d-7423-9309-a843be818fae",
+    "batch_no": "P10-A1",
+    "expiry_date": "2027-03-27",
+    "counted_qty_pcs": 380,
+    "damaged_qty_pcs": 20
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7181-b964-a99684062894",
+    "lot_id": "01a0e5e0-55db-767e-bc12-1e6f01ef6f3f",
+    "variant_id": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+    "batch_no": "P10-B-EXP",
+    "expiry_date": "2026-09-23",
+    "counted_qty_pcs": 48,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7182-aaff-6230d95d142c",
+    "lot_id": "01a0e5e0-55e0-72aa-9ef9-f0acaddc9d5d",
+    "variant_id": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+    "batch_no": "P10-B-SHORT",
+    "expiry_date": "2026-10-08",
+    "counted_qty_pcs": 96,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7183-9335-841535a2171f",
+    "lot_id": "01a0e5e0-55e4-7625-9b7f-5090aee6649a",
+    "variant_id": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+    "batch_no": "P10-B-G1",
+    "expiry_date": "2027-01-26",
+    "counted_qty_pcs": 96,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7184-b04e-2ae5369e3996",
+    "lot_id": "01a0e5e0-55ea-7251-957e-160516fea69f",
+    "variant_id": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+    "batch_no": "P10-B-G2",
+    "expiry_date": "2027-04-16",
+    "counted_qty_pcs": 96,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7185-aa72-3cb4fd2d49e4",
+    "lot_id": "01a0e5e0-55ed-70f4-bdda-5cb7024da831",
+    "variant_id": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+    "batch_no": "P10-C1",
+    "expiry_date": "2026-12-27",
+    "counted_qty_pcs": 480,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7186-aa61-46aaeb97f153",
+    "lot_id": "01a0e5e0-55f1-73ff-b355-f056097fb5ac",
+    "variant_id": "a4d86cbe-4dde-7eba-9fa3-a634b39205b6",
+    "batch_no": "P10-D1",
+    "expiry_date": "2027-07-25",
+    "counted_qty_pcs": 240,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7187-9b85-386a1e214d85",
+    "lot_id": "01a0e5e0-55f5-7417-8745-dfe3d5ac2146",
+    "variant_id": "11356d48-7b70-7f7c-ac45-d2c894e5ef36",
+    "batch_no": "P10-E1",
+    "expiry_date": "2027-02-25",
+    "counted_qty_pcs": 200,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7188-8160-11981951236a",
+    "lot_id": "01a0e5e0-55f9-704d-b03f-dc1e852dfb1d",
+    "variant_id": "be2f1d1d-0a9f-70a2-88c2-d7913822c235",
+    "batch_no": "",
+    "expiry_date": "2027-01-06",
+    "counted_qty_pcs": 144,
+    "damaged_qty_pcs": 0
+   },
+   {
+    "grn_line_id": "01a0e5e0-5596-7189-ab27-95b0c82ffaea",
+    "lot_id": "01a0e5e0-55fb-764e-b7d3-7e439e9024c6",
+    "variant_id": "5f360724-a903-7cf9-8d18-590689edb74a",
+    "batch_no": "P10-G1",
+    "expiry_date": null,
+    "counted_qty_pcs": 480,
+    "damaged_qty_pcs": 0
+   }
+  ],
+  "counted": {
+   "item": {
+    "id": "01a0e5e0-5586-7221-9b30-95f2a58d015e",
+    "grnNo": null,
+    "supplierInvoiceId": "01a0e5e0-5565-757c-ab8f-998099326a7b",
+    "supplierId": "e428e2c5-8fb1-7f24-a1ff-d22ab81f9830",
+    "supplierName": "Guru Kripa Agencies (Balaji Super-Stockist)",
+    "supplierInvoiceNo": "QA-P10-S1a-1790563079525",
+    "lineCount": 10,
+    "locationId": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+    "status": "reconciled",
+    "countedBy": "4c8b82ce-c45e-7102-898f-db1e0b0763f3",
+    "countedAt": "2026-09-28T02:37:59.604Z",
+    "postedBy": null,
+    "postedAt": null,
+    "note": "QA p10 S1a",
+    "createdAt": "2026-09-28T02:37:59.561Z",
+    "lines": [
+     {
+      "id": "01a0e5e0-5596-7180-88cd-7640e3098743",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7572-9fb6-081fa8890a0c",
+      "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+      "lotId": null,
+      "batchNo": "P10-A1",
+      "expiryDate": "2027-03-27",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 380,
+      "damagedQtyPcs": 20
+     },
+     {
+      "id": "01a0e5e0-5596-7181-b964-a99684062894",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7573-952b-3a6ce7d0fb47",
+      "variantId": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+      "lotId": null,
+      "batchNo": "P10-B-EXP",
+      "expiryDate": "2026-09-23",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 48,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7182-aaff-6230d95d142c",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7574-aead-1daf4dce654f",
+      "variantId": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+      "lotId": null,
+      "batchNo": "P10-B-SHORT",
+      "expiryDate": "2026-10-08",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 96,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7183-9335-841535a2171f",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7575-89f8-35d224a5449c",
+      "variantId": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+      "lotId": null,
+      "batchNo": "P10-B-G1",
+      "expiryDate": "2027-01-26",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 96,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7184-b04e-2ae5369e3996",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7576-a68f-66197e07d31c",
+      "variantId": "5e6a0969-c072-7ede-ac4a-69f079d70101",
+      "lotId": null,
+      "batchNo": "P10-B-G2",
+      "expiryDate": "2027-04-16",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 96,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7185-aa72-3cb4fd2d49e4",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7577-b10a-cb252950435e",
+      "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+      "lotId": null,
+      "batchNo": "P10-C1",
+      "expiryDate": "2026-12-27",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 480,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7186-aa61-46aaeb97f153",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7578-b44b-fdf8ef60e611",
+      "variantId": "a4d86cbe-4dde-7eba-9fa3-a634b39205b6",
+      "lotId": null,
+      "batchNo": "P10-D1",
+      "expiryDate": "2027-07-25",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 240,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7187-9b85-386a1e214d85",
+      "supplierInvoiceLineId": "01a0e5e0-5565-7579-a6a1-38d5da3feb08",
+      "variantId": "11356d48-7b70-7f7c-ac45-d2c894e5ef36",
+      "lotId": null,
+      "batchNo": "P10-E1",
+      "expiryDate": "2027-02-25",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 200,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7188-8160-11981951236a",
+      "supplierInvoiceLineId": "01a0e5e0-5565-757a-ba06-1a35e52a0148",
+      "variantId": "be2f1d1d-0a9f-70a2-88c2-d7913822c235",
+      "lotId": null,
+      "batchNo": "",
+      "expiryDate": "2027-01-06",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 144,
+      "damagedQtyPcs": 0
+     },
+     {
+      "id": "01a0e5e0-5596-7189-ab27-95b0c82ffaea",
+      "supplierInvoiceLineId": "01a0e5e0-5565-757b-8055-d9f92575be3e",
+      "variantId": "5f360724-a903-7cf9-8d18-590689edb74a",
+      "lotId": null,
+      "batchNo": "P10-G1",
+      "expiryDate": null,
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 480,
+      "damagedQtyPcs": 0
+     }
+    ],
+    "discrepancies": [
+     {
+      "id": "01a0e5e0-55b5-76e0-915a-43172b53d800",
+      "grnId": "01a0e5e0-5586-7221-9b30-95f2a58d015e",
+      "grnLineId": "01a0e5e0-5596-7180-88cd-7640e3098743",
+      "kind": "damaged",
+      "qtyPcs": 20,
+      "status": "open",
+      "note": null,
+      "resolvedBy": null,
+      "resolvedAt": null,
+      "createdAt": "2026-09-28T02:37:59.593Z"
+     }
+    ]
+   }
+  }
+ },
+ "grn2": {
+  "poId": "01a0e5e0-5888-731a-b209-2bb260da561c",
+  "poResult": "OK",
+  "supplierInvoiceId": "01a0e5e0-588e-735b-af9a-c17082c0f33a",
+  "grnId": "01a0e5e0-5895-7082-8d2a-46a2b36c0c3e",
+  "grnNo": "GRN-0130",
+  "lots": [
+   {
+    "grn_line_id": "01a0e5e0-5899-777b-85a3-ce14892c2ea1",
+    "lot_id": "01a0e5e0-55f9-704d-b03f-dc1e852dfb1d",
+    "variant_id": "be2f1d1d-0a9f-70a2-88c2-d7913822c235",
+    "batch_no": "",
+    "expiry_date": "2027-01-06",
+    "counted_qty_pcs": 144,
+    "damaged_qty_pcs": 0
+   }
+  ],
+  "counted": {
+   "item": {
+    "id": "01a0e5e0-5895-7082-8d2a-46a2b36c0c3e",
+    "grnNo": null,
+    "supplierInvoiceId": "01a0e5e0-588e-735b-af9a-c17082c0f33a",
+    "supplierId": "e428e2c5-8fb1-7f24-a1ff-d22ab81f9830",
+    "supplierName": "Guru Kripa Agencies (Balaji Super-Stockist)",
+    "supplierInvoiceNo": "QA-P10-S1b-1790563080334",
+    "lineCount": 1,
+    "locationId": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+    "status": "reconciled",
+    "countedBy": "4c8b82ce-c45e-7102-898f-db1e0b0763f3",
+    "countedAt": "2026-09-28T02:38:00.350Z",
+    "postedBy": null,
+    "postedAt": null,
+    "note": "QA p10 S1b",
+    "createdAt": "2026-09-28T02:38:00.343Z",
+    "lines": [
+     {
+      "id": "01a0e5e0-5899-777b-85a3-ce14892c2ea1",
+      "supplierInvoiceLineId": "01a0e5e0-588e-735a-9c79-f5bde101bdf4",
+      "variantId": "be2f1d1d-0a9f-70a2-88c2-d7913822c235",
+      "lotId": null,
+      "batchNo": "",
+      "expiryDate": "2026-10-18",
+      "expectedQtyPcs": null,
+      "countedQtyPcs": 144,
+      "damagedQtyPcs": 0
+     }
+    ],
+    "discrepancies": []
+   }
+  }
+ },
+ "lots": {
+  "P10-A1": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+  "P10-B-EXP": "01a0e5e0-55db-767e-bc12-1e6f01ef6f3f",
+  "P10-B-SHORT": "01a0e5e0-55e0-72aa-9ef9-f0acaddc9d5d",
+  "P10-B-G1": "01a0e5e0-55e4-7625-9b7f-5090aee6649a",
+  "P10-B-G2": "01a0e5e0-55ea-7251-957e-160516fea69f",
+  "P10-C1": "01a0e5e0-55ed-70f4-bdda-5cb7024da831",
+  "P10-D1": "01a0e5e0-55f1-73ff-b355-f056097fb5ac",
+  "P10-E1": "01a0e5e0-55f5-7417-8745-dfe3d5ac2146",
+  "P10-G1": "01a0e5e0-55fb-764e-b7d3-7e439e9024c6"
+ },
+ "lotF": "01a0e5e0-55f9-704d-b03f-dc1e852dfb1d"
+}

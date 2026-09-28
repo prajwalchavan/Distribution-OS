@@ -1,0 +1,17 @@
+{
+ "T6m": {
+  "tripId": "01a0e5fb-69cc-7512-9eeb-1cee18c08a56",
+  "stops": [
+   {
+    "id": "01a0e5fb-69cc-7514-95fa-74dfa14c95bb",
+    "sequence": 1,
+    "retailerId": "01a0e5f9-0727-75f9-a06d-018dc8a990ff",
+    "invoiceIds": [
+     "01a0e5f9-0d3f-70b9-bbc9-8ae0380f41a1"
+    ]
+   }
+  ],
+  "loadSheetId": "01a0e5fb-69f8-765b-9f1f-40b386c6564c",
+  "driverWho": "driver"
+ }
+}

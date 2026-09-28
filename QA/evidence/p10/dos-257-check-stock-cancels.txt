@@ -1,0 +1,3 @@
+$ tsx tools/check-stock-cancels.mts
+every cancelled bill nets to zero stock: nothing to write off
+exit 0

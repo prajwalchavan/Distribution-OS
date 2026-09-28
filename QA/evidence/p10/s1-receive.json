@@ -1,0 +1,161 @@
+[
+ {
+  "id": "S1a",
+  "title": "receive own batches: PO → supplier bill → GRN → count (20 damaged at gate) → post",
+  "at": "2026-09-28T02:37:59.282Z",
+  "marker": "2026-09-28 08:07:59.317855+05:30",
+  "steps": [
+   {
+    "text": "received",
+    "data": {
+     "po": "OK",
+     "grn": "GRN-0129",
+     "lots": [
+      "P10-A1 exp 2027-03-27 good 380 damaged 20",
+      "P10-B-EXP exp 2026-09-23 good 48 damaged 0",
+      "P10-B-SHORT exp 2026-10-08 good 96 damaged 0",
+      "P10-B-G1 exp 2027-01-26 good 96 damaged 0",
+      "P10-B-G2 exp 2027-04-16 good 96 damaged 0",
+      "P10-C1 exp 2026-12-27 good 480 damaged 0",
+      "P10-D1 exp 2027-07-25 good 240 damaged 0",
+      "P10-E1 exp 2027-02-25 good 200 damaged 0",
+      "(no batch) exp 2027-01-06 good 144 damaged 0",
+      "P10-G1 exp null good 480 damaged 0"
+     ]
+    }
+   },
+   {
+    "text": "P10-A1 places",
+    "data": [
+     {
+      "kind": "warehouse",
+      "name": "Godown",
+      "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+      "on_hand": 380,
+      "reserved": 0
+     },
+     {
+      "kind": "damaged",
+      "name": "Damaged / expiry bin",
+      "location_id": "01a0999a-28e0-7225-9731-6abfd6e8d459",
+      "on_hand": 20,
+      "reserved": 0
+     }
+    ]
+   },
+   {
+    "text": "rep sees sellable / availability for item A",
+    "data": {
+     "sellable": [
+      "P10-A1@godown:380"
+     ],
+     "availability": [
+      {
+       "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+       "available": 380
+      }
+     ]
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "GRN wrote one grn row per good line into the godown",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "20 damaged-at-gate pieces went to the damaged bin, not the godown",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "an already-expired batch (P10-B-EXP, expiry today−5) was accepted at the gate",
+    "ok": true,
+    "detail": "recorded: the gate does not refuse or flag an expired batch"
+   },
+   {
+    "name": "P10-A1: godown 380, damaged bin 20",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "rep availability for A = 380 (damaged 20 excluded)",
+    "ok": true,
+    "detail": ""
+   }
+  ],
+  "ledger": [
+   "grn warehouse:Godown batch=P10-A1 +380 ref=grn",
+   "grn damaged:Damaged / expiry bin batch=P10-A1 +20 ref=grn",
+   "grn warehouse:Godown batch=P10-B-EXP +48 ref=grn",
+   "grn warehouse:Godown batch=P10-B-SHORT +96 ref=grn",
+   "grn warehouse:Godown batch=P10-B-G1 +96 ref=grn",
+   "grn warehouse:Godown batch=P10-B-G2 +96 ref=grn",
+   "grn warehouse:Godown batch=P10-C1 +480 ref=grn",
+   "grn warehouse:Godown batch=P10-D1 +240 ref=grn",
+   "grn warehouse:Godown batch=P10-E1 +200 ref=grn",
+   "grn warehouse:Godown batch=(none) +144 ref=grn",
+   "grn warehouse:Godown batch=P10-G1 +480 ref=grn"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S1b",
+  "title": "second receipt of a no-batch item with a NEARER expiry (lot identity = item + batch + MRP)",
+  "at": "2026-09-28T02:38:00.314Z",
+  "marker": "2026-09-28 08:08:00.327764+05:30",
+  "steps": [
+   {
+    "text": "lots of item F after two receipts (expiry +100 then +20)",
+    "data": [
+     {
+      "id": "01a0e5e0-55f9-704d-b03f-dc1e852dfb1d",
+      "batch_no": "",
+      "expiry_date": "2027-01-06"
+     },
+     {
+      "id": "1eaea017-fa52-74f4-8cb9-e7b1eedf9777",
+      "batch_no": "B20260604",
+      "expiry_date": "2027-06-04"
+     }
+    ]
+   },
+   {
+    "text": "F places",
+    "data": [
+     {
+      "kind": "warehouse",
+      "name": "Godown",
+      "location_id": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+      "on_hand": 288,
+      "reserved": 0
+     }
+    ]
+   }
+  ],
+  "checks": [
+   {
+    "name": "the +20-day pieces kept their own expiry",
+    "ok": false,
+    "detail": ""
+   }
+  ],
+  "ledger": [
+   "grn warehouse:Godown batch=(none) +144 ref=grn"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

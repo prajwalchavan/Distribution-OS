@@ -1,0 +1,189 @@
+[
+ {
+  "id": "S4c",
+  "title": "a short-confirmed order (Y: 61 asked, 60 held) is picked in full from the rack: whose pieces does it take?",
+  "at": "2026-09-28T03:01:49.653Z",
+  "marker": "2026-09-28 08:31:49.669111+05:30",
+  "steps": [
+   {
+    "text": "D1 godown now",
+    "data": {
+     "on_hand": 240,
+     "reserved": 240
+    }
+   },
+   {
+    "text": "Y pick sheet asks",
+    "data": [
+     "60 from P10-D1",
+     "1 from none"
+    ]
+   },
+   {
+    "text": "picker records 61 for Y from D1 (the rack physically holds 240)",
+    "data": "400 BAD_REQUEST — batch P10-D1 on PICK-0084 asks for 60 pcs; 61 were picked"
+   },
+   {
+    "text": "pack + bill Y",
+    "data": {
+     "r": "OK",
+     "invoice": "INV/9013",
+     "billedPcs": 60
+    }
+   },
+   {
+    "text": "D1 godown after Y packed",
+    "data": {
+     "on_hand": 180,
+     "reserved": 180
+    }
+   },
+   {
+    "text": "X pick sheet asks",
+    "data": [
+     "180 from P10-D1"
+    ]
+   },
+   {
+    "text": "X picks and packs its full reserved quantity (180)",
+    "data": {
+     "pick": "OK",
+     "pack": "OK",
+     "D1": {
+      "on_hand": 0,
+      "reserved": 0
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "pieces held for order X are not handed to order Y (reserved ≤ on hand)",
+    "ok": true,
+    "detail": {
+     "on_hand": 180,
+     "reserved": 180
+    }
+   },
+   {
+    "name": "the order that was confirmed with its full hold can still be packed in full",
+    "ok": true,
+    "detail": "OK"
+   }
+  ],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-D1 -60 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-D1 +60 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-D1 -180 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-D1 +180 ref=pack"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S4d",
+  "title": "FEFO across batches of B: in-date earliest first, short-dated only when in-date runs out, expired never",
+  "at": "2026-09-28T03:01:50.525Z",
+  "marker": "2026-09-28 08:31:50.539481+05:30",
+  "steps": [
+   {
+    "text": "B at the godown",
+    "data": [
+     {
+      "batch_no": "P10-B-SHORT",
+      "expiry_date": "2026-10-08",
+      "on_hand": 98,
+      "reserved": 0
+     },
+     {
+      "batch_no": "P10-B-G1",
+      "expiry_date": "2027-01-26",
+      "on_hand": 96,
+      "reserved": 0
+     },
+     {
+      "batch_no": "P10-B-G2",
+      "expiry_date": "2027-04-16",
+      "on_hand": 96,
+      "reserved": 0
+     }
+    ]
+   },
+   {
+    "text": "order B 150 holds",
+    "data": [
+     "P10-B-G1:96",
+     "P10-B-G2:54"
+    ]
+   },
+   {
+    "text": "order B 62 (in-date still free 42)",
+    "data": [
+     "P10-B-G2:42",
+     "P10-B-SHORT:20"
+    ]
+   },
+   {
+    "text": "owner cancels the probe order",
+    "data": "OK"
+   },
+   {
+    "text": "owner cancels the probe order",
+    "data": "OK"
+   }
+  ],
+  "checks": [
+   {
+    "name": "150 held on in-date batches, earliest expiry first (G1 in full, then G2)",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "the short-dated batch covers only what in-date stock cannot",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "no expired batch held",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "B holds back to what they were",
+    "ok": true,
+    "detail": [
+     {
+      "batch_no": "P10-B-SHORT",
+      "on_hand": 98,
+      "reserved": 0
+     },
+     {
+      "batch_no": "P10-B-G1",
+      "on_hand": 96,
+      "reserved": 0
+     },
+     {
+      "batch_no": "P10-B-G2",
+      "on_hand": 96,
+      "reserved": 0
+     }
+    ]
+   }
+  ],
+  "ledger": null,
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 5 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 2 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

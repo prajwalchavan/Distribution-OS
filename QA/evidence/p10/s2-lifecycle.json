@@ -1,0 +1,658 @@
+[
+ {
+  "id": "S2a",
+  "title": "four shops order; confirm reserves FEFO at the godown",
+  "at": "2026-09-28T02:38:53.996Z",
+  "marker": "2026-09-28 08:08:54.023792+05:30",
+  "steps": [
+   {
+    "text": "order 01a0e5e1",
+    "data": {
+     "created": "OK",
+     "submitted": "OK"
+    }
+   },
+   {
+    "text": "order 01a0e5e1",
+    "data": {
+     "created": "OK",
+     "submitted": "OK"
+    }
+   },
+   {
+    "text": "order 01a0e5e1",
+    "data": {
+     "created": "OK",
+     "submitted": "OK"
+    }
+   },
+   {
+    "text": "order 01a0e5e1",
+    "data": {
+     "created": "OK",
+     "submitted": "OK"
+    }
+   },
+   {
+    "text": "order states",
+    "data": [
+     "SO-0879:confirmed",
+     "SO-0880:confirmed",
+     "SO-0881:confirmed",
+     "SO-0882:confirmed"
+    ]
+   },
+   {
+    "text": "godown reserved before → after confirm",
+    "data": {
+     "before": {
+      "A": {
+       "on_hand": 380,
+       "reserved": 0
+      },
+      "C": {
+       "on_hand": 480,
+       "reserved": 0
+      },
+      "G": {
+       "on_hand": 480,
+       "reserved": 0
+      }
+     },
+     "afterRes": {
+      "A": {
+       "on_hand": 380,
+       "reserved": 200
+      },
+      "C": {
+       "on_hand": 480,
+       "reserved": 120
+      },
+      "G": {
+       "on_hand": 480,
+       "reserved": 48
+      }
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "all four orders confirmed",
+    "ok": true,
+    "detail": ""
+   },
+   {
+    "name": "A reserved +200, C +120, G +48, on hand unchanged",
+    "ok": true,
+    "detail": ""
+   }
+  ],
+  "ledger": [],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S2b",
+  "title": "one wave: order 1 full pick, order 2 short (A 60 → 40), order 3 zero pick on C; pack + bill each",
+  "at": "2026-09-28T02:38:55.493Z",
+  "marker": "2026-09-28 08:08:55.506303+05:30",
+  "steps": [
+   {
+    "text": "sheet lines",
+    "data": [
+     "01a0e5e1 req 100 lot 01a0e5e0",
+     "01a0e5e1 req 48 lot 01a0e5e0",
+     "01a0e5e1 req 60 lot 01a0e5e0",
+     "01a0e5e1 req 48 lot 01a0e5e0",
+     "01a0e5e1 req 40 lot 01a0e5e0",
+     "01a0e5e1 req 24 lot 01a0e5e0",
+     "01a0e5e1 req 48 lot 01a0e5e0"
+    ]
+   },
+   {
+    "text": "pick",
+    "data": "OK"
+   },
+   {
+    "text": "pack o1",
+    "data": {
+     "result": "OK",
+     "invoice": {
+      "id": "01a0e5e1-30db-75c5-80b2-5c4159cba450",
+      "invoice_no": "INV/9007",
+      "state": "issued",
+      "total_paise": 1228600
+     }
+    }
+   },
+   {
+    "text": "pack o2",
+    "data": {
+     "result": "OK",
+     "invoice": {
+      "id": "01a0e5e1-3123-7460-809c-0145be5aef06",
+      "invoice_no": "INV/9008",
+      "state": "issued",
+      "total_paise": 489300
+     }
+    }
+   },
+   {
+    "text": "pack o3",
+    "data": {
+     "result": "OK",
+     "invoice": {
+      "id": "01a0e5e1-3174-72e5-bc56-8b4d295c50d9",
+      "invoice_no": "INV/9009",
+      "state": "issued",
+      "total_paise": 413400
+     }
+    }
+   },
+   {
+    "text": "pack o4",
+    "data": {
+     "result": "OK",
+     "invoice": {
+      "id": "01a0e5e1-31b6-72f1-8d03-1960bb0df4a0",
+      "invoice_no": "INV/9010",
+      "state": "issued",
+      "total_paise": 75800
+     }
+    }
+   },
+   {
+    "text": "places A",
+    "data": {
+     "warehouse:Godown": "200/0",
+     "damaged:Damaged / expiry bin": "20/0",
+     "in_transit:In transit": "180/180"
+    }
+   },
+   {
+    "text": "places C",
+    "data": {
+     "warehouse:Godown": "384/0",
+     "in_transit:In transit": "96/96"
+    }
+   },
+   {
+    "text": "holds",
+    "data": {
+     "o1": [
+      {
+       "state": "posted",
+       "kind": "warehouse",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 100
+      },
+      {
+       "state": "posted",
+       "kind": "warehouse",
+       "lot_id": "01a0e5e0-55fb-764e-b7d3-7e439e9024c6",
+       "qty": 48
+      },
+      {
+       "state": "pending",
+       "kind": "in_transit",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 100
+      },
+      {
+       "state": "pending",
+       "kind": "in_transit",
+       "lot_id": "01a0e5e0-55fb-764e-b7d3-7e439e9024c6",
+       "qty": 48
+      }
+     ],
+     "o3": [
+      {
+       "state": "posted",
+       "kind": "warehouse",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 40
+      },
+      {
+       "state": "posted",
+       "kind": "warehouse",
+       "lot_id": "01a0e5e0-55ed-70f4-bdda-5cb7024da831",
+       "qty": 24
+      },
+      {
+       "state": "pending",
+       "kind": "in_transit",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 40
+      }
+     ]
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "DOS-252 regression: a line picked 0 is not billed",
+    "ok": true,
+    "detail": [
+     {
+      "variant_id": "1c127a29-8c7d-7423-9309-a843be818fae",
+      "qty_pcs": 40,
+      "free_qty_pcs": 0,
+      "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a"
+     }
+    ]
+   },
+   {
+    "name": "short pick: order 2 billed A 40, not 60",
+    "ok": true,
+    "detail": [
+     {
+      "variant_id": "1c127a29-8c7d-7423-9309-a843be818fae",
+      "pcs": 40
+     },
+     {
+      "variant_id": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+      "pcs": 48
+     }
+    ]
+   },
+   {
+    "name": "DOS-252 regression: C left the godown only for what was picked (48 + 48 = 96)",
+    "ok": true,
+    "detail": "godown C moved -96"
+   },
+   {
+    "name": "zero-picked C for order 3: godown reserve released (reserved back to 0)",
+    "ok": true,
+    "detail": {
+     "on_hand": 384,
+     "reserved": 0
+    }
+   }
+  ],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-A1 -100 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-A1 +100 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-G1 -48 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-G1 +48 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-A1 -40 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-A1 +40 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-C1 -48 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-C1 +48 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-A1 -40 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-A1 +40 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-C1 -48 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-C1 +48 ref=pack"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S2c",
+  "title": "trip 1: load-out approval → dispatch; doors: full (1), part with saleable return (2), refused (3), damaged return (4)",
+  "at": "2026-09-28T02:38:56.691Z",
+  "marker": "2026-09-28 08:08:56.705256+05:30",
+  "steps": [
+   {
+    "text": "trip",
+    "data": {
+     "failedAt": null,
+     "result": "departed"
+    }
+   },
+   {
+    "text": "after load-out: places A / C / G",
+    "data": {
+     "A": {
+      "warehouse:Godown": "200/0",
+      "vehicle:Vehicle MH-05-AB-1234": "180/0",
+      "damaged:Damaged / expiry bin": "20/0"
+     },
+     "C": {
+      "warehouse:Godown": "384/0",
+      "vehicle:Vehicle MH-05-AB-1234": "96/0"
+     },
+     "G": {
+      "warehouse:Godown": "432/0",
+      "vehicle:Vehicle MH-05-AB-1234": "48/0"
+     }
+    }
+   },
+   {
+    "text": "order states",
+    "data": [
+     "dispatched",
+     "dispatched",
+     "dispatched",
+     "dispatched"
+    ]
+   },
+   {
+    "text": "door 1 full",
+    "data": "OK"
+   },
+   {
+    "text": "door 2 part (A 30 of 40, 10 back saleable)",
+    "data": "OK"
+   },
+   {
+    "text": "door 3 refused (stop fail)",
+    "data": "OK"
+   },
+   {
+    "text": "door 4 part (C 36 of 48, 12 back damaged)",
+    "data": "OK"
+   },
+   {
+    "text": "places A / C / G",
+    "data": {
+     "A": {
+      "warehouse:Godown": "200/0",
+      "vehicle:Vehicle MH-05-AB-1234": "50/0",
+      "damaged:Damaged / expiry bin": "20/0"
+     },
+     "C": {
+      "warehouse:Godown": "384/0",
+      "damaged:Damaged / expiry bin": "12/0"
+     },
+     "G": {
+      "warehouse:Godown": "432/0"
+     }
+    }
+   },
+   {
+    "text": "order states",
+    "data": [
+     "SO-0879:delivered",
+     "SO-0880:partially_delivered",
+     "SO-0881:packed",
+     "SO-0882:partially_delivered"
+    ]
+   }
+  ],
+  "checks": [],
+  "ledger": [
+   "transfer_out in_transit:In transit batch=P10-A1 -180 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-AB-1234 batch=P10-A1 +180 ref=load_sheet",
+   "transfer_out in_transit:In transit batch=P10-G1 -48 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-AB-1234 batch=P10-G1 +48 ref=load_sheet",
+   "transfer_out in_transit:In transit batch=P10-C1 -96 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-AB-1234 batch=P10-C1 +96 ref=load_sheet",
+   "sale vehicle:Vehicle MH-05-AB-1234 batch=P10-A1 -100 ref=delivery",
+   "sale vehicle:Vehicle MH-05-AB-1234 batch=P10-G1 -48 ref=delivery",
+   "sale vehicle:Vehicle MH-05-AB-1234 batch=P10-A1 -40 ref=delivery",
+   "sale vehicle:Vehicle MH-05-AB-1234 batch=P10-C1 -48 ref=delivery",
+   "sale_return_saleable vehicle:Vehicle MH-05-AB-1234 batch=P10-A1 +10 ref=credit_note",
+   "sale vehicle:Vehicle MH-05-AB-1234 batch=P10-C1 -48 ref=delivery",
+   "sale_return_damaged damaged:Damaged / expiry bin batch=P10-C1 +12 ref=credit_note"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S2d",
+  "title": "check-in + settle trip 1: undelivered bill 3 van → dock, free van stock van → godown",
+  "at": "2026-09-28T02:38:58.526Z",
+  "marker": "2026-09-28 08:08:58.539293+05:30",
+  "steps": [
+   {
+    "text": "return",
+    "data": "OK"
+   },
+   {
+    "text": "preview expected van stock",
+    "data": [
+     "7cee0e10 144",
+     "8d133ab4 288",
+     "c1a9fd2b 48",
+     "590fd4d9 24",
+     "f7350824 11",
+     "cb5df43d 99",
+     "9a9418eb 24",
+     "ed1bf7aa 288",
+     "967b1565 192",
+     "83aa6d12 100",
+     "9e82db08 24",
+     "c24f909f 75",
+     "2a4f5bed 9",
+     "a4a28012 25",
+     "175f8e3e 24",
+     "44fc05f8 50",
+     "6d97b055 117",
+     "a26d88eb 5",
+     "d3037f46 24",
+     "e1658a72 135",
+     "a4a407a9 36",
+     "01a0e5e0 50",
+     "c1cf4304 34",
+     "76925207 63",
+     "3dabe518 60",
+     "69e6f75b 162",
+     "40de4b8b 156",
+     "98a80a1a 120",
+     "0128aea6 432",
+     "a336d3b3 300",
+     "038c004b 216",
+     "0c6e5ba6 48"
+    ]
+   },
+   {
+    "text": "settle",
+    "data": "OK"
+   },
+   {
+    "text": "places A / C",
+    "data": {
+     "A": {
+      "warehouse:Godown": "210/0",
+      "damaged:Damaged / expiry bin": "20/0",
+      "in_transit:In transit": "40/40"
+     },
+     "C": {
+      "warehouse:Godown": "384/0",
+      "damaged:Damaged / expiry bin": "12/0"
+     }
+    }
+   },
+   {
+    "text": "order 3 + bill 3",
+    "data": {
+     "order": {
+      "id": "01a0e5e1-2ccc-71e0-ba78-feca208389c6",
+      "order_no": "SO-0881",
+      "state": "packed",
+      "total_paise": 451300
+     },
+     "bill": {
+      "invoice_no": "INV/9009",
+      "state": "issued",
+      "undelivered_at": "2026-09-28T08:08:57.689+05:30"
+     },
+     "holds": [
+      {
+       "state": "posted",
+       "kind": "warehouse",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 40
+      },
+      {
+       "state": "posted",
+       "kind": "warehouse",
+       "lot_id": "01a0e5e0-55ed-70f4-bdda-5cb7024da831",
+       "qty": 24
+      },
+      {
+       "state": "posted",
+       "kind": "in_transit",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 40
+      },
+      {
+       "state": "pending",
+       "kind": "in_transit",
+       "lot_id": "01a0e5e0-55d2-759e-8034-c3b4429bbd6a",
+       "qty": 40
+      }
+     ]
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "van A holds none of our lots after settlement",
+    "ok": true,
+    "detail": []
+   }
+  ],
+  "ledger": [
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=GK20260825 -144 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=GK20260825 +144 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=GK20260828 -288 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=GK20260828 +288 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260909 -48 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260909 +48 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260909 -24 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260909 +24 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260814 -11 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260814 +11 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260822 -99 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260822 +99 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260814 -24 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260814 +24 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260902 -288 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260902 +288 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260902 -192 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260902 +192 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260823 -100 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260823 +100 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260909 -24 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260909 +24 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260814 -75 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260814 +75 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260703 -9 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260703 +9 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260814 -25 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260814 +25 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260909 -24 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260909 +24 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260823 -50 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260823 +50 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RCP20260822 -117 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RCP20260822 +117 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=GD20260702 -5 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=GD20260702 +5 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260907 -24 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260907 +24 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260902 -135 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260902 +135 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=KC20260814 -36 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=KC20260814 +36 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=P10-A1 -50 ref=trip_settlement",
+   "transfer_in in_transit:In transit batch=P10-A1 +40 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=P10-A1 +10 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260729 -34 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260729 +34 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=SC20260604 -63 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=SC20260604 +63 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260902 -60 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260902 +60 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RJ20260830 -162 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RJ20260830 +162 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=RJ20260830 -156 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=RJ20260830 +156 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=SB20260830 -120 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=SB20260830 +120 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=SB20260830 -432 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=SB20260830 +432 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=SB20260823 -300 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=SB20260823 +300 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=SB20260830 -216 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=SB20260830 +216 ref=trip_settlement",
+   "van_unload vehicle:Vehicle MH-05-AB-1234 batch=B20260909 -48 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=B20260909 +48 ref=trip_settlement"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S2e",
+  "title": "bill 3 out again on trip 2 from the dock, delivered in full",
+  "at": "2026-09-28T02:38:59.071Z",
+  "marker": "2026-09-28 08:08:59.084314+05:30",
+  "steps": [
+   {
+    "text": "trip 2",
+    "data": {
+     "failedAt": null,
+     "result": "departed"
+    }
+   },
+   {
+    "text": "door 3 second attempt, full",
+    "data": "OK"
+   },
+   {
+    "text": "trip 2 check-in / settle",
+    "data": {
+     "ret": "OK",
+     "settle": "OK"
+    }
+   },
+   {
+    "text": "places A / C",
+    "data": {
+     "A": {
+      "warehouse:Godown": "210/0",
+      "damaged:Damaged / expiry bin": "20/0"
+     },
+     "C": {
+      "warehouse:Godown": "384/0",
+      "damaged:Damaged / expiry bin": "12/0"
+     }
+    }
+   },
+   {
+    "text": "orders",
+    "data": [
+     "SO-0879:delivered",
+     "SO-0880:partially_delivered",
+     "SO-0881:delivered",
+     "SO-0882:partially_delivered"
+    ]
+   }
+  ],
+  "checks": [],
+  "ledger": [
+   "transfer_out in_transit:In transit batch=P10-A1 -40 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-CD-5678 batch=P10-A1 +40 ref=load_sheet",
+   "sale vehicle:Vehicle MH-05-CD-5678 batch=P10-A1 -40 ref=delivery"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 3 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

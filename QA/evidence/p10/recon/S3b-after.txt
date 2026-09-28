@@ -1,0 +1,15 @@
+STOCK RECONCILE S3b-after @ 2026-09-28T02:40:24.138Z
+totals {"ledger_rows":18777,"balance_rows":4283,"live_balance_rows":875,"lots":1277,"on_hand_total":89657,"reserved_total":5989,"ledger_total":89657,"pending_holds":29,"on_hand_by_kind":{"warehouse":82482,"vehicle":5,"in_transit":6635,"damaged":535}}
+PASS C1_ledger_vs_on_hand: 0 difference(s)
+PASS C2_reserved_vs_holds: 0 difference(s)
+PASS C3_negative_or_overheld: 0 difference(s)
+PASS C4_sellable_view: 0 difference(s)
+PASS C5_ledger_references: 0 difference(s)
+FAIL C6_billed_vs_moved: 3 difference(s)
+    {"invoice_no":"INV/9006","source":"pack","invoice_id":"59a99e2e-efb8-74d9-9e9f-19719fe26c85","lot_id":"2791e4e8-2454-7e9f-9f39-66a1f086efbb","billed":132,"moved":0}
+    {"invoice_no":"INV/9001","source":"pack","invoice_id":"99b7d866-44a8-70db-a798-7bcd893e209a","lot_id":"3efe9c7a-46b8-7774-af34-31599a2a6578","billed":432,"moved":0}
+    {"invoice_no":"INV/9005","source":"pack","invoice_id":"4b5f9362-d030-7d5a-a6ac-45948250cf9b","lot_id":"c4698e9f-46f6-7b69-be78-d93e025bbce0","billed":960,"moved":0}
+PASS C7_delivered_vs_sold: 0 difference(s)
+PASS C8_holds_on_dead_documents: 0 difference(s)
+PASS C9_journal_unbalanced: 0 difference(s)
+RESULT: 3 DIFFERENCE ROW(S)

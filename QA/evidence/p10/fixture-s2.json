@@ -1,0 +1,841 @@
+{
+ "shops": [
+  {
+   "id": "01a0e5e1-2ab1-7395-a185-35ad5cbaeb6a",
+   "name": "QA P10 Shop 1 34025"
+  },
+  {
+   "id": "01a0e5e1-2afd-76f9-8f8e-7e1cd6dba4af",
+   "name": "QA P10 Shop 2 34205"
+  },
+  {
+   "id": "01a0e5e1-2b0f-70b1-bf61-0d057e78ecb5",
+   "name": "QA P10 Shop 3 34223"
+  },
+  {
+   "id": "01a0e5e1-2b21-719b-ac20-c337cb1ce099",
+   "name": "QA P10 Shop 4 34241"
+  }
+ ],
+ "orders": {
+  "o1": {
+   "orderId": "01a0e5e1-2b94-73e0-8024-d0115b24b724",
+   "created": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2b94-73e0-8024-d0115b24b724",
+      "orderNo": null,
+      "retailerId": "01a0e5e1-2ab1-7395-a185-35ad5cbaeb6a",
+      "state": "draft",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": null,
+      "externalRef": null,
+      "subtotalPaise": 1088112,
+      "discountPaise": 0,
+      "taxPaise": 140492,
+      "cessPaise": 0,
+      "roundOffPaise": -4,
+      "totalPaise": 1228600,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": null,
+      "confirmedAt": null,
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.365Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2b94-73e2-9beb-c6dc782ca5e4",
+        "lineNo": 1,
+        "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+        "variantName": "Konkan Farsan Mix 400 g",
+        "enteredQty": 100,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 100,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 9228,
+        "ratePaise": 9228,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1200,
+        "cessBps": 0,
+        "taxPaise": 110736,
+        "cessPaise": 0,
+        "lineTotalPaise": 1033536,
+        "appliedRules": [],
+        "priceLocked": false
+       },
+       {
+        "id": "01a0e5e1-2b94-73e3-aa54-5fb6ce784805",
+        "lineNo": 2,
+        "variantId": "5f360724-a903-7cf9-8d18-590689edb74a",
+        "variantName": "Neelam Tooth Brush 2+1 pack",
+        "enteredQty": 48,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 48,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 3444,
+        "ratePaise": 3444,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 29756,
+        "cessPaise": 0,
+        "lineTotalPaise": 195068,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [],
+      "approvals": []
+     }
+    }
+   },
+   "submitted": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2b94-73e0-8024-d0115b24b724",
+      "orderNo": "SO-0879",
+      "retailerId": "01a0e5e1-2ab1-7395-a185-35ad5cbaeb6a",
+      "state": "confirmed",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+      "externalRef": null,
+      "subtotalPaise": 1088112,
+      "discountPaise": 0,
+      "taxPaise": 140492,
+      "cessPaise": 0,
+      "roundOffPaise": -4,
+      "totalPaise": 1228600,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": "2026-09-28T02:38:54.488Z",
+      "confirmedAt": "2026-09-28T02:38:54.528Z",
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.365Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2b94-73e2-9beb-c6dc782ca5e4",
+        "lineNo": 1,
+        "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+        "variantName": "Konkan Farsan Mix 400 g",
+        "enteredQty": 100,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 100,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 9228,
+        "ratePaise": 9228,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1200,
+        "cessBps": 0,
+        "taxPaise": 110736,
+        "cessPaise": 0,
+        "lineTotalPaise": 1033536,
+        "appliedRules": [],
+        "priceLocked": false
+       },
+       {
+        "id": "01a0e5e1-2b94-73e3-aa54-5fb6ce784805",
+        "lineNo": 2,
+        "variantId": "5f360724-a903-7cf9-8d18-590689edb74a",
+        "variantName": "Neelam Tooth Brush 2+1 pack",
+        "enteredQty": 48,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 48,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 3444,
+        "ratePaise": 3444,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 29756,
+        "cessPaise": 0,
+        "lineTotalPaise": 195068,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [
+       {
+        "id": "01a0e5e1-2c37-7378-acd1-dc8bb76c10af",
+        "fromState": "draft",
+        "toState": "submitted",
+        "event": "submit",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.481Z"
+       },
+       {
+        "id": "01a0e5e1-2c5e-72fa-a35e-3a50dab67c1b",
+        "fromState": "submitted",
+        "toState": "confirmed",
+        "event": "confirm",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.481Z"
+       }
+      ],
+      "approvals": []
+     }
+    }
+   },
+   "lineIds": [
+    "01a0e5e1-2b94-73e2-9beb-c6dc782ca5e4",
+    "01a0e5e1-2b94-73e3-aa54-5fb6ce784805"
+   ]
+  },
+  "o2": {
+   "orderId": "01a0e5e1-2c70-77f3-a1c4-8451d246e274",
+   "created": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2c70-77f3-a1c4-8451d246e274",
+      "orderNo": null,
+      "retailerId": "01a0e5e1-2afd-76f9-8f8e-7e1cd6dba4af",
+      "state": "draft",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": null,
+      "externalRef": null,
+      "subtotalPaise": 617952,
+      "discountPaise": 0,
+      "taxPaise": 78011,
+      "cessPaise": 0,
+      "roundOffPaise": 37,
+      "totalPaise": 696000,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": null,
+      "confirmedAt": null,
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.578Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2c70-77f5-a2fe-b961977724ec",
+        "lineNo": 1,
+        "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+        "variantName": "Konkan Farsan Mix 400 g",
+        "enteredQty": 60,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 60,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 9228,
+        "ratePaise": 9228,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1200,
+        "cessBps": 0,
+        "taxPaise": 66442,
+        "cessPaise": 0,
+        "lineTotalPaise": 620122,
+        "appliedRules": [],
+        "priceLocked": false
+       },
+       {
+        "id": "01a0e5e1-2c70-77f6-b6ee-4edbc525f8ac",
+        "lineNo": 2,
+        "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+        "variantName": "Rajwadi Soda Water 750 ml",
+        "enteredQty": 48,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 48,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 1339,
+        "ratePaise": 1339,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 11569,
+        "cessPaise": 0,
+        "lineTotalPaise": 75841,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [],
+      "approvals": []
+     }
+    }
+   },
+   "submitted": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2c70-77f3-a1c4-8451d246e274",
+      "orderNo": "SO-0880",
+      "retailerId": "01a0e5e1-2afd-76f9-8f8e-7e1cd6dba4af",
+      "state": "confirmed",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+      "externalRef": null,
+      "subtotalPaise": 617952,
+      "discountPaise": 0,
+      "taxPaise": 78011,
+      "cessPaise": 0,
+      "roundOffPaise": 37,
+      "totalPaise": 696000,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": "2026-09-28T02:38:54.624Z",
+      "confirmedAt": "2026-09-28T02:38:54.641Z",
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.578Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2c70-77f5-a2fe-b961977724ec",
+        "lineNo": 1,
+        "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+        "variantName": "Konkan Farsan Mix 400 g",
+        "enteredQty": 60,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 60,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 9228,
+        "ratePaise": 9228,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1200,
+        "cessBps": 0,
+        "taxPaise": 66442,
+        "cessPaise": 0,
+        "lineTotalPaise": 620122,
+        "appliedRules": [],
+        "priceLocked": false
+       },
+       {
+        "id": "01a0e5e1-2c70-77f6-b6ee-4edbc525f8ac",
+        "lineNo": 2,
+        "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+        "variantName": "Rajwadi Soda Water 750 ml",
+        "enteredQty": 48,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 48,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 1339,
+        "ratePaise": 1339,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 11569,
+        "cessPaise": 0,
+        "lineTotalPaise": 75841,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [
+       {
+        "id": "01a0e5e1-2cac-72f6-88dc-14f22c5c6756",
+        "fromState": "draft",
+        "toState": "submitted",
+        "event": "submit",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.619Z"
+       },
+       {
+        "id": "01a0e5e1-2cc1-7482-a939-46f6b4c85e65",
+        "fromState": "submitted",
+        "toState": "confirmed",
+        "event": "confirm",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.619Z"
+       }
+      ],
+      "approvals": []
+     }
+    }
+   },
+   "lineIds": [
+    "01a0e5e1-2c70-77f5-a2fe-b961977724ec",
+    "01a0e5e1-2c70-77f6-b6ee-4edbc525f8ac"
+   ]
+  },
+  "o3": {
+   "orderId": "01a0e5e1-2ccc-71e0-ba78-feca208389c6",
+   "created": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2ccc-71e0-ba78-feca208389c6",
+      "orderNo": null,
+      "retailerId": "01a0e5e1-2b0f-70b1-bf61-0d057e78ecb5",
+      "state": "draft",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": null,
+      "externalRef": null,
+      "subtotalPaise": 401256,
+      "discountPaise": 0,
+      "taxPaise": 50078,
+      "cessPaise": 0,
+      "roundOffPaise": -34,
+      "totalPaise": 451300,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": null,
+      "confirmedAt": null,
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.670Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2ccc-71e2-80d2-568761dfe444",
+        "lineNo": 1,
+        "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+        "variantName": "Konkan Farsan Mix 400 g",
+        "enteredQty": 40,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 40,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 9228,
+        "ratePaise": 9228,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1200,
+        "cessBps": 0,
+        "taxPaise": 44294,
+        "cessPaise": 0,
+        "lineTotalPaise": 413414,
+        "appliedRules": [],
+        "priceLocked": false
+       },
+       {
+        "id": "01a0e5e1-2ccc-71e3-bc23-0c826c073193",
+        "lineNo": 2,
+        "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+        "variantName": "Rajwadi Soda Water 750 ml",
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 24,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 1339,
+        "ratePaise": 1339,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 5784,
+        "cessPaise": 0,
+        "lineTotalPaise": 37920,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [],
+      "approvals": []
+     }
+    }
+   },
+   "submitted": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2ccc-71e0-ba78-feca208389c6",
+      "orderNo": "SO-0881",
+      "retailerId": "01a0e5e1-2b0f-70b1-bf61-0d057e78ecb5",
+      "state": "confirmed",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+      "externalRef": null,
+      "subtotalPaise": 401256,
+      "discountPaise": 0,
+      "taxPaise": 50078,
+      "cessPaise": 0,
+      "roundOffPaise": -34,
+      "totalPaise": 451300,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": "2026-09-28T02:38:54.719Z",
+      "confirmedAt": "2026-09-28T02:38:54.735Z",
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.670Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2ccc-71e2-80d2-568761dfe444",
+        "lineNo": 1,
+        "variantId": "1c127a29-8c7d-7423-9309-a843be818fae",
+        "variantName": "Konkan Farsan Mix 400 g",
+        "enteredQty": 40,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 40,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 9228,
+        "ratePaise": 9228,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1200,
+        "cessBps": 0,
+        "taxPaise": 44294,
+        "cessPaise": 0,
+        "lineTotalPaise": 413414,
+        "appliedRules": [],
+        "priceLocked": false
+       },
+       {
+        "id": "01a0e5e1-2ccc-71e3-bc23-0c826c073193",
+        "lineNo": 2,
+        "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+        "variantName": "Rajwadi Soda Water 750 ml",
+        "enteredQty": 24,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 24,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 1339,
+        "ratePaise": 1339,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 5784,
+        "cessPaise": 0,
+        "lineTotalPaise": 37920,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [
+       {
+        "id": "01a0e5e1-2d0a-7710-b865-2a3907356b1e",
+        "fromState": "draft",
+        "toState": "submitted",
+        "event": "submit",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.713Z"
+       },
+       {
+        "id": "01a0e5e1-2d25-7190-9f38-3688e41c685a",
+        "fromState": "submitted",
+        "toState": "confirmed",
+        "event": "confirm",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.713Z"
+       }
+      ],
+      "approvals": []
+     }
+    }
+   },
+   "lineIds": [
+    "01a0e5e1-2ccc-71e2-80d2-568761dfe444",
+    "01a0e5e1-2ccc-71e3-bc23-0c826c073193"
+   ]
+  },
+  "o4": {
+   "orderId": "01a0e5e1-2d33-77a1-a91f-2e89d1e19e7f",
+   "created": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2d33-77a1-a91f-2e89d1e19e7f",
+      "orderNo": null,
+      "retailerId": "01a0e5e1-2b21-719b-ac20-c337cb1ce099",
+      "state": "draft",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": null,
+      "externalRef": null,
+      "subtotalPaise": 64272,
+      "discountPaise": 0,
+      "taxPaise": 11569,
+      "cessPaise": 0,
+      "roundOffPaise": -41,
+      "totalPaise": 75800,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": null,
+      "confirmedAt": null,
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.775Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2d33-77a3-ab5e-a4584dfbb065",
+        "lineNo": 1,
+        "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+        "variantName": "Rajwadi Soda Water 750 ml",
+        "enteredQty": 48,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 48,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 1339,
+        "ratePaise": 1339,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 11569,
+        "cessPaise": 0,
+        "lineTotalPaise": 75841,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [],
+      "approvals": []
+     }
+    }
+   },
+   "submitted": {
+    "ok": true,
+    "value": {
+     "item": {
+      "id": "01a0e5e1-2d33-77a1-a91f-2e89d1e19e7f",
+      "orderNo": "SO-0882",
+      "retailerId": "01a0e5e1-2b21-719b-ac20-c337cb1ce099",
+      "state": "confirmed",
+      "source": "salesperson",
+      "createdBy": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "salespersonId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+      "pricingDateMode": "order",
+      "paymentTerms": "POST_FULFILLMENT",
+      "fulfilFromLocationId": "01a0999a-28e0-7224-8c93-c81b22069a0d",
+      "externalRef": null,
+      "subtotalPaise": 64272,
+      "discountPaise": 0,
+      "taxPaise": 11569,
+      "cessPaise": 0,
+      "roundOffPaise": -41,
+      "totalPaise": 75800,
+      "approvalFlags": [],
+      "stockShortages": [],
+      "creditNotice": null,
+      "expectedDeliveryDate": null,
+      "note": null,
+      "submittedAt": "2026-09-28T02:38:54.812Z",
+      "confirmedAt": "2026-09-28T02:38:54.827Z",
+      "cancelledAt": null,
+      "cancelReason": null,
+      "refusedAt": null,
+      "createdAt": "2026-09-28T02:38:54.775Z",
+      "lines": [
+       {
+        "id": "01a0e5e1-2d33-77a3-ab5e-a4584dfbb065",
+        "lineNo": 1,
+        "variantId": "a3c74ab3-3374-7ed9-bda6-b5fb55a1d5c4",
+        "variantName": "Rajwadi Soda Water 750 ml",
+        "enteredQty": 48,
+        "enteredUnit": "piece",
+        "packSizeAtEntry": 1,
+        "qtyPcs": 48,
+        "freeQtyPcs": 0,
+        "pickedQtyPcs": 0,
+        "deliveredQtyPcs": 0,
+        "listRatePaise": 1339,
+        "ratePaise": 1339,
+        "discountBps": 0,
+        "discountPaise": 0,
+        "gstBps": 1800,
+        "cessBps": 0,
+        "taxPaise": 11569,
+        "cessPaise": 0,
+        "lineTotalPaise": 75841,
+        "appliedRules": [],
+        "priceLocked": false
+       }
+      ],
+      "transitions": [
+       {
+        "id": "01a0e5e1-2d67-739f-8681-c8390f470214",
+        "fromState": "draft",
+        "toState": "submitted",
+        "event": "submit",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.809Z"
+       },
+       {
+        "id": "01a0e5e1-2d78-708c-b986-fd2146d1af5e",
+        "fromState": "submitted",
+        "toState": "confirmed",
+        "event": "confirm",
+        "actorId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+        "deviceId": null,
+        "reason": null,
+        "occurredAt": "2026-09-28T02:38:54.809Z"
+       }
+      ],
+      "approvals": []
+     }
+    }
+   },
+   "lineIds": [
+    "01a0e5e1-2d33-77a3-ab5e-a4584dfbb065"
+   ]
+  }
+ },
+ "inv": {
+  "o1": "01a0e5e1-30db-75c5-80b2-5c4159cba450",
+  "o2": "01a0e5e1-3123-7460-809c-0145be5aef06",
+  "o3": "01a0e5e1-3174-72e5-bc56-8b4d295c50d9",
+  "o4": "01a0e5e1-31b6-72f1-8d03-1960bb0df4a0"
+ },
+ "trip": {
+  "tripId": "01a0e5e1-34f1-7569-ab6d-5329c581330e",
+  "stops": [
+   {
+    "id": "01a0e5e1-34f1-756b-843e-0c2709c0f979",
+    "sequence": 1,
+    "retailerId": "01a0e5e1-2ab1-7395-a185-35ad5cbaeb6a",
+    "invoiceIds": [
+     "01a0e5e1-30db-75c5-80b2-5c4159cba450"
+    ]
+   },
+   {
+    "id": "01a0e5e1-34f1-756c-a65f-eaf26ad9145b",
+    "sequence": 2,
+    "retailerId": "01a0e5e1-2afd-76f9-8f8e-7e1cd6dba4af",
+    "invoiceIds": [
+     "01a0e5e1-3123-7460-809c-0145be5aef06"
+    ]
+   },
+   {
+    "id": "01a0e5e1-34f1-756d-acd3-fde3731c8922",
+    "sequence": 3,
+    "retailerId": "01a0e5e1-2b0f-70b1-bf61-0d057e78ecb5",
+    "invoiceIds": [
+     "01a0e5e1-3174-72e5-bc56-8b4d295c50d9"
+    ]
+   },
+   {
+    "id": "01a0e5e1-34f1-756e-83cf-d7e57338d0b9",
+    "sequence": 4,
+    "retailerId": "01a0e5e1-2b21-719b-ac20-c337cb1ce099",
+    "invoiceIds": [
+     "01a0e5e1-31b6-72f1-8d03-1960bb0df4a0"
+    ]
+   }
+  ],
+  "loadSheetId": "01a0e5e1-356c-71f5-bcdd-ba7c1a13ef3d",
+  "driverWho": "driver"
+ },
+ "trip2": {
+  "tripId": "01a0e5e1-3e1a-76b1-b96c-33b1ce3530aa",
+  "stops": [
+   {
+    "id": "01a0e5e1-3e1a-76b3-9616-e4b497761f45",
+    "sequence": 1,
+    "retailerId": "01a0e5e1-2b0f-70b1-bf61-0d057e78ecb5",
+    "invoiceIds": [
+     "01a0e5e1-3174-72e5-bc56-8b4d295c50d9"
+    ]
+   }
+  ],
+  "loadSheetId": "01a0e5e1-3e41-7392-be4a-c05de939cbce",
+  "driverWho": "driver2"
+ }
+}

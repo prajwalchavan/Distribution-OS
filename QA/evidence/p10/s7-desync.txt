@@ -1,0 +1,62 @@
+--- D1 bill paid / partially paid while its order is cancelled
+ origin | invoice_no | state | order_no | order_state 
+--------+------------+-------+----------+-------------
+(0 rows)
+
+--- D2 bill cancelled while its order is not cancelled
+ origin | invoice_no | order_no | order_state 
+--------+------------+----------+-------------
+ seed   | INV/9002   | SO-9001  | packed
+(1 row)
+
+--- D3 order delivered / partially delivered with no delivered or partial door for it
+ origin | order_no |   state   | doors 
+--------+----------+-----------+-------
+ seed   | SO-9004  | delivered | 
+ seed   | SO-9005  | delivered | 
+ seed   | SO-9006  | delivered | 
+(3 rows)
+
+--- D4 stop delivered / partial while an order on it is not delivered
+ origin | trip_no | sequence | stop_state | order_no | order_state | outcome 
+--------+---------+----------+------------+----------+-------------+---------
+(0 rows)
+
+--- D5 a bill still "out" (door with no outcome) on a trip that is settled, cancelled or closing
+ origin |  trip_no  | trip_state | invoice_no | order_state 
+--------+-----------+------------+------------+-------------
+ qa     | TRIP-0005 | cancelled  | INV/9013   | packed
+(1 row)
+
+--- D6 order dispatched but on no active trip (no door for it on a trip that is loading or active)
+ origin | order_no |   state    | trips | bills 
+--------+----------+------------+-------+-------
+ qa     | SO-0900  | dispatched |       | 
+(1 row)
+
+--- D7 order packed / dispatched / delivered with no live bill
+ origin | order_no |   state    
+--------+----------+------------
+ seed   | SO-9001  | packed
+ qa     | SO-0900  | dispatched
+(2 rows)
+
+--- D8 bill flagged undelivered while its order is delivered
+ origin | invoice_no | order_no | state 
+--------+------------+----------+-------
+(0 rows)
+
+--- D9 order packed (came back) but its bill still sits on the dock with no hold and nothing on the dock for it
+ origin | invoice_no | order_no | undelivered | dock_held 
+--------+------------+----------+-------------+-----------
+ seed   | INV/0815   | SO-0845  | f           |         0
+ seed   | INV/0820   | SO-0850  | f           |         0
+ qa     | INV/9013   | SO-0891  | t           |         0
+ qa     | INV/9016   | SO-0897  | t           |         0
+(4 rows)
+
+--- D10 order state vs its own transition log (last to_state differs from the column)
+ origin | n 
+--------+---
+(0 rows)
+

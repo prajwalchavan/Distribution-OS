@@ -1,0 +1,48 @@
+[
+ {
+  "id": "S6g2",
+  "title": "re-pick a packed order's recorded pick row while the wave is still open",
+  "at": "2026-09-28T03:08:02.972Z",
+  "marker": "2026-09-28 08:38:03.296458+05:30",
+  "steps": [
+   {
+    "text": "the row that carried order A's pieces",
+    "data": {
+     "id": "01a0e5fb-6df4-7428-8eb1-71a80bab0235",
+     "picklist_id": "01a0e5fb-6db6-7058-b608-3ee5521cf581",
+     "order_line_id": "01a0e5fb-6d38-7239-9cf7-b17d59bb8017",
+     "lot_id": "01a0e5e0-55fb-764e-b7d3-7e439e9024c6",
+     "picked_qty_pcs": 12,
+     "sheet": "packed"
+    }
+   },
+   {
+    "text": "re-pick it down to 5",
+    "data": "409 CONFLICT — picklist PICK-0091 is packed; it is no longer being picked"
+   },
+   {
+    "text": "after",
+    "data": {
+     "pickRow": 12,
+     "billed": 12,
+     "orderLinePicked": 12,
+     "moved": 12
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "a packed order's pick cannot be edited (or, if it can, bill and stock still agree with it)",
+    "ok": true,
+    "detail": {
+     "pickRow": 12,
+     "billed": 12,
+     "orderLinePicked": 12,
+     "moved": 12
+    }
+   }
+  ],
+  "ledger": null,
+  "recon": null
+ }
+]

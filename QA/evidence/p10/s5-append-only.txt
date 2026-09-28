@@ -1,0 +1,165 @@
+=== as dos (owner, BYPASSRLS) ===
+ current_user | bypassrls 
+--------------+-----------
+ dos          | t
+(1 row)
+
+--- dos: UPDATE stock_ledger qty_delta
+BEGIN
+psql:QA/tools/p10/s5-append-only.sql:10: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- dos: DELETE stock_ledger row
+BEGIN
+psql:QA/tools/p10/s5-append-only.sql:12: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- dos: TRUNCATE stock_ledger (rolled back)
+BEGIN
+TRUNCATE TABLE
+ rows_left_inside_txn 
+----------------------
+                    0
+(1 row)
+
+ROLLBACK
+--- dos: UPDATE journal_lines amount
+BEGIN
+psql:QA/tools/p10/s5-append-only.sql:16: ERROR:  journal_lines is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- dos: DELETE journal_lines row
+BEGIN
+psql:QA/tools/p10/s5-append-only.sql:18: ERROR:  journal_lines is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- dos: TRUNCATE journal_lines (rolled back)
+BEGIN
+TRUNCATE TABLE
+ rows_left_inside_txn 
+----------------------
+                    0
+(1 row)
+
+ROLLBACK
+--- dos: ALTER TABLE stock_ledger DISABLE TRIGGER USER then UPDATE (rolled back)
+BEGIN
+ALTER TABLE
+UPDATE 1
+            outcome            
+-------------------------------
+ updated with trigger disabled
+(1 row)
+
+ROLLBACK
+--- dos: session_replication_role = replica then DELETE (rolled back)
+BEGIN
+psql:QA/tools/p10/s5-append-only.sql:24: ERROR:  permission denied to set parameter "session_replication_role"
+psql:QA/tools/p10/s5-append-only.sql:24: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+psql:QA/tools/p10/s5-append-only.sql:24: ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ROLLBACK
+=== as app_rw inside a tenant context (what the API runs as) ===
+--- app_rw: UPDATE stock_ledger
+BEGIN
+SET
+              set_config              | set_config | set_config 
+--------------------------------------+------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | owner      | qa-p10
+(1 row)
+
+psql:QA/tools/p10/s5-append-only.sql:29: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- app_rw: DELETE stock_ledger
+BEGIN
+SET
+              set_config              | set_config 
+--------------------------------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | owner
+(1 row)
+
+psql:QA/tools/p10/s5-append-only.sql:32: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- app_rw: TRUNCATE stock_ledger
+BEGIN
+SET
+psql:QA/tools/p10/s5-append-only.sql:34: ERROR:  permission denied for table stock_ledger
+ROLLBACK
+--- app_rw: UPDATE journal_lines
+BEGIN
+SET
+              set_config              | set_config 
+--------------------------------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | owner
+(1 row)
+
+psql:QA/tools/p10/s5-append-only.sql:37: ERROR:  journal_lines is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- app_rw: DELETE journal_lines
+BEGIN
+SET
+              set_config              | set_config 
+--------------------------------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | owner
+(1 row)
+
+DELETE 0
+ROLLBACK
+--- app_rw: TRUNCATE journal_lines
+BEGIN
+SET
+psql:QA/tools/p10/s5-append-only.sql:42: ERROR:  permission denied for table journal_lines
+ROLLBACK
+--- app_rw: UPDATE stock_balances.on_hand directly (derived balance, no ledger row)
+BEGIN
+SET
+              set_config              | set_config 
+--------------------------------------+------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1 | warehouse
+(1 row)
+
+ on_hand 
+---------
+    1428
+(1 row)
+
+UPDATE 1
+ROLLBACK
+--- app_worker: UPDATE stock_ledger
+BEGIN
+SET
+psql:QA/tools/p10/s5-append-only.sql:47: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+--- privileges on the ledgers
+  grantee   |   table_name   |            privs            
+------------+----------------+-----------------------------
+ app_rw     | journal_lines  | DELETE,INSERT,SELECT,UPDATE
+ app_worker | journal_lines  | DELETE,INSERT,SELECT,UPDATE
+ app_rw     | stock_balances | DELETE,INSERT,SELECT,UPDATE
+ app_worker | stock_balances | DELETE,INSERT,SELECT,UPDATE
+ app_rw     | stock_ledger   | DELETE,INSERT,SELECT,UPDATE
+ app_worker | stock_ledger   | DELETE,INSERT,SELECT,UPDATE
+(6 rows)
+
+--- triggers on the ledgers
+ event_object_table |                trigger_name                | action_timing |    events     | action_orientation 
+--------------------+--------------------------------------------+---------------+---------------+--------------------
+ journal_lines      | journal_lines_append_only                  | BEFORE        | DELETE,UPDATE | ROW
+ journal_lines      | journal_lines_balanced                     | AFTER         | INSERT        | ROW
+ stock_balances     | stock_balances_tombstone                   | AFTER         | DELETE        | ROW
+ stock_balances     | stock_balances_touch_updated_at            | BEFORE        | UPDATE,INSERT | ROW
+ stock_ledger       | stock_ledger_append_only                   | BEFORE        | DELETE,UPDATE | ROW
+ stock_ledger       | stock_ledger_invoice_cancel_leaves_nothing | AFTER         | INSERT        | ROW
+(6 rows)
+
+    tgrelid    |                   tgname                   | tgtype 
+---------------+--------------------------------------------+--------
+ stock_ledger  | stock_ledger_append_only                   |     27
+ stock_ledger  | stock_ledger_invoice_cancel_leaves_nothing |      5
+ journal_lines | journal_lines_append_only                  |     27
+ journal_lines | journal_lines_balanced                     |      5
+(4 rows)
+

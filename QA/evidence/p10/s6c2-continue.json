@@ -1,0 +1,216 @@
+[
+ {
+  "id": "S6d2",
+  "title": "the bill of the cancelled trip, re-planned on TRIP-0006 (van C): can it go out and be delivered?",
+  "at": "2026-09-28T03:07:33.092Z",
+  "marker": "2026-09-28 08:37:33.113173+05:30",
+  "steps": [
+   {
+    "text": "re-planned trip",
+    "data": {
+     "T6": {
+      "id": "01a0e5fa-53d2-73e0-a641-3d5bac373985",
+      "trip_no": "TRIP-0006",
+      "state": "planned"
+     },
+     "D1": {
+      "warehouse:Godown": "180/0",
+      "vehicle:Vehicle MH-05-CD-5678": "60/0"
+     }
+    }
+   },
+   {
+    "text": "start loading TRIP-0006 [warehouse]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "build a load sheet for bill Y's (dispatched) order onto van C [warehouse]",
+    "data": "409 CONFLICT only a packed order can be loaded; not packed: 01a0e5f5-08be-7702-bb20-49b26f3f3128"
+   },
+   {
+    "text": "depart TRIP-0006 with no load sheet (bill Y already \"dispatched\") [delivery]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "deliver bill Y from van C (its 60 pieces are on van B) [delivery]",
+    "data": "400 BAD_REQUEST Only 0 pc of Chamak Dishwash Gel 750 ml (batch P10-D1) are in Vehicle MH-05-EF-9012; 60 pc cannot go out."
+   },
+   {
+    "text": "after",
+    "data": {
+     "D1": {
+      "warehouse:Godown": "180/0",
+      "vehicle:Vehicle MH-05-CD-5678": "60/0"
+     },
+     "order": "dispatched"
+    }
+   },
+   {
+    "text": "TRIP-0006 check-in / settle",
+    "data": {
+     "ret": "OK",
+     "settle": "OK",
+     "D1": {
+      "warehouse:Godown": "180/0",
+      "vehicle:Vehicle MH-05-CD-5678": "60/0"
+     },
+     "order": "packed",
+     "bill": {
+      "state": "issued",
+      "undelivered_at": "2026-09-28T08:37:33.607+05:30"
+     }
+    }
+   }
+  ],
+  "checks": [],
+  "ledger": [
+   "van_unload vehicle:Vehicle MH-05-EF-9012 batch=P10-G1 -12 ref=trip_settlement",
+   "transfer_in warehouse:Godown batch=P10-G1 +12 ref=trip_settlement"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S6f",
+  "title": "lead: van unload by hand while the trip is still out with the bill on board",
+  "at": "2026-09-28T03:07:34.191Z",
+  "marker": "2026-09-28 08:37:34.205392+05:30",
+  "steps": [
+   {
+    "text": "T6 out with the never-picked bill",
+    "data": {
+     "failedAt": null,
+     "r": "departed",
+     "G": {
+      "warehouse:Godown": "368/48",
+      "vehicle:Vehicle MH-05-AB-1234": "24/0",
+      "damaged:Damaged / expiry bin": "6/0",
+      "in_transit:In transit": "12/12"
+     }
+    }
+   },
+   {
+    "text": "unload the bill's 24 pieces off van A to the godown mid-trip (trips.unload) [warehouse]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "after unload",
+    "data": {
+     "G": {
+      "warehouse:Godown": "392/48",
+      "damaged:Damaged / expiry bin": "6/0",
+      "in_transit:In transit": "12/12"
+     },
+     "trip": "active"
+    }
+   },
+   {
+    "text": "crew then delivers the bill",
+    "data": {
+     "r": "400 BAD_REQUEST — Only 0 pc of Neelam Tooth Brush 2+1 pack (batch P10-G1) are in Vehicle MH-05-AB-1234; 24 pc cannot go out.",
+     "G": {
+      "warehouse:Godown": "392/48",
+      "damaged:Damaged / expiry bin": "6/0",
+      "in_transit:In transit": "12/12"
+     }
+    }
+   },
+   {
+    "text": "T6 check-in / settle",
+    "data": {
+     "ret": "OK",
+     "settle": "OK",
+     "G": {
+      "warehouse:Godown": "392/48",
+      "damaged:Damaged / expiry bin": "6/0",
+      "in_transit:In transit": "12/12"
+     }
+    }
+   }
+  ],
+  "checks": [
+   {
+    "name": "mid-trip unload must not leave the bill undeliverable or the pieces in two places",
+    "ok": false,
+    "detail": "400 BAD_REQUEST — Only 0 pc of Neelam Tooth Brush 2+1 pack (batch P10-G1) are in Vehicle MH-05-AB-1234; 24 pc cannot go out."
+   }
+  ],
+  "ledger": [
+   "transfer_out in_transit:In transit batch=P10-G1 -24 ref=load_sheet",
+   "transfer_in vehicle:Vehicle MH-05-AB-1234 batch=P10-G1 +24 ref=load_sheet",
+   "transfer_out vehicle:Vehicle MH-05-AB-1234 batch=P10-G1 -24 ref=transfer",
+   "transfer_in warehouse:Godown batch=P10-G1 +24 ref=transfer"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S6g",
+  "title": "lead: picks edited after the order was packed; two credit drafts on one line",
+  "at": "2026-09-28T03:07:35.032Z",
+  "marker": "2026-09-28 08:37:35.046495+05:30",
+  "steps": [
+   {
+    "text": "order A packed (B not yet)",
+    "data": {
+     "r": "OK",
+     "bill": "INV/9019",
+     "sheet": "picked"
+    }
+   },
+   {
+    "text": "re-pick packed order A's line down to 5 (picklists.pick) [warehouse]",
+    "data": "400 BAD_REQUEST line 01a0e5fb-6d38-7239-9cf7-b17d59bb8017 on PICK-0091 asks for 12 pcs; 17 were picked"
+   },
+   {
+    "text": "after the edit",
+    "data": {
+     "pickRow": {
+      "picked_qty_pcs": 0
+     },
+     "billed": 12,
+     "orderLinePicked": 12
+    }
+   },
+   {
+    "text": "credit draft 1: G 24 saleable [owner]",
+    "data": "200  accepted"
+   },
+   {
+    "text": "credit draft 2: the same 24 again [manager]",
+    "data": "400 BAD_REQUEST only 0 pcs of Neelam Tooth Brush 2+1 pack are left to credit on INV/9017"
+   },
+   {
+    "text": "cancel draft 1 [owner]",
+    "data": "200  accepted"
+   }
+  ],
+  "checks": [],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-G1 -12 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-G1 +12 ref=pack",
+   "transfer_out warehouse:Godown batch=P10-G1 -12 ref=pack",
+   "transfer_in in_transit:In transit batch=P10-G1 +12 ref=pack"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]

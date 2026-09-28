@@ -1,0 +1,206 @@
+[
+ {
+  "id": "S8a",
+  "title": "pack with one good line and one impossible line (picked from a batch the godown does not hold)",
+  "at": "2026-09-28T03:10:18.479Z",
+  "marker": "2026-09-28 08:40:18.503814+05:30",
+  "steps": [
+   {
+    "text": "F batch with nothing in the godown",
+    "data": {
+     "id": "1eaea017-fa52-74f4-8cb9-e7b1eedf9777",
+     "batch_no": "B20260604",
+     "on_hand": 0
+    }
+   },
+   {
+    "text": "pick: G from its batch, F from the empty batch",
+    "data": "OK"
+   },
+   {
+    "text": "pack + bill",
+    "data": "400 BAD_REQUEST — Only 0 pc of Annapurna Garam Masala 50 g (batch B20260604) are in Godown; 12 pc cannot go out."
+   },
+   {
+    "text": "after the refused pack: what changed",
+    "data": "nothing"
+   }
+  ],
+  "checks": [
+   {
+    "name": "refused pack left nothing behind (no ledger, hold, bill, pack, journal, number)",
+    "ok": true,
+    "detail": {}
+   }
+  ],
+  "ledger": null,
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S8b",
+  "title": "load-out of a bill whose pieces are not on the dock (INV/9016 after the mid-trip unload) — 409 dock_short expected",
+  "at": "2026-09-28T03:10:19.496Z",
+  "marker": "2026-09-28 08:40:19.510446+05:30",
+  "steps": [
+   {
+    "text": "plan INV/9016 on a new trip",
+    "data": "OK"
+   },
+   {
+    "text": "load sheet",
+    "data": "OK"
+   },
+   {
+    "text": "approve",
+    "data": "OK"
+   },
+   {
+    "text": "confirm (count out)",
+    "data": "409 CONFLICT — INV/9016 · QA P10 State Shop 97895 needs 24 pc of Neelam Tooth Brush 2+1 pack (batch P10-G1) and only 0 are on the dock for it. If they are in the godown, bring them over and press \"Bring them from the godown\"; if not, the manager takes INV/9016 off the trip — nothing was loaded [dock_short]"
+   },
+   {
+    "text": "after the refused load-out: what changed",
+    "data": "nothing"
+   },
+   {
+    "text": "stage-dock (bring the missing pieces from the godown)",
+    "data": "OK"
+   }
+  ],
+  "checks": [
+   {
+    "name": "refused load-out left nothing behind (no challan, no number, no move, no dispatch)",
+    "ok": true,
+    "detail": {}
+   }
+  ],
+  "ledger": [
+   "transfer_out warehouse:Godown batch=P10-G1 -24 ref=load_sheet",
+   "transfer_in in_transit:In transit batch=P10-G1 +24 ref=load_sheet"
+  ],
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S8c",
+  "title": "door with one good line and one impossible line (returned more than billed)",
+  "at": "2026-09-28T03:10:20.104Z",
+  "marker": "2026-09-28 08:40:20.116756+05:30",
+  "steps": [
+   {
+    "text": "trip out",
+    "data": {
+     "failedAt": null,
+     "r": "departed"
+    }
+   },
+   {
+    "text": "record: line 1 in full, line 2 delivered 6 + returned 20 of 12",
+    "data": "400 BAD_REQUEST — Rajwadi Soda Water 750 ml: delivered 6 + returned 20 must equal the 12 pieces billed"
+   },
+   {
+    "text": "after the refused door: what changed",
+    "data": "nothing"
+   },
+   {
+    "text": "then recorded properly (full)",
+    "data": "OK"
+   }
+  ],
+  "checks": [
+   {
+    "name": "refused door left nothing behind",
+    "ok": true,
+    "detail": {}
+   }
+  ],
+  "ledger": null,
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ },
+ {
+  "id": "S8d",
+  "title": "credit note auto-issued with one good line and one over-credit line; settle with a cash variance by the manager",
+  "at": "2026-09-28T03:10:21.081Z",
+  "marker": "2026-09-28 08:40:21.094798+05:30",
+  "steps": [
+   {
+    "text": "credit note: 2 pcs good line + 99 pcs on a 12-pc line",
+    "data": "400 BAD_REQUEST — only 12 pcs of Rajwadi Soda Water 750 ml are left to credit on INV/9023"
+   },
+   {
+    "text": "after the refused credit note: what changed",
+    "data": "nothing"
+   },
+   {
+    "text": "collect cash",
+    "data": "OK"
+   },
+   {
+    "text": "check in",
+    "data": "OK"
+   },
+   {
+    "text": "manager settles ₹500 short without accepting the variance",
+    "data": "409 CONFLICT — Cash is ₹500.00 short (allowed ₹100.00) — sent to the owner, who settles it by approving [settlement_needs_owner]"
+   },
+   {
+    "text": "after the refused settlement: what changed",
+    "data": "nothing"
+   },
+   {
+    "text": "approval rows filed",
+    "data": [
+     {
+      "kind": "trip_settlement",
+      "status": "pending",
+      "entity_type": "trip"
+     }
+    ]
+   },
+   {
+    "text": "trip state",
+    "data": "closing"
+   },
+   {
+    "text": "owner settles accepting the variance",
+    "data": "OK"
+   }
+  ],
+  "checks": [
+   {
+    "name": "refused credit note left nothing behind",
+    "ok": true,
+    "detail": {}
+   }
+  ],
+  "ledger": null,
+  "recon": {
+   "exit": 1,
+   "result": "RESULT: 6 DIFFERENCE ROW(S)",
+   "fails": [
+    "FAIL C3_negative_or_overheld: 3 difference(s)",
+    "FAIL C6_billed_vs_moved: 3 difference(s)"
+   ]
+  }
+ }
+]
