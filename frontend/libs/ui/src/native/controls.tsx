@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { Pressable, ScrollView, TextInput as RNTextInput, View, type ViewStyle } from 'react-native'
 
+import { scaledHeight, useControlScale } from '../control-scale.js'
 import { useStrings, useTheme } from '../theme.js'
 import { gap, radius, size as sizeTokens, space } from '../tokens.js'
 import type {
@@ -35,7 +36,9 @@ export function Button({
   testID,
 }: ButtonProps): React.JSX.Element {
   const theme = useTheme()
-  const height = sizeTokens[size ?? theme.touch]
+  // `<Screen centered>` lifts a button to the comfortable form height; never below the app's floor.
+  const scale = useControlScale()
+  const height = scaledHeight(sizeTokens[size ?? theme.touch], scale)
   const off = disabled || loading
   const labelStyle = useTypeStyle('bodyStrong', 'label')
 
@@ -96,7 +99,7 @@ export function Button({
           {
             height,
             minHeight: height,
-            borderRadius: radius.md,
+            borderRadius: scale?.radius ?? radius.md,
             borderWidth: 1,
             flexDirection: 'row',
             alignItems: 'center',
@@ -156,7 +159,8 @@ export function TextInput({
 }: TextInputProps): React.JSX.Element {
   const theme = useTheme()
   const t = useStrings()
-  const height = sizeTokens[size ?? theme.touch]
+  const scale = useControlScale()
+  const height = scaledHeight(sizeTokens[size ?? theme.touch], scale)
   const resolved = error ? 'error' : (state ?? 'default')
   const bodyStyle = useTypeStyle('body', 'body')
   // UX-F-5: a password typed blind is a password typed wrong. The field starts hidden, always.
@@ -207,8 +211,8 @@ export function TextInput({
               borderStyle: resolved === 'disabled' ? 'dashed' : 'solid',
               borderColor:
                 resolved === 'error' ? theme.colors.status.brick.edge : theme.colors.border.strong,
-              borderRadius: radius.sm,
-              paddingHorizontal: space[3],
+              borderRadius: scale?.radius ?? radius.sm,
+              paddingHorizontal: scale === null ? space[3] : space[4],
               backgroundColor: theme.colors.bg.surface,
               color:
                 resolved === 'disabled' ? theme.colors.text.disabled : theme.colors.text.primary,

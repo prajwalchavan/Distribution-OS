@@ -73,22 +73,36 @@ describe('DOS-070 the geo proof says what it is', () => {
     expect(geoProofLine(t, undefined)).toBeNull()
   })
 
+  /*
+   * Founder, 2026-09-28 ("every app opens on its work"): the home's "Delivered, all items" writes
+   * exactly what D4 writes for a full bill, so the `geo` row D4 used to build inline is now built by
+   * `arrivalGeoProof` in door-writes.ts and BOTH call it. The pin follows the rule to where it lives:
+   * D4 builds its proof through that function, the function is gated on the arrival fix (and on
+   * nothing else — `door-writes.test.ts` runs it), and neither asks the phone for a fix of its own.
+   */
   it('DOS-070 D4 names the arrival point and when it was taken, through one rule', async () => {
     const deliver = await read('../../../../app/delivery/stop/[id]/deliver.tsx')
+    const writes = await read('./door-writes.ts')
     expect({
       // One rule decides both the sentence and whether there is one at all.
       viaTheRule: /geoProofLine\(/.test(deliver),
       // Never the bare claim the finding measured.
       bareClaim: /t\('d4\.podGeo'\)/.test(deliver),
-      // And the `geo` row still travels only when there IS an arrival fix.
-      gatedOnTheFix: /arrived_lat !== null && stop\?\.arrived_lat !== undefined/.test(deliver),
+      // And the `geo` row still travels only when there IS an arrival fix — built by the one function.
+      buildsThroughTheRule: /const geo: QueuedPod\[\] = arrivalGeoProof\(stop, uuidv7\)/.test(
+        deliver,
+      ),
+      gatedOnTheFix: /arrived_lat !== null && stop\?\.arrived_lat !== undefined/.test(writes),
       // D4 asks the phone for no fix of its own; the arrival is the only reading there ever was.
       asksForAFix: /platformLocation|location\.current\(/.test(deliver),
+      writesAskForAFix: /platformLocation|location\.current\(/.test(writes),
     }).toEqual({
       viaTheRule: true,
       bareClaim: false,
+      buildsThroughTheRule: true,
       gatedOnTheFix: true,
       asksForAFix: false,
+      writesAskForAFix: false,
     })
   })
 })

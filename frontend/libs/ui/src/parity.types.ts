@@ -21,7 +21,15 @@ import type { ComponentType } from 'react'
 import type {
   AppShellProps,
   BoxProps,
+  BrandTileProps,
   ButtonProps,
+  CartBarProps,
+  JobCardProps,
+  JobListProps,
+  MoreGroupProps,
+  ProductTileProps,
+  QtyStepperProps,
+  TileGridProps,
   ImgProps,
   LinkProps,
   ListProps,
@@ -164,6 +172,41 @@ export type _useLandingGate = [
     (hydrating: boolean, sessionKey: string | null) => LandingGate,
     NativeModule['useLandingGate']
   >,
+]
+
+// --- the job home and the shop (founder, 2026-09-28), bound on both renderers -------------------
+
+export type _JobCard = [
+  Implements<ComponentType<JobCardProps>, WebModule['JobCard']>,
+  Implements<ComponentType<JobCardProps>, NativeModule['JobCard']>,
+]
+export type _JobList = [
+  Implements<ComponentType<JobListProps>, WebModule['JobList']>,
+  Implements<ComponentType<JobListProps>, NativeModule['JobList']>,
+]
+export type _MoreGroup = [
+  Implements<ComponentType<MoreGroupProps>, WebModule['MoreGroup']>,
+  Implements<ComponentType<MoreGroupProps>, NativeModule['MoreGroup']>,
+]
+export type _ProductTile = [
+  Implements<ComponentType<ProductTileProps>, WebModule['ProductTile']>,
+  Implements<ComponentType<ProductTileProps>, NativeModule['ProductTile']>,
+]
+export type _TileGrid = [
+  Implements<ComponentType<TileGridProps>, WebModule['TileGrid']>,
+  Implements<ComponentType<TileGridProps>, NativeModule['TileGrid']>,
+]
+export type _BrandTile = [
+  Implements<ComponentType<BrandTileProps>, WebModule['BrandTile']>,
+  Implements<ComponentType<BrandTileProps>, NativeModule['BrandTile']>,
+]
+export type _CartBar = [
+  Implements<ComponentType<CartBarProps>, WebModule['CartBar']>,
+  Implements<ComponentType<CartBarProps>, NativeModule['CartBar']>,
+]
+export type _QtyStepper = [
+  Implements<ComponentType<QtyStepperProps>, WebModule['QtyStepper']>,
+  Implements<ComponentType<QtyStepperProps>, NativeModule['QtyStepper']>,
 ]
 
 // --- the platform pairs -------------------------------------------------------------------------

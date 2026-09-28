@@ -15,7 +15,9 @@ import {
 import {
   AgeingBuckets,
   Avatar,
+  BrandTile,
   Button,
+  CartBar,
   Chips,
   CompareBars,
   ConnectionStrip,
@@ -24,10 +26,14 @@ import {
   ErrorState,
   Eyebrow,
   Group,
+  JobCard,
+  JobList,
   KpiStrip,
   ListRow,
   Money,
+  MoreGroup,
   NumberPad,
+  ProductTile,
   QtyStepper,
   Register,
   RupeeInput,
@@ -42,6 +48,7 @@ import {
   TenantLogo,
   TextInput,
   ThemeProvider,
+  TileGrid,
   Toast,
   TrendChart,
   Txt,
@@ -169,6 +176,219 @@ const ROWS: Row[] = [
     state: 'Submitted',
   },
 ]
+
+// ---------------------------------------------------------------------------
+// 6.18 / 6.19 — the job home and the shop (founder, 2026-09-28), with state, so a reviewer can press
+// a button, read the confirm, and watch the card change in place with a toast.
+// ---------------------------------------------------------------------------
+
+interface Stop {
+  id: string
+  shop: string
+  where: string
+  amount: number
+  state: 'next' | 'default' | 'done'
+  word: string
+}
+
+const STOPS: Stop[] = [
+  {
+    id: 's1',
+    shop: 'Shree Ganesh Kirana',
+    where: 'Station Road · 6 items',
+    amount: 18_420_00,
+    state: 'next',
+    word: 'On the way',
+  },
+  {
+    id: 's2',
+    shop: 'Om Sai Provision',
+    where: 'Station Road · 9 items',
+    amount: 42_800_00,
+    state: 'default',
+    word: 'Waiting',
+  },
+  {
+    id: 's3',
+    shop: 'Mahalaxmi General',
+    where: 'Gandhi Chowk · 4 items',
+    amount: 9_120_00,
+    state: 'default',
+    word: 'Waiting',
+  },
+  {
+    id: 's4',
+    shop: 'Jai Bhavani Stores',
+    where: 'Gandhi Chowk · 3 items',
+    amount: 6_240_00,
+    state: 'done',
+    word: 'Delivered',
+  },
+]
+
+function JobsDemo() {
+  const [stops, setStops] = useState(STOPS)
+  const [asking, setAsking] = useState<Stop | null>(null)
+  const [told, setTold] = useState<string | null>(null)
+  const done = stops.filter((s) => s.state === 'done').length
+  return (
+    <div style={{ width: '100%' }}>
+      <JobList
+        summary={`${String(done)} of ${String(stops.length)} delivered`}
+        testID="gallery-jobs"
+      >
+        {stops.map((stop) => (
+          <JobCard
+            key={stop.id}
+            title={stop.shop}
+            subtitle={stop.where}
+            trailing={<Money value={stop.amount} />}
+            chip={{ label: stop.word, family: stop.state === 'done' ? 'moss' : 'ochre' }}
+            state={stop.state}
+            onPress={() => undefined}
+            primary={{ label: 'Delivered, all items', onPress: () => setAsking(stop) }}
+            secondary={[
+              { label: 'Some items', onPress: () => undefined },
+              { label: 'Could not deliver', onPress: () => undefined },
+            ]}
+          />
+        ))}
+      </JobList>
+      <MoreGroup id="gallery.more" count={5}>
+        <Group>
+          <ListRow
+            primary="Money to hand in"
+            secondary="Cash and UPI of this trip"
+            onPress={() => undefined}
+          />
+          <ListRow
+            primary="Van stock"
+            secondary="What is left on the vehicle"
+            onPress={() => undefined}
+          />
+        </Group>
+      </MoreGroup>
+      <Dialog
+        open={asking !== null}
+        onClose={() => setAsking(null)}
+        title="Delivered, all items"
+        body={
+          asking === null
+            ? ''
+            : `${asking.shop} gets every item on the bill. The money is typed on the next screen.`
+        }
+        confirmLabel="Mark delivered"
+        onConfirm={() => {
+          const stop = asking
+          setAsking(null)
+          if (stop === null) return
+          setStops((all) =>
+            all.map((s, i, list) =>
+              s.id === stop.id
+                ? { ...s, state: 'done', word: 'Delivered' }
+                : s.state !== 'done' &&
+                    list.findIndex((x) => x.state !== 'done' && x.id !== stop.id) === i
+                  ? { ...s, state: 'next' }
+                  : s,
+            ),
+          )
+          setTold(`${stop.shop} delivered`)
+        }}
+      />
+      <Toast open={told !== null} message={told ?? ''} onDismiss={() => setTold(null)} />
+    </div>
+  )
+}
+
+const TILES = [
+  {
+    id: 't1',
+    name: 'Campa Cola 750 ml',
+    brand: 'Campa',
+    pack: '24 pc case',
+    rate: 34_00,
+    mrp: 40_00,
+    offer: '1 free per 10',
+  },
+  {
+    id: 't2',
+    name: 'Too Yumm Veggie Stix 70 g',
+    brand: 'Too Yumm',
+    pack: '30 pc case',
+    rate: 17_50,
+    mrp: 20_00,
+  },
+  {
+    id: 't3',
+    name: 'MOM Roasted Makhana 60 g',
+    brand: 'MOM',
+    pack: '24 pc case',
+    rate: 42_00,
+    mrp: 50_00,
+  },
+  {
+    id: 't4',
+    name: 'Balaji Wafers Masala Masti 45 g',
+    brand: 'Balaji',
+    pack: '40 pc case',
+    rate: 8_50,
+    mrp: 10_00,
+    offer: '₹20 off a case',
+  },
+] as const
+
+function ShopDemo() {
+  const [cart, setCart] = useState<Record<string, number>>({ t1: 48 })
+  const lines = Object.values(cart).filter((p) => p > 0).length
+  const total = TILES.reduce((sum, t) => sum + (cart[t.id] ?? 0) * t.rate, 0)
+  return (
+    <div style={{ width: '100%' }}>
+      <Eyebrow>SHOP BY BRAND</Eyebrow>
+      <div style={{ marginTop: space[2], marginBottom: space[6] }}>
+        <TileGrid>
+          {['Campa', 'Too Yumm', 'MOM', 'Balaji', 'Masti Oye'].map((brand) => (
+            <BrandTile key={brand} name={brand} detail="12 items" onPress={() => undefined} />
+          ))}
+        </TileGrid>
+      </div>
+      <TileGrid testID="gallery-tiles">
+        {TILES.map((tile) => (
+          <ProductTile
+            key={tile.id}
+            name={tile.name}
+            brand={tile.brand}
+            pack={tile.pack}
+            rate={tile.rate}
+            rateUnit="a piece"
+            mrp={tile.mrp}
+            {...('offer' in tile ? { offer: tile.offer } : {})}
+            pieces={cart[tile.id] ?? 0}
+            caseSize={24}
+            onChange={(pieces) => setCart((c) => ({ ...c, [tile.id]: pieces }))}
+            onOpenPieces={() => undefined}
+            onPress={() => undefined}
+          />
+        ))}
+      </TileGrid>
+      <div
+        style={{
+          marginTop: space[6],
+          padding: space[3],
+          border: '1px solid #D5D6CF',
+          borderRadius: 8,
+          background: '#FFFFFF',
+        }}
+      >
+        <CartBar
+          count={lines}
+          total={total}
+          actionLabel="See my order"
+          onAction={() => undefined}
+        />
+      </div>
+    </div>
+  )
+}
 
 function Gallery() {
   const [qty, setQty] = useState(48)
@@ -639,6 +859,23 @@ function Gallery() {
             </div>
           </div>
         </div>
+      </Section>
+
+      {/*
+       * The card lays itself out by the WINDOW (a phone column under 1024 px, one row per job on a
+       * desk), so open this page at 390 px to see the phone and at 1280 px to see the desk. It is
+       * drawn at the field floor (69 dp), the delivery driver's.
+       */}
+      <Section title="6.18 The job home — JobCard · JobList · MoreGroup">
+        <ThemeProvider touch="field" density="field" tenant={{ name: 'Tarsun Enterprises' }}>
+          <JobsDemo />
+        </ThemeProvider>
+      </Section>
+
+      <Section title="6.19 The shop — ProductTile · TileGrid · BrandTile · CartBar">
+        <ThemeProvider touch="field" density="field" tenant={{ name: 'Tarsun Enterprises' }}>
+          <ShopDemo />
+        </ThemeProvider>
       </Section>
 
       <Sheet open={sheet} onClose={() => setSheet(false)} title="Bargain request">

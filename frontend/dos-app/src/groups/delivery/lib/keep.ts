@@ -48,6 +48,12 @@ const KEEP_WORDS = {
    */
   waitingChip: { device: 'tray.waitingOnPhone', tab: 'tray.waitingInTab' },
   pending: { device: 'd8.pending', tab: 'd8.pendingTab' },
+  /*
+   * The same claim on the driver's home, in the home's own words (verify-1 m3; founder, 2026-09-28,
+   * rule 5): "1 writes are held in this tab only" had no singular and a software word in it. D8 keeps
+   * its sentence; the home says what a driver would.
+   */
+  homePending: { device: 'd1.pending', tab: 'd1.pendingTab' },
   pendingBlocks: { device: 'd8.pendingBlocks', tab: 'd8.pendingBlocksTab' },
   uncounted: { device: 'd8.uncounted', tab: 'd8.uncountedTab' },
   uncountedSettled: { device: 'd8.uncountedSettled', tab: 'd8.uncountedSettledTab' },

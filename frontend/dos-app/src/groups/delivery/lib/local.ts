@@ -27,6 +27,7 @@ import { useSyncStatus, useTable } from '@dos/offline/react'
 import { useMemo } from 'react'
 
 import { today } from './dates'
+import { isStopTerminal } from './stop-state'
 import { OPEN_TRIP_STATES, pickCurrentTrip as pickTrip } from './trip-choice'
 
 export { dayEndTripId, loadPanelTitleKey, loadSheetPackagesKey, tripEntryHref } from './trip-choice'
@@ -141,6 +142,13 @@ export interface LocalOutstanding {
   retailer_id: string
   outstanding_paise: number
   overdue_paise: number
+  /**
+   * Bills of this shop that came back on a van and are NOT in `outstanding_paise` (QA DOS-197) — a
+   * bill re-planned on today's trip is one of them until it is handed over, so "what the shop owes in
+   * all" is the two added together. Optional in this type only because the older readers of this row
+   * never asked for it; the manifest carries the column.
+   */
+  undelivered_paise?: number | null
   unallocated_credit_paise: number
   open_bills: number
   oldest_due_date: string | null
@@ -390,6 +398,81 @@ export function useLocalInvoiceLines(invoiceId: string | null): {
   )
 }
 
+/**
+ * The lines of SEVERAL bills at once — the home's "Delivered, all items" confirm names every bill of a
+ * stop and its pieces, and writes each one in full. Read by id, like the shops and the bills.
+ */
+export function useLocalInvoiceLinesOf(invoiceIds: readonly string[]): {
+  rows: LocalInvoiceLine[]
+  loading: boolean
+} {
+  const wanted = useIdSet(invoiceIds)
+  const query = useMemo(
+    () => ({ ...byIdQuery('invoice_id', wanted), orderBy: 'invoice_id ASC, line_no ASC' }),
+    [wanted],
+  )
+  const { rows, loading } = useTable<LocalInvoiceLine>('invoice_lines', query)
+  return { rows, loading: wanted.length > 0 && loading }
+}
+
+/** What the office recorded as going in, per bill line (`delivery_lines`, pulled for the crew's trips). */
+export interface LocalDeliveryLine {
+  id: string
+  delivery_id: string
+  invoice_line_id: string
+  delivered_qty_pcs: number
+  returned_qty_pcs: number
+}
+
+/** The recorded lines of the given deliveries — how many pieces went in at each finished door. */
+export function useLocalDeliveryLinesOf(deliveryIds: readonly string[]): {
+  rows: LocalDeliveryLine[]
+  loading: boolean
+} {
+  const wanted = useIdSet(deliveryIds)
+  const query = useMemo(() => byIdQuery('delivery_id', wanted), [wanted])
+  const { rows, loading } = useTable<LocalDeliveryLine>('delivery_lines', query)
+  return { rows, loading: wanted.length > 0 && loading }
+}
+
+/** A load sheet as the crew's phone holds it (`load_sheets`, pulled for 30 days). */
+export interface LocalLoadSheet {
+  id: string
+  trip_id: string | null
+  status: string
+  sheet_date: string
+  expected_packages: number | null
+  counted_packages: number | null
+  challan_no: string | null
+  confirmed_at: string | null
+  /** `jsonb` on the wire, TEXT on the device: the orders the sheet carries. */
+  order_ids: string | null
+}
+
+/**
+ * The load sheets that may belong to this trip: the ones linked to it, and the ones linked to no trip
+ * at all — the warehouse app may build a sheet for the VEHICLE and leave `trip_id` empty, and the
+ * office's own depart gate still counts such a sheet when it carries a bill of this trip. Which of the
+ * unlinked ones do is decided in `home.ts` (`sheetsForTrip`), against the bills.
+ */
+export function useLocalLoadSheets(tripId: string | null): {
+  rows: LocalLoadSheet[]
+  loading: boolean
+} {
+  return useTable<LocalLoadSheet>(
+    'load_sheets',
+    useMemo(
+      () => ({
+        where: 'trip_id = ? OR trip_id IS NULL',
+        params: [tripId ?? ''],
+        orderBy: 'sheet_date DESC',
+        limit: 50,
+      }),
+      [tripId],
+    ),
+  )
+}
+
 export function useLocalOutstanding(retailerId: string | null): {
   row: LocalOutstanding | null
   loading: boolean
@@ -402,6 +485,49 @@ export function useLocalOutstanding(retailerId: string | null): {
     ),
   )
   return { row: rows[0] ?? null, loading }
+}
+
+/** The dues rows of several shops at once — the home asks what each shop on the trip owes in all. */
+export function useLocalOutstandingOf(retailerIds: readonly string[]): {
+  byRetailer: Map<string, LocalOutstanding>
+  loading: boolean
+} {
+  const wanted = useIdSet(retailerIds)
+  const query = useMemo(() => byIdQuery('retailer_id', wanted), [wanted])
+  const { rows, loading } = useTable<LocalOutstanding>('retailer_outstanding_summary', query)
+  return useMemo(
+    () => ({
+      byRetailer: new Map(rows.map((row) => [row.retailer_id, row])),
+      loading: wanted.length > 0 && loading,
+    }),
+    [rows, loading, wanted.length],
+  )
+}
+
+/** A credit note as the crew's phone holds it (`credit_notes`, pulled for 90 days like the bills). */
+export interface LocalCreditNote {
+  id: string
+  credit_note_no: string | null
+  invoice_id: string
+  retailer_id: string
+  state: string
+  delivery_id: string | null
+  total_paise: number
+}
+
+/**
+ * The credit notes against the given bills. A part delivery raises one at the office for what came
+ * back (`deliveries.record`), so this is how the home learns that a door owes less than its bills
+ * (verify-1 M1): the goods that did not go in are not money to collect.
+ */
+export function useLocalCreditNotesOf(invoiceIds: readonly string[]): {
+  rows: LocalCreditNote[]
+  loading: boolean
+} {
+  const wanted = useIdSet(invoiceIds)
+  const query = useMemo(() => byIdQuery('invoice_id', wanted), [wanted])
+  const { rows, loading } = useTable<LocalCreditNote>('credit_notes', query)
+  return { rows, loading: wanted.length > 0 && loading }
 }
 
 /**
@@ -471,10 +597,8 @@ export function useLocalVehicle(id: string | null): {
 // Derived facts a screen would otherwise re-derive three times
 // ---------------------------------------------------------------------------
 
-/** A stop is finished when it can take no more work at the door. */
-export function isStopTerminal(state: string): boolean {
-  return state === 'delivered' || state === 'partial' || state === 'failed' || state === 'skipped'
-}
+/** A stop is finished when it can take no more work at the door (`./stop-state`, shared with the home). */
+export { isStopTerminal }
 
 /**
  * The next stop to drive to: the first by `sequence` that is not finished. Null when the road is

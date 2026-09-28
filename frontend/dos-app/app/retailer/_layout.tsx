@@ -24,7 +24,14 @@
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
 import { groupOf } from '@dos/api-client'
-import { AppShell, ConnectionStrip, GroupProvider, ThemeProvider, routeFor } from '@dos/ui'
+import {
+  AppShell,
+  ConnectionStrip,
+  GroupProvider,
+  ThemeProvider,
+  routeFor,
+  useViewport,
+} from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
 import type { AccountMenu, NavItem, TenantChoice, TenantSwitcherProps } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
@@ -32,14 +39,16 @@ import { Slot, usePathname, useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
 
 import { GROUPS, absoluteUrl } from '../../src/config'
-import { SECTIONS } from '../../src/groups/retailer/nav'
+import { DistributorChip } from '../../src/groups/retailer/lib/distributors'
+import { useLeaveConfirm } from '../../src/groups/retailer/lib/leave-confirm'
+import { SECTIONS, tabOf } from '../../src/groups/retailer/nav'
 import { strings } from '../../src/groups/retailer/strings'
 
 /** The one literal this group writes. Every route below goes through `routeFor`/`useGo` from it. */
 const GROUP = 'retailer'
 
 export default function RetailerLayout(): React.JSX.Element | null {
-  const { session, signOut, switchDistributor } = useSession()
+  const { session, switchDistributor } = useSession()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -73,13 +82,18 @@ export default function RetailerLayout(): React.JSX.Element | null {
    *
    * `MembershipSummary` carries `displayName` and `logoUrl` per distributor, so a shop that buys from
    * three sees three names it recognises rather than three legal entities.
+   *
+   * NO SECOND LINE UNDER A DISTRIBUTOR'S NAME. It used to be `membership.role`, which printed the
+   * machine word "retailer" under the distributor's name in the header of every screen — a software
+   * word in the navigation (founder, 2026-09-28: plain words only). A shop is a shop at every one of
+   * its distributors, so there is nothing to tell apart; the kit draws no line for an empty label.
    */
   const choices = useMemo<readonly TenantChoice[]>(
     () =>
       (session?.memberships ?? []).map((membership) => ({
         id: membership.tenantId,
         name: membership.displayName,
-        roleLabel: membership.role,
+        roleLabel: '',
       })),
     [session],
   )
@@ -108,7 +122,7 @@ export default function RetailerLayout(): React.JSX.Element | null {
             current: {
               id: session.tenant.id,
               name: session.tenant.displayName,
-              roleLabel: session.role,
+              roleLabel: '',
             },
             choices,
             onSwitch: (tenantId) => {
@@ -117,15 +131,12 @@ export default function RetailerLayout(): React.JSX.Element | null {
           }}
           account={{
             name: session.user.name,
-            roleLabel: session.role,
-            onSignOut: () => {
-              void signOut()
-            },
+            roleLabel: strings['app.shopOwner'],
             /*
-             * ONLY WHAT THE NAVIGATION DOES NOT ALREADY CARRY. This app has no tab bar, so `AppShell`
-             * merges the nav sections AND these items into one ⋯ sheet — and "My account" is already
-             * a destination in `SECTIONS`. Listing it here too is how the delivery app came to show
-             * two screens twice on its only way of getting around.
+             * ONLY WHAT THE NAVIGATION DOES NOT ALREADY CARRY. On a phone `AppShell` merges every nav
+             * entry that is not a tab AND these items into one ⋯ sheet — and "Phones and login" is
+             * already a destination in `SECTIONS`. Listing it here too is how the delivery app came to
+             * show two screens twice on its only way of getting around.
              *
              * Change-password is a ROOT route of the one app, shared by all six groups, so `routeFor`
              * hands it back unchanged rather than putting `/retailer` in front of it.
@@ -152,7 +163,8 @@ interface ChromeProps {
   can: (item: NavItem) => boolean
   pathname: string
   tenant: TenantSwitcherProps
-  account: AccountMenu
+  /** `onSignOut` is Chrome's own: it asks first (`useLeaveConfirm`), inside the theme's strings. */
+  account: Omit<AccountMenu, 'onSignOut'>
   children: React.ReactNode
 }
 
@@ -167,6 +179,24 @@ interface ChromeProps {
 function Chrome({ can, pathname, tenant, account, children }: ChromeProps): React.JSX.Element {
   const api = useApi()
   const router = useRouter()
+  /*
+   * ONE NAME AT THE TOP OF THE SHOP, NOT TWO. The home opens on the distributor chip (founder,
+   * 2026-09-28): the open distributor's logo and name, and the button that shows every distributor
+   * with what each is owed. On the phone HOME the chip IS the header (`AppShell header`): the shell's
+   * switcher and a second row for the chip below it cost the first screen its products (retailer
+   * check, 2026-09-28: no "+ Add" above the fold at 390 × 844). Every other screen, and the desk rail
+   * everywhere, keeps the shell's own switcher.
+   */
+  const viewport = useViewport()
+  const chipIsTheName = viewport.kind === 'phone' && pathname === routeFor(GROUP, '/')
+  /*
+   * SIGNING OUT EMPTIES EVERY BASKET ON THIS DEVICE (founder, 2026-09-28), and it ASKS FIRST from
+   * every place that signs out — the ⋯ sheet and the account menu here, and Me. The basket survives a
+   * restart now (`src/groups/retailer/lib/cart.ts`), so the next person to pick the device up must not
+   * find the last one's order waiting in it; and one stray tap in a menu must not throw a half-built
+   * order away without a word (retailer check, 2026-09-28: the menu's Sign out asked nothing).
+   */
+  const leaveConfirm = useLeaveConfirm()
 
   const inbox = useQuery(
     ['notifications', 'unread'],
@@ -191,7 +221,8 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
     <AppShell
       sections={sections}
       can={can}
-      activeHref={pathname}
+      /* A brand page and the basket are the Shop; paying is Money (`tabOf`). */
+      activeHref={tabOf(pathname)}
       /*
        * The group's own base is its HOME. Without this the rail would light "Home" on every screen
        * of the group, because `/retailer` is a prefix of `/retailer/dues` (docs/31 §1.3, nav-active).
@@ -200,8 +231,9 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
       onNavigate={(href) => {
         router.push(href)
       }}
-      tenant={tenant}
-      account={account}
+      tenant={chipIsTheName ? undefined : tenant}
+      header={chipIsTheName ? <DistributorChip place="header" /> : undefined}
+      account={{ ...account, onSignOut: leaveConfirm.ask }}
       connection={
         <ConnectionStrip
           testID="connection"
@@ -213,6 +245,7 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
       }
     >
       {children}
+      {leaveConfirm.dialog}
     </AppShell>
   )
 }

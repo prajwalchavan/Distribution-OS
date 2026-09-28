@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { clockTime, relativeTime } from '../relative-time.js'
 import { keepSegment } from '../strings.js'
+import { useControlScale } from '../control-scale.js'
 import { useTheme } from '../theme.js'
 import { cssShadow, monogramSize, radius, size as sizeTokens, space, typeDesk } from '../tokens.js'
 import type {
@@ -260,11 +261,22 @@ export function Sheet({ open, onClose, title, children, testID }: SheetProps): R
             `size="desk"` only for the DESK side panel. A bottom sheet is a phone surface, so its
             close button obeys the app's own floor (UX-00 section 5.2) exactly as every other control
             on that sheet does — 32 px under a thumb was the smallest target in the kit.
+
+            `fullWidth={false}`: at a touch floor a button is full width by default, and in this
+            row that made Close claim half of it — the title wrapped ("Your / distributors") and
+            Close floated in the middle of a wide sheet (retailer check, 2026-09-28).
+          */}
+          {/*
+            NOT FULL WIDTH. Off the desk a `<Button>` fills its row by default, and in this header row
+            that squeezed the title to its narrowest: "Take money" on the driver's home broke into two
+            lines, one word each, beside a Close that had half the sheet to itself (delivery home,
+            2026-09-28, at 390 and 1280 px). Close keeps the app's touch floor, only its natural width.
           */}
           <Button
             label={theme.t('action.close')}
             variant="ghost"
             onPress={onClose}
+            fullWidth={false}
             {...(desk ? { size: 'desk' as const } : {})}
           />
         </div>
@@ -611,13 +623,15 @@ export function ErrorState({
   testID,
 }: ErrorStateProps): React.JSX.Element {
   const theme = useTheme()
+  // On a centred form (sign-in) the message takes the fields' soft corner, not a sharper one.
+  const scale = useControlScale()
   return (
     <div
       data-testid={testID}
       style={{
         padding: space[5],
         background: theme.colors.status.brick.tint,
-        borderRadius: radius.md,
+        borderRadius: scale?.radius ?? radius.md,
       }}
     >
       <Txt field="bodyStrong" desk="section" as="div" color={theme.colors.status.brick.fg}>

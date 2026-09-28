@@ -132,8 +132,14 @@ export default function SignIn(): React.JSX.Element {
      * product's, and `APP.role` went with the six configs (ruling B3). This app is never the console.
      */
     <Welcome appTitle={APP.title} role="member">
-      <Screen title={t('app.signInTitle')} context={APP.title}>
-        <Stack gap={4} maxWidth={420}>
+      {/*
+       * In the MIDDLE of the window, with no header band (founder, 2026-09-28: "placed in middle,
+       * not boxy"): the product's name, one friendly line, the two fields, a large Sign in, the one
+       * line of help. `centered` is the kit's, so the welcome, the chooser below and change password
+       * stand exactly where this does. Nothing about signing in changed.
+       */}
+      <Screen centered title={APP.title} subtitle={t('app.signInLine')}>
+        <Stack gap={3}>
           <TextInput
             label={t('app.username')}
             value={username}
@@ -158,7 +164,7 @@ export default function SignIn(): React.JSX.Element {
             fullWidth
             testID="sign-in-submit"
           />
-          <Txt field="label" desk="meta" color={colors.text.secondary}>
+          <Txt field="label" desk="meta" color={colors.text.secondary} align="center">
             {t('app.signInHelp')}
           </Txt>
         </Stack>
@@ -185,7 +191,6 @@ function ContinueAs({
   onDone: () => void
 }): React.JSX.Element {
   const t = useStrings()
-  const colors = useColors()
   const { electRole } = useSession()
   const roles = permittedRoles(session)
   const [picked, setPicked] = useState<MembershipRole>(() => preselectedRole(session))
@@ -220,11 +225,13 @@ function ContinueAs({
   }
 
   return (
-    <Screen title={t('elect.title')} context={session.tenant.displayName}>
-      <Stack gap={4} maxWidth={420}>
-        <Txt field="body" desk="body" color={colors.text.secondary}>
-          {t('elect.body')}
-        </Txt>
+    <Screen
+      centered
+      title={t('elect.title')}
+      context={session.tenant.displayName}
+      subtitle={t('elect.body')}
+    >
+      <Stack gap={4}>
         <Group>
           {roles.map((role) => (
             <ListRow

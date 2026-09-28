@@ -15,6 +15,7 @@
  * for how long, and is versioned so the office holds an agreement to the words that were shown.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
+import { useSyncEngine } from '@dos/offline/react'
 import {
   Button,
   Dialog,
@@ -38,6 +39,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import { GPS_NOTICE_VERSION } from '../../../src/groups/delivery/config'
+import { pullAfterDoorstepWrite } from '../../../src/groups/delivery/lib/at-the-door'
 import { instantWithClock, longDate } from '../../../src/groups/delivery/lib/dates'
 import { deviceId } from '../../../src/api'
 import {
@@ -57,6 +59,7 @@ export default function StartTrip(): React.JSX.Element {
   const go = useGo()
   const { session } = useSession()
   const signedIn = session !== null
+  const engine = useSyncEngine()
 
   /*
    * WHICH trip is being started, and why it is a parameter.
@@ -152,6 +155,13 @@ export default function StartTrip(): React.JSX.Element {
       onSuccess: () => {
         haptics.success()
         setToast(t('d2.departed'))
+        /*
+         * THE HOME THIS GOES BACK TO READS THE TRIP OFF THE DEVICE (founder, 2026-09-28: the home is
+         * the driver's jobs). Without a pull it went on offering "Picked up, start" over a van that had
+         * left, until the next poll came round — measured on the web build, over a minute. The same
+         * public pull D4 and D5 take after their writes (DOS-063); a screen never writes the row itself.
+         */
+        void pullAfterDoorstepWrite(engine, 'trip departed')
         router.replace(go.href('/'))
       },
       onError: () => {

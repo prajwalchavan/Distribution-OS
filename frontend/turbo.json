@@ -41,6 +41,24 @@
     "lint": {},
     "typecheck": {},
     "test": {},
+    "@dos/offline#test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/dos-app/app/**",
+        "$TURBO_ROOT$/dos-app/src/**",
+        "$TURBO_ROOT$/admin-app/app/**",
+        "$TURBO_ROOT$/admin-app/src/**"
+      ]
+    },
+    "@dos/ui#test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/dos-app/app/**",
+        "$TURBO_ROOT$/dos-app/src/**",
+        "$TURBO_ROOT$/admin-app/app/**",
+        "$TURBO_ROOT$/admin-app/src/**"
+      ]
+    },
     "clean": {
       "cache": false
     }

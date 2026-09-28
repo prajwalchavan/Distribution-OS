@@ -62,7 +62,19 @@ const CLAIMS: readonly {
     word: 'pending',
     device: 'd8.pending',
     tab: 'd8.pendingTab',
-    screens: ['../../../../app/delivery/index.tsx', '../../../../app/delivery/day.tsx'],
+    screens: ['../../../../app/delivery/day.tsx'],
+  },
+  /*
+   * D1 prints the same claim in the home's own words since verify-1 m3 (founder, 2026-09-28: every
+   * home in the words its person would say — "1 writes are held in this tab only" was neither). The
+   * pin moves with it, deliberately: the home still asks the store through `keepKey`, with a tab twin
+   * that does not name the phone, and never reads the phone's half by name.
+   */
+  {
+    word: 'homePending',
+    device: 'd1.pending',
+    tab: 'd1.pendingTab',
+    screens: ['../../../../app/delivery/index.tsx'],
   },
   {
     word: 'pendingBlocks',

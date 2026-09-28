@@ -167,11 +167,30 @@ export const en = {
    * and logo are the chrome (UX-00 §11), which is what the landing says two seconds of.
    */
   'welcome.product': 'Distribution OS',
-  'welcome.tagline': 'Connecting a distribution business through six apps.',
+  'welcome.tagline': 'One app for your whole distribution business.',
   /* The console is not one of the six: its reader is our own staff, not a distributor's. */
   'welcome.console': 'Platform console',
   'welcome.signIn': 'Sign in',
   'landing.app': '{name} app',
+
+  /*
+   * The job home and the shop (founder, 2026-09-28: every app opens on its work; the shopkeeper's
+   * home feels like a shopping app). Plain words a driver or a shopkeeper would say, <= 20 characters.
+   */
+  'job.next': 'Do this next',
+  'job.nothingWaiting': 'Nothing waiting',
+  'job.more': 'More',
+  'job.show': 'Show',
+  'job.hide': 'Hide',
+  /* Spoken with the count: "More, 6 things, closed". */
+  'job.moreSpoken': '{title}, {count} things',
+  'shop.add': 'Add',
+  'shop.addItem': 'Add {name}',
+  'shop.mrp': 'MRP {amount}',
+  'shop.oneItem': '1 item',
+  'shop.items': '{count} items',
+  /* In front of a cart total that is not yet the engine's answer for the cart as it is now. */
+  'shop.about': 'about',
 
   // The shell (UX-00 sections 8.1 and 8.2).
   'nav.sections': 'Sections',

@@ -37,6 +37,9 @@ export {
   welcomeSeen,
 } from './welcome.js'
 export { MapView } from './map.js'
+// The job home and the shop (founder, 2026-09-28): every role's home is built from these.
+export { JobCard, JobList, MoreGroup } from './jobs.js'
+export { BrandTile, CartBar, ProductTile, TileGrid } from './shop.js'
 
 // The layout vocabulary of docs/08 §0 — the whole structural surface a screen may use.
 export {

@@ -85,11 +85,17 @@ export const strings = {
    */
 
   // --- the rail / more sheet (labels are <= 14 characters, UX-00 §8.1) ------------------------
+  /*
+   * Founder, 2026-09-28 ("minimise the understanding effort"): each destination is named the way its
+   * own screen names itself, in the driver's words — "Day summary" opened a screen titled "End of
+   * day", "Trip history" one titled "Your trips", and "Expenses" is the office's word for the diesel
+   * and the toll the driver paid.
+   */
   'nav.today': 'Today',
-  'nav.day': 'Day summary',
-  'nav.expenses': 'Expenses',
+  'nav.day': 'End of day',
+  'nav.expenses': 'Money spent',
   'nav.attention': 'Attention',
-  'nav.history': 'Trip history',
+  'nav.history': 'Your trips',
   'nav.me': 'Me',
 
   // --- shared words ---------------------------------------------------------------------------
@@ -129,14 +135,14 @@ export const strings = {
   'd.owes': 'Owes {amount}',
   'd.creditTerms': 'Terms',
 
-  // --- D1 today's trip -------------------------------------------------------------------------
-  'd1.title': "Today's trip",
+  // --- D1 today's deliveries (the home) ------------------------------------------------------------
+  'd1.title': "Today's deliveries",
   'd1.noTrip': 'No trip is out for you',
   'd1.noTripBody': 'The office plans the trip and the godown loads it. Nothing is on the road yet.',
   'd1.nextStop': 'Next stop',
   'd1.stops': 'Stops in order',
   'd1.load': 'Load on board',
-  'd1.loadPlanned': 'Load sheet',
+  'd1.loadPlanned': 'Loading list',
   'd1.loadConfirmed': 'Godown confirmed the load {when}',
   'd1.loadNotConfirmed': 'The godown has not confirmed a load sheet for this trip',
   'd1.loadSheets': '{count} load sheets',
@@ -146,13 +152,13 @@ export const strings = {
   'd1.packagesPlanned': '{count} cartons planned — not loaded yet',
   'd1.packagesPlanned.one': '1 carton planned — not loaded yet',
   'd1.expectedCash': 'Cash you should be holding',
-  'd1.openingCash': 'Float at start',
-  'd1.collectedToday': 'Collected today',
+  'd1.openingCash': 'Cash given at start',
+  'd1.collectedToday': 'Money taken today',
   'd1.toCollect': 'Still to collect',
   'd1.startTrip': 'Start this trip',
   'd1.endDay': 'Check in the vehicle',
   'd1.vanSale': 'Sell from the van',
-  'd1.addExpense': 'Add an expense',
+  'd1.addExpense': 'Add money spent',
   'd1.tracking': 'Location is on for this trip',
   'd1.trackingOff': 'Location is off',
   /* DOS-179 — the points this trip has recorded and not sent yet; `keepKey('trackingHeld', …)` chooses. */
@@ -166,6 +172,96 @@ export const strings = {
   'd1.tripState': 'Trip is {state}',
   'd1.otherTrips': 'Your other trips',
   'd1.plannedFor': 'Planned for {date}',
+  /*
+   * DOS-179 — what the home says while records wait for a signal; `keepKey('homePending', …)` chooses.
+   * Counted first so one reads as well as many (verify-1 m3), and in a driver's words, not "writes".
+   */
+  'd1.pending':
+    '{count} waiting to send. This phone keeps it all and sends it when there is a signal.',
+  'd1.pendingTab':
+    '{count} waiting to send. Held in this tab only, not saved — it goes when there is a signal; close this tab and it is gone.',
+
+  /*
+   * THE HOME AS A LIST OF JOBS (founder, 2026-09-28: "when the delivery guy opens the app it must have
+   * a clear view of the orders, with the buttons to mark picked up, delivered and so on on the landing
+   * page itself"). Every button here is at most 20 characters and every chip is one word; the rules
+   * that choose them are in src/groups/delivery/lib/home.ts and `home.test.ts` holds both lengths.
+   * None of these names the phone: where a sentence has to say a write is kept here it goes through
+   * `keepKey` (DOS-179), never a new string.
+   */
+  'home.summary': '{done} of {total} done · {amount} still to collect',
+  'home.summaryNothingLeft': '{done} of {total} done · nothing left to collect',
+  'home.summaryDone': '{done} of {total} done · now check in the vehicle',
+  'home.summaryDoneMoney': '{done} of {total} done · {amount} not taken · now check in the vehicle',
+  // The word beside the figure on a card: what the money is.
+  'home.toCollect': 'To collect',
+  'home.onCredit': 'On credit',
+  'home.doneOnCredit': '{amount} on credit',
+  'home.loadTitle': "Today's load",
+  'home.loadTitleFor': 'Load for {date}',
+  'home.shops': '{count} shops',
+  'home.shops.one': '1 shop',
+  'home.bills': '{count} bills',
+  'home.bills.one': '1 bill',
+  'home.cartons': '{count} cartons',
+  'home.cartons.one': '1 carton',
+  'home.chipWaiting': 'Waiting',
+  'home.chipLoading': 'Loading',
+  'home.chipLoaded': 'Loaded',
+  'home.chipHere': 'Arrived',
+  'home.chipUnpaid': 'Unpaid',
+  'home.pickedUp': 'Picked up, start',
+  'home.notStarted': 'The godown has not started loading your van yet',
+  'home.stillLoading': 'The godown is still loading your van',
+  'home.stopTitle': '{n}. {shop}',
+  'home.arrive': 'I am here',
+  'home.map': 'Map',
+  'home.call': 'Call',
+  'home.deliverAll': 'Delivered, all items',
+  'home.deliver': 'Deliver',
+  'home.photoFirst': 'This shop needs a photo of the signed bill',
+  'home.billsComing': 'The items on these bills have not arrived yet — wait a moment',
+  'home.different': 'Something different',
+  'home.openShop': 'Open this shop',
+  'home.takeMoney': 'Take money',
+  'home.noMoney': 'No money now',
+  'home.donePieces': '{outcome} {pieces} pc',
+  'home.doneHeld': 'Recorded',
+  'home.doneTaken': '{amount} taken',
+  'home.doneNoMoney': 'no money taken',
+  'home.doneLine': '{what} · {money}',
+  'home.doneFailed': '{outcome} · {reason}',
+  'home.allDoneTitle': 'All done',
+  'home.allDoneLine': 'Take the van back and check it in.',
+  'home.checkIn': 'Check in the vehicle',
+  'home.checkedInTitle': 'Vehicle checked in',
+  'home.checkedInLine': 'The office now counts the cash and van.',
+  'home.seeDay': 'See end of day',
+  'home.more': 'More on this trip',
+  'home.thisTrip': 'This trip',
+  'home.endDayNow': 'End of day',
+  'home.pastTrips': 'Your trips',
+  // "Delivered, all items" — the confirm names the shop, each bill and its pieces (the kit's Dialog rule).
+  'home.confirmTitle': 'Everything delivered?',
+  'home.confirmBill': '{no} · {pieces} pc',
+  'home.confirmBody':
+    'These bills are recorded as delivered in full at {shop}. You type the money next.',
+  'home.confirmBody.one':
+    'This bill is recorded as delivered in full at {shop}. You type the money next.',
+  'home.confirmDeliver': 'Yes, all delivered',
+  // What a toast says was recorded.
+  'home.arrived': 'Arrived at {shop}',
+  'home.delivered': 'Delivered: {bills}',
+  'home.noMoneyToast': 'Nothing recorded for {shop}',
+  // "Take money" — the sheet on the home. The amount is typed; what is expected is printed above it.
+  'home.moneyTitle': 'Take money',
+  'home.moneyLeft': 'Still to collect here',
+  'home.moneyGoes': 'The office puts this on the oldest bill the shop owes.',
+  'home.moneyGoesLater':
+    'When it reaches the office, it goes on the oldest bill the shop owes. Choosing a bill needs a signal.',
+  'home.moreOptions': 'More options',
+  'home.moreOptionsHelp':
+    'Choose the bill it pays, a cheque date, the bank or your receipt book number',
 
   // --- D2 start trip ---------------------------------------------------------------------------
   'd2.title': 'Start the trip',
@@ -406,7 +502,7 @@ export const strings = {
   'd6.useCash': 'Take {amount} in cash instead',
 
   // --- D7 expenses ------------------------------------------------------------------------------
-  'd7.title': 'Expenses',
+  'd7.title': 'Money spent',
   'd7.kind': 'What for',
   'd7.amount': 'Amount',
   'd7.note': 'Note',

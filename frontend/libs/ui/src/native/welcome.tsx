@@ -77,20 +77,27 @@ export function Welcome({
   if (seen) return <>{children}</>
 
   return (
-    <Screen testID={testID}>
-      <Stack gap={6} maxWidth={420} center>
+    /*
+     * In the middle of the window, like the sign-in form it opens (founder, 2026-09-28: "placed in
+     * middle, not boxy") — `<Screen centered>`, so the two screens stand in exactly the same place.
+     */
+    <Screen centered testID={testID}>
+      <Stack gap={6}>
         <Stack gap={2}>
           {/* The wordmark is TYPESET, not an image: one product name, three targets, no asset. */}
-          <Txt field="hero" desk="kpi" as="h1" testID="welcome-wordmark">
+          <Txt field="hero" desk="kpi" as="h1" align="center" testID="welcome-wordmark">
             {theme.t('welcome.product')}
           </Txt>
-          <Txt field="body" desk="body" color={theme.colors.text.secondary}>
+          <Txt field="body" desk="body" color={theme.colors.text.secondary} align="center">
             {theme.t(role === 'platform_admin' ? 'welcome.console' : 'welcome.tagline')}
           </Txt>
         </Stack>
-        <Txt field="title" desk="pageTitle" testID="welcome-app">
-          {appShortName(appTitle)}
-        </Txt>
+        {/* One app carries the product's own name: printing it twice told nobody anything. */}
+        {appShortName(appTitle) === theme.t('welcome.product') ? null : (
+          <Txt field="title" desk="pageTitle" align="center" testID="welcome-app">
+            {appShortName(appTitle)}
+          </Txt>
+        )}
         <Button
           label={theme.t('welcome.signIn')}
           onPress={enter}

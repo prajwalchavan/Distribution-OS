@@ -156,6 +156,14 @@ export interface QtyStepperProps extends Testable {
   size?: SizeName | undefined
   /** Long-press and the visible "Pieces" button both open the loose-pieces entry. */
   onOpenPieces?: (() => void) | undefined
+  /**
+   * `row` (default) is the order line: − cases + [Pieces] on one line. `stacked` is the same control
+   * for a box two-across on a phone (`<ProductTile>`, founder 2026-09-28): − and + share the width,
+   * each at the touch floor with the adjacent-target gap between them, the figure under them and the
+   * "Pieces" entry under that. The behaviour — case steps, the zero confirm, the pieces entry — is
+   * the same component's, never a second stepper.
+   */
+  layout?: ('row' | 'stacked') | undefined
 }
 
 // ---------------------------------------------------------------------------
@@ -714,6 +722,12 @@ export interface TxtContract extends Testable {
    * which reads worse broken mid-word.
    */
   wrap?: 'anywhere' | undefined
+  /**
+   * Horizontal alignment of the text inside its own box. Default `start`. `center` is for the few
+   * lines that stand alone in the middle of a screen — the product name on the sign-in page, an
+   * empty list's one sentence — never for a paragraph a person reads through.
+   */
+  align?: ('start' | 'center' | 'end') | undefined
   children: ReactNode
 }
 
@@ -750,6 +764,19 @@ export interface ScreenProps extends Testable {
   title?: string | undefined
   /** The line ABOVE the title: "Station Road · stop 7 of 18". */
   context?: string | undefined
+  /** One plain line UNDER the title: "Sign in to start your day." */
+  subtitle?: string | undefined
+  /**
+   * The screens that stand before the app — sign-in, the first-run welcome, "Continue as" and
+   * change password (founder, 2026-09-28: "placed in the middle, not boxy").
+   *
+   * The content sits in the MIDDLE of the window, both ways, at every width, in a column no wider
+   * than a form; there is no header band and no hairline. `context`, `title` and `subtitle` become
+   * the centred heading of that column. Fields and buttons inside it are at least
+   * `layout.formControlHeight` tall with `radius.lg` corners, never under the app's own floor. The
+   * column scrolls when it is taller than the window, so a phone keyboard never strands the button.
+   */
+  centered?: boolean | undefined
   /** Page-header actions (Export, Print). Right-aligned on desk, under the title on a phone. */
   actions?: ReactNode | undefined
   /** Status chips under the title — information only, never an action (UX-00 section 8.2). */
@@ -860,6 +887,13 @@ export interface AppShellProps extends Testable {
   /** Hides the items this signed-in role may not reach. Default: everything is allowed. */
   can?: ((item: NavItem) => boolean) | undefined
   tenant?: TenantSwitcherProps | undefined
+  /**
+   * PHONE SHELL ONLY: what the header shows at its start, in place of the tenant switcher. The
+   * shopkeeper's home puts its distributor chip there (founder, 2026-09-28: the shop front), so the
+   * first screen of a phone is not spent on a header that holds nothing but "⋯" above a second row
+   * carrying the name. The desk shell ignores it: the rail head keeps the switcher.
+   */
+  header?: ReactNode | undefined
   /** The app's `<ConnectionStrip>`; the shell places it (rail foot on desk, under the header on a phone). */
   connection?: ReactNode | undefined
   /** The header search box. The phone shell moves it into the overflow sheet. */
@@ -925,6 +959,156 @@ export interface LandingGate {
   /** True on the one render where a session ended. False on every signed-out launch. */
   readonly signedOut: boolean
   readonly done: () => void
+}
+
+// ---------------------------------------------------------------------------
+// 6.18 The job home (founder, 2026-09-28: "every app opens on its work, no training needed")
+//
+// ONE RULE FOR EVERY HOME: the landing page is the list of this person's jobs, in the order they
+// should be done; each job is a card with its buttons ON it; a button does the common case in one tap
+// plus one confirm; the card changes in place afterwards; everything that is not a job sits below,
+// in a closed "More". These are the blocks every role's home is built from.
+// ---------------------------------------------------------------------------
+
+/** `next` is the one to do now; `done` folds to one quiet line. */
+export type JobState = 'next' | 'default' | 'done'
+
+/** One button on a job card. The same shape for the primary and the (at most two) secondaries. */
+export interface JobAction {
+  /** Verb + object in the trade's own words, <= 20 characters: "Mark delivered". */
+  label: string
+  onPress: () => void
+  disabled?: boolean | undefined
+  /** REQUIRED whenever `disabled`: printed as text under the button, never only as a tooltip. */
+  disabledReason?: string | undefined
+  loading?: boolean | undefined
+  testID?: string | undefined
+}
+
+/** The job's state in one word, with its colour family. Colour is never the only channel. */
+export interface JobChip {
+  label: string
+  family: StatusFamily
+}
+
+export interface JobCardProps extends Testable {
+  /** What the job is: the shop, the bill, the supplier. One line. */
+  title: string
+  /** Where, or how much: "Station Road · 6 items". One line. */
+  subtitle?: string | undefined
+  /** The figure on the right, normally a `<Money>`. */
+  trailing?: ReactNode | undefined
+  chip?: JobChip | undefined
+  state?: JobState | undefined
+  /** The card body opens the detail screen that exists today. Buttons never fire it. */
+  onPress?: (() => void) | undefined
+  /** The next step. Full width on a phone. Hidden on a `done` card. */
+  primary?: JobAction | undefined
+  /** At most two; a third is dropped rather than squeezed. Hidden on a `done` card. */
+  secondary?: readonly JobAction[] | undefined
+}
+
+export interface JobListProps extends Testable {
+  /** At most ONE slim line above the list: "4 of 11 delivered · ₹18,420 to collect". */
+  summary?: ReactNode | undefined
+  /** The `<JobCard>`s, in the order they should be done. None at all shows the empty state. */
+  children?: ReactNode | undefined
+  /** Content-shaped placeholders while the first read is in flight. */
+  loading?: boolean | undefined
+  /** Defaults to "Nothing waiting". */
+  emptyMessage?: string | undefined
+  /** The ONE action the empty state offers ("Open yesterday's trips"). */
+  emptyActionLabel?: string | undefined
+  onEmptyAction?: (() => void) | undefined
+}
+
+/**
+ * Everything on a home that is not a job, folded below the list (rule 6: nothing is removed). Opens
+ * in place; open or closed is remembered under `id` for as long as the app is running.
+ */
+export interface MoreGroupProps extends Testable {
+  /** Stable key the open/closed state is remembered under: "delivery.home.more". */
+  id: string
+  /** Defaults to "More". */
+  title?: string | undefined
+  /** How many things are inside, printed beside the title. */
+  count?: number | undefined
+  defaultOpen?: boolean | undefined
+  children: ReactNode
+}
+
+// ---------------------------------------------------------------------------
+// 6.19 The shop (founder, 2026-09-28: "a shopping app feel", starting without product photos)
+// ---------------------------------------------------------------------------
+
+export interface ProductTileProps extends Testable {
+  /** The item's name. Two lines at most. */
+  name: string
+  /** Its brand: the initial and the colour of the block come from it, the same brand always alike. */
+  brand: string
+  /** "24 pc case · 70 g". */
+  pack?: string | undefined
+  /** The shop's own rate, integer paise. `null` is the em dash, never ₹0.00. */
+  rate: number | null
+  /** What `rate` is for, printed after it: "a piece". */
+  rateUnit?: string | undefined
+  /** Integer paise, printed "MRP ₹20.00" when given. */
+  mrp?: (number | null) | undefined
+  /** An offer, as the shop would say it: "1 free per 10". */
+  offer?: string | undefined
+  /** Integer pieces in the cart. 0 shows the large + ; anything else shows the `<QtyStepper>`. */
+  pieces: number
+  caseSize: number
+  onChange: (pieces: number) => void
+  /** The stepper's "Pieces" entry, kept reachable inside the tile. */
+  onOpenPieces?: (() => void) | undefined
+  availablePieces?: (number | null) | undefined
+  /**
+   * A few words about stock, in the caller's own words, printed just above the button whether or not
+   * the item is in the basket yet: "Out of stock", "Only 4 pc left". Absent prints nothing. A hint,
+   * never a block — `disabled` is what stops a tap.
+   */
+  stock?: string | undefined
+  disabled?: boolean | undefined
+  disabledReason?: string | undefined
+  /** Tapping the tile's picture or name opens the item. */
+  onPress?: (() => void) | undefined
+}
+
+/** Two tiles across on a phone, three on a small tablet, four to six on a desk. */
+export interface TileGridProps extends Testable {
+  children: ReactNode
+}
+
+/** "Shop by brand": the brand's name under the same coloured initial its items carry. */
+export interface BrandTileProps extends Testable {
+  name: string
+  onPress: () => void
+  /** A second line: "12 items". */
+  detail?: string | undefined
+  selected?: boolean | undefined
+}
+
+/**
+ * The bar at the bottom of the shop: "{count} items", the total, one button. Pass it as
+ * `<Screen bottomBar>`; with nothing in the cart it renders nothing and the screen draws no bar.
+ */
+export interface CartBarProps extends Testable {
+  /** Lines in the cart. 0 hides the bar. */
+  count: number
+  /** Integer paise; `null` while the total is being worked out. */
+  total: number | null
+  /**
+   * The figure is not yet the pricing engine's answer for the cart as it is NOW (it moved and the new
+   * quote is on its way): printed "about ₹8,400" until it is (founder, 2026-09-28; UX-01 R5).
+   */
+  approximate?: boolean | undefined
+  /** "See my order". */
+  actionLabel: string
+  onAction: () => void
+  loading?: boolean | undefined
+  disabled?: boolean | undefined
+  disabledReason?: string | undefined
 }
 
 export type { SeriesPoint, Series, CompareGroup, MixSlice }
