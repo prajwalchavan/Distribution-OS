@@ -1085,6 +1085,11 @@ export interface CartBarProps extends Testable {
   count: number
   /** Integer paise; `null` while the total is being worked out. */
   total: number | null
+  /**
+   * The figure is not yet the pricing engine's answer for the cart as it is NOW (it moved and the new
+   * quote is on its way): printed "about ₹8,400" until it is (founder, 2026-09-28; UX-01 R5).
+   */
+  approximate?: boolean | undefined
   /** "See my order". */
   actionLabel: string
   onAction: () => void

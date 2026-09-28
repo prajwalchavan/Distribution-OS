@@ -80,14 +80,18 @@ describe('DOS-102 the summary the home screen reads reaches auth-service', () =>
 })
 
 /**
- * Every `.tsx`/`.ts` under THIS GROUP's `app/retailer/`, comments taken out: a comment may TALK about
- * the bug. The root is the group's own directory and not `app/` — one app now holds six groups, and a
- * walk of the whole tree would sweep five other roles' screens into a retailer guard (docs/31 §6.5).
+ * Every `.tsx`/`.ts` under THIS GROUP's `app/retailer/` AND its own `src/groups/retailer/`, comments
+ * taken out: a comment may TALK about the bug. The roots are the group's own directories and not `app/`
+ * — one app now holds six groups, and a walk of the whole tree would sweep five other roles' screens
+ * into a retailer guard (docs/31 §6.5). The group's `src/` is walked since 2026-09-28, when the
+ * distributor cards moved off the home into `lib/distributors.tsx` (founder: the home is a shop front);
+ * its keys carry a `src/` prefix so they cannot be mistaken for a route.
  */
 async function screenSources(): Promise<Map<string, string>> {
   const { readFileSync, readdirSync } = (await import(NODE_FS)) as NodeFs
   const { fileURLToPath } = (await import(NODE_URL)) as NodeUrl
   const root = fileURLToPath(new URL('../../../../app/retailer/', import.meta.url))
+  const own = fileURLToPath(new URL('../', import.meta.url))
   const out = new Map<string, string>()
   const walk = (dir: string, prefix: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -96,6 +100,8 @@ async function screenSources(): Promise<Map<string, string>> {
         continue
       }
       if (!entry.name.endsWith('.tsx') && !entry.name.endsWith('.ts')) continue
+      // A guard names the wrong spelling in order to refuse it; it is not a screen that calls it.
+      if (/\.test\.tsx?$/.test(entry.name)) continue
       out.set(
         `${prefix}${entry.name}`,
         readFileSync(`${dir}${entry.name}`, 'utf8')
@@ -105,17 +111,20 @@ async function screenSources(): Promise<Map<string, string>> {
     }
   }
   walk(root, '')
+  walk(own, 'src/')
   return out
 }
 
 describe('DOS-102 no screen of this app reads an auth procedure through the tenant client', () => {
-  it('no `api.api.auth.` anywhere under app/, and the home screen does read the summary off `api.auth`', async () => {
+  it('no `api.api.auth.` anywhere in the group, and the distributor cards do read the summary off `api.auth`', async () => {
     const sources = await screenSources()
 
     // The guard would be vacuous if it found nothing to read: the screens are there.
     expect(sources.size).toBeGreaterThan(5)
     // And the summary is still read — a rename must not let this pass by guarding a call that is gone.
-    expect(sources.get('index.tsx')).toContain('api.auth.memberships.summary()')
+    // Since 2026-09-28 the cards that read it are `lib/distributors.tsx`, which the home opens.
+    expect(sources.get('src/lib/distributors.tsx')).toContain('api.auth.memberships.summary()')
+    expect(sources.get('index.tsx')).toContain('<DistributorList')
 
     const throughTheTenantClient = [...sources]
       .filter(([, source]) => source.includes('api.api.auth.'))

@@ -32,14 +32,21 @@ import { Slot, usePathname, useRouter } from 'expo-router'
 import { useCallback, useMemo } from 'react'
 
 import { GROUPS, absoluteUrl } from '../../src/config'
-import { SECTIONS } from '../../src/groups/retailer/nav'
+import { useLeave } from '../../src/groups/retailer/lib/shopping'
+import { SECTIONS, tabOf } from '../../src/groups/retailer/nav'
 import { strings } from '../../src/groups/retailer/strings'
 
 /** The one literal this group writes. Every route below goes through `routeFor`/`useGo` from it. */
 const GROUP = 'retailer'
 
 export default function RetailerLayout(): React.JSX.Element | null {
-  const { session, signOut, switchDistributor } = useSession()
+  const { session, switchDistributor } = useSession()
+  /*
+   * SIGNING OUT EMPTIES EVERY BASKET ON THIS DEVICE (founder, 2026-09-28). The basket survives a
+   * restart now (`src/groups/retailer/lib/cart.ts`), so the next person to pick up the phone must not
+   * find the last one's order waiting in it.
+   */
+  const leave = useLeave()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -74,12 +81,18 @@ export default function RetailerLayout(): React.JSX.Element | null {
    * `MembershipSummary` carries `displayName` and `logoUrl` per distributor, so a shop that buys from
    * three sees three names it recognises rather than three legal entities.
    */
+  /*
+   * NO SECOND LINE UNDER A DISTRIBUTOR'S NAME. It used to be `membership.role`, which printed the
+   * machine word "retailer" under the distributor's name in the header of every screen — a software
+   * word in the navigation (founder, 2026-09-28: plain words only). A shop is a shop at every one of
+   * its distributors, so there is nothing to tell apart; the kit draws no line for an empty label.
+   */
   const choices = useMemo<readonly TenantChoice[]>(
     () =>
       (session?.memberships ?? []).map((membership) => ({
         id: membership.tenantId,
         name: membership.displayName,
-        roleLabel: membership.role,
+        roleLabel: '',
       })),
     [session],
   )
@@ -108,7 +121,7 @@ export default function RetailerLayout(): React.JSX.Element | null {
             current: {
               id: session.tenant.id,
               name: session.tenant.displayName,
-              roleLabel: session.role,
+              roleLabel: '',
             },
             choices,
             onSwitch: (tenantId) => {
@@ -117,15 +130,13 @@ export default function RetailerLayout(): React.JSX.Element | null {
           }}
           account={{
             name: session.user.name,
-            roleLabel: session.role,
-            onSignOut: () => {
-              void signOut()
-            },
+            roleLabel: strings['app.shopOwner'],
+            onSignOut: leave,
             /*
-             * ONLY WHAT THE NAVIGATION DOES NOT ALREADY CARRY. This app has no tab bar, so `AppShell`
-             * merges the nav sections AND these items into one ⋯ sheet — and "My account" is already
-             * a destination in `SECTIONS`. Listing it here too is how the delivery app came to show
-             * two screens twice on its only way of getting around.
+             * ONLY WHAT THE NAVIGATION DOES NOT ALREADY CARRY. On a phone `AppShell` merges every nav
+             * entry that is not a tab AND these items into one ⋯ sheet — and "Phones and login" is
+             * already a destination in `SECTIONS`. Listing it here too is how the delivery app came to
+             * show two screens twice on its only way of getting around.
              *
              * Change-password is a ROOT route of the one app, shared by all six groups, so `routeFor`
              * hands it back unchanged rather than putting `/retailer` in front of it.
@@ -191,7 +202,8 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
     <AppShell
       sections={sections}
       can={can}
-      activeHref={pathname}
+      /* A brand page and the basket are the Shop; paying is Money (`tabOf`). */
+      activeHref={tabOf(pathname)}
       /*
        * The group's own base is its HOME. Without this the rail would light "Home" on every screen
        * of the group, because `/retailer` is a prefix of `/retailer/dues` (docs/31 §1.3, nav-active).

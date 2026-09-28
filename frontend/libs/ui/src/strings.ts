@@ -189,6 +189,8 @@ export const en = {
   'shop.mrp': 'MRP {amount}',
   'shop.oneItem': '1 item',
   'shop.items': '{count} items',
+  /* In front of a cart total that is not yet the engine's answer for the cart as it is now. */
+  'shop.about': 'about',
 
   // The shell (UX-00 sections 8.1 and 8.2).
   'nav.sections': 'Sections',

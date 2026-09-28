@@ -476,6 +476,47 @@ describe('<CartBar> — the bottom of the shop', () => {
     const strip = byTestId(view, 'shop').lastElementChild as HTMLElement
     expect(strip.style.display).toBe('none')
   })
+
+  /*
+   * The shopkeeper's lane (founder, 2026-09-28; UX-01 R5): the bar prints the pricing engine's quote
+   * of the cart, and while the cart has moved on and the new quote is on its way the last figure is
+   * "about". A figure that is not known is the em dash alone — "about —" would be a guess about nothing.
+   */
+  it('says "about" in front of a figure that is not yet the quote of this cart, and never in front of a dash', () => {
+    const about = render(
+      <CartBar
+        count={2}
+        total={8_400_00}
+        approximate
+        actionLabel="See order"
+        onAction={() => undefined}
+        testID="cart"
+      />,
+    )
+    expect(byTestId(about, 'cart').textContent).toContain('about₹8,400.00')
+    const exact = render(
+      <CartBar
+        count={2}
+        total={8_400_00}
+        actionLabel="See order"
+        onAction={() => undefined}
+        testID="cart2"
+      />,
+    )
+    expect(byTestId(exact, 'cart2').textContent).not.toContain('about')
+    const unknown = render(
+      <CartBar
+        count={2}
+        total={null}
+        approximate
+        actionLabel="See order"
+        onAction={() => undefined}
+        testID="cart3"
+      />,
+    )
+    expect(byTestId(unknown, 'cart3').textContent).not.toContain('about')
+    expect(byTestId(unknown, 'cart3').textContent).toContain('—')
+  })
 })
 
 // ---------------------------------------------------------------------------

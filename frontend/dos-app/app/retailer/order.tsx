@@ -1,5 +1,12 @@
 /**
- * R7 — the price list this shop actually gets, and the order built from it (docs/23 §6.1 R7).
+ * R7 — the shop's basket and the price list it is built from (docs/23 §6.1 R7).
+ *
+ * THE BASKET IS THE SHOP'S, NOT THIS SCREEN'S (founder, 2026-09-28: "a shopping app feel"). It used to
+ * be `useState` here and was lost the moment the shop left this screen. It is now the one basket of
+ * `src/groups/retailer/lib/cart.ts`, filled from the home, a brand page and search as much as from here:
+ * kept across screens and restarts, one per distributor, emptied when this screen places the order and
+ * when the shop signs out. The price reads (`pricing.rates`, the debounced `pricing.quote`) and the
+ * "Pieces" pad moved beside it (`shopping.ts`, `pieces.tsx`) so every screen that sells prices alike.
  *
  * WHAT MAKES THIS SCREEN THE PRODUCT. A distributor's price list is not one list: it is the tier this
  * shop is on, the overrides set for this shop alone, the schemes it qualifies for and any rate its
@@ -18,11 +25,11 @@
  * client-generated id and idempotency key, so a double tap on a bad connection writes one order.
  *
  * "ORDER AGAIN" WRITES NOTHING UNTIL "PLACE ORDER" (DOS-098). Home opens this screen with a fresh
- * `?repeat=` id per tap; the basket is built HERE from `orders.lastPlaced` — the shop's most recently
- * placed order — in the pieces that order carried, and placed through the same two calls.
+ * `?repeat=` id per tap; the shop's most recently placed order is read from `orders.lastPlaced` and its
+ * items join the basket, in the pieces that order carried, and are placed through the same two calls.
  */
 import { useApi, useMutation, useQuery, useSession } from '@dos/api-client/react'
-import type { OrderLine, QuotedLine, RateItem, TenantProduct } from '@dos/contracts'
+import type { QuotedLine, RateItem, TenantProduct } from '@dos/contracts'
 import {
   Button,
   Group,
@@ -40,45 +47,23 @@ import {
   RupeeInput,
   caseLine,
   formatMoney,
-  parsePieces,
-  stepPiece,
   useColors,
   useGo,
   useStrings,
 } from '@dos/ui'
 import { uuidv7 } from '@dos/domain'
 import { useLocalSearchParams } from 'expo-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { today } from '../../src/groups/retailer/lib/dates'
-import { useMyShop } from '../../src/groups/retailer/lib/shop'
-import { useGodownStock } from '../../src/groups/retailer/lib/stock'
+import {
+  toOrderLines,
+  type CartLine,
+  type OrderLineDraft,
+} from '../../src/groups/retailer/lib/cart'
+import { displayName, isSearching, matchItems } from '../../src/groups/retailer/lib/catalog'
+import { usePiecesEntry } from '../../src/groups/retailer/lib/pieces'
+import { useShopping } from '../../src/groups/retailer/lib/shopping'
 import { Async, Panel } from '../../src/groups/retailer/lib/ui'
-
-/** One line as the screen holds it while it is being typed. Pieces are the state; cases are typing. */
-interface DraftLine {
-  /** The line's own client-generated UUIDv7 — the id the order row will carry. */
-  id: string
-  variantId: string
-  qtyPcs: number
-  /** What the shop typed, and in what — carried to the order so the bill reprints it (docs/17 A3). */
-  enteredQty: number
-  /** Whole cases or pieces, the two units this screen enters (`enteredFor`); never an old order's `inner`. */
-  enteredUnit: Extract<OrderLine['enteredUnit'], 'case' | 'piece'>
-}
-
-/**
- * How this screen records a quantity: whole cases where the pieces divide by the case size, else pieces. The
- * stepper and "Order again" both go through it, so a repeated line is entered exactly as a tapped one.
- */
-function enteredFor(
-  pieces: number,
-  caseSize: number,
-): Pick<DraftLine, 'enteredQty' | 'enteredUnit'> {
-  return caseSize > 1 && pieces % caseSize === 0
-    ? { enteredQty: pieces / caseSize, enteredUnit: 'case' }
-    : { enteredQty: Math.max(pieces, 1), enteredUnit: 'piece' }
-}
 
 export default function PlaceOrder(): React.JSX.Element {
   const t = useStrings()
@@ -92,63 +77,63 @@ export default function PlaceOrder(): React.JSX.Element {
   /** "Order again": a fresh id per tap on Home, so every tap is its own read of the last placed order. */
   const repeat = typeof params.repeat === 'string' ? params.repeat : null
 
-  const my = useMyShop()
+  const shopping = useShopping()
+  const { my, list, cart } = shopping
   const retailerId = my.retailerId
 
   const [query, setQuery] = useState('')
-  const [lines, setLines] = useState<readonly DraftLine[]>([])
   /** The `repeat` id whose basket has been built (or refused), so a tap is seeded exactly once. */
   const [seededFor, setSeededFor] = useState<string | null>(null)
   /** Items of the repeated order left out because they are no longer on the price list. */
   const [leftOut, setLeftOut] = useState(0)
+  /** The repeated order joined a basket that already had things in it — said, never hidden. */
+  const [joined, setJoined] = useState(false)
   const [note, setNote] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [askVariant, setAskVariant] = useState<string | null>(null)
   const [askRate, setAskRate] = useState<number | null>(null)
-  /** DOS-101: the item the "Pieces" sheet is open for, so a shop can type an exact count below a case. */
-  const [piecesFor, setPiecesFor] = useState<string | null>(null)
 
   // --- what this distributor sells, and what is on the shelf --------------------------------
-  const catalog = useQuery(
-    ['catalog', query],
-    () =>
-      api.api.tenantCatalog.list({
-        limit: 200,
-        listedOnly: true,
-        ...(query.trim().length >= 2 ? { q: query.trim() } : {}),
-      }),
-    { enabled: signedIn, staleTime: 300_000 },
-  )
+  const items = list.items
+  const byVariant = list.byVariant
   // Pieces left to promise per item at the godown; null = not known (src/lib/stock.ts, DOS-097).
-  const stock = useGodownStock()
+  const stock = shopping.stock
 
-  const items = catalog.data?.items ?? []
-  const byVariant = useMemo(() => {
-    const map = new Map<string, TenantProduct>()
-    for (const item of items) map.set(item.variantId, item)
-    return map
-  }, [items])
+  /*
+   * DOS-101: type an exact piece count, for an item this shop buys below a whole case ("Only 9 pc
+   * left") or just wants an odd amount of. The pad lives in `pieces.tsx` and commits through the
+   * basket's own `setQty`, the same call a stepper tap makes.
+   */
+  const pieces = usePiecesEntry({
+    nameOf: (variantId) => {
+      const item = byVariant.get(variantId)
+      return item === undefined ? '' : displayName(item)
+    },
+    piecesOf: cart.piecesOf,
+    setQty: shopping.setQty,
+  })
 
-  // --- "Order again": the basket of the shop's last placed order, built on the device ----------
+  // --- "Order again": the last placed order's items join the basket ---------------------------
   /*
    * NOTHING IS WRITTEN UNTIL "PLACE ORDER" (DOS-098).
    *
    * `orders.lastPlaced` names the shop's most recently PLACED order — by when it was placed, by whoever
-   * placed it, never a draft — and writes nothing. The basket is built from it here and re-priced by the
-   * quote below like any other basket. The tap's own id is in the key and `staleTime` is 0, so a second
-   * "Order again" after a placement never seeds from a cached answer naming the order before it.
+   * placed it, never a draft — and writes nothing. Its items join the basket here and are re-priced by
+   * the quote below like any other basket. The tap's own id is in the key and `staleTime` is 0, so a
+   * second "Order again" after a placement never seeds from a cached answer naming the order before it.
    *
-   * THE PIECES, NOT THE UNIT. Each item keeps the pieces that order carried, entered the way this
-   * screen's own stepper enters them (`enteredFor`, with TODAY's case size). The old line's entered
-   * quantity and unit are never forwarded: `orders.create` re-derives pieces as entered quantity × case
-   * size and counts an `inner` entry as a case, so a forwarded one would quote the old pieces on this
-   * screen and place up to five times as many.
+   * THE PIECES, NOT THE UNIT. Each item keeps the pieces that order carried; how they are entered is
+   * worked out on placing from TODAY's case size (`toOrderLines`). The old line's entered quantity and
+   * unit are never forwarded: `orders.create` re-derives pieces as entered quantity × case size and
+   * counts an `inner` entry as a case, so a forwarded one would quote the old pieces on this screen and
+   * place up to five times as many.
    *
-   * NOTHING HIDDEN IS PLACED. The order panel draws only lines whose item is on the price list, while
-   * "Place order" sends every line, so the seed keeps only items on the unfiltered price list and says
-   * how many of that order's items it left out. Until the basket exists there is no stepper to tap: the
-   * screen shows its skeleton, and a failed read opens the price list with the reason instead.
+   * NOTHING HIDDEN IS PLACED. Only items on the price list join the basket, and the screen says how
+   * many of that order's items it left out. An item already in the basket keeps the quantity the shop
+   * chose (the basket is kept now, so it may hold things from the home), and the screen says the last
+   * order was ADDED to them. Until the items are in there is no stepper to tap: the screen shows its
+   * skeleton, and a failed read opens the price list with the reason instead.
    */
   const lastPlaced = useQuery(
     ['orders', 'last-placed', retailerId, repeat],
@@ -165,15 +150,16 @@ export default function PlaceOrder(): React.JSX.Element {
     seededFor !== repeat &&
     lastPlaced.error === undefined
 
-  // A new tap starts from nothing: no search filter, no basket, no message from the last attempt.
+  // A new tap starts from a clean screen: no search filter, no message from the last attempt.
   useEffect(() => {
     if (repeat === null) return
     setQuery('')
-    setLines([])
     setLeftOut(0)
+    setJoined(false)
     setFailure(null)
   }, [repeat])
 
+  const { addLines, ready: cartReady, count: cartCount } = cart
   useEffect(() => {
     if (repeat === null || seededFor === repeat) return
     if (lastPlaced.error !== undefined) {
@@ -181,113 +167,57 @@ export default function PlaceOrder(): React.JSX.Element {
       setSeededFor(repeat)
       return
     }
-    // The UNFILTERED price list decides what can be shown, and it carries today's case size.
-    if (lastPlaced.data === undefined || catalog.data === undefined || query !== '') return
+    // The whole price list decides what can be shown, and it carries today's case size.
+    if (lastPlaced.data === undefined || list.isLoading || !cartReady) return
     const { item } = lastPlaced.data
     if (item === null) {
       setFailure(t('r7.repeatEmpty'))
       setSeededFor(repeat)
       return
     }
-    const listed = new Map(catalog.data.items.map((entry) => [entry.variantId, entry]))
     // One line per item, as the stepper keeps it: two lines of one item come back as their pieces together.
     const piecesOf = new Map<string, number>()
     for (const line of item.lines)
       piecesOf.set(line.variantId, (piecesOf.get(line.variantId) ?? 0) + line.qtyPcs)
-    const seeded: DraftLine[] = []
+    const seeded: CartLine[] = []
     let missing = 0
     for (const [variantId, qtyPcs] of piecesOf) {
-      const entry = listed.get(variantId)
-      if (entry === undefined) {
+      if (!byVariant.has(variantId)) {
         missing += 1
         continue
       }
-      if (qtyPcs > 0)
-        seeded.push({ id: uuidv7(), variantId, qtyPcs, ...enteredFor(qtyPcs, entry.caseSize) })
+      if (qtyPcs > 0) seeded.push({ id: uuidv7(), variantId, qtyPcs })
     }
-    // A tap that landed before the basket keeps its line; the seed only adds the items not there yet.
-    setLines((current) => [
-      ...current,
-      ...seeded.filter((line) => !current.some((mine) => mine.variantId === line.variantId)),
-    ])
+    setJoined(cartCount > 0 && seeded.length > 0)
+    addLines(seeded)
     setLeftOut(missing)
     setSeededFor(repeat)
-  }, [repeat, seededFor, lastPlaced.data, lastPlaced.error, catalog.data, query, t])
+  }, [
+    repeat,
+    seededFor,
+    lastPlaced.data,
+    lastPlaced.error,
+    list.isLoading,
+    byVariant,
+    cartReady,
+    cartCount,
+    addLines,
+    t,
+  ])
 
-  // --- the live price -------------------------------------------------------------------------
-  /*
-   * DEBOUNCED, because every tap on a stepper is a new order. `pricing.quote` is a real round trip to
-   * the distributor's service; firing one per tap would put a shop's thumb ahead of the answer and
-   * paint three stale totals on the way to the right one. 400 ms after the last tap, one call.
-   */
-  const priced = lines.filter((line) => line.qtyPcs > 0)
-  const [settled, setSettled] = useState<readonly DraftLine[]>([])
-  /*
-   * `wanted` is the IDENTITY of the lines and `pricedRef` holds the array itself: `priced` is rebuilt
-   * on every render, so depending on it would restart the timer forever and no quote would ever fire.
-   */
-  const wanted = JSON.stringify(priced.map((line) => [line.id, line.variantId, line.qtyPcs]))
-  const pricedRef = useRef(priced)
-  pricedRef.current = priced
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSettled(pricedRef.current)
-    }, 400)
-    return () => {
-      clearTimeout(timer)
-    }
-  }, [wanted])
+  // --- the live price (`useCartQuote`: 400 ms after the last tap, one call) ---------------------
+  const quote = shopping.quote
+  const totals = quote.quote.data?.totals
+  const listRates = shopping.rates
 
-  const quoteKey = JSON.stringify(settled.map((line) => [line.variantId, line.qtyPcs]))
-  const quote = useQuery(
-    ['quote', retailerId, quoteKey],
-    () =>
-      api.api.pricing.quote({
-        retailerId: retailerId ?? '',
-        pricingDate: today(),
-        lines: settled.map((line) => ({
-          lineId: line.id,
-          variantId: line.variantId,
-          qtyPcs: line.qtyPcs,
-        })),
-      }),
-    { enabled: signedIn && retailerId !== null && settled.length > 0, staleTime: 30_000 },
+  /** Items the distributor stopped listing were taken out of the kept basket; said once, here. */
+  const { removed, acknowledgeRemoved } = cart
+  useEffect(
+    () => () => {
+      acknowledgeRemoved()
+    },
+    [acknowledgeRemoved],
   )
-  const quoted = useMemo(() => {
-    const map = new Map<string, QuotedLine>()
-    for (const line of quote.data?.lines ?? []) map.set(line.lineId, line)
-    return map
-  }, [quote.data])
-
-  /**
-   * THE PRICE LIST HAS TO CARRY PRICES.
-   *
-   * The founder's brief is "the catalog with the prices this shop actually gets — its tier, its
-   * overrides, the schemes it qualifies for". The order quote above only prices what is already in
-   * the basket, so a shop opening this screen saw a list of names, pack sizes and MRPs and not one
-   * rate it would actually pay — on the screen whose whole job is the price.
-   *
-   * `pricing.rates` (DOS-104) is that list: the SAME engine at one piece, projected to the four
-   * numbers a row needs. At a quantity of one no quantity scheme triggers, so what comes back is
-   * exactly the shop's own standing rate — its tier price with its retailer override and any rate its
-   * distributor has agreed — and `listRatePaise` beside it, so the shop can see it is getting
-   * something better. Schemes show themselves on the row as soon as a quantity is chosen, because the
-   * order quote takes over from there.
-   *
-   * It used to be `pricing.quote` over all 171 listed items. That answered the same two numbers inside
-   * ~55 KB of applied rules, free items and GST per row, on a counter phone's data, before the
-   * shopkeeper had touched anything — and it grew every time the quote payload grew.
-   */
-  const listRatesQuery = useQuery(
-    ['rates', retailerId, today()],
-    () => api.api.pricing.rates({ retailerId: retailerId ?? '', pricingDate: today() }),
-    { enabled: signedIn && retailerId !== null, staleTime: 300_000 },
-  )
-  const listRates = useMemo(() => {
-    const map = new Map<string, RateItem>()
-    for (const item of listRatesQuery.data?.items ?? []) map.set(item.variantId, item)
-    return map
-  }, [listRatesQuery.data])
 
   // --- writing ---------------------------------------------------------------------------------
   /*
@@ -301,7 +231,7 @@ export default function PlaceOrder(): React.JSX.Element {
    * distributor had already accepted.
    */
   const create = useMutation(
-    (input: { retailerId: string; lines: readonly DraftLine[]; note: string }, meta) =>
+    (input: { retailerId: string; lines: readonly OrderLineDraft[]; note: string }, meta) =>
       api.api.orders.create({
         id: meta.id,
         idempotencyKey: meta.idempotencyKey,
@@ -337,14 +267,19 @@ export default function PlaceOrder(): React.JSX.Element {
 
   const busy = create.status === 'pending' || submit.status === 'pending'
 
+  /** The basket's lines whose item is on the price list: the only ones drawn, and so the only ones sent. */
+  const priced = cart.lines.filter((line) => line.qtyPcs > 0 && byVariant.has(line.variantId))
+
   const place = (): void => {
     if (retailerId === null || priced.length === 0 || busy || awaitingSeed) return
     setFailure(null)
-    void create.mutateAsync({ retailerId, lines: priced, note: note.trim() }).then(
+    const lines = toOrderLines(priced, (variantId) => byVariant.get(variantId)?.caseSize)
+    void create.mutateAsync({ retailerId, lines, note: note.trim() }).then(
       (result) =>
         submit.mutateAsync({ orderId: result.item.id }).then(
           (done) => {
-            setLines([])
+            // Placed: the basket is spent. The next one starts empty.
+            void cart.clear()
             setNote('')
             /*
              * The confirmation belongs to the screen the shop ends up on. A `setToast` after a
@@ -363,31 +298,20 @@ export default function PlaceOrder(): React.JSX.Element {
     )
   }
 
-  const setQty = (variantId: string, pieces: number): void => {
-    const item = byVariant.get(variantId)
-    const caseSize = item?.caseSize ?? 1
-    setLines((current) => {
-      const existing = current.find((line) => line.variantId === variantId)
-      const entered = enteredFor(pieces, caseSize)
-      if (existing === undefined) {
-        if (pieces <= 0) return current
-        return [...current, { id: uuidv7(), variantId, qtyPcs: pieces, ...entered }]
-      }
-      if (pieces <= 0) return current.filter((line) => line.variantId !== variantId)
-      return current.map((line) =>
-        line.variantId === variantId ? { ...line, qtyPcs: pieces, ...entered } : line,
-      )
-    })
+  /** Set an item's pieces in the basket — a stepper tap and the pieces pad both come here. */
+  const setQty = (variantId: string, qtyPcs: number): void => {
+    shopping.setQty(variantId, qtyPcs)
   }
 
   /** The items in the order first, then the rest of the price list — the thumb's own order. */
   const chosen = priced
     .map((line) => ({ line, item: byVariant.get(line.variantId) }))
-    .filter((row): row is { line: DraftLine; item: TenantProduct } => row.item !== undefined)
+    .filter((row): row is { line: CartLine; item: TenantProduct } => row.item !== undefined)
   const chosenIds = new Set(priced.map((line) => line.variantId))
-  const rest = items.filter((item) => !chosenIds.has(item.variantId))
+  const searching = isSearching(query)
+  const shown = searching ? matchItems(items, query) : items
+  const rest = shown.filter((item) => !chosenIds.has(item.variantId))
 
-  const totals = quote.data?.totals
   /*
    * AN ITEM WITHOUT A GST RATE IS SAID, NOT HIDDEN (DOS-096).
    *
@@ -397,23 +321,23 @@ export default function PlaceOrder(): React.JSX.Element {
    * the missing rate stands where the list was, and an order quote refused for the same reason does not
    * call every item in it unpriced.
    */
-  const listGstMissing = unratedHsnCodes(listRatesQuery.error)
-  const orderGstMissing = unratedHsnCodes(quote.error)
+  const listGstMissing = unratedHsnCodes(listRates.error)
+  const orderGstMissing = unratedHsnCodes(quote.quote.error)
   const unpricedNames =
     orderGstMissing !== null
       ? []
       : chosen
           .filter(
-            (row) => settled.some((line) => line.id === row.line.id) && !quoted.has(row.line.id),
+            (row) =>
+              quote.settled.some((line) => line.variantId === row.line.variantId) &&
+              quote.quote.data !== undefined &&
+              quote.quotedOf(row.line.variantId) === undefined,
           )
           .map((row) => row.item.name)
 
   const askItem = askVariant === null ? undefined : byVariant.get(askVariant)
   const askLine = priced.find((line) => line.variantId === askVariant)
-  const askQuoted = askLine === undefined ? undefined : quoted.get(askLine.id)
-
-  const piecesItem = piecesFor === null ? undefined : byVariant.get(piecesFor)
-  const piecesLine = piecesFor === null ? undefined : lines.find((l) => l.variantId === piecesFor)
+  const askQuoted = askLine === undefined ? undefined : quote.quotedOf(askLine.variantId)
 
   return (
     <Screen
@@ -424,9 +348,9 @@ export default function PlaceOrder(): React.JSX.Element {
         <Row gap={4} justify="between" align="center" wrap>
           <Stack gap={1}>
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {quote.isFetching ? t('r7.pricing') : t('r7.net')}
+              {quote.quote.isFetching || quote.approximate ? t('r7.pricing') : t('r7.net')}
             </Txt>
-            <Money value={totals?.totalPaise ?? null} size="moneyL" />
+            <Money value={priced.length === 0 ? null : quote.total} size="moneyL" />
           </Stack>
           <Button
             label={t('r7.place')}
@@ -443,7 +367,7 @@ export default function PlaceOrder(): React.JSX.Element {
       <Stack gap={6}>
         {/* While "Order again" builds its basket the skeleton stands in for the steppers; its failure is not
             an error state here — the price list opens with `r7-failure` saying why (DOS-098). */}
-        <Async state={[my, catalog, { isLoading: awaitingSeed }]} rows={4}>
+        <Async state={[my, list, { isLoading: awaitingSeed }]} rows={4}>
           {my.unlinked ? (
             <Txt field="body" desk="body" testID="r7-unlinked">
               {t('r2.noShopBody', { name: distributor })}
@@ -465,7 +389,22 @@ export default function PlaceOrder(): React.JSX.Element {
                   {t('r7.repeatPartial', { count: String(leftOut) })}
                 </Txt>
               )}
-              {listRatesQuery.error === undefined || listGstMissing !== null ? null : (
+              {joined ? (
+                <Txt
+                  field="body"
+                  desk="body"
+                  color={colors.text.secondary}
+                  testID="r7-repeat-joined"
+                >
+                  {t('r7.repeatAdded')}
+                </Txt>
+              ) : null}
+              {removed === 0 ? null : (
+                <Txt field="body" desk="body" color={colors.status.ochre.fg} testID="r7-removed">
+                  {t('r7.removed', { count: String(removed), name: distributor })}
+                </Txt>
+              )}
+              {listRates.error === undefined || listGstMissing !== null ? null : (
                 <Txt
                   field="body"
                   desk="body"
@@ -503,7 +442,7 @@ export default function PlaceOrder(): React.JSX.Element {
                       label={t('r7.clear')}
                       variant="ghost"
                       onPress={() => {
-                        setLines([])
+                        void cart.clear()
                       }}
                       testID="r7-clear"
                     />
@@ -517,17 +456,17 @@ export default function PlaceOrder(): React.JSX.Element {
                         item={item}
                         pieces={line.qtyPcs}
                         availablePieces={stock.availableOf(item.variantId)}
-                        quoted={quoted.get(line.id)}
-                        standing={listRates.get(item.variantId)}
-                        onChange={(pieces) => {
-                          setQty(item.variantId, pieces)
+                        quoted={quote.quotedOf(item.variantId)}
+                        standing={listRates.rateOf(item.variantId)}
+                        onChange={(next) => {
+                          setQty(item.variantId, next)
                         }}
                         onOpenPieces={() => {
-                          setPiecesFor(item.variantId)
+                          pieces.open(item.variantId)
                         }}
                         onAsk={() => {
                           setAskVariant(item.variantId)
-                          setAskRate(quoted.get(line.id)?.ratePaise ?? null)
+                          setAskRate(quote.quotedOf(item.variantId)?.ratePaise ?? null)
                         }}
                       />
                     ))}
@@ -536,7 +475,7 @@ export default function PlaceOrder(): React.JSX.Element {
               )}
 
               {/* --- the totals -------------------------------------------------------------- */}
-              {totals === undefined ? null : (
+              {totals === undefined || chosen.length === 0 ? null : (
                 <Panel title={t('r7.total')} testID="r7-totals">
                   <Stack gap={2}>
                     <TotalRow label={t('r7.gross')} value={totals.grossPaise} />
@@ -552,7 +491,7 @@ export default function PlaceOrder(): React.JSX.Element {
                       <TotalRow label={t('r7.roundOff')} value={totals.roundOffPaise} />
                     )}
                     <TotalRow label={t('r7.net')} value={totals.totalPaise} strong />
-                    {(quote.data?.cashDiscountPaise ?? 0) > 0 ? (
+                    {(quote.quote.data?.cashDiscountPaise ?? 0) > 0 ? (
                       <Txt
                         field="label"
                         desk="meta"
@@ -562,10 +501,10 @@ export default function PlaceOrder(): React.JSX.Element {
                         {my.shop !== null && my.shop.cashDiscountDays > 0
                           ? t('r7.cashDiscount', {
                               days: String(my.shop.cashDiscountDays),
-                              amount: formatMoney(quote.data?.cashDiscountPaise ?? 0),
+                              amount: formatMoney(quote.quote.data?.cashDiscountPaise ?? 0),
                             })
                           : t('r7.cashDiscountNoWindow', {
-                              amount: formatMoney(quote.data?.cashDiscountPaise ?? 0),
+                              amount: formatMoney(quote.quote.data?.cashDiscountPaise ?? 0),
                             })}
                       </Txt>
                     ) : null}
@@ -601,11 +540,11 @@ export default function PlaceOrder(): React.JSX.Element {
                     onChange={setQuery}
                     placeholder={t('r7.search')}
                     state={
-                      query.trim().length < 2
+                      !searching
                         ? 'idle'
-                        : catalog.isFetching
+                        : list.isLoading
                           ? 'typing'
-                          : items.length === 0
+                          : shown.length === 0
                             ? 'noResults'
                             : 'results'
                     }
@@ -628,12 +567,12 @@ export default function PlaceOrder(): React.JSX.Element {
                           pieces={0}
                           availablePieces={stock.availableOf(item.variantId)}
                           quoted={undefined}
-                          standing={listRates.get(item.variantId)}
-                          onChange={(pieces) => {
-                            setQty(item.variantId, pieces)
+                          standing={listRates.rateOf(item.variantId)}
+                          onChange={(next) => {
+                            setQty(item.variantId, next)
                           }}
                           onOpenPieces={() => {
-                            setPiecesFor(item.variantId)
+                            pieces.open(item.variantId)
                           }}
                           onAsk={undefined}
                         />
@@ -647,7 +586,7 @@ export default function PlaceOrder(): React.JSX.Element {
                       color={colors.text.secondary}
                       testID="r7-no-items"
                     >
-                      {query.trim().length >= 2 ? t('r7.noMatch', { query }) : t('r7.noItems')}
+                      {searching ? t('r7.noMatch', { query }) : t('r7.noItems')}
                     </Txt>
                   ) : null}
                 </Stack>
@@ -665,7 +604,9 @@ export default function PlaceOrder(): React.JSX.Element {
           setAskVariant(null)
         }}
         title={
-          askItem === undefined ? t('r7.askBetter') : t('r7.askBetterOn', { item: askItem.name })
+          askItem === undefined
+            ? t('r7.askBetter')
+            : t('r7.askBetterOn', { item: displayName(askItem) })
         }
         testID="r7-ask"
       >
@@ -711,22 +652,7 @@ export default function PlaceOrder(): React.JSX.Element {
         </Stack>
       </Sheet>
 
-      {/* DOS-101: type an exact piece count, for an item this shop buys below a whole case ("Only 9 pc
-          left") or just wants an odd amount of. The kit stepper already asks before it wipes loose
-          pieces on "one case less"; this is the loose-pieces PAD itself, same as sales-app's DOS-085. */}
-      <PiecesSheet
-        open={piecesFor !== null}
-        onClose={() => {
-          setPiecesFor(null)
-        }}
-        itemName={piecesItem?.name ?? ''}
-        initialPieces={piecesLine?.qtyPcs ?? 0}
-        onSet={(qtyPcs) => {
-          if (piecesFor === null) return
-          setQty(piecesFor, qtyPcs)
-          setPiecesFor(null)
-        }}
-      />
+      {pieces.sheet}
 
       <Toast
         open={toast !== null}
@@ -906,85 +832,5 @@ function OrderRow({
         </Row>
       )}
     </Stack>
-  )
-}
-
-interface PiecesSheetProps {
-  open: boolean
-  onClose: () => void
-  itemName: string
-  /** This item's committed pieces at the moment the sheet opens — never live-updated while open. */
-  initialPieces: number
-  onSet: (qtyPcs: number) => void
-}
-
-/**
- * DOS-101 — the "Pieces" sheet, following the sales app's own (DOS-085): type an exact count, or
- * nudge it a piece at a time. Never routed through the stepper's shared `onChange` — that stays
- * labelled "case" for a case +/- tap (docs/17 A3) — so a typed count commits through this sheet's own
- * `onSet`, which R7's `setQty` already labels "piece" whenever it does not divide by the case size
- * (`enteredFor`).
- */
-function PiecesSheet({
-  open,
-  onClose,
-  itemName,
-  initialPieces,
-  onSet,
-}: PiecesSheetProps): React.JSX.Element {
-  const t = useStrings()
-  const [text, setText] = useState(() => String(initialPieces))
-
-  // Fresh text every time the sheet opens — for THIS item's current count, never a stale value left
-  // over from a cancelled edit or from whichever item was open before.
-  useEffect(() => {
-    if (open) setText(String(initialPieces))
-  }, [open, initialPieces])
-
-  const parsed = parsePieces(text)
-
-  return (
-    <Sheet open={open} onClose={onClose} title={t('qty.piecesTitle')} testID="r7-pieces">
-      <Stack gap={4}>
-        <Txt field="bodyStrong" desk="body">
-          {itemName}
-        </Txt>
-        <TextInput
-          testID="r7-pieces-input"
-          label={t('qty.piecesLabel')}
-          value={text}
-          onChange={setText}
-          keyboard="decimal"
-          autoFocus
-          error={text.trim() !== '' && !parsed.ok ? t('qty.piecesInvalid') : undefined}
-        />
-        <Row gap={3}>
-          <Button
-            label={t('qty.pieceLess')}
-            variant="secondary"
-            disabled={!parsed.ok || parsed.pieces <= 0}
-            onPress={() => {
-              if (parsed.ok) setText(String(stepPiece(parsed.pieces, -1)))
-            }}
-          />
-          <Button
-            label={t('qty.pieceMore')}
-            variant="secondary"
-            onPress={() => {
-              if (parsed.ok) setText(String(stepPiece(parsed.pieces, 1)))
-            }}
-          />
-        </Row>
-        <Button
-          testID="r7-pieces-set"
-          variant="primary"
-          label={t('qty.piecesSet')}
-          disabled={!parsed.ok}
-          onPress={() => {
-            if (parsed.ok) onSet(parsed.pieces)
-          }}
-        />
-      </Stack>
-    </Sheet>
   )
 }

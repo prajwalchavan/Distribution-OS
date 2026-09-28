@@ -264,6 +264,7 @@ export function BrandTile({
 export function CartBar({
   count,
   total,
+  approximate = false,
   actionLabel,
   onAction,
   loading,
@@ -276,6 +277,8 @@ export function CartBar({
   // An empty cart draws no bar at all — not even the screen's strip around this content.
   useHideBottomBar(empty)
   if (empty) return null
+  // "about" only in front of a figure: an em dash is already "not known yet".
+  const about = approximate && total !== null
   return (
     <View
       testID={testID}
@@ -290,11 +293,18 @@ export function CartBar({
         <Txt field="label" desk="meta" color={theme.colors.text.secondary}>
           {count === 1 ? theme.t('shop.oneItem') : theme.t('shop.items', { count })}
         </Txt>
-        <Money
-          value={total}
-          size="moneyL"
-          testID={testID === undefined ? undefined : `${testID}-total`}
-        />
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: space[1] }}>
+          {about ? (
+            <Txt field="label" desk="meta" color={theme.colors.text.secondary}>
+              {theme.t('shop.about')}
+            </Txt>
+          ) : null}
+          <Money
+            value={total}
+            size="moneyL"
+            testID={testID === undefined ? undefined : `${testID}-total`}
+          />
+        </View>
       </View>
       <View style={{ flex: 1, minWidth: 0, maxWidth: 360 }}>
         <Button

@@ -102,6 +102,48 @@ export function offerSentence(
   }
 }
 
+/**
+ * The offer in the few words a product tile has room for (founder, 2026-09-28: the shop front),
+ * <= 20 characters on the pilot's schemes: "2 free on 2 cases", "5% off on 3 cases", "₹15.00 off a
+ * case". The full sentence stays `offerSentence`, on the Offers page. Null for an offer that is not
+ * about one item (a whole-order or cash-discount offer) — `offersForItem` already leaves those out.
+ */
+export function tileOffer(t: Translate, scheme: SchemeView): string | null {
+  const min = scheme.triggerMin
+  const any = min <= 0
+  const unit =
+    scheme.triggerUnit === 'case'
+      ? min === 1
+        ? t('r2.unitCaseOne')
+        : t('r9.unitCase')
+      : scheme.triggerUnit === 'pcs'
+        ? t('r2.unitPc')
+        : null
+  const amount = (paise: number): string => formatMoney(paise)
+  switch (scheme.rewardKind) {
+    case 'free_qty':
+      return unit === null || any
+        ? t('r2.offerFree', { reward: String(scheme.rewardValue) })
+        : t('r2.offerFreeOn', { reward: String(scheme.rewardValue), min: String(min), unit })
+    case 'line_pct':
+      return unit === null || any
+        ? t('r2.offerPct', { pct: formatBps(scheme.rewardValue) })
+        : t('r2.offerPctOn', { pct: formatBps(scheme.rewardValue), min: String(min), unit })
+    case 'net_scheme_amount':
+      return unit === null
+        ? null
+        : t('r2.offerAmountOn', { amount: amount(scheme.rewardValue), min: String(min), unit })
+    case 'per_unit_amount':
+      return t('r2.offerPerUnit', {
+        amount: amount(scheme.rewardValue),
+        unit: scheme.triggerUnit === 'case' ? t('r2.unitCaseOne') : t('r2.unitPcOne'),
+      })
+    case 'order_pct':
+    case 'cash_discount_pct':
+      return null
+  }
+}
+
 /** "More you buy, more you save: 5+ → 2%, 10+ → 4%" — the slab ladder, or null when there is none. */
 export function slabSentence(t: Translate, scheme: SchemeView): string | null {
   const slabs = scheme.slabs ?? []

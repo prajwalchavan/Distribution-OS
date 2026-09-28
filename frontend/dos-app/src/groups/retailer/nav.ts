@@ -1,15 +1,22 @@
 /**
  * The shopkeeper's navigation, as DATA (docs/08 §0).
  *
- * UX-00 §8.2 and docs/23 §6.1: "Delivery and retailer have no tab bar." So the PRIMARY section is
- * deliberately EMPTY — `AppShell` builds the phone tab bar from it and draws no bar at all when it
- * has no items, which is the shell docs/23 §6 asks for ("the detail view for a WhatsApp message").
- * Everything below moves into the header's ⋯ sheet on a phone and into the rail on a desk viewport,
- * because the shell follows the VIEWPORT, not the app.
+ * THE FOUR ENTRIES A SHOPPING APP HAS (founder, 2026-09-28): Shop (the home), Orders, Money, Me. They
+ * are the PRIMARY section, so `AppShell` draws them as the phone's tab bar and at the top of the desk
+ * rail. This replaces the design system's sentence "Delivery and retailer have no tab bar: single
+ * stacks opening on the next stop / the last bill." (UX-00 §8.2, repeated in docs/23 §6 as "13
+ * screens, no tab bar") for the retailer: the founder's decision of 2026-09-28 — "minimise the
+ * understanding effort", "a shopping app feel" — outranks it. Nothing was removed to make room: every
+ * other page is reachable from inside the four (Money's own tab row holds bills, payments and the
+ * account book; Me lists the rest), and the MORE section below keeps each one a destination of its
+ * own — in the rail on a desk and in the header's ⋯ sheet on a phone.
  *
- * The account menu deliberately carries ONLY "Change your password": with no tab bar the shell merges
- * the nav sections and the account items into one sheet, so a destination that is already an item
- * here would be listed twice (the defect the delivery gate found on the Pixel 7).
+ * "Place an order" (`/order`) is no longer an entry: it is the shop's basket now, opened from the cart
+ * bar at the foot of every shopping screen and from "See all items" on the home.
+ *
+ * The account menu deliberately carries ONLY "Change your password": the ⋯ sheet merges the nav
+ * sections and the account items, so a destination that is already an item here would be listed twice
+ * (the defect the delivery gate found on the Pixel 7).
  *
  * `permission` is a contract procedure path; `can()` in `app/retailer/_layout.tsx` answers it against the
  * signed-in role from the SAME `PERMISSIONS` matrix retailer-service enforces, so a destination that
@@ -28,27 +35,30 @@ import { strings } from './strings'
 const GROUP = 'retailer'
 
 export const SECTIONS: readonly NavSection[] = [
-  { primary: true, items: [] },
   {
-    title: 'SHOP',
+    primary: true,
     items: [
-      { href: routeFor(GROUP, '/'), label: strings['nav.home'], permission: 'tenancy.me' },
-      { href: routeFor(GROUP, '/order'), label: strings['nav.order'], permission: 'orders.create' },
-      { href: routeFor(GROUP, '/orders'), label: strings['nav.orders'], permission: 'orders.list' },
+      { href: routeFor(GROUP, '/'), label: strings['nav.tabShop'], permission: 'tenancy.me' },
+      {
+        href: routeFor(GROUP, '/orders'),
+        label: strings['nav.tabOrders'],
+        permission: 'orders.list',
+      },
+      {
+        href: routeFor(GROUP, '/dues'),
+        label: strings['nav.tabMoney'],
+        permission: 'receivables.outstanding.get',
+      },
+      { href: routeFor(GROUP, '/profile'), label: strings['nav.tabMe'], permission: 'tenancy.me' },
+    ],
+  },
+  {
+    title: strings['nav.moreSection'],
+    items: [
       {
         href: routeFor(GROUP, '/deals'),
         label: strings['nav.deals'],
         permission: 'pricing.schemes.list',
-      },
-    ],
-  },
-  {
-    title: 'MONEY',
-    items: [
-      {
-        href: routeFor(GROUP, '/dues'),
-        label: strings['nav.dues'],
-        permission: 'receivables.outstanding.get',
       },
       {
         href: routeFor(GROUP, '/bills'),
@@ -70,11 +80,6 @@ export const SECTIONS: readonly NavSection[] = [
         label: strings['nav.returns'],
         permission: 'billing.creditNotes.list',
       },
-    ],
-  },
-  {
-    title: 'YOU',
-    items: [
       {
         href: routeFor(GROUP, '/inbox'),
         label: strings['nav.inbox'],
@@ -93,6 +98,21 @@ export const SECTIONS: readonly NavSection[] = [
     ],
   },
 ]
+
+/**
+ * Which tab a page that is not itself an entry belongs to, so the tab bar says where the shop is: a
+ * brand page and the basket are the Shop, paying is Money. A page that IS an entry lights itself.
+ */
+export function tabOf(pathname: string): string {
+  const shop = routeFor(GROUP, '/')
+  const inside = (path: string): boolean => {
+    const base = routeFor(GROUP, path)
+    return pathname === base || pathname.startsWith(`${base}/`)
+  }
+  if (inside('/order') || inside('/brand')) return shop
+  if (inside('/pay')) return routeFor(GROUP, '/dues')
+  return pathname
+}
 
 /**
  * Level 2: the tab row a page draws under its own title. Two navigation levels, never three.
