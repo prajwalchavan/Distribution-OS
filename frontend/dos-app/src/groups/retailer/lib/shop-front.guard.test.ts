@@ -157,6 +157,11 @@ describe('the home is a shop front', () => {
 })
 
 describe('the words on the home and in the navigation (rule 5: <= 20 characters)', () => {
+  it('the Money page s four tabs are one short word each, so a 390 px phone does not cut them', () => {
+    for (const key of ['tab.due', 'tab.bills', 'tab.paid', 'tab.history'] as const)
+      expect(strings[key].length, key).toBeLessThanOrEqual(7)
+  })
+
   it('every button and heading label of the shop front fits', () => {
     const labels = [
       'nav.tabShop',
@@ -171,6 +176,10 @@ describe('the words on the home and in the navigation (rule 5: <= 20 characters)
       'nav.inbox',
       'nav.shop',
       'nav.account',
+      'tab.due',
+      'tab.bills',
+      'tab.paid',
+      'tab.history',
       'r2.change',
       'r2.switch',
       'r2.call',

@@ -34,6 +34,9 @@ function triggerText(t: Translate, scheme: SchemeView): string {
 /** The unit word alone, for the sentences that interpolate `{min}` and `{unit}` separately. */
 function unitText(t: Translate, scheme: SchemeView): string {
   if (scheme.triggerUnit === 'inr') return t('r9.unitAmount')
+  // "Buy 1 case", never "Buy 1 cases" (seen on the shop front's offer row, 2026-09-28).
+  if (scheme.triggerMin === 1)
+    return scheme.triggerUnit === 'case' ? t('r2.unitCaseOne') : t('r2.unitPcOne')
   return scheme.triggerUnit === 'case' ? t('r9.unitCase') : t('r9.unitPcs')
 }
 
@@ -98,7 +101,12 @@ export function offerSentence(
         : t('r9.lineAmount', { min, unit, amount: formatMoney(scheme.rewardValue) })
     // DOS-087: "₹15 off per case on 2+" — on EVERY case once the trigger is met, not once per pair.
     case 'per_unit_amount':
-      return t('r9.perUnitAmount', { min, unit, amount: formatMoney(scheme.rewardValue) })
+      return t('r9.perUnitAmount', {
+        min,
+        // "off every case", never "off every cases".
+        unit: scheme.triggerUnit === 'case' ? t('r2.unitCaseOne') : t('r2.unitPcOne'),
+        amount: formatMoney(scheme.rewardValue),
+      })
   }
 }
 

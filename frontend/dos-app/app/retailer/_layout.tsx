@@ -24,7 +24,14 @@
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
 import { groupOf } from '@dos/api-client'
-import { AppShell, ConnectionStrip, GroupProvider, ThemeProvider, routeFor } from '@dos/ui'
+import {
+  AppShell,
+  ConnectionStrip,
+  GroupProvider,
+  ThemeProvider,
+  routeFor,
+  useViewport,
+} from '@dos/ui'
 import { isAllowed, permissionFor } from '@dos/contracts'
 import type { AccountMenu, NavItem, TenantChoice, TenantSwitcherProps } from '@dos/ui'
 import type { PermissionRole } from '@dos/contracts'
@@ -80,8 +87,7 @@ export default function RetailerLayout(): React.JSX.Element | null {
    *
    * `MembershipSummary` carries `displayName` and `logoUrl` per distributor, so a shop that buys from
    * three sees three names it recognises rather than three legal entities.
-   */
-  /*
+   *
    * NO SECOND LINE UNDER A DISTRIBUTOR'S NAME. It used to be `membership.role`, which printed the
    * machine word "retailer" under the distributor's name in the header of every screen — a software
    * word in the navigation (founder, 2026-09-28: plain words only). A shop is a shop at every one of
@@ -178,6 +184,15 @@ interface ChromeProps {
 function Chrome({ can, pathname, tenant, account, children }: ChromeProps): React.JSX.Element {
   const api = useApi()
   const router = useRouter()
+  /*
+   * ONE NAME AT THE TOP OF THE SHOP, NOT TWO. The home opens on the distributor chip (founder,
+   * 2026-09-28): the open distributor's logo and name, and the button that shows every distributor
+   * with what each is owed. On a phone the shell's header sits directly above it and printed the same
+   * logo and name again, with a second, different switcher. On the phone HOME the header therefore
+   * leaves the name to the chip; every other screen, and the desk rail everywhere, keeps it.
+   */
+  const viewport = useViewport()
+  const chipIsTheName = viewport.kind === 'phone' && pathname === routeFor(GROUP, '/')
 
   const inbox = useQuery(
     ['notifications', 'unread'],
@@ -212,7 +227,7 @@ function Chrome({ can, pathname, tenant, account, children }: ChromeProps): Reac
       onNavigate={(href) => {
         router.push(href)
       }}
-      tenant={tenant}
+      tenant={chipIsTheName ? undefined : tenant}
       account={account}
       connection={
         <ConnectionStrip

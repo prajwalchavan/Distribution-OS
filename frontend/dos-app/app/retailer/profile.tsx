@@ -84,7 +84,7 @@ export default function Me(): React.JSX.Element {
           )}
         </Stack>
 
-        <Panel title={t('me.pages')} testID="me-pages">
+        <Panel testID="me-pages">
           <Group>
             {pages
               .filter((page) => can(page.permission))

@@ -71,6 +71,11 @@ export const strings = {
   'nav.inbox': 'Messages',
   'nav.shop': 'Shop details',
   'nav.account': 'Phones and login',
+  // The Money page's own tab row: one short word each, so four fit a phone without being cut.
+  'tab.due': 'Due',
+  'tab.bills': 'Bills',
+  'tab.paid': 'Paid',
+  'tab.history': 'History',
   /** The account menu's second line under the person's name — never the machine word "retailer". */
   'app.shopOwner': 'Shop owner',
 
@@ -150,8 +155,7 @@ export const strings = {
 
   // --- Me (founder, 2026-09-28: the fourth entry a shopping app has) ------------------------------
   'me.title': 'Me',
-  'me.distributors': 'YOUR DISTRIBUTORS',
-  'me.pages': 'YOUR PAGES',
+  'me.distributors': 'Your distributors',
   'me.shopLine': '{shop} · {name}',
   'me.password': 'Change password',
   'me.signOut': 'Sign out',

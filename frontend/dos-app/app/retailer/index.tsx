@@ -156,6 +156,7 @@ export default function Home(): React.JSX.Element {
       onPress={() => {
         go.push('/order')
       }}
+      fullWidth={false}
       testID="r2-see-all"
     />
   )
@@ -369,6 +370,7 @@ export default function Home(): React.JSX.Element {
                     onPress={() => {
                       go.push('/pay')
                     }}
+                    fullWidth={false}
                     testID="r2-pay"
                   />
                 )}
@@ -431,9 +433,10 @@ function DistributorChip({ onPress }: { onPress: () => void }): React.JSX.Elemen
       <Pressable onPress={onPress} label={t('r2.distributors')} testID="r2-chip">
         <Box border="all" borderTone="faint" radius="lg" padX={3} padY={2} background="surface">
           <Row gap={3} justify="between" align="center">
-            {logo}
-            <Txt field="label" desk="label" color={colors.accent.fg}>
-              {`${t('r2.change')} ▾`}
+            <Box grow>{logo}</Box>
+            {/* A no-break space: "Change" and its caret never part across two lines. */}
+            <Txt field="label" desk="label" color={colors.accent.fg} numberOfLines={1}>
+              {`${t('r2.change')}\u00a0▾`}
             </Txt>
           </Row>
         </Box>
@@ -460,7 +463,13 @@ function OffersRow({ shopping }: { shopping: Shopping }): React.JSX.Element | nu
     <Panel
       title={t('r2.offers')}
       actions={
-        <Button label={t('r2.seeOffers')} variant="ghost" onPress={open} testID="r2-see-offers" />
+        <Button
+          label={t('r2.seeOffers')}
+          variant="ghost"
+          onPress={open}
+          fullWidth={false}
+          testID="r2-see-offers"
+        />
       }
       testID="r2-offers"
     >
@@ -590,6 +599,7 @@ function HomeMore(): React.JSX.Element {
             onPress={() => {
               go.push('/orders')
             }}
+            fullWidth={false}
             testID="r2-all-orders"
           />
         }

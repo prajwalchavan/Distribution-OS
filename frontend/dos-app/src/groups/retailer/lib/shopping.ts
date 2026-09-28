@@ -30,6 +30,7 @@ import {
   type CartLine,
   type CartSnapshot,
   type CartTotal,
+  type Settler,
 } from './cart'
 import { offersForItem, rankUsualItems, type PastOrder } from './catalog'
 import { today } from './dates'
@@ -236,14 +237,15 @@ export function useCartQuote(retailerId: string | null, lines: readonly CartLine
   const wanted = JSON.stringify(priced.map((line) => [line.id, line.variantId, line.qtyPcs]))
   const pricedRef = useRef(priced)
   pricedRef.current = priced
-  const settler = useRef(createSettler<readonly CartLine[]>(400, setSettled))
+  const settler = useRef<Settler<readonly CartLine[]> | null>(null)
+  settler.current ??= createSettler<readonly CartLine[]>(400, setSettled)
   useEffect(() => {
-    settler.current.push(pricedRef.current)
+    settler.current?.push(pricedRef.current)
   }, [wanted])
   useEffect(() => {
     const held = settler.current
     return () => {
-      held.cancel()
+      held?.cancel()
     }
   }, [])
 
@@ -251,10 +253,17 @@ export function useCartQuote(retailerId: string | null, lines: readonly CartLine
   const basket = basketKey(priced)
   const settledBasket = basketKey(settled)
   const memory = `${session?.user.id ?? ''}.${session?.tenant.id ?? ''}`
+  /*
+   * An EMPTY basket forgets its last figure: the next basket is a new one, and "about ₹1,059" for its
+   * first item — the order that was just placed — would be a figure about something else.
+   */
+  if (priced.length === 0) lastTotals.delete(memory)
   const quotedTotal = quote.data?.totals.totalPaise
+  // Only a figure for the basket AS IT IS is remembered: never the quote of a basket already spent.
+  const current = quotedTotal !== undefined && priced.length > 0 && settledBasket === basket
   useEffect(() => {
-    if (quotedTotal !== undefined) lastTotals.set(memory, quotedTotal)
-  }, [quotedTotal, memory])
+    if (current) lastTotals.set(memory, quotedTotal)
+  }, [current, quotedTotal, memory])
 
   const byVariant = useMemo(() => {
     const map = new Map<string, QuotedLine>()

@@ -127,21 +127,27 @@ export interface PageTab {
 }
 
 export const PAGE_TABS: Readonly<Record<string, readonly PageTab[]>> = {
+  /*
+   * SHORT WORDS, because four tabs share a 390 px phone (~88 px each): "Money due", "Payments" and
+   * "Account book" were cut to "Money …", "Payme…" and "Accoun…" there (measured 2026-09-28, and
+   * "Money due" was cut the same way before). The rail and the ⋯ sheet keep the longer names
+   * (`nav.*`); the tab row says the same thing in one word.
+   */
   [routeFor(GROUP, '/dues')]: [
     {
       href: routeFor(GROUP, '/dues'),
-      labelKey: 'nav.dues',
+      labelKey: 'tab.due',
       permission: 'receivables.outstanding.get',
     },
-    { href: routeFor(GROUP, '/bills'), labelKey: 'nav.bills', permission: 'billing.invoices.list' },
+    { href: routeFor(GROUP, '/bills'), labelKey: 'tab.bills', permission: 'billing.invoices.list' },
     {
       href: routeFor(GROUP, '/receipts'),
-      labelKey: 'nav.receipts',
+      labelKey: 'tab.paid',
       permission: 'receivables.receipts.list',
     },
     {
       href: routeFor(GROUP, '/statement'),
-      labelKey: 'nav.statement',
+      labelKey: 'tab.history',
       permission: 'receivables.ledger.get',
     },
   ],
