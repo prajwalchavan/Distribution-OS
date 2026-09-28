@@ -6,6 +6,7 @@
  * has in their hand when they ring up.
  */
 import { useApi, useQuery, useSession } from '@dos/api-client/react'
+import { invoiceStateShown } from '@dos/domain'
 import {
   Group,
   ListRow,
@@ -100,7 +101,12 @@ export default function Bills(): React.JSX.Element {
                       : t('r4.paid')
                   }`}
                   trailingMoney={bill.totalPaise}
-                  trailing={<StatusChip label={word(bill.state)} family={billFamily(bill.state)} />}
+                  trailing={
+                    <StatusChip
+                      label={word(invoiceStateShown(bill))}
+                      family={billFamily(invoiceStateShown(bill))}
+                    />
+                  }
                   onPress={() => {
                     go.push(`/bills/${bill.id}`)
                   }}

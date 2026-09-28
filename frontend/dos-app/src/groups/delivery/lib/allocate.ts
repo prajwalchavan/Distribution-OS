@@ -233,10 +233,31 @@ export function whereTheMoneyGoes(
  */
 export function recordRefusal(
   t: Translator,
-  failed: { kind: string; message: string },
+  failed: { kind: string; message: string; data?: unknown },
   sentSplit: boolean,
 ): string {
+  // DOS-310: a UTR or a cheque number already recorded is a 409 too, and its sentence names the earlier receipt
+  // — the one thing the driver needs. It is never replaced by the untag advice, split or no split.
+  if (paymentReferenceRefusal(failed) !== null) return failed.message
   return sentSplit && failed.kind === 'conflict' ? t('d5.tagRefused') : failed.message
+}
+
+/**
+ * DOS-310: the office refuses a payment reference that already stands on a live receipt — a UTR anywhere at this
+ * distributor, a cheque number of the same shop — and asks before it takes the same cheque number from another
+ * shop (`cheque_number_seen_elsewhere`, which the crew may answer: a different cheque, record it). Null for any
+ * other refusal.
+ */
+export function paymentReferenceRefusal(failed: {
+  data?: unknown
+}):
+  'reference_already_recorded' | 'cheque_already_recorded' | 'cheque_number_seen_elsewhere' | null {
+  const code = (failed.data as { code?: unknown } | null | undefined)?.code
+  return code === 'reference_already_recorded' ||
+    code === 'cheque_already_recorded' ||
+    code === 'cheque_number_seen_elsewhere'
+    ? code
+    : null
 }
 
 /** The bills a receipt touched, exactly as `RecordCollectionOutput` reports them. */

@@ -34,7 +34,7 @@ describe('invoiceStateShown (DOS-320)', () => {
   it('a bill closed only by credit notes reads credited; by money, or money and a note, paid', () => {
     // CN/9010 closed INV/9030, refused at the door and never paid
     expect(invoiceStateShown({ state: 'paid', paidPaise: 0, creditedPaise: 59_500 })).toBe(
-      'credited',
+      'closed_by_credit_note',
     )
     expect(invoiceStateShown({ state: 'paid', paidPaise: 59_500, creditedPaise: 0 })).toBe('paid')
     expect(invoiceStateShown({ state: 'paid', paidPaise: 40_000, creditedPaise: 19_500 })).toBe(

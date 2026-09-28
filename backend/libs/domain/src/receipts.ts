@@ -52,8 +52,9 @@ export function normaliseReference(reference: string): string {
 
 /**
  * The word a bill's payment state is shown with (DOS-320). A bill the money closed reads `paid`; one closed by
- * credit notes alone — refused at the door and credited, never paid — reads `credited`; one closed by both reads
- * `paid`, with the credited amount beside it. Derived from what closed it, never a state of the invoice machine.
+ * credit notes alone — refused at the door and credited, never paid — reads `closed_by_credit_note` ("Credited"
+ * on screen; a key of its own, because a goods receipt already has a `credited`); one closed by both reads `paid`,
+ * with the credited amount beside it. Derived from what closed it, never a state of the invoice machine.
  * `paidPaise` and `creditedPaise` are the bill's receipt and credit-note allocations (`invoices.list/get`).
  */
 export function invoiceStateShown(invoice: {
@@ -63,7 +64,8 @@ export function invoiceStateShown(invoice: {
 }): string {
   const paid = invoice.paidPaise ?? null
   const credited = invoice.creditedPaise ?? 0
-  if (invoice.state === 'paid' && paid !== null && paid <= 0 && credited > 0) return 'credited'
+  if (invoice.state === 'paid' && paid !== null && paid <= 0 && credited > 0)
+    return 'closed_by_credit_note'
   return invoice.state
 }
 

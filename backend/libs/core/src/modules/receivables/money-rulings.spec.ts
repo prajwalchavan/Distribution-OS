@@ -869,7 +869,9 @@ describeDb('money coming in — the rulings of 2026-09-28 (DATABASE_URL)', () =>
       expect(r).toEqual({ paidPaise: 0, creditedPaise: 59_500, recoveredPaise: 0 })
       expect(m).toEqual({ paidPaise: 8_000, creditedPaise: 2_000, recoveredPaise: 0 })
       expect(await invoiceState(refused.id)).toBe('paid')
-      expect(invoiceStateShown({ state: await invoiceState(refused.id), ...r })).toBe('credited')
+      expect(invoiceStateShown({ state: await invoiceState(refused.id), ...r })).toBe(
+        'closed_by_credit_note',
+      )
       expect(invoiceStateShown({ state: await invoiceState(mixed.id), ...m })).toBe('paid')
     })
   })

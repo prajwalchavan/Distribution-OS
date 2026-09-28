@@ -665,6 +665,7 @@ export const ApplyOnAccountOutput = z.object({
   allocationCount: z.number().int(),
   more: z.boolean(),
 })
+export type AppliedOnAccount = z.infer<typeof ApplyOnAccountOutput>
 
 /** How the desk fixes a mis-keyed split without reversing the money. Never touches the journal. */
 export const RemoveAllocationInput = MutationBase.extend({

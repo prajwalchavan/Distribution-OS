@@ -8,6 +8,7 @@
  */
 import type { GstSummaryRow, InvoiceListItem } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
+import { invoiceStateShown } from '@dos/domain'
 import {
   billLineQty,
   Button,
@@ -73,6 +74,8 @@ const INVOICE_FAMILY: Readonly<Record<string, StatusFamily>> = {
   issued: 'ochre',
   partially_paid: 'ochre',
   paid: 'moss',
+  // DOS-320: closed by credit notes alone
+  closed_by_credit_note: 'moss',
   written_off: 'neutral',
   cancelled: 'neutral',
 }
@@ -177,7 +180,11 @@ export default function Billing(): React.JSX.Element {
       head: t('o13.state'),
       priority: 'chip',
       cell: (row) => (
-        <StatusChip label={word(row.state)} family={INVOICE_FAMILY[row.state] ?? 'neutral'} />
+        // DOS-320: a bill closed by credit notes alone reads Credited, never Paid
+        <StatusChip
+          label={word(invoiceStateShown(row))}
+          family={INVOICE_FAMILY[invoiceStateShown(row)] ?? 'neutral'}
+        />
       ),
     },
   ]
@@ -385,6 +392,34 @@ export default function Billing(): React.JSX.Element {
                   tone={invoice.amountDuePaise > 0 ? 'critical' : 'positive'}
                 />
               </Field>
+              <Field label={t('o13.state')}>
+                <StatusChip
+                  label={word(invoiceStateShown(invoice))}
+                  family={INVOICE_FAMILY[invoiceStateShown(invoice)] ?? 'neutral'}
+                  testID="invoice-state"
+                />
+              </Field>
+              {/* DOS-320: paid AND credited shows the credited part; DOS-311: what came back after a write-off */}
+              {(invoice.creditedPaise ?? 0) > 0 &&
+              invoiceStateShown(invoice) !== 'closed_by_credit_note' ? (
+                <Field label={t('o13.credited')}>
+                  <Money
+                    value={invoice.creditedPaise ?? 0}
+                    size="cell"
+                    testID="invoice-credited-paise"
+                  />
+                </Field>
+              ) : null}
+              {(invoice.recoveredPaise ?? 0) > 0 ? (
+                <Field label={t('o13.recovered')}>
+                  <Money
+                    value={invoice.recoveredPaise ?? 0}
+                    size="cell"
+                    tone="positive"
+                    testID="invoice-recovered-paise"
+                  />
+                </Field>
+              ) : null}
               <Panel title={t('o5.lines', { count: invoice.lines.length })}>
                 <Stack gap={2}>
                   {invoice.lines.map((line) => (

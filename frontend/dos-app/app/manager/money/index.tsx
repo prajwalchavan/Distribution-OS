@@ -13,9 +13,14 @@
  * Every mutation carries a client UUIDv7 and one idempotency key per intent, so a double tap on a
  * ₹40,000 receipt is one ₹40,000 receipt.
  */
-import type { Receipt } from '@dos/contracts'
+import type { AppliedOnAccount, EarlierReceipt, Receipt } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
-import { receiptMayBeDeposited, receiptMayBounce } from '@dos/domain'
+import {
+  isConfirmableReceiptMode,
+  receiptMayBeConfirmed,
+  receiptMayBeDeposited,
+  receiptMayBounce,
+} from '@dos/domain'
 import {
   Button,
   Dialog,
@@ -31,6 +36,8 @@ import {
   StatusChip,
   TextInput,
   Txt,
+  formatINR,
+  paise,
   useColors,
   useStrings,
   routeFor,
@@ -66,7 +73,13 @@ import {
   type DepositIntent,
 } from '../../../src/groups/manager/lib/money-intents'
 import { absoluteUrl } from '../../../src/config'
-import { rangeOf, shortInstant, type RangeId } from '../../../src/groups/manager/lib/dates'
+import {
+  instantWithClock,
+  longDate,
+  rangeOf,
+  shortInstant,
+  type RangeId,
+} from '../../../src/groups/manager/lib/dates'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
 const RECEIPT_FAMILY: Readonly<Record<string, StatusFamily>> = {
@@ -77,6 +90,18 @@ const RECEIPT_FAMILY: Readonly<Record<string, StatusFamily>> = {
 }
 
 type Mode = 'cash' | 'upi' | 'bank_transfer' | 'cheque'
+
+/**
+ * DOS-310: the earlier receipt a refused payment reference stands on, when the refusal is the one the desk may
+ * answer — the same cheque number from ANOTHER shop (`cheque_number_seen_elsewhere`). A UTR recorded before and
+ * the same shop's cheque are refusals the desk reads, never overrides.
+ */
+function chequeSeenElsewhere(error: unknown): EarlierReceipt | null {
+  const data = (error as { data?: { code?: unknown; earlier?: EarlierReceipt } } | undefined)?.data
+  return data?.code === 'cheque_number_seen_elsewhere' && data.earlier !== undefined
+    ? data.earlier
+    : null
+}
 
 export default function Receipts(): React.JSX.Element {
   const t = useStrings()
@@ -139,7 +164,16 @@ export default function Receipts(): React.JSX.Element {
   )
 
   const create = useMutation(
-    (input: { retailerId: string; mode: Mode; amountPaise: number; reference: string }, meta) =>
+    (
+      input: {
+        retailerId: string
+        mode: Mode
+        amountPaise: number
+        reference: string
+        confirmReference: boolean
+      },
+      meta,
+    ) =>
       api.api.receivables.receipts.create({
         id: meta.id,
         idempotencyKey: meta.idempotencyKey,
@@ -148,8 +182,47 @@ export default function Receipts(): React.JSX.Element {
         amountPaise: input.amountPaise,
         strategy: 'fifo',
         ...(input.reference === '' ? {} : { reference: input.reference }),
+        ...(input.confirmReference ? { confirmReference: true } : {}),
       }),
     { invalidates: [['receipts'], ['receivables'], ['outstanding'], ['reporting']] },
+  )
+  /*
+   * DOS-310: the same cheque number from another shop. The server names the earlier receipt; the desk looks at
+   * it and, when the cheque in hand really is a different one, records it again with the confirmation.
+   */
+  const earlierCheque = create.status === 'error' ? chequeSeenElsewhere(create.error) : null
+
+  /*
+   * DOS-312: "Apply money on account" — a shop's receipts and credit notes that no bill has claimed go to its
+   * oldest open bills (the allocation a desk makes by hand, undone the same way), for one shop or every shop.
+   */
+  const [applying, setApplying] = useState(false)
+  const [applyQuery, setApplyQuery] = useState('')
+  const [applyShopId, setApplyShopId] = useState<string | null>(null)
+  const [applied, setApplied] = useState<AppliedOnAccount | null>(null)
+  const applyHits = useQuery(
+    ['retailers', 'search', 'apply', applyQuery],
+    () => api.api.retailers.list({ q: applyQuery, limit: 6 }),
+    { enabled: applying && applyQuery.trim().length >= 2 },
+  )
+  const applyDues = useQuery(
+    ['outstanding', applyShopId ?? 'none'],
+    () => api.api.receivables.outstanding.get({ retailerId: applyShopId ?? '' }),
+    { enabled: applyShopId !== null },
+  )
+  const apply = useMutation(
+    (input: { retailerId: string | null }, meta) =>
+      api.api.receivables.allocations.applyOnAccount({
+        id: meta.id,
+        idempotencyKey: meta.idempotencyKey,
+        ...(input.retailerId === null ? {} : { retailerId: input.retailerId }),
+      }),
+    {
+      invalidates: [['receipts'], ['receivables'], ['outstanding'], ['reporting'], ['invoices']],
+      onSuccess: (result) => {
+        setApplied(result)
+      },
+    },
   )
   const reverse = useMutation(
     (input: { id: string; reason: string }, meta) =>
@@ -232,6 +305,18 @@ export default function Receipts(): React.JSX.Element {
             filters={{ from: span.from, to: span.to }}
             testID="receipts-export"
           />
+          {can('receivables.allocations.applyOnAccount') ? (
+            <Button
+              label={t('m9.applyOnAccount')}
+              variant="secondary"
+              onPress={() => {
+                apply.reset()
+                setApplied(null)
+                setApplying(true)
+              }}
+              testID="apply-on-account"
+            />
+          ) : null}
           {mayRecord ? (
             <Button
               label={t('m9.record')}
@@ -328,6 +413,24 @@ export default function Receipts(): React.JSX.Element {
                 </Stack>
               </Panel>
 
+              {/*
+                DOS-311: money that met a written-off bill recovered it — booked against Bad debts, not left
+                as the shop's credit. Said on the receipt, bill by bill, with the day it was written off.
+              */}
+              {(detail.data?.recoveries ?? []).length === 0 ? null : (
+                <Stack gap={1} testID="receipt-recoveries">
+                  {(detail.data?.recoveries ?? []).map((row) => (
+                    <Txt key={row.invoiceId} field="body" desk="body">
+                      {t('m9.recovered', {
+                        amount: formatINR(paise(row.amountPaise)),
+                        bill: row.invoiceNo ?? row.invoiceId.slice(0, 8),
+                        date: longDate(row.writtenOffOn),
+                      })}
+                    </Txt>
+                  ))}
+                </Stack>
+              )}
+
               <Button
                 label={t('m9.print')}
                 variant="secondary"
@@ -341,7 +444,20 @@ export default function Receipts(): React.JSX.Element {
                 }}
                 testID="receipt-print"
               />
-              {can('receivables.receipts.deposit') ? (
+              {can('receivables.receipts.deposit') && isConfirmableReceiptMode(receipt.mode) ? (
+                /* DOS-256: UPI is confirmed at Day-end, one or all; here, one. Nothing confirms itself. */
+                <Button
+                  label={t('m9.confirmUpi')}
+                  variant="primary"
+                  disabled={!receiptMayBeConfirmed(receipt)}
+                  disabledReason={t('m9.upiConfirmed')}
+                  onPress={() => {
+                    deposit.reset()
+                    setDepositing(new Date())
+                  }}
+                  testID="receipt-confirm-upi"
+                />
+              ) : can('receivables.receipts.deposit') ? (
                 <Button
                   label={t('m9.deposit')}
                   variant="primary"
@@ -467,6 +583,41 @@ export default function Receipts(): React.JSX.Element {
 
           {/* A refused receipt says why directly above the button that sent it (DOS-029). */}
           <Refusal of={[create]} scope={shopId} testID="receipt-refusal" />
+          {earlierCheque === null || shopId === null || amount === null ? null : (
+            <Stack gap={2} testID="receipt-cheque-elsewhere">
+              <Txt field="body" desk="body">
+                {t('m9.chequeElsewhere', {
+                  ref: earlierCheque.reference,
+                  no: earlierCheque.receiptNo ?? '',
+                  shop: earlierCheque.retailerName,
+                  date: instantWithClock(earlierCheque.receivedAt),
+                  amount: formatINR(paise(earlierCheque.amountPaise)),
+                })}
+              </Txt>
+              <Button
+                label={t('m9.confirmCheque')}
+                variant="secondary"
+                loading={create.status === 'pending'}
+                onPress={() => {
+                  void create
+                    .mutateAsync({
+                      retailerId: shopId,
+                      mode,
+                      amountPaise: amount,
+                      reference: reference.trim(),
+                      confirmReference: true,
+                    })
+                    .then(() => {
+                      setRecording(false)
+                      setShopId(null)
+                      setAmount(null)
+                      setReference('')
+                    }, stayOpenAnd(list.refetch))
+                }}
+                testID="receipt-confirm-cheque"
+              />
+            </Stack>
+          )}
           <Button
             label={t('m9.record')}
             variant="primary"
@@ -481,6 +632,7 @@ export default function Receipts(): React.JSX.Element {
                   mode,
                   amountPaise: amount,
                   reference: reference.trim(),
+                  confirmReference: false,
                 })
                 .then(() => {
                   setRecording(false)
@@ -490,6 +642,112 @@ export default function Receipts(): React.JSX.Element {
                 }, stayOpenAnd(list.refetch))
             }}
             testID="receipt-submit"
+          />
+        </Stack>
+      </Sheet>
+
+      <Sheet
+        open={applying}
+        onClose={() => {
+          setApplying(false)
+          setApplyShopId(null)
+          setApplyQuery('')
+          setApplied(null)
+        }}
+        title={t('m9.applyTitle')}
+        testID="apply-panel"
+      >
+        <Stack gap={4}>
+          <Txt field="label" desk="meta" color={colors.text.secondary}>
+            {t('m9.applyBody')}
+          </Txt>
+          <Search
+            testID="apply-shop"
+            value={applyQuery}
+            onChange={setApplyQuery}
+            placeholder={t('m9.pickShop')}
+            state={
+              applyQuery.trim().length < 2
+                ? 'idle'
+                : applyHits.isFetching
+                  ? 'typing'
+                  : (applyHits.data?.items.length ?? 0) === 0
+                    ? 'noResults'
+                    : 'results'
+            }
+          >
+            {(applyHits.data?.items ?? []).map((row) => (
+              <ListRow
+                key={row.id}
+                primary={row.name}
+                state={applyShopId === row.id ? 'selected' : 'default'}
+                onPress={() => {
+                  setApplyShopId(row.id)
+                  setApplied(null)
+                }}
+              />
+            ))}
+          </Search>
+          {applyDues.data === undefined ? null : (
+            <Stack gap={1}>
+              <Field label={t('m14.owes')}>
+                <Money value={applyDues.data.outstandingPaise} size="cell" />
+              </Field>
+              <Field label={t('m9.unallocated')}>
+                <Money value={applyDues.data.unallocatedCreditPaise} size="cell" />
+              </Field>
+            </Stack>
+          )}
+          <Refusal of={[apply]} testID="apply-refusal" />
+          {applied === null ? null : (
+            <Stack gap={1} testID="apply-result">
+              <Txt field="body" desk="body">
+                {applied.appliedPaise === 0
+                  ? t('m9.appliedNone')
+                  : t('m9.applied', {
+                      amount: formatINR(paise(applied.appliedPaise)),
+                      count: applied.allocationCount,
+                      shops: applied.shops.length,
+                    })}
+              </Txt>
+              {applied.shops.map((row) => (
+                <ListRow
+                  key={row.retailerId}
+                  primary={row.retailerName}
+                  secondary={t('m9.appliedBills', { count: row.invoices.length })}
+                  trailingMoney={row.appliedPaise}
+                />
+              ))}
+              {applied.more ? (
+                <Txt field="label" desk="meta" color={colors.text.secondary}>
+                  {t('m9.appliedMore')}
+                </Txt>
+              ) : null}
+            </Stack>
+          )}
+          {applyShopId === null ? null : (
+            <Button
+              label={t('m9.applyShop')}
+              variant="primary"
+              loading={apply.status === 'pending'}
+              onPress={() => {
+                void apply.mutateAsync({ retailerId: applyShopId }).then(() => {
+                  void applyDues.refetch()
+                }, stayOpenAnd(list.refetch))
+              }}
+              testID="apply-shop-go"
+            />
+          )}
+          <Button
+            label={t('m9.applyAll')}
+            variant={applyShopId === null ? 'primary' : 'secondary'}
+            loading={apply.status === 'pending'}
+            onPress={() => {
+              void apply.mutateAsync({ retailerId: null }).then(() => {
+                void list.refetch()
+              }, stayOpenAnd(list.refetch))
+            }}
+            testID="apply-all-go"
           />
         </Stack>
       </Sheet>
@@ -537,12 +795,18 @@ export default function Receipts(): React.JSX.Element {
         onClose={() => {
           setDepositing(null)
         }}
-        title={t('m9.deposit')}
+        title={
+          receipt !== undefined && isConfirmableReceiptMode(receipt.mode)
+            ? t('m9.confirmUpi')
+            : t('m9.deposit')
+        }
         body={
           <Stack gap={3}>
             <Money value={receipt?.amountPaise ?? null} size="moneyM" />
             <Txt field="label" desk="meta" color={colors.text.secondary}>
-              {t('m10.depositBody')}
+              {receipt !== undefined && isConfirmableReceiptMode(receipt.mode)
+                ? t('m10.upiConfirmBody')
+                : t('m10.depositBody')}
             </Txt>
             <TextInput
               label={t('m10.depositRef')}
@@ -554,7 +818,11 @@ export default function Receipts(): React.JSX.Element {
             <Refusal of={[deposit]} testID="receipt-deposit-refusal" />
           </Stack>
         }
-        confirmLabel={t('m9.deposit')}
+        confirmLabel={
+          receipt !== undefined && isConfirmableReceiptMode(receipt.mode)
+            ? t('m9.confirmUpi')
+            : t('m9.deposit')
+        }
         busy={deposit.status === 'pending'}
         onConfirm={() => {
           if (selected === null || depositing === null) return

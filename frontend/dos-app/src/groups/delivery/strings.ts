@@ -343,6 +343,8 @@ export const strings = {
   'd5.oldestFirstUntaggable':
     'Untagged, the office puts this on the oldest bill this shop still owes — not always the bill in your hand. What each bill still owes has not come from the office, so a bill cannot be tagged here.',
   'd5.goesTo': 'This money goes to {bills}.',
+  // DOS-310: the office has seen this cheque number on another shop's receipt and asks
+  'd5.confirmCheque': 'It is a different cheque — record it',
   'd5.tagRefused':
     'The office says a bill you tagged does not owe that much any more. Untag it and record again — untagged, this money goes to the oldest bill the shop owes.',
   'd5.partPaid': 'part paid',
