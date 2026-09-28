@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { and, asc, desc, eq, gt, inArray, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   CostsListInput,
@@ -39,7 +39,12 @@ import {
   requireRole,
   STAFF,
 } from '../../platform/index.js'
-import { variantSearchPredicate, variantSummaryColumns } from '../catalog/index.js'
+import {
+  CATALOG_ORDER,
+  catalogAfter,
+  variantSearchPredicate,
+  variantSummaryColumns,
+} from '../catalog/index.js'
 import {
   brandLabels,
   matchVariant,
@@ -401,7 +406,7 @@ export class TenantCatalogService {
         variantSearchPredicate(input.q),
         input.brandId ? eq(products.brandId, input.brandId) : undefined,
         input.listedOnly ? eq(tenantProducts.listed, true) : undefined,
-        input.cursor ? gt(productVariants.id, input.cursor) : undefined,
+        input.cursor ? catalogAfter(input.cursor) : undefined,
       ]
       const base = tx
         .select(listingColumns)
@@ -426,7 +431,8 @@ export class TenantCatalogService {
           )
       const rows = await joined
         .where(and(...filters.filter((f): f is SQL => f !== undefined)))
-        .orderBy(asc(productVariants.id))
+        // Brand, item, pack size — the catalogue order (UX-O-8), keyset-paged on the same keys.
+        .orderBy(...CATALOG_ORDER)
         .limit(input.limit + 1)
       const items: TenantProduct[] = rows.slice(0, input.limit)
       const last = items[items.length - 1]

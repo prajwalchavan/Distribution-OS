@@ -1,2 +1,8 @@
 export { CatalogModule } from './catalog.module.js'
-export { CatalogService, variantSummaryColumns, variantSearchPredicate } from './catalog.service.js'
+export {
+  CATALOG_ORDER,
+  CatalogService,
+  catalogAfter,
+  variantSummaryColumns,
+  variantSearchPredicate,
+} from './catalog.service.js'
