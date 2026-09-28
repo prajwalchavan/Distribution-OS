@@ -351,3 +351,18 @@ Business impact: the register overstates the day's net sales by the day's credit
 Evidence: QA/evidence/p7/s6-run.log ("daily sales register today", "≠ daily sales register · credited"), results-s6.json
 Suggested fix: add creditedPaise to DailyTenantStatSchema and the register query.
 ```
+
+### DOS-324 — A credit release given before the rate is decided is not measured again
+Category: bug | Priority: P2 | Role: Manager / Owner | Platform: API | Found by: blind check 2 of the credit fix lane (V19), 2026-09-28
+
+```
+Steps: strict limit Rs 1,000. Order A (Rs 1,190) waits on TWO gates, credit and a bargained rate. The manager releases the
+  credit gate. Order B (Rs 595) is placed and confirmed. The owner approves A's rate; A is confirmed.
+Actual: Rs 1,658 confirmed on a Rs 1,000 strict limit; the desk approved A alone, never A on top of B.
+Expected (architect ruling, 2026-09-28): a credit release covers what the shop owed when it was given plus the order itself.
+  If what the shop owes has grown by the time the order's last gate is decided, the order goes back on hold for credit
+  with a new request, and the sentence says what changed.
+Business impact: needs two gates on one order and a second order in between; the amount over is at most the second order.
+Status: OPEN, backlog (P2). Not fixed in the credit lane.
+```
+
