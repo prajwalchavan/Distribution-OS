@@ -125,20 +125,20 @@ export async function assertReferenceFree(
   if (!first) return
   if (transfer) {
     throw new ORPCError('CONFLICT', {
-      message: `${MODE_WORD[input.mode] ?? 'reference'} ${reference} is already on ${named(first, true)}; one payment is recorded once. Open that receipt, or check the reference in the bank or UPI app`,
+      message: `${MODE_WORD[input.mode] ?? 'reference'} ${ref} is already on ${named(first, true)}; one payment is recorded once. Open that receipt, or check the reference in the bank or UPI app`,
       data: { code: 'reference_already_recorded', earlier: first },
     })
   }
   const sameShop = rows.find((row) => row.retailerId === input.retailerId)
   if (sameShop) {
     throw new ORPCError('CONFLICT', {
-      message: `cheque ${reference} of ${sameShop.retailerName} is already on ${named(sameShop, false)}; one cheque is recorded once. Open that receipt, or check the cheque number`,
+      message: `cheque ${ref} of ${sameShop.retailerName} is already on ${named(sameShop, false)}; one cheque is recorded once. Open that receipt, or check the cheque number`,
       data: { code: 'cheque_already_recorded', earlier: sameShop },
     })
   }
   if (input.confirmReference === true) return
   throw new ORPCError('CONFLICT', {
-    message: `cheque number ${reference} is already on ${named(first, true)}; if this is a different cheque of this shop, confirm it and record it again`,
+    message: `cheque number ${ref} is already on ${named(first, true)}; if this is a different cheque of this shop, confirm it and record it again`,
     data: { code: 'cheque_number_seen_elsewhere', earlier: first },
   })
 }
