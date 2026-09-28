@@ -2129,7 +2129,16 @@ async function collectStock(tx: Db, tenantId: string, ctx: ExampleContext): Prom
         available: AVAILABLE,
       })
       .from(stockBalances)
-      .where(and(eq(stockBalances.tenantId, tenantId), gt(AVAILABLE, 0)))
+      // A godown or a van: the damaged / expiry bin's pieces never move back for sale (QA DOS-352) and the
+      // dock's are packed for bills, so an example moving stock out of either would be refused.
+      .innerJoin(locations, eq(locations.id, stockBalances.locationId))
+      .where(
+        and(
+          eq(stockBalances.tenantId, tenantId),
+          gt(AVAILABLE, 0),
+          inArray(locations.kind, ['warehouse', 'vehicle']),
+        ),
+      )
       .orderBy(desc(AVAILABLE))
       .limit(1),
   )
@@ -2161,6 +2170,7 @@ async function collectStock(tx: Db, tenantId: string, ctx: ExampleContext): Prom
               eq(stockLots.variantId, ctx.variantId),
               eq(stockLots.batchNo, DOCS_BATCH_NO),
               eq(stockLots.mrpPaise, DOCS_BATCH_MRP_PAISE),
+              isNull(stockLots.expiryDate),
             ),
           )
           .limit(1),
@@ -3724,6 +3734,10 @@ const OVERRIDES: Record<
     variantId: ctx.variantId,
     batchNo: DOCS_BATCH_NO,
     mrpPaise: DOCS_BATCH_MRP_PAISE,
+    // A lot is (variant, batch, MRP, EXPIRY) since QA DOS-356: the example names no expiry, so it is the same
+    // lot every time, the one `docsLotId` finds.
+    mfgDate: DROP,
+    expiryDate: DROP,
   }),
   // The sign follows the service's roles (DOS-044): +1 where the owner or a manager is served, −1 where
   // no adder is (warehouse-service), so Execute sends a call that login may send. The lot is read with
