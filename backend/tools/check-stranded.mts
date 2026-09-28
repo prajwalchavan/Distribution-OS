@@ -24,7 +24,9 @@
  *
  * Reads every tenant of `DATABASE_URL` (loaded through `loadDotenv()` like every script here, a real env var
  * wins) as the connection's own role, so run it with the migration owner, like `pnpm check:stock-cancels`.
- * `--json` prints the rows instead of sentences. Exit code 1 while anything is listed, 0 otherwise.
+ * `--tenant <slug>` looks at one distributor only (a dev database also holds every spec's own tenants, whose
+ * fixtures drive the API directly). `--json` prints the rows instead of sentences. Exit code 1 while anything
+ * is listed, 0 otherwise.
  */
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -155,6 +157,9 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
   },
 ]
 
+const tenantAt = process.argv.indexOf('--tenant')
+const onlyTenant = tenantAt >= 0 ? process.argv[tenantAt + 1] : undefined
+
 const pool = createPool(url, 1)
 try {
   const db = createDb(pool)
@@ -166,7 +171,13 @@ try {
       detail: string
     }[]
     for (const r of rows)
-      findings.push({ kind: check.kind, tenant: r.tenant, document: r.document, detail: r.detail })
+      if (onlyTenant === undefined || r.tenant === onlyTenant)
+        findings.push({
+          kind: check.kind,
+          tenant: r.tenant,
+          document: r.document,
+          detail: r.detail,
+        })
   }
   if (process.argv.includes('--json')) {
     say(JSON.stringify(findings, null, 2))
