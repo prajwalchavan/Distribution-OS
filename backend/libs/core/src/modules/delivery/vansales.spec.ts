@@ -95,7 +95,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
   // one driver per test: a driver is on one open trip a day, and each test reads its own stop's figure
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -638,5 +638,49 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
                        from retailer_outstanding_summary where retailer_id = ${retailerC}`),
     )
     expect(Number((owed.rows[0] as { owed: string | number } | undefined)?.owed ?? 0)).toBe(0)
+  }, 120_000)
+
+  it('DOS-312 a shop holding money on account buys from the van for cash: the money on account meets the bill at issue and the cash is still taken', async () => {
+    const driver = driverAt(6)
+    const { tripId } = await roadTrip('onacct', driver)
+    // Shanti's shape (every bill of hers paid above, so nothing older is open): what she paid ahead, kept on account
+    const advance = await call(app, owner, 'POST', '/receipts', {
+      idempotencyKey: `vs-advance-${run}`,
+      id: uuidv7(),
+      retailerId: retailerC,
+      mode: 'cash',
+      amountPaise: 5_000,
+      strategy: 'none',
+    })
+    expect(advance.status, JSON.stringify(advance.body)).toBe(200)
+    const quote = await call<QuoteBody>(app, driver, 'POST', '/pricing/quote', {
+      retailerId: retailerC,
+      lines: [{ lineId: variantId, variantId, qtyPcs: 12 }],
+    })
+    expect(quote.status, JSON.stringify(quote.body)).toBe(200)
+    const bill = quote.body.totals.totalPaise
+    // the whole bill in cash: before DOS-312's application at issue this was a 409 ("owes … was offered")
+    const paid = await call<
+      VanSaleBody & {
+        receipt: { amountPaise: number; unallocatedPaise: number } | null
+        invoice: { state: string }
+      }
+    >(app, driver, 'POST', '/delivery/van-sales', {
+      ...d6Sale('onacct', tripId, undefined, retailerC, 12),
+      collect: { id: uuidv7(), receiptId: uuidv7(), mode: 'cash', amountPaise: bill },
+    })
+    expect(paid.status, JSON.stringify(paid.body)).toBe(200)
+    expect(paid.body.invoice.state).toBe('paid')
+    expect(paid.body.receipt?.amountPaise).toBe(bill)
+    // the shop's books still tie: open bills − money on account = its AR
+    const tie = await asOwner(async (tx) =>
+      tx.execute(sql`
+        select (select outstanding_paise - unallocated_credit_paise from retailer_outstanding_summary
+                 where retailer_id = ${retailerC}) as net,
+               (select coalesce(sum(jl.amount_paise), 0) from journal_lines jl join accounts a on a.id = jl.account_id
+                 where jl.tenant_id = ${tenantId} and a.code = 'AR' and jl.party_id = ${retailerC}) as ar`),
+    )
+    const row = tie.rows[0] as { net: string | number; ar: string | number }
+    expect(Number(row.net)).toBe(Number(row.ar))
   }, 120_000)
 })

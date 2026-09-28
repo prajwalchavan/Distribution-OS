@@ -349,6 +349,13 @@ export class VanSalesService {
         let collection: CreateOut['collection'] = null
         let receipt: CreateOut['receipt'] = null
         if (input.collect) {
+          // QA DOS-312: money the shop held on account may already have met part of this bill at issue; the cash
+          // goes against what is left of it (never more, which the explicit split would refuse), the rest FIFO.
+          const toThisBill = Math.min(
+            input.collect.amountPaise,
+            invoice.totalPaise,
+            await this.collections.billOpenPaise(tx, invoice.id),
+          )
           const collected = await this.collections.collectInTx(tx, trip, {
             id: input.collect.id,
             receiptId: input.collect.receiptId,
@@ -362,13 +369,16 @@ export class VanSalesService {
             chequeDate: input.collect.chequeDate,
             bankName: input.collect.bankName,
             clientReceiptNo: input.collect.clientReceiptNo,
-            allocations: [
-              {
-                id: deterministicLineId(input.collect.receiptId, invoice.id),
-                invoiceId: invoice.id,
-                amountPaise: Math.min(input.collect.amountPaise, invoice.totalPaise),
-              },
-            ],
+            allocations:
+              toThisBill > 0
+                ? [
+                    {
+                      id: deterministicLineId(input.collect.receiptId, invoice.id),
+                      invoiceId: invoice.id,
+                      amountPaise: toThisBill,
+                    },
+                  ]
+                : [],
             deviceId: input.deviceId,
           })
           collection = collected.item

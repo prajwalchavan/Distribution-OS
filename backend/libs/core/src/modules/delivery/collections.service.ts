@@ -332,6 +332,15 @@ export class CollectionsService {
     })
   }
 
+  /**
+   * What a bill still owes right now, receivables' own figure. A van sale's bill can be part-met the instant it is
+   * issued, by money the shop already held on account (QA DOS-312: money on account meets a new bill), so the cash
+   * taken for it at the door is put against what is left of it, and the rest goes where FIFO sends it.
+   */
+  async billOpenPaise(tx: Db, invoiceId: string): Promise<number> {
+    return this.receivables.invoiceOutstandingPaise(tx, invoiceId)
+  }
+
   // -------------------------------------------------------------------------------------------------------------
 
   private receiptInput(input: DoorstepCollectionInput, trip: TripRow) {
