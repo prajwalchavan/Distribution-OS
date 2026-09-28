@@ -31,7 +31,6 @@ import {
   creditNotes,
   invoiceLines,
   invoices,
-  locations,
   outboxEvents,
   withTenant,
   type ActorRole,
@@ -47,7 +46,7 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
-import { InventoryService } from '../inventory/index.js'
+import { damagedBinPlace, InventoryService, reservableLocationId } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import { asLedgerPoster, invoiceDateOf, loadSeller } from './billing.internals.js'
@@ -706,21 +705,13 @@ export class CreditNotesService {
     return this.locationOfKind(tx, 'damaged')
   }
 
+  /**
+   * The godown or the damaged / expiry bin, found the way every service finds them (inventory's fixed places, vans
+   * and trips ruling 5); a distributor without one gets inventory's 409 `place_missing` sentence instead of the old
+   * 400 "bootstrap it first".
+   */
   private async locationOfKind(tx: Db, kind: 'warehouse' | 'damaged'): Promise<string> {
-    const { tenantId } = currentTenant()
-    const [row] = await tx
-      .select({ id: locations.id })
-      .from(locations)
-      .where(
-        and(eq(locations.tenantId, tenantId), eq(locations.kind, kind), eq(locations.active, true)),
-      )
-      .orderBy(asc(locations.id))
-      .limit(1)
-    if (!row)
-      throw new ORPCError('BAD_REQUEST', {
-        message: `this distributor has no active ${kind} location (bootstrap it first)`,
-      })
-    return row.id
+    return kind === 'warehouse' ? reservableLocationId(tx) : (await damagedBinPlace(tx)).id
   }
 
   /** Pieces and taxable already credited per invoice line, over every note that is not cancelled. */
