@@ -662,6 +662,17 @@ export const strings = {
   'm6.expected': 'Wanted by',
   'm6.billPack': 'Issue the bill',
   'm6.billPackBody': 'Stock has already left. This issues the bill for that pack.',
+  'm6.unpack': 'Unpack',
+  'm6.unpackTitle': 'Unpack — pick it again',
+  'm6.unpackBody':
+    'The cartons come off the dock: their pieces go back to the godown, expired ones into the expiry bin. The order is confirmed again and is picked from an in-date batch.',
+  'm6.unpackReason': 'Why is it unpacked?',
+  'm6.unpacked': '{order} is unpacked: {back} pc back to the godown, {bin} pc into the expiry bin.',
+  'm6.cancelOrder': 'Cancel the order',
+  'm6.cancelOrderBody':
+    'This pack has no bill. The cartons come off the dock — back to the godown, expired pieces into the expiry bin — and the order is cancelled.',
+  'm6.cancelOrderReason': 'Why is the order cancelled?',
+  'm6.orderCancelled': '{order} is cancelled and its pieces are back off the dock.',
   'm6.packs': 'Packed, not billed',
   'm6.invoices': 'Bills issued',
   'm6.invoiceNo': 'Bill no.',
