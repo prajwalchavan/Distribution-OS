@@ -1,4 +1,5 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { uuidv7 } from '@dos/domain'
 import {
@@ -6,12 +7,14 @@ import {
   brands,
   createDb,
   createPool,
+  hsnRates,
   manufacturers,
   memberships,
   priceListItems,
   priceLists,
   products,
   productVariants,
+  retailers,
   tenantProducts,
   tenants,
   users,
@@ -40,6 +43,10 @@ describeDb('catalogue order: brand, item, pack size (DATABASE_URL)', () => {
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const manufacturerId = uuidv7()
+  const shopId = uuidv7()
+  // A per-run HSN code with a dated rate, so `pricing.rates` (which carries GST) can price every item;
+  // `hsn_rates` is global, so the row goes in `afterAll` (the pricing spec's convention).
+  const hsn = `3${run}`
   let app: NestFastifyApplication
 
   // In the order the ruling reads them; inserted shuffled below so no insert order can pass the test.
@@ -102,10 +109,21 @@ describeDb('catalogue order: brand, item, pack size (DATABASE_URL)', () => {
         netQty: e.qty,
         netUnit: e.unit,
         defaultCaseSize: 12,
-        hsnCode: '19053100',
+        hsnCode: hsn,
       })
       await db.insert(tenantProducts).values({ id: uuidv7(), tenantId, variantId: id })
     }
+    await db
+      .insert(hsnRates)
+      .values({ id: uuidv7(), hsnCode: hsn, gstBps: 1800, effectiveFrom: '2020-04-01' })
+    await db.insert(retailers).values({
+      id: shopId,
+      tenantId,
+      code: `CAT-${run}`,
+      name: 'Catalogue shop',
+      phone: `+91912${run}1`,
+      stateCode: '27',
+    })
     const priceListId = uuidv7()
     await db
       .insert(priceLists)
@@ -119,6 +137,7 @@ describeDb('catalogue order: brand, item, pack size (DATABASE_URL)', () => {
 
   afterAll(async () => {
     await app?.close()
+    await db.delete(hsnRates).where(eq(hsnRates.hsnCode, hsn))
     await pool.end()
   })
 
@@ -198,5 +217,20 @@ describeDb('catalogue order: brand, item, pack size (DATABASE_URL)', () => {
     )
     expect(res.status).toBe(200)
     expect(res.body.items[0]?.items.map((i) => i.variantName)).toEqual(names)
+  })
+
+  it('the rate list a shop opens (pricing.rates) reads in the same order', async () => {
+    const byId = new Map(ids.map((id, i) => [id, expected[i]?.name ?? '']))
+    for (const who of [owner, rep]) {
+      const res = await call<{ items: { variantId: string }[] }>(
+        app,
+        who,
+        'GET',
+        '/pricing/rates',
+        { retailerId: shopId },
+      )
+      expect(res.status).toBe(200)
+      expect(res.body.items.map((i) => byId.get(i.variantId))).toEqual(names)
+    }
   })
 })
