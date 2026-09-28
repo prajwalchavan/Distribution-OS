@@ -5,6 +5,7 @@ import {
   bootstrapTenant,
   createDb,
   createPool,
+  featureFlags,
   hsnRates,
   loadSheets,
   locations,
@@ -88,7 +89,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
   const managerId = uuidv7()
   const packerId = uuidv7()
   const repId = uuidv7()
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = Array.from({ length: 9 }, () => uuidv7())
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -104,12 +105,17 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
 
   const retailerA = uuidv7()
   const retailerB = uuidv7()
-  /** Cookies (DOS-351), whitener (DOS-353), tooth brush (the rest), masala (the parked pack of DOS-351). */
+  /**
+   * Cookies (DOS-351), whitener (DOS-353), tooth brush (the rest), masala (the parked pack of DOS-351) and haldi
+   * (the bills dated back of DOS-351's verify).
+   */
   const vB = uuidv7()
   const vE = uuidv7()
   const vG = uuidv7()
   const vP = uuidv7()
-  const vehicleIds = [uuidv7(), uuidv7(), uuidv7()]
+  const vQ = uuidv7()
+  /** One vehicle per scenario, so a trip left open by one never holds another's van. */
+  const vehicleIds = Array.from({ length: 9 }, () => uuidv7())
   const vehicleLocs: string[] = []
   const lots: Record<string, string> = {}
   let godownId = ''
@@ -254,6 +260,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     driver: number,
     vehicle: number,
     stops: { retailerId: string; invoiceIds: string[] }[],
+    opts: { vanSales?: boolean; startLoading?: boolean } = {},
   ): Promise<{ id: string; stopIds: string[] }> {
     const id = uuidv7()
     const stopIds = stops.map(() => uuidv7())
@@ -264,6 +271,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
       vehicleId: vehicleIds[vehicle],
       driverId: driverIds[driver],
       openingCashPaise: 0,
+      ...(opts.vanSales === true ? { vanSalesEnabled: true } : {}),
       stops: stops.map((s, i) => ({
         id: stopIds[i],
         sequence: i + 1,
@@ -272,6 +280,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
       })),
     })
     expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+    if (opts.startLoading === false) return { id, stopIds }
     const loading = await post(packer, `/delivery/trips/${id}/start-loading`, {
       idempotencyKey: `loading-${tag}-${run}`,
     })
@@ -311,6 +320,14 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
       .insert(memberships)
       .values(staff.map(([userId, , role]) => ({ id: uuidv7(), tenantId, userId, role })))
     await bootstrapTenant(db, tenantId)
+    // The van sale of DOS-351's verify needs the tenant's van-sales switch on.
+    await db
+      .insert(featureFlags)
+      .values({ tenantId, flag: 'van_sales', enabled: true })
+      .onConflictDoUpdate({
+        target: [featureFlags.tenantId, featureFlags.flag],
+        set: { enabled: true },
+      })
 
     const manufacturerId = uuidv7()
     const productId = uuidv7()
@@ -323,6 +340,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
       [vE, 'Dairy Whitener 500 g'],
       [vG, 'Tooth Brush'],
       [vP, 'Garam Masala 50 g'],
+      [vQ, 'Haldi Powder 100 g'],
     ]
     await db.insert(productVariants).values(
       variants.map(([id, name]) => ({
@@ -424,6 +442,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
         ['E1', vE, '2028-01-31', 202],
         ['G1', vG, '2028-01-31', 1_000],
         ['P1', vP, '2027-12-31', 24],
+        ['Q1', vQ, '2027-12-31', 24],
       ] as const) {
         const { lot } = await inventory.findOrCreateLot(tx, {
           variantId,
@@ -837,18 +856,23 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
       reason: 'drafted before the bill',
     })
     expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+    // Billed and planned on a trip (QA DOS-354 verify: a sheet loads only its own trip's bills), it loads.
+    const t = await trip('355', istDay(4), 3, 3, [
+      { retailerId: retailerA, invoiceIds: [billed.body.item.id] },
+    ])
     const again = await post<{ item: { id: string } }>(packer, '/warehouse/load-sheets', {
       idempotencyKey: `sheet-355-again-${run}`,
       id: uuidv7(),
-      toLocationId: vehicleLocs[2],
+      toLocationId: vehicleLocs[3],
+      tripId: t.id,
       orderIds: [o.orderId],
     })
     expect(again.status, JSON.stringify(again.body)).toBe(200)
-    const tidy = await post(manager, `/warehouse/load-sheets/${again.body.item.id}/cancel`, {
-      idempotencyKey: `cancel-355-again-${run}`,
+    const tidy = await post(manager, `/delivery/trips/${t.id}/cancel`, {
+      idempotencyKey: `cancel-355-trip-${run}`,
       reason: 'test tidy',
     })
-    expect(tidy.status).toBe(200)
+    expect(tidy.status, JSON.stringify(tidy.body)).toBe(200)
   }, 120_000)
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -963,21 +987,15 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
       { date: day, limit: 200 },
     )
     expect(board.body.bills.map((b) => b.invoiceId)).toContain(invoiceId)
-    const fresh = await post<{ item: { id: string } }>(packer, '/warehouse/load-sheets', {
+    // Free, it is loaded again only once it is planned on a trip again (QA DOS-354 verify).
+    const fresh = await post<Refusal>(packer, '/warehouse/load-sheets', {
       idempotencyKey: `draft-354-fresh-${run}`,
       id: uuidv7(),
       toLocationId: vehicleLocs[1],
       orderIds: [o.orderId],
     })
-    expect(fresh.status, JSON.stringify(fresh.body)).toBe(200)
-    expect(
-      (
-        await post(manager, `/warehouse/load-sheets/${fresh.body.item.id}/cancel`, {
-          idempotencyKey: `cancel-354-fresh-${run}`,
-          reason: 'test tidy',
-        })
-      ).status,
-    ).toBe(200)
+    expect(fresh.status, JSON.stringify(fresh.body)).toBe(409)
+    expect(fresh.body.data?.code).toBe('bill_not_planned')
   }, 180_000)
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -1003,7 +1021,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     expect(whileLoading.status, JSON.stringify(whileLoading.body)).toBe(409)
     expect(whileLoading.body.data?.code).toBe('vehicle_on_trip')
     expect(whileLoading.body.message).toMatch(
-      /which is being loaded: nothing comes off the van by hand/,
+      /which is being loaded: nothing on the van is moved, adjusted or counted by hand until that trip is checked in/,
     )
 
     const left = await post(drivers[2] as Actor, `/delivery/trips/${t.id}/depart`, {
@@ -1021,7 +1039,7 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     expect(transfer.body.data?.code).toBe('vehicle_on_trip')
     expect(transfer.body.message).toMatch(
       new RegExp(
-        `^MH-05-ST-2${run.slice(-3)} is on trip TRIP-\\d+, which is out on the road: nothing comes off the van by hand until that trip is checked in\\. Check the trip in first; the godown then counts the van off\\.$`,
+        `^MH-05-ST-2${run.slice(-3)} is on trip TRIP-\\d+, which is out on the road: nothing on the van is moved, adjusted or counted by hand until that trip is checked in\\. Check the trip in first; the godown then counts the van off\\.$`,
       ),
     )
     const unload = await post<Refusal>(packer, '/delivery/van-returns/unload', {
@@ -1050,6 +1068,383 @@ describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
     })
     expect(counted.status, JSON.stringify(counted.body)).toBe(200)
     expect(counted.body.dockPcs).toBe(12)
+  }, 180_000)
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // The repair after the blind check (fix-states verify 1)
+
+  /** Order, pick-free pack and bill of 12 pieces of `variantId`, with the bill's id and number. */
+  async function billed(
+    retailerId: string,
+    variantId: string,
+    tag: string,
+  ): Promise<{ orderId: string; orderNo: string; invoiceId: string; invoiceNo: string }> {
+    const o = await order(retailerId, variantId, 12, tag)
+    const packed = await pack(o.orderId, tag)
+    expect(packed.status, JSON.stringify(packed.body)).toBe(200)
+    return {
+      orderId: o.orderId,
+      orderNo: o.orderNo,
+      invoiceId: packed.body.invoice?.id ?? '',
+      invoiceNo: packed.body.invoice?.invoiceNo ?? '',
+    }
+  }
+
+  const sheetCount = async (): Promise<number> =>
+    Number(
+      (
+        await one<{ n: number }>(
+          sql`select count(*)::int as n from load_sheets where tenant_id = ${tenantId}`,
+        )
+      ).n,
+    )
+
+  it("DOS-354 (verify): a bill is loaded only onto the trip that carries it — no sheet of no trip, no bill of another trip — and a sheet that names none is its bills' trip", async () => {
+    const day = istDay(5)
+    const van = vehicleLocs[4] ?? ''
+    const otherVan = vehicleLocs[5] ?? ''
+    const r = await billed(retailerA, vG, 'v-r')
+    const w = await billed(retailerA, vG, 'v-w')
+    const u = await billed(retailerB, vG, 'v-u')
+    const sheet = (tag: string, body: Record<string, unknown>) =>
+      post<Refusal & { item: { id: string; tripId: string | null } }>(
+        packer,
+        '/warehouse/load-sheets',
+        { idempotencyKey: `sheet-v-${tag}-${run}`, id: uuidv7(), ...body },
+      )
+    const before = await sheetCount()
+
+    // V-E2: a sheet of no trip, for a bill planned on none, onto a van.
+    const noTrip = await sheet('no-trip', { toLocationId: van, orderIds: [r.orderId] })
+    expect(noTrip.status, JSON.stringify(noTrip.body)).toBe(409)
+    expect(noTrip.body.data?.code).toBe('bill_not_planned')
+    expect(noTrip.body.message).toBe(
+      `${r.invoiceNo} · States Shop A ${run} is not planned on any trip. A bill is loaded only onto the trip that carries it, so that the trip's check-in brings back whatever does not reach the shop: plan it on a trip first (Trips), then put it on that trip's load sheet.`,
+    )
+
+    const t = await trip('v-t', day, 4, 4, [{ retailerId: retailerA, invoiceIds: [w.invoiceId] }])
+    await trip('v-t2', day, 5, 5, [{ retailerId: retailerB, invoiceIds: [u.invoiceId] }])
+    const tripNo = (
+      await one<{ trip_no: string }>(sql`select trip_no from trips where id = ${t.id}`)
+    ).trip_no
+
+    // V-F2: the trip's own sheet carrying a bill planned on no trip, or on another trip.
+    const unplanned = await sheet('f2-unplanned', {
+      toLocationId: van,
+      tripId: t.id,
+      orderIds: [w.orderId, r.orderId],
+    })
+    expect(unplanned.status, JSON.stringify(unplanned.body)).toBe(409)
+    expect(unplanned.body.data?.code).toBe('bill_not_planned')
+    expect(unplanned.body.message).toContain(`plan it on trip ${tripNo} first`)
+    const elsewhere = await sheet('f2-elsewhere', {
+      toLocationId: van,
+      tripId: t.id,
+      orderIds: [w.orderId, u.orderId],
+    })
+    expect(elsewhere.status, JSON.stringify(elsewhere.body)).toBe(409)
+    expect(elsewhere.body.data?.code).toBe('bill_not_on_trip')
+    expect(elsewhere.body.message).toMatch(
+      new RegExp(
+        `^${u.invoiceNo} · States Shop B ${run} rides trip TRIP-\\d+, not trip ${tripNo}\\. A bill is loaded only onto the trip that carries it: take it off this sheet and load it on its own trip's sheet\\.$`,
+      ),
+    )
+    // One sheet is one trip's load; and the trip's load goes on the trip's own van.
+    const both = await sheet('both', { toLocationId: van, orderIds: [w.orderId, u.orderId] })
+    expect(both.status, JSON.stringify(both.body)).toBe(409)
+    expect(both.body.data?.code).toBe('bills_on_several_trips')
+    const wrongVan = await sheet('wrong-van', {
+      toLocationId: otherVan,
+      tripId: t.id,
+      orderIds: [w.orderId],
+    })
+    expect(wrongVan.status, JSON.stringify(wrongVan.body)).toBe(409)
+    expect(wrongVan.body.data?.code).toBe('wrong_vehicle')
+    expect(wrongVan.body.message).toBe(
+      `Trip ${tripNo} goes out on MH-05-ST-4${run.slice(-3)}, and this sheet loads MH-05-ST-5${run.slice(-3)}. Build the sheet for the trip's own vehicle, so the crew finds its load on the van it drives.`,
+    )
+    expect(await sheetCount(), 'no refused sheet was written').toBe(before)
+
+    // The sheet built for the vehicle with no trip on it (DOS-137) is its bill's trip's sheet, and goes out.
+    const linked = await sheet('linked', { toLocationId: van, orderIds: [w.orderId] })
+    expect(linked.status, JSON.stringify(linked.body)).toBe(200)
+    expect(linked.body.item.tripId).toBe(t.id)
+    const confirmed = await post<Refusal>(
+      manager,
+      `/warehouse/load-sheets/${linked.body.item.id}/confirm`,
+      { idempotencyKey: `confirm-v-linked-${run}`, countedPackages: 1, challanId: uuidv7() },
+    )
+    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(200)
+    expect(await orderState(w.orderId)).toBe('dispatched')
+
+    // Refusals on this road name documents, never a row id.
+    const sheetCancel = await post<Refusal>(
+      manager,
+      `/warehouse/load-sheets/${linked.body.item.id}/cancel`,
+      { idempotencyKey: `cancel-v-linked-${run}`, reason: 'wrong van' },
+    )
+    expect(sheetCancel.status).toBe(409)
+    expect(sheetCancel.body.message).toMatch(
+      new RegExp(`^the load sheet for MH-05-ST-4${run.slice(-3)} on \\d+ \\w+ is confirmed;`),
+    )
+    const billCancel = await post<Refusal>(manager, `/invoices/${w.invoiceId}/cancel`, {
+      idempotencyKey: `cancel-v-bill-${run}`,
+      id: w.invoiceId,
+      reason: 'shop closed',
+    })
+    expect(billCancel.status).toBe(409)
+    expect(billCancel.body.message).toBe(
+      `order ${w.orderNo} is dispatched; after dispatch the only correction is a credit note`,
+    )
+
+    // A sheet drafted before the rule — no trip, a bill planned on none — is refused at the gate.
+    const legacy = uuidv7()
+    await db.insert(loadSheets).values({
+      id: legacy,
+      tenantId,
+      fromLocationId: godownId,
+      toLocationId: otherVan,
+      orderIds: [r.orderId],
+      expectedPackages: 1,
+      loadValuePaise: 0,
+    })
+    const gate = await post<Refusal>(manager, `/warehouse/load-sheets/${legacy}/confirm`, {
+      idempotencyKey: `confirm-v-legacy-${run}`,
+      countedPackages: 1,
+      challanId: uuidv7(),
+    })
+    expect(gate.status, JSON.stringify(gate.body)).toBe(409)
+    expect(gate.body.data?.code).toBe('bill_not_planned')
+    const challans = await one<{ n: number }>(
+      sql`select count(*)::int as n from delivery_challans where load_sheet_id = ${legacy}`,
+    )
+    expect(Number(challans.n)).toBe(0)
+    expect(await orderState(r.orderId)).toBe('packed')
+  }, 180_000)
+
+  it('DOS-354 (verify): a trip does not leave with a bill counted out on another load — it is checked in, and the bill comes back', async () => {
+    const q = await billed(retailerA, vG, 'f1-q')
+    const t = await trip('f1', istDay(6), 6, 6, [
+      { retailerId: retailerA, invoiceIds: [q.invoiceId] },
+    ])
+    const out = await loadOut(app, crew, { tripId: t.id, orderIds: [q.orderId], tag: `f1-${run}` })
+    // The load of old: a sheet built for the vehicle with no trip on it (DOS-137), written before a sheet took
+    // only its own trip's bills. The bill is dispatched, and no sheet of this trip carries it.
+    await db.execute(sql`update load_sheets set trip_id = null where id = ${out.sheetId}`)
+    const tripNo = (
+      await one<{ trip_no: string }>(sql`select trip_no from trips where id = ${t.id}`)
+    ).trip_no
+
+    const depart = await post<Refusal>(drivers[6] as Actor, `/delivery/trips/${t.id}/depart`, {
+      idempotencyKey: `depart-f1-${run}`,
+    })
+    expect(depart.status, JSON.stringify(depart.body)).toBe(409)
+    expect(depart.body.data?.code).toBe('bill_not_on_this_load')
+    expect(depart.body.message).toBe(
+      `${q.invoiceNo} was counted out at the godown on another load, not on trip ${tripNo}'s own load sheet, so its pieces are not on MH-05-ST-6${run.slice(-3)}. A trip leaves only with the bills loaded for it: check trip ${tripNo} in — the bill comes back undelivered — and load it again from the dock or the godown.`,
+    )
+    expect(
+      (await one<{ state: string }>(sql`select state::text as state from trips where id = ${t.id}`))
+        .state,
+    ).toBe('loading')
+
+    // The way out the sentence names.
+    const back = await post<{ item: { state: string } }>(
+      manager,
+      `/delivery/trips/${t.id}/return`,
+      {
+        idempotencyKey: `return-f1-${run}`,
+      },
+    )
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    expect(back.body.item.state).toBe('closing')
+    expect(await orderState(q.orderId)).toBe('packed')
+  }, 180_000)
+
+  it('DOS-351 (verify): a parked pack billed with a date before its batch expired is not billed today', async () => {
+    const q1 = lots.Q1 ?? ''
+    const o = await order(retailerB, vQ, 12, '351v-parked')
+    const parked = await pack(o.orderId, '351v-parked', false)
+    expect(parked.status, JSON.stringify(parked.body)).toBe(200)
+    // Packed three days ago, the batch passes its date yesterday while the pack waits for its bill, and the desk
+    // dates the bill the day before that (the QA lane's INV/9017).
+    await db.execute(
+      sql`update pack_confirmations set packed_at = packed_at - interval '3 days' where id = ${parked.body.item.id}`,
+    )
+    await db.execute(sql`update stock_lots set expiry_date = ${istDay(-1)} where id = ${q1}`)
+    const backdated = await post<Refusal>(
+      manager,
+      `/warehouse/packs/${parked.body.item.id}/invoice`,
+      { idempotencyKey: `bill-351v-parked-${run}`, id: uuidv7(), invoiceDate: istDay(-2) },
+    )
+    expect(backdated.status, JSON.stringify(backdated.body)).toBe(409)
+    expect(backdated.body.data?.code).toBe('batch_expired')
+    expect(backdated.body.message).toBe(
+      `${o.orderNo} cannot be billed: 12 pc of it are Haldi Powder 100 g batch Q1-${run}, which expired on ${expiryPhrase(istDay(-1))}. Expired goods are never billed or sent — set those pieces aside for the expiry bin.`,
+    )
+  }, 180_000)
+
+  it('DOS-351 (verify): a van sale dated back to before its batch expired sells nothing — nothing leaves the van', async () => {
+    // Q1 expired yesterday (the test above); the QA lane's INV/9023 put such a batch on a van and dated the sale back.
+    const q1 = lots.Q1 ?? ''
+    await db.execute(sql`update stock_lots set expiry_date = ${istDay(-1)} where id = ${q1}`)
+    const t = await trip('351v-van', istDay(7), 7, 7, [], { vanSales: true })
+    const departed = await post(drivers[7] as Actor, `/delivery/trips/${t.id}/depart`, {
+      idempotencyKey: `depart-351v-${run}`,
+    })
+    expect(departed.status, JSON.stringify(departed.body)).toBe(200)
+    const van = vehicleLocs[7] ?? ''
+    await asOwner((tx) =>
+      app.get(InventoryService).post(tx, [
+        {
+          lotId: q1,
+          locationId: godownId,
+          qtyDelta: -10,
+          reason: 'transfer_out',
+          refType: 'transfer',
+          idempotencyKey: `van-351v-${run}:out`,
+        },
+        {
+          lotId: q1,
+          locationId: van,
+          qtyDelta: 10,
+          reason: 'transfer_in',
+          refType: 'transfer',
+          idempotencyKey: `van-351v-${run}:in`,
+        },
+      ]),
+    )
+    const invoiceId = uuidv7()
+    const sale = await post<Refusal>(drivers[7] as Actor, '/delivery/van-sales', {
+      idempotencyKey: `sale-351v-${run}`,
+      id: uuidv7(),
+      tripId: t.id,
+      retailerId: retailerA,
+      invoiceId,
+      deliveryId: uuidv7(),
+      invoiceDate: istDay(-2),
+      lines: [{ id: uuidv7(), variantId: vQ, enteredQty: 10, enteredUnit: 'piece' }],
+    })
+    expect(sale.status, JSON.stringify(sale.body)).toBeGreaterThanOrEqual(400)
+    expect(sale.status, JSON.stringify(sale.body)).toBeLessThan(500)
+    const bills = await one<{ n: number }>(
+      sql`select count(*)::int as n from invoices where id = ${invoiceId}`,
+    )
+    expect(Number(bills.n)).toBe(0)
+    expect((await balance(q1, van)).on_hand).toBe(10)
+  }, 180_000)
+
+  it('DOS-358 (verify): nothing on a van is adjusted or counted by hand while its trip is out, nor moved by hand once it is checked in; settled, it is an ordinary place again', async () => {
+    const g1 = lots.G1 ?? ''
+    const van = vehicleLocs[8] ?? ''
+    const plate = `MH-05-ST-8${run.slice(-3)}`
+    const w = await billed(retailerA, vG, '358v')
+    // A count of the van opened before the trip, as the godown may: it names the batch the van will carry.
+    const countId = uuidv7()
+    const opened = await post(packer, '/inventory/cycle-counts', {
+      idempotencyKey: `count-358v-open-${run}`,
+      id: countId,
+      locationId: van,
+      lotIds: [g1],
+    })
+    expect(opened.status, JSON.stringify(opened.body)).toBe(200)
+    const t = await trip('358v', istDay(8), 8, 8, [
+      { retailerId: retailerA, invoiceIds: [w.invoiceId] },
+    ])
+    await loadOut(app, crew, { tripId: t.id, orderIds: [w.orderId], tag: `358v-${run}` })
+    const adjust = (actor: Actor, tag: string, qtyDelta: number, reason: string) =>
+      post<Refusal>(actor, '/inventory/adjustments', {
+        idempotencyKey: `adjust-358v-${tag}-${run}`,
+        lotId: g1,
+        locationId: van,
+        qtyDelta,
+        reason,
+      })
+
+    const whileLoading = await adjust(packer, 'loading', -1, 'damage')
+    expect(whileLoading.status, JSON.stringify(whileLoading.body)).toBe(409)
+    expect(whileLoading.body.data?.code).toBe('vehicle_on_trip')
+
+    const left = await post(drivers[8] as Actor, `/delivery/trips/${t.id}/depart`, {
+      idempotencyKey: `depart-358v-${run}`,
+    })
+    expect(left.status, JSON.stringify(left.body)).toBe(200)
+    // The QA lane's V-S6f: a damage of one, and the owner's own correction, while the trip is on the road.
+    for (const [actor, tag, qty, reason] of [
+      [packer, 'damage', -1, 'damage'],
+      [owner, 'owner-add', 1, 'adjustment'],
+    ] as const) {
+      const refused = await adjust(actor, tag, qty, reason)
+      expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+      expect(refused.body.data?.code).toBe('vehicle_on_trip')
+      expect(refused.body.message).toMatch(
+        new RegExp(
+          `^${plate} is on trip TRIP-\\d+, which is out on the road: nothing on the van is moved, adjusted or counted by hand until that trip is checked in\\.`,
+        ),
+      )
+    }
+    const openOnRoad = await post<Refusal>(packer, '/inventory/cycle-counts', {
+      idempotencyKey: `count-358v-road-${run}`,
+      id: uuidv7(),
+      locationId: van,
+    })
+    expect(openOnRoad.status, JSON.stringify(openOnRoad.body)).toBe(409)
+    expect(openOnRoad.body.data?.code).toBe('vehicle_on_trip')
+    // The count opened before it left takes its numbers, but is not posted while the trip is out.
+    const counted = await post(packer, `/inventory/cycle-counts/${countId}/count`, {
+      idempotencyKey: `count-358v-22-${run}`,
+      id: countId,
+      lines: [{ lotId: g1, countedPcs: 22 }],
+    })
+    expect(counted.status, JSON.stringify(counted.body)).toBe(200)
+    const posted = await post<Refusal>(manager, `/inventory/cycle-counts/${countId}/post`, {
+      idempotencyKey: `count-358v-post-${run}`,
+      id: countId,
+    })
+    expect(posted.status, JSON.stringify(posted.body)).toBe(409)
+    expect(posted.body.data?.code).toBe('vehicle_on_trip')
+    expect(await balance(g1, van)).toEqual({ on_hand: 12, reserved: 0 })
+
+    // Checked in and not settled: the van is counted off on the van check-in, never moved by hand.
+    const back = await post(drivers[8] as Actor, `/delivery/trips/${t.id}/return`, {
+      idempotencyKey: `return-358v-${run}`,
+    })
+    expect(back.status, JSON.stringify(back.body)).toBe(200)
+    const handMove = await post<Refusal>(packer, '/inventory/transfers', {
+      idempotencyKey: `transfer-358v-closing-${run}`,
+      lotId: g1,
+      fromLocationId: van,
+      toLocationId: godownId,
+      qtyPcs: 12,
+    })
+    expect(handMove.status, JSON.stringify(handMove.body)).toBe(409)
+    expect(handMove.body.data?.code).toBe('vehicle_on_trip')
+    expect(handMove.body.message).toMatch(
+      new RegExp(
+        `^${plate} is on trip TRIP-\\d+, which has been checked in and is not settled yet: the godown counts the van off on Van check-in, which puts a returned bill's pieces on the dock for it\\. Nothing on the van is moved, adjusted or counted by hand until that trip is settled\\.$`,
+      ),
+    )
+    expect((await adjust(owner, 'closing', 1, 'adjustment')).status).toBe(409)
+    const unloaded = await post<{ dockPcs: number }>(packer, '/delivery/van-returns/unload', {
+      idempotencyKey: `unload-358v-${run}`,
+      id: uuidv7(),
+      vehicleLocationId: van,
+      lotId: g1,
+      qtyPcs: 12,
+    })
+    expect(unloaded.status, JSON.stringify(unloaded.body)).toBe(200)
+    expect(unloaded.body.dockPcs).toBe(12)
+    const settled = await post(manager, `/delivery/trips/${t.id}/settle`, {
+      idempotencyKey: `settle-358v-${run}`,
+      id: uuidv7(),
+      handedOverCashPaise: 0,
+      counted: [{ lotId: g1, countedPcs: 0 }],
+    })
+    expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+
+    // Settled: the van is an ordinary place again.
+    expect((await adjust(owner, 'settled-add', 1, 'adjustment')).status).toBe(200)
+    expect((await adjust(owner, 'settled-back', -1, 'adjustment')).status).toBe(200)
   }, 180_000)
 })
 
