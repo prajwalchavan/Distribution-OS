@@ -19,6 +19,7 @@ import type {
 import { businessDate, formatINR, paise, uuidv7 } from '@dos/domain'
 import {
   approvals,
+  auditLog,
   deliveries,
   locations,
   stockBalances,
@@ -42,9 +43,11 @@ import {
 } from '../../platform/index.js'
 import { BillingService } from '../billing/index.js'
 import { dockLocationId, InventoryService, reservableLocationId } from '../inventory/index.js'
-import type { ApprovalKindHook, ApprovalRow } from '../orders/index.js'
+import { OrdersService, type ApprovalKindHook, type ApprovalRow } from '../orders/index.js'
 import { TenantCatalogService } from '../tenant-catalog/index.js'
 import { ReceivablesService } from '../receivables/index.js'
+import { LoadSheetsService } from '../warehouse/index.js'
+import { TripsService } from './trips.service.js'
 import {
   assertCrewOrDesk,
   asSystemRole,
@@ -151,6 +154,12 @@ export class SettlementService {
     private readonly billing: BillingService,
     /** What a lot that did not tally is worth, for the owner deciding it (QA DOS-235). */
     private readonly tenantCatalog: TenantCatalogService,
+    /** Which other trips still have goods on the van (vans and trips 2). */
+    private readonly trips: TripsService,
+    /** Whether another trip's riding bill is really on the van (dispatched). */
+    private readonly orders: OrdersService,
+    /** The van stock another trip's load sheets put on the van. */
+    private readonly loadSheets: LoadSheetsService,
   ) {}
 
   async preview(input: PreviewIn): Promise<PreviewOut> {
@@ -730,7 +739,49 @@ export class SettlementService {
       stopsFailed: stops.filter((s) => s.state === 'failed').length,
       collectionsCount: figures.collectionsCount,
       settlement: existing ? toSettlement(existing, figures.chequeCollectedPaise) : null,
+      skippedBills: await this.skippedBills(tx, trip.id),
     }
+  }
+
+  /**
+   * THE BILLS THE CHECK-IN TOOK OFF THE TRIP because they never rode its van (vans and trips 3): the settlement's
+   * line for each, read from the `trip.bills_not_carried` audit rows the check-in and the fail sheet write (as
+   * `system`: the audit log is the back office's to read, the crew settles too). Bounded by the trip.
+   */
+  private async skippedBills(
+    tx: Db,
+    tripId: string,
+  ): Promise<NonNullable<PreviewOut['skippedBills']>> {
+    const { tenantId } = currentTenant()
+    const rows = await asSystemRole(tx, () =>
+      tx
+        .select({ after: auditLog.after })
+        .from(auditLog)
+        .where(
+          and(
+            eq(auditLog.tenantId, tenantId),
+            eq(auditLog.entityType, 'trip'),
+            eq(auditLog.entityId, tripId),
+            eq(auditLog.action, 'trip.bills_not_carried'),
+          ),
+        )
+        .orderBy(asc(auditLog.occurredAt))
+        .limit(50),
+    )
+    const out: NonNullable<PreviewOut['skippedBills']> = []
+    for (const row of rows) {
+      const bills = (row.after as { bills?: unknown } | null)?.bills
+      if (!Array.isArray(bills)) continue
+      for (const b of bills as Record<string, unknown>[])
+        if (typeof b.invoiceId === 'string' && !out.some((o) => o.invoiceId === b.invoiceId))
+          out.push({
+            invoiceId: b.invoiceId,
+            invoiceNo: typeof b.invoiceNo === 'string' ? b.invoiceNo : null,
+            retailerName: typeof b.retailerName === 'string' ? b.retailerName : '',
+            why: typeof b.why === 'string' ? b.why : '',
+          })
+    }
+    return out
   }
 
   /**
@@ -754,18 +805,33 @@ export class SettlementService {
       expensesPaise,
       expectedCashPaise: trip.openingCashPaise + money.cashPaise - expensesPaise,
       tolerancePaise: policy.settlementTolerancePaise,
-      vanStock: await this.vanStock(tx, vehicle.locationId),
+      vanStock: await this.vanStock(tx, trip, vehicle.locationId),
       collectionsCount: money.count,
     }
   }
 
-  /** What the van still holds per lot: `stock_balances.on_hand` at the vehicle, cases from THAT lot's case size. */
-  private async vanStock(tx: Db, locationId: string): Promise<VanStockLine[]> {
-    const rows = await tx
-      .select({ lotId: stockBalances.lotId, onHand: stockBalances.onHand })
-      .from(stockBalances)
-      .where(and(eq(stockBalances.locationId, locationId), gt(stockBalances.onHand, 0)))
-      .orderBy(asc(stockBalances.lotId))
+  /**
+   * What the van holds FOR THIS TRIP per lot, cases from THAT lot's case size: `stock_balances.on_hand` at the
+   * vehicle, less what stands on it for ANOTHER trip that still holds it (vans and trips 2, QA verify 2 B1: "a
+   * settlement takes off the van only what belongs to its own trip"). Tomorrow's trip loaded onto the van while
+   * today's was out had its bill counted into today's expectation and swept into the godown as free stock; its crew
+   * then found "Only 0 pc" at the door. Since the load-out refuses a second trip on a van (ruling 1) this matters
+   * only for a van loaded before that rule, and the other trip's pieces simply stay on the van for its own check-in.
+   */
+  private async vanStock(tx: Db, trip: TripRow, locationId: string): Promise<VanStockLine[]> {
+    const others = await this.othersOnVan(tx, trip, locationId)
+    const rows = (
+      await tx
+        .select({ lotId: stockBalances.lotId, onHand: stockBalances.onHand })
+        .from(stockBalances)
+        .where(and(eq(stockBalances.locationId, locationId), gt(stockBalances.onHand, 0)))
+        .orderBy(asc(stockBalances.lotId))
+    )
+      .map((r) => ({
+        lotId: r.lotId,
+        onHand: r.onHand - Math.min(r.onHand, others.get(r.lotId) ?? 0),
+      }))
+      .filter((r) => r.onHand > 0)
     const lots = await loadLots(
       tx,
       rows.map((r) => r.lotId),
@@ -794,6 +860,89 @@ export class SettlementService {
     return out.sort(
       (a, b) => a.variantName.localeCompare(b.variantName) || (a.lotId < b.lotId ? -1 : 1),
     )
+  }
+
+  /**
+   * THE PIECES ON THIS VAN THAT BELONG TO OTHER TRIPS (vans and trips 2), per lot. For each other trip that still
+   * holds the van (`TripsService.tripsOnVan`: on the road, checked in and not settled, or already loaded):
+   *
+   *   - its bills still riding: planned on it with no outcome and dispatched — their invoice pieces;
+   *   - its bills that came back undelivered and wait on the van for its check-in (outcome failed), less what the
+   *     godown's van check-in has already counted off for it;
+   *   - the van stock its confirmed load sheets put on THIS van, less what its van sales sold off it.
+   *
+   * Never more than the van holds (the caller caps per lot). Empty when no other trip holds the van, which since
+   * ruling 1 is every van loaded after the rule.
+   */
+  private async othersOnVan(
+    tx: Db,
+    trip: TripRow,
+    vehicleLocationId: string,
+  ): Promise<Map<string, number>> {
+    const others = (await this.trips.tripsOnVan(tx, vehicleLocationId)).filter(
+      (t) => t.tripId !== trip.id && t.loaded,
+    )
+    const held = new Map<string, number>()
+    if (others.length === 0) return held
+    const add = (into: Map<string, number>, lotId: string, pcs: number) =>
+      into.set(lotId, (into.get(lotId) ?? 0) + pcs)
+    for (const other of others) {
+      const mine = new Map<string, number>()
+      const rows = await asSystemRole(tx, () =>
+        tx
+          .select({
+            orderId: deliveries.orderId,
+            invoiceId: deliveries.invoiceId,
+            outcome: deliveries.outcome,
+          })
+          .from(deliveries)
+          .where(eq(deliveries.tripId, other.tripId)),
+      )
+      const riding = rows.filter((r) => r.outcome === null || r.outcome === 'failed')
+      const orderIds = [
+        ...new Set(riding.map((r) => r.orderId).filter((id): id is string => id !== null)),
+      ]
+      const states = new Map<string, string>()
+      for (let at = 0; at < orderIds.length; at += 200)
+        for (const order of await this.orders.fulfilmentOrders(tx, orderIds.slice(at, at + 200)))
+          states.set(order.orderId, order.state)
+      const cameBack = new Map<string, number>()
+      for (const invoiceId of new Set(riding.map((r) => r.invoiceId))) {
+        const row = riding.find((r) => r.invoiceId === invoiceId)
+        if (row === undefined) continue
+        // A planned bill is on the van once the godown dispatched it; one that came back rides until check-in.
+        const onVan =
+          row.outcome === 'failed' ||
+          (row.orderId !== null && states.get(row.orderId) === 'dispatched')
+        if (!onVan) continue
+        const invoice = await this.billing.invoiceForDelivery(tx, invoiceId)
+        if (invoice.state === 'cancelled' || invoice.state === 'draft') continue
+        for (const line of invoice.lines) {
+          const pcs = line.qtyPcs + line.freeQtyPcs
+          if (line.lotId === null || pcs <= 0) continue
+          add(row.outcome === 'failed' ? cameBack : mine, line.lotId, pcs)
+        }
+      }
+      const countedOff = await this.inventory.netAtByRef(tx, vehicleLocationId, {
+        refType: CHECKIN_REF,
+        refIds: [other.tripId],
+      })
+      for (const [lotId, pcs] of cameBack)
+        add(mine, lotId, Math.max(0, pcs + Math.min(0, countedOff.get(lotId) ?? 0)))
+      const sheets = (await this.loadSheets.confirmedForTrip(tx, other.tripId)).filter(
+        (s) => s.toLocationId === vehicleLocationId,
+      )
+      const vanStock = new Map<string, number>()
+      for (const sheet of sheets) for (const v of sheet.vanStock) add(vanStock, v.lotId, v.qtyPcs)
+      const sold = await this.inventory.netAtByRef(tx, vehicleLocationId, {
+        refType: 'invoice',
+        refIds: [...new Set(rows.map((r) => r.invoiceId))],
+      })
+      for (const [lotId, pcs] of vanStock)
+        add(mine, lotId, Math.max(0, pcs + Math.min(0, sold.get(lotId) ?? 0)))
+      for (const [lotId, pcs] of mine) add(held, lotId, pcs)
+    }
+    return held
   }
 
   private async plan(
@@ -994,7 +1143,7 @@ export class SettlementService {
     if (payload.counted !== null) return payload.counted
     const off = new Map(payload.stockVariance.map((v) => [v.lotId, v.countedPcs]))
     const vehicle = await loadVehicle(tx, trip.vehicleId)
-    return (await this.vanStock(tx, vehicle.locationId)).map((l) => ({
+    return (await this.vanStock(tx, trip, vehicle.locationId)).map((l) => ({
       lotId: l.lotId,
       countedPcs: off.get(l.lotId) ?? l.expectedPcs,
     }))
