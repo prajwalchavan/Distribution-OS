@@ -3,8 +3,9 @@
  * than one live receipt?
  *
  * Reads every tenant of `DATABASE_URL` (loaded through `loadDotenv()` like every script here, a real env var wins)
- * through `receiptReferenceDuplicates` in @dos/db — the same SQL definition (`dos_receipt_reference_duplicates`,
- * migration 0079) the release gate and the spec read — and prints one line per reference:
+ * through `receiptReferenceReport` in @dos/db — the SQL definition `dos_receipt_reference_duplicates` (migration
+ * 0079) the spec reads too, or, on a database the migration has not reached yet (a read-only look at a copy of live
+ * before the deploy), the same query sent inline — in a READ ONLY transaction, and prints one line per reference:
  *
  *   TRANSFER    a UPI / bank-transfer reference (UTR) on several live receipts of one distributor: money booked
  *               more than once, unless all but one are reversed;
@@ -25,7 +26,7 @@ import {
   createDb,
   createPool,
   loadDotenv,
-  receiptReferenceDuplicates,
+  receiptReferenceReport,
 } from '../libs/database/src/index.js'
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..')
@@ -46,7 +47,12 @@ const LABEL = { transfer: 'TRANSFER', cheque_same_shop: 'CHEQUE', cheque_shops: 
 const pool = createPool(url, 1)
 try {
   const db = createDb(pool)
-  const rows = await receiptReferenceDuplicates(db)
+  const { source, duplicates: rows } = await receiptReferenceReport(db)
+  if (source === 'inline') {
+    console.warn(
+      'this database has not reached migration 0079: the check ran its query inline, read-only',
+    )
+  }
   if (process.argv.includes('--json')) {
     say(JSON.stringify(rows, null, 2))
   } else if (rows.length === 0) {

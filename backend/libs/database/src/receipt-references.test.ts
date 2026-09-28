@@ -2,7 +2,11 @@ import { eq, sql } from 'drizzle-orm'
 import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createDb, createPool } from './client.js'
-import { receiptReferenceDuplicates, receiptReferenceFaults } from './receipt-references.js'
+import {
+  receiptReferenceDuplicates,
+  receiptReferenceFaults,
+  receiptReferenceReport,
+} from './receipt-references.js'
 import { invoices, receipts, retailers, tenants, users, writeOffs } from './schema/index.js'
 
 /**
@@ -104,6 +108,9 @@ describeDb('receipt references and write-off recoveries (migration 0079, DATABAS
   })
 
   afterAll(async () => {
+    // The history pairs this file builds on purpose would otherwise stand in the database for good and fail
+    // `pnpm check:receipt-references` there: they are cancelled on the way out (a status change, never re-judged).
+    await db.update(receipts).set({ status: 'cancelled' }).where(eq(receipts.tenantId, tenantId))
     await pool.end()
   })
 
@@ -186,6 +193,26 @@ describeDb('receipt references and write-off recoveries (migration 0079, DATABAS
       (d) => d.kind === 'cheque_shops',
     )
     expect(shops.map((d) => d.failing)).toEqual(shops.map(() => false))
+    // a third row keyed with spaces and in lower case (history again): the same transfer to both forms of the check
+    const spaced = receipt(shopB, 'upi', ` ${utr.slice(0, 5).toLowerCase()} ${utr.slice(5)} `, {
+      status: 'cancelled',
+    })
+    await db.insert(receipts).values(spaced)
+    await db
+      .update(receipts)
+      .set({ status: 'collected' })
+      .where(eq(receipts.id, spaced.id ?? ''))
+    // the migrated database answers through the function; the inline copy of its body (what the check sends to a
+    // database 0079 has not reached) finds exactly the same rows, and the look is read-only either way
+    const viaFunction = await receiptReferenceReport(db, tenantId)
+    expect(
+      viaFunction.duplicates.find((d) => d.reference === utr.toUpperCase())?.receiptIds,
+    ).toEqual([first.id, second.id, spaced.id])
+    expect(viaFunction.source).toBe('function')
+    const inline = await receiptReferenceReport(db, tenantId, 'inline')
+    expect(inline.source).toBe('inline')
+    expect(inline.duplicates).toEqual(viaFunction.duplicates)
+    expect(inline.duplicates.length).toBeGreaterThan(0)
   })
 
   it('DOS-311: a recovery takes back at most what was written off, and undoing it restores no more (at commit)', async () => {
