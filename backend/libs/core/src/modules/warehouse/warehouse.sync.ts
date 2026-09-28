@@ -3,6 +3,7 @@ import { pickLines, type Db } from '@dos/db'
 import { eq } from 'drizzle-orm'
 import { SyncRejection } from '../sync/index.js'
 import type { PicklistsService, RecordedPick } from './picklists.service.js'
+import { STOCK_RULE_CODES } from './stock-guards.js'
 
 /**
  * ADR 0007: what a godown phone is allowed to push while it is offline.
@@ -113,9 +114,19 @@ export async function applyPickLineSync(
     await picklists.applyPicks(tx, sheet, [pick])
   } catch (error) {
     // A business refusal from the shared rules (over-picked, unknown lot, line not on the sheet) is a
-    // rejection the device can show the picker, not a transport failure it should retry for ever.
+    // rejection the device can show the picker, not a transport failure it should retry for ever. The
+    // stock rules of 2026-09-28 (an expired batch, pieces held for another order, an order already
+    // packed — QA DOS-351, 353, 361) keep their own code, so the phone can tell them apart; the sentence
+    // is the online one, word for word.
     const message = error instanceof Error ? error.message : 'The pick was refused'
-    if (isBusinessFault(error)) throw new SyncRejection('pick_rejected', message, message)
+    if (isBusinessFault(error)) {
+      const code = (error as { data?: { code?: unknown } }).data?.code
+      throw new SyncRejection(
+        typeof code === 'string' && STOCK_RULE_CODES.has(code) ? code : 'pick_rejected',
+        message,
+        message,
+      )
+    }
     throw error
   }
 }

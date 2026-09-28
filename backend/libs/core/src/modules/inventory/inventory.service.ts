@@ -225,8 +225,121 @@ export interface ReservationListRow {
 
 const balanceKey = (lotId: string, locationId: string) => `${lotId}:${locationId}`
 
+/** The states of a trip in whose hands a vehicle's pieces are (QA DOS-358). */
+export type VehicleTripState = 'loading' | 'active' | 'closing'
+
+/**
+ * The trip a vehicle location is in the hands of — among `states`: being loaded, on the road, or checked in and
+ * not yet settled — or null (QA DOS-358). Supplied by delivery at start-up (`InventoryService.registerVehicleTrip`);
+ * runs inside the caller's transaction.
+ */
+export type VehicleTripLookup = (
+  tx: Db,
+  locationId: string,
+  states: readonly VehicleTripState[],
+) => Promise<{
+  tripId: string
+  tripNo: string | null
+  state: VehicleTripState
+  /** The registration plate, as the godown names the van. */
+  vehicle: string | null
+} | null>
+
 @Injectable()
 export class InventoryService {
+  /** No delivery module, no trips: nothing holds a vehicle until delivery says otherwise (QA DOS-358). */
+  private vehicleTrip: VehicleTripLookup = () => Promise.resolve(null)
+
+  /**
+   * Delivery answers "is this vehicle location out on a trip" at start-up (`DeliveryModule.onModuleInit`), the
+   * `registerRoadHold` pattern: inventory is upstream of delivery and never reads `trips` itself.
+   */
+  registerVehicleTrip(lookup: VehicleTripLookup): void {
+    this.vehicleTrip = lookup
+  }
+
+  /**
+   * THE VAN LOCK (vans and trips 1 under concurrency; QA verify 3, X1 and Y1). "A van carries one trip at a time" is a
+   * check-then-act: which trip holds the van is read, then goods are loaded onto it, or a trip leaves with it. Two
+   * requests at the same moment each read the van free — an empty van-sales trip departed while another trip's sheet
+   * was being counted onto the same van, and two sheets of two trips were counted out together — and both went
+   * through. So every door that asks who holds a van, or changes it, first takes this lock, held to the end of its
+   * transaction: the load sheet's create / approval / gate, the departure, the hand move, adjustment and count, a
+   * GRN or a restock into a van, the settlement, a van sale. The second request then waits, and reads the first one's
+   * result once it has committed (READ COMMITTED: its next statement takes a fresh snapshot).
+   *
+   * Per van, never per tenant: one van's load-out never waits for another's. Only locations that are vehicles are
+   * locked (a godown transfer takes no lock), in id order, so two doors that take the same two vans (a van-to-van
+   * sheet and its opposite) cannot deadlock. A transaction may take the same van again; the lock is re-entrant.
+   * Inventory owns the locations, so every module takes it here, and the key has one spelling.
+   */
+  async lockVehicleLocations(tx: Db, locationIds: readonly (string | null)[]): Promise<void> {
+    const wanted = [...new Set(locationIds.filter((id): id is string => id !== null && id !== ''))]
+    if (wanted.length === 0) return
+    const { tenantId } = currentTenant()
+    const vans = await tx
+      .select({ id: locations.id })
+      .from(locations)
+      .where(
+        and(
+          eq(locations.tenantId, tenantId),
+          inArray(locations.id, wanted),
+          eq(locations.kind, 'vehicle'),
+        ),
+      )
+      .orderBy(asc(locations.id))
+    for (const van of vans)
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${`dos:van:${van.id}`}, 0))`,
+      )
+  }
+
+  /**
+   * A VAN IS NOT UNLOADED BY HAND WHILE ITS TRIP IS OUT (QA DOS-358, architect ruling 8 of 2026-09-28). The pieces
+   * on a vehicle whose trip is being loaded or is on the road belong to that trip's bills and its van sales;
+   * they come off at the door or at the trip's check-in, never by a hand transfer, a stock adjustment (either way,
+   * `damage` included) or a cycle count — otherwise the bill is undeliverable ("Only 22 pc … in the vehicle") and
+   * its goods are sold again as free stock. 409 `vehicle_on_trip`, naming the vehicle and the trip. A location
+   * that is not a vehicle is never refused here.
+   *
+   * `untilSettled` (the hand transfer, the adjustment, the count) keeps the van closed to hand changes after the
+   * check-in too, until the trip is settled: a checked-in van is counted off through the godown's van check-in
+   * (`delivery.trips.unload`), which puts a came-back bill's pieces on the dock FOR it; a hand transfer made them
+   * free godown stock and the bill's next load was refused `dock_short`. The van check-in itself passes without
+   * it — it is that count.
+   */
+  async assertVehicleNotOut(
+    tx: Db,
+    locationId: string,
+    opts: { untilSettled?: boolean; onto?: boolean } = {},
+  ): Promise<void> {
+    // Who holds the van is read under the van lock, and the caller's move follows in the same transaction.
+    await this.lockVehicleLocations(tx, [locationId])
+    const out = await this.vehicleTrip(
+      tx,
+      locationId,
+      opts.untilSettled === true ? ['loading', 'active', 'closing'] : ['loading', 'active'],
+    )
+    if (out === null) return
+    const van = out.vehicle ?? 'This vehicle'
+    const trip = out.tripNo ?? 'its trip'
+    // Vans and trips 1 (architect ruling of 2026-09-28): a van carries one trip at a time, so nothing is put ON a van
+    // by hand while a trip holds it either — that trip's settlement would count it as its own. Its own goods go on
+    // through its load sheet.
+    if (opts.onto === true)
+      throw new ORPCError('CONFLICT', {
+        message: `${van} is on trip ${trip}, which ${out.state === 'active' ? 'is out on the road' : out.state === 'closing' ? 'has been checked in and is not settled yet' : 'is being loaded'}: nothing is put on the van by hand while a trip holds it — a van carries one trip at a time. Goods for that trip go on through its load sheet; anything else waits until trip ${trip} is settled.`,
+        data: { code: 'vehicle_on_trip', tripId: out.tripId, tripState: out.state },
+      })
+    throw new ORPCError('CONFLICT', {
+      message:
+        out.state === 'closing'
+          ? `${van} is on trip ${trip}, which has been checked in and is not settled yet: the godown counts the van off on Van check-in, which puts a returned bill's pieces on the dock for it. Nothing on the van is moved, adjusted or counted by hand until that trip is settled.`
+          : `${van} is on trip ${trip}, which ${out.state === 'active' ? 'is out on the road' : 'is being loaded'}: nothing on the van is moved, adjusted or counted by hand until that trip is checked in. Check the trip in first; the godown then counts the van off.`,
+      data: { code: 'vehicle_on_trip', tripId: out.tripId, tripState: out.state },
+    })
+  }
+
   /** Location names for another module's labels (integrations' Tally godown mapping), one query. */
   async locationNames(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
     const unique = [...new Set(ids)]

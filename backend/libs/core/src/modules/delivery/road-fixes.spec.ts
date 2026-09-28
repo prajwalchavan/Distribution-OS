@@ -131,6 +131,50 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
   let app: NestFastifyApplication
   const today = new Date().toISOString().slice(0, 10)
 
+  /**
+   * What the godown's check-in screen did before QA DOS-244: every piece off the checked-in van back to the godown
+   * as free stock, by hand. The hand transfer is refused now until the trip is settled (QA DOS-358 verify, 409
+   * `vehicle_on_trip`), so the rows are written as that screen wrote them, to build the day these fixes met.
+   */
+  const oldCheckIn = async (
+    lotId: string,
+    fromLocationId: string,
+    qtyPcs: number,
+    key: string,
+  ): Promise<void> => {
+    const refused = await call<{ data?: { code?: string } }>(
+      app,
+      packer,
+      'POST',
+      '/inventory/transfers',
+      { idempotencyKey: key, lotId, fromLocationId, toLocationId: godown, qtyPcs },
+    )
+    expect(refused.status, JSON.stringify(refused.body)).toBe(409)
+    expect(refused.body.data?.code).toBe('vehicle_on_trip')
+    await asOwner((tx) =>
+      app.get(InventoryService).post(tx, [
+        {
+          lotId,
+          locationId: fromLocationId,
+          qtyDelta: -qtyPcs,
+          reason: 'transfer_out',
+          refType: 'transfer',
+          refId: key,
+          idempotencyKey: `${key}:out`,
+        },
+        {
+          lotId,
+          locationId: godown,
+          qtyDelta: qtyPcs,
+          reason: 'transfer_in',
+          refType: 'transfer',
+          refId: key,
+          idempotencyKey: `${key}:in`,
+        },
+      ]),
+    )
+  }
+
   const orderState = async (orderId: string): Promise<string> =>
     (
       (await db.execute(sql`select state::text as state from sales_orders where id = ${orderId}`))
@@ -782,7 +826,15 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     const [stored] = (
       await db.execute(sql`select payload::text as payload from approvals where id = ${approvalId}`)
     ).rows as { payload: string }[]
-    expect(stored?.payload).not.toMatch(/cost|valuePaise|750/)
+    expect(stored?.payload).not.toMatch(/cost|valuePaise/)
+    // …and no number in it is the lot's cost (a regex on the text matched a random UUID's "…b37508f5", QA verify 3)
+    const numbersIn = (v: unknown): number[] =>
+      typeof v === 'number'
+        ? [v]
+        : v !== null && typeof v === 'object'
+          ? Object.values(v).flatMap(numbersIn)
+          : []
+    expect(numbersIn(JSON.parse(stored?.payload ?? '{}')).map(Math.abs)).not.toContain(750)
 
     // a manager may not accept a trip's variance: refused, and the request stays pending
     const byManager = await call(app, manager, 'POST', `/approvals/${approvalId}/decide`, {
@@ -1413,14 +1465,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     await returnTrip(driver, tripId, '244b')
     expect(await onHandOf(lotB, vehicleLocationId)).toBe(12)
     // what the check-in screen did before the fix: every piece back to the godown as free stock (day 5, row 30)
-    const moved = await call(app, packer, 'POST', '/inventory/transfers', {
-      idempotencyKey: `rf-old-checkin-244b-${run}`,
-      lotId: lotB,
-      fromLocationId: vehicleLocationId,
-      toLocationId: godown,
-      qtyPcs: 12,
-    })
-    expect(moved.status, JSON.stringify(moved.body)).toBe(200)
+    await oldCheckIn(lotB, vehicleLocationId, 12, `rf-old-checkin-244b-${run}`)
     const settled = await call(app, accountant, 'POST', `/delivery/trips/${tripId}/settle`, {
       idempotencyKey: `rf-settle-244b-${run}`,
       id: uuidv7(),
@@ -1654,14 +1699,7 @@ describeDb('delivery road fixes, day 3 (DATABASE_URL)', () => {
     await arrive(driver, road.stopIds[0] ?? '', '247a')
     await failAtDoor(driver, road.stopIds[0] ?? '', '247a')
     await returnTrip(driver, road.tripId, '247a')
-    const counted = await call(app, packer, 'POST', '/inventory/transfers', {
-      idempotencyKey: `rf-old-checkin-247-${run}`,
-      lotId: lotC,
-      fromLocationId: road.vehicleLocationId,
-      toLocationId: godown,
-      qtyPcs: 12,
-    })
-    expect(counted.status, JSON.stringify(counted.body)).toBe(200)
+    await oldCheckIn(lotC, road.vehicleLocationId, 12, `rf-old-checkin-247-${run}`)
     const settled = await call(app, accountant, 'POST', `/delivery/trips/${road.tripId}/settle`, {
       idempotencyKey: `rf-settle-247-${run}`,
       id: uuidv7(),

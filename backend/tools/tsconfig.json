@@ -4,6 +4,7 @@
   "include": [
     "generate-readmes.mts",
     "auth-keygen.mts",
+    "check-stranded.mts",
     "import-legacy-extracts.mts",
     "check-stock-cancels.mts",
     "check-stock-negative.mts",

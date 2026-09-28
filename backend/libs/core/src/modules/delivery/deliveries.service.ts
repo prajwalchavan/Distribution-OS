@@ -172,19 +172,31 @@ export class DeliveriesService {
           throw new ORPCError('BAD_REQUEST', {
             message: `invoice ${invoice.invoiceNo ?? invoice.id} belongs to another shop than this stop`,
           })
+        // Vans and trips 3 (QA verify 3, minor 3): the same words and code as a bill already delivered elsewhere.
         if (invoice.state === 'draft' || invoice.state === 'cancelled')
           throw new ORPCError('CONFLICT', {
-            message: `invoice ${invoice.invoiceNo ?? invoice.id} is ${invoice.state}; only an issued bill is delivered`,
+            message: `bill ${invoice.invoiceNo ?? invoice.id} ${invoice.state === 'cancelled' ? 'was cancelled' : 'is a draft, not an issued bill'}, so it is not on this van and nothing of it is handed over here. Fail the stop for it, or leave it: the check-in takes it off the trip.`,
+            data: { code: 'bill_not_on_van', invoiceState: invoice.state, invoiceId: invoice.id },
           })
 
+        // Vans and trips 3 (QA DOS-354 verify 2, M2): a bill planned here that was already handed over elsewhere
+        // (delivered, part-delivered, closed) or cancelled is not on this van: refused in words before its lines are
+        // read, not with "0 left to deliver" on a line. A bill still in the godown keeps DOS-148's rules below.
+        const orderState =
+          invoice.orderId === null ? null : (await this.orders.lockOrder(tx, invoice.orderId)).state
+        if (
+          orderState !== null &&
+          orderState !== 'dispatched' &&
+          !IN_THE_GODOWN.has(orderState) &&
+          (await this.trips.billsStillOnStop(tx, stop.id)).includes(invoice.id)
+        )
+          throw new ORPCError('CONFLICT', {
+            message: `bill ${invoice.invoiceNo ?? invoice.id} was already ${orderState === 'partially_delivered' ? 'handed over in part' : orderState === 'cancelled' ? 'cancelled' : 'delivered'} before this trip, so it is not on this van and nothing of it is handed over here. Fail the stop for it, or leave it: the check-in takes it off the trip.`,
+            data: { code: 'bill_not_on_van', orderState, invoiceId: invoice.id },
+          })
         const lines = this.checkLines(invoice, input.lines)
         const outcome = outcomeOf(lines)
-        if (invoice.orderId)
-          assertOnTheVan(
-            invoice,
-            (await this.orders.lockOrder(tx, invoice.orderId)).state,
-            fulfilmentEventFor(outcome),
-          )
+        if (orderState !== null) assertOnTheVan(invoice, orderState, fulfilmentEventFor(outcome))
         await this.assertPodPolicy(tx, stop, outcome, input.pod)
         const at = whenOr(input.deliveredAt, new Date())
 

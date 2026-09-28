@@ -86,6 +86,13 @@ export class WarehouseController {
     return implement(contract.warehouse.packs.get).handler(({ input }) => this.packing.get(input))
   }
 
+  @Implement(contract.warehouse.packs.unpack)
+  unpackOrder(@OwnsReply() _reply: unknown) {
+    return implement(contract.warehouse.packs.unpack).handler(({ input }) =>
+      this.packing.unpack(input),
+    )
+  }
+
   @Implement(contract.warehouse.loadSheets.create)
   createLoadSheet(@OwnsReply() _reply: unknown) {
     return implement(contract.warehouse.loadSheets.create).handler(({ input }) =>

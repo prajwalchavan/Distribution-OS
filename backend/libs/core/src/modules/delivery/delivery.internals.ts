@@ -406,6 +406,107 @@ export async function asSystemRole<T>(tx: Db, fn: () => Promise<T>): Promise<T> 
   }
 }
 
+/** A trip as the godown's load-out names it (QA DOS-354 verify): number, state and the vehicle it loads. */
+export interface LoadingTrip {
+  tripId: string
+  tripNo: string | null
+  state: string
+  /** The trip's vehicle's stock location: where its load sheet puts the goods. */
+  vehicleLocationId: string | null
+  /** The registration plate. */
+  vehicle: string | null
+}
+
+/**
+ * THE TRIP EACH BILL IS PLANNED ON, for the load-out (QA DOS-354 verify, architect ruling 8): invoice id → the
+ * trip holding an outcome-null delivery of it that is not settled, settled with variance or cancelled (the
+ * `planned` half of `ridingTrips`, with the trip's state and vehicle). Delivery hands it to
+ * `LoadSheetsService.registerTripCarriage` at start-up, so a load sheet takes only the bills of its own trip and
+ * warehouse never reads `deliveries` or `trips`. Runs as `system` for the reason `ridingTrips` does.
+ */
+export async function billsPlannedOnTrips(
+  tx: Db,
+  invoiceIds: readonly string[],
+): Promise<Map<string, LoadingTrip>> {
+  const wanted = [...new Set(invoiceIds)]
+  const out = new Map<string, LoadingTrip>()
+  if (wanted.length === 0) return out
+  const { tenantId } = currentTenant()
+  const rows = await asSystemRole(tx, () =>
+    tx
+      .select({
+        invoiceId: deliveries.invoiceId,
+        tripId: trips.id,
+        tripNo: trips.tripNo,
+        state: trips.state,
+        vehicleLocationId: vehicles.locationId,
+        vehicle: vehicles.regNo,
+      })
+      .from(deliveries)
+      .innerJoin(trips, eq(trips.id, deliveries.tripId))
+      .leftJoin(vehicles, eq(vehicles.id, trips.vehicleId))
+      .where(
+        and(
+          eq(deliveries.tenantId, tenantId),
+          inArray(deliveries.invoiceId, wanted),
+          sql`${deliveries.outcome} is null`,
+          sql`${trips.state} not in ('settled', 'settled_with_variance', 'cancelled')`,
+        ),
+      )
+      .orderBy(asc(deliveries.id)),
+  )
+  for (const r of rows)
+    if (!out.has(r.invoiceId))
+      out.set(r.invoiceId, {
+        tripId: r.tripId,
+        tripNo: r.tripNo,
+        state: r.state,
+        vehicleLocationId: r.vehicleLocationId ?? null,
+        vehicle: r.vehicle ?? null,
+      })
+  return out
+}
+
+/**
+ * One trip for the load-out, or null (QA DOS-354 verify). `lock` takes the trip row `FOR UPDATE`, so a sheet's
+ * confirm and the trip's cancel or departure take turns: a trip is never cancelled or sent off between the
+ * godown's check that it may be loaded and the load itself. As `system`, for the godown's RLS.
+ */
+export async function tripForLoading(
+  tx: Db,
+  tripId: string,
+  opts: { lock: boolean },
+): Promise<LoadingTrip | null> {
+  const { tenantId } = currentTenant()
+  const [trip] = await asSystemRole(tx, async () => {
+    const query = tx
+      .select({
+        tripId: trips.id,
+        tripNo: trips.tripNo,
+        state: trips.state,
+        vehicleId: trips.vehicleId,
+      })
+      .from(trips)
+      .where(and(eq(trips.tenantId, tenantId), eq(trips.id, tripId)))
+    return opts.lock ? await query.for('update') : await query
+  })
+  if (!trip) return null
+  const [vehicle] = await asSystemRole(tx, () =>
+    tx
+      .select({ locationId: vehicles.locationId, regNo: vehicles.regNo })
+      .from(vehicles)
+      .where(and(eq(vehicles.tenantId, tenantId), eq(vehicles.id, trip.vehicleId)))
+      .limit(1),
+  )
+  return {
+    tripId: trip.tripId,
+    tripNo: trip.tripNo,
+    state: trip.state,
+    vehicleLocationId: vehicle?.locationId ?? null,
+    vehicle: vehicle?.regNo ?? null,
+  }
+}
+
 /** The trip a bill rides, and how (QA DOS-172). */
 export interface RidingTrip {
   tripId: string

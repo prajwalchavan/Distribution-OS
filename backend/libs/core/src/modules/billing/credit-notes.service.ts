@@ -202,8 +202,10 @@ export class CreditNotesService {
     return withTenant(db, currentTenant(), (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         let note = await this.draft(tx, input)
-        if (input.autoIssue)
+        if (input.autoIssue) {
+          await this.assertNotOntoAHeldVan(tx, note, input.restockLocationId ?? null)
           note = await this.issueInTx(tx, note, input.restockLocationId ?? null, null)
+        }
         return { item: await this.detail(tx, note) }
       }),
     )
@@ -215,6 +217,7 @@ export class CreditNotesService {
     return withTenant(db, currentTenant(), (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const note = await this.lockNote(tx, input.id)
+        await this.assertNotOntoAHeldVan(tx, note, null)
         const issued = await this.issueInTx(tx, note, null, input.deviceId ?? null)
         return { item: await this.detail(tx, issued) }
       }),
@@ -686,6 +689,22 @@ export class CreditNotesService {
       null,
     )
     await this.billing.clearUndelivered(tx, invoice.id)
+  }
+
+  /**
+   * VANS AND TRIPS 1 (QA verify 3): a note the desk issues puts nothing back onto a van that a trip holds — on the road,
+   * checked in and not settled, or loaded — because that trip's settlement would count the pieces as its own. 409
+   * `vehicle_on_trip` naming the trip; the desk restocks into the godown instead. The crew's note at the door
+   * (`raiseForDelivery`) puts a short delivery back onto its own van, and does not come through here.
+   */
+  private async assertNotOntoAHeldVan(
+    tx: Db,
+    note: CreditNoteRow,
+    restockLocationId: string | null,
+  ): Promise<void> {
+    if (note.state !== 'draft' || !RESTOCKING_REASONS.has(note.reason)) return
+    const saleableTo = restockLocationId ?? (await this.defaultRestockLocation(tx, note))
+    await this.inventory.assertVehicleNotOut(tx, saleableTo, { untilSettled: true, onto: true })
   }
 
   private async defaultRestockLocation(tx: Db, note: CreditNoteRow): Promise<string> {

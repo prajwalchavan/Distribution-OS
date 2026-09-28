@@ -102,3 +102,12 @@ owner/orders.setLines   500 server error 500 [body: the contract example]
 example (or the handler). `[body: generated from demo data]` means the harness built it from real
 ids, so the fault is more likely in the handler. The service's own log has the underlying Postgres
 error.
+
+## `pnpm check:stranded` — documents the fixed product can no longer produce
+
+`check-stranded.mts`, a release check (QA phases 10 + 9, the stock-states lane). It names every order, bill,
+trip and pick left in a state the fixed product can no longer reach — dispatched with no bill or with no trip,
+dispatched off its own trip's load, a loaded trip cancelled, a pick edited after its pack, a bill of an expired
+batch — and every godown batch held beyond what stands there, one line each, and exits 1 while any is left.
+Read-only; `--tenant <slug>` looks at one distributor, `--json` prints the rows. Nothing moves them on by itself:
+each needs a person (a check-in, a credit note, a count or a cancel).

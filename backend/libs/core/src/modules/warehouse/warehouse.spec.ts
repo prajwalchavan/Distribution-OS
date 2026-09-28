@@ -2263,6 +2263,9 @@ describeDb('warehouse (DATABASE_URL)', () => {
             select pc.id from pack_confirmations pc
               join sales_orders so on so.id = pc.order_id
              where pc.tenant_id = ${tenantId} and so.state = 'packed'
+               -- QA DOS-355: a pack loads only beside its live bill
+               and exists (select 1 from invoices i
+                            where i.id = pc.invoice_id and i.state not in ('draft', 'cancelled'))
                and not exists (
                  select 1 from load_sheets ls, jsonb_array_elements_text(ls.order_ids) o
                   where ls.tenant_id = pc.tenant_id and ls.status = 'draft'

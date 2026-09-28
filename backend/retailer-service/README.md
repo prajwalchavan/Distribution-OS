@@ -169,8 +169,8 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/return` | Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead | owner, manager |
 | POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
 | GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
 | POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
@@ -18831,7 +18831,7 @@ request.json
 
 ### POST `/delivery/trips/{id}/return`
 
-Check in: active → closing; open stops fail and their orders go back to packed · contract `delivery.trips.return`
+Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed · contract `delivery.trips.return`
 
 **Roles:** owner, manager, delivery
 
@@ -19063,7 +19063,7 @@ request.json
 
 ### POST `/delivery/trips/{id}/cancel`
 
-Cancel a trip that has not left (planned / loading) · contract `delivery.trips.cancel`
+Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead · contract `delivery.trips.cancel`
 
 **Roles:** owner, manager
 
@@ -19791,7 +19791,15 @@ curl "http://localhost:3006/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/
     "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
     "approvedAt": "2026-09-04T10:30:00.000Z",
     "note": null
-  }
+  },
+  "skippedBills": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerName": "text",
+      "why": "text"
+    }
+  ]
 }
 ```
 

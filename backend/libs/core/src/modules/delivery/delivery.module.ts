@@ -2,7 +2,7 @@ import { Inject, Module, Optional, type OnModuleInit } from '@nestjs/common'
 import { sql } from 'drizzle-orm'
 import { deliveries, deliveryLines, tripStops, trips, vehicles } from '@dos/db'
 import { BillingModule, BillingService } from '../billing/index.js'
-import { InventoryModule } from '../inventory/index.js'
+import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { ApprovalHooks, OrdersModule } from '../orders/index.js'
 import { ReceivablesModule, ReceivablesService } from '../receivables/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
@@ -12,7 +12,13 @@ import { LoadSheetsService, WarehouseModule } from '../warehouse/index.js'
 import { CollectionsService } from './collections.service.js'
 import { DeliveriesService } from './deliveries.service.js'
 import { DeliveryController } from './delivery.controller.js'
-import { inATripsHands, returnedOnTheRoad, TRIP_PREDICATES } from './delivery.internals.js'
+import {
+  billsPlannedOnTrips,
+  inATripsHands,
+  returnedOnTheRoad,
+  TRIP_PREDICATES,
+  tripForLoading,
+} from './delivery.internals.js'
 import {
   applyCollectionSync,
   applyDeliverySync,
@@ -22,7 +28,7 @@ import {
 } from './delivery.sync.js'
 import { GpsService } from './gps.service.js'
 import { SettlementService } from './settlement.service.js'
-import { TripsService } from './trips.service.js'
+import { TripsService, vanTripWords } from './trips.service.js'
 import { VanSalesService } from './vansales.service.js'
 import { VehiclesService } from './vehicles.service.js'
 
@@ -78,6 +84,7 @@ export class DeliveryModule implements OnModuleInit {
     private readonly billing: BillingService,
     private readonly settlement: SettlementService,
     private readonly approvalHooks: ApprovalHooks,
+    private readonly inventory: InventoryService,
     @Optional() @Inject(SyncRegistry) private readonly registry: SyncRegistry | null,
   ) {}
 
@@ -87,8 +94,23 @@ export class DeliveryModule implements OnModuleInit {
     // which bills still ride a van that has not checked in (DOS-172).
     this.receivables.registerTripPredicates(TRIP_PREDICATES)
     this.loadSheets.registerRoadHold(returnedOnTheRoad)
+    // QA DOS-354 (verify): a load sheet takes only the bills of its own trip, which has not left; and (vans and
+    // trips 1) nothing is loaded onto, or taken off on a sheet from, a van that another trip holds.
+    this.loadSheets.registerTripCarriage({
+      bills: billsPlannedOnTrips,
+      trip: tripForLoading,
+      vanHolder: async (tx, vehicleLocationId, exceptTripId) => {
+        const holder = await this.trips.vanHolder(tx, vehicleLocationId, exceptTripId)
+        return holder === null ? null : { ...holder, ...vanTripWords(holder) }
+      },
+    })
     // QA DOS-248 / DOS-251: a bill still in a trip's hands is not the desk's to cancel or credit in full yet.
     this.billing.registerTripHold(inATripsHands)
+    // QA DOS-358: a van whose trip is out is not unloaded by hand; inventory asks delivery which trip that is — a
+    // trip the godown loaded while it was still planned holds its van too (vans and trips 1).
+    this.inventory.registerVehicleTrip((tx, locationId, states) =>
+      this.trips.vehicleTripOut(tx, locationId, states),
+    )
     // QA DOS-235: the owner's decision on a trip settlement settles the trip, and the queue names what it is.
     this.approvalHooks.register('trip_settlement', this.settlement.approvalHook())
     if (!this.registry) return

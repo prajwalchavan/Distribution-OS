@@ -326,6 +326,14 @@ export const ConfirmOrderOutput = z.object({
   shortages: z.array(OrderShortageSchema),
 })
 
+/**
+ * Cancels the order and frees its holds. A `picking` order is cancelled by the desk only (409 `desk_only`). A
+ * `packed` order is the desk's too (409 `cancel_the_bill` for anyone else): with a live bill it is refused 409
+ * `cancel_the_bill`, naming the bill — its cancel takes the order with it; with NO bill (a pack parked with
+ * `issueInvoice: false`), the pack is undone first — its pieces off the dock, back to the godown or, expired,
+ * into the damaged / expiry bin, its dock holds released (architect ruling of 2026-09-28, vans and trips 4) —
+ * and the order is cancelled.
+ */
 export const CancelOrderInput = MutationBase.extend({
   id: IdSchema,
   reason: z.string().trim().min(1).max(200),

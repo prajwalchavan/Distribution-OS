@@ -2793,6 +2793,23 @@ describeDb('delivery (DATABASE_URL)', () => {
    * planned. Two van-sales runs carrying no bills, so the load-out gates of the test above are not what is
    * measured here: one leaves two days early, one leaves on the day it was planned for.
    */
+  /**
+   * A vehicle of the test's own (architect ruling of 2026-09-28, vans and trips 1: a van carries one trip at a time).
+   * The shared tempo carries the spec's long-running trip, which stays out; a test that sends another trip out, or
+   * loads one while an earlier trip of its own is not settled yet, drives a van nobody else holds.
+   */
+  const ownVehicle = async (label: string): Promise<string> => {
+    const id = uuidv7()
+    const made = await call(app, owner, 'POST', '/delivery/vehicles', {
+      idempotencyKey: `${label}-own-vehicle-${run}`,
+      id,
+      regNo: `MH-05-${label.slice(0, 2).toUpperCase()}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+      name: `Tempo ${label}`,
+    })
+    expect(made.status, JSON.stringify(made.body)).toBe(200)
+    return id
+  }
+
   it('DOS-043: a trip leaves before its planned date, the date it was planned for stands, and the trip says it departed early', async () => {
     const day = (offset: number): string =>
       new Date(Date.parse(today) + offset * 86_400_000).toISOString().slice(0, 10)
@@ -2801,7 +2818,7 @@ describeDb('delivery (DATABASE_URL)', () => {
         idempotencyKey: `dos043e-plan-${tag}-${run}`,
         id,
         tripDate,
-        vehicleId,
+        vehicleId: await ownVehicle(`e${tag}`),
         driverId,
         // no stops and no bills: a van-sales round, so only the DATE stands between it and the road
         vanSalesEnabled: true,
@@ -3233,7 +3250,7 @@ describeDb('delivery (DATABASE_URL)', () => {
       idempotencyKey: `trip3-${run}`,
       id: tripOffline,
       tripDate: today,
-      vehicleId,
+      vehicleId: await ownVehicle('offline'),
       driverId,
       stops: [
         { id: stopOffline, sequence: 1, retailerId: retailerA, invoiceIds: [bill.invoiceId] },
@@ -3757,13 +3774,8 @@ describeDb('delivery (DATABASE_URL)', () => {
 
     // And the bill the godown DID load is delivered at the same stop, so the gate refuses only the
     // bill that is not on the van.
+    // Planned on the trip first: a sheet loads only the bills of its own trip (QA DOS-354 verify).
     const loaded = await billedOrder(retailerA, variantA, 'dos148-ok')
-    await loadOut(
-      app,
-      { godown: packer, approver: manager },
-      { tripId: trip, orderIds: [loaded.orderId], tag: `dos148-ok-${run}` },
-    )
-    expect(await orderState(loaded.orderId)).toBe('dispatched')
     const okStop = uuidv7()
     expect(
       (
@@ -3774,6 +3786,12 @@ describeDb('delivery (DATABASE_URL)', () => {
         })
       ).status,
     ).toBe(200)
+    await loadOut(
+      app,
+      { godown: packer, approver: manager },
+      { tripId: trip, orderIds: [loaded.orderId], tag: `dos148-ok-${run}` },
+    )
+    expect(await orderState(loaded.orderId)).toBe('dispatched')
     const okTrip = await call<{ item: TripBody }>(app, manager, 'GET', `/delivery/trips/${trip}`)
     const okDelivery = okTrip.body.item.stops.find((s) => s.id === okStop)?.deliveries[0]?.id ?? ''
     const done = await call<{ item: DeliveryDetailBody }>(
@@ -3937,7 +3955,7 @@ describeDb('delivery (DATABASE_URL)', () => {
       idempotencyKey: `dos203-trip-${run}`,
       id: trip,
       tripDate: new Date(Date.parse(today) + 59 * 86_400_000).toISOString().slice(0, 10),
-      vehicleId,
+      vehicleId: await ownVehicle('ns'),
       driverId,
       vanSalesEnabled: true,
       openingCashPaise: 0,
@@ -4164,7 +4182,7 @@ describeDb('delivery (DATABASE_URL)', () => {
       idempotencyKey: `u197-trip-${run}`,
       id: undeliveredTrip,
       tripDate: failDay,
-      vehicleId,
+      vehicleId: await ownVehicle('ua'),
       driverId,
       openingCashPaise: 0,
       stops: [
@@ -4335,7 +4353,7 @@ describeDb('delivery (DATABASE_URL)', () => {
       idempotencyKey: `u197-trip2-${run}`,
       id: redeliveryTrip,
       tripDate: againDay,
-      vehicleId,
+      vehicleId: await ownVehicle('ub'),
       driverId,
       openingCashPaise: 0,
       stops: [

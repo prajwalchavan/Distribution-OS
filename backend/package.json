@@ -24,6 +24,7 @@
     "docs:readme": "tsx tools/generate-readmes.mts",
     "docs:readme:check": "tsx tools/generate-readmes.mts --check",
     "auth:keygen": "tsx tools/auth-keygen.mts",
+    "check:stranded": "tsx tools/check-stranded.mts",
     "smoke": "tsx tools/smoke-endpoints.mts",
     "check:stock-cancels": "tsx tools/check-stock-cancels.mts",
     "check:stock-negative": "tsx tools/check-stock-negative.mts",

@@ -10,9 +10,10 @@
  * trip's own vehicle, so the crew finds its load on its trip. A packed order whose shop is not a stop of
  * the chosen trip — or whose bill the planning board still lists as on no trip — stays in the list,
  * disabled, saying why: its cartons would show the crew the wrong load, and check-out would dispatch an
- * order no trip carries. The server stores whatever `tripId` it is given (warehouse cannot read
- * delivery), so the narrowing is this screen's, from `delivery.trips.get` and `delivery.trips.planning`.
- * It only ever narrows the packed list below; which rows exist, and in what order, is `packs.list`'s.
+ * order no trip carries. The server refuses the same (QA DOS-354 verify: a sheet takes only its own trip's
+ * bills, on that trip's vehicle); this screen narrows first, from `delivery.trips.get` and
+ * `delivery.trips.planning`, so the loader never meets the refusal. It only ever narrows the packed list
+ * below; which rows exist, and in what order, is `packs.list`'s.
  *
  * The orders are kept in the order they are chosen, because "last stop first" is a loading decision
  * the floor makes and the server deliberately does not: reading `trip_stops` would make the warehouse

@@ -250,6 +250,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -280,8 +281,8 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/return` | Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead | owner, manager |
 | POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
 | GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
 | POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
@@ -608,6 +609,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -638,8 +640,8 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/return` | Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead | owner, manager |
 | POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
 | GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
 | POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
@@ -1141,6 +1143,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -1171,8 +1174,8 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/return` | Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead | owner, manager |
 | POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
 | GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
 | POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
@@ -1426,6 +1429,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -1456,8 +1460,8 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/return` | Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead | owner, manager |
 | POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
 | GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
 | POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |
@@ -1706,8 +1710,8 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | GET | `/delivery/trips/{id}` | One trip with stops, collections, expenses, settlement and the tenant's policy | owner, manager, accountant, warehouse, delivery |
 | POST | `/delivery/trips/{id}/start-loading` | planned → loading: the godown builds the load sheet | owner, manager, warehouse, delivery |
 | POST | `/delivery/trips/{id}/depart` | Start the trip: loading → active (the crew; needs the driver's location consent and no draft load sheet) | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/return` | Check in: active → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
-| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not left (planned / loading) | owner, manager |
+| POST | `/delivery/trips/{id}/return` | Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed | owner, manager, delivery |
+| POST | `/delivery/trips/{id}/cancel` | Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead | owner, manager |
 | POST | `/delivery/trips/{id}/drop-bill` | Take a bill that was never loaded off a trip that has not left; it goes back on the planning board | owner, manager |
 | GET | `/delivery/van-returns` | What a checked-in van carries back for bills that came back: those pieces go to the dock, not the rack | owner, manager, warehouse |
 | POST | `/delivery/van-returns/unload` | Count one lot off a van: a came-back bill's pieces to the dock, the rest to the godown | owner, manager, warehouse |

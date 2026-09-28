@@ -558,7 +558,10 @@ export const FulfilmentQueueOutput = z.object({
  * Creates the wave and nothing else: `pick_lines` are snapshotted from the orders' lines against the
  * FEFO-suggested lots, and THE ORDER STATE IS NOT TOUCHED, so an order can still be cancelled until
  * someone starts picking. Every order must be `confirmed`, have lines, share one
- * `fulfilFromLocationId` (409 otherwise) and not already be on a live picklist.
+ * `fulfilFromLocationId` (409 otherwise) and not already be on a live picklist. The wave's place is a godown
+ * (architect ruling 6 of 2026-09-28): 409 `damaged_not_for_sale` for the damaged / expiry bin, 409
+ * `source_not_sellable` for the dock or a shop's floor, and 409 `wave_not_where_orders_ship` for a van or for a
+ * place other than the one the orders ship from (QA verify 3: the pick was taken there and the pack refused).
  */
 export const CreatePicklistInput = MutationBase.extend({
   id: IdSchema,
@@ -621,6 +624,10 @@ export const RecordPickLineInput = z.object({
  * per order line may not exceed the requested pieces (400), and a row the wave created may not take
  * more than its own `requestedQtyPcs` (400; a new `id` is a split row, which asks for nothing of its
  * own); a short line needs a `shortReason`; taking a later-expiry lot is a warning, never a refusal.
+ * Refused 409 (architect rulings of 2026-09-28): a batch already past its expiry (`batch_expired`, QA
+ * DOS-351), more of a batch than the line's own held pieces plus the free ones (`held_for_another_order`,
+ * naming the order that holds the rest, QA DOS-353), and any row of an order already packed
+ * (`order_packed`, QA DOS-361). The offline upload rejects the same picks with the same code and sentence.
  */
 export const RecordPickInput = MutationBase.extend({
   id: IdSchema,
@@ -635,6 +642,8 @@ export const RecordPickOutput = z.object({
 /**
  * Only while `status = 'open'`: once an order has entered `picking` the order machine has no way back
  * (there is no `picking → confirmed`), so a started wave is finished or short-picked, never cancelled.
+ * The holds of the orders still `confirmed` are freed; an order already packed off the wave keeps its
+ * dock hold (vans and trips 7, 2026-09-28).
  */
 export const CancelPicklistInput = MutationBase.extend({
   id: IdSchema,
@@ -708,6 +717,42 @@ export const PackGetOutput = z.object({
   lines: z.array(PackLineSchema),
 })
 
+/**
+ * UNDO A PACK THAT HAS NO BILL (architect ruling of 2026-09-28, vans and trips 4). A pack parked with
+ * `issueInvoice: false` whose batch then expired is refused at billing (`batch_expired`) and had no other exit: the
+ * desk now unpacks it. In one transaction: every piece the pack put on the dock goes back — to the godown batch it
+ * came from, or, when that batch has expired, into the damaged / expiry bin (`transfer_out` + `transfer_in`,
+ * `ref_type = 'unpack'`) — the order's dock holds are released, its pick rows and its pack record are cleared, and
+ * the order moves `packed → confirmed` (`unpack`), so it can be waved and picked again from an in-date batch. The
+ * desk's other way out is `orders.cancel`, which undoes the pack the same way and cancels the order.
+ *
+ * 409 `cancel_the_bill` for a pack that is billed (its bill is cancelled, and the order goes with it, or credited);
+ * 409 `not_packed` for an order that is not packed; 409 `on_draft_sheet` while a draft load sheet carries it;
+ * 409 `dock_short` when the dock no longer holds what the pack put there (nothing moves). A replay answers the
+ * first reply.
+ */
+export const UnpackOrderInput = MutationBase.extend({
+  orderId: IdSchema,
+  reason: z.string().trim().min(1).max(200),
+  deviceId: DeviceIdSchema.optional(),
+})
+export const UnpackedLotSchema = z.object({
+  lotId: IdSchema,
+  /** The item and its batch: "Garam Masala 50 g batch P1-2604". */
+  label: z.string(),
+  qtyPcs: PiecesSchema,
+  /** Back to the godown batch it came from, or into the damaged / expiry bin because the batch has expired. */
+  to: z.enum(['godown', 'expiry_bin']),
+  locationId: IdSchema,
+  locationName: z.string(),
+})
+export const UnpackOrderOutput = z.object({
+  orderId: IdSchema,
+  orderNo: z.string().nullable(),
+  orderState: OrderStateSchema,
+  returned: z.array(UnpackedLotSchema),
+})
+
 // ---------------------------------------------------------------------------------------------------------------
 // inputs — load sheets
 
@@ -720,7 +765,17 @@ export const LoadSheetVanStockInput = z.object({
  * Builds the sheet WITHOUT moving anything: every order must be `packed`, have a pack confirmation and
  * not be on a draft sheet (409 `already on load sheet`; a confirmed sheet holds nothing), its bill must not
  * still ride a trip that has not checked in (409 `bill_on_road`, `data.orderIds` / `data.tripIds`, QA
- * DOS-172), and `toLocationId` must be an active `vehicle` location. The orders are
+ * DOS-172), its pack must carry a live bill (409 `pack_not_billed`, QA DOS-355 — checked again at
+ * confirm, so no challan is issued for goods with no tax invoice), and `toLocationId` must be an active
+ * `vehicle` location. A bill is loaded only onto the trip that carries it (QA DOS-354 verify), here and again
+ * at confirm: 409 `bill_not_planned` (on no trip), `bill_not_on_trip` (on another trip than `tripId`),
+ * `bills_on_several_trips` (no `tripId`, and the bills ride different trips), `trip_left` (the trip is
+ * checked in, settled or cancelled) or `wrong_vehicle` (`toLocationId` is not the trip's vehicle). A sheet
+ * that carries bills and names no trip is stored with the one trip they all ride. The sheet is drawn from a
+ * godown or a van (ruling 6 of 2026-09-28: 409 `damaged_not_for_sale` for the bin, `source_not_sellable` for
+ * the dock or a shop's floor) that no trip holds (vans and trips 1: 409 `vehicle_on_trip`). An order that is
+ * not packed is 409 `order_not_packed` (`data.orderIds`), named with its state; `toLocationId` that is not a
+ * vehicle is 400 `not_a_vehicle`, named by the place. The orders are
  * kept in the order the caller supplies — "last stop first" is the app's job, because reading
  * `trip_stops` would make warehouse depend on delivery (coordination §4 item 3).
  */
@@ -758,7 +813,11 @@ export const LoadSheetGetOutput = LoadSheetItemOutput
 /**
  * The manager's PIN, given from the manager app (fact 2b): marks a draft sheet approved so the
  * warehouse device may confirm it. Only while `status = 'draft'` and not yet approved (409
- * `already_approved`); an `audit_log` row (`load_sheet.approve`) records it.
+ * `already_approved`); an `audit_log` row (`load_sheet.approve`) records it. A van carries one trip at a
+ * time (architect ruling of 2026-09-28, vans and trips 1): 409 `vehicle_on_trip` (`data.tripId`, `tripNo`,
+ * `tripState`) while ANOTHER trip holds the vehicle the sheet loads — on the road, checked in and not settled,
+ * or already loaded — or any trip holds the vehicle it is drawn from; 409 `trip_left` for a sheet of a trip
+ * that is over; 409 `damaged_not_for_sale` / `source_not_sellable` for a sheet drawn from the bin or the dock.
  */
 export const ApproveLoadSheetInput = MutationBase.extend({
   id: IdSchema,
@@ -776,6 +835,12 @@ export const ApproveLoadSheetOutput = LoadSheetItemOutput
  * AND one per packed lot keyed `load:<sheetId>:<lotId>:pack:out|in` (dock → vehicle: the godown was
  * relieved at pack and is never relieved twice, QA DOS-039/DOS-195), the `DC` challan issued, and every
  * packed order `packed → dispatched` — warehouse dispatches, not delivery (coordination §5 item 4).
+ * Before anything moves, the same van refusals as the approval (vans and trips 1 and ruling 6: 409
+ * `vehicle_on_trip`, `trip_left`, `damaged_not_for_sale`, `source_not_sellable`), so a sheet drafted or
+ * approved before the rule is refused at the gate too. Which trip holds the van is read under a per-van lock
+ * held to the commit, so a departure or another sheet's gate on the same van at the same moment waits and then
+ * reads this load (QA verify 3). An order on the sheet that is no longer packed — cancelled or unpacked since
+ * it was drafted — is 409 `order_not_packed`, named with its state.
  */
 export const ConfirmLoadSheetInput = MutationBase.extend({
   id: IdSchema,
@@ -1006,6 +1071,15 @@ export const warehouseContract = {
       })
       .input(PackGetInput)
       .output(PackGetOutput),
+    unpack: oc
+      .route({
+        method: 'POST',
+        path: '/warehouse/orders/{orderId}/unpack',
+        summary:
+          'Undo a pack that has no bill: pieces back off the dock, the order confirmed again',
+      })
+      .input(UnpackOrderInput)
+      .output(UnpackOrderOutput),
   },
   loadSheets: {
     create: oc

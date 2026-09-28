@@ -322,6 +322,11 @@ export const GrnWithLinesSchema = GrnSchema.extend({
 })
 export type GrnWithLines = z.infer<typeof GrnWithLinesSchema>
 
+/**
+ * Opens a GRN at a godown or a vehicle. Into a vehicle that a trip holds — loading, on the road, or checked in and not
+ * settled — it is refused 409 `vehicle_on_trip` here and again when the GRN is posted (vans and trips 1: that trip's
+ * settlement would count the pieces as its own; QA verify 3).
+ */
 export const OpenGrnInput = MutationBase.extend({
   id: IdSchema,
   supplierInvoiceId: IdSchema,

@@ -592,6 +592,9 @@ export class StockService {
     const db = requireDb(this.db)
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // QA DOS-358: a van's books are not changed by hand until its trip is settled — not by a damage
+        // adjustment while it is on the road, not by an owner's correction while it is checked in.
+        await this.inventory.assertVehicleNotOut(tx, input.locationId, { untilSettled: true })
         await this.requireLot(tx, input.lotId)
         const place = await this.placeOf(tx, input.locationId)
         // Architect ruling 6 (2026-09-28): the write-off is the DESK'S, from the bin. The godown puts
@@ -724,6 +727,9 @@ export class StockService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // Both vans (when either is one) are locked first and in one order, before any balance row, so a hand move
+        // and a load-out on the same van queue instead of both reading it free (vans and trips 1, QA verify 3).
+        await this.inventory.lockVehicleLocations(tx, [input.fromLocationId, input.toLocationId])
         await this.requireLot(tx, input.lotId)
         /*
          * NOTHING LEAVES THE DAMAGED BIN FOR SALE (QA DOS-352, architect ruling 2, 2026-09-28). A godown
@@ -745,6 +751,13 @@ export class StockService {
             },
           })
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
+        // QA DOS-358: nothing comes off a van by hand until its trip is settled (the van check-in counts it off).
+        await this.inventory.assertVehicleNotOut(tx, input.fromLocationId, { untilSettled: true })
+        // Vans and trips 1: nor goes onto one — a van carries one trip at a time, loaded through its load sheet.
+        await this.inventory.assertVehicleNotOut(tx, input.toLocationId, {
+          untilSettled: true,
+          onto: true,
+        })
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [
           {

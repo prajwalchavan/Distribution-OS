@@ -715,7 +715,11 @@ export const TripStopInput = z.object({
  * Plans a trip (`state = 'planned'`, `tripNo` from the `TRIP` series) with its stops in sequence.
  * `vanSalesEnabled` is 400 unless `feature_flags.van_sales` is on; `driverId === helperId` is 400; a
  * driver already on a non-terminal trip that day is 409. A `delivery` caller must be the driver or
- * helper of the trip it plans. A trip may have zero stops only when van sales are enabled.
+ * helper of the trip it plans. A trip may have zero stops only when van sales are enabled. A trip takes only
+ * bills that can still go out (architect ruling of 2026-09-28, vans and trips 3): 409 `bill_cannot_go_out`
+ * for a bill already delivered, part-delivered, closed or cancelled, and 409 `bill_on_another_trip` for one
+ * planned on another trip that has not settled — each naming the bill and the shop. Planning a trip on a van
+ * another trip holds is allowed; its load-out waits (vans and trips 1).
  */
 export const CreateTripInput = MutationBase.extend({
   id: IdSchema,
@@ -834,8 +838,15 @@ export const StartLoadingOutput = TripItemOutput
  * `load_sheet_not_confirmed` (`data.loadSheetIds`) while any load sheet of the trip is still a draft: one
  * linked to the trip, or one carrying a bill planned on one of its stops. 409 `bill_not_loaded`
  * (`data.orderIds`) while a bill planned on the trip is still `packed`: a bill leaves the godown only
- * through a confirmed load sheet, whose confirm dispatches it (QA DOS-172). Both refusals come before the
- * consent check. Depart dispatches nothing: a trip whose bills the load-out dispatched, or one with no bill
+ * through a confirmed load sheet, whose confirm dispatches it (QA DOS-172). 409 `bill_not_on_this_load`
+ * (`data.orderIds`) while a dispatched bill planned on the trip was counted out on another load than a
+ * confirmed sheet of this trip — its pieces are not on this van; check the trip in (QA DOS-354 verify). The
+ * refusals come before the consent check. 409 `vehicle_on_trip` while ANOTHER trip holds the van — on the
+ * road, checked in and not settled, or already loaded (vans and trips 1: a van carries one trip at a time; read
+ * under the per-van lock the load-out's gate takes, so a departure and a load-out onto the same van at the same
+ * moment queue, QA verify 3) —
+ * and 409 `bill_cannot_go_out` while the trip holds a bill already delivered or cancelled (vans and trips 3:
+ * take it off first). Depart dispatches nothing: a trip whose bills the load-out dispatched, or one with no bill
  * and van sales on, departs (coordination §4 item 4).
  */
 export const DepartTripInput = MutationBase.extend({
@@ -851,7 +862,12 @@ export const DepartTripOutput = TripItemOutput
 /**
  * Check-in: `tripMachine.next(state, 'return')` → `closing`. Stops still pending / started / arrived
  * become `failed` (`other`, "trip returned") and their orders go `return_undelivered`; the pieces stay
- * on the van until the settlement counts them back.
+ * on the van until the settlement counts them back. A LOADED trip that never left (`loading`, its load-out
+ * confirmed) is checked in the same way (QA DOS-354): its bills that were never counted out come off it
+ * and its draft sheets are cancelled first; 409 `trip_not_loaded` when nothing was loaded (cancel it). A bill
+ * planned on the trip that never rode its van — delivered elsewhere, part-delivered, closed or cancelled —
+ * comes off the trip too, audited `trip.bills_not_carried` and listed in the settlement's `skippedBills`
+ * (vans and trips 3); nothing of it is declared undelivered.
  */
 export const ReturnTripInput = MutationBase.extend({
   id: IdSchema,
@@ -861,7 +877,12 @@ export const ReturnTripInput = MutationBase.extend({
 })
 export const ReturnTripOutput = TripItemOutput
 
-/** Only from `planned` / `loading`: a trip that has left cannot be cancelled, it returns and settles. Stops → `skipped`. */
+/**
+ * Only from `planned` / `loading` and only BEFORE the load-out: a trip that has left, or one the godown has
+ * counted out onto the vehicle (409 `trip_loaded`, QA DOS-354), is checked in instead; one on the road,
+ * checked in or settled is 409 `trip_left`, in words. Stops → `skipped`, and the trip's draft load sheets are
+ * cancelled with it, so every bill is free for another trip.
+ */
 export const CancelTripInput = MutationBase.extend({
   id: IdSchema,
   reason: z.string().trim().min(1).max(200),
@@ -874,7 +895,9 @@ export const CancelTripOutput = TripItemOutput
  * the trip: its planned delivery row goes, the stop is `skipped` when it carries no other bill, and the bill is
  * back on the planning board. The rest of the trip may then load and depart. 409 once the trip has left, when
  * the bill is not planned on it, when its order was dispatched (it is on the van: the trip must return), or
- * while a DRAFT load sheet still carries it (cancel or rebuild that sheet first). Owner and manager; audited.
+ * while a DRAFT load sheet still carries it (cancel or rebuild that sheet first). A bill that cannot go out —
+ * already delivered or cancelled (vans and trips 3) — never rode the van and comes off like a packed one.
+ * Owner and manager; audited.
  */
 export const DropBillInput = MutationBase.extend({
   id: IdSchema,
@@ -909,7 +932,9 @@ export const VanReturnsOutput = z.object({
  * THE GODOWN COUNTS ONE LOT OFF A VAN (QA DOS-244). The counted pieces leave the vehicle; as many as the
  * vehicle's checked-in trip still owes its came-back bills of that lot go to the DOCK (staged for their next
  * load sheet, `trip_checkin` rows), the rest go to the godown as free stock. One transaction; a replay answers
- * the first reply. 409 `van_short` when the vehicle holds fewer pieces than counted.
+ * the first reply. 409 `van_short` when the vehicle holds fewer pieces than counted; 409 `vehicle_on_trip`
+ * while a trip on the vehicle is loading or on the road and the count would put pieces on the rack or no
+ * trip of it has checked in (QA DOS-358).
  */
 export const UnloadVanInput = MutationBase.extend({
   /** Client-generated id of this count; the ledger rows it writes are referenced by it. */
@@ -955,6 +980,21 @@ export const SettlementPreviewOutput = z.object({
   stopsFailed: z.number().int().nonnegative(),
   collectionsCount: z.number().int().nonnegative(),
   settlement: TripSettlementSchema.nullable(),
+  /**
+   * Bills planned on the trip that never rode its van — already delivered elsewhere, part-delivered, closed or
+   * cancelled (a trip planned before vans-and-trips ruling 3) — which the check-in took off the trip: nothing of
+   * them is counted back or declared undelivered. Each with the sentence that says why.
+   */
+  skippedBills: z
+    .array(
+      z.object({
+        invoiceId: IdSchema,
+        invoiceNo: z.string().nullable(),
+        retailerName: z.string(),
+        why: z.string(),
+      }),
+    )
+    .optional(),
 })
 
 export const CountedLotInput = z.object({
@@ -1023,7 +1063,8 @@ export const NextStopOutput = z.object({
 /**
  * Adds a stop to a `planned` / `loading` / `active` trip — the desk adding a late bill, or the crew
  * adding the shop it is about to sell van stock to. `sequence` defaults to last. A `delivery` caller may
- * add only to its own active trip and only when van sales are allowed on it.
+ * add only to its own active trip and only when van sales are allowed on it. The bills follow the planning
+ * rule of `trips.create` (409 `bill_cannot_go_out`, `bill_on_another_trip`; vans and trips 3).
  */
 export const AddStopInput = MutationBase.extend({
   /** The trip. */
@@ -1362,8 +1403,10 @@ export const CreateVanSaleInput = MutationBase.extend({
 /**
  * WHAT THE CREW MAY SELL FROM THE VAN (QA DOS-233): the vehicle's sellable pieces per lot LESS every piece a
  * bill of this trip still has on board — a planned bill not yet handed over, or one that came back and rides
- * the van until check-in. Those cartons belong to another shop's bill; `vanSales.create` refuses to draw on
- * them, and this list never offers them. Batch, MRP and expiry, never cost.
+ * the van until check-in — and less whatever stands on the van for ANOTHER trip that still holds it (its bills
+ * and its van stock; vans and trips 1 and 2, QA verify 3 X1). Those cartons belong to another shop's bill or
+ * another trip; `vanSales.create` refuses to draw on them, and this list never offers them. Batch, MRP and
+ * expiry, never cost.
  */
 export const VanSaleStockInput = z.object({ tripId: IdSchema })
 export const VanSaleStockRowSchema = z.object({
@@ -1378,9 +1421,12 @@ export const VanSaleStockRowSchema = z.object({
    * quote and the bill count in; the lot's own pack only when the catalogue names none (QA DOS-239).
    */
   caseSize: z.number().int().positive().nullable(),
-  /** Free to sell: sellable at the vehicle minus this trip's undelivered bills, never below zero. */
+  /** Free to sell: sellable at the vehicle minus the pieces held below, never below zero. */
   availablePcs: PiecesSchema,
-  /** Pieces of this lot the trip's own bills still hold on the van (shown, never sold). */
+  /**
+   * Pieces of this lot held on the van (shown, never sold): the trip's own bills still on board, plus what
+   * stands there for another trip that still holds the van.
+   */
   heldForBillsPcs: PiecesSchema,
 })
 export type VanSaleStockRow = z.infer<typeof VanSaleStockRowSchema>
@@ -1615,7 +1661,8 @@ export const deliveryContract = {
       .route({
         method: 'POST',
         path: '/delivery/trips/{id}/return',
-        summary: 'Check in: active → closing; open stops fail and their orders go back to packed',
+        summary:
+          'Check in: active (or loaded and never left) → closing; open stops fail and their orders go back to packed',
       })
       .input(ReturnTripInput)
       .output(ReturnTripOutput),
@@ -1623,7 +1670,8 @@ export const deliveryContract = {
       .route({
         method: 'POST',
         path: '/delivery/trips/{id}/cancel',
-        summary: 'Cancel a trip that has not left (planned / loading)',
+        summary:
+          'Cancel a trip that has not been loaded (planned / loading); a loaded trip is checked in instead',
       })
       .input(CancelTripInput)
       .output(CancelTripOutput),

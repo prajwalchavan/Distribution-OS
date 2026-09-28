@@ -81,6 +81,7 @@ import {
   requireDb,
   requireRole,
 } from '../../platform/index.js'
+import { istDateWord } from '../../platform/refusal-words.js'
 import {
   coverFromDock,
   dockLocationId,
@@ -540,6 +541,31 @@ export class BillingService {
       tx,
       moved.map((l) => l.lotId).filter((id) => id !== null),
     )
+    /*
+     * QA DOS-351 (architect ruling 3, 2026-09-28): expired goods are never sold. The pack refuses an expired
+     * batch before it moves anything; this is the last word for every other road to a bill — a parked pack
+     * billed later (`issueParkedPack`), a van sale — so a pick recorded before the rule cannot become a bill.
+     * Judged against TODAY's IST business date, the day the goods are sold and leave (ruling 3: "an expiry date
+     * before today"), or the bill's own date when that is later: a bill dated back to before the batch expired
+     * does not make expired goods saleable today (QA DOS-351 verify: INV/9023, INV/9017).
+     */
+    const today = businessDate().date
+    const soldOn = invoiceDate > today ? invoiceDate : today
+    for (const line of moved) {
+      const lot = line.lotId === null ? undefined : lots.get(line.lotId)
+      if (lot === undefined || lot.expiryDate === null || lot.expiryDate >= soldOn) continue
+      const item =
+        variants.get(byId.get(line.orderLineId)?.variantId ?? '')?.description ?? 'this item'
+      throw new ORPCError('CONFLICT', {
+        message: `${order.orderNo ?? 'This order'} cannot be billed: ${String(line.qtyPcs + line.freeQtyPcs)} pc of it are ${item}${lot.batchNo === '' ? '' : ` batch ${lot.batchNo}`}, which expired on ${istDateWord(lot.expiryDate)} ${lot.expiryDate.slice(0, 4)}. ${
+          input.source === 'van_sale'
+            ? 'Expired goods are never sold — sell an in-date batch; the expired pieces come off the van at the check-in.'
+            : // Vans and trips 4: the parked pack's way out is named by its buttons.
+              'Expired goods are never billed or sent — on the billing desk (Packed, not billed) press Unpack, and the order goes back to be picked from an in-date batch, or Cancel the order: either way its pieces come off the dock and the expired ones go into the expiry bin.'
+        }`,
+        data: { code: 'batch_expired', lotId: lot.id, expiryDate: lot.expiryDate },
+      })
+    }
 
     const invoiceId = input.invoiceId ?? uuidv7()
     const priced: PricedLine[] = []
@@ -996,7 +1022,7 @@ export class BillingService {
           const order = await this.orders.findOrder(tx, invoice.orderId)
           if (order && DISPATCHED_ORDER_STATES.has(order.state))
             throw new ORPCError('CONFLICT', {
-              message: `order ${order.id} is ${order.state}; after dispatch the only correction is a credit note`,
+              message: `order ${order.orderNo ?? order.id} is ${order.state}; after dispatch the only correction is a credit note`,
             })
         }
         const outstanding = await this.receivables.invoiceOutstandingPaise(tx, invoice.id)
@@ -1032,6 +1058,12 @@ export class BillingService {
         const to = invoiceTransition(invoice.state, 'cancel')
         if (invoice.source === 'pack' && invoice.orderId)
           await this.assertOffEveryTrip(tx, invoice, 'cancel it')
+        // Vans and trips 1 (QA verify 3): a cancelled bill's pieces are not put onto a van a trip holds.
+        if (input.restockLocationId !== undefined)
+          await this.inventory.assertVehicleNotOut(tx, input.restockLocationId, {
+            untilSettled: true,
+            onto: true,
+          })
         await this.restock(tx, invoice, input.restockLocationId)
         await this.reverseInvoiceEntry(tx, invoice)
         /*
@@ -1267,6 +1299,9 @@ export class BillingService {
    */
   private async packedSplit(tx: Db, orderId: string): Promise<IssueForPackLine[]> {
     const rows = await this.inventory.ledgerRowsByRef(tx, { refType: 'pack', refId: orderId })
+    // Vans and trips 4: what an unpack put back from the dock (`unpack:<order>:<line>:…`, its IN leg) is not in the
+    // pack any more, so an order unpacked and packed again bills its new pack only.
+    const undone = await this.inventory.ledgerRowsByRef(tx, { refType: 'unpack', refId: orderId })
     const lines = await tx
       .select()
       .from(salesOrderLines)
@@ -1275,9 +1310,20 @@ export class BillingService {
     const out: IssueForPackLine[] = []
     for (const line of lines) {
       const prefix = `pack:${orderId}:${line.id}:`
-      const picks = rows
-        .filter((r) => r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
-        .map((r) => ({ lotId: r.lotId, qtyPcs: -r.qtyDelta }))
+      const back = new Map<string, number>()
+      for (const r of undone)
+        if (r.qtyDelta > 0 && r.idempotencyKey.startsWith(`unpack:${orderId}:${line.id}:`))
+          back.set(r.lotId, (back.get(r.lotId) ?? 0) + r.qtyDelta)
+      const perLot = new Map<string, number>()
+      for (const r of rows)
+        if (r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
+          perLot.set(r.lotId, (perLot.get(r.lotId) ?? 0) - r.qtyDelta)
+      const picks = [...perLot]
+        .map(([lotId, qtyPcs]) => ({
+          lotId,
+          qtyPcs: qtyPcs - Math.min(qtyPcs, back.get(lotId) ?? 0),
+        }))
+        .filter((p) => p.qtyPcs > 0)
       const moved = picks.reduce((sum, p) => sum + p.qtyPcs, 0)
       if (moved === 0) continue
       let paidLeft = Math.min(line.pickedQtyPcs > 0 ? line.pickedQtyPcs : line.qtyPcs, moved)

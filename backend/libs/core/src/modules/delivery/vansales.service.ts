@@ -26,6 +26,7 @@ import { BillingService } from '../billing/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { CollectionsService } from './collections.service.js'
+import { SettlementService } from './settlement.service.js'
 import {
   assertCrewOrDesk,
   DOORSTEP,
@@ -79,12 +80,16 @@ export class VanSalesService {
     private readonly collections: CollectionsService,
     /** Holds the other shops' billed cartons out of the sale's reach for its transaction (QA DOS-233). */
     private readonly inventory: InventoryService,
+    /** What stands on the van for ANOTHER trip that still holds it (vans and trips 1 and 2; QA verify 3, X1). */
+    private readonly settlement: SettlementService,
   ) {}
 
   /**
    * What the crew may sell here (QA DOS-233): the van's sellable pieces per lot less the pieces this trip's
-   * own bills still hold on board. The screen used to list the whole van — the next shop's Bourbon and
-   * cracker cartons as stock to sell — and the sale would have drawn on them.
+   * own bills still hold on board, and less whatever stands on the van for another trip that still holds it (a
+   * van loaded before ruling 1, or reached by the race QA verify 3 found). The screen used to list the whole van —
+   * the next shop's Bourbon and cracker cartons, or another trip's loaded bill, as stock to sell — and the sale
+   * would have drawn on them. `heldForBillsPcs` counts both.
    */
   async stock(input: StockIn): Promise<StockOut> {
     requireRole(DOORSTEP)
@@ -93,7 +98,7 @@ export class VanSalesService {
       const trip = await findTrip(tx, input.tripId)
       assertCrewOrDesk(trip, DOORSTEP)
       const vehicle = await loadVehicle(tx, trip.vehicleId)
-      const held = await this.heldForBills(tx, trip.id)
+      const held = await this.notForSale(tx, trip.id, vehicle.locationId)
       const rows = await tx
         .select({
           lotId: stockBalances.lotId,
@@ -157,6 +162,23 @@ export class VanSalesService {
    * D5) and has not been cancelled since. A bill handed over — in full or in part — was relieved from the
    * van at the door (QA DOS-195); what the shop sent back is free van stock again.
    */
+  /**
+   * THE PIECES ON THE VAN A VAN SALE MAY NOT TOUCH, per lot: this trip's own bills still on board, plus what stands on
+   * the van for any other trip that still holds it — its riding bills, its came-back bills and its van stock
+   * (`SettlementService.piecesOfOtherTrips`, the same arithmetic the settlement leaves on the van). A van sale sold
+   * another trip's loaded bill, and that trip's door then found "Only 0 pc" (QA verify 3, X1).
+   */
+  private async notForSale(
+    tx: Db,
+    tripId: string,
+    vehicleLocationId: string,
+  ): Promise<Map<string, number>> {
+    const held = await this.heldForBills(tx, tripId)
+    const others = await this.settlement.piecesOfOtherTrips(tx, tripId, vehicleLocationId)
+    for (const [lotId, pcs] of others) held.set(lotId, (held.get(lotId) ?? 0) + pcs)
+    return held
+  }
+
   private async heldForBills(tx: Db, tripId: string): Promise<Map<string, number>> {
     const rows = await tx
       .select({ invoiceId: deliveries.invoiceId })
@@ -198,16 +220,20 @@ export class VanSalesService {
             data: { code: 'van_sales_disabled' },
           })
         const vehicle = await loadVehicle(tx, trip.vehicleId)
+        // The van lock, after the trip row (the order every door takes them in): which trips hold this van is read
+        // once, and nothing is loaded onto it or counted off it until this sale commits (vans and trips 1).
+        await this.inventory.lockVehicleLocations(tx, [vehicle.locationId])
         const retailer = await findRetailer(tx, input.retailerId)
         const stop = await this.stopFor(tx, trip.id, input.stopId, retailer.id)
 
         // QA DOS-233: the other shops' billed cartons ride on this van too. They are held out of the sale's
         // reach for as long as it reserves — at confirm and again at billing — so a shortage is refused
-        // here rather than found at the next shop's door. Given back once the bill has taken its pieces.
+        // here rather than found at the next shop's door. Given back once the bill has taken its pieces. So is
+        // whatever stands on the van for another trip that still holds it (QA verify 3, X1).
         const held = await this.inventory.holdPieces(
           tx,
           vehicle.locationId,
-          await this.heldForBills(tx, trip.id),
+          await this.notForSale(tx, trip.id, vehicle.locationId),
         )
 
         // the order, priced like any other, from the vehicle

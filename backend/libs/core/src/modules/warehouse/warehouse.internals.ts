@@ -1,6 +1,6 @@
 import { ORPCError } from '@orpc/server'
 import { and, eq, gte, inArray, lte, sql, type SQL } from 'drizzle-orm'
-import { paise, percentOf, uuidv7 } from '@dos/domain'
+import { businessDate, paise, percentOf, uuidv7 } from '@dos/domain'
 import {
   auditLog,
   DEFAULT_EWB_INTRA_STATE_THRESHOLD_PAISE,
@@ -203,6 +203,8 @@ export async function fefoLots(
   cutoff: string,
 ): Promise<FefoCandidate[]> {
   const { tenantId } = currentTenant()
+  // QA DOS-351 (architect ruling 3): an expired batch is never offered, whatever the view still counts.
+  const today = businessDate().date
   const rows = await tx.execute(sql`
     select lot_id, expiry_date, available from sellable_stock
      where tenant_id = ${tenantId} and variant_id = ${variantId} and location_id = ${locationId}
@@ -213,7 +215,7 @@ export async function fefoLots(
       expiryDate: r.expiry_date,
       available: Number(r.available),
     }))
-    .filter((r) => r.available > 0)
+    .filter((r) => r.available > 0 && (r.expiryDate === null || r.expiryDate >= today))
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -256,13 +258,61 @@ export async function vehicleLocation(tx: Db, locationId: string): Promise<Vehic
     .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
     .limit(1)
   if (!row) throw new ORPCError('NOT_FOUND', { message: `location ${locationId} not found` })
+  // Named by the place, never by its id (QA verify 3, minor 8): a van → godown sheet was refused with a UUID.
   if (row.kind !== 'vehicle')
     throw new ORPCError('BAD_REQUEST', {
-      message: `location ${locationId} is a ${row.kind}; a load sheet goes onto a vehicle`,
+      message: `${row.name} is not a vehicle; a load sheet goes onto a vehicle. Stock comes off a van back into the godown on Van check-in, not on a load sheet.`,
+      data: { code: 'not_a_vehicle', locationKind: row.kind },
     })
   if (!row.active)
-    throw new ORPCError('BAD_REQUEST', { message: `vehicle location ${locationId} is not active` })
+    throw new ORPCError('BAD_REQUEST', {
+      message: `${row.regNo ?? row.name} is switched off (not active); a load sheet goes onto a vehicle in use.`,
+    })
   return { id: row.id, name: row.name, regNo: row.regNo }
+}
+
+/**
+ * A place's name and kind, for the rules that depend on WHICH place stock moves out of (architect ruling 6 of
+ * 2026-09-28, vans and trips): a wave is picked, and a load sheet drawn, from a godown or a van, never from the
+ * damaged / expiry bin, the dock or a shop's floor. Null when it is not one of this distributor's places.
+ */
+export async function placeOf(
+  tx: Db,
+  locationId: string,
+): Promise<{ id: string; name: string; kind: string } | null> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({ id: locations.id, name: locations.name, kind: locations.kind })
+    .from(locations)
+    .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+    .limit(1)
+  return row ?? null
+}
+
+/**
+ * THE DAMAGED / EXPIRY BIN: where expired pieces go when a pack is undone (vans and trips 4), the way a receipt that
+ * arrives expired goes there (ruling 4). `bootstrapTenant` gives every distributor one active `kind = 'damaged'`
+ * place; the first by id when there are more.
+ */
+export async function damagedBin(tx: Db): Promise<{ id: string; name: string }> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({ id: locations.id, name: locations.name })
+    .from(locations)
+    .where(
+      and(
+        eq(locations.tenantId, tenantId),
+        eq(locations.kind, 'damaged'),
+        eq(locations.active, true),
+      ),
+    )
+    .orderBy(locations.id)
+    .limit(1)
+  if (!row)
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'this distributor has no damaged / expiry bin (bootstrap it first)',
+    })
+  return row
 }
 
 /** The plate for a sheet already built, without re-validating the location. Null when unknown. */

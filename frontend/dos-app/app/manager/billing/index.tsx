@@ -106,6 +106,13 @@ export default function BillingDesk(): React.JSX.Element {
   const mayCreditWhole = can('billing.creditNotes.create')
   const mayIssueForPack = can('billing.invoices.issueForPack')
   /*
+   * Vans and trips 4 (2026-09-28): a pack WITHOUT a bill is undone by the desk — Unpack (the order is picked again)
+   * or Cancel the order; either way its pieces come off the dock, expired ones into the expiry bin. The billing
+   * refusal of a parked pack whose batch has expired names these two buttons, which sit in the same dialog.
+   */
+  const mayUnpack = can('warehouse.packs.unpack')
+  const mayCancelOrder = can('orders.cancel')
+  /*
    * DOS-145: someone arriving with a bill in the url is looking for a BILL. `view=bills` (the header
    * search's own link) and a bare `?q=` both open the issued register rather than the order queue,
    * and `bill=` opens that bill's panel — cancel, e-way bill — without a second search.
@@ -145,7 +152,11 @@ export default function BillingDesk(): React.JSX.Element {
     if (typeof params.bill === 'string' && params.bill !== '') setSelected(params.bill)
   }, [urlIntent, params.bill, params.q, params.view])
 
-  const [dialog, setDialog] = useState<'cancel' | 'eway' | 'billPack' | 'cantSend' | null>(null)
+  const [dialog, setDialog] = useState<
+    'cancel' | 'eway' | 'billPack' | 'cantSend' | 'unpack' | 'cancelOrder' | null
+  >(null)
+  /** What the last unpack or order cancel did, shown only after its 2xx (vans and trips 4). */
+  const [undoneNote, setUndoneNote] = useState<string | null>(null)
   /**
    * QA DOS-248: "Could not send it" credits the WHOLE bill. The note's line ids are made once, when the
    * dialog opens, so a retry of the same press is the same intent (the client keys idempotency on the input).
@@ -249,6 +260,25 @@ export default function BillingDesk(): React.JSX.Element {
         idempotencyKey: meta.idempotencyKey,
       }),
     { invalidates: [['warehouse'], ['billing'], ['invoices'], ['receivables'], ['reporting']] },
+  )
+
+  const unpack = useMutation(
+    (input: { orderId: string; reason: string }, meta) =>
+      api.api.warehouse.packs.unpack({
+        orderId: input.orderId,
+        reason: input.reason,
+        idempotencyKey: meta.idempotencyKey,
+      }),
+    { invalidates: [['warehouse'], ['billing'], ['orders'], ['inventory'], ['reporting']] },
+  )
+  const cancelOrder = useMutation(
+    (input: { id: string; reason: string }, meta) =>
+      api.api.orders.cancel({
+        id: input.id,
+        reason: input.reason,
+        idempotencyKey: meta.idempotencyKey,
+      }),
+    { invalidates: [['warehouse'], ['billing'], ['orders'], ['inventory'], ['reporting']] },
   )
 
   /*
@@ -404,6 +434,26 @@ export default function BillingDesk(): React.JSX.Element {
         setPackToBill(null)
         done()
       }, stayOpen)
+    if (dialog === 'unpack' && packToBill !== null) {
+      const order = packToBill.orderNo ?? ''
+      void unpack
+        .mutateAsync({ orderId: packToBill.orderId, reason: reason.trim() })
+        .then((reply) => {
+          const sum = (to: 'godown' | 'expiry_bin'): number =>
+            reply.returned.filter((r) => r.to === to).reduce((n, r) => n + r.qtyPcs, 0)
+          setUndoneNote(t('m6.unpacked', { order, back: sum('godown'), bin: sum('expiry_bin') }))
+          setPackToBill(null)
+          done()
+        }, stayOpen)
+    }
+    if (dialog === 'cancelOrder' && packToBill !== null) {
+      const order = packToBill.orderNo ?? ''
+      void cancelOrder.mutateAsync({ id: packToBill.orderId, reason: reason.trim() }).then(() => {
+        setUndoneNote(t('m6.orderCancelled', { order }))
+        setPackToBill(null)
+        done()
+      }, stayOpen)
+    }
   }
 
   return (
@@ -499,6 +549,11 @@ export default function BillingDesk(): React.JSX.Element {
             })}
             testID="billing-packs"
           >
+            {undoneNote === null ? null : (
+              <Txt field="label" desk="meta" color={colors.text.secondary} testID="pack-undone">
+                {undoneNote}
+              </Txt>
+            )}
             <Async
               state={[unbilledPacks]}
               rows={4}
@@ -757,12 +812,16 @@ export default function BillingDesk(): React.JSX.Element {
               ? t('m6.cantSend')
               : dialog === 'eway'
                 ? t('m6.setEwb')
-                : t('m6.billPack')
+                : dialog === 'unpack'
+                  ? t('m6.unpackTitle')
+                  : dialog === 'cancelOrder'
+                    ? t('m6.cancelOrder')
+                    : t('m6.billPack')
         }
         body={
           <Stack gap={3}>
             <Txt field="body" desk="body">
-              {dialog === 'billPack'
+              {dialog === 'billPack' || dialog === 'unpack' || dialog === 'cancelOrder'
                 ? `${packToBill?.orderNo ?? ''} · ${packToBill?.retailerName ?? ''}`
                 : (invoice?.invoiceNo ?? '')}
             </Txt>
@@ -775,11 +834,52 @@ export default function BillingDesk(): React.JSX.Element {
                     })
                   : dialog === 'billPack'
                     ? t('m6.billPackBody')
-                    : t('m7.ewbHint')}
+                    : dialog === 'unpack'
+                      ? t('m6.unpackBody')
+                      : dialog === 'cancelOrder'
+                        ? t('m6.cancelOrderBody')
+                        : t('m7.ewbHint')}
             </Txt>
-            {dialog === 'cancel' || dialog === 'cantSend' ? (
+            {dialog === 'billPack' && (mayUnpack || mayCancelOrder) ? (
+              <Row gap={2}>
+                {mayUnpack ? (
+                  <Button
+                    label={t('m6.unpack')}
+                    variant="secondary"
+                    onPress={() => {
+                      setReason('')
+                      setDialog('unpack')
+                    }}
+                    testID="pack-unpack"
+                  />
+                ) : null}
+                {mayCancelOrder ? (
+                  <Button
+                    label={t('m6.cancelOrder')}
+                    variant="secondary"
+                    onPress={() => {
+                      setReason('')
+                      setDialog('cancelOrder')
+                    }}
+                    testID="pack-cancel-order"
+                  />
+                ) : null}
+              </Row>
+            ) : null}
+            {dialog === 'cancel' ||
+            dialog === 'cantSend' ||
+            dialog === 'unpack' ||
+            dialog === 'cancelOrder' ? (
               <TextInput
-                label={dialog === 'cantSend' ? t('m6.cantSendReason') : t('m6.cancelReason')}
+                label={
+                  dialog === 'cantSend'
+                    ? t('m6.cantSendReason')
+                    : dialog === 'unpack'
+                      ? t('m6.unpackReason')
+                      : dialog === 'cancelOrder'
+                        ? t('m6.cancelOrderReason')
+                        : t('m6.cancelReason')
+                }
                 value={reason}
                 onChange={setReason}
                 capitalize="sentences"
@@ -796,7 +896,10 @@ export default function BillingDesk(): React.JSX.Element {
                 testID="invoice-ewb"
               />
             ) : null}
-            <Refusal of={[cancel, setEway, billPack, creditWhole]} testID="billing-refusal" />
+            <Refusal
+              of={[cancel, setEway, billPack, creditWhole, unpack, cancelOrder]}
+              testID="billing-refusal"
+            />
           </Stack>
         }
         confirmLabel={
@@ -806,14 +909,20 @@ export default function BillingDesk(): React.JSX.Element {
               ? t('m6.cantSendConfirm')
               : dialog === 'eway'
                 ? t('m6.setEwb')
-                : t('m6.billPack')
+                : dialog === 'unpack'
+                  ? t('m6.unpack')
+                  : dialog === 'cancelOrder'
+                    ? t('m6.cancelOrder')
+                    : t('m6.billPack')
         }
-        destructive={dialog === 'cancel' || dialog === 'cantSend'}
+        destructive={dialog === 'cancel' || dialog === 'cantSend' || dialog === 'cancelOrder'}
         busy={
           creditWhole.status === 'pending' ||
           cancel.status === 'pending' ||
           setEway.status === 'pending' ||
-          billPack.status === 'pending'
+          billPack.status === 'pending' ||
+          unpack.status === 'pending' ||
+          cancelOrder.status === 'pending'
         }
         onConfirm={commit}
         testID="billing-dialog"
