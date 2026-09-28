@@ -1,0 +1,1076 @@
+{
+ "at": "2026-09-28T03:15:19.701Z",
+ "trip": {
+  "tripId": "01a0e602-8431-7327-921b-b3b600618c5d",
+  "steps": [
+   "trips.create: ok",
+   "trips.startLoading: ok",
+   "loadSheets.create: ok",
+   "loadSheets.approve: ok",
+   "loadSheets.confirm: ok",
+   "trips.depart: ok"
+  ]
+ },
+ "creditNotes": [
+  {
+   "case": "L01",
+   "invoiceNo": "INV/9065",
+   "inter": false,
+   "delivery": "ok",
+   "note": {
+    "id": "01a0e602-874a-737f-85d4-011077f80f85",
+    "credit_note_no": "CN/9003",
+    "state": "issued",
+    "taxable_paise": 30716,
+    "cgst_paise": 3074,
+    "sgst_paise": 3074,
+    "igst_paise": 0,
+    "cess_paise": 795,
+    "round_off_paise": 41,
+    "total_paise": 37700
+   },
+   "rows": [
+    {
+     "line": 1,
+     "qty": 7,
+     "free": 0,
+     "returned": 2,
+     "soldBack": 2,
+     "billTaxable": 5035,
+     "billDisc": 173,
+     "cnQty": 2,
+     "cnTaxable": 1438,
+     "expTaxable": 1439,
+     "cnTax": 258,
+     "expTax": 260,
+     "cnRate": 719,
+     "billRate": 744,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 2,
+     "qty": 13,
+     "free": 0,
+     "returned": 4,
+     "soldBack": 4,
+     "billTaxable": 35954,
+     "billDisc": 1239,
+     "cnQty": 4,
+     "cnTaxable": 11062,
+     "expTaxable": 11063,
+     "cnTax": 1992,
+     "expTax": 1992,
+     "cnRate": 2766,
+     "billRate": 2861,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 3,
+     "qty": 17,
+     "free": 0,
+     "returned": 5,
+     "soldBack": 5,
+     "billTaxable": 36894,
+     "billDisc": 1271,
+     "cnQty": 5,
+     "cnTaxable": 10851,
+     "expTaxable": 10851,
+     "cnTax": 1954,
+     "expTax": 1954,
+     "cnRate": 2170,
+     "billRate": 2245,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 4,
+     "qty": 3,
+     "free": 0,
+     "returned": 1,
+     "soldBack": 1,
+     "billTaxable": 2210,
+     "billDisc": 76,
+     "cnQty": 1,
+     "cnTaxable": 736,
+     "expTaxable": 737,
+     "cnTax": 88,
+     "expTax": 88,
+     "cnRate": 736,
+     "billRate": 762,
+     "gstBps": 1200,
+     "cnGstBps": 1200
+    },
+    {
+     "line": 5,
+     "qty": 11,
+     "free": 0,
+     "returned": 3,
+     "soldBack": 3,
+     "billTaxable": 24309,
+     "billDisc": 837,
+     "cnQty": 3,
+     "cnTaxable": 6629,
+     "expTaxable": 6630,
+     "cnTax": 2651,
+     "expTax": 2652,
+     "cnRate": 2210,
+     "billRate": 2286,
+     "gstBps": 2800,
+     "cnGstBps": 2800
+    }
+   ]
+  },
+  {
+   "case": "G04",
+   "invoiceNo": "INV/9094",
+   "inter": true,
+   "delivery": "ok",
+   "note": {
+    "id": "01a0e602-8859-72f9-8fec-6949009f7976",
+    "credit_note_no": "CN/9004",
+    "state": "issued",
+    "taxable_paise": 15769,
+    "cgst_paise": 0,
+    "sgst_paise": 0,
+    "igst_paise": 3060,
+    "cess_paise": 265,
+    "round_off_paise": 6,
+    "total_paise": 19100
+   },
+   "rows": [
+    {
+     "line": 1,
+     "qty": 13,
+     "free": 0,
+     "returned": 4,
+     "soldBack": 4,
+     "billTaxable": 26097,
+     "billDisc": 3088,
+     "cnQty": 4,
+     "cnTaxable": 8029,
+     "expTaxable": 8030,
+     "cnTax": 1445,
+     "expTax": 1445,
+     "cnRate": 2007,
+     "billRate": 2245,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 2,
+     "qty": 3,
+     "free": 0,
+     "returned": 1,
+     "soldBack": 1,
+     "billTaxable": 8297,
+     "billDisc": 286,
+     "cnQty": 1,
+     "cnTaxable": 2765,
+     "expTaxable": 2766,
+     "cnTax": 498,
+     "expTax": 498,
+     "cnRate": 2765,
+     "billRate": 2861,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 3,
+     "qty": 4,
+     "free": 0,
+     "returned": 1,
+     "soldBack": 1,
+     "billTaxable": 11063,
+     "billDisc": 381,
+     "cnQty": 1,
+     "cnTaxable": 2765,
+     "expTaxable": 2766,
+     "cnTax": 498,
+     "expTax": 498,
+     "cnRate": 2765,
+     "billRate": 2861,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 4,
+     "qty": 5,
+     "free": 0,
+     "returned": 1,
+     "soldBack": 1,
+     "billTaxable": 11050,
+     "billDisc": 380,
+     "cnQty": 1,
+     "cnTaxable": 2210,
+     "expTaxable": 2210,
+     "cnTax": 884,
+     "expTax": 884,
+     "cnRate": 2210,
+     "billRate": 2286,
+     "gstBps": 2800,
+     "cnGstBps": 2800
+    }
+   ]
+  },
+  {
+   "case": "F04",
+   "invoiceNo": "INV/9051",
+   "inter": false,
+   "delivery": "ok",
+   "note": {
+    "id": "01a0e602-892e-7157-a64d-f55870f55218",
+    "credit_note_no": "CN/9005",
+    "state": "issued",
+    "taxable_paise": 27314,
+    "cgst_paise": 2459,
+    "sgst_paise": 2459,
+    "igst_paise": 0,
+    "cess_paise": 0,
+    "round_off_paise": -32,
+    "total_paise": 32200
+   },
+   "rows": [
+    {
+     "line": 1,
+     "qty": 48,
+     "free": 0,
+     "returned": 16,
+     "soldBack": 16,
+     "billTaxable": 33926,
+     "billDisc": 1786,
+     "cnQty": 16,
+     "cnTaxable": 11308,
+     "expTaxable": 11309,
+     "cnTax": 2036,
+     "expTax": 2036,
+     "cnRate": 707,
+     "billRate": 744,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 2,
+     "qty": 65,
+     "free": 0,
+     "returned": 21,
+     "soldBack": 21,
+     "billTaxable": 45942,
+     "billDisc": 2418,
+     "cnQty": 21,
+     "cnTaxable": 14842,
+     "expTaxable": 14843,
+     "cnTax": 2672,
+     "expTax": 2672,
+     "cnRate": 707,
+     "billRate": 744,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    },
+    {
+     "line": 3,
+     "qty": 7,
+     "free": 10,
+     "returned": 4,
+     "soldBack": 2,
+     "billTaxable": 4948,
+     "billDisc": 260,
+     "cnQty": 4,
+     "cnTaxable": 1164,
+     "expTaxable": 1414,
+     "cnTax": 210,
+     "expTax": 254,
+     "cnRate": 291,
+     "billRate": 744,
+     "gstBps": 1800,
+     "cnGstBps": 1800
+    }
+   ]
+  },
+  {
+   "case": "K03",
+   "invoiceNo": "INV/9063",
+   "inter": false,
+   "delivery": "ok",
+   "note": {
+    "id": "01a0e602-8a04-7330-b387-128136246e12",
+    "credit_note_no": "CN/9006",
+    "state": "issued",
+    "taxable_paise": 27967,
+    "cgst_paise": 3915,
+    "sgst_paise": 3915,
+    "igst_paise": 0,
+    "cess_paise": 3356,
+    "round_off_paise": 47,
+    "total_paise": 39200
+   },
+   "rows": [
+    {
+     "line": 1,
+     "qty": 41,
+     "free": 0,
+     "returned": 13,
+     "soldBack": 13,
+     "billTaxable": 88204,
+     "billDisc": 5522,
+     "cnQty": 13,
+     "cnTaxable": 27967,
+     "expTaxable": 27967,
+     "cnTax": 11186,
+     "expTax": 11186,
+     "cnRate": 2151,
+     "billRate": 2286,
+     "gstBps": 2800,
+     "cnGstBps": 2800
+    }
+   ]
+  },
+  {
+   "case": "X04",
+   "invoiceNo": "INV/9058",
+   "inter": false,
+   "delivery": "ok",
+   "note": {
+    "id": "01a0e602-8aee-7424-8fe1-b039f171796c",
+    "credit_note_no": "CN/9007",
+    "state": "issued",
+    "taxable_paise": 28542,
+    "cgst_paise": 1457,
+    "sgst_paise": 1457,
+    "igst_paise": 0,
+    "cess_paise": 0,
+    "round_off_paise": 44,
+    "total_paise": 31500
+   },
+   "rows": [
+    {
+     "line": 1,
+     "qty": 23,
+     "free": 0,
+     "returned": 7,
+     "soldBack": 7,
+     "billTaxable": 69784,
+     "billDisc": 9336,
+     "cnQty": 7,
+     "cnTaxable": 21238,
+     "expTaxable": 21239,
+     "cnTax": 2548,
+     "expTax": 2548,
+     "cnRate": 3034,
+     "billRate": 3440,
+     "gstBps": 1200,
+     "cnGstBps": 1200
+    },
+    {
+     "line": 2,
+     "qty": 5,
+     "free": 0,
+     "returned": 1,
+     "soldBack": 1,
+     "billTaxable": 36524,
+     "billDisc": 746,
+     "cnQty": 1,
+     "cnTaxable": 7304,
+     "expTaxable": 7305,
+     "cnTax": 366,
+     "expTax": 366,
+     "cnRate": 7304,
+     "billRate": 7454,
+     "gstBps": 500,
+     "cnGstBps": 500
+    }
+   ]
+  },
+  {
+   "case": "F02",
+   "invoiceNo": "INV/9049",
+   "inter": false,
+   "delivery": "ok",
+   "note": {
+    "id": "01a0e602-8b99-73b2-ba19-ab6d66b9f666",
+    "credit_note_no": "CN/9008",
+    "state": "issued",
+    "taxable_paise": 301504,
+    "cgst_paise": 18090,
+    "sgst_paise": 18090,
+    "igst_paise": 0,
+    "cess_paise": 0,
+    "round_off_paise": 16,
+    "total_paise": 337700
+   },
+   "rows": [
+    {
+     "line": 1,
+     "qty": 192,
+     "free": 0,
+     "returned": 64,
+     "soldBack": 64,
+     "billTaxable": 904512,
+     "billDisc": 0,
+     "cnQty": 64,
+     "cnTaxable": 301504,
+     "expTaxable": 301504,
+     "cnTax": 36180,
+     "expTax": 36180,
+     "cnRate": 4711,
+     "billRate": 4711,
+     "gstBps": 1200,
+     "cnGstBps": 1200
+    },
+    {
+     "line": 2,
+     "qty": 0,
+     "free": 6,
+     "returned": 0,
+     "soldBack": 0,
+     "billTaxable": 0,
+     "billDisc": 0,
+     "cnQty": null,
+     "cnTaxable": null,
+     "expTaxable": 0,
+     "cnTax": null,
+     "expTax": 0,
+     "cnRate": null,
+     "billRate": 0,
+     "gstBps": 0,
+     "cnGstBps": null
+    }
+   ]
+  }
+ ],
+ "hsnNoRate": {
+  "steps": [
+   "catalog.propose HSN 09011110 (no rate row, no 0901 heading): ok",
+   "catalog.hsnRates 09011110: ok",
+   "tenantCatalog.upsertListing: ok",
+   "priceLists.setItems Tier B ₹180: ok",
+   "pricing.quote: 400 BAD_REQUEST no GST rate for HSN 09011110 on 2026-09-28; add an hsn_rates row {\"hsnCodes\":[\"09011110\"],\"on\":\"2026-09-28\"}",
+   "orders.create: 400 no GST rate for HSN 09011110 on 2026-09-28; add an hsn_rates row {\"hsnCodes\":[\"09011110\"],\"on\":\"2026-09-28\"}",
+   "orders.submit: not reached"
+  ]
+ },
+ "crewRateRequest": {
+  "tierB": 2094,
+  "asked": 1256,
+  "request": "requested",
+  "held": {
+   "state": "submitted",
+   "flags": [
+    "bargain"
+   ]
+  },
+  "gate": [
+   {
+    "kind": "bargain",
+    "payload": {
+     "flag": "bargain",
+     "orderNo": "SO-1006",
+     "totalPaise": 24700
+    },
+    "requestedBy": "rahul.deshmukh"
+   }
+  ],
+  "decisions": [
+   "bargain:approved"
+  ],
+  "orderLine": {
+   "list_rate_paise": 2094,
+   "rate_paise": 1256,
+   "discount_paise": 8380,
+   "line_total_paise": 14821,
+   "applied_rules": [
+    {
+     "kind": "bargain",
+     "ruleId": "01a0e602-8d7c-71d5-9808-666de4e5a6bf",
+     "version": 1,
+     "amountPaise": 8380
+    }
+   ]
+  }
+ },
+ "registers": {
+  "sql": {
+   "taxable": 15168608,
+   "cgst": 814779,
+   "sgst": 814779,
+   "igst": 78245,
+   "cess": 152787,
+   "docs": 119
+  },
+  "sqlByRate": [
+   {
+    "gst_bps": 0,
+    "taxable": 719671,
+    "gst": 0,
+    "cess": 0
+   },
+   {
+    "gst_bps": 500,
+    "taxable": 6176203,
+    "gst": 308814,
+    "cess": 0
+   },
+   {
+    "gst_bps": 1200,
+    "taxable": 3624257,
+    "gst": 434919,
+    "cess": 0
+   },
+   {
+    "gst_bps": 1800,
+    "taxable": 3375247,
+    "gst": 607559,
+    "cess": 0
+   },
+   {
+    "gst_bps": 2800,
+    "taxable": 1273230,
+    "gst": 356511,
+    "cess": 152787
+   }
+  ],
+  "gstSummaryRate": {
+   "totals": {
+    "qtyPcs": 7230,
+    "freeQtyPcs": 43,
+    "taxablePaise": 15168608,
+    "cgstPaise": 814779,
+    "sgstPaise": 814779,
+    "igstPaise": 78245,
+    "cessPaise": 152787,
+    "totalPaise": 17029198,
+    "documentCount": 77
+   },
+   "diff": {
+    "taxable": 0,
+    "cgst": 0,
+    "sgst": 0,
+    "igst": 0,
+    "cess": 0,
+    "docs": -42
+   },
+   "rows": [
+    {
+     "gstBps": 0,
+     "cessBps": 0,
+     "taxable": 719671,
+     "cgst": 0,
+     "sgst": 0,
+     "igst": 0,
+     "cess": 0,
+     "free": 20
+    },
+    {
+     "gstBps": 500,
+     "cessBps": 0,
+     "taxable": 6176203,
+     "cgst": 153633,
+     "sgst": 153633,
+     "igst": 1548,
+     "cess": 0,
+     "free": 0
+    },
+    {
+     "gstBps": 1200,
+     "cessBps": 0,
+     "taxable": 3624257,
+     "cgst": 213025,
+     "sgst": 213025,
+     "igst": 8869,
+     "cess": 0,
+     "free": 0
+    },
+    {
+     "gstBps": 1800,
+     "cessBps": 0,
+     "taxable": 3375247,
+     "cgst": 291214,
+     "sgst": 291214,
+     "igst": 25131,
+     "cess": 0,
+     "free": 21
+    },
+    {
+     "gstBps": 2800,
+     "cessBps": 1200,
+     "taxable": 1273230,
+     "cgst": 156907,
+     "sgst": 156907,
+     "igst": 42697,
+     "cess": 152787,
+     "free": 2
+    }
+   ]
+  },
+  "gstSummaryHsnTotalsDiff": {
+   "taxable": 0,
+   "cgst": 0,
+   "sgst": 0,
+   "igst": 0,
+   "cess": 0,
+   "docs": -55
+  },
+  "reportingGstSalesRegisterDiff": {
+   "taxable": 0,
+   "cgst": 0,
+   "sgst": 0,
+   "igst": 0,
+   "cess": 0,
+   "docs": -42
+  },
+  "accountantGstSummaryDiff": {
+   "taxable": 0,
+   "cgst": 0,
+   "sgst": 0,
+   "igst": 0,
+   "cess": 0,
+   "docs": -42
+  },
+  "creditNoteTotals": {
+   "qtyPcs": 148,
+   "freeQtyPcs": 0,
+   "taxablePaise": 431812,
+   "cgstPaise": 28995,
+   "sgstPaise": 28995,
+   "igstPaise": 3060,
+   "cessPaise": 4416,
+   "totalPaise": 497278,
+   "documentCount": 3
+  },
+  "creditNotesSql": {
+   "taxable": 431812,
+   "cgst": 28995,
+   "sgst": 28995,
+   "igst": 3060,
+   "cess": 4416,
+   "n": 6
+  }
+ },
+ "hsnRatesDb": [
+  {
+   "hsn_code": "0405",
+   "gst_bps": 1200,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Butter and ghee"
+  },
+  {
+   "hsn_code": "04063000",
+   "gst_bps": 1200,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Processed cheese"
+  },
+  {
+   "hsn_code": "1904",
+   "gst_bps": 500,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Prepared cereals (poha)"
+  },
+  {
+   "hsn_code": "1905",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Biscuits and extruded / expanded savoury snacks"
+  },
+  {
+   "hsn_code": "2008",
+   "gst_bps": 500,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Roasted makhana"
+  },
+  {
+   "hsn_code": "2106",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Namkeen, bhujia, wafers, mixture (not pre-packed and labelled)"
+  },
+  {
+   "hsn_code": "21069099",
+   "gst_bps": 1200,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Namkeen, pre-packed and labelled"
+  },
+  {
+   "hsn_code": "2201",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Waters, not sweetened: soda water and packaged drinking water"
+  },
+  {
+   "hsn_code": "2202",
+   "gst_bps": 2800,
+   "cess_bps": 1200,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Aerated waters, containing added sugar (Campa)"
+  },
+  {
+   "hsn_code": "22029920",
+   "gst_bps": 1200,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Fruit pulp / fruit juice based drinks"
+  },
+  {
+   "hsn_code": "3305",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Preparations for use on the hair"
+  },
+  {
+   "hsn_code": "3306",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Oral / dental hygiene preparations"
+  },
+  {
+   "hsn_code": "3401",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "effective_from": "2017-07-01",
+   "effective_to": null,
+   "description": "Soap, organic surface-active bars"
+  }
+ ],
+ "hsnRatesSeedLines": [
+  {
+   "n": 45,
+   "t": "gstBps: number"
+  },
+  {
+   "n": 46,
+   "t": "cessBps: number"
+  },
+  {
+   "n": 62,
+   "t": "gstBps: number"
+  },
+  {
+   "n": 63,
+   "t": "cessBps: number"
+  },
+  {
+   "n": 158,
+   "t": "gstBps: 2800,"
+  },
+  {
+   "n": 159,
+   "t": "cessBps: 1200,"
+  },
+  {
+   "n": 204,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 205,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 225,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 226,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 246,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 247,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 267,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 268,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 288,
+   "t": "gstBps: 500,"
+  },
+  {
+   "n": 289,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 309,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 310,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 330,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 331,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 351,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 352,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 372,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 373,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 393,
+   "t": "gstBps: 500,"
+  },
+  {
+   "n": 394,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 414,
+   "t": "gstBps: 500,"
+  },
+  {
+   "n": 415,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 435,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 436,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 456,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 457,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 477,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 478,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 500,
+   "t": "gstBps: number"
+  },
+  {
+   "n": 501,
+   "t": "cessBps: number"
+  },
+  {
+   "n": 504,
+   "t": "key: 'hsn-2202-carbonated',"
+  },
+  {
+   "n": 507,
+   "t": "gstBps: 2800,"
+  },
+  {
+   "n": 508,
+   "t": "cessBps: 1200,"
+  },
+  {
+   "n": 511,
+   "t": "key: 'hsn-1905',"
+  },
+  {
+   "n": 514,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 515,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 518,
+   "t": "key: 'hsn-2106',"
+  },
+  {
+   "n": 521,
+   "t": "gstBps: 1800,"
+  },
+  {
+   "n": 522,
+   "t": "cessBps: 0,"
+  },
+  {
+   "n": 524,
+   "t": "{ key: 'hsn-2008', hsnCode: '2008', description: 'Roasted makhana', gstBps: 500, cessBps: 0 },"
+  },
+  {
+   "n": 612,
+   "t": "gstBps: v.gstBps,"
+  },
+  {
+   "n": 613,
+   "t": "cessBps: v.cessBps,"
+  },
+  {
+   "n": 697,
+   "t": "gstBps: h.gstBps,"
+  },
+  {
+   "n": 698,
+   "t": "cessBps: h.cessBps,"
+  },
+  {
+   "n": 699,
+   "t": "effectiveFrom: '2017-07-01',"
+  }
+ ],
+ "billsTodayByHsn": [
+  {
+   "hsn_code": "0401",
+   "gst_bps": 0,
+   "cess_bps": 0,
+   "lines": 5,
+   "taxable": 195369,
+   "tax": 0
+  },
+  {
+   "hsn_code": "0403",
+   "gst_bps": 0,
+   "cess_bps": 0,
+   "lines": 17,
+   "taxable": 154477,
+   "tax": 0
+  },
+  {
+   "hsn_code": "0405",
+   "gst_bps": 1200,
+   "cess_bps": 0,
+   "lines": 14,
+   "taxable": 2677649,
+   "tax": 321322
+  },
+  {
+   "hsn_code": "0910",
+   "gst_bps": 500,
+   "cess_bps": 0,
+   "lines": 37,
+   "taxable": 5612790,
+   "tax": 280644
+  },
+  {
+   "hsn_code": "1101",
+   "gst_bps": 500,
+   "cess_bps": 0,
+   "lines": 3,
+   "taxable": 144270,
+   "tax": 7212
+  },
+  {
+   "hsn_code": "1701",
+   "gst_bps": 500,
+   "cess_bps": 0,
+   "lines": 3,
+   "taxable": 51548,
+   "tax": 2578
+  },
+  {
+   "hsn_code": "1905",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "lines": 91,
+   "taxable": 2901394,
+   "tax": 522262
+  },
+  {
+   "hsn_code": "2008",
+   "gst_bps": 500,
+   "cess_bps": 0,
+   "lines": 6,
+   "taxable": 367595,
+   "tax": 18380
+  },
+  {
+   "hsn_code": "21069099",
+   "gst_bps": 1200,
+   "cess_bps": 0,
+   "lines": 19,
+   "taxable": 946608,
+   "tax": 113597
+  },
+  {
+   "hsn_code": "2202",
+   "gst_bps": 2800,
+   "cess_bps": 1200,
+   "lines": 45,
+   "taxable": 1273230,
+   "tax": 509298
+  },
+  {
+   "hsn_code": "2501",
+   "gst_bps": 0,
+   "cess_bps": 0,
+   "lines": 5,
+   "taxable": 369825,
+   "tax": 0
+  },
+  {
+   "hsn_code": "3305",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "lines": 4,
+   "taxable": 77430,
+   "tax": 13940
+  },
+  {
+   "hsn_code": "3306",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "lines": 1,
+   "taxable": 42510,
+   "tax": 7652
+  },
+  {
+   "hsn_code": "3401",
+   "gst_bps": 1800,
+   "cess_bps": 0,
+   "lines": 23,
+   "taxable": 353913,
+   "tax": 63705
+  }
+ ]
+}

@@ -1,0 +1,1475 @@
+{
+ "at": "2026-09-28T03:12:05.300Z",
+ "date": "2026-09-28",
+ "cases": 5,
+ "withInvoice": 5,
+ "distribution": {
+  "quote↔oracle rate": {
+   "0": 15
+  },
+  "quote↔oracle gross": {
+   "0": 15
+  },
+  "quote↔oracle scheme discount": {
+   "0": 15
+  },
+  "quote↔oracle bargain": {
+   "0": 15
+  },
+  "quote↔oracle line net": {
+   "0": 15
+  },
+  "quote↔oracle free qty (same item)": {
+   "0": 15
+  },
+  "quote↔oracle gst rate": {
+   "0": 15
+  },
+  "quote↔oracle line tax (combined-rate GST + cess)": {
+   "0": 15
+  },
+  "quote↔oracle cess": {
+   "0": 15
+  },
+  "quote↔oracle free goods of another item": {
+   "0": 15
+  },
+  "quote↔oracle total net": {
+   "0": 5
+  },
+  "quote↔oracle total (payable)": {
+   "0": 1,
+   "100": 1,
+   "-100": 3
+  },
+  "quote↔oracle cash discount paise": {
+   "0": 5
+  },
+  "order↔quote rate": {
+   "0": 15
+  },
+  "order↔quote list rate": {
+   "0": 15
+  },
+  "order↔quote line net": {
+   "0": 15
+  },
+  "order↔quote line tax": {
+   "0": 15
+  },
+  "order↔quote free qty": {
+   "0": 15
+  },
+  "order↔quote applied rules": {
+   "0": 15
+  },
+  "order↔quote total": {
+   "0": 5
+  },
+  "order↔quote tax": {
+   "0": 5
+  },
+  "order↔quote round-off": {
+   "0": 5
+  },
+  "order header total = Σ lines + round-off": {
+   "0": 5
+  },
+  "invoice↔order qty": {
+   "0": 15
+  },
+  "invoice↔order free qty": {
+   "0": 15
+  },
+  "invoice↔order taxable (line)": {
+   "0": 15
+  },
+  "invoice↔order tax (line)": {
+   "0": 6,
+   "1": 8,
+   "-1": 1
+  },
+  "invoice↔order line total": {
+   "0": 6,
+   "1": 8,
+   "-1": 1
+  },
+  "invoice↔order rate": {
+   "0": 15
+  },
+  "invoice↔order gst rate": {
+   "0": 15
+  },
+  "invoice header taxablePaise = Σ lines": {
+   "0": 5
+  },
+  "invoice header cgstPaise = Σ lines": {
+   "0": 5
+  },
+  "invoice header sgstPaise = Σ lines": {
+   "0": 5
+  },
+  "invoice header igstPaise = Σ lines": {
+   "0": 5
+  },
+  "invoice header cessPaise = Σ lines": {
+   "0": 5
+  },
+  "invoice total = taxable + taxes + round-off": {
+   "0": 5
+  },
+  "invoice total is whole rupees": {
+   "0": 5
+  },
+  "invoice↔order total": {
+   "0": 1,
+   "100": 3,
+   "-100": 1
+  },
+  "invoice↔order tax": {
+   "0": 1,
+   "1": 2,
+   "6": 1,
+   "-1": 1
+  },
+  "invoice CGST = SGST": {
+   "0": 4
+  },
+  "invoice line CGST = SGST": {
+   "0": 13
+  },
+  "invoice↔oracle inter-state": {
+   "0": 5
+  },
+  "invoice↔oracle taxable": {
+   "0": 5
+  },
+  "invoice↔oracle CGST": {
+   "0": 5
+  },
+  "invoice↔oracle SGST": {
+   "0": 5
+  },
+  "invoice↔oracle IGST": {
+   "0": 5
+  },
+  "invoice↔oracle cess": {
+   "0": 5
+  },
+  "invoice↔oracle round-off": {
+   "0": 5
+  },
+  "invoice↔oracle total": {
+   "0": 5
+  },
+  "journal balances": {
+   "0": 5
+  },
+  "journal AR = bill total": {
+   "0": 5
+  },
+  "journal SALES + DISCOUNTS = −taxable": {
+   "0": 5
+  },
+  "journal SALES = −(taxable + scheme discount on the bill)": {
+   "0": 5
+  },
+  "journal OUTPUT_CGST = −cgst": {
+   "0": 5
+  },
+  "journal OUTPUT_SGST = −sgst": {
+   "0": 5
+  },
+  "journal OUTPUT_IGST = −igst": {
+   "0": 5
+  },
+  "journal OUTPUT_CESS = −cess": {
+   "0": 5
+  },
+  "journal ROUND_OFF = −round-off": {
+   "0": 5
+  },
+  "sales register taxablePaise = invoice": {
+   "0": 5
+  },
+  "sales register cgstPaise = invoice": {
+   "0": 5
+  },
+  "sales register sgstPaise = invoice": {
+   "0": 5
+  },
+  "sales register igstPaise = invoice": {
+   "0": 5
+  },
+  "sales register cessPaise = invoice": {
+   "0": 5
+  },
+  "sales register roundOffPaise = invoice": {
+   "0": 5
+  },
+  "sales register totalPaise = invoice": {
+   "0": 5
+  },
+  "sales register inter-state = invoice": {
+   "0": 5
+  },
+  "sales register supply type = invoice": {
+   "0": 5
+  },
+  "outstanding (dues + not yet delivered) = bill total": {
+   "0": 5
+  },
+  "PDF total = bill total": {
+   "0": 5
+  },
+  "PDF taxable = bill taxable": {
+   "0": 5
+  },
+  "PDF cgst = bill cgst": {
+   "0": 4
+  },
+  "PDF sgst = bill sgst": {
+   "0": 4
+  },
+  "PDF round-off = bill round-off": {
+   "0": 5
+  },
+  "PDF igst = bill igst": {
+   "0": 1
+  }
+ },
+ "differences": [
+  {
+   "check": "quote↔oracle total (payable)",
+   "diff": -100,
+   "caseId": "T01",
+   "quote": 2100,
+   "oracle": 2200
+  },
+  {
+   "check": "quote↔oracle total (payable)",
+   "diff": -100,
+   "caseId": "T02",
+   "quote": 2200,
+   "oracle": 2300
+  },
+  {
+   "check": "quote↔oracle total (payable)",
+   "diff": 100,
+   "caseId": "T03",
+   "quote": 2300,
+   "oracle": 2200
+  },
+  {
+   "check": "quote↔oracle total (payable)",
+   "diff": -100,
+   "caseId": "T04",
+   "quote": 8400,
+   "oracle": 8500
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T01",
+   "invoiceNo": "INV/9121",
+   "orderNo": "SO-0994",
+   "variantId": "1ce9637c-763c-73d4-be1a-98ec7ff5ae36",
+   "orderLineId": "01a0e5fe-59b3-72e4-9557-2d76f0fb080b",
+   "invoice": 124,
+   "order": 123,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T01",
+   "invoiceNo": "INV/9121",
+   "orderNo": "SO-0994",
+   "variantId": "1ce9637c-763c-73d4-be1a-98ec7ff5ae36",
+   "orderLineId": "01a0e5fe-59b3-72e4-9557-2d76f0fb080b",
+   "invoice": 1149,
+   "order": 1148,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order total",
+   "diff": 100,
+   "caseId": "T01",
+   "invoiceNo": "INV/9121",
+   "orderNo": "SO-0994",
+   "invoice": 2200,
+   "order": 2100
+  },
+  {
+   "check": "invoice↔order tax",
+   "diff": 1,
+   "caseId": "T01",
+   "invoiceNo": "INV/9121",
+   "orderNo": "SO-0994",
+   "invoice": 124,
+   "order": 123
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T02",
+   "invoiceNo": "INV/9122",
+   "orderNo": "SO-0995",
+   "variantId": "3cb5e1c4-c6b4-70ec-9af7-17287907a43a",
+   "orderLineId": "01a0e5fe-5bc5-7526-b4be-7973cc5b333f",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T02",
+   "invoiceNo": "INV/9122",
+   "orderNo": "SO-0995",
+   "variantId": "3cb5e1c4-c6b4-70ec-9af7-17287907a43a",
+   "orderLineId": "01a0e5fe-5bc5-7526-b4be-7973cc5b333f",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order total",
+   "diff": 100,
+   "caseId": "T02",
+   "invoiceNo": "INV/9122",
+   "orderNo": "SO-0995",
+   "invoice": 2300,
+   "order": 2200
+  },
+  {
+   "check": "invoice↔order tax",
+   "diff": 1,
+   "caseId": "T02",
+   "invoiceNo": "INV/9122",
+   "orderNo": "SO-0995",
+   "invoice": 190,
+   "order": 189
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": -1,
+   "caseId": "T03",
+   "invoiceNo": "INV/9123",
+   "orderNo": "SO-0996",
+   "variantId": "8549cf4f-2489-772a-9691-7eeda70e8bdc",
+   "orderLineId": "01a0e5fe-5d88-7463-852d-8cfa6900ce78",
+   "invoice": 184,
+   "order": 185,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": -1,
+   "caseId": "T03",
+   "invoiceNo": "INV/9123",
+   "orderNo": "SO-0996",
+   "variantId": "8549cf4f-2489-772a-9691-7eeda70e8bdc",
+   "orderLineId": "01a0e5fe-5d88-7463-852d-8cfa6900ce78",
+   "invoice": 1209,
+   "order": 1210,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order total",
+   "diff": -100,
+   "caseId": "T03",
+   "invoiceNo": "INV/9123",
+   "orderNo": "SO-0996",
+   "invoice": 2200,
+   "order": 2300
+  },
+  {
+   "check": "invoice↔order tax",
+   "diff": -1,
+   "caseId": "T03",
+   "invoiceNo": "INV/9123",
+   "orderNo": "SO-0996",
+   "invoice": 184,
+   "order": 185
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "3cb5e1c4-c6b4-70ec-9af7-17287907a43a",
+   "orderLineId": "01a0e5fe-5f57-76e4-bfe0-b42a4db09fd2",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "3cb5e1c4-c6b4-70ec-9af7-17287907a43a",
+   "orderLineId": "01a0e5fe-5f57-76e4-bfe0-b42a4db09fd2",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "8549cf4f-2489-772a-9691-7eeda70e8bdc",
+   "orderLineId": "01a0e5fe-5f58-763e-aba5-e3a4714e6632",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "8549cf4f-2489-772a-9691-7eeda70e8bdc",
+   "orderLineId": "01a0e5fe-5f58-763e-aba5-e3a4714e6632",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "af45e021-a167-7d3f-a8f0-60ab037214cb",
+   "orderLineId": "01a0e5fe-5f58-763f-a9cd-277fcd636477",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "af45e021-a167-7d3f-a8f0-60ab037214cb",
+   "orderLineId": "01a0e5fe-5f58-763f-a9cd-277fcd636477",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "7243fd13-a429-763a-bed2-ce21243bd12c",
+   "orderLineId": "01a0e5fe-5f58-7640-ad1f-7c6b466ac888",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "7243fd13-a429-763a-bed2-ce21243bd12c",
+   "orderLineId": "01a0e5fe-5f58-7640-ad1f-7c6b466ac888",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "c67a8c31-c125-7d98-9010-8277027eff37",
+   "orderLineId": "01a0e5fe-5f58-7641-a0a6-435f7beffda7",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "c67a8c31-c125-7d98-9010-8277027eff37",
+   "orderLineId": "01a0e5fe-5f58-7641-a0a6-435f7beffda7",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order tax (line)",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "a6a052c0-8c17-7bd1-9db3-e4a40b58f94a",
+   "orderLineId": "01a0e5fe-5f58-7642-a20b-0e15577331a9",
+   "invoice": 190,
+   "order": 189,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order line total",
+   "diff": 1,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "variantId": "a6a052c0-8c17-7bd1-9db3-e4a40b58f94a",
+   "orderLineId": "01a0e5fe-5f58-7642-a20b-0e15577331a9",
+   "invoice": 1240,
+   "order": 1239,
+   "lots": 1
+  },
+  {
+   "check": "invoice↔order total",
+   "diff": 100,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "invoice": 8500,
+   "order": 8400
+  },
+  {
+   "check": "invoice↔order tax",
+   "diff": 6,
+   "caseId": "T04",
+   "invoiceNo": "INV/9124",
+   "orderNo": "SO-0997",
+   "invoice": 1140,
+   "order": 1134
+  }
+ ],
+ "results": [
+  {
+   "id": "T01",
+   "area": "rupee boundary",
+   "title": "₹10.25 at 12 % + ₹10.01 at 0 %: order exact ₹21.49, split GST +1 p",
+   "notes": [],
+   "shop": {
+    "id": "01a0e5fe-5970-72a3-b4cf-9fd5d84a998f",
+    "code": "R-9141",
+    "tier": "B",
+    "state": "27",
+    "gstin": "27AQPVZ6331K1ZN"
+   },
+   "bargains": [],
+   "oracle": {
+    "net": 2026,
+    "cgst": 62,
+    "sgst": 62,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": 50,
+    "total": 2200,
+    "cd": {
+     "bps": 0,
+     "paise": 0,
+     "schemeId": null
+    },
+    "lines": [
+     {
+      "v": "1ce9637c",
+      "qty": 1,
+      "rate": 1025,
+      "gross": 1025,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1025,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "rate": 1001,
+      "gross": 1001,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1001,
+      "free": [],
+      "excl": 0
+     }
+    ]
+   },
+   "quote": {
+    "net": 2026,
+    "tax": 123,
+    "roundOff": -49,
+    "total": 2100,
+    "cdBps": 0,
+    "cdPaise": 0,
+    "orderRules": []
+   },
+   "submitState": "confirmed",
+   "flags": [],
+   "order": {
+    "id": "01a0e5fe-59b4-7725-856b-3eb41f6727cf",
+    "no": "SO-0994",
+    "state": "confirmed",
+    "subtotal": 2026,
+    "discount": 0,
+    "tax": 123,
+    "roundOff": -49,
+    "total": 2100,
+    "rewardLines": []
+   },
+   "oracleAfterGates": 2200,
+   "invoice": {
+    "id": "01a0e5fe-6392-7344-9d07-eb2884a1845e",
+    "no": "INV/9121",
+    "packErr": null,
+    "taxable": 2026,
+    "cgst": 62,
+    "sgst": 62,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": 50,
+    "total": 2200,
+    "supply": "B2B",
+    "inter": false,
+    "cdBps": 0,
+    "cdUntil": null,
+    "amountDue": 2200,
+    "lines": [
+     {
+      "v": "1ce9637c",
+      "qty": 1,
+      "free": 0,
+      "rate": 1025,
+      "disc": 0,
+      "taxable": 1025,
+      "gst": 1200,
+      "cgst": 62,
+      "sgst": 62,
+      "igst": 0,
+      "cess": 0,
+      "total": 1149,
+      "lot": "a4a407a9",
+      "reward": false
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "free": 0,
+      "rate": 1001,
+      "disc": 0,
+      "taxable": 1001,
+      "gst": 0,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0,
+      "cess": 0,
+      "total": 1001,
+      "lot": "f708ad33",
+      "reward": false
+     }
+    ]
+   },
+   "journal": {
+    "AR": 2200,
+    "OUTPUT_CGST": -62,
+    "OUTPUT_SGST": -62,
+    "ROUND_OFF": -50,
+    "SALES": -2026
+   },
+   "register": {
+    "taxable": 2026,
+    "total": 2200
+   },
+   "outstanding": {
+    "dues": 2200,
+    "undelivered": 0
+   },
+   "pdfKey": null,
+   "pdf": {
+    "key": "tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/documents/invoice/01a0e5fe-6392-7344-9d07-eb2884a1845e.pdf",
+    "total": 2200,
+    "taxable": 2026,
+    "cgst": 62,
+    "sgst": 62,
+    "igst": null,
+    "cess": null,
+    "roundOff": 50,
+    "tokens": 80
+   }
+  },
+  {
+   "id": "T02",
+   "area": "rupee boundary",
+   "title": "₹10.50 at 18 % + ₹10.10 at 0 %: order exact ₹22.49, split GST +1 p",
+   "notes": [],
+   "shop": {
+    "id": "01a0e5fe-5b7b-71ee-915f-81f8fe3d707c",
+    "code": "R-9142",
+    "tier": "B",
+    "state": "27",
+    "gstin": "27AQPWZ6332K1ZK"
+   },
+   "bargains": [],
+   "oracle": {
+    "net": 2060,
+    "cgst": 95,
+    "sgst": 95,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": 50,
+    "total": 2300,
+    "cd": {
+     "bps": 0,
+     "paise": 0,
+     "schemeId": null
+    },
+    "lines": [
+     {
+      "v": "3cb5e1c4",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "rate": 1010,
+      "gross": 1010,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1010,
+      "free": [],
+      "excl": 0
+     }
+    ]
+   },
+   "quote": {
+    "net": 2060,
+    "tax": 189,
+    "roundOff": -49,
+    "total": 2200,
+    "cdBps": 0,
+    "cdPaise": 0,
+    "orderRules": []
+   },
+   "submitState": "confirmed",
+   "flags": [],
+   "order": {
+    "id": "01a0e5fe-5bc5-7528-a869-25ffb26b7f45",
+    "no": "SO-0995",
+    "state": "confirmed",
+    "subtotal": 2060,
+    "discount": 0,
+    "tax": 189,
+    "roundOff": -49,
+    "total": 2200,
+    "rewardLines": []
+   },
+   "oracleAfterGates": 2300,
+   "invoice": {
+    "id": "01a0e5fe-640a-70b8-8f9f-a35f0d71e5ab",
+    "no": "INV/9122",
+    "packErr": null,
+    "taxable": 2060,
+    "cgst": 95,
+    "sgst": 95,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": 50,
+    "total": 2300,
+    "supply": "B2B",
+    "inter": false,
+    "cdBps": 0,
+    "cdUntil": null,
+    "amountDue": 2300,
+    "lines": [
+     {
+      "v": "3cb5e1c4",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "3113cbbb",
+      "reward": false
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "free": 0,
+      "rate": 1010,
+      "disc": 0,
+      "taxable": 1010,
+      "gst": 0,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0,
+      "cess": 0,
+      "total": 1010,
+      "lot": "f708ad33",
+      "reward": false
+     }
+    ]
+   },
+   "journal": {
+    "AR": 2300,
+    "OUTPUT_CGST": -95,
+    "OUTPUT_SGST": -95,
+    "ROUND_OFF": -50,
+    "SALES": -2060
+   },
+   "register": {
+    "taxable": 2060,
+    "total": 2300
+   },
+   "outstanding": {
+    "dues": 2300,
+    "undelivered": 0
+   },
+   "pdfKey": null,
+   "pdf": {
+    "key": "tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/documents/invoice/01a0e5fe-640a-70b8-8f9f-a35f0d71e5ab.pdf",
+    "total": 2300,
+    "taxable": 2060,
+    "cgst": 95,
+    "sgst": 95,
+    "igst": null,
+    "cess": null,
+    "roundOff": 50,
+    "tokens": 79
+   }
+  },
+  {
+   "id": "T03",
+   "area": "rupee boundary",
+   "title": "₹10.25 at 18 % + ₹10.40 at 0 %: order exact ₹22.50, split GST −1 p",
+   "notes": [],
+   "shop": {
+    "id": "01a0e5fe-5d39-724f-a2f8-39e3ac360ca7",
+    "code": "R-9143",
+    "tier": "B",
+    "state": "27",
+    "gstin": "27AQPXZ6333K1ZH"
+   },
+   "bargains": [],
+   "oracle": {
+    "net": 2065,
+    "cgst": 92,
+    "sgst": 92,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": -49,
+    "total": 2200,
+    "cd": {
+     "bps": 0,
+     "paise": 0,
+     "schemeId": null
+    },
+    "lines": [
+     {
+      "v": "8549cf4f",
+      "qty": 1,
+      "rate": 1025,
+      "gross": 1025,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1025,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "rate": 1040,
+      "gross": 1040,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1040,
+      "free": [],
+      "excl": 0
+     }
+    ]
+   },
+   "quote": {
+    "net": 2065,
+    "tax": 185,
+    "roundOff": 50,
+    "total": 2300,
+    "cdBps": 0,
+    "cdPaise": 0,
+    "orderRules": []
+   },
+   "submitState": "confirmed",
+   "flags": [],
+   "order": {
+    "id": "01a0e5fe-5d88-7465-9a95-25583cefc488",
+    "no": "SO-0996",
+    "state": "confirmed",
+    "subtotal": 2065,
+    "discount": 0,
+    "tax": 185,
+    "roundOff": 50,
+    "total": 2300,
+    "rewardLines": []
+   },
+   "oracleAfterGates": 2200,
+   "invoice": {
+    "id": "01a0e5fe-6464-71dc-887f-f17c150f7717",
+    "no": "INV/9123",
+    "packErr": null,
+    "taxable": 2065,
+    "cgst": 92,
+    "sgst": 92,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": -49,
+    "total": 2200,
+    "supply": "B2B",
+    "inter": false,
+    "cdBps": 0,
+    "cdUntil": null,
+    "amountDue": 2200,
+    "lines": [
+     {
+      "v": "8549cf4f",
+      "qty": 1,
+      "free": 0,
+      "rate": 1025,
+      "disc": 0,
+      "taxable": 1025,
+      "gst": 1800,
+      "cgst": 92,
+      "sgst": 92,
+      "igst": 0,
+      "cess": 0,
+      "total": 1209,
+      "lot": "49c30f5a",
+      "reward": false
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "free": 0,
+      "rate": 1040,
+      "disc": 0,
+      "taxable": 1040,
+      "gst": 0,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0,
+      "cess": 0,
+      "total": 1040,
+      "lot": "f708ad33",
+      "reward": false
+     }
+    ]
+   },
+   "journal": {
+    "AR": 2200,
+    "OUTPUT_CGST": -92,
+    "OUTPUT_SGST": -92,
+    "ROUND_OFF": 49,
+    "SALES": -2065
+   },
+   "register": {
+    "taxable": 2065,
+    "total": 2200
+   },
+   "outstanding": {
+    "dues": 2200,
+    "undelivered": 0
+   },
+   "pdfKey": null,
+   "pdf": {
+    "key": "tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/documents/invoice/01a0e5fe-6464-71dc-887f-f17c150f7717.pdf",
+    "total": 2200,
+    "taxable": 2065,
+    "cgst": 92,
+    "sgst": 92,
+    "igst": null,
+    "cess": null,
+    "roundOff": -49,
+    "tokens": 80
+   }
+  },
+  {
+   "id": "T04",
+   "area": "rupee boundary",
+   "title": "six ₹10.50 18 % lines + ₹10.11 at 0 %: order exact ₹84.45, split GST +6 p",
+   "notes": [],
+   "shop": {
+    "id": "01a0e5fe-5f1a-743f-9720-897b5543943f",
+    "code": "R-9144",
+    "tier": "B",
+    "state": "27",
+    "gstin": "27AQPYZ6334K1ZE"
+   },
+   "bargains": [],
+   "oracle": {
+    "net": 7311,
+    "cgst": 570,
+    "sgst": 570,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": 49,
+    "total": 8500,
+    "cd": {
+     "bps": 0,
+     "paise": 0,
+     "schemeId": null
+    },
+    "lines": [
+     {
+      "v": "3cb5e1c4",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "8549cf4f",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "af45e021",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "7243fd13",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "c67a8c31",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "a6a052c0",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "rate": 1011,
+      "gross": 1011,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1011,
+      "free": [],
+      "excl": 0
+     }
+    ]
+   },
+   "quote": {
+    "net": 7311,
+    "tax": 1134,
+    "roundOff": -45,
+    "total": 8400,
+    "cdBps": 0,
+    "cdPaise": 0,
+    "orderRules": []
+   },
+   "submitState": "confirmed",
+   "flags": [],
+   "order": {
+    "id": "01a0e5fe-5f58-7644-ba1e-34e1c8fba564",
+    "no": "SO-0997",
+    "state": "confirmed",
+    "subtotal": 7311,
+    "discount": 0,
+    "tax": 1134,
+    "roundOff": -45,
+    "total": 8400,
+    "rewardLines": []
+   },
+   "oracleAfterGates": 8500,
+   "invoice": {
+    "id": "01a0e5fe-6502-7447-83a5-11409a26e50b",
+    "no": "INV/9124",
+    "packErr": null,
+    "taxable": 7311,
+    "cgst": 570,
+    "sgst": 570,
+    "igst": 0,
+    "cess": 0,
+    "roundOff": 49,
+    "total": 8500,
+    "supply": "B2B",
+    "inter": false,
+    "cdBps": 0,
+    "cdUntil": null,
+    "amountDue": 8500,
+    "lines": [
+     {
+      "v": "3cb5e1c4",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "3113cbbb",
+      "reward": false
+     },
+     {
+      "v": "8549cf4f",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "49c30f5a",
+      "reward": false
+     },
+     {
+      "v": "af45e021",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "2e621f87",
+      "reward": false
+     },
+     {
+      "v": "7243fd13",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "7e2c7fa1",
+      "reward": false
+     },
+     {
+      "v": "c67a8c31",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "0c0a6abd",
+      "reward": false
+     },
+     {
+      "v": "a6a052c0",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 95,
+      "sgst": 95,
+      "igst": 0,
+      "cess": 0,
+      "total": 1240,
+      "lot": "64474d6e",
+      "reward": false
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "free": 0,
+      "rate": 1011,
+      "disc": 0,
+      "taxable": 1011,
+      "gst": 0,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0,
+      "cess": 0,
+      "total": 1011,
+      "lot": "f708ad33",
+      "reward": false
+     }
+    ]
+   },
+   "journal": {
+    "AR": 8500,
+    "OUTPUT_CGST": -570,
+    "OUTPUT_SGST": -570,
+    "ROUND_OFF": -49,
+    "SALES": -7311
+   },
+   "register": {
+    "taxable": 7311,
+    "total": 8500
+   },
+   "outstanding": {
+    "dues": 8500,
+    "undelivered": 0
+   },
+   "pdfKey": null,
+   "pdf": {
+    "key": "tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/documents/invoice/01a0e5fe-6502-7447-83a5-11409a26e50b.pdf",
+    "total": 8500,
+    "taxable": 7311,
+    "cgst": 570,
+    "sgst": 570,
+    "igst": null,
+    "cess": null,
+    "roundOff": 49,
+    "tokens": 141
+   }
+  },
+  {
+   "id": "T05",
+   "area": "rupee boundary",
+   "title": "inter-state: ₹10.50 at 18 % + ₹10.10 at 0 % (IGST, no split)",
+   "notes": [],
+   "shop": {
+    "id": "01a0e5fe-60ea-70df-a779-b0f98c9bb836",
+    "code": "R-9145",
+    "tier": "B",
+    "state": "24",
+    "gstin": "24AQPZZ6335K1ZH"
+   },
+   "bargains": [],
+   "oracle": {
+    "net": 2060,
+    "cgst": 0,
+    "sgst": 0,
+    "igst": 189,
+    "cess": 0,
+    "roundOff": -49,
+    "total": 2200,
+    "cd": {
+     "bps": 0,
+     "paise": 0,
+     "schemeId": null
+    },
+    "lines": [
+     {
+      "v": "3cb5e1c4",
+      "qty": 1,
+      "rate": 1050,
+      "gross": 1050,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1050,
+      "free": [],
+      "excl": 0
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "rate": 1010,
+      "gross": 1010,
+      "disc": 0,
+      "share": 0,
+      "barg": 0,
+      "net": 1010,
+      "free": [],
+      "excl": 0
+     }
+    ]
+   },
+   "quote": {
+    "net": 2060,
+    "tax": 189,
+    "roundOff": -49,
+    "total": 2200,
+    "cdBps": 0,
+    "cdPaise": 0,
+    "orderRules": []
+   },
+   "submitState": "confirmed",
+   "flags": [],
+   "order": {
+    "id": "01a0e5fe-6130-7112-bfbf-2da6aea29389",
+    "no": "SO-0998",
+    "state": "confirmed",
+    "subtotal": 2060,
+    "discount": 0,
+    "tax": 189,
+    "roundOff": -49,
+    "total": 2200,
+    "rewardLines": []
+   },
+   "oracleAfterGates": 2200,
+   "invoice": {
+    "id": "01a0e5fe-6550-73c9-a5ae-01fc9c5239a1",
+    "no": "INV/9125",
+    "packErr": null,
+    "taxable": 2060,
+    "cgst": 0,
+    "sgst": 0,
+    "igst": 189,
+    "cess": 0,
+    "roundOff": -49,
+    "total": 2200,
+    "supply": "B2B",
+    "inter": true,
+    "cdBps": 0,
+    "cdUntil": null,
+    "amountDue": 2200,
+    "lines": [
+     {
+      "v": "3cb5e1c4",
+      "qty": 1,
+      "free": 0,
+      "rate": 1050,
+      "disc": 0,
+      "taxable": 1050,
+      "gst": 1800,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 189,
+      "cess": 0,
+      "total": 1239,
+      "lot": "3113cbbb",
+      "reward": false
+     },
+     {
+      "v": "57ca9f87",
+      "qty": 1,
+      "free": 0,
+      "rate": 1010,
+      "disc": 0,
+      "taxable": 1010,
+      "gst": 0,
+      "cgst": 0,
+      "sgst": 0,
+      "igst": 0,
+      "cess": 0,
+      "total": 1010,
+      "lot": "f708ad33",
+      "reward": false
+     }
+    ]
+   },
+   "journal": {
+    "AR": 2200,
+    "OUTPUT_IGST": -189,
+    "ROUND_OFF": 49,
+    "SALES": -2060
+   },
+   "register": {
+    "taxable": 2060,
+    "total": 2200
+   },
+   "outstanding": {
+    "dues": 2200,
+    "undelivered": 0
+   },
+   "pdfKey": null,
+   "pdf": {
+    "key": "tenant/01a0999a-28c3-7341-93f5-e0e84b0189a1/documents/invoice/01a0e5fe-6550-73c9-a5ae-01fc9c5239a1.pdf",
+    "total": 2200,
+    "taxable": 2060,
+    "cgst": null,
+    "sgst": null,
+    "igst": 189,
+    "cess": null,
+    "roundOff": -49,
+    "tokens": 77
+   }
+  }
+ ]
+}

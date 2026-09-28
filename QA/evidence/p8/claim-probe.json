@@ -1,0 +1,42 @@
+{
+ "open": "ok",
+ "build": {
+  "added": 10,
+  "skipped": 0,
+  "total": 134190
+ },
+ "compare": [
+  {
+   "inv": "INV/9059",
+   "lot_lines": 5,
+   "given": 22851,
+   "claimLines": 5,
+   "claimed": 114255,
+   "over": 91404
+  },
+  {
+   "inv": "INV/9064",
+   "lot_lines": 5,
+   "given": 7023,
+   "claimLines": 5,
+   "claimed": 19935,
+   "over": 12912
+  },
+  {
+   "inv": "INV/9071",
+   "lot_lines": 1,
+   "given": 760,
+   "claimLines": 0,
+   "claimed": 0,
+   "over": -760
+  },
+  {
+   "inv": "INV/9072",
+   "lot_lines": 1,
+   "given": 100,
+   "claimLines": 0,
+   "claimed": 0,
+   "over": -100
+  }
+ ]
+}

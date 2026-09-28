@@ -1,0 +1,471 @@
+[
+ {
+  "id": "IF1",
+  "what": "tier-C price list raised by ₹1.11 after confirm, before pick/pack",
+  "stateAtChange": "confirmed",
+  "listBefore": 702,
+  "listAfter": 813,
+  "change": "ok",
+  "orderLine": {
+   "variant_id": "a9a1888f-4f84-78c5-aa66-06be7e0377bf",
+   "qty_pcs": 10,
+   "list": 702,
+   "rate": 702,
+   "disc": 0,
+   "tax": 1264,
+   "total": 8284,
+   "applied_rules": []
+  },
+  "billLine": {
+   "variant_id": "a9a1888f-4f84-78c5-aa66-06be7e0377bf",
+   "qty_pcs": 10,
+   "rate": 702,
+   "disc": 0,
+   "taxable": 7020,
+   "inv_total": 8300
+  },
+  "tell": {
+   "flags": [],
+   "approvals": [],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  },
+  "invoice": {
+   "orderId": "01a0e5fb-c805-7281-a0a4-78e5af8366f9",
+   "invoiceId": "01a0e5fb-c9a2-768c-9947-fdc90bdfb9b7",
+   "invoiceNo": "INV/9113",
+   "totalPaise": 8300,
+   "packOk": true,
+   "packErr": null
+  }
+ },
+ {
+  "id": "IF2",
+  "what": "shop override ₹13.00 set after confirm, before pack (tier C ₹14.24)",
+  "stateAtChange": "confirmed",
+  "change": "ok",
+  "orderLine": {
+   "variant_id": "00991e15-fd1e-7637-a093-bfec3e357a26",
+   "qty_pcs": 10,
+   "list": 1424,
+   "rate": 1424,
+   "disc": 0,
+   "tax": 2563,
+   "total": 16803,
+   "applied_rules": []
+  },
+  "billLine": {
+   "variant_id": "00991e15-fd1e-7637-a093-bfec3e357a26",
+   "qty_pcs": 10,
+   "rate": 1424,
+   "disc": 0,
+   "taxable": 14240,
+   "inv_total": 16800
+  },
+  "tell": {
+   "flags": [],
+   "approvals": [],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  }
+ },
+ {
+  "id": "IF3",
+  "what": "10 % scheme for this shop created after confirm, before pack",
+  "change": "ok",
+  "orderLine": {
+   "variant_id": "52b699ca-9711-706b-bc2b-2326516b6c14",
+   "qty_pcs": 10,
+   "list": 1058,
+   "rate": 1058,
+   "disc": 0,
+   "tax": 1904,
+   "total": 12484,
+   "applied_rules": []
+  },
+  "billLine": {
+   "variant_id": "52b699ca-9711-706b-bc2b-2326516b6c14",
+   "qty_pcs": 10,
+   "rate": 1058,
+   "disc": 0,
+   "taxable": 10580,
+   "inv_total": 12500
+  },
+  "tell": {
+   "flags": [],
+   "approvals": [],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  }
+ },
+ {
+  "id": "IF4",
+  "what": "list −₹2, override −₹3, 10 % scheme — all after the bill",
+  "changes": [
+   true,
+   true,
+   true
+  ],
+  "invoiceBefore": {
+   "total_paise": 24800,
+   "taxable_paise": 21040,
+   "updated_at": "2026-09-28T08:38:00.088888+05:30"
+  },
+  "invoiceAfter": {
+   "total_paise": 24800,
+   "taxable_paise": 21040,
+   "updated_at": "2026-09-28T08:38:00.088888+05:30"
+  },
+  "orderBefore": {
+   "variant_id": "5370bbc0-2819-7d3f-af0d-4e596dcfaf2a",
+   "qty_pcs": 10,
+   "list": 2104,
+   "rate": 2104,
+   "disc": 0,
+   "tax": 3787,
+   "total": 24827,
+   "applied_rules": []
+  },
+  "orderAfter": {
+   "variant_id": "5370bbc0-2819-7d3f-af0d-4e596dcfaf2a",
+   "qty_pcs": 10,
+   "list": 2104,
+   "rate": 2104,
+   "disc": 0,
+   "tax": 3787,
+   "total": 24827,
+   "applied_rules": []
+  },
+  "unchanged": true
+ },
+ {
+  "id": "IF5a",
+  "what": "tier-C list LOWERED by ₹2 while held",
+  "rule": "docs/22 2026-09-13 (DOS-126): a price-list edit made in between does NOT re-price",
+  "heldState": "submitted",
+  "flags": [
+   "credit_limit"
+  ],
+  "listRate": 1531,
+  "change": "ok",
+  "approvals": [
+   "credit_limit:approved"
+  ],
+  "orderBefore": {
+   "variant_id": "24aca25b-5c86-7fe2-88e0-d1ca4bd3db7c",
+   "qty_pcs": 10,
+   "list": 1531,
+   "rate": 1531,
+   "disc": 0,
+   "tax": 1837,
+   "total": 17147,
+   "applied_rules": []
+  },
+  "orderAfterConfirm": {
+   "variant_id": "24aca25b-5c86-7fe2-88e0-d1ca4bd3db7c",
+   "qty_pcs": 10,
+   "list": 1531,
+   "rate": 1531,
+   "disc": 0,
+   "tax": 1837,
+   "total": 17147,
+   "applied_rules": []
+  },
+  "stateAfter": "confirmed",
+  "billLine": {
+   "variant_id": "24aca25b-5c86-7fe2-88e0-d1ca4bd3db7c",
+   "qty_pcs": 10,
+   "rate": 1531,
+   "disc": 0,
+   "taxable": 15310,
+   "inv_total": 17100
+  },
+  "tell": {
+   "flags": [
+    "credit_limit"
+   ],
+   "approvals": [
+    {
+     "kind": "credit_limit",
+     "status": "approved"
+    }
+   ],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  }
+ },
+ {
+  "id": "IF5b",
+  "what": "tier-C list RAISED by ₹2 while held",
+  "rule": "DOS-126: does NOT re-price",
+  "heldState": "submitted",
+  "flags": [
+   "credit_limit"
+  ],
+  "listRate": 2714,
+  "change": "ok",
+  "approvals": [
+   "credit_limit:approved"
+  ],
+  "orderBefore": {
+   "variant_id": "e25b8144-f0e2-799b-8166-895e5fb9fc60",
+   "qty_pcs": 10,
+   "list": 2714,
+   "rate": 2714,
+   "disc": 0,
+   "tax": 3257,
+   "total": 30397,
+   "applied_rules": []
+  },
+  "orderAfterConfirm": {
+   "variant_id": "e25b8144-f0e2-799b-8166-895e5fb9fc60",
+   "qty_pcs": 10,
+   "list": 2714,
+   "rate": 2714,
+   "disc": 0,
+   "tax": 3257,
+   "total": 30397,
+   "applied_rules": []
+  },
+  "stateAfter": "confirmed",
+  "billLine": {
+   "variant_id": "e25b8144-f0e2-799b-8166-895e5fb9fc60",
+   "qty_pcs": 10,
+   "rate": 2714,
+   "disc": 0,
+   "taxable": 27140,
+   "inv_total": 30400
+  },
+  "tell": {
+   "flags": [
+    "credit_limit"
+   ],
+   "approvals": [
+    {
+     "kind": "credit_limit",
+     "status": "approved"
+    }
+   ],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  }
+ },
+ {
+  "id": "IF5c",
+  "what": "shop's own override LOWERED by ₹2 while held",
+  "rule": "DOS-126: a shop's own approved rate that lowers the net IS applied",
+  "heldState": "submitted",
+  "flags": [
+   "credit_limit"
+  ],
+  "listRate": 3067,
+  "change": "ok",
+  "approvals": [
+   "credit_limit:approved"
+  ],
+  "orderBefore": {
+   "variant_id": "878de899-f8fd-70f5-b4b6-19e3a9394121",
+   "qty_pcs": 10,
+   "list": 3067,
+   "rate": 3067,
+   "disc": 0,
+   "tax": 3680,
+   "total": 34350,
+   "applied_rules": []
+  },
+  "orderAfterConfirm": {
+   "variant_id": "878de899-f8fd-70f5-b4b6-19e3a9394121",
+   "qty_pcs": 10,
+   "list": 3067,
+   "rate": 3067,
+   "disc": 0,
+   "tax": 3680,
+   "total": 34350,
+   "applied_rules": []
+  },
+  "stateAfter": "confirmed",
+  "billLine": {
+   "variant_id": "878de899-f8fd-70f5-b4b6-19e3a9394121",
+   "qty_pcs": 10,
+   "rate": 3067,
+   "disc": 0,
+   "taxable": 30670,
+   "inv_total": 34400
+  },
+  "tell": {
+   "flags": [
+    "credit_limit"
+   ],
+   "approvals": [
+    {
+     "kind": "credit_limit",
+     "status": "approved"
+    }
+   ],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  }
+ },
+ {
+  "id": "IF5d",
+  "what": "10 % scheme created while held",
+  "rule": "DOS-126: a scheme edit does NOT re-price",
+  "heldState": "submitted",
+  "flags": [
+   "credit_limit"
+  ],
+  "listRate": 4251,
+  "change": "ok",
+  "approvals": [
+   "credit_limit:approved"
+  ],
+  "orderBefore": {
+   "variant_id": "dde2766a-8341-7cfc-b57b-025e8133e99e",
+   "qty_pcs": 10,
+   "list": 4251,
+   "rate": 4251,
+   "disc": 0,
+   "tax": 7652,
+   "total": 50162,
+   "applied_rules": []
+  },
+  "orderAfterConfirm": {
+   "variant_id": "dde2766a-8341-7cfc-b57b-025e8133e99e",
+   "qty_pcs": 10,
+   "list": 4251,
+   "rate": 4251,
+   "disc": 0,
+   "tax": 7652,
+   "total": 50162,
+   "applied_rules": []
+  },
+  "stateAfter": "confirmed",
+  "billLine": {
+   "variant_id": "dde2766a-8341-7cfc-b57b-025e8133e99e",
+   "qty_pcs": 10,
+   "rate": 4251,
+   "disc": 0,
+   "taxable": 42510,
+   "inv_total": 50200
+  },
+  "tell": {
+   "flags": [
+    "credit_limit"
+   ],
+   "approvals": [
+    {
+     "kind": "credit_limit",
+     "status": "approved"
+    }
+   ],
+   "transitions": [
+    "submit",
+    "confirm",
+    "start_picking",
+    "pack"
+   ],
+   "messages": []
+  }
+ },
+ {
+  "id": "IF6",
+  "what": "setLines on a draft with rules: 2 cs (5 %) → 143 pcs (under 2 cs) → 2 cs again after a new 2 % scheme",
+  "draft": [
+   {
+    "qty": 144,
+    "disc": 5054,
+    "rules": [
+     5054
+    ]
+   }
+  ],
+  "afterSet1": [
+   {
+    "qty": 143,
+    "disc": 0,
+    "rules": []
+   }
+  ],
+  "afterSet2": [
+   {
+    "qty": 144,
+    "disc": 6975,
+    "total": 111053,
+    "rules": [
+     5054,
+     1921
+    ]
+   }
+  ],
+  "oracleFor2cs": {
+   "disc": 6975,
+   "net": 94113,
+   "total": 111053
+  }
+ },
+ {
+  "id": "IF7",
+  "what": "draft at ₹14.24, tier-C list raised ₹1.50, then submitted",
+  "submit": "confirmed",
+  "draftLine": {
+   "variant_id": "00991e15-fd1e-7637-a093-bfec3e357a26",
+   "qty_pcs": 6,
+   "list": 1424,
+   "rate": 1424,
+   "disc": 0,
+   "tax": 1538,
+   "total": 10082,
+   "applied_rules": []
+  },
+  "afterSubmit": {
+   "variant_id": "00991e15-fd1e-7637-a093-bfec3e357a26",
+   "qty_pcs": 6,
+   "list": 1424,
+   "rate": 1424,
+   "disc": 0,
+   "tax": 1538,
+   "total": 10082,
+   "applied_rules": []
+  },
+  "repriced": false,
+  "tell": {
+   "flags": [],
+   "approvals": [],
+   "transitions": [
+    "submit",
+    "confirm"
+   ],
+   "messages": []
+  }
+ }
+]

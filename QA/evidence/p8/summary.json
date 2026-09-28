@@ -1,0 +1,544 @@
+{
+ "orders": 108,
+ "invoiced": 108,
+ "areas": {
+  "base tier price": {
+   "cases": 6,
+   "invoiced": 6,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 5,
+   "ids": [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06"
+   ]
+  },
+  "override": {
+   "cases": 8,
+   "invoiced": 8,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 0,
+   "ids": [
+    "O01",
+    "O02",
+    "O03",
+    "O04",
+    "O05",
+    "O06",
+    "O07",
+    "O08"
+   ]
+  },
+  "slab boundary": {
+   "cases": 17,
+   "invoiced": 17,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 10,
+   "ids": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14",
+    "S15",
+    "S16",
+    "S17"
+   ]
+  },
+  "percentage / flat": {
+   "cases": 6,
+   "invoiced": 6,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 2,
+   "ids": [
+    "P01",
+    "P02",
+    "P03",
+    "P04",
+    "P05",
+    "P06"
+   ]
+  },
+  "free goods": {
+   "cases": 7,
+   "invoiced": 7,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 3,
+   "ids": [
+    "F01",
+    "F02",
+    "F03",
+    "F04",
+    "F05",
+    "F06",
+    "F07"
+   ]
+  },
+  "exclusive": {
+   "cases": 6,
+   "invoiced": 6,
+   "oracleVsBillTotalDiffs": 1,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 4,
+   "ids": [
+    "X01",
+    "X02",
+    "X03",
+    "X04",
+    "X05",
+    "X06"
+   ]
+  },
+  "stacked": {
+   "cases": 4,
+   "invoiced": 4,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 2,
+   "ids": [
+    "K01",
+    "K02",
+    "K03",
+    "K04"
+   ]
+  },
+  "order-level": {
+   "cases": 9,
+   "invoiced": 9,
+   "oracleVsBillTotalDiffs": 1,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 7,
+   "ids": [
+    "L01",
+    "L02",
+    "L03",
+    "L04",
+    "L05",
+    "L06",
+    "L07",
+    "L08",
+    "L09"
+   ]
+  },
+  "validity": {
+   "cases": 6,
+   "invoiced": 6,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 2,
+   "ids": [
+    "V01",
+    "V02",
+    "V03",
+    "V04",
+    "V05",
+    "V06"
+   ]
+  },
+  "bargain": {
+   "cases": 9,
+   "invoiced": 9,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 2,
+   "ids": [
+    "N01",
+    "N02",
+    "N03",
+    "N04",
+    "N05",
+    "N06",
+    "N07",
+    "N08",
+    "N09"
+   ]
+  },
+  "cash discount": {
+   "cases": 3,
+   "invoiced": 3,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 1,
+   "ids": [
+    "C01",
+    "C02",
+    "C03"
+   ]
+  },
+  "GST": {
+   "cases": 6,
+   "invoiced": 6,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 5,
+   "ids": [
+    "G01",
+    "G02",
+    "G03",
+    "G04",
+    "G05",
+    "G06"
+   ]
+  },
+  "half paisa": {
+   "cases": 9,
+   "invoiced": 9,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 7,
+   "ids": [
+    "H01",
+    "H02",
+    "H03",
+    "H04",
+    "H05",
+    "H06",
+    "H07",
+    "H08",
+    "H09"
+   ]
+  },
+  "cases + pieces": {
+   "cases": 5,
+   "invoiced": 5,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 2,
+   "ids": [
+    "M01",
+    "M02",
+    "M03",
+    "M04",
+    "M05"
+   ]
+  },
+  "tax edge": {
+   "cases": 2,
+   "invoiced": 2,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 0,
+   "orderVsBillTaxDiffs": 0,
+   "ids": [
+    "E01",
+    "E02"
+   ]
+  },
+  "rupee boundary": {
+   "cases": 5,
+   "invoiced": 5,
+   "oracleVsBillTotalDiffs": 0,
+   "orderVsBillTotalDiffs": 4,
+   "orderVsBillTaxDiffs": 4,
+   "ids": [
+    "T01",
+    "T02",
+    "T03",
+    "T04",
+    "T05"
+   ]
+  }
+ },
+ "distribution": {
+  "quote↔oracle rate": {
+   "0": 180
+  },
+  "quote↔oracle gross": {
+   "0": 180
+  },
+  "quote↔oracle scheme discount": {
+   "0": 176,
+   "1": 1,
+   "570": 1,
+   "1424": 1,
+   "-1": 1
+  },
+  "quote↔oracle bargain": {
+   "0": 180
+  },
+  "quote↔oracle line net": {
+   "0": 176,
+   "1": 1,
+   "-1424": 1,
+   "-1": 1,
+   "-570": 1
+  },
+  "quote↔oracle free qty (same item)": {
+   "0": 180
+  },
+  "quote↔oracle gst rate": {
+   "0": 180
+  },
+  "quote↔oracle line tax (combined-rate GST + cess)": {
+   "0": 178,
+   "-171": 1,
+   "-68": 1
+  },
+  "quote↔oracle cess": {
+   "0": 180
+  },
+  "quote↔oracle free goods of another item": {
+   "0": 180
+  },
+  "quote↔oracle total net": {
+   "0": 106,
+   "-1425": 1,
+   "-569": 1
+  },
+  "quote↔oracle total (payable)": {
+   "0": 102,
+   "100": 1,
+   "-1600": 1,
+   "-600": 1,
+   "-100": 3
+  },
+  "quote↔oracle cash discount paise": {
+   "0": 108
+  },
+  "order↔quote rate": {
+   "0": 180
+  },
+  "order↔quote list rate": {
+   "0": 180
+  },
+  "order↔quote line net": {
+   "0": 180
+  },
+  "order↔quote line tax": {
+   "0": 180
+  },
+  "order↔quote free qty": {
+   "0": 180
+  },
+  "order↔quote applied rules": {
+   "0": 180
+  },
+  "order↔quote total": {
+   "0": 108
+  },
+  "order↔quote tax": {
+   "0": 108
+  },
+  "order↔quote round-off": {
+   "0": 108
+  },
+  "order header total = Σ lines + round-off": {
+   "0": 108
+  },
+  "invoice↔order qty": {
+   "0": 184
+  },
+  "invoice↔order free qty": {
+   "0": 184
+  },
+  "invoice↔order taxable (line)": {
+   "0": 184
+  },
+  "invoice↔order tax (line)": {
+   "0": 105,
+   "1": 53,
+   "6": 1,
+   "-1": 23,
+   "-2": 2
+  },
+  "invoice↔order line total": {
+   "0": 105,
+   "1": 53,
+   "6": 1,
+   "-1": 23,
+   "-2": 2
+  },
+  "invoice↔order rate": {
+   "0": 184
+  },
+  "invoice↔order gst rate": {
+   "0": 183,
+   "differ": 1
+  },
+  "invoice header taxablePaise = Σ lines": {
+   "0": 108
+  },
+  "invoice header cgstPaise = Σ lines": {
+   "0": 108
+  },
+  "invoice header sgstPaise = Σ lines": {
+   "0": 108
+  },
+  "invoice header igstPaise = Σ lines": {
+   "0": 108
+  },
+  "invoice header cessPaise = Σ lines": {
+   "0": 108
+  },
+  "invoice total = taxable + taxes + round-off": {
+   "0": 108
+  },
+  "invoice total is whole rupees": {
+   "0": 108
+  },
+  "invoice↔order total": {
+   "0": 104,
+   "100": 3,
+   "-100": 1
+  },
+  "invoice↔order tax": {
+   "0": 52,
+   "1": 31,
+   "2": 1,
+   "4": 1,
+   "6": 3,
+   "-1": 17,
+   "-2": 3
+  },
+  "invoice CGST = SGST": {
+   "0": 101
+  },
+  "invoice line CGST = SGST": {
+   "0": 230
+  },
+  "invoice↔oracle inter-state": {
+   "0": 108
+  },
+  "invoice↔oracle taxable": {
+   "0": 106,
+   "-1425": 1,
+   "-569": 1
+  },
+  "invoice↔oracle CGST": {
+   "0": 102,
+   "3": 1,
+   "-1": 3,
+   "-85": 1,
+   "-34": 1
+  },
+  "invoice↔oracle SGST": {
+   "0": 102,
+   "3": 1,
+   "-1": 3,
+   "-85": 1,
+   "-34": 1
+  },
+  "invoice↔oracle IGST": {
+   "0": 105,
+   "1": 1,
+   "-2": 1,
+   "-1": 1
+  },
+  "invoice↔oracle cess": {
+   "0": 106,
+   "1": 1,
+   "-1": 1
+  },
+  "invoice↔oracle round-off": {
+   "0": 99,
+   "1": 1,
+   "2": 4,
+   "37": 1,
+   "-5": 1,
+   "-1": 1,
+   "-6": 1
+  },
+  "invoice↔oracle total": {
+   "0": 106,
+   "-1600": 1,
+   "-600": 1
+  },
+  "journal balances": {
+   "0": 108
+  },
+  "journal AR = bill total": {
+   "0": 108
+  },
+  "journal OUTPUT_CGST = −cgst": {
+   "0": 108
+  },
+  "journal OUTPUT_SGST = −sgst": {
+   "0": 108
+  },
+  "journal OUTPUT_IGST = −igst": {
+   "0": 108
+  },
+  "journal OUTPUT_CESS = −cess": {
+   "0": 108
+  },
+  "journal ROUND_OFF = −round-off": {
+   "0": 108
+  },
+  "sales register taxablePaise = invoice": {
+   "0": 108
+  },
+  "sales register cgstPaise = invoice": {
+   "0": 108
+  },
+  "sales register sgstPaise = invoice": {
+   "0": 108
+  },
+  "sales register igstPaise = invoice": {
+   "0": 108
+  },
+  "sales register cessPaise = invoice": {
+   "0": 108
+  },
+  "sales register roundOffPaise = invoice": {
+   "0": 108
+  },
+  "sales register totalPaise = invoice": {
+   "0": 108
+  },
+  "sales register inter-state = invoice": {
+   "0": 108
+  },
+  "sales register supply type = invoice": {
+   "0": 108
+  },
+  "outstanding (dues + not yet delivered) = bill total": {
+   "0": 108
+  },
+  "PDF total = bill total": {
+   "0": 108
+  },
+  "PDF taxable = bill taxable": {
+   "0": 108
+  },
+  "PDF cgst = bill cgst": {
+   "0": 101
+  },
+  "PDF sgst = bill sgst": {
+   "0": 101
+  },
+  "PDF round-off = bill round-off": {
+   "0": 106
+  },
+  "PDF cess = bill cess": {
+   "0": 17
+  },
+  "PDF igst = bill igst": {
+   "0": 7
+  },
+  "PDF prints the cash-discount offer": {
+   "0": 1
+  },
+  "journal SALES + DISCOUNTS = −taxable": {
+   "0": 108
+  },
+  "journal SALES = −(taxable + scheme discount on the bill)": {
+   "0": 6
+  }
+ }
+}

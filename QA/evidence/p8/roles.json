@@ -1,0 +1,701 @@
+{
+ "at": "2026-09-28T03:13:05.726Z",
+ "tierCRate": 702,
+ "rows": [
+  {
+   "role": "owner",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "owner",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "owner",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "owner",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "owner",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "approved"
+  },
+  {
+   "role": "owner",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "approved"
+  },
+  {
+   "role": "owner",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "status": "approved",
+    "approved_rate_paise": 1
+   }
+  },
+  {
+   "role": "owner",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "bound changed"
+  },
+  {
+   "role": "owner",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "list_rate_paise": 702,
+    "rate_paise": 1,
+    "discount_paise": 7010,
+    "discount_bps": 9986,
+    "price_locked": true,
+    "applied_rules": [
+     {
+      "kind": "bargain",
+      "ruleId": "01a0e600-6dc6-7239-88f9-12a997df0f23",
+      "version": 1,
+      "amountPaise": 7010
+     }
+    ],
+    "tierC": 702
+   }
+  },
+  {
+   "role": "owner",
+   "action": "orders.setLines with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate_paise": 1,
+    "discount_paise": 8412,
+    "discount_bps": 9986
+   }
+  },
+  {
+   "role": "owner",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "owner",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 1
+   }
+  },
+  {
+   "role": "manager",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "manager",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "manager",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "manager",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "manager",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "approved"
+  },
+  {
+   "role": "manager",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "approved"
+  },
+  {
+   "role": "manager",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "status": "approved",
+    "approved_rate_paise": 1
+   }
+  },
+  {
+   "role": "manager",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 403,
+   "code": null,
+   "msg": "the manager role may not call POST /pricing/bounds"
+  },
+  {
+   "role": "manager",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "list_rate_paise": 702,
+    "rate_paise": 1,
+    "discount_paise": 7010,
+    "discount_bps": 9986,
+    "price_locked": true,
+    "applied_rules": [
+     {
+      "kind": "bargain",
+      "ruleId": "01a0e600-70bd-7454-b9d7-72025de52454",
+      "version": 1,
+      "amountPaise": 7010
+     }
+    ],
+    "tierC": 702
+   }
+  },
+  {
+   "role": "manager",
+   "action": "orders.setLines with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate_paise": 1,
+    "discount_paise": 8412,
+    "discount_bps": 9986
+   }
+  },
+  {
+   "role": "manager",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 200,
+   "code": null,
+   "msg": null
+  },
+  {
+   "role": "manager",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 1
+   }
+  },
+  {
+   "role": "accountant",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /pricing/price-lists"
+  },
+  {
+   "role": "accountant",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /pricing/price-lists/:priceListId/items"
+  },
+  {
+   "role": "accountant",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /pricing/overrides"
+  },
+  {
+   "role": "accountant",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /pricing/schemes"
+  },
+  {
+   "role": "accountant",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "accountant",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "accountant",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /pricing/bargains/:id/decide"
+  },
+  {
+   "role": "accountant",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /pricing/bounds"
+  },
+  {
+   "role": "accountant",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /orders"
+  },
+  {
+   "role": "accountant",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 403,
+   "code": null,
+   "msg": "the accountant role may not call POST /approvals/:id/decide"
+  },
+  {
+   "role": "accountant",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 1
+   }
+  },
+  {
+   "role": "salesperson",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /pricing/price-lists"
+  },
+  {
+   "role": "salesperson",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /pricing/price-lists/:priceListId/items"
+  },
+  {
+   "role": "salesperson",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /pricing/overrides"
+  },
+  {
+   "role": "salesperson",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /pricing/schemes"
+  },
+  {
+   "role": "salesperson",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "salesperson",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "auto_approved"
+  },
+  {
+   "role": "salesperson",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /pricing/bargains/:id/decide"
+  },
+  {
+   "role": "salesperson",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /pricing/bounds"
+  },
+  {
+   "role": "salesperson",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "list_rate_paise": 702,
+    "rate_paise": 688,
+    "discount_paise": 140,
+    "discount_bps": 199,
+    "price_locked": true,
+    "applied_rules": [
+     {
+      "kind": "bargain",
+      "ruleId": "01a0e600-7365-72b9-a2e9-5b9288fbee3b",
+      "version": 1,
+      "amountPaise": 140
+     }
+    ],
+    "tierC": 702
+   }
+  },
+  {
+   "role": "salesperson",
+   "action": "orders.setLines with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate_paise": 688,
+    "discount_paise": 168,
+    "discount_bps": 199
+   }
+  },
+  {
+   "role": "salesperson",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 403,
+   "code": null,
+   "msg": "the salesperson role may not call POST /approvals/:id/decide"
+  },
+  {
+   "role": "salesperson",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 688
+   }
+  },
+  {
+   "role": "warehouse",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /pricing/price-lists"
+  },
+  {
+   "role": "warehouse",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /pricing/price-lists/:priceListId/items"
+  },
+  {
+   "role": "warehouse",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /pricing/overrides"
+  },
+  {
+   "role": "warehouse",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /pricing/schemes"
+  },
+  {
+   "role": "warehouse",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "warehouse",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "warehouse",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /pricing/bargains/:id/decide"
+  },
+  {
+   "role": "warehouse",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /pricing/bounds"
+  },
+  {
+   "role": "warehouse",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /orders"
+  },
+  {
+   "role": "warehouse",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 403,
+   "code": null,
+   "msg": "the warehouse role may not call POST /approvals/:id/decide"
+  },
+  {
+   "role": "warehouse",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 688
+   }
+  },
+  {
+   "role": "delivery",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /pricing/price-lists"
+  },
+  {
+   "role": "delivery",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /pricing/price-lists/:priceListId/items"
+  },
+  {
+   "role": "delivery",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /pricing/overrides"
+  },
+  {
+   "role": "delivery",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /pricing/schemes"
+  },
+  {
+   "role": "delivery",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "delivery",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "delivery",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /pricing/bargains/:id/decide"
+  },
+  {
+   "role": "delivery",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /pricing/bounds"
+  },
+  {
+   "role": "delivery",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /orders"
+  },
+  {
+   "role": "delivery",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 403,
+   "code": null,
+   "msg": "the delivery role may not call POST /approvals/:id/decide"
+  },
+  {
+   "role": "delivery",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 688
+   }
+  },
+  {
+   "role": "retailer",
+   "action": "priceLists.upsert (new inactive list)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /pricing/price-lists"
+  },
+  {
+   "role": "retailer",
+   "action": "priceLists.setItems (Tier C, W1 −₹1)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /pricing/price-lists/:priceListId/items"
+  },
+  {
+   "role": "retailer",
+   "action": "overrides.upsert (shop rate ₹1.00)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /pricing/overrides"
+  },
+  {
+   "role": "retailer",
+   "action": "schemes.upsert (inactive 50 % scheme)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /pricing/schemes"
+  },
+  {
+   "role": "retailer",
+   "action": "bargains.request (−20 %)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "retailer",
+   "action": "bargains.request (−2 %, inside a rep bound)",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": "requested"
+  },
+  {
+   "role": "retailer",
+   "action": "bargains.request for ANOTHER shop",
+   "status": 403,
+   "code": "FORBIDDEN",
+   "msg": "This retailer is not linked to your login"
+  },
+  {
+   "role": "retailer",
+   "action": "bargains.decide (approve at ₹0.01)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /pricing/bargains/:id/decide"
+  },
+  {
+   "role": "retailer",
+   "action": "bounds.set (rep may give 50 %)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /pricing/bounds"
+  },
+  {
+   "role": "retailer",
+   "action": "orders.create with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "list_rate_paise": 702,
+    "rate_paise": 702,
+    "discount_paise": 0,
+    "discount_bps": 0,
+    "price_locked": false,
+    "applied_rules": [],
+    "tierC": 702
+   }
+  },
+  {
+   "role": "retailer",
+   "action": "orders.setLines with ratePaise/discount fields",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate_paise": 702,
+    "discount_paise": 0,
+    "discount_bps": 0
+   }
+  },
+  {
+   "role": "retailer",
+   "action": "orders.approvals.decide (approve a gate)",
+   "status": 403,
+   "code": null,
+   "msg": "the retailer role may not call POST /approvals/:id/decide"
+  },
+  {
+   "role": "retailer",
+   "action": "pricing.quote with ratePaise on the line",
+   "status": 200,
+   "code": null,
+   "msg": null,
+   "stored": {
+    "rate": 702
+   }
+  }
+ ]
+}

@@ -1,0 +1,58 @@
+{
+ "upsertStatus": [
+  200,
+  200
+ ],
+ "replyPriority": [
+  "absent from reply",
+  "absent from reply"
+ ],
+ "stored": [
+  {
+   "name": "QA P8 prio flat ₹5 a piece (priority 50)",
+   "priority": 0,
+   "version": 1
+  },
+  {
+   "name": "QA P8 prio 10 % (priority 1)",
+   "priority": 0,
+   "version": 1
+  }
+ ],
+ "quote": {
+  "gross": 357792,
+  "discount": 57379,
+  "rules": [
+   "per_unit_amount:24000",
+   "line_pct:33379"
+  ]
+ },
+ "ifFlatFirst": 57379,
+ "ifPctFirst": 59779,
+ "priorityHistogram": [
+  {
+   "priority": 0,
+   "n": 88
+  },
+  {
+   "priority": 5,
+   "n": 2
+  },
+  {
+   "priority": 10,
+   "n": 5
+  },
+  {
+   "priority": 15,
+   "n": 1
+  },
+  {
+   "priority": 20,
+   "n": 9
+  },
+  {
+   "priority": 30,
+   "n": 2
+  }
+ ]
+}

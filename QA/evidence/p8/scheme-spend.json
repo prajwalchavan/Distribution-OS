@@ -1,0 +1,123 @@
+{
+ "status": 200,
+ "keys": [
+  "items",
+  "nextCursor",
+  "totals"
+ ],
+ "sampleRow": {
+  "schemeId": "01a0e5fa-2bd9-778c-b40d-a2007b64651e",
+  "schemeName": "QA P8 P06 flat slabs",
+  "brandId": null,
+  "brandName": null,
+  "fundingSource": "distributor",
+  "rewardKind": "net_scheme_amount",
+  "qtyPcs": 0,
+  "amountPaise": 120000,
+  "invoiceCount": 1
+ },
+ "out": [
+  {
+   "scheme": "QA P8 F02 butter→dahi",
+   "bills": {
+    "rule": "01a0e5f4-d276-76f4-b4f7-b88c113abf32",
+    "free_on_lines": 6,
+    "free_in_rules": 30,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F01 10+1",
+   "bills": {
+    "rule": "01a0e5fa-2d34-729e-a337-99ba24df3e85",
+    "free_on_lines": 2,
+    "free_in_rules": 2,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F02 butter→dahi",
+   "bills": {
+    "rule": "01a0e5fa-2edb-7138-98b9-f6778f4566d1",
+    "free_on_lines": 6,
+    "free_in_rules": 6,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F03 slab free",
+   "bills": {
+    "rule": "01a0e5fa-30aa-70ee-8220-ec4b2ca631c9",
+    "free_on_lines": 5,
+    "free_in_rules": 15,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F04 12+1",
+   "bills": {
+    "rule": "01a0e5fa-3249-76af-b36d-4ad86a7ea8bb",
+    "free_on_lines": 10,
+    "free_in_rules": 30,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F04 5%",
+   "bills": {
+    "rule": "01a0e5fa-324f-777a-8310-c7a22528412e",
+    "free_on_lines": 10,
+    "free_in_rules": 0,
+    "amount": 13392
+   },
+   "register": [
+    {
+     "schemeId": "01a0e5fa-324f-777a-8310-c7a22528412e",
+     "schemeName": "QA P8 F04 5%",
+     "brandId": null,
+     "brandName": null,
+     "fundingSource": "distributor",
+     "rewardKind": "line_pct",
+     "qtyPcs": 0,
+     "amountPaise": 13392,
+     "invoiceCount": 1
+    }
+   ]
+  },
+  {
+   "scheme": "QA P8 F05 gst on free",
+   "bills": {
+    "rule": "01a0e5fa-33c8-701b-9bc0-c49fbf5588ed",
+    "free_on_lines": 2,
+    "free_in_rules": 2,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F06 butter→dahi",
+   "bills": {
+    "rule": "01a0e5fa-3549-75c5-a5d0-cb9391bbed1a",
+    "free_on_lines": 3,
+    "free_in_rules": 3,
+    "amount": 0
+   },
+   "register": []
+  },
+  {
+   "scheme": "QA P8 F07 10+1",
+   "bills": {
+    "rule": "01a0e5fa-36fc-717e-99cf-f48282ec52eb",
+    "free_on_lines": 3,
+    "free_in_rules": 3,
+    "amount": 0
+   },
+   "register": []
+  }
+ ]
+}
