@@ -1,0 +1,192 @@
+Pager usage is off.
+### BASELINE (dos / BYPASSRLS): count of SAI rows that actually exist
+              t               | count 
+------------------------------+-------
+ accounts                     |    31
+ audit_log                    |     4
+ beats                        |     5
+ credit_notes                 |    52
+ grns                         |    62
+ invoice_lines                |  1984
+ invoices                     |   456
+ journal_entries              |   917
+ journal_lines                |  4068
+ load_sheets                  |    53
+ memberships                  |    16
+ picklists                    |    52
+ price_lists                  |     4
+ receipts                     |   309
+ reservations                 |    13
+ retailer_outstanding_summary |    40
+ retailers                    |    41
+ sales_order_lines            |  2046
+ sales_orders                 |   464
+ schemes                      |    13
+ stock_balances               |  1967
+ stock_ledger                 |  9700
+ stock_lots                   |   570
+ tenant_product_costs         |    88
+ tenant_products              |    88
+ trips                        |    53
+(26 rows)
+
+BEGIN
+SET
+              set_config              
+--------------------------------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1
+(1 row)
+
+              set_config              
+--------------------------------------
+ a66bacc8-4212-73e1-b75f-405af2960e36
+(1 row)
+
+ set_config 
+------------
+ owner
+(1 row)
+
+### AS app_rw (Tarsun ctx): SAI rows VISIBLE — every count MUST be 0
+              t               | count 
+------------------------------+-------
+ accounts                     |     0
+ audit_log                    |     0
+ beats                        |     0
+ credit_notes                 |     0
+ grns                         |     0
+ invoice_lines                |     0
+ invoices                     |     0
+ journal_entries              |     0
+ journal_lines                |     0
+ load_sheets                  |     0
+ memberships                  |     0
+ picklists                    |     0
+ price_lists                  |     0
+ receipts                     |     0
+ reservations                 |     0
+ retailer_outstanding_summary |     0
+ retailers                    |     0
+ sales_order_lines            |     0
+ sales_orders                 |     0
+ schemes                      |     0
+ stock_balances               |     0
+ stock_ledger                 |     0
+ stock_lots                   |     0
+ tenant_product_costs         |     0
+ tenant_products              |     0
+ trips                        |     0
+(26 rows)
+
+### AS app_rw (Tarsun ctx): cross-tenant UPDATE of SAI rows — must be UPDATE 0
+UPDATE 0
+UPDATE 0
+UPDATE 0
+### AS app_rw (Tarsun ctx): cross-tenant DELETE of SAI rows — must be DELETE 0
+DELETE 0
+DELETE 0
+COMMIT
+### AS app_rw (Tarsun ctx): UPDATE/DELETE stock_ledger & journal_lines (append-only) — must ERROR
+BEGIN
+SET
+              set_config              
+--------------------------------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1
+(1 row)
+
+              set_config              
+--------------------------------------
+ a66bacc8-4212-73e1-b75f-405af2960e36
+(1 row)
+
+ set_config 
+------------
+ owner
+(1 row)
+
+-- UPDATE stock_ledger (own tenant):
+psql:db-rls.sql:89: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+BEGIN
+SET
+              set_config              
+--------------------------------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1
+(1 row)
+
+              set_config              
+--------------------------------------
+ a66bacc8-4212-73e1-b75f-405af2960e36
+(1 row)
+
+ set_config 
+------------
+ owner
+(1 row)
+
+-- DELETE stock_ledger (own tenant):
+psql:db-rls.sql:98: ERROR:  stock_ledger is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+BEGIN
+SET
+              set_config              
+--------------------------------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1
+(1 row)
+
+              set_config              
+--------------------------------------
+ a66bacc8-4212-73e1-b75f-405af2960e36
+(1 row)
+
+ set_config 
+------------
+ owner
+(1 row)
+
+-- UPDATE journal_lines (own tenant):
+psql:db-rls.sql:107: ERROR:  journal_lines is append-only (ADR 0003/0004); write a compensating row instead
+CONTEXT:  PL/pgSQL function dos_reject_mutation() line 3 at RAISE
+ROLLBACK
+BEGIN
+SET
+              set_config              
+--------------------------------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1
+(1 row)
+
+              set_config              
+--------------------------------------
+ a66bacc8-4212-73e1-b75f-405af2960e36
+(1 row)
+
+ set_config 
+------------
+ owner
+(1 row)
+
+-- DELETE journal_lines (own tenant):
+DELETE 0
+ROLLBACK
+### AS app_rw (Tarsun ctx): INSERT a beat tagged with SAI tenant_id — WITH CHECK must reject
+BEGIN
+SET
+              set_config              
+--------------------------------------
+ 01a0999a-28c3-7341-93f5-e0e84b0189a1
+(1 row)
+
+              set_config              
+--------------------------------------
+ a66bacc8-4212-73e1-b75f-405af2960e36
+(1 row)
+
+ set_config 
+------------
+ owner
+(1 row)
+
+psql:db-rls.sql:127: ERROR:  new row violates row-level security policy for table "beats"
+ROLLBACK

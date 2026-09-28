@@ -1,0 +1,76 @@
+{
+  "tenants": {
+    "tarsun": "01a0999a-28c3-7341-93f5-e0e84b0189a1",
+    "sai": "82f5c562-b7eb-7521-8e19-4aa6befc64f8",
+    "kalyan": "9fdfb5da-324c-71a5-ae98-3840cc44ae1c"
+  },
+  "logins": {
+    "tarsun": {
+      "owner": "sunil.tarsun",
+      "manager": "vikas.kadam",
+      "accountant": "meena.joshi",
+      "salesperson": "rahul.deshmukh",
+      "salesperson_b": "amit.pawar",
+      "warehouse": "dinesh.patil",
+      "delivery": "ganesh.more",
+      "delivery_b": "tanaji.bhosale",
+      "retailer": "ramesh.gupta",
+      "retailer_b": "fatima.shaikh"
+    },
+    "sai": {
+      "owner": "prakash.salunkhe",
+      "manager": "sanjay.bhosale",
+      "accountant": "nilesh.wagh",
+      "salesperson": "kiran.mhatre",
+      "warehouse": "bharat.jadhav",
+      "delivery": "sachin.dalvi",
+      "retailer": "fatima.shaikh"
+    }
+  },
+  "sai_ids": {
+    "orderId": "0003a88a-2b1a-7328-9027-afa9b15b8a96",
+    "id": "0157712c-3c4f-7801-9084-6482df23967a",
+    "invoiceId": "0157712c-3c4f-7801-9084-6482df23967a",
+    "receiptId": "0128a0f4-9f9f-7318-a906-e48e124a7c9d",
+    "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+    "tenantProductId": "0416ae92-848b-72f7-a65c-7067ee4fa3cc",
+    "priceListId": "71a206e1-f686-7459-8b38-adffbab62bac",
+    "schemeId": "0962f5d5-9fa9-723b-a3e5-76ac394dc602",
+    "lotId": "00c5c82f-25f4-7c4d-b9d9-4ce3ad663d6a",
+    "tripId": "158dfa68-e368-7a2f-bd3e-7e39f3b86343",
+    "loadSheetId": "06e45075-a101-7cda-a078-9f0d28a89d50",
+    "grnId": "02468892-b203-7265-abc5-0125380eb1c3",
+    "creditNoteId": "01ac0f14-a1fc-74cd-b40f-81e640fe5f05",
+    "exportId": "0e52f668-8ac2-72ac-8abd-ada81b92a30c",
+    "beatId": "133f8e20-9c70-7abd-8fe4-b0357015030c",
+    "picklistId": "02f2ff76-0ba6-7ed9-a7f8-c0eac28b5c8f",
+    "challanId": "047f8005-4f3b-7d07-bf4b-55d62b4d57e2",
+    "approvalId": "3fa5c221-fd69-7b3d-ab75-a1d216bca596",
+    "packId": "c03db044-f03d-7b20-8d9b-df91b42c3c04",
+    "bargainId": "ef848d5b-3da4-7c8e-892d-1192e8b19f59",
+    "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391",
+    "retailerUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac"
+  },
+  "tarsun_ids": {
+    "repA_userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+    "repB_userId": "efde1e76-9785-7827-aff2-6f56ecd33588",
+    "repB_order": "00bdd466-c932-7a04-af90-db3e9aa1e166",
+    "rahul_order": "014f8e14-76f3-7844-834e-de2a911feebf",
+    "ramesh_retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+    "ramesh_order": "11f1ce16-1498-7301-8a99-404c27ccb09a",
+    "ramesh_invoice": "05a048e4-0561-737c-9ec3-4fbd14db6143",
+    "fatima_retailerId": "20059d26-8301-7f2a-9f72-29cc39ce7753",
+    "crewA_userId": "7b2db500-02d5-7aa7-a1dc-005a3e89ff63",
+    "crewB_userId": "ff7a9f67-1660-7cae-b476-a9a5c9a5d41e",
+    "crewA_trip": "0a75f3d4-73a8-790f-831e-f5cf4f79c8fe",
+    "crewB_trip": "0db2aa55-4168-7ace-bec7-6536b99c9f1d",
+    "retailerId": "06cf7ea6-f74a-76d8-a747-248696740a46"
+  },
+  "ramesh_multi": {
+    "userId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+    "tarsun_retailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+    "sai_retailerId": "8268c2dc-32b0-7de2-a83f-95f56f1a62aa",
+    "sai_order": "001ff2f5-f8f7-7cc4-859d-baa53cb0f31f",
+    "sai_invoice": "048c7f55-a01a-72fe-8373-d98cf2f31beb"
+  }
+}

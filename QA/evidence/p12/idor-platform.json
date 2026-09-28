@@ -1,0 +1,135 @@
+{
+ "idor": [
+  {
+   "label": "own order (control)",
+   "id": "11f1ce16-1498-7301-8a99-404c27ccb09a",
+   "status": 200,
+   "digest": "obj{item}"
+  },
+  {
+   "label": "another retailer's order (fatima)",
+   "id": "09945c17-27be-7ca1-b1c0-5fc2efa1b94e",
+   "status": 404,
+   "msg": "order 09945c17-27be-7ca1-b1c0-5fc2efa1b94e not found",
+   "digest": "err{ : order 09945c17-27be-7ca1-b1c0-5fc2efa1b94e not found}"
+  },
+  {
+   "label": "neighbour +/- of own id #0",
+   "id": "11f1ce16-1498-7301-8a99-404c27ccb09b",
+   "status": 404,
+   "msg": "order 11f1ce16-1498-7301-8a99-404c27ccb09b not found",
+   "digest": "err{ : order 11f1ce16-1498-7301-8a99-404c27ccb09b not found}"
+  },
+  {
+   "label": "neighbour +/- of own id #1",
+   "id": "11f1ce16-1498-7301-8a99-404c27ccb099",
+   "status": 404,
+   "msg": "order 11f1ce16-1498-7301-8a99-404c27ccb099 not found",
+   "digest": "err{ : order 11f1ce16-1498-7301-8a99-404c27ccb099 not found}"
+  },
+  {
+   "label": "neighbour +/- of own id #2",
+   "id": "11f1ce16-1498-7301-8a99-404c27ccb09c",
+   "status": 404,
+   "msg": "order 11f1ce16-1498-7301-8a99-404c27ccb09c not found",
+   "digest": "err{ : order 11f1ce16-1498-7301-8a99-404c27ccb09c not found}"
+  },
+  {
+   "label": "neighbour +/- of own id #3",
+   "id": "11f1ce16-1498-7301-8a99-404c27ccb19a",
+   "status": 404,
+   "msg": "order 11f1ce16-1498-7301-8a99-404c27ccb19a not found",
+   "digest": "err{ : order 11f1ce16-1498-7301-8a99-404c27ccb19a not found}"
+  },
+  {
+   "label": "neighbour +/- of own id #4",
+   "id": "11f1ce16-1498-7301-8a99-404c27ccc09a",
+   "status": 404,
+   "msg": "order 11f1ce16-1498-7301-8a99-404c27ccc09a not found",
+   "digest": "err{ : order 11f1ce16-1498-7301-8a99-404c27ccc09a not found}"
+  },
+  {
+   "label": "random uuid v4",
+   "id": "63ac3442-dc57-47c7-a9f1-651bb88aa9b5",
+   "status": 404,
+   "msg": "order 63ac3442-dc57-47c7-a9f1-651bb88aa9b5 not found",
+   "digest": "err{ : order 63ac3442-dc57-47c7-a9f1-651bb88aa9b5 not found}"
+  },
+  {
+   "label": "random uuid v4 #2",
+   "id": "82872469-d760-424e-a728-98f35ab32743",
+   "status": 404,
+   "msg": "order 82872469-d760-424e-a728-98f35ab32743 not found",
+   "digest": "err{ : order 82872469-d760-424e-a728-98f35ab32743 not found}"
+  },
+  {
+   "label": "nil uuid",
+   "id": "00000000-0000-7000-8000-000000000000",
+   "status": 404,
+   "msg": "order 00000000-0000-7000-8000-000000000000 not found",
+   "digest": "err{ : order 00000000-0000-7000-8000-000000000000 not found}"
+  }
+ ],
+ "platform": [
+  {
+   "check": "platform-login",
+   "status": 200,
+   "role": "platform_admin",
+   "level": "super"
+  },
+  {
+   "check": "admin.tenants.list with platform token",
+   "status": 200,
+   "digest": "items[3] keys=items,nextCursor"
+  },
+  {
+   "check": "platform token on /owner",
+   "dashStatus": 403,
+   "ordersStatus": 403,
+   "refused": true
+  },
+  {
+   "check": "platform token on /manager",
+   "dashStatus": 403,
+   "ordersStatus": 403,
+   "refused": true
+  },
+  {
+   "check": "platform token on /sales",
+   "dashStatus": 403,
+   "ordersStatus": 403,
+   "refused": true
+  },
+  {
+   "check": "platform token on /warehouse",
+   "dashStatus": 403,
+   "ordersStatus": 403,
+   "refused": true
+  },
+  {
+   "check": "platform token on /delivery",
+   "dashStatus": 403,
+   "ordersStatus": 403,
+   "refused": true
+  },
+  {
+   "check": "platform token on /retailer",
+   "dashStatus": 404,
+   "ordersStatus": 403,
+   "refused": false
+  },
+  {
+   "check": "tenant owner token on admin-service",
+   "tenantsStatus": 403,
+   "metricsStatus": 404,
+   "refused": true
+  }
+ ],
+ "idorOracle": {
+  "foreignStatus": 404,
+  "foreignMsg": "order 09945c17-27be-7ca1-b1c0-5fc2efa1b94e not found",
+  "randomStatus": 404,
+  "randomMsg": "order 82872469-d760-424e-a728-98f35ab32743 not found",
+  "indistinguishable": false
+ }
+}

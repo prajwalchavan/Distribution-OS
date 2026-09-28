@@ -1,0 +1,138 @@
+[
+ {
+  "label": "repA reads repB order",
+  "method": "GET",
+  "path": "/sales/orders/00bdd466-c932-7a04-af90-db3e9aa1e166",
+  "status": 404,
+  "verdict": "unexpected-refuse",
+  "digest": "err{ : order 00bdd466-c932-7a04-af90-db3e9aa1e166 not found}"
+ },
+ {
+  "label": "repA lists orders filtered to repB",
+  "method": "GET",
+  "path": "/sales/orders?salespersonId=efde1e76-9785-7827-aff2-6f56ecd33588",
+  "status": 200,
+  "verdict": "OK-allowed",
+  "digest": "items[50] keys=items,nextCursor"
+ },
+ {
+  "label": "repA cancels repB draft order",
+  "method": "POST",
+  "path": "/sales/orders/39c6f032-fd27-7d15-b761-79cded32d0f8/cancel",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : order 39c6f032-fd27-7d15-b761-79cded32d0f8 not found}"
+ },
+ {
+  "label": "ramesh reads fatima order",
+  "method": "GET",
+  "path": "/retailer/orders/09945c17-27be-7ca1-b1c0-5fc2efa1b94e",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : order 09945c17-27be-7ca1-b1c0-5fc2efa1b94e not found}"
+ },
+ {
+  "label": "ramesh reads fatima invoice",
+  "method": "GET",
+  "path": "/retailer/invoices/0739e8c8-12fc-7b6a-aedf-a750fa29f4fe",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : invoice 0739e8c8-12fc-7b6a-aedf-a750fa29f4fe not found}"
+ },
+ {
+  "label": "ramesh reads fatima outstanding",
+  "method": "GET",
+  "path": "/retailer/receivables/outstanding/20059d26-8301-7f2a-9f72-29cc39ce7753",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : retailer 20059d26-8301-7f2a-9f72-29cc39ce7753 not found}"
+ },
+ {
+  "label": "ramesh lists orders filtered to fatima retailer",
+  "method": "GET",
+  "path": "/retailer/orders?retailerId=20059d26-8301-7f2a-9f72-29cc39ce7753",
+  "status": 200,
+  "verdict": "OK-refused",
+  "digest": "items[0] keys=items,nextCursor"
+ },
+ {
+  "label": "ramesh reads fatima invoice pdf",
+  "method": "GET",
+  "path": "/retailer/invoices/0739e8c8-12fc-7b6a-aedf-a750fa29f4fe/pdf",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : invoice 0739e8c8-12fc-7b6a-aedf-a750fa29f4fe not found}"
+ },
+ {
+  "label": "ganesh reads crewB trip",
+  "method": "GET",
+  "path": "/delivery/delivery/trips/0db2aa55-4168-7ace-bec7-6536b99c9f1d",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : trip 0db2aa55-4168-7ace-bec7-6536b99c9f1d not found}"
+ },
+ {
+  "label": "ganesh departs crewB trip",
+  "method": "POST",
+  "path": "/delivery/delivery/trips/0db2aa55-4168-7ace-bec7-6536b99c9f1d/depart",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : trip 0db2aa55-4168-7ace-bec7-6536b99c9f1d not found}"
+ },
+ {
+  "label": "ganesh reads crewB van-stock",
+  "method": "GET",
+  "path": "/delivery/delivery/trips/0db2aa55-4168-7ace-bec7-6536b99c9f1d/van-stock",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : trip 0db2aa55-4168-7ace-bec7-6536b99c9f1d not found}"
+ },
+ {
+  "label": "ramesh@tarsun reads his SAI order",
+  "method": "GET",
+  "path": "/retailer/orders/001ff2f5-f8f7-7cc4-859d-baa53cb0f31f",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : order 001ff2f5-f8f7-7cc4-859d-baa53cb0f31f not found}"
+ },
+ {
+  "label": "ramesh@tarsun reads his SAI invoice",
+  "method": "GET",
+  "path": "/retailer/invoices/048c7f55-a01a-72fe-8373-d98cf2f31beb",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : invoice 048c7f55-a01a-72fe-8373-d98cf2f31beb not found}"
+ },
+ {
+  "label": "ramesh@tarsun outstanding for his SAI retailer id",
+  "method": "GET",
+  "path": "/retailer/receivables/outstanding/8268c2dc-32b0-7de2-a83f-95f56f1a62aa",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : retailer 8268c2dc-32b0-7de2-a83f-95f56f1a62aa not found}"
+ },
+ {
+  "label": "ramesh@sai reads his SAI order",
+  "method": "GET",
+  "path": "/retailer/orders/001ff2f5-f8f7-7cc4-859d-baa53cb0f31f",
+  "status": 200,
+  "verdict": "OK-allowed",
+  "digest": "obj{item}"
+ },
+ {
+  "label": "ramesh@sai reads his TARSUN order",
+  "method": "GET",
+  "path": "/retailer/orders/11f1ce16-1498-7301-8a99-404c27ccb09a",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : order 11f1ce16-1498-7301-8a99-404c27ccb09a not found}"
+ },
+ {
+  "label": "ramesh@sai reads his TARSUN invoice",
+  "method": "GET",
+  "path": "/retailer/invoices/05a048e4-0561-737c-9ec3-4fbd14db6143",
+  "status": 404,
+  "verdict": "OK-refused",
+  "digest": "err{ : invoice 05a048e4-0561-737c-9ec3-4fbd14db6143 not found}"
+ }
+]

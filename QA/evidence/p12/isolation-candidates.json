@@ -1,0 +1,1678 @@
+[
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "receivables.ageing.history",
+  "path": "/owner/receivables/ageing/history?from=2026-08-01&to=2026-09-30&grain=week&retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{grain,from,to,points}",
+  "body": {
+   "grain": "week",
+   "from": "2026-08-01",
+   "to": "2026-09-30",
+   "points": []
+  }
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "billing.registers.salesRegister",
+  "path": "/owner/billing/sales-register?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "delivery.consents.get",
+  "path": "/owner/delivery/consents?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{item}",
+  "body": {
+   "item": null
+  }
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.dashboard.rep",
+  "path": "/owner/reporting/dashboard/rep?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{userId,userName,day,visits,productiveVisits,ordersCount,orderValuePaise,linesSold,collectedPaise,strikeRate}",
+  "body": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391",
+   "userName": "",
+   "day": "2026-09-28",
+   "visits": 0,
+   "productiveVisits": 0,
+   "ordersCount": 0,
+   "orderValuePaise": 0,
+   "linesSold": 0,
+   "collectedPaise": 0,
+   "strikeRate": 0,
+   "computedAt": "2026-09-28T01:52:45.538Z"
+  }
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.series.outstanding",
+  "path": "/owner/reporting/series/outstanding?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.series.ageing",
+  "path": "/owner/reporting/series/ageing?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.series.productivity",
+  "path": "/owner/reporting/series/productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.dailyStats.rep",
+  "path": "/owner/reporting/registers/rep-daily?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.retailers.series",
+  "path": "/owner/reporting/retailers/0159883f-c8ce-7ac1-afb8-d992fe3baa01/series",
+  "saiPointed": {
+   "id": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{retailerId,grain,from,to,asOf,points}",
+  "body": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+   "grain": "week",
+   "from": "2026-07-13",
+   "to": "2026-09-28",
+   "asOf": "2026-09-28T01:52:45.555Z",
+   "points": [
+    {
+     "bucket": "2026-07-13",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-07-20",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-07-27",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-03",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-10",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-17",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-24",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-31",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-07",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-14",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-21",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-28",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    }
+   ]
+  }
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.registers.repProductivity",
+  "path": "/owner/reporting/registers/rep-productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:owner",
+  "service": "owner",
+  "method": "GET",
+  "op": "reporting.registers.schemeSpend",
+  "path": "/owner/reporting/registers/scheme-spend?schemeId=0962f5d5-9fa9-723b-a3e5-76ac394dc602",
+  "saiPointed": {
+   "schemeId": "0962f5d5-9fa9-723b-a3e5-76ac394dc602"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "receivables.ageing.history",
+  "path": "/manager/receivables/ageing/history?from=2026-08-01&to=2026-09-30&grain=week&retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{grain,from,to,points}",
+  "body": {
+   "grain": "week",
+   "from": "2026-08-01",
+   "to": "2026-09-30",
+   "points": []
+  }
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "billing.registers.salesRegister",
+  "path": "/manager/billing/sales-register?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "delivery.consents.get",
+  "path": "/manager/delivery/consents?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{item}",
+  "body": {
+   "item": null
+  }
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.dashboard.rep",
+  "path": "/manager/reporting/dashboard/rep?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{userId,userName,day,visits,productiveVisits,ordersCount,orderValuePaise,linesSold,collectedPaise,strikeRate}",
+  "body": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391",
+   "userName": "",
+   "day": "2026-09-28",
+   "visits": 0,
+   "productiveVisits": 0,
+   "ordersCount": 0,
+   "orderValuePaise": 0,
+   "linesSold": 0,
+   "collectedPaise": 0,
+   "strikeRate": 0,
+   "computedAt": "2026-09-28T01:52:46.176Z"
+  }
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.series.outstanding",
+  "path": "/manager/reporting/series/outstanding?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.series.ageing",
+  "path": "/manager/reporting/series/ageing?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.series.productivity",
+  "path": "/manager/reporting/series/productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.dailyStats.rep",
+  "path": "/manager/reporting/registers/rep-daily?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.retailers.series",
+  "path": "/manager/reporting/retailers/0159883f-c8ce-7ac1-afb8-d992fe3baa01/series",
+  "saiPointed": {
+   "id": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{retailerId,grain,from,to,asOf,points}",
+  "body": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+   "grain": "week",
+   "from": "2026-07-13",
+   "to": "2026-09-28",
+   "asOf": "2026-09-28T01:52:46.192Z",
+   "points": [
+    {
+     "bucket": "2026-07-13",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-07-20",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-07-27",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-03",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-10",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-17",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-24",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-31",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-07",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-14",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-21",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-28",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    }
+   ]
+  }
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.registers.repProductivity",
+  "path": "/manager/reporting/registers/rep-productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:manager",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.registers.schemeSpend",
+  "path": "/manager/reporting/registers/scheme-spend?schemeId=0962f5d5-9fa9-723b-a3e5-76ac394dc602",
+  "saiPointed": {
+   "schemeId": "0962f5d5-9fa9-723b-a3e5-76ac394dc602"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "receivables.ageing.history",
+  "path": "/manager/receivables/ageing/history?from=2026-08-01&to=2026-09-30&grain=week&retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{grain,from,to,points}",
+  "body": {
+   "grain": "week",
+   "from": "2026-08-01",
+   "to": "2026-09-30",
+   "points": []
+  }
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "billing.registers.salesRegister",
+  "path": "/manager/billing/sales-register?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.dashboard.rep",
+  "path": "/manager/reporting/dashboard/rep?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{userId,userName,day,visits,productiveVisits,ordersCount,orderValuePaise,linesSold,collectedPaise,strikeRate}",
+  "body": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391",
+   "userName": "",
+   "day": "2026-09-28",
+   "visits": 0,
+   "productiveVisits": 0,
+   "ordersCount": 0,
+   "orderValuePaise": 0,
+   "linesSold": 0,
+   "collectedPaise": 0,
+   "strikeRate": 0,
+   "computedAt": "2026-09-28T01:52:46.630Z"
+  }
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.series.outstanding",
+  "path": "/manager/reporting/series/outstanding?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.series.ageing",
+  "path": "/manager/reporting/series/ageing?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.series.productivity",
+  "path": "/manager/reporting/series/productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.dailyStats.rep",
+  "path": "/manager/reporting/registers/rep-daily?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.retailers.series",
+  "path": "/manager/reporting/retailers/0159883f-c8ce-7ac1-afb8-d992fe3baa01/series",
+  "saiPointed": {
+   "id": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{retailerId,grain,from,to,asOf,points}",
+  "body": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+   "grain": "week",
+   "from": "2026-07-13",
+   "to": "2026-09-28",
+   "asOf": "2026-09-28T01:52:46.646Z",
+   "points": [
+    {
+     "bucket": "2026-07-13",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-07-20",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-07-27",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-03",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-10",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-17",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-24",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-08-31",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-07",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-14",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-21",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    },
+    {
+     "bucket": "2026-09-28",
+     "invoicedPaise": 0,
+     "collectedPaise": 0,
+     "ordersCount": 0
+    }
+   ]
+  }
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.registers.repProductivity",
+  "path": "/manager/reporting/registers/rep-productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:accountant",
+  "service": "manager",
+  "method": "GET",
+  "op": "reporting.registers.schemeSpend",
+  "path": "/manager/reporting/registers/scheme-spend?schemeId=0962f5d5-9fa9-723b-a3e5-76ac394dc602",
+  "saiPointed": {
+   "schemeId": "0962f5d5-9fa9-723b-a3e5-76ac394dc602"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:salesperson",
+  "service": "sales",
+  "method": "GET",
+  "op": "tenantCatalog.repAuthorisations.list",
+  "path": "/sales/tenant-catalog/rep-authorisations?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": 13,
+  "leak": "LIST_NONEMPTY",
+  "digest": "items[13] keys=items",
+  "body": {
+   "items": [
+    {
+     "id": "523fc27d-d260-797f-9faf-3eaf620c1c99",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "7845dad6-75b8-785b-a6fc-6e1040caf7fe",
+     "brandName": "Annapurna",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "314c690d-44f1-7945-9fe0-849da44d6e12",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "ebfe6f6d-f39b-7af2-9a5b-cde3902eacc9",
+     "brandName": "Balaji",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "3f990195-15c4-7ab8-8b8c-2130fc8af323",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "215e2935-1509-71d7-b3e9-9b23bca6ec3f",
+     "brandName": "Campa",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "17cd8301-b256-7b75-86c7-b33a78cc9f5c",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "c12995d6-092a-761a-96bd-a89df7a2ad73",
+     "brandName": "Chamak",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "f299138b-ce09-7424-be45-88d31ecc7b7e",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "779361b4-0399-7c3c-abde-7675e66c031c",
+     "brandName": "Godavari",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "1f518c03-7a7e-7a20-bf99-c62853f68f10",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "f15b45d5-1c0d-749a-b29e-c67e7cafb791",
+     "brandName": "Independence",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "e044fdab-68f2-747c-8496-a8e8e4a73d76",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "59edd38f-1eec-791b-8eee-1fb9d6e0e7f9",
+     "brandName": "Konkan Crunch",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "bb406b52-2f90-72b4-9d41-12e7e8d7a02e",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "64596676-0022-79e3-8675-5dc24b6bd967",
+     "brandName": "MOM Makhana",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "1dc58ebf-1ec7-7a87-88e2-0ca1a7ef0711",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "e6e3b0e8-3dc9-79c0-ab6a-2ac9a11ee5b5",
+     "brandName": "Masti Oye",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "1262388b-3f7a-7f89-9088-eff3c94445ca",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "448ccb3c-1c14-73d8-a7ed-25ffb5dd9b41",
+     "brandName": "Neelam",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "b0d585af-fea0-7814-a69e-a2b7eb748e57",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "4e99e3bb-8f1e-75f6-91c8-5d3dfc1b7243",
+     "brandName": "Rajwadi",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "2b30b394-0bf5-7228-8873-13a166fd5606",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "a4ebffdb-e802-75e9-9614-d605563a9e65",
+     "brandName": "Sunbake",
+     "employedBy": "distributor"
+    },
+    {
+     "id": "fdf212b5-676d-7092-86b3-1e88b5d36f88",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": "e9eb5384-a2a4-702a-a192-e4f90f46feb3",
+     "brandName": "Too Yumm",
+     "employedBy": "distributor"
+    }
+   ]
+  }
+ },
+ {
+  "actor": "tarsun:salesperson",
+  "service": "sales",
+  "method": "GET",
+  "op": "pricing.bounds.list",
+  "path": "/sales/pricing/bounds?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": 1,
+  "leak": "LIST_NONEMPTY",
+  "digest": "items[1] keys=items",
+  "body": {
+   "items": [
+    {
+     "id": "114fafbb-2766-7f65-afde-8b740f268305",
+     "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+     "brandId": null,
+     "maxDiscountBps": 300,
+     "maxOrderDiscountPaise": null
+    }
+   ]
+  }
+ },
+ {
+  "actor": "tarsun:salesperson",
+  "service": "sales",
+  "method": "GET",
+  "op": "reporting.dashboard.rep",
+  "path": "/sales/reporting/dashboard/rep?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": null,
+  "leak": "OBJECT_INSPECT",
+  "digest": "obj{userId,userName,day,visits,productiveVisits,ordersCount,orderValuePaise,linesSold,collectedPaise,strikeRate}",
+  "body": {
+   "userId": "8760e17e-4830-7395-a946-1e02fffa1ad7",
+   "userName": "Rahul Deshmukh",
+   "day": "2026-09-28",
+   "visits": 0,
+   "productiveVisits": 0,
+   "ordersCount": 0,
+   "orderValuePaise": 0,
+   "linesSold": 0,
+   "collectedPaise": 0,
+   "strikeRate": 0,
+   "computedAt": "2026-09-28T01:52:46.929Z"
+  }
+ },
+ {
+  "actor": "tarsun:salesperson",
+  "service": "sales",
+  "method": "GET",
+  "op": "reporting.series.productivity",
+  "path": "/sales/reporting/series/productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:salesperson",
+  "service": "sales",
+  "method": "GET",
+  "op": "reporting.dailyStats.rep",
+  "path": "/sales/reporting/registers/rep-daily?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:salesperson",
+  "service": "sales",
+  "method": "GET",
+  "op": "reporting.registers.repProductivity",
+  "path": "/sales/reporting/registers/rep-productivity?userId=a6b77a68-76be-7d29-82c8-8cef0124c391",
+  "saiPointed": {
+   "userId": "a6b77a68-76be-7d29-82c8-8cef0124c391"
+  },
+  "status": 400,
+  "cls": "RAN_400",
+  "itemCount": null,
+  "leak": "handler-ran-4xx",
+  "digest": "err{ : Input validation failed}"
+ },
+ {
+  "actor": "tarsun:retailer",
+  "service": "retailer",
+  "method": "GET",
+  "op": "notifications.messages.list",
+  "path": "/retailer/notifications/messages?retailerId=0159883f-c8ce-7ac1-afb8-d992fe3baa01",
+  "saiPointed": {
+   "retailerId": "0159883f-c8ce-7ac1-afb8-d992fe3baa01"
+  },
+  "status": 200,
+  "cls": "RAN_2XX",
+  "itemCount": 33,
+  "leak": "LIST_NONEMPTY",
+  "digest": "items[33] keys=items,nextCursor,unreadCount",
+  "body": {
+   "items": [
+    {
+     "id": "f91518be-2727-76c5-b4ee-85c343e04ae3",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0873 of ₹12,837.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "9223a2e1-3e93-713f-b6eb-518f03d3a058",
+     "scheduledAt": null,
+     "sentAt": "2026-09-12T10:35:00.000Z",
+     "deliveredAt": "2026-09-12T10:36:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-09-12T10:35:00.000Z"
+    },
+    {
+     "id": "0882ef76-bbd0-7708-b77a-beb3f04d04b0",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0847 of ₹5,511.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "1bf21d23-ef7b-77af-beeb-e46f54bcf437",
+     "scheduledAt": null,
+     "sentAt": "2026-09-10T05:49:00.000Z",
+     "deliveredAt": "2026-09-10T05:50:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-09-10T05:49:00.000Z"
+    },
+    {
+     "id": "5db091e2-67bb-73f9-bdc3-71634fa6f1f0",
+     "channel": "whatsapp",
+     "templateKey": "dues_reminder",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "A gentle reminder: ₹36,548.00 is overdue on your account since 2026-08-06. Please pay on the next visit or by UPI. — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "retailer",
+     "refId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "scheduledAt": null,
+     "sentAt": "2026-09-10T03:30:00.000Z",
+     "deliveredAt": "2026-09-10T03:31:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-09-10T03:30:00.000Z"
+    },
+    {
+     "id": "fa7a9c64-b63d-7448-bad0-1f0b80757d13",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0844 of ₹12,180.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "sent",
+     "refType": "order",
+     "refId": "edee60a7-4436-75df-ad88-80741ffad004",
+     "scheduledAt": null,
+     "sentAt": "2026-09-09T09:14:00.000Z",
+     "deliveredAt": null,
+     "readAt": null,
+     "createdAt": "2026-09-09T09:14:00.000Z"
+    },
+    {
+     "id": "2909d043-cf5c-7071-8aa5-81467c37427c",
+     "channel": "whatsapp",
+     "templateKey": "scheme_announcement",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "New offer: Campa 750 ml: buy 12 get 1 free, valid till 30 Sep 2026. Ask your salesperson or order from the app. — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "broadcast",
+     "refId": "e4f2921a-3c07-7838-94bf-b945117a5174",
+     "scheduledAt": null,
+     "sentAt": "2026-09-09T05:01:30.000Z",
+     "deliveredAt": "2026-09-09T05:02:30.000Z",
+     "readAt": null,
+     "createdAt": "2026-09-09T05:01:30.000Z"
+    },
+    {
+     "id": "c01c6bab-50b1-76ca-bfd1-0a1308fc7f5e",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0830 of ₹5,279.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "c6925196-3ee1-7249-8d69-fc7d9f0d315c",
+     "scheduledAt": null,
+     "sentAt": "2026-09-08T07:21:00.000Z",
+     "deliveredAt": "2026-09-08T07:22:00.000Z",
+     "readAt": "2026-09-08T07:46:00.000Z",
+     "createdAt": "2026-09-08T07:21:00.000Z"
+    },
+    {
+     "id": "7bb6693c-81fd-7381-acdc-c8cab2e0c124",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0781 of ₹5,472.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "42649755-ab06-7430-a3ca-4352e24ce1d1",
+     "scheduledAt": null,
+     "sentAt": "2026-09-03T07:55:00.000Z",
+     "deliveredAt": "2026-09-03T07:56:00.000Z",
+     "readAt": "2026-09-03T08:20:00.000Z",
+     "createdAt": "2026-09-03T07:55:00.000Z"
+    },
+    {
+     "id": "abb03152-e522-79f8-b3b9-9c268ac958cf",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0751 of ₹10,137.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "e114f8b6-2ee9-7d0c-b700-3a7076c17de5",
+     "scheduledAt": null,
+     "sentAt": "2026-08-31T08:58:00.000Z",
+     "deliveredAt": "2026-08-31T08:59:00.000Z",
+     "readAt": "2026-08-31T09:23:00.000Z",
+     "createdAt": "2026-08-31T08:58:00.000Z"
+    },
+    {
+     "id": "1bbcd4e3-2540-7c49-b2ff-748206b600da",
+     "channel": "in_app",
+     "templateKey": "welcome",
+     "destination": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Welcome, Shree Ganesh Kirana! Your bills, dues and orders with M/s. Tarsun Enterprise now live here.",
+     "status": "read",
+     "refType": "retailer",
+     "refId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "scheduledAt": null,
+     "sentAt": "2026-08-31T03:45:00.000Z",
+     "deliveredAt": "2026-08-31T03:46:00.000Z",
+     "readAt": "2026-08-31T04:10:00.000Z",
+     "createdAt": "2026-08-31T03:45:00.000Z"
+    },
+    {
+     "id": "4b9ca801-1ee7-7e0d-a04a-a19116e6e9ec",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0727 of ₹3,819.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "sent",
+     "refType": "order",
+     "refId": "94565b95-b8f1-7d9f-a1e6-d06e519eae87",
+     "scheduledAt": null,
+     "sentAt": "2026-08-28T07:08:00.000Z",
+     "deliveredAt": null,
+     "readAt": null,
+     "createdAt": "2026-08-28T07:08:00.000Z"
+    },
+    {
+     "id": "997af2df-708a-7b96-9942-a6ad533bb438",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0703 of ₹3,526.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "11f1ce16-1498-7301-8a99-404c27ccb09a",
+     "scheduledAt": null,
+     "sentAt": "2026-08-27T07:03:00.000Z",
+     "deliveredAt": "2026-08-27T07:04:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-08-27T07:03:00.000Z"
+    },
+    {
+     "id": "0ee7d6a5-95ea-75c8-ac69-0d50e9e5e382",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0669 of ₹12,561.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "e46b52b6-5632-7c10-97f7-5c737692a960",
+     "scheduledAt": null,
+     "sentAt": "2026-08-22T09:31:00.000Z",
+     "deliveredAt": "2026-08-22T09:32:00.000Z",
+     "readAt": "2026-08-22T09:56:00.000Z",
+     "createdAt": "2026-08-22T09:31:00.000Z"
+    },
+    {
+     "id": "159e97d3-3184-7b5f-a759-71e4221fd940",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0639 of ₹7,004.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "1a5e003a-9c9b-760f-9c71-d40b5c3cdb12",
+     "scheduledAt": null,
+     "sentAt": "2026-08-20T10:04:00.000Z",
+     "deliveredAt": "2026-08-20T10:05:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-08-20T10:04:00.000Z"
+    },
+    {
+     "id": "62a6a4fe-40c1-7c11-a5ff-d89a26324544",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0609 of ₹6,253.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "78475882-4b39-7eef-87a7-01ff95af30ec",
+     "scheduledAt": null,
+     "sentAt": "2026-08-17T10:08:00.000Z",
+     "deliveredAt": "2026-08-17T10:09:00.000Z",
+     "readAt": "2026-08-17T10:33:00.000Z",
+     "createdAt": "2026-08-17T10:08:00.000Z"
+    },
+    {
+     "id": "75844e73-81a8-722f-bc71-595b0809a739",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0547 of ₹5,204.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "84933566-a108-742e-8fda-52cbfdbe4c47",
+     "scheduledAt": null,
+     "sentAt": "2026-08-10T07:49:00.000Z",
+     "deliveredAt": "2026-08-10T07:50:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-08-10T07:49:00.000Z"
+    },
+    {
+     "id": "93ebc1dd-f3dc-7db7-8257-05328b68e803",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0513 of ₹11,605.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "922737de-4ffb-7661-99cd-020e0d193be3",
+     "scheduledAt": null,
+     "sentAt": "2026-08-06T10:30:00.000Z",
+     "deliveredAt": "2026-08-06T10:31:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-08-06T10:30:00.000Z"
+    },
+    {
+     "id": "ef55e218-fe2d-70b5-8017-7da44d3b60a9",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0499 of ₹7,650.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "26892415-b17a-7423-9d04-fdd5f05961c5",
+     "scheduledAt": null,
+     "sentAt": "2026-08-05T05:37:00.000Z",
+     "deliveredAt": "2026-08-05T05:38:00.000Z",
+     "readAt": "2026-08-05T06:02:00.000Z",
+     "createdAt": "2026-08-05T05:37:00.000Z"
+    },
+    {
+     "id": "b0dfbb17-7a36-7e1e-a827-eb6af5f1e375",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0486 of ₹9,947.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "9675b252-81c2-7215-ac01-bbea8d09fb81",
+     "scheduledAt": null,
+     "sentAt": "2026-08-03T10:34:00.000Z",
+     "deliveredAt": "2026-08-03T10:35:00.000Z",
+     "readAt": "2026-08-03T10:59:00.000Z",
+     "createdAt": "2026-08-03T10:34:00.000Z"
+    },
+    {
+     "id": "a5e37728-2ac8-7f43-a717-c0cf8513a568",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0450 of ₹10,119.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "fb766131-c892-7c4b-86f4-9c447323dd85",
+     "scheduledAt": null,
+     "sentAt": "2026-07-30T05:44:00.000Z",
+     "deliveredAt": "2026-07-30T05:45:00.000Z",
+     "readAt": "2026-07-30T06:09:00.000Z",
+     "createdAt": "2026-07-30T05:44:00.000Z"
+    },
+    {
+     "id": "860c5175-55b6-7707-af21-f7379cfaef33",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0419 of ₹12,097.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "33867de0-bb3e-7902-b0ee-b43ea576d097",
+     "scheduledAt": null,
+     "sentAt": "2026-07-27T11:12:00.000Z",
+     "deliveredAt": "2026-07-27T11:13:00.000Z",
+     "readAt": "2026-07-27T11:37:00.000Z",
+     "createdAt": "2026-07-27T11:12:00.000Z"
+    },
+    {
+     "id": "49e3c1df-5d35-7090-b9b7-432085ba6900",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0378 of ₹5,451.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "cb5955a0-95b5-7385-92cf-f9e2c9a5cf5c",
+     "scheduledAt": null,
+     "sentAt": "2026-07-22T08:29:00.000Z",
+     "deliveredAt": "2026-07-22T08:30:00.000Z",
+     "readAt": "2026-07-22T08:54:00.000Z",
+     "createdAt": "2026-07-22T08:29:00.000Z"
+    },
+    {
+     "id": "ae33ad79-0ebe-7f40-af01-e26acbd4e761",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0351 of ₹11,987.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "70f152cf-4483-786c-9225-273aaee3c9a2",
+     "scheduledAt": null,
+     "sentAt": "2026-07-20T05:58:00.000Z",
+     "deliveredAt": "2026-07-20T05:59:00.000Z",
+     "readAt": "2026-07-20T06:23:00.000Z",
+     "createdAt": "2026-07-20T05:58:00.000Z"
+    },
+    {
+     "id": "dcecdd1f-b494-70bf-b6ea-56fcaaebe5ea",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0347 of ₹3,732.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "e8e82b95-563f-7be0-8a61-6da9b5275524",
+     "scheduledAt": null,
+     "sentAt": "2026-07-18T08:16:00.000Z",
+     "deliveredAt": "2026-07-18T08:17:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-07-18T08:16:00.000Z"
+    },
+    {
+     "id": "68f2438e-dd08-701e-8caf-4c319acd448c",
+     "channel": "whatsapp",
+     "templateKey": "order_cancelled",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0310 of ₹1,977.00 has been cancelled. Call us if this is a mistake. — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "23998286-943c-74b9-a443-760e53a62374",
+     "scheduledAt": null,
+     "sentAt": "2026-07-16T11:35:00.000Z",
+     "deliveredAt": "2026-07-16T11:36:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-07-16T11:35:00.000Z"
+    },
+    {
+     "id": "43a3115a-9337-765e-b5e1-6092da6c0ad2",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0296 of ₹3,125.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "sent",
+     "refType": "order",
+     "refId": "dd5d1b42-0b50-7fb9-ba27-040f80ac59f4",
+     "scheduledAt": null,
+     "sentAt": "2026-07-14T06:13:00.000Z",
+     "deliveredAt": null,
+     "readAt": null,
+     "createdAt": "2026-07-14T06:13:00.000Z"
+    },
+    {
+     "id": "72c59295-f05c-7f46-9eaf-baeefdab15ee",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0221 of ₹10,553.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "daea846d-560e-75a1-bffe-139d11a3b070",
+     "scheduledAt": null,
+     "sentAt": "2026-07-07T05:47:00.000Z",
+     "deliveredAt": "2026-07-07T05:48:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-07-07T05:47:00.000Z"
+    },
+    {
+     "id": "a265821c-3160-709b-9429-1b681395d0d7",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0149 of ₹2,134.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "62f503b9-c23c-7fc2-b041-4138294ffc6f",
+     "scheduledAt": null,
+     "sentAt": "2026-06-30T08:32:00.000Z",
+     "deliveredAt": "2026-06-30T08:33:00.000Z",
+     "readAt": "2026-06-30T08:57:00.000Z",
+     "createdAt": "2026-06-30T08:32:00.000Z"
+    },
+    {
+     "id": "e4a974e6-2a26-7c11-af97-f0a00a6df872",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0102 of ₹3,226.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "read",
+     "refType": "order",
+     "refId": "17606bb0-40b9-775b-a846-69f3f13f1636",
+     "scheduledAt": null,
+     "sentAt": "2026-06-26T06:04:00.000Z",
+     "deliveredAt": "2026-06-26T06:05:00.000Z",
+     "readAt": "2026-06-26T06:29:00.000Z",
+     "createdAt": "2026-06-26T06:04:00.000Z"
+    },
+    {
+     "id": "f982aacb-24fb-7992-b354-592814971a1f",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0037 of ₹11,963.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "sent",
+     "refType": "order",
+     "refId": "410553c0-7207-73e0-b52c-c1033dd8fed1",
+     "scheduledAt": null,
+     "sentAt": "2026-06-19T08:44:00.000Z",
+     "deliveredAt": null,
+     "readAt": null,
+     "createdAt": "2026-06-19T08:44:00.000Z"
+    },
+    {
+     "id": "839e5b6a-55c8-7e40-93d4-31463cf1894a",
+     "channel": "whatsapp",
+     "templateKey": "pod_delivered",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your goods against bill 5B55BA2E were delivered today. Thank you for your business! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "delivery",
+     "refId": "3eebf454-a303-79e6-9bb4-0512b7786832",
+     "scheduledAt": null,
+     "sentAt": "2026-06-19T03:50:30.000Z",
+     "deliveredAt": "2026-06-19T03:51:30.000Z",
+     "readAt": null,
+     "createdAt": "2026-06-19T03:50:30.000Z"
+    },
+    {
+     "id": "114d6355-f76f-7ace-8ca8-4499654c1eef",
+     "channel": "whatsapp",
+     "templateKey": "invoice_issued",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Namaste! Bill INV/0007 of ₹5,242.00 is ready — pay by 2026-06-22 to keep your 2% cash discount. UPI: upi://pay?pa=tarsun%40okhdfcbank&pn=M%2Fs.%20Tarsun%20Enterprise&am=5242.00&tr=INV-0007&cu=INR — M/s. Tarsun Enterprise, Kalyan West",
+     "status": "delivered",
+     "refType": "invoice",
+     "refId": "a02c9ba3-e640-746e-99b1-66003f40686a",
+     "scheduledAt": null,
+     "sentAt": "2026-06-15T13:05:00.000Z",
+     "deliveredAt": "2026-06-15T13:06:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-06-15T13:05:00.000Z"
+    },
+    {
+     "id": "0c35607c-d168-74e8-bb04-25c04fb6ee9b",
+     "channel": "whatsapp",
+     "templateKey": "pod_delivered",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your goods against bill 3F40686A were delivered today. Thank you for your business! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "delivery",
+     "refId": "0568d69e-f886-7e6f-bcfd-d7e47acda08b",
+     "scheduledAt": null,
+     "sentAt": "2026-06-15T06:50:30.000Z",
+     "deliveredAt": "2026-06-15T06:51:30.000Z",
+     "readAt": null,
+     "createdAt": "2026-06-15T06:50:30.000Z"
+    },
+    {
+     "id": "3cca6bdc-40a9-7718-add9-df37a91bf74d",
+     "channel": "whatsapp",
+     "templateKey": "order_confirmed",
+     "destination": "+919892000001",
+     "recipientUserId": "d1dafe6b-235f-73f2-bc56-0bb04b8278ac",
+     "recipientRetailerId": "34191c43-f0bc-70ab-a39d-fcbe8f94ae36",
+     "retailerName": "Shree Ganesh Kirana",
+     "senderName": "M/s. Tarsun Enterprise",
+     "locale": "en-IN",
+     "body": "Your order SO-0008 of ₹5,242.00 is confirmed and will be delivered on the next beat day. Thank you! — M/s. Tarsun Enterprise",
+     "status": "delivered",
+     "refType": "order",
+     "refId": "c4db465a-ca45-78ba-b696-b58639961df1",
+     "scheduledAt": null,
+     "sentAt": "2026-06-15T05:43:00.000Z",
+     "deliveredAt": "2026-06-15T05:44:00.000Z",
+     "readAt": null,
+     "createdAt": "2026-06-15T05:43:00.000Z"
+    }
+   ],
+   "nextCursor": null,
+   "unreadCount": 0
+  }
+ }
+]

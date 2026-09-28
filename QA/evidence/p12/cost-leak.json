@@ -1,0 +1,54 @@
+[
+ {
+  "role": "salesperson",
+  "service": "sales",
+  "opsScanned": 48,
+  "badFieldHits": []
+ },
+ {
+  "role": "delivery",
+  "service": "delivery",
+  "opsScanned": 69,
+  "badFieldHits": []
+ },
+ {
+  "role": "warehouse",
+  "service": "warehouse",
+  "opsScanned": 61,
+  "badFieldHits": [
+   {
+    "op": "tenantCatalog.packConfigs.list",
+    "path": "/warehouse/tenant-catalog/pack-configs",
+    "status": 200,
+    "hits": [
+     {
+      "key": "$.items[0].marginBasis",
+      "value": "ptd"
+     },
+     {
+      "key": "$.items[1].marginBasis",
+      "value": "ptd"
+     },
+     {
+      "key": "$.items[2].marginBasis",
+      "value": "ptd"
+     },
+     {
+      "key": "$.items[3].marginBasis",
+      "value": "ptd"
+     },
+     {
+      "key": "$.items[4].marginBasis",
+      "value": "ptd"
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "role": "retailer",
+  "service": "retailer",
+  "opsScanned": 34,
+  "badFieldHits": []
+ }
+]

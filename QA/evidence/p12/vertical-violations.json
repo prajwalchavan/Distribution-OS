@@ -1,0 +1,25 @@
+{
+ "violations": [],
+ "denyDisagree": [
+  {
+   "role": "accountant",
+   "service": "manager",
+   "method": "POST",
+   "op": "retailers.upsert",
+   "path": "/manager/retailers",
+   "xroles": [
+    "owner",
+    "manager",
+    "accountant",
+    "salesperson",
+    "warehouse",
+    "delivery"
+   ],
+   "status": 403,
+   "refusalKind": "OTHER_403",
+   "expectedRun": true,
+   "ran": false,
+   "digest": "err{ : tier and credit terms can only be set by the owner or the manager (use setCredit)}"
+  }
+ ]
+}

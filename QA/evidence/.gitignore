@@ -1,0 +1,4 @@
+# Raw dumps the lane tools regenerate from a running service (QA/tools/p12, p16): kept on disk, not in git.
+p12/openapi/
+p12/vertical-all.json
+p16/openapi-*.json
