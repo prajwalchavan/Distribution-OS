@@ -272,7 +272,7 @@ export class InventoryService {
   async assertVehicleNotOut(
     tx: Db,
     locationId: string,
-    opts: { untilSettled?: boolean } = {},
+    opts: { untilSettled?: boolean; onto?: boolean } = {},
   ): Promise<void> {
     const out = await this.vehicleTrip(
       tx,
@@ -282,6 +282,14 @@ export class InventoryService {
     if (out === null) return
     const van = out.vehicle ?? 'This vehicle'
     const trip = out.tripNo ?? 'its trip'
+    // Vans and trips 1 (architect ruling of 2026-09-28): a van carries one trip at a time, so nothing is put ON a van
+    // by hand while a trip holds it either — that trip's settlement would count it as its own. Its own goods go on
+    // through its load sheet.
+    if (opts.onto === true)
+      throw new ORPCError('CONFLICT', {
+        message: `${van} is on trip ${trip}, which ${out.state === 'active' ? 'is out on the road' : out.state === 'closing' ? 'has been checked in and is not settled yet' : 'is being loaded'}: nothing is put on the van by hand while a trip holds it — a van carries one trip at a time. Goods for that trip go on through its load sheet; anything else waits until trip ${trip} is settled.`,
+        data: { code: 'vehicle_on_trip', tripId: out.tripId, tripState: out.state },
+      })
     throw new ORPCError('CONFLICT', {
       message:
         out.state === 'closing'

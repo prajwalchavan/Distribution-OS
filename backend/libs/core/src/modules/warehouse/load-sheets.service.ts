@@ -67,11 +67,13 @@ import {
   loadLots,
   loadVariantInfo,
   PIN_HOLDERS,
+  placeOf,
   vehicleLocation,
   vehicleRegNos,
   WAREHOUSE_DESK,
   writeAudit,
 } from './warehouse.internals.js'
+import { sourceRefusal } from './stock-guards.js'
 import {
   challanDetail,
   loadSheetDetail,
@@ -175,6 +177,28 @@ export interface TripCarriage {
   bills(tx: Db, invoiceIds: readonly string[]): Promise<Map<string, LoadingTrip>>
   /** One trip, or null; `lock` takes it `FOR UPDATE`. */
   trip(tx: Db, tripId: string, opts: { lock: boolean }): Promise<LoadingTrip | null>
+  /**
+   * The trip that holds the van at `vehicleLocationId` — on the road, checked in and not settled, or already
+   * loaded — other than `exceptTripId`, or null when the van is free (vans and trips 1).
+   */
+  vanHolder(
+    tx: Db,
+    vehicleLocationId: string,
+    exceptTripId: string | null,
+  ): Promise<VanHolder | null>
+}
+
+/** A trip that holds a van (vans and trips 1), with the words a refusal names it by. */
+export interface VanHolder {
+  tripId: string
+  tripNo: string | null
+  state: string
+  /** The registration plate. */
+  vehicle: string | null
+  /** "out on the road on trip TRIP-0003" */
+  words: string
+  /** What has to happen first: "check trip TRIP-0003 in and settle it". */
+  first: string
 }
 
 /** How a refusal names a trip's state: "out on the road", "checked in", … */
@@ -283,6 +307,9 @@ export class LoadSheetsService {
           throw new ORPCError('BAD_REQUEST', {
             message: 'a load sheet moves stock between two different locations',
           })
+        // Ruling 6 and vans and trips 1: a sheet is never drawn from the bin, the dock or a shop's floor, nor from a
+        // van another trip holds — refused when it is made, not only at the gate.
+        await this.assertLoadSource(tx, fromLocationId)
         if (orderIds.length === 0 && input.vanStock.length === 0)
           throw new ORPCError('BAD_REQUEST', {
             message: 'a load sheet needs at least one packed order or some van stock',
@@ -447,6 +474,10 @@ export class LoadSheetsService {
               approvedAt: sheet.approvedAt,
             },
           })
+        // Vans and trips 1: the manager's PIN is not given for a load onto a van another trip still holds, nor for
+        // one drawn from such a van (or from the bin); the sentence names the trip and what has to happen first.
+        await this.assertLoadSource(tx, sheet.fromLocationId)
+        await this.assertVanFree(tx, sheet, await this.ownTripOf(tx, sheet), 'approve')
         const now = new Date()
         let approved: LoadSheetRow
         try {
@@ -532,6 +563,11 @@ export class LoadSheetsService {
             { lock: true },
           )
         }
+        // Vans and trips 1, again at the gate and before anything moves: a van carries one trip at a time. Nothing is
+        // loaded onto a van another trip holds — its settlement would count this load as its own — and nothing is
+        // drawn from one (B2), nor from the bin (ruling 6).
+        await this.assertLoadSource(tx, sheet.fromLocationId)
+        await this.assertVanFree(tx, sheet, tripId, 'confirm')
         const selfApproving =
           ctx.actorRole === 'owner' || ctx.actorRole === 'manager' || ctx.actorRole === 'system'
         if (sheet.approvedBy === null && !selfApproving)
@@ -1107,6 +1143,95 @@ export class LoadSheetsService {
   }
 
   /**
+   * WHERE A SHEET DRAWS FROM (ruling 6; vans and trips 1). A godown, or a van that no trip holds: never the damaged
+   * / expiry bin, the dock or a shop's floor (`sourceRefusal`), and never a van with a trip on the road, checked in
+   * and not settled, or loaded — its pieces belong to that trip's bills and van sales, and a van-to-van sheet took a
+   * loaded bill's pieces off it (QA verify 2, B2). 409 `vehicle_on_trip` naming the trip and what has to happen
+   * first. Asked at create, at the approval and at the gate, so a sheet drafted before the rule is refused too.
+   */
+  private async assertLoadSource(tx: Db, fromLocationId: string): Promise<void> {
+    const place = await placeOf(tx, fromLocationId)
+    const refused = sourceRefusal(place, fromLocationId, 'load sheet')
+    if (refused !== null) throw refused
+    if (place?.kind !== 'vehicle' || this.carriage === null) return
+    const holder = await this.carriage.vanHolder(tx, fromLocationId, null)
+    if (holder === null) return
+    throw new ORPCError('CONFLICT', {
+      message: `${holder.vehicle ?? place.name} is ${holder.words}: its pieces belong to that trip's bills and van sales, so nothing is taken off it on a load sheet until the trip is settled. ${capitalise(holder.first)} first; the godown then counts the van off on Van check-in.`,
+      data: {
+        code: 'vehicle_on_trip',
+        tripId: holder.tripId,
+        tripNo: holder.tripNo,
+        tripState: holder.state,
+      },
+    })
+  }
+
+  /**
+   * A VAN CARRIES ONE TRIP AT A TIME (architect ruling of 2026-09-28, vans and trips 1; QA verify 2, B1). Goods are
+   * not loaded onto a van that another trip holds — on the road, checked in and not settled, or already loaded —
+   * because that trip's settlement counts everything standing on the van: tomorrow's trip loaded onto the van that
+   * was out today had its bill swept into the godown as free stock at today's settlement, and its crew found
+   * "Only 0 pc" at the door. And a trip that is over takes no more goods. Refused 409 `vehicle_on_trip` at the
+   * approval and again at the gate (nothing has moved), naming the trip and what has to happen first. `ownTripId`
+   * is the trip the sheet loads for; the van's own trip on the road may still take a late sheet (QA DOS-148).
+   */
+  private async assertVanFree(
+    tx: Db,
+    sheet: { toLocationId: string },
+    ownTripId: string | null,
+    step: 'approve' | 'confirm',
+  ): Promise<void> {
+    const carriage = this.carriage
+    if (carriage === null) return
+    const own = ownTripId === null ? null : await carriage.trip(tx, ownTripId, { lock: false })
+    if (
+      own !== null &&
+      own.state !== 'planned' &&
+      own.state !== 'loading' &&
+      own.state !== 'active'
+    )
+      throw new ORPCError('CONFLICT', {
+        message: `Trip ${own.tripNo ?? 'of this sheet'} is ${TRIP_STATE_WORDS[own.state] ?? own.state}, so nothing more is loaded for it: build the sheet for a trip that is still to go out.`,
+        data: { code: 'trip_left', tripId: own.tripId, tripState: own.state },
+      })
+    const holder = await carriage.vanHolder(tx, sheet.toLocationId, ownTripId)
+    if (holder === null) return
+    const forWhat = own === null ? '' : ` for trip ${own.tripNo ?? 'this trip'}`
+    throw new ORPCError('CONFLICT', {
+      message: `${holder.vehicle ?? 'This vehicle'} is ${holder.words}. A van carries one trip at a time, so nothing is loaded onto it${forWhat} until that trip is settled: ${holder.first} first, then ${step === 'approve' ? 'approve' : 'count out'} this sheet.`,
+      data: {
+        code: 'vehicle_on_trip',
+        tripId: holder.tripId,
+        tripNo: holder.tripNo,
+        tripState: holder.state,
+      },
+    })
+  }
+
+  /**
+   * The trip a draft sheet loads for, as its approval judges it: the trip it names, else the one trip its bills
+   * ride (a sheet built for the vehicle before QA DOS-354 may name none), else none.
+   */
+  private async ownTripOf(
+    tx: Db,
+    sheet: { tripId: string | null; orderIds: readonly string[] },
+  ): Promise<string | null> {
+    if (sheet.tripId !== null || this.carriage === null || sheet.orderIds.length === 0)
+      return sheet.tripId
+    const packs = await tx
+      .select({ invoiceId: packConfirmations.invoiceId })
+      .from(packConfirmations)
+      .where(inArray(packConfirmations.orderId, [...sheet.orderIds]))
+    const riding = await this.carriage.bills(
+      tx,
+      packs.map((p) => p.invoiceId).filter((id): id is string => id !== null),
+    )
+    const trips = new Set([...riding.values()].map((t) => t.tripId))
+    return trips.size === 1 ? ([...trips][0] ?? null) : null
+  }
+
+  /**
    * The DRAFT sheets built for a trip that is ending before it was loaded (QA DOS-354): cancelled with the trip's
    * reason, so their bills are free for another sheet and no draft of a dead trip can still be counted out
    * later and dispatch bills with no trip to carry them. Nothing had moved (a draft moves no stock). Asked by
@@ -1532,4 +1657,9 @@ export class LoadSheetsService {
     if (!row) throw new ORPCError('NOT_FOUND', { message: `load sheet ${id} not found` })
     return row
   }
+}
+
+/** The first letter of a sentence part upper-cased: "settle trip TRIP-0003" → "Settle trip TRIP-0003". */
+function capitalise(words: string): string {
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }

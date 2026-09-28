@@ -267,6 +267,50 @@ export async function vehicleLocation(tx: Db, locationId: string): Promise<Vehic
   return { id: row.id, name: row.name, regNo: row.regNo }
 }
 
+/**
+ * A place's name and kind, for the rules that depend on WHICH place stock moves out of (architect ruling 6 of
+ * 2026-09-28, vans and trips): a wave is picked, and a load sheet drawn, from a godown or a van, never from the
+ * damaged / expiry bin, the dock or a shop's floor. Null when it is not one of this distributor's places.
+ */
+export async function placeOf(
+  tx: Db,
+  locationId: string,
+): Promise<{ id: string; name: string; kind: string } | null> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({ id: locations.id, name: locations.name, kind: locations.kind })
+    .from(locations)
+    .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+    .limit(1)
+  return row ?? null
+}
+
+/**
+ * THE DAMAGED / EXPIRY BIN: where expired pieces go when a pack is undone (vans and trips 4), the way a receipt that
+ * arrives expired goes there (ruling 4). `bootstrapTenant` gives every distributor one active `kind = 'damaged'`
+ * place; the first by id when there are more.
+ */
+export async function damagedBin(tx: Db): Promise<{ id: string; name: string }> {
+  const { tenantId } = currentTenant()
+  const [row] = await tx
+    .select({ id: locations.id, name: locations.name })
+    .from(locations)
+    .where(
+      and(
+        eq(locations.tenantId, tenantId),
+        eq(locations.kind, 'damaged'),
+        eq(locations.active, true),
+      ),
+    )
+    .orderBy(locations.id)
+    .limit(1)
+  if (!row)
+    throw new ORPCError('BAD_REQUEST', {
+      message: 'this distributor has no damaged / expiry bin (bootstrap it first)',
+    })
+  return row
+}
+
 /** The plate for a sheet already built, without re-validating the location. Null when unknown. */
 export async function vehicleRegNos(
   tx: Db,

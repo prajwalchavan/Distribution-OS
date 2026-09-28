@@ -48,6 +48,7 @@ import {
   memberships,
   trips,
   tripStops,
+  vehicles,
   withTenant,
   type ActorRole,
   type Db,
@@ -62,6 +63,7 @@ import {
   requireRole,
   writeAudit,
 } from '../../platform/index.js'
+import { istDateWord } from '../../platform/refusal-words.js'
 import { BillingService } from '../billing/index.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
@@ -86,6 +88,7 @@ import {
   lockStop,
   lockTrip,
   PIN_HOLDERS,
+  retailerNames,
   ridingTrips,
   STOCK_VIEWERS,
   STOP_TERMINAL,
@@ -111,6 +114,20 @@ import {
   toTrip,
   type TripDetailDeps,
 } from './delivery.mappers.js'
+
+/**
+ * A trip that still has a claim on a van (architect rulings of 2026-09-28, vans and trips 1): its number, day and
+ * state, whether goods were already loaded for it, and the van's plate — how every refusal names it.
+ */
+export interface VanTrip {
+  tripId: string
+  tripNo: string | null
+  tripDate: string
+  state: 'planned' | 'loading' | 'active' | 'closing'
+  /** On the road or checked in, or planned / loading with a confirmed load-out: the van holds its goods. */
+  loaded: boolean
+  vehicle: string | null
+}
 
 /** One stop as the route optimiser needs it: where it stands today, and where the shop actually is. */
 export interface RoutingStop {
@@ -515,6 +532,23 @@ export class TripsService {
         assertCrewOrDesk(trip, DOORSTEP)
         if (trip.state === 'active') return { item: await this.detail(tx, trip) }
         const to = tripTransition(trip.state, 'depart')
+        // Vans and trips 1 (architect ruling of 2026-09-28): a van carries one trip at a time. A trip does not leave
+        // with a van that another trip still holds — on the road, checked in and not settled, or already loaded —
+        // or its goods and this trip's would share one van, and one settlement would sweep the other's bills.
+        const van = await loadVehicle(tx, trip.vehicleId)
+        const holder = await this.vanHolder(tx, van.locationId, trip.id)
+        if (holder !== null) {
+          const { words, first } = vanTripWords(holder)
+          throw new ORPCError('CONFLICT', {
+            message: `${van.regNo} is ${words}, so trip ${trip.tripNo ?? 'this trip'} does not leave with it: a van carries one trip at a time. ${capitalise(first)} first, then send this trip out.`,
+            data: {
+              code: 'vehicle_on_trip',
+              tripId: holder.tripId,
+              tripNo: holder.tripNo,
+              tripState: holder.state,
+            },
+          })
+        }
         const stops = await stopsOf(tx, trip.id)
         if (stops.length === 0 && !trip.vanSalesEnabled)
           throw new ORPCError('CONFLICT', {
@@ -610,6 +644,11 @@ export class TripsService {
             ? await this.checkInBeforeLeaving(tx, trip, now, input.deviceId ?? null)
             : trip.state
         const to = tripTransition(from, 'return')
+        // Vans and trips 3 (QA DOS-354 verify 2, M2): a bill planned on the trip that never rode its van — already
+        // delivered elsewhere, part-delivered, closed or cancelled (a trip planned before the rule) — comes off it
+        // here, named in the settlement, and the check-in goes on. It used to fail the whole check-in with the
+        // machine's "order: cannot apply "return_undelivered" in state "delivered"", and the van stayed frozen.
+        await this.takeOffNotCarried(tx, trip, null, now, input.deviceId ?? null)
         for (const stop of await stopsOf(tx, trip.id)) {
           if (STOP_TERMINAL.has(stop.state)) continue
           await this.failStopInTx(tx, stop, 'other', 'trip returned', now, input.deviceId ?? null)
@@ -655,6 +694,20 @@ export class TripsService {
       idempotent(tx, input.idempotencyKey, input, async () => {
         const trip = await lockTrip(tx, input.id)
         if (trip.state === 'cancelled') return { item: await this.detail(tx, trip) }
+        // QA DOS-354 verify 2 (M2): a trip that has left is never cancelled, and the desk is told what to do in words
+        // — never the machine's "trip: cannot apply "cancel" in state "active"".
+        if (trip.state !== 'planned' && trip.state !== 'loading') {
+          const tripName = trip.tripNo ?? 'This trip'
+          throw new ORPCError('CONFLICT', {
+            message:
+              trip.state === 'active'
+                ? `Trip ${tripName} is out on the road, so it is not cancelled: check it in when the van is back. Its bills that did not reach a shop come back undelivered, the godown counts the van off, and the desk settles it.`
+                : trip.state === 'closing'
+                  ? `Trip ${tripName} has come back and is checked in, so it is not cancelled: settle it on the desk.`
+                  : `Trip ${tripName} is settled; there is nothing left to cancel.`,
+            data: { code: 'trip_left', tripState: trip.state },
+          })
+        }
         const to = tripTransition(trip.state, 'cancel')
         const loaded = await this.loadOf(tx, trip)
         if (loaded.challans.length > 0 || loaded.dispatched.length > 0) {
@@ -747,14 +800,13 @@ export class TripsService {
         const orderIds = [
           ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
         ]
+        // Only a dispatched bill stays: its goods are on the van. A packed bill waits on the dock; one already
+        // delivered or cancelled never rode this van at all (vans and trips 3), so it comes off like a packed one.
         for (const orderId of orderIds) {
           const order = await this.orders.findOrder(tx, orderId)
-          if (order && order.state !== 'packed')
+          if (order && order.state === 'dispatched')
             throw new ORPCError('CONFLICT', {
-              message:
-                order.state === 'dispatched'
-                  ? `Bill ${bill} is already on the van (the godown counted it out); it comes off at the door or at the check-in, not here`
-                  : `Bill ${bill} is ${order.state}; only a packed bill waiting to be loaded comes off a trip`,
+              message: `Bill ${bill} is already on the van (the godown counted it out); it comes off at the door or at the check-in, not here`,
               data: { code: 'bill_loaded', orderState: order.state },
             })
         }
@@ -1325,7 +1377,7 @@ export class TripsService {
    */
   private async loadOf(
     tx: Db,
-    trip: TripRow,
+    trip: { id: string },
   ): Promise<{ sheetIds: string[]; challans: string[]; dispatched: string[] }> {
     const confirmed = await this.loadSheets.confirmedForTrip(tx, trip.id)
     const planned = await tx
@@ -1356,6 +1408,105 @@ export class TripsService {
         ...new Set(dispatchedBills.map((d) => refs.get(d.invoiceId)?.invoiceNo ?? d.invoiceId)),
       ],
     }
+  }
+
+  /**
+   * EVERY TRIP THAT STILL HAS A CLAIM ON A VAN (architect rulings of 2026-09-28, vans and trips 1: "a van carries
+   * one trip at a time"). The trips of the vehicle whose stock location is `vehicleLocationId` that are not over —
+   * planned, loading, on the road or checked in and not settled — each with whether goods were already loaded for
+   * it: a confirmed load sheet of it, or a bill planned on it that the godown has dispatched (a sheet built for
+   * the vehicle before QA DOS-354 may name no trip). The one on the road first, then the one checked in, then the
+   * loaded ones by day. Read as `system`: the crew's and the godown's own RLS may not see every trip, delivery or
+   * sheet, and only ids, numbers and states come out of it.
+   */
+  async tripsOnVan(tx: Db, vehicleLocationId: string): Promise<VanTrip[]> {
+    const { tenantId } = currentTenant()
+    return asSystemRole(tx, async () => {
+      const rows = await tx
+        .select({
+          tripId: trips.id,
+          tripNo: trips.tripNo,
+          tripDate: trips.tripDate,
+          state: trips.state,
+          vehicle: vehicles.regNo,
+        })
+        .from(trips)
+        .innerJoin(vehicles, eq(vehicles.id, trips.vehicleId))
+        .where(
+          and(
+            eq(trips.tenantId, tenantId),
+            eq(vehicles.locationId, vehicleLocationId),
+            inArray(trips.state, ['planned', 'loading', 'active', 'closing']),
+          ),
+        )
+        .orderBy(asc(trips.tripDate), asc(trips.id))
+      const out: VanTrip[] = []
+      for (const row of rows) {
+        if (
+          row.state !== 'planned' &&
+          row.state !== 'loading' &&
+          row.state !== 'active' &&
+          row.state !== 'closing'
+        )
+          continue
+        const onTheVan = row.state === 'active' || row.state === 'closing'
+        const load = onTheVan ? null : await this.loadOf(tx, { id: row.tripId })
+        out.push({
+          tripId: row.tripId,
+          tripNo: row.tripNo,
+          tripDate: row.tripDate,
+          state: row.state,
+          loaded:
+            onTheVan || (load !== null && (load.sheetIds.length > 0 || load.dispatched.length > 0)),
+          vehicle: row.vehicle,
+        })
+      }
+      const rank = (t: VanTrip): number =>
+        t.state === 'active' ? 0 : t.state === 'closing' ? 1 : t.loaded ? 2 : 3
+      return out.sort((a, b) => rank(a) - rank(b))
+    })
+  }
+
+  /**
+   * THE TRIP THAT HOLDS A VAN, other than `exceptTripId` (vans and trips 1): one on the road, one checked in and not
+   * settled, or one the godown has already loaded — or null when the van is free. A load-out onto the van, a trip's
+   * departure with it, and a hand move into it are refused while another trip holds it (`vehicle_on_trip`); a
+   * settlement takes off the van only its own trip's pieces (ruling 2). `LoadSheetsService` and `InventoryService`
+   * ask it through the lookups `DeliveryModule` registers at start-up; inventory and warehouse never read trips.
+   */
+  async vanHolder(
+    tx: Db,
+    vehicleLocationId: string,
+    exceptTripId: string | null,
+  ): Promise<VanTrip | null> {
+    return (
+      (await this.tripsOnVan(tx, vehicleLocationId)).find(
+        (t) => t.tripId !== exceptTripId && t.loaded,
+      ) ?? null
+    )
+  }
+
+  /**
+   * The trip a vehicle location is in the hands of among `states`, for `InventoryService.assertVehicleNotOut`
+   * (QA DOS-358): a trip the godown has loaded while it was still `planned` holds the van as a `loading` one does.
+   */
+  async vehicleTripOut(
+    tx: Db,
+    vehicleLocationId: string,
+    states: readonly ('loading' | 'active' | 'closing')[],
+  ): Promise<{
+    tripId: string
+    tripNo: string | null
+    state: 'loading' | 'active' | 'closing'
+    vehicle: string | null
+  } | null> {
+    if (states.length === 0) return null
+    for (const t of await this.tripsOnVan(tx, vehicleLocationId)) {
+      const state = t.state === 'planned' ? (t.loaded ? 'loading' : null) : t.state
+      if (state !== null && states.includes(state))
+        return { tripId: t.tripId, tripNo: t.tripNo, state, vehicle: t.vehicle }
+    }
+    return null
   }
 
   /**
@@ -1399,14 +1550,18 @@ export class TripsService {
     const orderIds = [
       ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
     ]
-    const dispatched = new Set<string>()
+    const stateOf = new Map<string, string>()
     for (let at = 0; at < orderIds.length; at += MAX_ORDERS_PER_READ)
       for (const order of await this.orders.fulfilmentOrders(
         tx,
         orderIds.slice(at, at + MAX_ORDERS_PER_READ),
       ))
-        if (order.state === 'dispatched') dispatched.add(order.orderId)
-    const notLoaded = planned.filter((d) => d.orderId === null || !dispatched.has(d.orderId))
+        stateOf.set(order.orderId, order.state)
+    // Still packed on the dock (or unknown): never counted out, so it comes off here. A bill already handed over
+    // elsewhere never rode this van either; `takeOffNotCarried` takes it off with the check-in and names it.
+    const notLoaded = planned.filter(
+      (d) => d.orderId === null || (stateOf.get(d.orderId) ?? 'packed') === 'packed',
+    )
     let skipped = 0
     if (notLoaded.length > 0) {
       await asSystemRole(tx, () =>
@@ -1489,6 +1644,7 @@ export class TripsService {
         found.set(order.orderId, { state: order.state, orderNo: order.orderNo })
     const notLoaded: string[] = []
     const dispatched: string[] = []
+    const cannotGo: string[] = []
     for (const orderId of orderIds) {
       const order = found.get(orderId)
       if (order === undefined || order.state === 'packed') {
@@ -1496,14 +1652,49 @@ export class TripsService {
         continue
       }
       if (order.state === 'dispatched') dispatched.push(orderId)
-      if (
-        order.state === 'dispatched' ||
-        order.state === 'delivered' ||
-        order.state === 'partially_delivered'
+      else cannotGo.push(orderId)
+    }
+    /*
+     * Vans and trips 3 (QA DOS-354 verify 2, M2): a bill already handed over — delivered, part-delivered, closed —
+     * or cancelled does not leave again. It used to pass this gate ("delivered orders pass"), the door answered "0
+     * left to deliver", and the trip could never be checked in. Named with the shop, and the way out: take it off.
+     */
+    if (cannotGo.length > 0) {
+      const planned = await tx
+        .select({
+          orderId: deliveries.orderId,
+          invoiceId: deliveries.invoiceId,
+          retailerId: deliveries.retailerId,
+        })
+        .from(deliveries)
+        .where(
+          and(
+            eq(deliveries.tripId, trip.id),
+            sql`${deliveries.outcome} is null`,
+            inArray(deliveries.orderId, cannotGo),
+          ),
+        )
+      const refs = await this.billing.invoiceRefs(
+        tx,
+        planned.map((d) => d.invoiceId),
       )
-        continue
+      const names = await retailerNames(
+        tx,
+        planned.map((d) => d.retailerId),
+      )
+      const why = cannotGo.map((orderId) => {
+        const d = planned.find((p) => p.orderId === orderId)
+        const order = found.get(orderId)
+        return billGoesOutWords(
+          d === undefined ? null : (refs.get(d.invoiceId)?.invoiceNo ?? null),
+          d === undefined ? '' : (names.get(d.retailerId) ?? ''),
+          order?.orderNo ?? null,
+          order?.state ?? 'unknown',
+        )
+      })
       throw new ORPCError('CONFLICT', {
-        message: `order ${order.orderNo ?? orderId} is ${order.state}; only a packed bill leaves on a trip`,
+        message: `${why.join(' ')} Take ${cannotGo.length === 1 ? 'it' : 'them'} off trip ${trip.tripNo ?? 'this trip'} (Take it off, on Trips), then send the trip out.`,
+        data: { code: 'bill_cannot_go_out', orderIds: cannotGo },
       })
     }
     if (notLoaded.length > 0)
@@ -1576,6 +1767,19 @@ export class TripsService {
   ): Promise<void> {
     const ctx = currentTenant()
     if (d.outcome !== null) return
+    // Vans and trips 3: only a bill that rode the van comes back on it. The check-in and the fail sheet take a bill
+    // that never rode off the trip first (`takeOffNotCarried`); any other caller is told so in words.
+    if (d.orderId !== null) {
+      const order = await this.orders.findOrder(tx, d.orderId)
+      if (order !== undefined && order.state !== 'dispatched') {
+        const bill = await this.billing.invoiceRefs(tx, [d.invoiceId])
+        const names = await retailerNames(tx, [d.retailerId])
+        throw new ORPCError('CONFLICT', {
+          message: `${notCarriedWords(bill.get(d.invoiceId)?.invoiceNo ?? null, names.get(d.retailerId) ?? '', order.orderNo, order.state)} It is not declared undelivered.`,
+          data: { code: 'bill_not_on_van', orderState: order.state },
+        })
+      }
+    }
     await tx
       .update(deliveries)
       .set({
@@ -1626,6 +1830,140 @@ export class TripsService {
     })
   }
 
+  /**
+   * BILLS THAT NEVER RODE THIS VAN COME OFF THE TRIP (vans and trips 3, QA DOS-354 verify 2 M2). A planned bill with
+   * no outcome whose order is not `dispatched` — delivered elsewhere or sold off a van, part-delivered, closed,
+   * cancelled, or (on a trip that left) still packed — was never counted onto this van, so nothing of it comes back:
+   * failing it would walk a delivered order back to `packed` (the machine refuses, and the check-in used to die on
+   * its raw text). Its planned delivery row is removed as `dropBill` removes one, audited
+   * `trip.bills_not_carried` with the bill, the shop and why, which the settlement lists (`skippedBills`). With no
+   * `stopId` (the check-in) every such bill of the trip goes and a stop left with no bill is `skipped`; with one (the
+   * crew's fail sheet) only that stop's, and the stop fails as the crew said. Returns the bills taken off.
+   */
+  async takeOffNotCarried(
+    tx: Db,
+    trip: TripRow,
+    stopId: string | null,
+    at: Date,
+    deviceId: string | null,
+  ): Promise<{ invoiceId: string; invoiceNo: string | null; why: string }[]> {
+    const planned = await asSystemRole(tx, () =>
+      tx
+        .select()
+        .from(deliveries)
+        .where(
+          and(
+            eq(deliveries.tripId, trip.id),
+            stopId === null ? undefined : eq(deliveries.stopId, stopId),
+            sql`${deliveries.outcome} is null`,
+          ),
+        )
+        .orderBy(asc(deliveries.id))
+        .for('update'),
+    )
+    const orderIds = [
+      ...new Set(planned.map((d) => d.orderId).filter((id): id is string => id !== null)),
+    ]
+    if (orderIds.length === 0) return []
+    const orders = new Map<string, { state: string; orderNo: string | null }>()
+    for (let i = 0; i < orderIds.length; i += MAX_ORDERS_PER_READ)
+      for (const order of await this.orders.fulfilmentOrders(
+        tx,
+        orderIds.slice(i, i + MAX_ORDERS_PER_READ),
+      ))
+        orders.set(order.orderId, { state: order.state, orderNo: order.orderNo })
+    const notCarried = planned.filter((d) => {
+      if (d.orderId === null) return false
+      const state = orders.get(d.orderId)?.state
+      return state !== undefined && state !== 'dispatched'
+    })
+    if (notCarried.length === 0) return []
+    const refs = await this.billing.invoiceRefs(
+      tx,
+      notCarried.map((d) => d.invoiceId),
+    )
+    const names = await retailerNames(
+      tx,
+      notCarried.map((d) => d.retailerId),
+    )
+    const bills = notCarried.map((d) => {
+      const order = orders.get(d.orderId ?? '')
+      const invoiceNo = refs.get(d.invoiceId)?.invoiceNo ?? null
+      return {
+        deliveryId: d.id,
+        stopId: d.stopId,
+        invoiceId: d.invoiceId,
+        invoiceNo,
+        retailerName: names.get(d.retailerId) ?? '',
+        orderNo: order?.orderNo ?? null,
+        orderState: order?.state ?? 'unknown',
+        why: notCarriedWords(
+          invoiceNo,
+          names.get(d.retailerId) ?? '',
+          order?.orderNo ?? null,
+          order?.state ?? 'unknown',
+        ),
+      }
+    })
+    await asSystemRole(tx, () =>
+      tx.delete(deliveries).where(
+        inArray(
+          deliveries.id,
+          notCarried.map((d) => d.id),
+        ),
+      ),
+    )
+    let skipped = 0
+    if (stopId === null) {
+      for (const emptied of new Set(notCarried.map((d) => d.stopId))) {
+        const [left] = await tx
+          .select({ n: sql<number>`count(*)::int` })
+          .from(deliveries)
+          .where(eq(deliveries.stopId, emptied))
+        if (Number(left?.n ?? 0) > 0) continue
+        const done = await tx
+          .update(tripStops)
+          .set({
+            state: 'skipped',
+            failureNote: 'not carried: its bill never rode this van',
+            completedAt: at,
+            updatedAt: at,
+          })
+          .where(
+            and(
+              eq(tripStops.id, emptied),
+              sql`${tripStops.state} not in ('delivered', 'partial', 'failed', 'skipped')`,
+            ),
+          )
+          .returning({ id: tripStops.id })
+        skipped += done.length
+      }
+      if (skipped > 0)
+        await this.updateTrip(tx, trip.id, {
+          plannedStops: Math.max(0, trip.plannedStops - skipped),
+        })
+    }
+    await writeAudit(tx, {
+      action: 'trip.bills_not_carried',
+      entityType: 'trip',
+      entityId: trip.id,
+      before: { tripState: trip.state },
+      after: {
+        bills: bills.map((b) => ({
+          invoiceId: b.invoiceId,
+          invoiceNo: b.invoiceNo,
+          retailerName: b.retailerName,
+          orderNo: b.orderNo,
+          orderState: b.orderState,
+          why: b.why,
+        })),
+        stopsSkipped: skipped,
+      },
+      deviceId,
+    })
+    return bills.map((b) => ({ invoiceId: b.invoiceId, invoiceNo: b.invoiceNo, why: b.why }))
+  }
+
   /** The doorstep failure, shared by `stops.fail` and `trips.return`. Stock stays on the van. */
   private async failStopInTx(
     tx: Db,
@@ -1635,6 +1973,9 @@ export class TripsService {
     at: Date,
     deviceId: string | null,
   ): Promise<StopRow> {
+    // Vans and trips 3: a bill of this stop that never rode the van (delivered elsewhere, cancelled) comes off the
+    // trip instead of being failed — failing it would walk a delivered order back to `packed`.
+    await this.takeOffNotCarried(tx, await findTrip(tx, stop.tripId), stop.id, at, deviceId)
     // QA DOS-232: a stop where some bill was already handed over did not fail — the rest came back.
     const [handedOver] = await tx
       .select({ id: deliveries.id })
@@ -1725,12 +2066,21 @@ export class TripsService {
           message: `invoice ${ref.invoiceNo ?? invoiceId} belongs to another shop than stop ${String(sequence)}`,
         })
       orderIds.set(invoiceId, bill.orderId)
+      // Vans and trips 3 (QA DOS-354 verify 2, M2): a trip takes only a bill that can still go out. A bill whose
+      // goods were already handed over — delivered in full or in part, or sold off a van — never rides again:
+      // planned, it departed, and the trip could then be neither checked in nor settled.
+      await this.assertBillCanGoOut(tx, {
+        invoiceNo: ref.invoiceNo ?? null,
+        orderId: bill.orderId,
+        retailerName: retailer.name,
+      })
       // QA DOS-131: under the caller's own RLS a warehouse planner, or another crew, saw no planned row
       // and this 409 never fired; the shared ids-only predicate runs as `system`.
       const riding = (await ridingTrips(tx, [invoiceId])).get(invoiceId)
       if (riding?.how === 'planned')
         throw new ORPCError('CONFLICT', {
-          message: `invoice ${ref.invoiceNo ?? invoiceId} is already planned on trip ${riding.tripId}`,
+          message: `${ref.invoiceNo ?? 'This bill'} · ${retailer.name} is already planned on trip ${riding.tripNo ?? 'another trip'}, which has not come back and settled. A bill rides one trip at a time: take it off that trip first (Take it off, on Trips), then plan it here.`,
+          data: { code: 'bill_on_another_trip', tripId: riding.tripId, tripNo: riding.tripNo },
         })
       // QA DOS-172: the goods ride back on the van until it checks in; no trip plans the bill before then.
       if (riding?.how === 'returned_on_road')
@@ -1781,6 +2131,26 @@ export class TripsService {
         throw new ORPCError('BAD_REQUEST', { message: 'a stop names a row that does not exist' })
       throw err
     }
+  }
+
+  /**
+   * A BILL THAT CAN STILL GO OUT (vans and trips 3, QA DOS-354 verify 2 M2): its order is packed (waiting to be
+   * loaded) or dispatched (on a van, planned again only through the trip that carries it). A bill already handed
+   * over — the order delivered, part-delivered or closed, which a van sale is from the moment it is billed — or
+   * one whose order was cancelled, is refused 409 `bill_cannot_go_out`, naming the bill, the shop and why. Asked
+   * when a stop is planned (`trips.create`, `stops.add`); `depart` asks the same of the bills already on the trip.
+   */
+  private async assertBillCanGoOut(
+    tx: Db,
+    bill: { invoiceNo: string | null; orderId: string | null; retailerName: string },
+  ): Promise<void> {
+    if (bill.orderId === null) return
+    const order = await this.orders.findOrder(tx, bill.orderId)
+    if (!order || order.state === 'packed' || order.state === 'dispatched') return
+    throw new ORPCError('CONFLICT', {
+      message: `${billGoesOutWords(bill.invoiceNo, bill.retailerName, order.orderNo, order.state)} A trip takes only bills that can still go out.`,
+      data: { code: 'bill_cannot_go_out', orderId: order.id, orderState: order.state },
+    })
   }
 
   private async assertMember(tx: Db, userId: string): Promise<void> {
@@ -1850,4 +2220,74 @@ function stableId(seed: string): string {
   b[8] = ((b[8] ?? 0) & 0x3f) | 0x80
   const hex = b.toString('hex')
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+/**
+ * How a refusal names the trip that holds a van, and what has to happen first (vans and trips 1): "out on the
+ * road on trip TRIP-0003" → "check trip TRIP-0003 in and settle it". Shared by the load-out, the departure and the
+ * hand moves, so the godown, the desk and the crew read the same sentence.
+ */
+export function vanTripWords(t: VanTrip): { words: string; first: string } {
+  const no = t.tripNo ?? 'its trip'
+  if (t.state === 'active')
+    return { words: `out on the road on trip ${no}`, first: `check trip ${no} in and settle it` }
+  if (t.state === 'closing')
+    return {
+      words: `back from trip ${no}, which is checked in but not settled yet`,
+      first: `settle trip ${no}`,
+    }
+  return {
+    words: `already loaded for trip ${no} of ${istDateWord(t.tripDate)}`,
+    first: `send trip ${no} out and settle it when it is back (or, if it is not going, check it in and settle it)`,
+  }
+}
+
+/** The first letter of a sentence part upper-cased: "settle trip TRIP-0003" → "Settle trip TRIP-0003". */
+function capitalise(words: string): string {
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+/**
+ * Why a bill cannot go out on a trip, in the desk's words (vans and trips 3): "INV/9030 · Patel Stores was already
+ * delivered (order SO-0812 is delivered), so it does not go out again."
+ */
+function billGoesOutWords(
+  invoiceNo: string | null,
+  retailerName: string,
+  orderNo: string | null,
+  orderState: string,
+): string {
+  const bill = `${invoiceNo ?? 'This bill'}${retailerName === '' ? '' : ` · ${retailerName}`}`
+  const order = orderNo ?? 'its order'
+  if (orderState === 'delivered' || orderState === 'closed')
+    return `${bill} was already delivered (order ${order} is ${orderState}), so it does not go out again.`
+  if (orderState === 'partially_delivered')
+    return `${bill} was already handed over in part (order ${order} is part-delivered), so it does not go out again; what the shop is still owed is a new order.`
+  if (orderState === 'cancelled')
+    return `${bill} belongs to order ${order}, which is cancelled, so nothing of it goes out.`
+  return `${bill} is not packed yet (order ${order} is ${orderState}), so there is nothing to load.`
+}
+
+/**
+ * Why a bill planned on a trip was not on its van (vans and trips 3), as the settlement lists it: "INV/9030 ·
+ * Patel Stores was not on this van: order SO-0812 was already delivered, so nothing of it comes back."
+ */
+function notCarriedWords(
+  invoiceNo: string | null,
+  retailerName: string,
+  orderNo: string | null,
+  orderState: string,
+): string {
+  const bill = `${invoiceNo ?? 'A bill'}${retailerName === '' ? '' : ` · ${retailerName}`}`
+  const state =
+    orderState === 'delivered' || orderState === 'closed'
+      ? 'was already delivered'
+      : orderState === 'partially_delivered'
+        ? 'was already handed over in part'
+        : orderState === 'cancelled'
+          ? 'is cancelled'
+          : orderState === 'packed'
+            ? 'was never counted out at the godown'
+            : `is ${orderState}`
+  return `${bill} was not on this van: order ${orderNo ?? '(no number)'} ${state}, so nothing of it comes back.`
 }

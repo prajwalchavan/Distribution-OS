@@ -411,6 +411,11 @@ export class StockService {
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
         // QA DOS-358: nothing comes off a van by hand until its trip is settled (the van check-in counts it off).
         await this.inventory.assertVehicleNotOut(tx, input.fromLocationId, { untilSettled: true })
+        // Vans and trips 1: nor goes onto one — a van carries one trip at a time, loaded through its load sheet.
+        await this.inventory.assertVehicleNotOut(tx, input.toLocationId, {
+          untilSettled: true,
+          onto: true,
+        })
         const note = input.note ? { note: input.note } : {}
         const { entries, balances } = await this.inventory.post(tx, [
           {
