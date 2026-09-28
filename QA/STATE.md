@@ -14,6 +14,8 @@ Last updated: 2026-09-28, 07:16 IST — real data live on main `15551fbe`+ (VM t
 | security | 16: headers, CORS, open routes, rate limits, injection, files and signed URLs, tokens on the device, secrets in bundles; at most 25 unauthenticated GET/HEAD/OPTIONS to the public hosts | `dos_test_p16_security` | 3620 (NODE_ENV=production) | DOS-290…309 | `QA/16-security-report.md`, `QA/findings/14-security.md`, `QA/evidence/p16/`, `QA/tools/p16/` |
 | money | 7: payments, credit, returns, rounding, reports; a reconcile script run after every scenario | `dos_test_p7_money` | 3630 | DOS-310…329 | `QA/10-business-logic-audit.md`, `QA/18-data-consistency-report.md`, `QA/findings/15-money.md`, `QA/evidence/p7/`, `QA/tools/p7/` |
 
+**docs/22 page republished 2026-09-28 07:20 IST** (version 42, label "Decisions through 28 Sep": the §8 rows of 26–28 Sep and their §11 rows; additions only, no existing row changed).
+
 The lanes share the main checkout read-only (no build, no install, no git writes, no Browser pane); the main session commits their files. **If the session ends before they report:** their files are on disk under the paths above; read each findings file, judge it, commit. Do NOT relaunch a lane whose findings file already exists without reading it first. Wave 2 (not started): pricing and tax (8) ids DOS-330…349, inventory + order states (10, 9) ids DOS-350…369, concurrency (13) ids DOS-370…389. Then Phase 3: `QA/11-missing-features.md`, `QA/12-change-backlog.md` from every open finding (simulation §5 of `QA/25`, UX-O-9…22, S-185…S-193, the waves), and the A.9 approval summary.
 
 ## (ended 2026-09-27 22:20 IST) both simulation workflows — notes
