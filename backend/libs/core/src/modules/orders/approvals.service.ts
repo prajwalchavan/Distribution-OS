@@ -158,14 +158,14 @@ export class ApprovalsService {
           }
         }
 
-        // QA DOS-314 (architect ruling 5): a credit hold on a shop whose credit the owner stopped is not
-        // approved by anybody — the manager and the owner alike. Rejecting it still works, and changing
-        // the shop's credit mode is what lifts it. A pay-on-delivery order held only because credit is
-        // stopped gives no credit, so the desk may release it (DOS-225).
-        // An approval that may confirm the order takes the shop's credit lock first (DOS-313), so a submit
-        // for the same shop at the same moment counts this order once it is confirmed.
-        if (input.decision === 'approve' && order) await lockShopCredit(tx, order.retailerId)
-        if (input.decision === 'approve' && approval.kind === 'credit_limit' && order) {
+        // QA DOS-314 (architect ruling 5): an order on credit for a shop whose credit the owner stopped is
+        // not approved by anybody — the manager and the owner alike, whatever gate it waits on (a credit
+        // hold, or a rate that would confirm it). Rejecting it still works, and changing the shop's credit
+        // mode is what lifts it. A pay-on-delivery order gives no credit, so the desk may release it
+        // (DOS-225). An approval that may confirm the order takes the shop's credit lock first (DOS-313),
+        // so a submit for the same shop at the same moment counts this order once it is confirmed.
+        if (input.decision === 'approve' && order) {
+          await lockShopCredit(tx, order.retailerId)
           const shop = await loadRetailerCredit(tx, order.retailerId)
           if (shop.creditMode === 'stop' && !isPayOnDelivery(order, shop))
             throw creditStopped(shop.name, order.orderNo, 'approve')

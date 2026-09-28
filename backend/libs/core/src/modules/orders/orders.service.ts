@@ -47,13 +47,16 @@ import {
 } from '../../platform/index.js'
 import { InventoryService } from '../inventory/index.js'
 import { QuoteService } from '../pricing/index.js'
+import { loadRetailerCredit, lockShopCredit } from '../receivables/index.js'
 import {
   approvalFlags,
   asSystem,
   availablePcs,
   callerReaches,
   createDraft,
+  creditStopped,
   emitOrderEvent,
+  isPayOnDelivery,
   isUniqueViolation,
   lastPlacedOrder,
   listOrders,
@@ -392,6 +395,14 @@ export class OrdersService {
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
         const order = await this.lockOrder(tx, input.id)
+        // QA DOS-314: the desk's own confirm is an approval too — an order on credit for a shop whose
+        // credit the owner stopped is confirmed by nobody (a pay-on-delivery order gives no credit).
+        if (order.state !== 'confirmed') {
+          await lockShopCredit(tx, order.retailerId)
+          const shop = await loadRetailerCredit(tx, order.retailerId)
+          if (shop.creditMode === 'stop' && !isPayOnDelivery(order, shop))
+            throw creditStopped(shop.name, order.orderNo, 'approve')
+        }
         return this.confirmInTx(tx, order, input.deviceId ?? null)
       }),
     )

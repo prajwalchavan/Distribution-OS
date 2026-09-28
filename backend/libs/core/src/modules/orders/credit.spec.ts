@@ -570,6 +570,50 @@ describeDb('credit desk: who may order on credit (DATABASE_URL)', () => {
     expect(again.submitted.status).toBe(200)
   })
 
+  it('DOS-314: nor does any other gate or the desk’s own confirm release an order on credit for a stopped shop', async () => {
+    // Two orders that reached the office before the owner stopped credit: one waiting on a rate gate,
+    // one waiting on nothing (the desk confirms it by hand).
+    const gated = uuidv7()
+    const bare = uuidv7()
+    for (const id of [gated, bare]) {
+      const drafted = await call(app, rep, 'POST', '/orders', {
+        idempotencyKey: `stop-gate-${id}`,
+        id,
+        retailerId: shop.stop,
+        source: 'salesperson',
+        lines: [{ id: uuidv7(), variantId, enteredQty: 1, enteredUnit: 'piece' }],
+      })
+      expect(drafted.status).toBe(200)
+      await db
+        .update(salesOrders)
+        .set({ state: 'submitted', orderNo: `SO-S${run}-${id.slice(-4)}` })
+        .where(eq(salesOrders.id, id))
+    }
+    const gateId = uuidv7()
+    await db.insert(approvals).values({
+      id: gateId,
+      tenantId,
+      kind: 'below_floor',
+      orderId: gated,
+      entityType: 'sales_order',
+      entityId: gated,
+      requestedBy: repId,
+      status: 'pending',
+      payload: { flag: 'below_floor' },
+    })
+    const approved = await call<Refusal>(app, owner, 'POST', `/approvals/${gateId}/decide`, {
+      idempotencyKey: `stop-gate-approve-${run}`,
+      decision: 'approve',
+    })
+    expect(approved.status, JSON.stringify(approved.body)).toBe(409)
+    expect(approved.body.data?.code).toBe('credit_stopped')
+    const confirmed = await call<Refusal>(app, manager, 'POST', `/orders/${bare}/confirm`, {
+      idempotencyKey: `stop-confirm-${run}`,
+    })
+    expect(confirmed.status, JSON.stringify(confirmed.body)).toBe(409)
+    expect(confirmed.body.data?.code).toBe('credit_stopped')
+  })
+
   // ---------------------------------------------------------------------------------------------------
   // DOS-225 — pay on delivery
 
