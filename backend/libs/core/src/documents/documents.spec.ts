@@ -168,6 +168,30 @@ describe('document renderer', () => {
     expect((text.match(/\(Description\)/g) ?? []).length).toBeGreaterThanOrEqual(2)
   })
 
+  it('DOS-225: the bill states its terms as what is asked — pay on delivery, pay in advance — never "paid"', () => {
+    for (const format of ['a4', 'thermal80'] as const) {
+      const pre = pdfText(
+        renderInvoice(
+          { ...invoice, paymentTerms: 'PRE' },
+          { format, copy: 'original', logo: null },
+        ),
+      )
+      expect(pre, format).toContain('(Pay in advance)')
+      expect(pre, format).not.toContain('Paid in advance')
+      const pod = pdfText(
+        renderInvoice({ ...invoice, paymentTerms: 'ON' }, { format, copy: 'original', logo: null }),
+      )
+      expect(pod, format).toContain('(Pay on delivery)')
+      const credit = pdfText(
+        renderInvoice(
+          { ...invoice, paymentTerms: 'POST_FULFILLMENT' },
+          { format, copy: 'original', logo: null },
+        ),
+      )
+      expect(credit, format).not.toContain('(Terms)')
+    }
+  })
+
   it('renders the 80 mm thermal slip with a growing page and the UPI id', () => {
     const pdf = renderInvoice(invoice, { format: 'thermal80', copy: 'duplicate', logo: null })
     const text = pdfText(pdf)

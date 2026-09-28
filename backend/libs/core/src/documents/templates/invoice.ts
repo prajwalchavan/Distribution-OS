@@ -41,11 +41,13 @@ export function renderInvoice(invoice: InvoiceDetail, o: InvoiceRenderOptions): 
 
 /**
  * QA DOS-225: a pay-on-delivery bill says so, so the shop and the crew read the same thing — the money
- * is taken at the door. A bill on credit prints its due date alone, as before.
+ * is taken at the door. A bill on credit prints its due date alone, as before. A bill of an order on
+ * advance terms says what is ASKED ("Pay in advance"), never that it was paid: the order may have been
+ * released on credit by the desk, and whether it is paid is the bill's own payment state, not its terms.
  */
 function termsRow(inv: InvoiceDetail): [string, string][] {
   if (inv.paymentTerms === 'ON') return [['Terms', 'Pay on delivery']]
-  if (inv.paymentTerms === 'PRE') return [['Terms', 'Paid in advance']]
+  if (inv.paymentTerms === 'PRE') return [['Terms', 'Pay in advance']]
   return []
 }
 
