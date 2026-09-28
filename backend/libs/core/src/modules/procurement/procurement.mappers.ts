@@ -8,6 +8,7 @@ import type {
   SupplierInvoiceLine,
   SupplierInvoiceWithLines,
 } from '@dos/contracts'
+import { businessDate } from '@dos/domain'
 import type {
   grnLines,
   grns,
@@ -121,7 +122,15 @@ export function toGrn(row: GrnRow, extra: { supplierName: string | null; lineCou
   }
 }
 
-export function toGrnLine(row: GrnLineRow): GrnLine {
+/**
+ * `posted` and `today` decide the expired-on-arrival pair (QA DOS-357): once the GRN is posted the line says
+ * what the posting DID (`expired_qty_pcs`); until then, whether its batch is already past its expiry today
+ * (IST) and so where the good pieces the gate counts are about to go.
+ */
+export function toGrnLine(row: GrnLineRow, at: { posted: boolean; today: string }): GrnLine {
+  const expired = at.posted
+    ? row.expiredQtyPcs > 0
+    : row.expiryDate !== null && row.expiryDate < at.today
   return {
     id: row.id,
     supplierInvoiceLineId: row.supplierInvoiceLineId,
@@ -132,6 +141,8 @@ export function toGrnLine(row: GrnLineRow): GrnLine {
     expectedQtyPcs: row.expectedQtyPcs,
     countedQtyPcs: row.countedQtyPcs,
     damagedQtyPcs: row.damagedQtyPcs,
+    expiredOnArrival: expired,
+    expiredOnArrivalPcs: at.posted ? row.expiredQtyPcs : expired ? (row.countedQtyPcs ?? 0) : 0,
   }
 }
 
@@ -159,7 +170,9 @@ export function toGrnWithLines(
 ): GrnWithLines {
   return {
     ...toGrn(row, { supplierName, lineCount: lines.length }),
-    lines: lines.map(toGrnLine),
+    lines: lines.map((line) =>
+      toGrnLine(line, { posted: row.status === 'posted', today: businessDate().date }),
+    ),
     discrepancies: discrepancies.map(toDiscrepancy),
   }
 }

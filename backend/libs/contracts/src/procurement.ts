@@ -260,6 +260,20 @@ export const GrnLineSchema = z.object({
   expectedQtyPcs: PiecesSchema.nullable(),
   countedQtyPcs: PiecesSchema.nullable(),
   damagedQtyPcs: PiecesSchema,
+  /**
+   * EXPIRED ON ARRIVAL (QA DOS-357, architect ruling 4, 2026-09-28). True when this line's batch is already
+   * past its expiry: before posting, its expiry is before today's IST business date, so the good pieces
+   * the gate counts WILL go into the damaged / expiry bin, not the godown — the count screen and the posting
+   * screen say so before anyone confirms; after posting, they did. The purchase is unchanged (the bill is
+   * owed), and a `damaged` gate finding carries the pieces to the supplier claim.
+   */
+  expiredOnArrival: z.boolean().optional(),
+  /**
+   * Pieces of this line put into the damaged / expiry bin as expired on arrival: what the posting did once
+   * the GRN is posted, and until then what it would do with the count as it stands (the good pieces
+   * counted; 0 before a count). 0 or absent for a line that arrived in date.
+   */
+  expiredOnArrivalPcs: PiecesSchema.optional(),
 })
 export type GrnLine = z.infer<typeof GrnLineSchema>
 
