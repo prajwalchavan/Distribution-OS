@@ -22,7 +22,8 @@
  *                            the rack (QA DOS-361: a packed order's pick is not edited)
  *   bill-of-expired-batch    a live bill carrying a batch whose expiry date is before the day the bill was
  *                            issued (IST) or its own date, whichever is later — a bill dated back to before
- *                            the expiry still sold expired goods (QA DOS-351: expired goods are never billed)
+ *                            the expiry still sold expired goods (QA DOS-351: expired goods are never billed);
+ *                            a brand-DMS import is the brand's own bill, recorded, and is not listed
  *   batch-over-held          a batch at a godown holding more pieces for orders than stand there, with the orders
  *                            that hold them (QA DOS-353: a pick takes only its own held pieces plus free ones; a
  *                            count or a write-off of held pieces leaves the same, and needs the same look)
@@ -33,7 +34,13 @@
  *   dispatched-not-on-van    a dispatched bill riding a trip whose van holds fewer pieces of a batch than the bills
  *                            riding on it need — the pieces were swept off it (vans and trips 1 and 2)
  *   van-stock-no-trip        a van holding pieces while no trip of it is loading, out, checked in or loaded —
- *                            its last settlement left them there, or another took them for its own
+ *                            its last settlement left them there, or another took them for its own (van stock a
+ *                            trip-less sheet counted onto the van since its last settlement is not listed: the
+ *                            product accepts that sheet, and the van's next trip settles it)
+ *   packed-billed-not-on-dock  a packed order with a live bill whose batch the dock holds fewer pieces of than the
+ *                            packed bills waiting there need — sold off a van, or swept away while it rode another
+ *                            trip's van (QA verify 3, X1); a bill that came back and still rides a van that has not
+ *                            been settled is not listed
  *
  * Reads every tenant of `DATABASE_URL` (loaded through `loadDotenv()` like every script here, a real env var
  * wins) as the connection's own role, so run it with the migration owner, like `pnpm check:stock-cancels`.
@@ -173,6 +180,7 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
              ' batch ' || coalesce(nullif(il.batch_no, ''), '(none)') || ' expired on ' || il.expiry_date as detail
         from invoices i join invoice_lines il on il.invoice_id = i.id join tenants t on t.id = i.tenant_id
        where i.state not in ('cancelled', 'draft') and il.expiry_date is not null
+         and i.source <> 'brand_dms_import'
          and il.expiry_date < greatest(i.invoice_date, (i.issued_at at time zone 'Asia/Kolkata')::date)
        order by t.slug, i.invoice_no, il.line_no`,
   },
@@ -283,8 +291,49 @@ const CHECKS: { kind: string; query: ReturnType<typeof sql> }[] = [
                           where tr.vehicle_id = v.id and tr.state in ('loading', 'active', 'closing'))
          and not exists (select 1 from trips tr join load_sheets ls on ls.trip_id = tr.id and ls.status = 'confirmed'
                           where tr.vehicle_id = v.id and tr.state = 'planned')
+         -- van stock a trip-less sheet counted onto the van since its last settlement: the van's next trip takes it
+         and not exists (select 1 from load_sheets ls
+                          where ls.tenant_id = v.tenant_id and ls.to_location_id = v.location_id
+                            and ls.status = 'confirmed' and ls.trip_id is null
+                            and ls.confirmed_at > coalesce((select max(tr.updated_at) from trips tr
+                                                              where tr.vehicle_id = v.id
+                                                                and tr.state in ('settled', 'settled_with_variance')),
+                                                           '-infinity'::timestamptz))
        group by t.slug, v.id, v.reg_no
        order by t.slug, v.reg_no`,
+  },
+  {
+    kind: 'packed-billed-not-on-dock',
+    query: sql`
+      with bill as (
+        select o.tenant_id, o.id as order_id, o.order_no, i.invoice_no, il.lot_id,
+               sum(il.qty_pcs + il.free_qty_pcs)::bigint as need
+          from sales_orders o
+          join invoices i on i.order_id = o.id and i.state not in ('cancelled', 'draft') and i.source = 'pack'
+          join invoice_lines il on il.invoice_id = i.id and il.lot_id is not null
+         where o.state = 'packed'
+           -- a bill that came back rides its van until the van check-in and the settlement stage it on the dock
+           and not exists (select 1 from deliveries d join trips tr on tr.id = d.trip_id
+                            where d.invoice_id = i.id and d.outcome = 'failed' and tr.state in ('active', 'closing'))
+         group by 1, 2, 3, 4, 5),
+      short as (
+        select b.tenant_id, b.lot_id, sum(b.need)::bigint as need,
+               coalesce((select sum(bal.on_hand) from stock_balances bal
+                           join locations loc on loc.id = bal.location_id and loc.kind = 'in_transit'
+                          where bal.tenant_id = b.tenant_id and bal.lot_id = b.lot_id), 0)::bigint as have
+          from bill b
+         group by 1, 2)
+      select t.slug as tenant, coalesce(b.invoice_no, b.order_no, b.order_id) as document,
+             'order ' || coalesce(b.order_no, b.order_id) || ' is packed and billed, but the dock holds ' || s.have ||
+             ' pc of ' || v.name || ' batch ' || coalesce(nullif(lot.batch_no, ''), '(none)') ||
+             ' and the packed bills waiting there need ' || s.need || ': pieces left the dock another way' as detail
+        from short s
+        join bill b on b.tenant_id = s.tenant_id and b.lot_id = s.lot_id
+        join stock_lots lot on lot.id = s.lot_id
+        join product_variants v on v.id = lot.variant_id
+        join tenants t on t.id = s.tenant_id
+       where s.have < s.need
+       order by t.slug, b.invoice_no`,
   },
 ]
 
@@ -317,7 +366,7 @@ try {
       'no stranded document: every order, bill, trip and pick is in a state the product can reach',
     )
   } else {
-    for (const f of findings) say(`${f.kind.padEnd(24)} ${f.tenant}  ${f.document}: ${f.detail}`)
+    for (const f of findings) say(`${f.kind.padEnd(26)} ${f.tenant}  ${f.document}: ${f.detail}`)
   }
   if (findings.length > 0) {
     console.error(
