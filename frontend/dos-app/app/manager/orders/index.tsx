@@ -75,6 +75,7 @@ import {
 } from '../../../src/groups/manager/lib/bargain-order'
 import { waitingOnKinds } from '../../../src/groups/manager/lib/waiting-on'
 import { creditAskTotal, owedNet, promisedPaise } from '../../../src/groups/manager/lib/credit-line'
+import { heldForCredit } from '../../../src/credit-hold'
 import { useHotkeys, useRegisterKeys } from '../../../src/groups/manager/lib/keys'
 import { useWord } from '../../../src/groups/manager/lib/words'
 
@@ -137,6 +138,7 @@ export default function OrderQueue(): React.JSX.Element {
   const [selected, setSelected] = useState<string | null>(null)
   const [acting, setActing] = useState<'confirm' | 'cancel' | 'release' | null>(null)
   const [reason, setReason] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
 
   const span = rangeOf(range)
   /*
@@ -264,7 +266,8 @@ export default function OrderQueue(): React.JSX.Element {
 
   const confirmOrder = useMutation(
     (id: string, meta) => api.api.orders.confirm({ id, idempotencyKey: meta.idempotencyKey }),
-    { invalidates: [['orders'], ['warehouse'], ['billing'], ['reporting']] },
+    /* QA DOS-313: a confirm may raise a credit gate instead, so the gates are refreshed too. */
+    { invalidates: [['approvals'], ['orders'], ['warehouse'], ['billing'], ['reporting']] },
   )
   const cancelOrder = useMutation(
     (input: { id: string; reason: string }, meta) =>
@@ -437,7 +440,13 @@ export default function OrderQueue(): React.JSX.Element {
       setActing(null)
       setReason('')
     }
-    if (acting === 'confirm') void confirmOrder.mutateAsync(order.id).then(done, stayOpen)
+    if (acting === 'confirm')
+      void confirmOrder.mutateAsync(order.id).then((result) => {
+        done()
+        // QA DOS-313: the confirm measured the shop again and held the order for credit.
+        if (heldForCredit(result.item))
+          setToast(t('m2.heldForCredit', { order: result.item.orderNo ?? '' }))
+      }, stayOpen)
     if (acting === 'cancel')
       void cancelOrder.mutateAsync({ id: order.id, reason: reason.trim() }).then(done, stayOpen)
     if (acting === 'release')
@@ -542,7 +551,6 @@ export default function OrderQueue(): React.JSX.Element {
     orderNo: string | null
   } | null>(null)
   const [note, setNote] = useState('')
-  const [toast, setToast] = useState<string | null>(null)
 
   const commitDecision = (): void => {
     if (deciding === null) return
@@ -562,6 +570,9 @@ export default function OrderQueue(): React.JSX.Element {
          */
         if (result.order?.state === 'confirmed')
           setToast(t('m2.orderConfirmed', { order: result.order.orderNo ?? '' }))
+        // QA DOS-313: the last approval measured the shop again and held the order for credit.
+        else if (heldForCredit(result.order))
+          setToast(t('m2.heldForCredit', { order: result.order?.orderNo ?? '' }))
       }, stayOpen)
       return
     }

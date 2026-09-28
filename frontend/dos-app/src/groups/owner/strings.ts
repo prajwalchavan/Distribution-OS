@@ -187,6 +187,9 @@ export const strings = {
   'o3.note': 'Note for the person who asked',
   'o3.lastGate': 'This is the last decision: {order} will be confirmed and its stock held.',
   'o3.orderConfirmed': '{order} confirmed — stock held',
+  /* QA DOS-313: the decision measured the shop again and held the order instead of confirming it. */
+  'o3.heldForCredit':
+    '{order} is held for credit — with it the shop goes over its limit. Release or reject it on Approvals.',
   'o3.rejectNeedsNote': 'Write a note first — the person who asked will read it.',
   'o3.approved': 'Approved',
   'o3.rejected': 'Rejected',
@@ -285,6 +288,9 @@ export const strings = {
   'o5.placed': 'Placed',
   'o5.flags': 'Waiting on',
   'o5.confirm': 'Confirm order',
+  /* QA DOS-313: the decision measured the shop again and held the order instead of confirming it. */
+  'o5.heldForCredit':
+    '{order} is held for credit — with it the shop goes over its limit. Release or reject it on Approvals.',
   'o5.decideFirst':
     'Waiting on {what}. Decide it on Approvals; the last approval confirms the order.',
   'o5.cancel': 'Cancel order',
@@ -439,6 +445,13 @@ export const strings = {
   'o10.shop': 'Shop',
   'o10.dues': 'Outstanding ₹',
   'o10.overdue': 'Overdue ₹',
+  /*
+   * QA DOS-312 (architect ruling 3, "keep both and add the net"): what is still late once the shop's
+   * money on account has paid its oldest bills, BESIDE the gross overdue that the home and the ladder
+   * show — one word never carries two amounts.
+   */
+  'o10.overdueNet': 'Overdue after on account ₹',
+  'o10.overdueNetFilter': 'Overdue after on account',
   'o10.bills': 'Open bills',
   'o10.oldest': 'Oldest due',
   'o10.mode': 'On the limit',

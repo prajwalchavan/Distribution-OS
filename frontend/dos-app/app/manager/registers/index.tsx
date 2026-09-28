@@ -167,17 +167,27 @@ export default function Registers(): React.JSX.Element {
     textColumn('shop', t('m12.shop'), (row) => row.name),
     textColumn('beat', t('m14.beat'), (row) => names.beat(row.beatId)),
     moneyColumn('owed', t('m12.owed'), (row) => row.outstandingPaise),
-    // QA DOS-312: late is what is late after the shop's money on account paid its oldest bills.
-    moneyColumn('overdue', t('m1.outstanding'), (row) => row.netOverduePaise ?? row.overduePaise, {
-      cell: (row) => (
-        <Money
-          value={row.netOverduePaise ?? row.overduePaise}
-          size="cell"
-          symbol={false}
-          tone={(row.netOverduePaise ?? row.overduePaise) > 0 ? 'critical' : 'default'}
-        />
-      ),
-    }),
+    /*
+     * QA DOS-312 (architect ruling 3, "keep both and add the net"): the gross overdue of the bills, the
+     * figure the home shows, and beside it what is still late after the shop's money on account paid its
+     * oldest bills — only that one is red. One word, one amount.
+     */
+    moneyColumn('overdue', t('m12.overdue'), (row) => row.overduePaise),
+    moneyColumn(
+      'overdueNet',
+      t('m12.overdueNet'),
+      (row) => row.netOverduePaise ?? row.overduePaise,
+      {
+        cell: (row) => (
+          <Money
+            value={row.netOverduePaise ?? row.overduePaise}
+            size="cell"
+            symbol={false}
+            tone={(row.netOverduePaise ?? row.overduePaise) > 0 ? 'critical' : 'default'}
+          />
+        ),
+      },
+    ),
     moneyColumn('onAccount', t('m12.onAccount'), (row) => row.unallocatedCreditPaise),
     moneyColumn('net', t('m12.netDue'), (row) => row.netDuesPaise ?? null),
     textColumn('bills', t('m6.invoices'), (row) => row.openBills, { align: 'right' }),
@@ -470,6 +480,13 @@ export default function Registers(): React.JSX.Element {
                   />
                 ),
                 overdue: (
+                  <Money
+                    value={outstanding.data?.totals.overduePaise ?? 0}
+                    size="cell"
+                    symbol={false}
+                  />
+                ),
+                overdueNet: (
                   <Money
                     value={
                       outstanding.data?.totals.netOverduePaise ??

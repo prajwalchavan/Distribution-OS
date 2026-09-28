@@ -62,6 +62,7 @@ import {
 } from '../../src/groups/owner/lib/trip-settlement'
 import { useWord } from '../../src/groups/owner/lib/words'
 import { useRegisterKeys, useHotkeys } from '../../src/groups/owner/lib/keys'
+import { heldForCredit } from '../../src/credit-hold'
 
 /** One row of the merged queue, so both streams answer the same four questions. */
 interface Decision {
@@ -358,6 +359,9 @@ export default function Approvals(): React.JSX.Element {
          */
         if (result.order?.state === 'confirmed')
           setToast(t('o3.orderConfirmed', { order: result.order.orderNo ?? '' }))
+        // QA DOS-313: the last approval measured the shop again and held the order for credit.
+        else if (heldForCredit(result.order))
+          setToast(t('o3.heldForCredit', { order: result.order?.orderNo ?? '' }))
       }, stayOpen)
       return
     }
