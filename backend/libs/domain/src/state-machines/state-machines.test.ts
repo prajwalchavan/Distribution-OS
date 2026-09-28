@@ -55,6 +55,13 @@ describe('state machines', () => {
     expect(orderMachine.can('dispatched', 'cancel')).toBe(false)
   })
 
+  it('vans and trips 4: a packed order is unpacked back to confirmed, and only from packed', () => {
+    expect(orderMachine.next('packed', 'unpack')).toBe('confirmed')
+    expect(orderMachine.can('dispatched', 'unpack')).toBe(false)
+    expect(orderMachine.can('picking', 'unpack')).toBe(false)
+    expect(orderMachine.can('delivered', 'unpack')).toBe(false)
+  })
+
   it('brings undelivered goods back to packed, not to the shop', () => {
     expect(orderMachine.next('dispatched', 'return_undelivered')).toBe('packed')
     expect(orderMachine.next('dispatched', 'deliver_partial')).toBe('partially_delivered')

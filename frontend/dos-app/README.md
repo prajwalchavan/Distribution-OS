@@ -250,6 +250,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -608,6 +609,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -1141,6 +1143,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -1426,6 +1429,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |

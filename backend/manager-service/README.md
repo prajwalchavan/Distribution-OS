@@ -177,6 +177,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | POST | `/warehouse/orders/{orderId}/pack` | Pack the order: stock leaves, the order moves to packed, the bill is issued | owner, manager, warehouse |
 | GET | `/warehouse/packs` | What was packed, and what still has no bill | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/packs/{id}` | One pack confirmation with its packed lines and lots | owner, manager, accountant, warehouse, delivery |
+| POST | `/warehouse/orders/{orderId}/unpack` | Undo a pack that has no bill: pieces back off the dock, the order confirmed again | owner, manager |
 | POST | `/warehouse/load-sheets` | Build the load-out sheet for a vehicle without moving stock | owner, manager, warehouse |
 | GET | `/warehouse/load-sheets` | Load sheets: what is loaded on which vehicle, and when it left | owner, manager, accountant, warehouse, delivery |
 | GET | `/warehouse/load-sheets/{id}` | One load sheet with its orders, its lots and its challan | owner, manager, accountant, warehouse, delivery |
@@ -20353,6 +20354,130 @@ curl "http://localhost:3002/warehouse/packs/01a06d17-0be7-794a-8dab-9b14cf78673b
 }
 ```
 
+### POST `/warehouse/orders/{orderId}/unpack`
+
+Undo a pack that has no bill: pieces back off the dock, the order confirmed again · contract `warehouse.packs.unpack`
+
+**Roles:** owner, manager
+
+**Request body**
+
+| Field | Type | Required |
+|---|---|---|
+| `idempotencyKey` | string | yes |
+| `orderId` | uuid | yes |
+| `reason` | string | yes |
+| `deviceId` | string | no |
+
+**Example request**
+
+```bash
+curl -X POST "http://localhost:3002/warehouse/orders/01a06d67-52a6-70c4-8d0b-06d5bc6a56ca/unpack" \
+  -H "Authorization: Bearer eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMWEwNmQ4Zi04NzY1LTc0MzItODAwOS1hYmNkZWYwMTIzNDUi…" \
+  -H "content-type: application/json" \
+  -d @request.json
+```
+
+request.json
+```json
+{
+  "idempotencyKey": "a3d7c1e2-…-one-key-per-tap",
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "reason": "Confirmed on phone with the shopkeeper",
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+}
+```
+
+**Success response** — `200`
+
+```json
+{
+  "orderId": "01a06d67-52a6-70c4-8d0b-06d5bc6a56ca",
+  "orderNo": "SO-0042",
+  "orderState": "draft",
+  "returned": [
+    {
+      "lotId": "01a06dc6-1c19-701b-8a21-982c1b2f8bc3",
+      "label": "text",
+      "qtyPcs": 24,
+      "to": "godown",
+      "locationId": "01a06d18-e60a-7abc-87f8-910189e5f14c",
+      "locationName": "text"
+    }
+  ]
+}
+```
+
+**Failure responses**
+
+401 — missing, malformed or expired access token
+```json
+{
+  "statusCode": 401,
+  "message": "sign in required",
+  "error": "Unauthorized"
+}
+```
+
+403 — role not allowed
+```json
+{
+  "statusCode": 403,
+  "message": "the accountant role may not call POST /warehouse/orders/{orderId}/unpack",
+  "error": "Forbidden"
+}
+```
+
+400 — input validation
+```json
+{
+  "defined": false,
+  "code": "BAD_REQUEST",
+  "status": 400,
+  "message": "Input validation failed",
+  "data": {
+    "issues": [
+      {
+        "path": [
+          "phone"
+        ],
+        "message": "Indian mobile in E.164, e.g. +919876543210"
+      }
+    ]
+  }
+}
+```
+
+404 — no such row in this tenant
+```json
+{
+  "defined": false,
+  "code": "NOT_FOUND",
+  "status": 404,
+  "message": "not found"
+}
+```
+
+409 — same idempotencyKey reused with a different payload (a retry with the same payload returns the stored 200)
+```json
+{
+  "defined": false,
+  "code": "CONFLICT",
+  "status": 409,
+  "message": "idempotencyKey was already used with a different request"
+}
+```
+
+503 — database not configured / unreachable
+```json
+{
+  "defined": false,
+  "code": "SERVICE_UNAVAILABLE",
+  "status": 503,
+  "message": "database is not configured"
+}
+```
+
 ### POST `/warehouse/load-sheets`
 
 Build the load-out sheet for a vehicle without moving stock · contract `warehouse.loadSheets.create`
@@ -25581,7 +25706,15 @@ curl "http://localhost:3002/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/
     "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
     "approvedAt": "2026-09-04T10:30:00.000Z",
     "note": null
-  }
+  },
+  "skippedBills": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerName": "text",
+      "why": "text"
+    }
+  ]
 }
 ```
 
@@ -49232,6 +49365,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `warehouse.packs.confirm` | – | ✓ | – | – | – | – | – |
 | `warehouse.packs.list` | – | ✓ | ✓ | – | – | – | – |
 | `warehouse.packs.get` | – | ✓ | ✓ | – | – | – | – |
+| `warehouse.packs.unpack` | – | ✓ | – | – | – | – | – |
 | `warehouse.loadSheets.create` | – | ✓ | – | – | – | – | – |
 | `warehouse.loadSheets.list` | – | ✓ | ✓ | – | – | – | – |
 | `warehouse.loadSheets.get` | – | ✓ | ✓ | – | – | – | – |

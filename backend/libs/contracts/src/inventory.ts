@@ -262,6 +262,8 @@ export const AdjustStockOutput = z.object({
  * A hand move between two places. Out of a VEHICLE it is refused 409 `vehicle_on_trip` while a trip of that
  * vehicle is loading, on the road, or checked in and not yet settled (QA DOS-358): a checked-in van is counted
  * off on the van check-in (`delivery.trips.unload`), which puts a returned bill's pieces on the dock for it.
+ * INTO a vehicle the same refusal holds (vans and trips 1, 2026-09-28: a van carries one trip at a time) — a
+ * trip's goods go on through its load sheet.
  */
 export const TransferStockInput = MutationBase.extend({
   lotId: IdSchema,

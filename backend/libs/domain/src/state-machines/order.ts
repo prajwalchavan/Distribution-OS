@@ -26,6 +26,7 @@ export type OrderEvent =
   | 'deliver_all'
   | 'deliver_partial'
   | 'return_undelivered'
+  | 'unpack'
   | 'close'
   | 'cancel'
 
@@ -52,7 +53,13 @@ export const orderMachine = defineMachine<OrderState, OrderEvent>({
      * transaction (QA DOS-139). `orders.cancel` refuses a packed order and names that route; the only
      * caller of this edge is `InvoicesService.cancel` through `OrdersService.cancelInTx`.
      */
-    packed: { dispatch: 'dispatched', cancel: 'cancelled' },
+    /*
+     * `unpack` (architect ruling of 2026-09-28, vans and trips 4): a pack WITHOUT a bill — parked with no invoice, a
+     * batch expired while it waited — is undone by the desk: its pieces go back from the dock, nothing stays held,
+     * and the order is confirmed again so it can be picked from an in-date batch. A billed pack never takes this
+     * edge; its bill is cancelled (the order goes with it) or credited. `packs.unpack` is its one caller.
+     */
+    packed: { dispatch: 'dispatched', cancel: 'cancelled', unpack: 'confirmed' },
     dispatched: {
       deliver_all: 'delivered',
       deliver_partial: 'partially_delivered',

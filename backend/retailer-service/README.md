@@ -19767,7 +19767,15 @@ curl "http://localhost:3006/delivery/trips/01a06d17-0be7-794a-8dab-9b14cf78673b/
     "approvedBy": "01a06de1-6afb-791d-851f-c61424b0723f",
     "approvedAt": "2026-09-04T10:30:00.000Z",
     "note": null
-  }
+  },
+  "skippedBills": [
+    {
+      "invoiceId": "01a06dea-de0c-7ad3-8a15-120111eb3642",
+      "invoiceNo": "SO-0042",
+      "retailerName": "text",
+      "why": "text"
+    }
+  ]
 }
 ```
 

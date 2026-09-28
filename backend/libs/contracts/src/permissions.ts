@@ -698,6 +698,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'warehouse.packs.confirm': ROLE_GROUPS.STOCK_KEEPERS,
   'warehouse.packs.list': STOCK_VIEWERS,
   'warehouse.packs.get': STOCK_VIEWERS,
+  // Vans and trips 4 (2026-09-28): the DESK undoes a pack that has no bill — the pieces come back off the dock and
+  // the order is confirmed again. A desk decision like cancelling a wave, so the PIN holders'.
+  'warehouse.packs.unpack': PIN_HOLDERS,
   'warehouse.loadSheets.create': ROLE_GROUPS.STOCK_KEEPERS,
   'warehouse.loadSheets.list': STOCK_VIEWERS,
   'warehouse.loadSheets.get': STOCK_VIEWERS,
