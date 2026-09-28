@@ -88,7 +88,7 @@ import {
   pgConstraint,
   type LedgerEntryInput,
 } from '../inventory/index.js'
-import { OrdersService } from '../orders/index.js'
+import { orderPaymentTerms, OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   addDays,
@@ -1402,7 +1402,15 @@ export class BillingService {
       row.source === 'pack' && row.orderId !== null && row.state !== 'cancelled'
         ? await this.orders.findOrder(tx, row.orderId)
         : undefined
-    return { ...detail, awaitingDispatch: order?.state === 'packed' }
+    // QA DOS-225: the bill says the terms it was sold on — "Pay on delivery" for a pay-on-delivery order.
+    const terms =
+      order?.paymentTerms ??
+      (row.orderId === null ? null : await orderPaymentTerms(tx, row.orderId))
+    return {
+      ...detail,
+      awaitingDispatch: order?.state === 'packed',
+      ...(terms === null ? {} : { paymentTerms: terms }),
+    }
   }
 
   /** A draft was never posted to AR and a cancelled bill was reversed: neither owes anything. */

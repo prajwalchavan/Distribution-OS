@@ -3,6 +3,7 @@ import type { CreditNoteDetail, InvoiceDetail } from '@dos/contracts'
 import { creditNotes, invoices, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { sellerBranding } from '../tenancy/index.js'
+import { orderPaymentTerms } from '../orders/index.js'
 import { invoiceOpenPaise } from '../receivables/index.js'
 import { loadCreditNoteDetail, loadInvoiceDetail } from './billing.mappers.js'
 
@@ -25,7 +26,10 @@ export async function loadInvoiceDocument(
   if (!row) return null
   const due =
     row.state === 'draft' || row.state === 'cancelled' ? 0 : await invoiceOpenPaise(tx, row.id)
-  return loadInvoiceDetail(tx, row, await sellerBranding(tx), due)
+  const detail = await loadInvoiceDetail(tx, row, await sellerBranding(tx), due)
+  // QA DOS-225: the printed bill says "Pay on delivery" exactly as the screen does.
+  const terms = row.orderId === null ? null : await orderPaymentTerms(tx, row.orderId)
+  return terms === null ? detail : { ...detail, paymentTerms: terms }
 }
 
 export async function loadCreditNoteDocument(

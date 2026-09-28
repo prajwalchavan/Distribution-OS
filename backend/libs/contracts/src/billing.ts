@@ -15,7 +15,7 @@ import {
 import { EnteredUnitSchema, OrderStateSchema } from './orders.js'
 import { AppliedRuleSchema } from './pricing.js'
 import { InvoicePaymentStateSchema } from './receivables.js'
-import { AddressSchema } from './retailers.js'
+import { AddressSchema, PaymentTermsSchema } from './retailers.js'
 import { SellerBrandingSchema } from './tenancy.js'
 
 /**
@@ -279,6 +279,12 @@ export const InvoiceDetailSchema = InvoiceSchema.extend({
    * sheet and its delivery carry every line. Absent from a server older than DOS-248.
    */
   awaitingDispatch: z.boolean().optional(),
+  /**
+   * QA DOS-225 (architect ruling, 2026-09-28), expand-only: the payment terms of the order this bill was
+   * made from. `ON` prints "Pay on delivery" on the bill and the crew collects it at the stop; absent for
+   * a bill with no order behind it.
+   */
+  paymentTerms: PaymentTermsSchema.optional(),
 })
 export type InvoiceDetail = z.infer<typeof InvoiceDetailSchema>
 
@@ -735,7 +741,17 @@ export const GstSummaryTotalsSchema = z.object({
   igstPaise: PaiseSchema,
   cessPaise: PaiseSchema,
   totalPaise: PaiseSchema,
+  /**
+   * DISTINCT documents in the window (QA DOS-317): bills in `totals`, credit notes in
+   * `creditNoteTotals`, whatever the grouping — never the maximum or the sum of the rows' counts.
+   */
   documentCount: z.number().int(),
+  /**
+   * Expand-only (QA DOS-317): documents of the window that were cancelled, counted apart — GSTR-1
+   * table 13 lists them beside the net issued. `documentCount + cancelledDocumentCount` is the total
+   * issued in the series for the window.
+   */
+  cancelledDocumentCount: z.number().int().optional(),
 })
 export type GstSummaryTotals = z.infer<typeof GstSummaryTotalsSchema>
 

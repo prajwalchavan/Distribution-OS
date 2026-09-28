@@ -1,7 +1,9 @@
 import type { z } from 'zod'
+import { and, eq } from 'drizzle-orm'
 import type { OrdersRegisterInput } from '@dos/contracts'
 import { businessDate } from '@dos/domain'
-import type { Db } from '@dos/db'
+import { salesOrders, type Db } from '@dos/db'
+import { currentTenant } from '../../platform/index.js'
 import { listOrders } from './orders.internals.js'
 
 /**
@@ -73,4 +75,21 @@ export async function orderRegisterRows(
     })),
     nextCursor: page.nextCursor,
   }
+}
+
+/**
+ * The payment terms an order was placed on (QA DOS-225): what its bill prints — "Pay on delivery" for a
+ * pay-on-delivery order — on the screen and on the PDF alike. A plain read, so billing's document loader
+ * in the worker reaches it without Nest DI; null when the order is not this caller's to read.
+ */
+export async function orderPaymentTerms(
+  tx: Db,
+  orderId: string,
+): Promise<'PRE' | 'ON' | 'POST_FULFILLMENT' | null> {
+  const [row] = await tx
+    .select({ paymentTerms: salesOrders.paymentTerms })
+    .from(salesOrders)
+    .where(and(eq(salesOrders.tenantId, currentTenant().tenantId), eq(salesOrders.id, orderId)))
+    .limit(1)
+  return row?.paymentTerms ?? null
 }
