@@ -26,12 +26,14 @@ import {
 } from '@dos/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { tenantStorage } from '../../platform/index.js'
+import { istDateWord } from '../../platform/refusal-words.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { loadOut } from '../../testing/load-out.js'
 import { BillingModule } from '../billing/index.js'
 import { FilesModule } from '../files/index.js'
 import { InventoryModule, InventoryService } from '../inventory/index.js'
 import { OrdersModule } from '../orders/index.js'
+import { ProcurementModule } from '../procurement/index.js'
 import { ReceivablesModule } from '../receivables/index.js'
 import { SyncModule } from '../sync/index.js'
 import { LoadSheetsService, WarehouseModule } from '../warehouse/index.js'
@@ -77,7 +79,9 @@ const istDay = (offset: number): string => {
  *   (7) cancelling a wave never touches the dock hold of an order that is already packed
  *
  * Every case replays the verifier's own road (V-H3, V-G2, V-G3, V-S3h, V-I1, V-F1, V-G1, V-H2) through the same
- * endpoints and roles, in its own tenant, one van per scenario.
+ * endpoints and roles, in its own tenant, one van per scenario. The third blind check's races (X1, Y1) are replayed
+ * with a connection of the spec's own holding a balance row the load-out's gate needs AFTER its van check, so the
+ * two requests are in flight together every time: without the van lock both went through.
  */
 describeDb(
   'vans and trips: one trip per van, its own settlement, bills that can go out (DATABASE_URL)',
@@ -92,7 +96,7 @@ describeDb(
     const managerId = uuidv7()
     const packerId = uuidv7()
     const repId = uuidv7()
-    const driverIds = Array.from({ length: 7 }, () => uuidv7())
+    const driverIds = Array.from({ length: 11 }, () => uuidv7())
 
     const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
     const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -115,7 +119,7 @@ describeDb(
     const vG = uuidv7()
     const vU = uuidv7()
     const vW = uuidv7()
-    const vehicleIds = Array.from({ length: 7 }, () => uuidv7())
+    const vehicleIds = Array.from({ length: 11 }, () => uuidv7())
     const vehicleLocs: string[] = []
     const plates: string[] = []
     const lots: Record<string, string> = {}
@@ -333,6 +337,54 @@ describeDb(
       }
     }
 
+    /** A connection of the spec's own runs `statement` in a transaction and keeps what it locked until `release`. */
+    const hold = async (
+      statement: string,
+      params: unknown[],
+    ): Promise<{ pid: number; rowCount: number; release: () => Promise<void> }> => {
+      const client = await pool.connect()
+      let open = true
+      await client.query('begin')
+      const pid = Number(
+        (await client.query<{ pid: number }>('select pg_backend_pid() as pid')).rows[0]?.pid,
+      )
+      const res = await client.query(statement, params)
+      return {
+        pid,
+        rowCount: res.rowCount ?? 0,
+        release: async () => {
+          if (!open) return
+          open = false
+          try {
+            await client.query('commit')
+          } finally {
+            client.release()
+          }
+        },
+      }
+    }
+    /** The backends waiting on a lock `pid` holds — only this spec's own requests, whatever else runs. */
+    const blockedBy = async (pid: number): Promise<number[]> =>
+      (
+        await pool.query<{ pid: number }>(
+          'select pid from pg_stat_activity where $1 = any(pg_blocking_pids(pid)) order by pid',
+          [pid],
+        )
+      ).rows.map((r) => Number(r.pid))
+    const until = async (what: string, ready: () => Promise<boolean>): Promise<void> => {
+      const deadline = Date.now() + 20_000
+      while (!(await ready())) {
+        if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`)
+        await new Promise((resolve) => setTimeout(resolve, 20))
+      }
+    }
+    /** Hold the dock's balance row of a batch: a load-out's gate waits on it after its van check, before it moves. */
+    const holdDock = (lotId: string) =>
+      hold(
+        'select 1 from stock_balances where tenant_id = $1 and location_id = $2 and lot_id = $3 for update',
+        [tenantId, dockId, lotId],
+      )
+
     beforeAll(async () => {
       await db.insert(tenants).values({
         id: tenantId,
@@ -475,6 +527,7 @@ describeDb(
         ReceivablesModule,
         FilesModule,
         SyncModule,
+        ProcurementModule,
       ])
 
       // Tooth brush for the vans; masala U1 (the batch that expires while its pack waits — exactly the one order's
@@ -1030,7 +1083,45 @@ describeDb(
       expect((await depart(second.id, 6, 'm2-second')).status).toBe(200)
 
       // Old data: the trip on the road holds it again (V-G1). The desk cannot cancel a trip on the road, in words.
-      await plantStale('b')
+      const staleStop = await plantStale('b')
+      // The door refuses it offline in the online words and code (QA verify 3, minor 3: the code was 'conflict').
+      const offline = await post<{
+        accepted: number
+        rejected: { opId: string; code: string; messageEn: string }[]
+      }>(driver(6), '/sync/upload', {
+        protocol: 1,
+        deviceId: `vt-phone-${run}`,
+        ops: [
+          {
+            opId: `door-m2-${run}`,
+            op: 'PUT',
+            table: 'deliveries',
+            id: uuidv7(),
+            data: {
+              trip_id: second.id,
+              stop_id: staleStop,
+              invoice_id: d.invoiceId,
+              lines: [
+                {
+                  id: uuidv7(),
+                  invoice_line_id: d.invoiceLineId,
+                  delivered_qty_pcs: 6,
+                  returned_qty_pcs: 0,
+                },
+              ],
+              pod: [],
+            },
+          },
+        ],
+      })
+      expect(offline.status, JSON.stringify(offline.body)).toBe(200)
+      expect(offline.body.accepted).toBe(0)
+      expect(offline.body.rejected.map((r) => [r.code, r.messageEn])).toEqual([
+        [
+          'bill_not_on_van',
+          `bill ${d.invoiceNo} was already delivered before this trip, so it is not on this van and nothing of it is handed over here. Fail the stop for it, or leave it: the check-in takes it off the trip.`,
+        ],
+      ])
       const cancel = await post<Refusal>(owner, `/delivery/trips/${second.id}/cancel`, {
         idempotencyKey: `cancel-m2-${run}`,
         reason: 'stuck',
@@ -1100,6 +1191,427 @@ describeDb(
       expect(await pendingOf(a.lineId, dockId), "A's cartons stay held on the dock").toBe(12)
       expect(await balance(w1, dockId)).toEqual(dockBefore)
       expect(await pendingOf(b.lineId, godownId), "B's godown hold is freed").toBe(0)
+    }, 180_000)
+    // ---------------------------------------------------------------------------------------------------------------
+    // (1) one trip per van, under a race — the third blind check's X1 and Y1
+
+    it("vans and trips 1 under a race (X1): an empty van-sales trip that departs while another trip's sheet is being counted onto the same van waits for the count, then is refused; the bill goes out on its own trip", async () => {
+      const van = vehicleLocs[7] ?? ''
+      const g = lots.G1 ?? ''
+      const b = await billed(retailerA, vG, 12, 'x1-b')
+      const loaded = await trip('x1-tb', istDay(0), 7, 7, [
+        { retailerId: retailerA, invoiceIds: [b.invoiceId] },
+      ])
+      // The empty van-sales trip on the same van: nothing to load, so it may leave as soon as the van is free.
+      const emptyId = uuidv7()
+      const planned = await post(manager, '/delivery/trips', {
+        idempotencyKey: `trip-x1-ta-${run}`,
+        id: emptyId,
+        tripDate: istDay(0),
+        vehicleId: vehicleIds[7],
+        driverId: driverIds[8],
+        vanSalesEnabled: true,
+        openingCashPaise: 0,
+        stops: [],
+      })
+      expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+      expect(
+        (
+          await post(packer, `/delivery/trips/${emptyId}/start-loading`, {
+            idempotencyKey: `loading-x1-ta-${run}`,
+          })
+        ).status,
+      ).toBe(200)
+      const emptyNo = await tripNo(emptyId)
+      const sheet = await draftSheet('x1-tb', {
+        toLocationId: van,
+        tripId: loaded.id,
+        orderIds: [b.orderId],
+      })
+      expect(sheet.status, JSON.stringify(sheet.body)).toBe(200)
+      const approved = await post(manager, `/warehouse/load-sheets/${sheet.body.item.id}/approve`, {
+        idempotencyKey: `approve-x1-tb-${run}`,
+      })
+      expect(approved.status, JSON.stringify(approved.body)).toBe(200)
+
+      // The godown counts the sheet out and the crew presses Depart at the same moment.
+      const gate = await holdDock(g)
+      let counted: Awaited<ReturnType<typeof post<Refusal & { dispatched: string[] }>>>
+      let left: Awaited<ReturnType<typeof depart>>
+      try {
+        const counting = post<Refusal & { dispatched: string[] }>(
+          packer,
+          `/warehouse/load-sheets/${sheet.body.item.id}/confirm`,
+          {
+            idempotencyKey: `confirm-x1-tb-${run}`,
+            countedPackages: sheet.body.item.expectedPackages,
+            countedVanStock: [],
+            challanId: uuidv7(),
+          },
+        )
+        await until(
+          'the count to reach the dock',
+          async () => (await blockedBy(gate.pid)).length >= 1,
+        )
+        const [countPid] = await blockedBy(gate.pid)
+        let finished = false
+        const leaving = depart(emptyId, 8, 'x1-ta').finally(() => {
+          finished = true
+        })
+        // With the van lock the departure queues behind the count; without it, it went straight through.
+        await until(
+          'the departure to queue behind the count, or to finish without it',
+          async () => finished || (await blockedBy(countPid ?? 0)).length >= 1,
+        )
+        await gate.release()
+        ;[counted, left] = await Promise.all([counting, leaving])
+      } finally {
+        await gate.release()
+      }
+      expect(counted.status, JSON.stringify(counted.body)).toBe(200)
+      expect(counted.body.dispatched).toEqual([b.orderId])
+      expect(left.status, JSON.stringify(left.body)).toBe(409)
+      expect(left.body.data?.code).toBe('vehicle_on_trip')
+      expect(left.body.message).toBe(
+        `${plates[7] ?? ''} is already loaded for trip ${loaded.tripNo} of ${istDateWord(istDay(0))}, so trip ${emptyNo} does not leave with it: a van carries one trip at a time. Send trip ${loaded.tripNo} out and settle it when it is back (or, if it is not going, check it in and settle it) first, then send this trip out.`,
+      )
+      expect(
+        (
+          await one<{ state: string }>(
+            sql`select state::text as state from trips where id = ${emptyId}`,
+          )
+        ).state,
+      ).toBe('loading')
+      expect((await balance(g, van)).on_hand).toBe(12)
+
+      // The bill leaves on its own trip and reaches its shop: no "Only 0 pc" at the door.
+      expect((await depart(loaded.id, 7, 'x1-tb')).status).toBe(200)
+      const door = await deliverAll(7, loaded.id, loaded.stopIds[0] ?? '', b, 12, 'x1-b')
+      expect(door.status, JSON.stringify(door.body)).toBe(200)
+      expect(door.body.item.outcome).toBe('delivered')
+    }, 180_000)
+
+    it('vans and trips 1 under a race (Y1): two sheets of two trips on one van, counted out at the same moment — the second waits for the first, then is refused naming it; nothing of it moves', async () => {
+      const van = vehicleLocs[8] ?? ''
+      const g = lots.G1 ?? ''
+      const p = await billed(retailerA, vG, 6, 'y1-p')
+      const q = await billed(retailerB, vG, 6, 'y1-q')
+      const first = await trip('y1-first', istDay(0), 9, 8, [
+        { retailerId: retailerA, invoiceIds: [p.invoiceId] },
+      ])
+      const second = await trip('y1-second', istDay(0), 10, 8, [
+        { retailerId: retailerB, invoiceIds: [q.invoiceId] },
+      ])
+      const sheets: { id: string; packages: number }[] = []
+      for (const [tag, t, o] of [
+        ['y1-first', first, p],
+        ['y1-second', second, q],
+      ] as const) {
+        const drafted = await draftSheet(tag, {
+          toLocationId: van,
+          tripId: t.id,
+          orderIds: [o.orderId],
+        })
+        expect(drafted.status, JSON.stringify(drafted.body)).toBe(200)
+        // Both approved while neither is loaded: the approval rightly finds the van free.
+        const pin = await post(manager, `/warehouse/load-sheets/${drafted.body.item.id}/approve`, {
+          idempotencyKey: `approve-${tag}-${run}`,
+        })
+        expect(pin.status, JSON.stringify(pin.body)).toBe(200)
+        sheets.push({ id: drafted.body.item.id, packages: drafted.body.item.expectedPackages })
+      }
+      const confirm = (at: number, tag: string) =>
+        post<Refusal & { dispatched: string[] }>(
+          packer,
+          `/warehouse/load-sheets/${sheets[at]?.id ?? ''}/confirm`,
+          {
+            idempotencyKey: `confirm-${tag}-${run}`,
+            countedPackages: sheets[at]?.packages ?? 0,
+            countedVanStock: [],
+            challanId: uuidv7(),
+          },
+        )
+      const dockBefore = await balance(g, dockId)
+      const gate = await holdDock(g)
+      let one1: Awaited<ReturnType<typeof confirm>>
+      let two: Awaited<ReturnType<typeof confirm>>
+      try {
+        const firstCount = confirm(0, 'y1-first')
+        await until(
+          'the first count to reach the dock',
+          async () => (await blockedBy(gate.pid)).length >= 1,
+        )
+        const [firstPid] = await blockedBy(gate.pid)
+        const secondCount = confirm(1, 'y1-second')
+        // With the van lock the second count queues behind the first; without it, both reached the dock.
+        await until(
+          'the second count to queue behind the first, or at the dock beside it',
+          async () =>
+            (await blockedBy(firstPid ?? 0)).length >= 1 || (await blockedBy(gate.pid)).length >= 2,
+        )
+        await gate.release()
+        ;[one1, two] = await Promise.all([firstCount, secondCount])
+      } finally {
+        await gate.release()
+      }
+      expect(one1.status, JSON.stringify(one1.body)).toBe(200)
+      expect(two.status, JSON.stringify(two.body)).toBe(409)
+      expect(two.body.data?.code).toBe('vehicle_on_trip')
+      expect(two.body.message).toBe(
+        `${plates[8] ?? ''} is already loaded for trip ${first.tripNo} of ${istDateWord(istDay(0))}. A van carries one trip at a time, so nothing is loaded onto it for trip ${second.tripNo} until that trip is settled: send trip ${first.tripNo} out and settle it when it is back (or, if it is not going, check it in and settle it) first, then count out this sheet.`,
+      )
+      expect(await orderState(p.orderId)).toBe('dispatched')
+      expect(await orderState(q.orderId), 'the second bill stays on the dock').toBe('packed')
+      expect((await balance(g, van)).on_hand).toBe(6)
+      expect((await balance(g, dockId)).on_hand).toBe(dockBefore.on_hand - 6)
+      // The first trip leaves; the second is not stuck behind a van two trips hold.
+      expect((await depart(first.id, 9, 'y1-first')).status).toBe(200)
+    }, 180_000)
+
+    // ---------------------------------------------------------------------------------------------------------------
+    // (1) and (2) a van sale sells only what is its own trip's — X1 on old data
+
+    it("vans and trips 2 (X1, old data): a van sale on a van another trip's bill was loaded onto before the rule does not sell that bill — the list holds it, the sale is refused, and the other trip delivers it", async () => {
+      const van = vehicleLocs[9] ?? ''
+      const g = lots.G1 ?? ''
+      const own = await billed(retailerA, vG, 6, 'x1o-own')
+      const selling = uuidv7()
+      const stopId = uuidv7()
+      const planned = await post(manager, '/delivery/trips', {
+        idempotencyKey: `trip-x1o-sell-${run}`,
+        id: selling,
+        tripDate: istDay(0),
+        vehicleId: vehicleIds[9],
+        driverId: driverIds[1],
+        vanSalesEnabled: true,
+        openingCashPaise: 0,
+        stops: [{ id: stopId, sequence: 1, retailerId: retailerA, invoiceIds: [own.invoiceId] }],
+      })
+      expect(planned.status, JSON.stringify(planned.body)).toBe(200)
+      expect(
+        (
+          await post(packer, `/delivery/trips/${selling}/start-loading`, {
+            idempotencyKey: `loading-x1o-sell-${run}`,
+          })
+        ).status,
+      ).toBe(200)
+      await loadOut(app, crew, { tripId: selling, orderIds: [own.orderId], tag: `x1o-sell-${run}` })
+      expect((await depart(selling, 1, 'x1o-sell')).status).toBe(200)
+
+      // Another trip's bill, loaded onto the same van while it was out — only a load-out before ruling 1 did that.
+      const other = await billed(retailerB, vG, 12, 'x1o-other')
+      const later = await trip('x1o-other', istDay(1), 2, 9, [
+        { retailerId: retailerB, invoiceIds: [other.invoiceId] },
+      ])
+      await beforeTheRule(() =>
+        loadOut(app, crew, {
+          tripId: later.id,
+          orderIds: [other.orderId],
+          tag: `x1o-other-${run}`,
+        }),
+      )
+      expect((await balance(g, van)).on_hand).toBe(18)
+
+      const stock = await call<{
+        items: { lotId: string; availablePcs: number; heldForBillsPcs: number }[]
+      }>(app, driver(1), 'GET', `/delivery/trips/${selling}/van-stock`)
+      expect(stock.status, JSON.stringify(stock.body)).toBe(200)
+      expect(
+        stock.body.items
+          .filter((i) => i.lotId === g)
+          .map((i) => [i.availablePcs, i.heldForBillsPcs]),
+        "its own bill's 6 and the other trip's 12 are held, none free",
+      ).toEqual([[0, 18]])
+
+      const sale = await post<Refusal>(driver(1), '/delivery/van-sales', {
+        idempotencyKey: `sale-x1o-${run}`,
+        id: uuidv7(),
+        tripId: selling,
+        retailerId: retailerA,
+        invoiceId: uuidv7(),
+        deliveryId: uuidv7(),
+        lines: [{ id: uuidv7(), variantId: vG, enteredQty: 12, enteredUnit: 'piece' }],
+        collect: { id: uuidv7(), receiptId: uuidv7(), mode: 'cash', amountPaise: 20_000 },
+      })
+      expect(sale.status, JSON.stringify(sale.body)).toBeGreaterThanOrEqual(400)
+      expect(sale.status, JSON.stringify(sale.body)).toBeLessThan(500)
+      expect((await balance(g, van)).on_hand, 'nothing was sold off the van').toBe(18)
+
+      // Its own bill is delivered at its door; it checks in and settles with nothing of its own left on the van.
+      expect((await deliverAll(1, selling, stopId, own, 6, 'x1o-own')).status).toBe(200)
+      expect((await checkIn(selling, 1, 'x1o-sell')).status).toBe(200)
+      const settled = await settle(selling, [], 'x1o-sell')
+      expect(settled.status, JSON.stringify(settled.body)).toBe(200)
+      expect((await balance(g, van)).on_hand).toBe(12)
+      // The other trip leaves with its bill on board and delivers it.
+      expect((await depart(later.id, 2, 'x1o-other')).status).toBe(200)
+      const door = await deliverAll(2, later.id, later.stopIds[0] ?? '', other, 12, 'x1o-other')
+      expect(door.status, JSON.stringify(door.body)).toBe(200)
+      expect(door.body.item.outcome).toBe('delivered')
+    }, 180_000)
+    it('vans and trips 1 (the other doors): while a trip holds the van nothing goes onto it by a GRN, a bill cancel or a desk credit note, each refused in words; the godown takes them', async () => {
+      const van = vehicleLocs[10] ?? ''
+      const g = lots.G1 ?? ''
+      const x = await billed(retailerA, vG, 6, 'od-x')
+      const out = await trip('od-out', istDay(0), 3, 10, [
+        { retailerId: retailerA, invoiceIds: [x.invoiceId] },
+      ])
+      await loadOut(app, crew, { tripId: out.id, orderIds: [x.orderId], tag: `od-out-${run}` })
+      expect((await depart(out.id, 3, 'od-out')).status).toBe(200)
+      const onTheRoad = `${plates[10] ?? ''} is on trip ${out.tripNo}, which is out on the road: nothing is put on the van by hand while a trip holds it — a van carries one trip at a time. Goods for that trip go on through its load sheet; anything else waits until trip ${out.tripNo} is settled.`
+
+      // A GRN received into the van (QA verify 3, minor 1: GRN-0136 put 10 pc on a van whose trip was out).
+      const supplierId = uuidv7()
+      const supplierInvoiceId = uuidv7()
+      await db.execute(
+        sql`insert into suppliers (id, tenant_id, name) values (${supplierId}, ${tenantId}, ${`Supplier ${run}`})`,
+      )
+      await db.execute(sql`insert into supplier_invoices (id, tenant_id, supplier_id, source, status, invoice_no, invoice_date)
+                          values (${supplierInvoiceId}, ${tenantId}, ${supplierId}, 'manual', 'approved', ${`SUP-${run}`}, ${istDay(0)})`)
+      await db.execute(sql`insert into supplier_invoice_lines (id, tenant_id, supplier_invoice_id, line_no, description, variant_id, batch_no, expiry_date, mrp_paise, printed_qty, qty_pcs, rate_paise)
+                          values (${uuidv7()}, ${tenantId}, ${supplierInvoiceId}, 1, 'Tooth Brush', ${vG}, ${`G1-${run}`}, '2028-01-31', 1000, 10, 10, 500)`)
+      const grn = await post<Refusal>(owner, '/procurement/grns', {
+        idempotencyKey: `grn-od-${run}`,
+        id: uuidv7(),
+        supplierInvoiceId,
+        locationId: van,
+      })
+      expect(grn.status, JSON.stringify(grn.body)).toBe(409)
+      expect(grn.body.data?.code).toBe('vehicle_on_trip')
+      expect(grn.body.message).toBe(onTheRoad)
+
+      // A bill cancelled with its pieces sent to the van (minor 1: 6 pc onto the van).
+      const y = await billed(retailerB, vG, 6, 'od-y')
+      const cancelOnto = await post<Refusal>(owner, `/invoices/${y.invoiceId}/cancel`, {
+        idempotencyKey: `cancel-od-y-van-${run}`,
+        id: y.invoiceId,
+        reason: 'shop cancelled',
+        restockLocationId: van,
+      })
+      expect(cancelOnto.status, JSON.stringify(cancelOnto.body)).toBe(409)
+      expect(cancelOnto.body.data?.code).toBe('vehicle_on_trip')
+      expect(cancelOnto.body.message).toBe(onTheRoad)
+      expect((await balance(g, van)).on_hand, 'nothing went onto the van').toBe(6)
+
+      // A desk credit note that would put a return back onto the van.
+      const credit = await post<Refusal>(owner, '/credit-notes', {
+        idempotencyKey: `credit-od-${run}`,
+        id: uuidv7(),
+        invoiceId: x.invoiceId,
+        reason: 'return_saleable',
+        restockLocationId: van,
+        autoIssue: true,
+        lines: [{ id: uuidv7(), invoiceLineId: x.invoiceLineId, qtyPcs: 1 }],
+      })
+      expect(credit.status, JSON.stringify(credit.body)).toBe(409)
+      expect(credit.body.data?.code).toBe('vehicle_on_trip')
+      expect((await balance(g, van)).on_hand).toBe(6)
+
+      // The godown takes what the van may not: the bill is cancelled back into the godown.
+      const godownBefore = await balance(g, godownId)
+      const cancelled = await post<Refusal>(owner, `/invoices/${y.invoiceId}/cancel`, {
+        idempotencyKey: `cancel-od-y-${run}`,
+        id: y.invoiceId,
+        reason: 'shop cancelled',
+      })
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      expect((await balance(g, godownId)).on_hand).toBe(godownBefore.on_hand + 6)
+      // The bill on the road still reaches its shop.
+      const door = await deliverAll(3, out.id, out.stopIds[0] ?? '', x, 6, 'od-x')
+      expect(door.status, JSON.stringify(door.body)).toBe(200)
+    }, 180_000)
+    it('the smaller doors (QA verify 3, minors 3, 4, 5): a cancelled bill is refused at plan with a code; a draft sheet holding an order cancelled since names what the order is; a wave is placed only where its orders ship from, never on a van', async () => {
+      // Minor 3: a cancelled bill at plan — the same code as a delivered one.
+      const c = await billed(retailerA, vG, 6, 'mn-c')
+      const cancelled = await post(owner, `/invoices/${c.invoiceId}/cancel`, {
+        idempotencyKey: `cancel-mn-c-${run}`,
+        id: c.invoiceId,
+        reason: 'shop cancelled',
+      })
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200)
+      const plan = await post<Refusal>(manager, '/delivery/trips', {
+        idempotencyKey: `trip-mn-c-${run}`,
+        id: uuidv7(),
+        tripDate: istDay(1),
+        vehicleId: vehicleIds[4],
+        driverId: driverIds[5],
+        openingCashPaise: 0,
+        stops: [{ id: uuidv7(), sequence: 1, retailerId: retailerA, invoiceIds: [c.invoiceId] }],
+      })
+      expect(plan.status, JSON.stringify(plan.body)).toBe(409)
+      expect(plan.body.data?.code).toBe('bill_cannot_go_out')
+      expect(plan.body.message).toBe(
+        `${c.invoiceNo} · ${shopA} was cancelled, so it does not go out. A trip takes only bills that can still go out.`,
+      )
+
+      // Minor 4: a draft drawn up while the order was packed, the order cancelled since (old data, through SQL).
+      const k = await billed(retailerB, vG, 6, 'mn-k')
+      const kTrip = await trip('mn-k', istDay(1), 5, 4, [
+        { retailerId: retailerB, invoiceIds: [k.invoiceId] },
+      ])
+      const drafted = await draftSheet('mn-k', {
+        toLocationId: vehicleLocs[4] ?? '',
+        tripId: kTrip.id,
+        orderIds: [k.orderId],
+      })
+      expect(drafted.status, JSON.stringify(drafted.body)).toBe(200)
+      await db.execute(sql`update sales_orders set state = 'cancelled' where id = ${k.orderId}`)
+      const gate = await post<Refusal>(
+        owner,
+        `/warehouse/load-sheets/${drafted.body.item.id}/confirm`,
+        {
+          idempotencyKey: `confirm-mn-k-${run}`,
+          countedPackages: drafted.body.item.expectedPackages,
+          countedVanStock: [],
+          challanId: uuidv7(),
+        },
+      )
+      expect(gate.status, JSON.stringify(gate.body)).toBe(409)
+      expect(gate.body.data?.code).toBe('order_not_packed')
+      expect(gate.body.message).toBe(
+        `${k.orderNo} · ${shopB} is cancelled — only a packed order is loaded, so this sheet is not counted out as drafted. Cancel the sheet and draft it again without that order.`,
+      )
+      await db.execute(sql`update sales_orders set state = 'packed' where id = ${k.orderId}`)
+
+      // Minor 5: a wave is placed where its orders ship from — not at a second godown, not on a van.
+      const o = await order(retailerA, vW, 6, 'mn-w')
+      const otherGodown = uuidv7()
+      await db.execute(
+        sql`insert into locations (id, tenant_id, kind, name) values (${otherGodown}, ${tenantId}, 'warehouse', ${`Back Godown ${run}`})`,
+      )
+      const godownName = (
+        await one<{ name: string }>(sql`select name from locations where id = ${godownId}`)
+      ).name
+      for (const [tag, locationId, words] of [
+        [
+          'elsewhere',
+          otherGodown,
+          `This order ships from ${godownName}, not Back Godown ${run}: a wave is picked where its orders ship from. Wave it from ${godownName}.`,
+        ],
+        [
+          'van',
+          vehicleLocs[4] ?? '',
+          `A wave is picked in the godown, not on Vehicle ${plates[4] ?? ''}: a van carries its trip's bills and van stock. Wave the orders from ${godownName}.`,
+        ],
+      ] as const) {
+        const wave = await post<Refusal>(packer, '/warehouse/picklists', {
+          idempotencyKey: `wave-mn-${tag}-${run}`,
+          id: uuidv7(),
+          orderIds: [o.orderId],
+          locationId,
+        })
+        expect(wave.status, JSON.stringify(wave.body)).toBe(409)
+        expect(wave.body.data?.code).toBe('wave_not_where_orders_ship')
+        expect(wave.body.message).toBe(words)
+      }
+      await db.execute(sql`update locations set active = false where id = ${otherGodown}`)
+      const home = await post(packer, '/warehouse/picklists', {
+        idempotencyKey: `wave-mn-home-${run}`,
+        id: uuidv7(),
+        orderIds: [o.orderId],
+        locationId: godownId,
+      })
+      expect(home.status, JSON.stringify(home.body)).toBe(200)
     }, 180_000)
   },
 )
