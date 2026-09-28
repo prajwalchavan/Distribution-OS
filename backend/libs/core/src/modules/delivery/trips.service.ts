@@ -65,6 +65,7 @@ import {
 } from '../../platform/index.js'
 import { istDateWord } from '../../platform/refusal-words.js'
 import { BillingService } from '../billing/index.js'
+import { InventoryService } from '../inventory/index.js'
 import { OrdersService } from '../orders/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import { activeMembersWithRole } from '../tenancy/index.js'
@@ -206,6 +207,8 @@ export class TripsService {
     private readonly billing: BillingService,
     private readonly loadSheets: LoadSheetsService,
     private readonly receivables: ReceivablesService,
+    /** The van lock every van-holder check is read under (vans and trips 1, QA verify 3). */
+    private readonly inventory: InventoryService,
   ) {}
 
   // -------------------------------------------------------------------------------------------------------------
@@ -1479,6 +1482,9 @@ export class TripsService {
     vehicleLocationId: string,
     exceptTripId: string | null,
   ): Promise<VanTrip | null> {
+    // Read under the van lock, held to the caller's commit: a departure and a load-out onto the same van at the same
+    // moment queue here, and the second reads what the first did (QA verify 3, X1 and Y1).
+    await this.inventory.lockVehicleLocations(tx, [vehicleLocationId])
     return (
       (await this.tripsOnVan(tx, vehicleLocationId)).find(
         (t) => t.tripId !== exceptTripId && t.loaded,

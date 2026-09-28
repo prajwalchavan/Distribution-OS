@@ -798,6 +798,9 @@ export class SettlementService {
     const expensesPaise = Number(spent?.total ?? 0)
     const policy = await loadTripPolicy(tx)
     const vehicle = await loadVehicle(tx, trip.vehicleId)
+    // The settlement's own count reads which other trips hold the van under the van lock (vans and trips 1 and 2),
+    // after the trip row and its money lock, the order every door takes them in.
+    if (opts.lock) await this.inventory.lockVehicleLocations(tx, [vehicle.locationId])
     return {
       cashCollectedPaise: money.cashPaise,
       upiCollectedPaise: money.upiPaise,
@@ -819,7 +822,7 @@ export class SettlementService {
    * only for a van loaded before that rule, and the other trip's pieces simply stay on the van for its own check-in.
    */
   private async vanStock(tx: Db, trip: TripRow, locationId: string): Promise<VanStockLine[]> {
-    const others = await this.othersOnVan(tx, trip, locationId)
+    const others = await this.piecesOfOtherTrips(tx, trip.id, locationId)
     const rows = (
       await tx
         .select({ lotId: stockBalances.lotId, onHand: stockBalances.onHand })
@@ -872,15 +875,17 @@ export class SettlementService {
    *   - the van stock its confirmed load sheets put on THIS van, less what its van sales sold off it.
    *
    * Never more than the van holds (the caller caps per lot). Empty when no other trip holds the van, which since
-   * ruling 1 is every van loaded after the rule.
+   * ruling 1 is every van loaded after the rule. The settlement leaves these pieces on the van, and a van sale holds
+   * them out of its reach (QA verify 3, X1: the sale sold another trip's loaded bill, whose door then found "Only 0
+   * pc"), so no door of one trip takes what another trip's bills and van stock need.
    */
-  private async othersOnVan(
+  async piecesOfOtherTrips(
     tx: Db,
-    trip: TripRow,
+    tripId: string,
     vehicleLocationId: string,
   ): Promise<Map<string, number>> {
     const others = (await this.trips.tripsOnVan(tx, vehicleLocationId)).filter(
-      (t) => t.tripId !== trip.id && t.loaded,
+      (t) => t.tripId !== tripId && t.loaded,
     )
     const held = new Map<string, number>()
     if (others.length === 0) return held

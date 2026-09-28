@@ -407,6 +407,9 @@ export class StockService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // Both vans (when either is one) are locked first and in one order, before any balance row, so a hand move
+        // and a load-out on the same van queue instead of both reading it free (vans and trips 1, QA verify 3).
+        await this.inventory.lockVehicleLocations(tx, [input.fromLocationId, input.toLocationId])
         await this.requireLot(tx, input.lotId)
         await this.assertNotHeldOnDock(tx, input.fromLocationId, input.lotId, input.qtyPcs)
         // QA DOS-358: nothing comes off a van by hand until its trip is settled (the van check-in counts it off).

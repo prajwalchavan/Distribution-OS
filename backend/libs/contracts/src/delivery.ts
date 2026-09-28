@@ -842,7 +842,9 @@ export const StartLoadingOutput = TripItemOutput
  * (`data.orderIds`) while a dispatched bill planned on the trip was counted out on another load than a
  * confirmed sheet of this trip — its pieces are not on this van; check the trip in (QA DOS-354 verify). The
  * refusals come before the consent check. 409 `vehicle_on_trip` while ANOTHER trip holds the van — on the
- * road, checked in and not settled, or already loaded (vans and trips 1: a van carries one trip at a time) —
+ * road, checked in and not settled, or already loaded (vans and trips 1: a van carries one trip at a time; read
+ * under the per-van lock the load-out's gate takes, so a departure and a load-out onto the same van at the same
+ * moment queue, QA verify 3) —
  * and 409 `bill_cannot_go_out` while the trip holds a bill already delivered or cancelled (vans and trips 3:
  * take it off first). Depart dispatches nothing: a trip whose bills the load-out dispatched, or one with no bill
  * and van sales on, departs (coordination §4 item 4).
@@ -1401,8 +1403,10 @@ export const CreateVanSaleInput = MutationBase.extend({
 /**
  * WHAT THE CREW MAY SELL FROM THE VAN (QA DOS-233): the vehicle's sellable pieces per lot LESS every piece a
  * bill of this trip still has on board — a planned bill not yet handed over, or one that came back and rides
- * the van until check-in. Those cartons belong to another shop's bill; `vanSales.create` refuses to draw on
- * them, and this list never offers them. Batch, MRP and expiry, never cost.
+ * the van until check-in — and less whatever stands on the van for ANOTHER trip that still holds it (its bills
+ * and its van stock; vans and trips 1 and 2, QA verify 3 X1). Those cartons belong to another shop's bill or
+ * another trip; `vanSales.create` refuses to draw on them, and this list never offers them. Batch, MRP and
+ * expiry, never cost.
  */
 export const VanSaleStockInput = z.object({ tripId: IdSchema })
 export const VanSaleStockRowSchema = z.object({
@@ -1417,9 +1421,12 @@ export const VanSaleStockRowSchema = z.object({
    * quote and the bill count in; the lot's own pack only when the catalogue names none (QA DOS-239).
    */
   caseSize: z.number().int().positive().nullable(),
-  /** Free to sell: sellable at the vehicle minus this trip's undelivered bills, never below zero. */
+  /** Free to sell: sellable at the vehicle minus the pieces held below, never below zero. */
   availablePcs: PiecesSchema,
-  /** Pieces of this lot the trip's own bills still hold on the van (shown, never sold). */
+  /**
+   * Pieces of this lot held on the van (shown, never sold): the trip's own bills still on board, plus what
+   * stands there for another trip that still holds the van.
+   */
   heldForBillsPcs: PiecesSchema,
 })
 export type VanSaleStockRow = z.infer<typeof VanSaleStockRowSchema>

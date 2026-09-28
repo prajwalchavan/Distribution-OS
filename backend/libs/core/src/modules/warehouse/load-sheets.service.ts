@@ -308,7 +308,9 @@ export class LoadSheetsService {
             message: 'a load sheet moves stock between two different locations',
           })
         // Ruling 6 and vans and trips 1: a sheet is never drawn from the bin, the dock or a shop's floor, nor from a
-        // van another trip holds — refused when it is made, not only at the gate.
+        // van another trip holds — refused when it is made, not only at the gate. Both ends are read under the van
+        // lock, in one order (QA verify 3).
+        await this.inventory.lockVehicleLocations(tx, [fromLocationId, vehicle.id])
         await this.assertLoadSource(tx, fromLocationId)
         if (orderIds.length === 0 && input.vanStock.length === 0)
           throw new ORPCError('BAD_REQUEST', {
@@ -476,6 +478,7 @@ export class LoadSheetsService {
           })
         // Vans and trips 1: the manager's PIN is not given for a load onto a van another trip still holds, nor for
         // one drawn from such a van (or from the bin); the sentence names the trip and what has to happen first.
+        await this.inventory.lockVehicleLocations(tx, [sheet.fromLocationId, sheet.toLocationId])
         await this.assertLoadSource(tx, sheet.fromLocationId)
         await this.assertVanFree(tx, sheet, await this.ownTripOf(tx, sheet), 'approve')
         const now = new Date()
@@ -565,7 +568,10 @@ export class LoadSheetsService {
         }
         // Vans and trips 1, again at the gate and before anything moves: a van carries one trip at a time. Nothing is
         // loaded onto a van another trip holds — its settlement would count this load as its own — and nothing is
-        // drawn from one (B2), nor from the bin (ruling 6).
+        // drawn from one (B2), nor from the bin (ruling 6). The van lock is taken here and held to the commit, so a
+        // departure or another sheet's gate on the same van at the same moment waits and then reads this load (QA
+        // verify 3, X1 and Y1: both used to read the van free, and both went through).
+        await this.inventory.lockVehicleLocations(tx, [sheet.fromLocationId, sheet.toLocationId])
         await this.assertLoadSource(tx, sheet.fromLocationId)
         await this.assertVanFree(tx, sheet, tripId, 'confirm')
         const selfApproving =
