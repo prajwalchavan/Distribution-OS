@@ -3901,6 +3901,115 @@ describeDb('row level security and ledger guarantees', () => {
     expect(await kindOf(floor)).toBe('in_transit')
   })
 
+  it('vans and trips ruling 5: the godown, the dock and the damaged / expiry bin are fixed places at the database — no writer switches one off or changes its kind; a second godown still goes off, and a distributor left without its bin gets it back', async () => {
+    /*
+     * The second blind check: the godown login switched the bin off (`active: false`), a damage write-off at the
+     * godown then reached no bin and every goods receipt failed. Migration 0075's trigger `locations_bin_kind_fixed`
+     * now also refuses switching off or re-kinding the first ACTIVE place of each fixed kind (the one
+     * `bootstrapTenant` made, the one every service reads), for the owner connection and for app_rw alike.
+     */
+    const firstOf = async (kind: 'warehouse' | 'damaged' | 'in_transit') =>
+      (
+        await db
+          .select({ id: locations.id, name: locations.name })
+          .from(locations)
+          .where(
+            and(
+              eq(locations.tenantId, tenantA),
+              eq(locations.kind, kind),
+              eq(locations.active, true),
+            ),
+          )
+          .orderBy(locations.id)
+          .limit(1)
+      )[0] ?? { id: '', name: '' }
+    const godown = await firstOf('warehouse')
+    const dock = await firstOf('in_transit')
+    const bin = await firstOf('damaged')
+    expect([godown.id, dock.id, bin.id].every((id) => id !== '')).toBe(true)
+    for (const place of [godown, dock, bin]) {
+      await rejectsWith(
+        db.update(locations).set({ active: false }).where(eq(locations.id, place.id)),
+        /fixed places that stay switched on/,
+      )
+      await rejectsWith(
+        as('owner')((tx) =>
+          tx.update(locations).set({ active: false }).where(eq(locations.id, place.id)),
+        ),
+        /fixed places that stay switched on/,
+      )
+    }
+    await rejectsWith(
+      db.update(locations).set({ kind: 'vehicle' }).where(eq(locations.id, godown.id)),
+      /fixed places that stay switched on/,
+    )
+    await rejectsWith(
+      as('owner')((tx) =>
+        tx.update(locations).set({ kind: 'warehouse' }).where(eq(locations.id, dock.id)),
+      ),
+      /fixed places that stay switched on/,
+    )
+    // what still goes: the godown takes a new name (and gets its own back)
+    await db
+      .update(locations)
+      .set({ name: `Main godown R5 ${run}` })
+      .where(eq(locations.id, godown.id))
+    await db.update(locations).set({ name: godown.name }).where(eq(locations.id, godown.id))
+    const stillOn = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(inArray(locations.id, [godown.id, dock.id, bin.id]), eq(locations.active, true)))
+    expect(stillOn).toHaveLength(3)
+
+    // a distributor of its own, so tenant A keeps exactly the places the other guarantees read
+    const tenantR5 = uuidv7()
+    await db
+      .insert(tenants)
+      .values({
+        id: tenantR5,
+        slug: `r5-${run}`,
+        legalName: `Fixed places ${run}`,
+        stateCode: '27',
+      })
+    const godownR5 = uuidv7()
+    const secondR5 = uuidv7()
+    const offBin = uuidv7()
+    const laterOffBin = uuidv7()
+    await db.insert(locations).values([
+      { id: godownR5, tenantId: tenantR5, kind: 'warehouse', name: `Godown ${run}` },
+      { id: secondR5, tenantId: tenantR5, kind: 'warehouse', name: `Second godown ${run}` },
+      // the state the blind check left behind: the bin switched off before the guard existed
+      { id: offBin, tenantId: tenantR5, kind: 'damaged', name: `Bin ${run}`, active: false },
+      { id: laterOffBin, tenantId: tenantR5, kind: 'damaged', name: `Shelf ${run}`, active: false },
+    ])
+    // one statement over every godown of the distributor: refused whatever order it takes the rows in
+    await rejectsWith(
+      db
+        .update(locations)
+        .set({ active: false })
+        .where(and(eq(locations.tenantId, tenantR5), eq(locations.kind, 'warehouse'))),
+      /fixed places that stay switched on/,
+    )
+    // a place the owner added goes off and on again
+    await db.update(locations).set({ active: false }).where(eq(locations.id, secondR5))
+    await db.update(locations).set({ active: true }).where(eq(locations.id, secondR5))
+
+    // the correction 0075 runs once: the first bin comes back on, once, and nothing else moves
+    const restored = await db.execute<{ n: string }>(
+      sql`select dos_restore_fixed_places(${tenantR5}) as n`,
+    )
+    expect(Number(restored.rows[0]?.n)).toBe(1)
+    const again = await db.execute<{ n: string }>(
+      sql`select dos_restore_fixed_places(${tenantR5}) as n`,
+    )
+    expect(Number(again.rows[0]?.n)).toBe(0)
+    const on = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantR5), eq(locations.active, true)))
+    expect(on.map((r) => r.id).sort()).toEqual([godownR5, secondR5, offBin].sort())
+  })
+
   it('keeps the receiving paperwork (GRNs) to staff and the shop out of it', async () => {
     expect(await as('retailer')((tx) => tx.select().from(grns))).toHaveLength(0)
     expect((await as('warehouse')((tx) => tx.select().from(grns))).map((g) => g.id)).toEqual([grnA])

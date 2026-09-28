@@ -1,0 +1,500 @@
+/**
+ * THE GODOWN, THE DOCK AND THE BIN ARE FIXED PLACES (architect ruling 5 on vans and trips, 2026-09-28) — and a
+ * carton binned by mistake is the OWNER's correction (stock ruling 2, restated there). The second blind check of
+ * the bin lane found:
+ *
+ *   MAJOR  the godown login switched the damaged / expiry bin off (`inventory.locations.upsert`, `active: false`,
+ *          200); a damage write-off at the godown then wrote the pieces off there and reached no bin, and every
+ *          goods receipt answered 500 "tenant has no damaged location (bootstrap)";
+ *   minor  the correction of a carton binned by mistake (−N at the bin, +N at the godown) was open to a manager.
+ *
+ * Every door is here: the godown login, a manager and the owner, the same request a second time; the write-off
+ * and the goods receipt that depend on the bin; and a distributor that has no bin at all, which is answered in
+ * words, never with a 500. The database half (the trigger, the correction of 0075) is in `rls.test.ts`.
+ */
+import { and, eq, sql } from 'drizzle-orm'
+import { businessDate, uuidv7 } from '@dos/domain'
+import {
+  bootstrapTenant,
+  createDb,
+  createPool,
+  locations,
+  manufacturers,
+  memberships,
+  products,
+  productVariants,
+  stockBalances,
+  suppliers,
+  tenants,
+  users,
+} from '@dos/db'
+import type { NestFastifyApplication } from '@nestjs/platform-fastify'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { bootTestApp, call, type Actor } from '../../testing/app.js'
+import { ProcurementModule } from '../procurement/index.js'
+import { InventoryModule } from './index.js'
+
+const url = process.env.DATABASE_URL
+const describeDb = url ? describe : describe.skip
+
+type Refusal = { message: string; data?: { code?: string } }
+type Place = { id: string; kind: string; name: string; active: boolean }
+type Moved = {
+  entry: { reason: string; qtyDelta: number; locationId: string }
+  movedToBin?: { locationName: string; entry: { qtyDelta: number; locationId: string } }
+}
+
+/** Today in IST plus `n` days, as an ISO day. */
+function day(n: number): string {
+  const today = businessDate()
+  return new Date(Date.UTC(today.year, today.month - 1, today.day + n)).toISOString().slice(0, 10)
+}
+
+describeDb('inventory: the fixed places and the owner’s correction (DATABASE_URL)', () => {
+  const pool = createPool(url ?? '')
+  const db = createDb(pool)
+  const run = uuidv7().slice(-8)
+
+  // Distributor A: bootstrapped as every distributor is.
+  const tenantId = uuidv7()
+  const ownerId = uuidv7()
+  const managerId = uuidv7()
+  const storeId = uuidv7()
+  const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
+  const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
+  const store: Actor = { tenantId, actorId: storeId, role: 'warehouse' }
+
+  // Distributor B: its bin is gone (never set up) — the state a switched-off bin used to leave.
+  const tenantB = uuidv7()
+  const ownerBId = uuidv7()
+  const storeBId = uuidv7()
+  const ownerB: Actor = { tenantId: tenantB, actorId: ownerBId, role: 'owner' }
+  const storeB: Actor = { tenantId: tenantB, actorId: storeBId, role: 'warehouse' }
+  const supplierB = uuidv7()
+
+  const variantId = uuidv7()
+  const item = 'Rajwadi Soda Water 750 ml'
+  let godown = ''
+  let bin = ''
+  let dock = ''
+  let godownB = ''
+  let app: NestFastifyApplication
+  let billNo = 0
+
+  const onHandAt = async (lotId: string, locationId: string): Promise<number> => {
+    const [row] = await db
+      .select({ onHand: stockBalances.onHand })
+      .from(stockBalances)
+      .where(and(eq(stockBalances.lotId, lotId), eq(stockBalances.locationId, locationId)))
+    return row?.onHand ?? 0
+  }
+  const ledgerCount = async (tenant: string): Promise<number> => {
+    const rows = (
+      await db.execute(sql`select count(*)::int as n from stock_ledger where tenant_id = ${tenant}`)
+    ).rows as { n: number }[]
+    return rows[0]?.n ?? 0
+  }
+  const placeRow = async (id: string) =>
+    (
+      await db
+        .select({ kind: locations.kind, active: locations.active, name: locations.name })
+        .from(locations)
+        .where(eq(locations.id, id))
+    )[0]
+  const upsert = (actor: Actor, key: string, body: Record<string, unknown>) =>
+    call<Refusal & { item: Place }>(app, actor, 'POST', '/inventory/locations', {
+      idempotencyKey: `${key}-${run}`,
+      ...body,
+    })
+  const newLot = async (actor: Actor, batchNo: string): Promise<string> => {
+    const id = uuidv7()
+    const res = await call(app, actor, 'POST', '/inventory/lots', {
+      idempotencyKey: `lot-${id}`,
+      id,
+      variantId,
+      batchNo: `${batchNo}-${run}`,
+      mrpPaise: 2000,
+      expiryDate: day(200),
+    })
+    expect(res.status, JSON.stringify(res.body)).toBe(200)
+    return id
+  }
+  const adjust = (actor: Actor, body: Record<string, unknown>) =>
+    call<Refusal & Moved>(app, actor, 'POST', '/inventory/adjustments', {
+      idempotencyKey: uuidv7(),
+      ...body,
+    })
+
+  const fixedWords = (name: string, place: string, job: string) =>
+    `${name} is the ${place}: ${job}, so it is a fixed place — it stays switched on and stays the ${place}. You can rename it; for another place, add a new location.`
+  const noBin =
+    "Nothing was saved: this distributor has no damaged / expiry bin, and damaged and expired pieces go there and nowhere else. The damaged / expiry bin is one of the places every distributor is set up with; ask support to set this distributor's places up again, then try once more."
+
+  beforeAll(async () => {
+    await db.insert(tenants).values([
+      { id: tenantId, slug: `fixed-${run}`, legalName: 'Fixed Places Traders', stateCode: '27' },
+      { id: tenantB, slug: `nobin-${run}`, legalName: 'No Bin Traders', stateCode: '27' },
+    ])
+    await db.insert(users).values([
+      { id: ownerId, phone: `+91908${run}1`, name: 'Owner' },
+      { id: managerId, phone: `+91908${run}2`, name: 'Manager' },
+      { id: storeId, phone: `+91908${run}3`, name: 'Godown' },
+      { id: ownerBId, phone: `+91908${run}4`, name: 'Owner B' },
+      { id: storeBId, phone: `+91908${run}5`, name: 'Godown B' },
+    ])
+    await db.insert(memberships).values([
+      { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
+      { id: uuidv7(), tenantId, userId: managerId, role: 'manager' },
+      { id: uuidv7(), tenantId, userId: storeId, role: 'warehouse' },
+      { id: uuidv7(), tenantId: tenantB, userId: ownerBId, role: 'owner' },
+      { id: uuidv7(), tenantId: tenantB, userId: storeBId, role: 'warehouse' },
+    ])
+    await bootstrapTenant(db, tenantId)
+    await bootstrapTenant(db, tenantB)
+    const manufacturerId = uuidv7()
+    const productId = uuidv7()
+    await db.insert(manufacturers).values({ id: manufacturerId, name: `Maker fixed ${run}` })
+    await db
+      .insert(products)
+      .values({ id: productId, manufacturerId, name: 'Soda', category: 'beverages' })
+    await db.insert(productVariants).values({
+      id: variantId,
+      productId,
+      name: item,
+      netQty: 750,
+      netUnit: 'ml',
+      defaultCaseSize: 24,
+      hsnCode: '2202',
+      mrpPaise: 2000,
+    })
+    await db.insert(suppliers).values({ id: supplierB, tenantId: tenantB, name: `Rajwadi ${run}` })
+    const locs = await db
+      .select()
+      .from(locations)
+      .where(sql`${locations.tenantId} in (${tenantId}, ${tenantB})`)
+    const of = (tenant: string, kind: string) =>
+      locs.find((l) => l.tenantId === tenant && l.kind === kind)?.id ?? ''
+    godown = of(tenantId, 'warehouse')
+    bin = of(tenantId, 'damaged')
+    dock = of(tenantId, 'in_transit')
+    godownB = of(tenantB, 'warehouse')
+    // Distributor B's bin never held a piece, so the row can go: no switch or update can take it off any more.
+    await db.delete(locations).where(eq(locations.id, of(tenantB, 'damaged')))
+    app = await bootTestApp([InventoryModule, ProcurementModule])
+  }, 120_000)
+
+  afterAll(async () => {
+    await app?.close()
+    await pool.end()
+  })
+
+  it('vans and trips ruling 5: the godown, the dock and the damaged / expiry bin stay switched on and keep their kind — for the godown login, a manager and the owner, and a second time — and the godown’s damage write-off still reaches the bin', async () => {
+    const lot = await newLot(owner, 'R5-A')
+    const open = await adjust(owner, {
+      lotId: lot,
+      locationId: godown,
+      qtyDelta: 50,
+      reason: 'opening',
+    })
+    expect(open.status, JSON.stringify(open.body)).toBe(200)
+    const rows = await ledgerCount(tenantId)
+
+    const fixed = [
+      {
+        id: bin,
+        kind: 'damaged',
+        name: 'Damaged / expiry bin',
+        words: fixedWords(
+          'Damaged / expiry bin',
+          'damaged / expiry bin',
+          'damaged and expired pieces go there and nowhere else',
+        ),
+      },
+      {
+        id: godown,
+        kind: 'warehouse',
+        name: 'Godown',
+        words: fixedWords(
+          'Godown',
+          'godown',
+          'orders are held and packed there and goods are received into it',
+        ),
+      },
+      {
+        id: dock,
+        kind: 'in_transit',
+        name: 'In transit',
+        words: fixedWords('In transit', 'dock', 'packed goods wait there for their van'),
+      },
+    ]
+    for (const actor of [store, manager, owner])
+      for (const place of fixed) {
+        const body = { id: place.id, kind: place.kind, name: place.name, active: false }
+        for (const attempt of ['first', 'again']) {
+          const res = await upsert(actor, `off-${actor.role}-${place.kind}`, body)
+          expect(res.status, `${actor.role} ${place.kind} ${attempt}`).toBe(409)
+          expect(res.body.data?.code).toBe('location_fixed')
+          expect(res.body.message).toBe(place.words)
+        }
+      }
+
+    // nor a new kind: the godown saved as a van, the dock as a godown
+    const godownToVan = await upsert(owner, 'godown-van', {
+      id: godown,
+      kind: 'vehicle',
+      name: 'Godown',
+    })
+    expect(godownToVan.status).toBe(409)
+    expect(godownToVan.body.data?.code).toBe('location_fixed')
+    expect(godownToVan.body.message).toBe(fixed[1]?.words)
+    const dockToGodown = await upsert(manager, 'dock-godown', {
+      id: dock,
+      kind: 'warehouse',
+      name: 'In transit',
+    })
+    expect(dockToGodown.status).toBe(409)
+    expect(dockToGodown.body.message).toBe(fixed[2]?.words)
+
+    for (const place of fixed)
+      expect(await placeRow(place.id)).toMatchObject({ kind: place.kind, active: true })
+    expect(await ledgerCount(tenantId)).toBe(rows)
+
+    // a new name still goes, and the place stays what it is
+    const renamed = await upsert(store, 'rename-bin', {
+      id: bin,
+      kind: 'damaged',
+      name: `Claim bin ${run}`,
+    })
+    expect(renamed.status, JSON.stringify(renamed.body)).toBe(200)
+    expect(renamed.body.item).toMatchObject({ name: `Claim bin ${run}`, active: true })
+    const back = await upsert(store, 'rename-bin-back', {
+      id: bin,
+      kind: 'damaged',
+      name: 'Damaged / expiry bin',
+    })
+    expect(back.status).toBe(200)
+
+    // damaged in the godown still means moved to the bin (ruling 6): the bin was never switched off
+    const damaged = await adjust(store, {
+      lotId: lot,
+      locationId: godown,
+      qtyDelta: -2,
+      reason: 'damage',
+      note: 'carton crushed',
+    })
+    expect(damaged.status, JSON.stringify(damaged.body)).toBe(200)
+    expect(damaged.body.movedToBin).toMatchObject({
+      locationName: 'Damaged / expiry bin',
+      entry: { qtyDelta: 2, locationId: bin },
+    })
+    expect(await onHandAt(lot, bin)).toBe(2)
+  })
+
+  it('vans and trips ruling 5: a place the owner added is switched off only when it holds nothing — a second godown with stock is refused in words, empty it goes off and comes back; a van goes off', async () => {
+    const annex = uuidv7()
+    const made = await upsert(owner, 'annex', {
+      id: annex,
+      kind: 'warehouse',
+      name: `Annex ${run}`,
+    })
+    expect(made.status, JSON.stringify(made.body)).toBe(200)
+    const lot = await newLot(owner, 'R5-B')
+    const open = await adjust(owner, {
+      lotId: lot,
+      locationId: annex,
+      qtyDelta: 5,
+      reason: 'opening',
+    })
+    expect(open.status, JSON.stringify(open.body)).toBe(200)
+
+    const off = await upsert(store, 'annex-off', {
+      id: annex,
+      kind: 'warehouse',
+      name: `Annex ${run}`,
+      active: false,
+    })
+    expect(off.status).toBe(409)
+    expect(off.body.data?.code).toBe('location_holds_stock')
+    expect(off.body.message).toBe(
+      `Annex ${run} holds 5 pc, so it stays switched on: a place that is switched off drops out of every list while its pieces are still on the books. Move them out first, then switch it off.`,
+    )
+    const rekind = await upsert(owner, 'annex-van', {
+      id: annex,
+      kind: 'vehicle',
+      name: `Annex ${run}`,
+    })
+    expect(rekind.status).toBe(409)
+    expect(rekind.body.data?.code).toBe('location_holds_stock')
+    expect(rekind.body.message).toBe(
+      `Annex ${run} holds 5 pc, so it stays a godown: a new kind would change what those pieces may be sold as. Move them out first, or add a new location.`,
+    )
+    expect(await placeRow(annex)).toMatchObject({ kind: 'warehouse', active: true })
+
+    const moved = await call(app, store, 'POST', '/inventory/transfers', {
+      idempotencyKey: `annex-empty-${run}`,
+      lotId: lot,
+      fromLocationId: annex,
+      toLocationId: godown,
+      qtyPcs: 5,
+    })
+    expect(moved.status, JSON.stringify(moved.body)).toBe(200)
+    const offNow = await upsert(store, 'annex-off-empty', {
+      id: annex,
+      kind: 'warehouse',
+      name: `Annex ${run}`,
+      active: false,
+    })
+    expect(offNow.status, JSON.stringify(offNow.body)).toBe(200)
+    expect(offNow.body.item.active).toBe(false)
+    const onAgain = await upsert(manager, 'annex-on', {
+      id: annex,
+      kind: 'warehouse',
+      name: `Annex ${run}`,
+    })
+    expect(onAgain.status, JSON.stringify(onAgain.body)).toBe(200)
+    expect(onAgain.body.item.active).toBe(true)
+
+    const van = uuidv7()
+    expect(
+      (await upsert(owner, 'van', { id: van, kind: 'vehicle', name: `Van ${run}` })).status,
+    ).toBe(200)
+    const vanOff = await upsert(owner, 'van-off', {
+      id: van,
+      kind: 'vehicle',
+      name: `Van ${run}`,
+      active: false,
+    })
+    expect(vanOff.status, JSON.stringify(vanOff.body)).toBe(200)
+    // the godown is still the godown: the annex never displaced it
+    expect(await placeRow(godown)).toMatchObject({ kind: 'warehouse', active: true })
+  })
+
+  it('a distributor without its bin gets a sentence, never a 500: the godown’s damage write-off and a receipt with damaged pieces are refused with nothing written, and a receipt with nothing for the bin posts', async () => {
+    const lot = await newLot(ownerB, 'NB')
+    const open = await adjust(ownerB, {
+      lotId: lot,
+      locationId: godownB,
+      qtyDelta: 20,
+      reason: 'opening',
+    })
+    expect(open.status, JSON.stringify(open.body)).toBe(200)
+    const rows = await ledgerCount(tenantB)
+
+    const writeOff = await adjust(storeB, {
+      lotId: lot,
+      locationId: godownB,
+      qtyDelta: -2,
+      reason: 'damage',
+    })
+    expect(writeOff.status).toBe(409)
+    expect(writeOff.body.data?.code).toBe('place_missing')
+    expect(writeOff.body.message).toBe(noBin)
+    expect(await ledgerCount(tenantB)).toBe(rows)
+    expect(await onHandAt(lot, godownB)).toBe(20)
+
+    /** An approved supplier bill of one line, opened at the godown and counted by the godown login. */
+    const receipt = async (damagedPcs: number): Promise<string> => {
+      billNo += 1
+      const billId = uuidv7()
+      const taxable = 1000 * 24
+      const tax = (taxable * 1200) / 10000
+      const bill = await call<{ item: { status: string } }>(
+        app,
+        ownerB,
+        'POST',
+        '/procurement/supplier-invoices',
+        {
+          idempotencyKey: `bill-${String(billNo)}-${run}`,
+          id: billId,
+          supplierId: supplierB,
+          source: 'manual',
+          invoiceNo: `RW/${run}/${String(billNo)}`,
+          invoiceDate: day(0),
+          subtotalPaise: taxable,
+          discountPaise: 0,
+          cgstPaise: tax / 2,
+          sgstPaise: tax / 2,
+          igstPaise: 0,
+          cessPaise: 0,
+          freightPaise: 0,
+          roundOffPaise: 0,
+          totalPaise: taxable + tax,
+          lines: [
+            {
+              id: uuidv7(),
+              lineNo: 1,
+              description: item,
+              variantId,
+              hsnCode: '2202',
+              batchNo: `RW-${String(billNo)}-${run}`,
+              expiryDate: day(150),
+              mrpPaise: 2000,
+              printedQty: 24,
+              printedUnit: 'pcs',
+              qtyPcs: 24,
+              freeQtyPcs: 0,
+              ratePaise: 1000,
+              gstBps: 1200,
+              taxablePaise: taxable,
+              taxPaise: tax,
+              lineTotalPaise: taxable + tax,
+            },
+          ],
+        },
+      )
+      expect(bill.status, JSON.stringify(bill.body)).toBe(200)
+      const grnId = uuidv7()
+      const opened = await call(app, ownerB, 'POST', '/procurement/grns', {
+        idempotencyKey: `open-${grnId}`,
+        id: grnId,
+        supplierInvoiceId: billId,
+        locationId: godownB,
+      })
+      expect(opened.status, JSON.stringify(opened.body)).toBe(200)
+      const [line] = (await db.execute(sql`select id from grn_lines where grn_id = ${grnId}`))
+        .rows as { id: string }[]
+      const counted = await call(app, storeB, 'POST', `/procurement/grns/${grnId}/count`, {
+        idempotencyKey: `count-${grnId}`,
+        lines: [
+          { grnLineId: line?.id ?? '', countedQtyPcs: 24 - damagedPcs, damagedQtyPcs: damagedPcs },
+        ],
+      })
+      expect(counted.status, JSON.stringify(counted.body)).toBe(200)
+      return grnId
+    }
+    const grnStatus = async (id: string) =>
+      (
+        (await db.execute(sql`select status from grns where id = ${id}`)).rows as {
+          status: string
+        }[]
+      )[0]?.status
+
+    const withDamage = await receipt(2)
+    const refused = await call<Refusal>(
+      app,
+      ownerB,
+      'POST',
+      `/procurement/grns/${withDamage}/post`,
+      {
+        idempotencyKey: `post-${withDamage}`,
+      },
+    )
+    expect(refused.status).toBe(409)
+    expect(refused.body.data?.code).toBe('place_missing')
+    expect(refused.body.message).toBe(noBin)
+    expect(await grnStatus(withDamage)).toBe('reconciled')
+    expect(await ledgerCount(tenantB)).toBe(rows)
+
+    const clean = await receipt(0)
+    const posted = await call<{ item: { status: string } }>(
+      app,
+      ownerB,
+      'POST',
+      `/procurement/grns/${clean}/post`,
+      { idempotencyKey: `post-${clean}` },
+    )
+    expect(posted.status, JSON.stringify(posted.body)).toBe(200)
+    expect(posted.body.item.status).toBe('posted')
+    expect(await ledgerCount(tenantB)).toBe(rows + 1)
+  })
+})

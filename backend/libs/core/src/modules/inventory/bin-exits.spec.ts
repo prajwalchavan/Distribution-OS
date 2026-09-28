@@ -703,7 +703,8 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
     expect(toBin.body.message).toBe(
       'Godown is a godown and cannot become a damaged / expiry bin: damaged and expired pieces are moved into the bin with a damage or expiry write-off. For another bin, add a new location.',
     )
-    // a place holding stock keeps its kind
+    // the godown keeps its kind: it is a fixed place (vans and trips ruling 5; a second godown holding stock
+    // keeps its kind by `location_holds_stock`, pinned in fixed-places.spec.ts)
     const toVan = await call<Refusal>(app, owner, 'POST', '/inventory/locations', {
       idempotencyKey: `rekind-godown-van-${run}`,
       id: godown,
@@ -711,9 +712,9 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
       name: 'Godown',
     })
     expect(toVan.status).toBe(409)
-    expect(toVan.body.data?.code).toBe('location_holds_stock')
-    expect(toVan.body.message).toMatch(
-      /^Godown holds \d+ pc, so it stays a godown: a new kind would change what those pieces may be sold as\. Move them out first, or add a new location\.$/,
+    expect(toVan.body.data?.code).toBe('location_fixed')
+    expect(toVan.body.message).toBe(
+      'Godown is the godown: orders are held and packed there and goods are received into it, so it is a fixed place — it stays switched on and stays the godown. You can rename it; for another place, add a new location.',
     )
     const [godownRow] = await db
       .select({ kind: locations.kind })

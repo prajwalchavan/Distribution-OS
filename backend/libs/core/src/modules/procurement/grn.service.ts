@@ -45,7 +45,7 @@ import {
   requireRole,
   writeAudit,
 } from '../../platform/index.js'
-import { InventoryService, type LedgerEntryInput } from '../inventory/index.js'
+import { damagedBinPlace, InventoryService, type LedgerEntryInput } from '../inventory/index.js'
 import { ReceivablesService } from '../receivables/index.js'
 import {
   toDiscrepancy,
@@ -359,15 +359,13 @@ export class GrnService {
           throw new ORPCError('NOT_FOUND', {
             message: `supplier invoice ${grn.supplierInvoiceId} not found`,
           })
-        const [damagedBin] = await tx
-          .select({ id: locations.id })
-          .from(locations)
-          .where(and(eq(locations.kind, 'damaged'), eq(locations.active, true)))
-          .orderBy(asc(locations.id))
-        if (!damagedBin)
-          throw new ORPCError('INTERNAL_SERVER_ERROR', {
-            message: 'tenant has no damaged location (bootstrap)',
-          })
+        /*
+         * The damaged / expiry bin, found only when a line sends pieces there (damaged at the gate, expired on
+         * arrival). It is a fixed place nobody can switch off (vans and trips ruling 5); a distributor without one
+         * gets the 409 `place_missing` sentence, never the old 500 — and a receipt with nothing for the bin posts.
+         */
+        let bin: { id: string } | null = null
+        const damagedBin = async (): Promise<{ id: string }> => (bin ??= await damagedBinPlace(tx))
         const variants = await tx
           .select({ id: productVariants.id, mrpPaise: productVariants.mrpPaise })
           .from(productVariants)
@@ -420,7 +418,7 @@ export class GrnService {
             entries.push({
               ...ref,
               lotId: lot.id,
-              locationId: damagedBin.id,
+              locationId: (await damagedBin()).id,
               qtyDelta: good,
               idempotencyKey: `grn:${grn.id}:${line.id}:expired`,
               note: 'expired on arrival',
@@ -451,7 +449,7 @@ export class GrnService {
             entries.push({
               ...ref,
               lotId: lot.id,
-              locationId: damagedBin.id,
+              locationId: (await damagedBin()).id,
               qtyDelta: line.damagedQtyPcs,
               idempotencyKey: `grn:${grn.id}:${line.id}:damaged`,
               note: 'damaged at gate',

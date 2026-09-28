@@ -28,6 +28,17 @@
 --         a godown put 161 damaged pieces into every rep's availability. An UPDATE that changes a location's kind
 --         to or from `damaged` is refused; a new bin, a renamed bin and any other kind change still go (the API
 --         also keeps the kind of a place that holds stock). Fires only when the kind really changes.
+--      THE GODOWN, THE DOCK AND THE BIN ARE FIXED PLACES (architect ruling 5 on vans and trips, 2026-09-28; the
+--         second blind check). The godown login switched the bin off (`active = false`): a damage write-off at the
+--         godown then reached no bin and every goods receipt failed. The same trigger now also refuses, for every
+--         writer, switching off or re-kinding the place every service uses as the godown, the dock or the bin —
+--         the first ACTIVE `warehouse`, `in_transit` or `damaged` place of the distributor by id, which is the one
+--         `bootstrapTenant` made (constraint name `locations_fixed_place`). A second godown, a claim shelf or a van
+--         the owner added is not fixed (the API switches it off only when it holds nothing). It fires only when
+--         the kind changes or a place is switched off. `dos_restore_fixed_places()` (run once below, re-runnable)
+--         switches back on the first place of a kind for a distributor that has places of that kind but none on —
+--         the state the blind check left behind; a distributor that has one on is not touched, no ledger row is
+--         written, and nothing is created.
 --
 -- 2. EXPIRED GOODS ARE NEVER SOLD (ruling 3, DOS-261, the availability half of DOS-351). `sellable_stock` now leaves
 --    out every lot whose expiry date is before today's IST business date. Every availability read goes through it —
@@ -81,7 +92,7 @@ ALTER TABLE "locations" ADD CONSTRAINT "locations_bin_never_negative"
 CREATE OR REPLACE FUNCTION dos_location_bin_kind_fixed() RETURNS trigger
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 BEGIN
-  IF OLD.kind = 'damaged' OR NEW.kind = 'damaged' THEN
+  IF OLD.kind IS DISTINCT FROM NEW.kind AND (OLD.kind = 'damaged' OR NEW.kind = 'damaged') THEN
     RAISE EXCEPTION USING
       ERRCODE = 'check_violation',
       CONSTRAINT = 'locations_bin_kind_fixed',
@@ -90,14 +101,54 @@ BEGIN
         'location %s is %s and cannot become %s: the damaged / expiry bin stays the bin and no other place becomes one (QA DOS-352)',
         OLD.id, OLD.kind, NEW.kind);
   END IF;
+  -- The fixed place of its kind is the first ACTIVE one by id (what every service reads). VOLATILE on purpose:
+  -- inside one UPDATE of several rows the check sees the rows the statement already changed.
+  IF OLD.active
+     AND OLD.kind IN ('warehouse', 'damaged', 'in_transit')
+     AND (NOT NEW.active OR NEW.kind IS DISTINCT FROM OLD.kind)
+     AND NOT EXISTS (
+       SELECT 1 FROM locations o
+        WHERE o.tenant_id = OLD.tenant_id AND o.kind = OLD.kind AND o.active AND o.id < OLD.id
+     ) THEN
+    RAISE EXCEPTION USING
+      ERRCODE = 'check_violation',
+      CONSTRAINT = 'locations_fixed_place',
+      TABLE = 'locations',
+      MESSAGE = format(
+        'location %s is the distributor''s %s: the godown, the dock and the damaged / expiry bin are fixed places that stay switched on and keep their kind (architect ruling 5 on vans and trips)',
+        OLD.id, OLD.kind);
+  END IF;
   RETURN NEW;
 END;
 $$;--> statement-breakpoint
 DROP TRIGGER IF EXISTS locations_bin_kind_fixed ON locations;--> statement-breakpoint
 CREATE TRIGGER locations_bin_kind_fixed
-  BEFORE UPDATE OF kind ON locations
-  FOR EACH ROW WHEN (OLD.kind IS DISTINCT FROM NEW.kind)
+  BEFORE UPDATE OF kind, active ON locations
+  FOR EACH ROW WHEN (OLD.kind IS DISTINCT FROM NEW.kind OR (OLD.active AND NOT NEW.active))
   EXECUTE FUNCTION dos_location_bin_kind_fixed();--> statement-breakpoint
+CREATE OR REPLACE FUNCTION dos_restore_fixed_places(p_tenant text DEFAULT NULL)
+RETURNS bigint
+LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+DECLARE
+  restored bigint;
+BEGIN
+  UPDATE locations l
+     SET active = true, updated_at = now()
+   WHERE l.id IN (
+     SELECT DISTINCT ON (f.tenant_id, f.kind) f.id
+       FROM locations f
+      WHERE f.kind IN ('warehouse', 'damaged', 'in_transit')
+        AND (p_tenant IS NULL OR f.tenant_id = p_tenant)
+        AND NOT EXISTS (
+          SELECT 1 FROM locations a WHERE a.tenant_id = f.tenant_id AND a.kind = f.kind AND a.active
+        )
+      ORDER BY f.tenant_id, f.kind, f.id);
+  GET DIAGNOSTICS restored = ROW_COUNT;
+  RETURN restored;
+END;
+$$;--> statement-breakpoint
+REVOKE ALL ON FUNCTION dos_restore_fixed_places(text) FROM PUBLIC;--> statement-breakpoint
+SELECT dos_restore_fixed_places();--> statement-breakpoint
 CREATE OR REPLACE FUNCTION dos_stock_balance_never_below_zero() RETURNS trigger
   LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
 DECLARE
@@ -224,6 +275,20 @@ BEGIN
      WHERE c.relname = 'locations' AND tg.tgname = 'locations_bin_kind_fixed' AND NOT tg.tgisinternal
   ) THEN
     RAISE EXCEPTION '0075: the guard that keeps the damaged / expiry bin a bin is missing';
+  END IF;
+  SELECT pg_get_triggerdef(tg.oid) INTO def
+    FROM pg_trigger tg JOIN pg_class c ON c.oid = tg.tgrelid
+   WHERE c.relname = 'locations' AND tg.tgname = 'locations_bin_kind_fixed' AND NOT tg.tgisinternal;
+  IF position('active' IN def) = 0 THEN
+    RAISE EXCEPTION '0075: the fixed-place guard must fire when a place is switched off; found %', def;
+  END IF;
+  SELECT count(*) INTO flagged
+    FROM (SELECT tenant_id, kind FROM locations
+           WHERE kind IN ('warehouse', 'damaged', 'in_transit')
+           GROUP BY tenant_id, kind
+          HAVING NOT bool_or(active)) off;
+  IF flagged > 0 THEN
+    RAISE EXCEPTION '0075: % distributors still have their godown, dock or bin switched off', flagged;
   END IF;
   SELECT pg_get_viewdef('sellable_stock'::regclass, true) INTO def;
   IF position('kind' IN def) = 0 OR position('warehouse' IN def) = 0 THEN

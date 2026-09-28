@@ -39,3 +39,9 @@ export { dockLocationId } from './reservable-location.js'
  * bin, the dock or a shop's floor. Orders asks it at draft, at a device upload and at confirm.
  */
 export { fulfilPlaceRefusal, type FulfilPlaceRefusal } from './reservable-location.js'
+/**
+ * The fixed places (vans and trips ruling 5): the godown, the dock and the damaged / expiry bin every distributor
+ * is set up with. `damagedBinPlace` finds the bin (a goods receipt puts damaged and expired-on-arrival pieces there)
+ * and `placeMissing` is the one 409 a service answers when a distributor has none of one — never a 500.
+ */
+export { damagedBinPlace, placeMissing, type FixedPlaceKind } from './reservable-location.js'

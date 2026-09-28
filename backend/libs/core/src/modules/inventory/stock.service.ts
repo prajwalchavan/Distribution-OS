@@ -61,7 +61,13 @@ import {
   type AvailabilityRaw,
   type SellableRaw,
 } from './inventory.mappers.js'
-import { findReservableLocationId } from './reservable-location.js'
+import {
+  damagedBinPlace,
+  findFixedPlace,
+  findReservableLocationId,
+  FIXED_PLACE_WORDS,
+  isFixedPlaceKind,
+} from './reservable-location.js'
 
 type LocationsIn = z.infer<typeof LocationsListInput>
 type LocationsOut = z.infer<typeof LocationsListOutput>
@@ -202,7 +208,7 @@ export class StockService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
-        await this.assertKindMayChange(tx, input.id, input.kind)
+        await this.assertPlaceMayChange(tx, input.id, input.kind, input.active)
         const values = {
           kind: input.kind,
           name: input.name,
@@ -233,6 +239,12 @@ export class StockService {
                 'The damaged / expiry bin stays the bin and no other place becomes one: pieces in it never go back for sale. Add a new location instead.',
               data: { code: 'location_kind_fixed', locationId: input.id },
             })
+          if (pgConstraint(err) === 'locations_fixed_place')
+            throw new ORPCError('CONFLICT', {
+              message:
+                'The godown, the dock and the damaged / expiry bin are fixed places: they stay switched on and keep their kind. You can rename one; for another place, add a new location.',
+              data: { code: 'location_fixed', locationId: input.id },
+            })
           throw err
         }
       }),
@@ -249,17 +261,70 @@ export class StockService {
    *     row, and the brand's claim would read rows it never received) — 409 `location_kind_fixed`;
    *   - any other place keeps its kind while pieces stand in it or are held there — 409 `location_holds_stock`.
    *
-   * A new place, a new name and a kind change of an empty place still go. Migration 0075's trigger
-   * `locations_bin_kind_fixed` is the same bin rule at the database.
+   * THE GODOWN, THE DOCK AND THE BIN ARE FIXED PLACES (architect ruling 5 on vans and trips, 2026-09-28; the
+   * second blind check). The godown login switched the bin off in one call (`active: false`, 200): a damage
+   * write-off at the godown then reached no bin, and every goods receipt answered 500. The place every service
+   * uses as the godown, the dock or the bin — the first active of its kind, the one `bootstrapTenant` made — is
+   * never switched off and never changes kind, for every role: 409 `location_fixed`. A place the owner added
+   * himself (a second godown, a claim shelf, a van) is switched off only when it holds nothing — 409
+   * `location_holds_stock` otherwise, since a switched-off place drops out of every list while its pieces stay on
+   * the books.
+   *
+   * A new place, a new name, switching a place back on and a kind change of an empty place still go. Migration
+   * 0075's trigger `locations_bin_kind_fixed` is the bin rule and the fixed-place rule at the database.
    */
-  private async assertKindMayChange(tx: Db, locationId: string, kind: string): Promise<void> {
+  private async assertPlaceMayChange(
+    tx: Db,
+    locationId: string,
+    kind: string,
+    active: boolean,
+  ): Promise<void> {
     const { tenantId } = currentTenant()
     const [was] = await tx
-      .select({ kind: locations.kind, name: locations.name })
+      .select({ kind: locations.kind, name: locations.name, active: locations.active })
       .from(locations)
       .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
       .for('update')
-    if (!was || was.kind === kind) return
+    if (!was) return
+    const newKind = was.kind !== kind
+    const switchedOff = was.active && !active
+    if (!newKind && !switchedOff) return
+    if (newKind) this.assertNotIntoOrOutOfBin(was, locationId, kind)
+    if (was.active && isFixedPlaceKind(was.kind)) {
+      const fixed = await findFixedPlace(tx, was.kind)
+      if (fixed?.id === locationId) {
+        const { name, job } = FIXED_PLACE_WORDS[was.kind]
+        throw new ORPCError('CONFLICT', {
+          message: `${was.name} is the ${name}: ${job}, so it is a fixed place — it stays switched on and stays the ${name}. You can rename it; for another place, add a new location.`,
+          data: { code: 'location_fixed', locationId, kind: was.kind },
+        })
+      }
+    }
+    const [held] = await tx
+      .select({
+        pcs: sql<string>`coalesce(sum(abs(${stockBalances.onHand}) + ${stockBalances.reserved}), 0)::bigint`,
+      })
+      .from(stockBalances)
+      .where(and(eq(stockBalances.tenantId, tenantId), eq(stockBalances.locationId, locationId)))
+    const pcs = Number(held?.pcs ?? 0)
+    if (pcs > 0 && newKind)
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} holds ${String(pcs)} pc, so it stays a ${KIND_WORDS[was.kind] ?? was.kind}: a new kind would change what those pieces may be sold as. Move them out first, or add a new location.`,
+        data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
+      })
+    if (pcs > 0)
+      throw new ORPCError('CONFLICT', {
+        message: `${was.name} holds ${String(pcs)} pc, so it stays switched on: a place that is switched off drops out of every list while its pieces are still on the books. Move them out first, then switch it off.`,
+        data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
+      })
+  }
+
+  /** The bin half of `assertPlaceMayChange`: no place leaves or joins the `damaged` kind (ruling 2, V9). */
+  private assertNotIntoOrOutOfBin(
+    was: { kind: string; name: string },
+    locationId: string,
+    kind: string,
+  ): void {
     if (was.kind === 'damaged')
       throw new ORPCError('CONFLICT', {
         message: `${was.name} is the damaged / expiry bin and stays one: pieces in it never go back for sale, so it cannot be saved as a ${KIND_WORDS[kind] ?? kind}. They leave the bin only by a write-off or a return to the brand. For a new ${KIND_WORDS[kind] ?? kind}, add a new location.`,
@@ -269,18 +334,6 @@ export class StockService {
       throw new ORPCError('CONFLICT', {
         message: `${was.name} is a ${KIND_WORDS[was.kind] ?? was.kind} and cannot become a damaged / expiry bin: damaged and expired pieces are moved into the bin with a damage or expiry write-off. For another bin, add a new location.`,
         data: { code: 'location_kind_fixed', locationId, kind: was.kind },
-      })
-    const [held] = await tx
-      .select({
-        pcs: sql<string>`coalesce(sum(abs(${stockBalances.onHand}) + ${stockBalances.reserved}), 0)::bigint`,
-      })
-      .from(stockBalances)
-      .where(and(eq(stockBalances.tenantId, tenantId), eq(stockBalances.locationId, locationId)))
-    const pcs = Number(held?.pcs ?? 0)
-    if (pcs > 0)
-      throw new ORPCError('CONFLICT', {
-        message: `${was.name} holds ${String(pcs)} pc, so it stays a ${KIND_WORDS[was.kind] ?? was.kind}: a new kind would change what those pieces may be sold as. Move them out first, or add a new location.`,
-        data: { code: 'location_holds_stock', locationId, kind: was.kind, pcs },
       })
   }
 
@@ -487,11 +540,13 @@ export class StockService {
          * the books there and then: nothing reached the bin, so the brand's damage / expiry claim — built
          * from the rows posted INTO the bin — never saw them, and the desk never decided. They now leave the
          * place and land in the damaged / expiry bin under the same reason, the pair keyed on this call, and
-         * the desk writes them off from there. A tenant without an active bin keeps the old write-off.
+         * the desk writes them off from there. The bin is a fixed place nobody can switch off (ruling 5 on vans
+         * and trips): a distributor without one is refused in words (409 `place_missing`) instead of the old
+         * silent write-off at the godown, which by-passed the desk and the brand's claim.
          */
         const bin =
           input.qtyDelta < 0 && place.kind !== 'damaged' && TO_THE_BIN.has(input.reason)
-            ? await this.activeBin(tx)
+            ? await damagedBinPlace(tx)
             : null
         const binKey = `${input.idempotencyKey}:bin`
         const pair: Parameters<InventoryService['post']>[1] =
@@ -543,24 +598,6 @@ export class StockService {
       .limit(1)
     if (!row) throw new ORPCError('NOT_FOUND', { message: `location ${locationId} not found` })
     return row
-  }
-
-  /** The tenant's damaged / expiry bin (the first active one, as the GRN's gate-damage leg picks it). */
-  private async activeBin(tx: Db): Promise<{ id: string; name: string } | null> {
-    const { tenantId } = currentTenant()
-    const [row] = await tx
-      .select({ id: locations.id, name: locations.name })
-      .from(locations)
-      .where(
-        and(
-          eq(locations.tenantId, tenantId),
-          eq(locations.kind, 'damaged'),
-          eq(locations.active, true),
-        ),
-      )
-      .orderBy(asc(locations.id))
-      .limit(1)
-    return row ?? null
   }
 
   async transfer(input: TransferIn): Promise<TransferOut> {
