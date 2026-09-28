@@ -48,6 +48,7 @@ import {
   isUniqueViolation,
   loadLots,
   loadVariantInfo,
+  placeOf,
   writeAudit,
   emitWarehouseEvent,
 } from './warehouse.internals.js'
@@ -58,6 +59,7 @@ import {
   isExpired,
   orderAlreadyPacked,
   packedOrders,
+  sourceRefusal,
   todayIst,
 } from './stock-guards.js'
 import {
@@ -289,6 +291,10 @@ export class PicklistsService implements OnModuleInit {
           })
 
         const locationId = this.singleLocation(orders, input.locationId)
+        // Ruling 6 (vans and trips, 2026-09-28): a wave is never placed at the damaged / expiry bin — nothing
+        // leaves it for sale — nor at the dock or a shop's floor; refused when the wave is made.
+        const refused = sourceRefusal(await placeOf(tx, locationId), locationId, 'wave')
+        if (refused !== null) throw refused
         const lines = await this.orders.fulfilmentLines(tx, orderIds)
         if (lines.length === 0)
           throw new ORPCError('BAD_REQUEST', { message: 'these orders have no lines to pick' })
@@ -592,7 +598,20 @@ export class PicklistsService implements OnModuleInit {
             message: `picklist ${sheet.picklistNo ?? sheet.id} is ${sheet.status}; only a sheet nobody has started can be cancelled`,
           })
         const lines = await pickLinesOf(tx, sheet.id)
-        for (const orderLineId of new Set(lines.map((l) => l.orderLineId)))
+        /*
+         * Vans and trips 7 (2026-09-28): cancelling a wave never touches an order that is already PACKED — packed
+         * straight off its holds while the wave stood open (DOS-359), its holds are now its cartons' dock holds, and
+         * voiding them left its cartons on the dock for any sheet to take (the DOS-247 class). Only an order still
+         * `confirmed` gets its godown holds back.
+         */
+        const stillConfirmed = new Set(
+          (await this.orders.fulfilmentOrders(tx, sheet.orderIds))
+            .filter((o) => o.state === 'confirmed')
+            .map((o) => o.orderId),
+        )
+        for (const orderLineId of new Set(
+          lines.filter((l) => stillConfirmed.has(l.orderId)).map((l) => l.orderLineId),
+        ))
           await this.inventory.releaseReservation(tx, orderLineId)
         const cancelled = await this.updatePicklist(tx, sheet.id, {
           status: 'cancelled',

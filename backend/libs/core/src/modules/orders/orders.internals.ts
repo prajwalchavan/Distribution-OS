@@ -277,6 +277,7 @@ export type OrderEventType =
   | 'OrderDelivered'
   | 'OrderPartiallyDelivered'
   | 'OrderReturnedUndelivered'
+  | 'OrderUnpacked'
 
 export async function emitOrderEvent(
   tx: Db,

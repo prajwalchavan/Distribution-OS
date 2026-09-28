@@ -125,6 +125,7 @@ const FULFILMENT_TARGET: Readonly<Record<FulfilmentEvent, OrderState>> = {
   deliver_all: 'delivered',
   deliver_partial: 'partially_delivered',
   return_undelivered: 'packed',
+  unpack: 'confirmed',
 }
 
 /** The outbox event each move publishes, in the same transaction as the transition row. */
@@ -135,6 +136,7 @@ const FULFILMENT_EVENT_TYPE: Readonly<Record<FulfilmentEvent, OrderEventType>> =
   deliver_all: 'OrderDelivered',
   deliver_partial: 'OrderPartiallyDelivered',
   return_undelivered: 'OrderReturnedUndelivered',
+  unpack: 'OrderUnpacked',
 }
 
 /**
@@ -142,6 +144,15 @@ const FULFILMENT_EVENT_TYPE: Readonly<Record<FulfilmentEvent, OrderEventType>> =
  * (QA DOS-138). It never returns anything: it either lands with the cancellation or neither does.
  */
 export type OrderCancelledHook = (tx: Db, order: OrderRow, reason: string) => Promise<void>
+
+/**
+ * What warehouse does when the desk cancels a PACKED order (architect ruling of 2026-09-28, vans and trips 4), in the
+ * cancelling transaction and before the order moves: a pack with a live bill is refused (the bill is cancelled and
+ * the order goes with it), a pack without one is undone — its pieces off the dock, back to the godown or into the
+ * expiry bin, its dock holds released, its pack record gone. Registered by `PackingService.onModuleInit`; orders
+ * never names a pack or a bill.
+ */
+export type PackedCancelHook = (tx: Db, order: OrderRow, reason: string) => Promise<void>
 
 /** Who may cancel an order the floor has already started picking (founder, QA DOS-138): the desk. */
 const PICKING_CANCELLERS: readonly string[] = ['owner', 'manager']
@@ -172,6 +183,13 @@ export class OrdersService {
 
   registerCancelled(hook: OrderCancelledHook): void {
     if (!this.cancelledHooks.includes(hook)) this.cancelledHooks.push(hook)
+  }
+
+  /** Vans and trips 4: the desk's cancel of a packed order goes through the pack first (see `PackedCancelHook`). */
+  private packedCancel: PackedCancelHook | null = null
+
+  registerPackedCancel(hook: PackedCancelHook): void {
+    this.packedCancel = hook
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -544,16 +562,22 @@ export class OrdersService {
         const order = await this.lockReachableOrder(tx, input.id)
         this.assertRetailerOwns(order, ['draft', 'submitted'])
         /*
-         * QA DOS-139: `packed` has a cancel edge, but it belongs to ONE caller — `billing.invoices
-         * .cancel`, which takes it through `cancelInTx` after it has put the stock back and reversed
-         * the money. A packed order carries an issued GST bill, so cancelling the order alone would
-         * leave that bill standing. Say the route instead of taking it, for every role.
+         * QA DOS-139: a packed order with an issued GST bill is never cancelled on its own — `billing.invoices
+         * .cancel` puts the stock back, reverses the money and takes the order with it through `cancelInTx`.
+         * Vans and trips 4 (2026-09-28): a pack WITHOUT a bill has nothing to reverse, and a batch that expired
+         * while it waited left it with no other exit, so the DESK cancels it here: warehouse's hook refuses a
+         * billed pack by its bill number, or undoes the pack (dock → godown, expired pieces → the expiry bin, the
+         * dock holds released) before the order moves. Anyone else, and a service with no warehouse, is told the
+         * route.
          */
-        if (order.state === 'packed')
-          throw new ORPCError('CONFLICT', {
-            message: `order ${order.orderNo ?? order.id} is packed and billed; cancel the bill and the order goes with it`,
-            data: { code: 'cancel_the_bill' },
-          })
+        if (order.state === 'packed') {
+          if (this.packedCancel === null || !PICKING_CANCELLERS.includes(ctx.actorRole))
+            throw new ORPCError('CONFLICT', {
+              message: `order ${order.orderNo ?? order.id} is packed, so only the desk cancels it: if it is billed, cancel the bill and the order goes with it; if not, Cancel the order on the billing desk (Packed, not billed)`,
+              data: { code: 'cancel_the_bill' },
+            })
+          await this.packedCancel(tx, order, input.reason)
+        }
         /*
          * QA DOS-138 (founder): once the floor is picking, only the DESK cancels — the picker is told
          * which lines to put back, and a rep phoning it in with no desk in the loop is not that. The

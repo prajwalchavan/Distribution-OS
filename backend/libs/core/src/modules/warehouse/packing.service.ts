@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional } from '@nestjs/common'
+import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
 import { and, desc, eq, isNotNull, isNull, sql, type SQL, type SQLWrapper } from 'drizzle-orm'
 import type { z } from 'zod'
@@ -9,17 +9,21 @@ import type {
   PackGetOutput,
   PacksListInput,
   PacksListOutput,
+  UnpackOrderInput,
+  UnpackOrderOutput,
 } from '@dos/contracts'
 import type { OrderState } from '@dos/domain'
 import { loadSheets, packConfirmations, pickLines, withTenant, type Db } from '@dos/db'
+import { istDateWord } from '../../platform/refusal-words.js'
 import { currentTenant, DB, idempotent, requireDb, requireRole } from '../../platform/index.js'
 import { BillingService, type IssueForPackLine } from '../billing/index.js'
-import { InventoryService } from '../inventory/index.js'
+import { coverFromDock, dockLocationId, InventoryService } from '../inventory/index.js'
 import { OrdersService, type FulfilmentLine } from '../orders/index.js'
 import { LoadSheetsService } from './load-sheets.service.js'
 import { PicklistsService } from './picklists.service.js'
 import {
   activeWarehouseLocation,
+  damagedBin,
   dayWindow,
   FULFILMENT_READERS,
   isUniqueViolation,
@@ -27,7 +31,9 @@ import {
   loadVariantInfo,
   MAX_PICK_ROWS,
   pgConstraint,
+  PIN_HOLDERS,
   WAREHOUSE_DESK,
+  writeAudit,
 } from './warehouse.internals.js'
 import {
   assertPackWithinShare,
@@ -44,6 +50,8 @@ type ListIn = z.infer<typeof PacksListInput>
 type ListOut = z.infer<typeof PacksListOutput>
 type GetIn = z.infer<typeof PackGetInput>
 type GetOut = z.infer<typeof PackGetOutput>
+type UnpackIn = z.infer<typeof UnpackOrderInput>
+type UnpackOut = z.infer<typeof UnpackOrderOutput>
 
 /** An order may be packed from any state where the goods are still in the godown. */
 const PACKABLE_STATES = new Set<OrderState>(['confirmed', 'picking', 'packed'])
@@ -76,7 +84,7 @@ interface LinePack {
  * ordering exists to prevent; adding a second caller re-creates it.
  */
 @Injectable()
-export class PackingService {
+export class PackingService implements OnModuleInit {
   constructor(
     @Optional() @Inject(DB) private readonly db: Db | null,
     private readonly orders: OrdersService,
@@ -86,6 +94,13 @@ export class PackingService {
     /** Same module, no cycle: `packs.list?status=awaiting_load` asks it which bills are on the road. */
     private readonly loadSheets: LoadSheetsService,
   ) {}
+
+  /** Vans and trips 4: the desk's cancel of a packed order undoes its pack first, or names its bill. */
+  onModuleInit(): void {
+    this.orders.registerPackedCancel((tx, order, reason) =>
+      this.undoPack(tx, order, reason, 'cancel').then(() => undefined),
+    )
+  }
 
   async confirm(input: ConfirmIn): Promise<ConfirmOut> {
     requireRole(WAREHOUSE_DESK)
@@ -118,7 +133,9 @@ export class PackingService {
             picks: pack.picks,
             refType: 'pack',
             refId: order.id,
-            idempotencyKey: `pack:${order.id}:${pack.line.orderLineId}`,
+            // The pack's own id in the key (vans and trips 4): a pack undone by `unpack` and packed again moves its
+            // pieces a second time under a key of its own. Every reader keys on the `pack:<order>:<line>:` prefix.
+            idempotencyKey: `pack:${order.id}:${pack.line.orderLineId}:${input.id}`,
           })
           billingLines.push(...this.splitPaidAndFree(pack))
         }
@@ -189,6 +206,245 @@ export class PackingService {
         }
       }),
     )
+  }
+
+  /**
+   * UNDO A PACK THAT HAS NO BILL (architect ruling of 2026-09-28, vans and trips 4; QA verify 2, M1). The desk's
+   * "Unpack" on the billing desk's Packed, not billed: `undoPack` puts every piece back and clears the pack, and the
+   * order moves `packed → confirmed` through its machine, so the godown waves and picks it again from an in-date
+   * batch. Owner and manager only; audited; a replay answers the first reply.
+   */
+  async unpack(input: UnpackIn): Promise<UnpackOut> {
+    requireRole(PIN_HOLDERS)
+    const db = requireDb(this.db)
+    const ctx = currentTenant()
+    return withTenant(db, ctx, (tx) =>
+      idempotent(tx, input.idempotencyKey, input, async () => {
+        const order = await this.orders.lockOrder(tx, input.orderId)
+        const name = order.orderNo ?? 'This order'
+        if (order.state !== 'packed')
+          throw new ORPCError('CONFLICT', {
+            message:
+              order.state === 'confirmed' || order.state === 'picking'
+                ? `${name} is ${order.state}: it has no pack to undo.`
+                : `${name} is ${order.state}: only a packed order that has no bill is unpacked.`,
+            data: { code: 'not_packed', orderState: order.state },
+          })
+        const returned = await this.undoPack(tx, order, input.reason, 'unpack')
+        const moved = await this.orders.applyFulfilmentEvent(
+          tx,
+          order.id,
+          'unpack',
+          input.deviceId ?? null,
+          input.reason,
+        )
+        return { orderId: order.id, orderNo: order.orderNo, orderState: moved.state, returned }
+      }),
+    )
+  }
+
+  /**
+   * THE PACK UNDONE (vans and trips 4: "a pack without a bill can be undone by the desk — cancel or unpack — its
+   * pieces go back from the dock to the godown, expired ones to the expiry bin, and nothing stays held"). Shared by
+   * `unpack` and the desk's `orders.cancel` of a packed order (registered hook), in the caller's transaction and
+   * before the order moves:
+   *
+   *   - a pack with a live bill is refused 409 `cancel_the_bill`, naming the bill — its cancel takes the order with
+   *     it; a draft load sheet carrying the order is refused 409 `on_draft_sheet` (cancel the sheet first);
+   *   - per (order line, batch), what the pack put on the dock and no undo has taken back yet (its `pack` rows, less
+   *     its `unpack` rows) comes off the dock — covered by the line's own dock holds, then by pieces the dock holds
+   *     for nobody, never by another bill's; a dock that no longer holds them is 409 `dock_short` and NOTHING moves;
+   *   - the pieces go back to the place the pack took them from, or — the batch having expired (before today, IST)
+   *     — into the damaged / expiry bin, as `transfer_out` + `transfer_in` under `ref_type = 'unpack'` (keys per
+   *     line, pack and batch, so a replay moves nothing twice and `packedLotsByOrder` nets them out);
+   *   - the order's dock holds are voided, its pick rows are put back (every sheet), its lines' picked pieces go
+   *     back to zero and its pack record is deleted (the device drops it on its next pull), so the order can be
+   *     waved, picked and packed again — or is cancelled by the caller.
+   *
+   * Returns what went where. An order packed with no pack record (none the godown wrote) has nothing to undo.
+   */
+  private async undoPack(
+    tx: Db,
+    order: { id: string; orderNo: string | null },
+    reason: string,
+    how: 'unpack' | 'cancel',
+  ): Promise<UnpackOut['returned']> {
+    const name = order.orderNo ?? 'This order'
+    const [pack] = await tx
+      .select()
+      .from(packConfirmations)
+      .where(eq(packConfirmations.orderId, order.id))
+      .limit(1)
+      .for('update')
+    if (!pack) return []
+    if (pack.invoiceId !== null) {
+      const bill = (await this.billing.invoiceRefs(tx, [pack.invoiceId])).get(pack.invoiceId)
+      if (bill !== undefined && bill.state !== 'cancelled' && bill.state !== 'draft')
+        throw new ORPCError('CONFLICT', {
+          message:
+            how === 'cancel'
+              ? `order ${name} is packed and billed (${bill.invoiceNo ?? 'its bill'}): cancel the bill and the order goes with it`
+              : `${name} is packed and billed (${bill.invoiceNo ?? 'its bill'}), so it is not unpacked: cancel the bill on the billing desk (the order goes with it), or credit it.`,
+          data: { code: 'cancel_the_bill', invoiceId: pack.invoiceId },
+        })
+    }
+    const onDraft = await this.loadSheets.ordersOnADraftSheet(tx, [order.id])
+    const first = onDraft[0]
+    if (first !== undefined)
+      throw new ORPCError('CONFLICT', {
+        message: `${name} is on the load sheet for ${first.vehicleRegNo ?? 'a vehicle'} that the godown has not counted out. Cancel that sheet under Load-out first, then ${how === 'cancel' ? 'cancel the order' : 'unpack it'}.`,
+        data: { code: 'on_draft_sheet', loadSheetIds: onDraft.map((d) => d.sheetId) },
+      })
+
+    // What the pack put on the dock per (line, batch), less what an earlier undo already took back.
+    const packRows = await this.inventory.ledgerRowsByRef(tx, { refType: 'pack', refId: order.id })
+    const undoRows = await this.inventory.ledgerRowsByRef(tx, {
+      refType: 'unpack',
+      refId: order.id,
+    })
+    const claims = new Map<string, { lineId: string; lotId: string; pcs: number; from: string }>()
+    const lineOf = (key: string): string => key.split(':')[2] ?? ''
+    for (const r of packRows) {
+      if (r.qtyDelta >= 0) continue
+      const k = `${lineOf(r.idempotencyKey)}:${r.lotId}`
+      const was = claims.get(k)
+      claims.set(k, {
+        lineId: lineOf(r.idempotencyKey),
+        lotId: r.lotId,
+        pcs: (was?.pcs ?? 0) - r.qtyDelta,
+        from: was?.from ?? r.locationId,
+      })
+    }
+    for (const r of undoRows) {
+      if (r.qtyDelta <= 0) continue
+      const was = claims.get(`${lineOf(r.idempotencyKey)}:${r.lotId}`)
+      if (was) was.pcs -= r.qtyDelta
+    }
+    const open = [...claims.values()].filter((c) => c.pcs > 0 && c.lineId !== '')
+    const lines = await this.orders.fulfilmentLines(tx, [order.id])
+    const lineIds = lines.map((l) => l.orderLineId)
+    const lots = await loadLots(
+      tx,
+      open.map((c) => c.lotId),
+    )
+    const items = await loadVariantInfo(
+      tx,
+      [...lots.values()].map((l) => l.variantId),
+    )
+    const label = (lotId: string): string => {
+      const lot = lots.get(lotId)
+      return lot ? batchWords(lot, items.get(lot.variantId)?.variantName) : `batch ${lotId}`
+    }
+    const returned: UnpackOut['returned'] = []
+    if (open.length > 0) {
+      const held = await this.inventory.dockHeldFor(tx, lineIds)
+      const covers = coverFromDock(
+        open.map((c) => ({
+          key: `${c.lineId}:${c.lotId}`,
+          lotId: c.lotId,
+          neededPcs: c.pcs,
+          heldPcs: held.get(c.lineId)?.get(c.lotId) ?? 0,
+        })),
+        await this.inventory.dockBalances(
+          tx,
+          open.map((c) => c.lotId),
+        ),
+      )
+      const short = covers.filter((c) => c.shortPcs > 0)
+      if (short.length > 0)
+        throw new ORPCError('CONFLICT', {
+          message: `${short.map((c) => `Only ${String(c.neededPcs - c.shortPcs)} pc of ${label(c.lotId)} are on the dock for ${name}, and its pack put ${String(c.neededPcs)} there`).join('; ')}. They were moved off the dock some other way, so the pack is not undone as it stands — nothing moved. Count the dock on the Stock screen first.`,
+          data: {
+            code: 'dock_short',
+            lots: short.map((c) => ({
+              lotId: c.lotId,
+              neededPcs: c.neededPcs,
+              onDockPcs: c.neededPcs - c.shortPcs,
+            })),
+          },
+        })
+      await this.inventory.closeDockHolds(tx, lineIds, 'voided')
+      const today = todayIst()
+      const expired = open.some((c) => {
+        const lot = lots.get(c.lotId)
+        return lot !== undefined && isExpired(lot, today)
+      })
+      const bin = expired ? await damagedBin(tx) : null
+      const dock = await dockLocationId(tx)
+      const places = await this.inventory.locationNames(tx, [
+        ...open.map((c) => c.from),
+        ...(bin ? [bin.id] : []),
+      ])
+      const entries: Parameters<InventoryService['post']>[1] = []
+      for (const c of open) {
+        const lot = lots.get(c.lotId)
+        const toBin = bin !== null && lot !== undefined && isExpired(lot, today)
+        const to = toBin ? bin.id : c.from
+        const key = `unpack:${order.id}:${c.lineId}:${pack.id}:${c.lotId}`
+        const note = toBin
+          ? `${how === 'cancel' ? 'order cancelled' : 'unpacked'}: ${name}'s pieces expired on ${istDateWord(lot?.expiryDate ?? null)}, into the expiry bin`
+          : `${how === 'cancel' ? 'order cancelled' : 'unpacked'}: ${name}'s pieces back from the dock`
+        entries.push(
+          {
+            lotId: c.lotId,
+            locationId: dock,
+            qtyDelta: -c.pcs,
+            reason: 'transfer_out',
+            refType: 'unpack',
+            refId: order.id,
+            idempotencyKey: `${key}:out`,
+            note,
+          },
+          {
+            lotId: c.lotId,
+            locationId: to,
+            qtyDelta: c.pcs,
+            reason: 'transfer_in',
+            refType: 'unpack',
+            refId: order.id,
+            idempotencyKey: `${key}:in`,
+            note,
+          },
+        )
+        returned.push({
+          lotId: c.lotId,
+          label: label(c.lotId),
+          qtyPcs: c.pcs,
+          to: toBin ? 'expiry_bin' : 'godown',
+          locationId: to,
+          locationName: places.get(to) ?? '',
+        })
+      }
+      await this.inventory.post(tx, entries)
+    } else {
+      await this.inventory.closeDockHolds(tx, lineIds, 'voided')
+    }
+
+    // The picks are history: put back on a live wave (which closes if nothing is left on it), and struck on every
+    // other sheet, so a new wave can take the order and its next pack reads only its new picks.
+    await this.picklists.putBackOrder(tx, order.id, reason)
+    const now = new Date()
+    await tx
+      .update(pickLines)
+      .set({ cancelledAt: now, updatedAt: now })
+      .where(and(eq(pickLines.orderId, order.id), isNull(pickLines.cancelledAt)))
+    await this.orders.recordPick(
+      tx,
+      order.id,
+      lines.map((l) => ({ orderLineId: l.orderLineId, pickedQtyPcs: 0 })),
+    )
+    await tx.delete(packConfirmations).where(eq(packConfirmations.id, pack.id))
+    await writeAudit(tx, {
+      action: how === 'cancel' ? 'warehouse.packs.undo_for_cancel' : 'warehouse.packs.unpack',
+      entityType: 'sales_order',
+      entityId: order.id,
+      before: { packConfirmationId: pack.id, packages: pack.packages, packedAt: pack.packedAt },
+      after: {
+        reason,
+        returned: returned.map((r) => ({ lotId: r.lotId, qtyPcs: r.qtyPcs, to: r.to })),
+      },
+    })
+    return returned
   }
 
   async list(input: ListIn): Promise<ListOut> {

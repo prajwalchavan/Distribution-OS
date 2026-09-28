@@ -50,6 +50,8 @@ const AUDIT_ONLY: ReadonlySet<string> = new Set([
   'OrderDelivered',
   'OrderPartiallyDelivered',
   'OrderReturnedUndelivered',
+  // vans and trips 4: a pack with no bill undone by the desk — the order is confirmed again, nothing to send
+  'OrderUnpacked',
   // warehouse
   'PicklistStarted',
   'LoadSheetApproved',

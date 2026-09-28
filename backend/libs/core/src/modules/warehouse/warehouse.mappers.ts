@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import type {
   ConsolidatedPickLot,
   ConsolidatedPickRow,
@@ -340,7 +340,14 @@ async function pickedLotsPerLine(
       qtyPcs: sql<number>`sum(${pickLines.pickedQtyPcs})`,
     })
     .from(pickLines)
-    .where(and(eq(pickLines.orderId, orderId), sql`${pickLines.pickedQtyPcs} > 0`))
+    // A row put back — its order cancelled mid-pick, or its pack undone (vans and trips 4) — is no longer paper.
+    .where(
+      and(
+        eq(pickLines.orderId, orderId),
+        sql`${pickLines.pickedQtyPcs} > 0`,
+        isNull(pickLines.cancelledAt),
+      ),
+    )
     .groupBy(pickLines.orderLineId, pickLines.lotId)
   return rows
     .filter((r): r is typeof r & { lotId: string } => r.lotId !== null)
@@ -374,13 +381,17 @@ export async function packedLotsByOrder(
     /*
      * The OUT leg of the pack, whatever reason carries it: `qty_delta < 0` is what "left this rack"
      * means, and the pack's own `in` leg onto the dock is positive (QA DOS-195). Reason-free on
-     * purpose, so bills packed before the dock existed still list their lots on a fresh sheet.
+     * purpose, so bills packed before the dock existed still list their lots on a fresh sheet. LESS the
+     * IN leg of an undo (`ref_type = 'unpack'`, vans and trips 4): what an unpack or a cancel put back
+     * from the dock has not left, so an order unpacked and packed again counts its new pack only.
      */
     .where(
       and(
-        eq(stockLedger.refType, 'pack'),
-        lt(stockLedger.qtyDelta, 0),
         inArray(stockLedger.refId, ids),
+        or(
+          and(eq(stockLedger.refType, 'pack'), lt(stockLedger.qtyDelta, 0)),
+          and(eq(stockLedger.refType, 'unpack'), gt(stockLedger.qtyDelta, 0)),
+        ),
       ),
     )
     .groupBy(stockLedger.refId, stockLedger.lotId)

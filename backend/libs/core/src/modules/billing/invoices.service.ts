@@ -556,7 +556,12 @@ export class BillingService {
       const item =
         variants.get(byId.get(line.orderLineId)?.variantId ?? '')?.description ?? 'this item'
       throw new ORPCError('CONFLICT', {
-        message: `${order.orderNo ?? 'This order'} cannot be billed: ${String(line.qtyPcs + line.freeQtyPcs)} pc of it are ${item}${lot.batchNo === '' ? '' : ` batch ${lot.batchNo}`}, which expired on ${istDateWord(lot.expiryDate)} ${lot.expiryDate.slice(0, 4)}. Expired goods are never billed or sent — set those pieces aside for the expiry bin.`,
+        message: `${order.orderNo ?? 'This order'} cannot be billed: ${String(line.qtyPcs + line.freeQtyPcs)} pc of it are ${item}${lot.batchNo === '' ? '' : ` batch ${lot.batchNo}`}, which expired on ${istDateWord(lot.expiryDate)} ${lot.expiryDate.slice(0, 4)}. ${
+          input.source === 'van_sale'
+            ? 'Expired goods are never sold — sell an in-date batch; the expired pieces come off the van at the check-in.'
+            : // Vans and trips 4: the parked pack's way out is named by its buttons.
+              'Expired goods are never billed or sent — on the billing desk (Packed, not billed) press Unpack, and the order goes back to be picked from an in-date batch, or Cancel the order: either way its pieces come off the dock and the expired ones go into the expiry bin.'
+        }`,
         data: { code: 'batch_expired', lotId: lot.id, expiryDate: lot.expiryDate },
       })
     }
@@ -1287,6 +1292,9 @@ export class BillingService {
    */
   private async packedSplit(tx: Db, orderId: string): Promise<IssueForPackLine[]> {
     const rows = await this.inventory.ledgerRowsByRef(tx, { refType: 'pack', refId: orderId })
+    // Vans and trips 4: what an unpack put back from the dock (`unpack:<order>:<line>:…`, its IN leg) is not in the
+    // pack any more, so an order unpacked and packed again bills its new pack only.
+    const undone = await this.inventory.ledgerRowsByRef(tx, { refType: 'unpack', refId: orderId })
     const lines = await tx
       .select()
       .from(salesOrderLines)
@@ -1295,9 +1303,20 @@ export class BillingService {
     const out: IssueForPackLine[] = []
     for (const line of lines) {
       const prefix = `pack:${orderId}:${line.id}:`
-      const picks = rows
-        .filter((r) => r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
-        .map((r) => ({ lotId: r.lotId, qtyPcs: -r.qtyDelta }))
+      const back = new Map<string, number>()
+      for (const r of undone)
+        if (r.qtyDelta > 0 && r.idempotencyKey.startsWith(`unpack:${orderId}:${line.id}:`))
+          back.set(r.lotId, (back.get(r.lotId) ?? 0) + r.qtyDelta)
+      const perLot = new Map<string, number>()
+      for (const r of rows)
+        if (r.qtyDelta < 0 && r.idempotencyKey.startsWith(prefix))
+          perLot.set(r.lotId, (perLot.get(r.lotId) ?? 0) - r.qtyDelta)
+      const picks = [...perLot]
+        .map(([lotId, qtyPcs]) => ({
+          lotId,
+          qtyPcs: qtyPcs - Math.min(qtyPcs, back.get(lotId) ?? 0),
+        }))
+        .filter((p) => p.qtyPcs > 0)
       const moved = picks.reduce((sum, p) => sum + p.qtyPcs, 0)
       if (moved === 0) continue
       let paidLeft = Math.min(line.pickedQtyPcs > 0 ? line.pickedQtyPcs : line.qtyPcs, moved)

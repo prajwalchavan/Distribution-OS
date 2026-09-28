@@ -347,8 +347,8 @@ export function expiredBatch(i: {
   const when = expiryWords(i.expiryDate)
   return new ORPCError('CONFLICT', {
     message: i.atPack
-      ? `${i.orderNo ?? 'This order'} cannot be packed: ${String(i.pcs)} pc of it are ${i.what}, which expired on ${when}. Expired goods are never billed or sent — set those pieces aside for the expiry bin and record the pick again from an in-date batch.`
-      : `${i.what} expired on ${when}. Expired goods are never sold — set it aside for the expiry bin and pick an in-date batch.`,
+      ? `${i.orderNo ?? 'This order'} cannot be packed: ${String(i.pcs)} pc of it are ${i.what}, which expired on ${when}. Expired goods are never billed or sent — record the pick again from an in-date batch, and move the expired pieces into the damaged / expiry bin with Move on the Stock screen.`
+      : `${i.what} expired on ${when}. Expired goods are never sold — pick an in-date batch, and move the expired pieces into the damaged / expiry bin with Move on the Stock screen.`,
     data: { code: 'batch_expired', expiryDate: i.expiryDate },
   })
 }
@@ -358,5 +358,40 @@ export function orderAlreadyPacked(orderNo: string): ORPCError<'CONFLICT', { cod
   return new ORPCError('CONFLICT', {
     message: `${orderNo} is already packed, so its pick cannot change any more: its bill and its stock were made from what was recorded. If the carton went out wrong, the desk corrects the bill with a credit note.`,
     data: { code: 'order_packed' },
+  })
+}
+
+/**
+ * WHERE STOCK IS DRAWN FROM (architect ruling 6 of 2026-09-28, vans and trips; ruling 2 of the stock rulings): a
+ * wave is picked, and a load sheet's van stock drawn, from a godown or a van — never from the damaged / expiry bin
+ * (nothing leaves it for sale), the dock (its pieces are packed for their bills) or a shop's floor. Refused when
+ * the wave or the sheet is MADE, not only when stock would move: 404 for a place that is not this distributor's,
+ * 409 `damaged_not_for_sale` for the bin, 409 `source_not_sellable` for the others. Null when the place may be used.
+ */
+export function sourceRefusal(
+  place: { name: string; kind: string } | null,
+  locationId: string,
+  what: 'wave' | 'load sheet',
+): ORPCError<'NOT_FOUND' | 'CONFLICT', Record<string, unknown>> | null {
+  if (place === null)
+    return new ORPCError('NOT_FOUND', {
+      message: `location ${locationId} is not one of this distributor's places`,
+      data: { code: 'location_not_found', locationId },
+    })
+  if (place.kind === 'warehouse' || place.kind === 'vehicle') return null
+  const instead =
+    what === 'wave' ? 'Wave the orders from the godown.' : 'Draw the van stock from the godown.'
+  if (place.kind === 'damaged')
+    return new ORPCError('CONFLICT', {
+      message: `A ${what} is never drawn from ${place.name}: pieces in the damaged / expiry bin never go back for sale. They leave the bin only by a write-off or a return to the brand. ${instead}`,
+      data: { code: 'damaged_not_for_sale', locationId },
+    })
+  const why =
+    place.kind === 'in_transit'
+      ? 'the pieces standing on the dock are already packed for their bills'
+      : 'those pieces stand at a shop, not in the godown'
+  return new ORPCError('CONFLICT', {
+    message: `A ${what} is never drawn from ${place.name}: ${why}. ${instead}`,
+    data: { code: 'source_not_sellable', locationId, kind: place.kind },
   })
 }

@@ -1,5 +1,5 @@
 export { OrdersModule } from './orders.module.js'
-export { OrdersService } from './orders.service.js'
+export { OrdersService, type PackedCancelHook } from './orders.service.js'
 export { ApprovalsService } from './approvals.service.js'
 export {
   ApprovalHooks,

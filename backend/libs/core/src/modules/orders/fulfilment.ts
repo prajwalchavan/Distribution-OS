@@ -65,7 +65,14 @@ export interface FulfilmentLine {
  * still on the van. Nothing else may be driven from outside.
  */
 export type FulfilmentEvent =
-  'start_picking' | 'pack' | 'dispatch' | 'deliver_all' | 'deliver_partial' | 'return_undelivered'
+  | 'start_picking'
+  | 'pack'
+  | 'dispatch'
+  | 'deliver_all'
+  | 'deliver_partial'
+  | 'return_undelivered'
+  /** A pack with no bill undone by the desk (vans and trips 4): `packed → confirmed`, `packs.unpack` only. */
+  | 'unpack'
 
 /** States a fulfilment queue is ever interested in: the order is confirmed but not yet out of the door. */
 export const FULFILMENT_STATES = [
