@@ -1,0 +1,48 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Any date, matching "Jai Bhavani"
+Filters (1)
+Clear
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone	App sign-in
+
+R-0005
+	
+Jai Bhavani Stores
+	
+Station Road
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++919004006141
+	
+Not yet
+
+1 rows								

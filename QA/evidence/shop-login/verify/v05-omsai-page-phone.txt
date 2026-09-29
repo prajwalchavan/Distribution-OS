@@ -1,0 +1,250 @@
+Tarsun Enterprise
+manager
+⋯
+Updated just now
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Chauhan Test Stores
+Warn only
+Ghadge Test Kirana
+Warn only
+Deshmukh Test Traders
+Warn only
+Twin One Test Store
+Warn only
+Twin Two Test Store
+Warn only
+Admin Phone Test Store
+Warn only
+Manager Phone Test Store
+Warn only
+Khan General Store
+Blocked
+Ambika Provision Store
+Needs approval
+Sai Baba Kirana
+Warn only
+Shubhalabh Stores
+Needs approval
+Joshi Kirana Stores
+Warn only
+Patil General Store
+Blocked
+Balaji Wholesale Stores
+Warn only
+Vitthal Traders
+Needs approval
+Iyer Provision Store
+Blocked
+City Light Provision
+Needs approval
+Yadav General Store
+Blocked
+Shree Ganesh Kirana
+Needs approval
+Mahalaxmi General Stores
+Needs approval
+Sharma Kirana Stores
+Needs approval
+Mangal Traders
+Needs approval
+Dnyandeep Stores
+Warn only
+Gupta Kirana Stores
+Warn only
+Gurukrupa Provision
+Warn only
+Deshmukh Kirana
+Needs approval
+Bhosale Traders
+Warn only
+Laxmi Narayan Stores
+Warn only
+Surat Sales Agency
+Warn only
+Singh General Store
+Needs approval
+Vasudha Stores
+Blocked
+Hariom Kirana Bhandar
+Blocked
+Ekvira Kirana
+Needs approval
+Krishna Kirana Stores
+Blocked
+Navjeevan Super Bazar
+Warn only
+Ashirwad Provision
+Needs approval
+More Provision Store
+Needs approval
+Prerna Super Market
+Warn only
+Birla Road Kirana Mart
+Needs approval
+Rukmini Provision
+Warn only
+Reddy Traders
+Needs approval
+Chavan Kirana Stores
+Needs approval
+Ganesh General Store
+Warn only
+Sahyadri Super Bazar
+Warn only
+Mishra Provision Store
+Needs approval
+Nakshatra Kirana
+Needs approval
+Nutan Kirana Stores
+Needs approval
+Rameshwar General Store
+Warn only
+Trimurti General Store
+Needs approval
+Vaibhav Kirana Mart
+Warn only
+Sai Krupa Super Bazar
+Warn only
+Ansari Kirana Stores
+Needs approval
+Jai Bhavani Stores
+Needs approval
+Ganpati General Stores
+Warn only
+Friends Corner Stores
+Blocked
+Kolsewadi Corner Store
+Needs approval
+Meghana General Store
+Needs approval
+Om Sai Provision Store
+Warn only
+Kadam Stores
+Needs approval
+Karve Provision
+Needs approval
+Sujata Stores
+Needs approval
+New Bombay Stores
+Warn only
+Shivshakti Traders
+Needs approval
+Pawar General Store
+Needs approval
+Gavhane Kirana
+Needs approval
+Metro Kirana Bazar
+Needs approval
+Anand Bhavan Provision
+Needs approval
+Om Sai Provision Store
+Close
+Code
+R-0002
+Beat
+Station Road
+Limit ₹
+1,80,000.00
+Days to pay
+14
+Over the limit
+Warn only
+Payment terms
+Credit
+Phone
++919167001533
+GSTIN
+27VXPPJ9560J1Z5
+App sign-in
+This shop cannot use the app yet
+Give this shop a sign-in
+Owes ₹
+₹89,269.50
+₹32,899.50 overdue
+Oldest bill
+27 Aug 2026
+How they buy
+Usually pays in 30 days
+Last order 28 Sep
+Statement of account
+Debit ₹
+Credit ₹
+Balance ₹
+Opening balance
+1 Jul 2026
+—
+—
+0.00
+Invoice · INV/0104
+13 Jul 2026
+19,825.00
+—
+19,825.00
+Invoice · INV/0206
+23 Jul 2026
+9,842.00
+—
+29,667.00
+Invoice · INV/0276
+30 Jul 2026
+16,354.00
+—
+46,021.00
+Receipt · RCPT-0091
+31 Jul 2026
+—
+19,825.00
+26,196.00
+Invoice · INV/0316
+3 Aug 2026
+9,381.00
+—
+35,577.00
+Invoice · INV/0360
+6 Aug 2026
+16,917.00
+—
+52,494.00
+Invoice · INV/0397
+10 Aug 2026
+24,141.00
+—
+76,635.00
+Invoice · INV/0423
+13 Aug 2026
+8,731.00
+—
+85,366.00
+Invoice · INV/0488
+20 Aug 2026
+29,317.00
+—
+1,14,683.00
+Receipt · RCPT-0275
+22 Aug 2026
+—
+9,842.00
+1,04,841.00
+Invoice · INV/0555
+27 Aug 2026
+12,765.00
+—
+1,17,606.00
+Receipt · RCPT-0360
+29 Aug 2026
+—
+6,034.00
+1,11,572.00
+Change the credit terms
+Send the statement
+Link the shopkeeper
+Today
+Orders
+Fulfilment
+Billing
