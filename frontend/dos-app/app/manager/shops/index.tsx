@@ -3,14 +3,16 @@
  *
  * The register is the searchable list; a row opens the shop as a side panel with the four things a
  * back office decides about a shop — what it owes, what its credit terms are, its statement of
- * account, and whether the shopkeeper is linked to the app. `q` arrives in the URL from the header
- * search, so "go to a shop" and this screen's own filter are one query.
+ * account, and whether the shop can use the app (`ShopSignInRow`, DOS-400). `q` arrives in the URL
+ * from the header search, so "go to a shop" and this screen's own filter are one query.
  *
- * `retailers.setCredit` and `retailers.linkIdentity` are owner + manager: for the accountant both
+ * `retailers.setCredit` and the sign-in actions are owner + manager: for the accountant those
  * controls are absent, and the statement — which IS the money desk's job — stays.
  *
- * `linkIdentity` is back-office only for a reason worth restating (docs/17 item 27): a salesperson
- * must never learn whether a phone number already exists in another distributor's network.
+ * The old "Link the shopkeeper" action (`retailers.linkIdentity`) is gone from this panel (DOS-400
+ * repair): it said the shopkeeper could then sign in, and it made no sign-in. "Give this shop a
+ * sign-in" does what it promised, and a salesperson still never learns whether a phone number
+ * already exists in another distributor's network (docs/17 item 27).
  */
 import type { Retailer } from '@dos/contracts'
 import { useApi, useMutation, useQuery } from '@dos/api-client/react'
@@ -27,7 +29,6 @@ import {
   Sheet,
   Stack,
   StatusChip,
-  TextInput,
   Toast,
   Txt,
   useColors,
@@ -78,12 +79,10 @@ export default function Shops(): React.JSX.Element {
   const params = useLocalSearchParams<{ q?: string }>()
 
   const maySetCredit = can('retailers.setCredit')
-  const mayLink = can('retailers.linkIdentity')
   const [q, setQ] = useState(typeof params.q === 'string' ? params.q : '')
   const [beatId, setBeatId] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
-  const [dialog, setDialog] = useState<'credit' | 'statement' | 'link' | null>(null)
-  const [phone, setPhone] = useState('')
+  const [dialog, setDialog] = useState<'credit' | 'statement' | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const beats = useQuery(['names', 'beats'], () => api.api.retailers.beats.list({}), {
@@ -153,15 +152,6 @@ export default function Shops(): React.JSX.Element {
         includeUpiQr: true,
       }),
     { invalidates: [['notifications']] },
-  )
-  const link = useMutation(
-    (input: { id: string; phone: string }, meta) =>
-      api.api.retailers.linkIdentity({
-        id: input.id,
-        phone: input.phone,
-        idempotencyKey: meta.idempotencyKey,
-      }),
-    { invalidates: [['retailers']] },
   )
 
   /*
@@ -397,17 +387,6 @@ export default function Shops(): React.JSX.Element {
                   }}
                   testID="shop-statement"
                 />
-                {mayLink ? (
-                  <Button
-                    label={t('m14.link')}
-                    variant="ghost"
-                    onPress={() => {
-                      setPhone(current.phone ?? '')
-                      setDialog('link')
-                    }}
-                    testID="shop-link"
-                  />
-                ) : null}
               </Stack>
             </Stack>
           )}
@@ -424,46 +403,27 @@ export default function Shops(): React.JSX.Element {
       />
 
       <Dialog
-        open={dialog === 'statement' || dialog === 'link'}
+        open={dialog === 'statement'}
         onClose={() => {
           setDialog(null)
         }}
-        title={dialog === 'statement' ? t('m14.statement') : t('m14.link')}
+        title={t('m14.statement')}
         body={
           <Stack gap={3}>
-            {dialog === 'statement' ? (
-              <Txt field="body" desk="body">
-                {t('m14.statementBody')}
-              </Txt>
-            ) : null}
-            {dialog === 'link' ? (
-              <>
-                <Txt field="label" desk="meta" color={colors.text.secondary}>
-                  {t('m14.linkBody')}
-                </Txt>
-                <TextInput
-                  label={t('m14.linkPhone')}
-                  value={phone}
-                  onChange={setPhone}
-                  keyboard="phone"
-                  capitalize="none"
-                  testID="link-phone"
-                />
-              </>
-            ) : null}
-            <Refusal of={[statement, link]} testID="shop-refusal" />
+            <Txt field="body" desk="body">
+              {t('m14.statementBody')}
+            </Txt>
+            <Refusal of={[statement]} testID="shop-refusal" />
           </Stack>
         }
-        confirmLabel={dialog === 'statement' ? t('m14.statement') : t('m14.link')}
-        busy={statement.status === 'pending' || link.status === 'pending'}
+        confirmLabel={t('m14.statement')}
+        busy={statement.status === 'pending'}
         onConfirm={() => {
           if (selected === null) return
           const close = (): void => {
             setDialog(null)
           }
-          if (dialog === 'statement') void statement.mutateAsync(selected).then(close, stayOpen)
-          if (dialog === 'link')
-            void link.mutateAsync({ id: selected, phone: phone.trim() }).then(close, stayOpen)
+          void statement.mutateAsync(selected).then(close, stayOpen)
         }}
         testID="shop-dialog"
       />
