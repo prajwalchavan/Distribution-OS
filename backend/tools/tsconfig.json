@@ -8,6 +8,7 @@
     "import-legacy-extracts.mts",
     "check-stock-cancels.mts",
     "check-stock-negative.mts",
+    "check-receipt-references.mts",
     "legacy",
     "vitest.config.ts"
   ]
