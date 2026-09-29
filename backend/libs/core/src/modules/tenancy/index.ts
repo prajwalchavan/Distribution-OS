@@ -1,5 +1,5 @@
 export { TenancyModule } from './tenancy.module.js'
-export { TenancyService } from './tenancy.service.js'
+export { TenancyService, type ShopLogin, type ShopLoginRequest } from './tenancy.service.js'
 export { TenantConfigService } from './config.service.js'
 /** The owner's half of platform support access (`tenancy.support.*`); the console's half is module 13. */
 export { SupportAccessService } from './support.service.js'

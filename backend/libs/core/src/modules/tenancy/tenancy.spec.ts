@@ -1,10 +1,13 @@
+import { createHash } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
+import { StaffCreateInput, StaffSetPasswordInput } from '@dos/contracts'
 import { uuidv7 } from '@dos/domain'
 import {
   authEvents,
   authSessions,
   createDb,
   createPool,
+  idempotencyKeys,
   memberships,
   tenants,
   users,
@@ -12,6 +15,7 @@ import {
 } from '@dos/db'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { withoutSecrets } from '../../platform/index.js'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { TenancyModule } from './index.js'
 
@@ -287,6 +291,42 @@ describeDb('tenancy staff (DATABASE_URL)', () => {
       .from(authEvents)
       .where(and(eq(authEvents.userId, repId), eq(authEvents.kind, 'password_set_by_admin')))
     expect(audit).toHaveLength(1)
+  })
+
+  /**
+   * DOS-400: a temporary password is never in the idempotency store. The reply never carried one, so
+   * a replay could not give it back; but `request_hash` was a fast, unsalted SHA-256 of the request
+   * WITH the password, which anyone who reads the table could guess back offline. Both keys are now
+   * filed without it.
+   */
+  it('files a hire and a reset under keys that hold no password, and replays without one', async () => {
+    const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex')
+    const stored = async (key: string) =>
+      (
+        await db
+          .select()
+          .from(idempotencyKeys)
+          .where(and(eq(idempotencyKeys.tenantId, tenantId), eq(idempotencyKeys.key, key)))
+      )[0]
+    const hire = StaffCreateInput.parse(hireInput)
+    const hired = await stored(hireInput.idempotencyKey)
+    expect(hired?.requestHash).not.toBe(sha(hire))
+    expect(hired?.requestHash).toBe(sha(withoutSecrets(hire, ['temporaryPassword'])))
+    expect(JSON.stringify(hired?.response)).not.toContain(hireInput.temporaryPassword)
+
+    const reset = StaffSetPasswordInput.parse({
+      idempotencyKey: `staff-pw-${run}`,
+      userId: repId,
+      temporaryPassword: 'Naya12345',
+    })
+    const resetRow = await stored(`staff-pw-${run}`)
+    expect(resetRow?.requestHash).not.toBe(sha(reset))
+    expect(resetRow?.requestHash).toBe(sha(withoutSecrets(reset, ['temporaryPassword'])))
+    expect(JSON.stringify(resetRow?.response)).not.toContain('Naya12345')
+
+    const replay = await call<CreateBody>(app, owner, 'POST', '/tenancy/staff', hireInput)
+    expect(replay.status).toBe(200)
+    expect(JSON.stringify(replay.body)).not.toContain(hireInput.temporaryPassword)
   })
 
   it('refuses a manager resetting an owner password', async () => {
