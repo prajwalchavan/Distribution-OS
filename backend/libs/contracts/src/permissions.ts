@@ -129,6 +129,13 @@ const STOCK_VIEWERS = [
 const ONBOARDERS = ['owner', 'manager'] as const satisfies readonly MembershipRole[]
 
 /**
+ * A procedure kept in the contract (expand-only) that no role may call any more: the gate answers every
+ * caller 403 before any handler runs. Used for a door another procedure replaced whose answer would
+ * undo a ruling (see `retailers.linkIdentity`).
+ */
+const NOBODY = [] as const satisfies readonly MembershipRole[]
+
+/**
  * Who may take money from a shopkeeper: the desk at the office and the crew at the shop door.
  * The salesperson is deliberately absent — the founder's answer in docs/17 §D4 is that a rep never
  * collects. A shop paying for itself has its own procedure, `receivables.payments.initiate`.
@@ -496,8 +503,12 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   'retailers.upsert': STAFF,
   'retailers.updateOwn': SHOPKEEPER_ONLY,
   'retailers.setCredit': MANAGEMENT,
-  // Back office only: a rep must not learn whether a phone exists in another distributor's network.
-  'retailers.linkIdentity': ONBOARDERS,
+  // Closed to every role (repair 3 of DOS-400, architect's ruling of 2026-09-29, R1). It looked the phone
+  // up across the platform and answered "a retailer identity that is not linked to this distributor" for
+  // another distributor's shopkeeper while it made an identity for another business's rep or a console
+  // account, so a desk could tell apart what the give now refuses to say (one sentence for all three).
+  // The give (`retailers.signIn.*`) links the shop to its number itself; no screen calls this.
+  'retailers.linkIdentity': NOBODY,
   // DOS-400 (architect's ruling 2026-09-29): the owner or the manager gives a shop its app sign-in,
   // a new first password, or stops it. Not the accountant (it onboards nobody), not the field (a rep
   // must not learn whether a phone is known to the platform), not the godown, the crew or a shop.

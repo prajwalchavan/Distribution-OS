@@ -153,7 +153,7 @@ const DESTRUCTIVE_EXTRA: Record<string, string> = {
   'tenancy.staff.setPassword': 'would change a demo user password',
   'tenancy.staff.setStatus': 'would disable a demo user',
   'retailers.linkIdentity':
-    'would invite a made-up phone into a demo shop and add a retailer_links row every run',
+    'closed to every role since DOS-400 repair 3 (the shop sign-in links a shop); a call is a 403',
   // DOS-400: a shop's app sign-in is a demo shopkeeper's credential and link.
   'retailers.signIn.give': 'would give a demo shop a sign-in every other tool then finds made',
   'retailers.signIn.setPassword': 'would change a demo shopkeeper password',

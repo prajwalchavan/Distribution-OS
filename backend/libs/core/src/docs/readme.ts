@@ -91,6 +91,8 @@ function describePermission(permission: Permission | undefined): string {
   if (permission === undefined) return '_undeclared (refused)_'
   if (permission === 'public') return 'public'
   if (permission === 'authenticated') return 'any signed-in role'
+  // A door kept in the contract that no role may call any more (PERMISSIONS `NOBODY`).
+  if (permission.length === 0) return '_nobody (closed)_'
   return permission.join(', ')
 }
 

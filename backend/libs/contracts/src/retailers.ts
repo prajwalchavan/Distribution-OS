@@ -207,7 +207,11 @@ export const RetailerLinkSchema = z.object({
 })
 export type RetailerLink = z.infer<typeof RetailerLinkSchema>
 
-/** Find-or-create the global identity for `phone` and link it to this retailer (rep onboarding). */
+/**
+ * Find-or-create the global identity for `phone` and link it to this retailer (rep onboarding). CLOSED
+ * to every role since repair 3 of DOS-400 (PERMISSIONS `NOBODY`): `signIn.give` links the shop to its
+ * number, and this door told a desk whether a number was a shop at another distributor.
+ */
 export const LinkIdentityInput = MutationBase.extend({
   id: IdSchema,
   phone: PhoneSchema,
@@ -450,7 +454,8 @@ export const retailersContract = {
     .route({
       method: 'POST',
       path: '/retailers/{id}/link',
-      summary: 'Link the retailer to its global identity by phone',
+      summary:
+        'Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it)',
     })
     .input(LinkIdentityInput)
     .output(LinkIdentityOutput),

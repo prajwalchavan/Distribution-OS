@@ -66,7 +66,7 @@ Conventions: money is integer paise (₹40.00 = 4000), quantities integer pieces
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
@@ -4476,9 +4476,9 @@ request.json
 
 ### POST `/retailers/{id}/link`
 
-Link the retailer to its global identity by phone · contract `retailers.linkIdentity`
+Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) · contract `retailers.linkIdentity`
 
-**Roles:** owner, manager
+**Roles:** _nobody (closed)_
 
 **Request body**
 
@@ -4539,7 +4539,7 @@ request.json
 ```json
 {
   "statusCode": 403,
-  "message": "the accountant role may not call POST /retailers/{id}/link",
+  "message": "the manager role may not call POST /retailers/{id}/link",
   "error": "Forbidden"
 }
 ```
@@ -49964,7 +49964,7 @@ Who may call what, from the `PERMISSIONS` table in `@dos/contracts` narrowed to 
 | `retailers.get` | – | ✓ | ✓ | – | – | – | – |
 | `retailers.upsert` | – | ✓ | ✓ | – | – | – | – |
 | `retailers.setCredit` | – | ✓ | – | – | – | – | – |
-| `retailers.linkIdentity` | – | ✓ | – | – | – | – | – |
+| `retailers.linkIdentity` | – | – | – | – | – | – | – |
 | `retailers.updateOwn` | – | – | – | – | – | – | – |
 | `retailers.signIn.give` | – | ✓ | – | – | – | – | – |
 | `retailers.signIn.setPassword` | – | ✓ | – | – | – | – | – |

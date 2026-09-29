@@ -5,6 +5,7 @@ import {
   createPool,
   memberships,
   retailerIdentities,
+  retailerLinks,
   retailers,
   tenants,
   users,
@@ -304,32 +305,37 @@ describeDb('retailers (DATABASE_URL)', () => {
     expect(back.status).toBe(200)
   })
 
-  it('links the retailer to its identity; the shop then sees only itself, without credit fields', async () => {
+  it('links the retailer to its identity through the shop’s sign-in; the shop then sees only itself, without credit fields', async () => {
+    // The old link door is closed to every role (DOS-400 repair 3, ruling R1 of 2026-09-29): the
+    // shop's sign-in, given from its page, links the shop to its number and to the shopkeeper's login.
     const linkInput = { idempotencyKey: `link-${run}`, id: retailerId, phone: shopPhone }
-    // a salesperson may not link identities (existence leak, docs/17 item 27)
-    const refused = await call(app, rep, 'POST', `/retailers/${retailerId}/link`, linkInput)
-    expect(refused.status).toBe(403)
-    const linked = await call<{
-      link: { userId: string | null; status: string; linkedBy: string }
-      identityCreated: boolean
-    }>(app, owner, 'POST', `/retailers/${retailerId}/link`, linkInput)
-    expect(linked.status).toBe(200)
-    expect(linked.body.identityCreated).toBe(true)
-    expect(linked.body.link.userId).toBe(shopUserId)
-    expect(linked.body.link.status).toBe('active')
-    expect(linked.body.link.linkedBy).toBe('rep_onboarding')
-    const replay = await call(app, owner, 'POST', `/retailers/${retailerId}/link`, linkInput)
-    expect(replay.body).toEqual(linked.body)
-    // a fresh key for the same phone is a no-op on the link, not a duplicate
-    const relink = await call<{ identityCreated: boolean }>(
+    for (const actor of [rep, owner]) {
+      const refused = await call(app, actor, 'POST', `/retailers/${retailerId}/link`, linkInput)
+      expect(refused.status, actor.role).toBe(403)
+    }
+    const given = await call<{ outcome: string }>(
       app,
       owner,
       'POST',
-      `/retailers/${retailerId}/link`,
-      { ...linkInput, idempotencyKey: `link2-${run}` },
+      `/retailers/${retailerId}/sign-in`,
+      {
+        idempotencyKey: `give-${run}`,
+        id: retailerId,
+        userId: uuidv7(),
+        membershipId: uuidv7(),
+        firstPassword: 'First4321',
+      },
     )
-    expect(relink.status).toBe(200)
-    expect(relink.body.identityCreated).toBe(false)
+    expect(given.status, JSON.stringify(given.body)).toBe(200)
+    expect(given.body.outcome).toBe('created')
+    const links = await db
+      .select()
+      .from(retailerLinks)
+      .where(eq(retailerLinks.retailerId, retailerId))
+    expect(links).toHaveLength(1)
+    expect(links[0]?.userId).toBe(shopUserId)
+    expect(links[0]?.status).toBe('active')
+    expect(links[0]?.linkedBy).toBe('rep_onboarding')
 
     const mine = await call<{ items: RetailerRow[] }>(app, shop, 'GET', '/retailers', {})
     expect(mine.status).toBe(200)
@@ -360,16 +366,27 @@ describeDb('retailers (DATABASE_URL)', () => {
     expect(staffView.body.item.identityId).toBeTruthy()
   })
 
-  it('reports a clear conflict when the phone belongs to an identity not linked here', async () => {
-    const res = await call<{ message: string }>(
-      app,
-      owner,
-      'POST',
-      `/retailers/${otherRetailerId}/link`,
-      { idempotencyKey: `link-foreign-${run}`, id: otherRetailerId, phone: foreignPhone },
-    )
-    expect(res.status).toBe(409)
-    expect(res.body.message).toMatch(/not linked to this distributor/)
+  it('tells nobody whether a phone is a shop elsewhere: the old link door answers the same for any number', async () => {
+    const fresh = `+919${run}8`
+    const bodies = new Set<string>()
+    for (const p of [foreignPhone, fresh]) {
+      const res = await call<{ message: string }>(
+        app,
+        owner,
+        'POST',
+        `/retailers/${otherRetailerId}/link`,
+        { idempotencyKey: `link-foreign-${run}-${p}`, id: otherRetailerId, phone: p },
+      )
+      expect(res.status).toBe(403)
+      expect(res.body.message).not.toMatch(/not linked to this distributor/)
+      bodies.add(JSON.stringify(res.body))
+    }
+    expect(bodies.size).toBe(1)
+    const made = await db
+      .select()
+      .from(retailerIdentities)
+      .where(eq(retailerIdentities.phone, fresh))
+    expect(made).toHaveLength(0)
   })
 
   it('lists retailers for staff with search and beat filters', async () => {

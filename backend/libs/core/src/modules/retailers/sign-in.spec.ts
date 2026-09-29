@@ -101,6 +101,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
   const shopNewTwin = uuidv7()
   const shopLandline = uuidv7()
   const shopLandlineAlt = uuidv7()
+  const shopProbe = uuidv7()
   const sharedUsername = `shared.${run}`
   const knownUsername = `known.${run}`
   /** What the server makes from the shopkeeper’s name on the shop: its first two words, lower case. */
@@ -190,6 +191,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
         ...shop(shopLandlineAlt, 'O', 'Landline Two Stores', '022-2534 5678'),
         altPhone: '022-2534 9999',
       },
+      shop(shopProbe, 'P', 'Probe Corner Store', phone(35)),
     ])
     // The seed's shared shop: an identity naming the login and this distributor's link to it.
     const sharedIdentity = uuidv7()
@@ -210,6 +212,10 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
       linkedBy: 'rep_onboarding',
       status: 'active',
     })
+    // The known shopkeeper's shop across the platform, made by the other distributor (not linked here).
+    await db
+      .insert(retailerIdentities)
+      .values({ id: uuidv7(), phone: phone(21), userId: knownUserId, shopName: 'Known Elsewhere' })
     app = await bootTestApp([RetailersModule, AuthModule])
   })
 
@@ -873,6 +879,50 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     expect(missing.body.message).toBe('This shop is not on your books.')
     const weak = await give(owner, shopClosed, { firstPassword: 'short1' })
     expect(weak.status).toBe(400)
+  })
+
+  it('has no second door that tells where a number is known: linking a shop to a number is closed to every desk (R1)', async () => {
+    // `retailers.linkIdentity` looked the number up across the platform: for a shopkeeper of another
+    // distributor it answered "a retailer identity that is not linked to this distributor", for a rep
+    // or a console account elsewhere it made an identity and answered 200 — which told the three
+    // apart where the give now says one sentence. No screen calls it since the give links the shop.
+    const numbers = [phone(21), phone(23), phone(24), phone(36)]
+    const identities = async () =>
+      (
+        await Promise.all(
+          numbers.map((p) =>
+            db.select().from(retailerIdentities).where(eq(retailerIdentities.phone, p)),
+          ),
+        )
+      ).map((rows) => rows.length)
+    const before = await identities()
+    for (const actor of [owner, manager, accountant, rep]) {
+      const bodies = new Set<string>()
+      for (const p of numbers) {
+        const res = await call<{ message?: string }>(
+          app,
+          actor,
+          'POST',
+          `/retailers/${shopProbe}/link`,
+          { idempotencyKey: uuidv7(), id: shopProbe, phone: p },
+        )
+        expect(res.status, `${actor.role} ${p} ${JSON.stringify(res.body)}`).toBe(403)
+        bodies.add(JSON.stringify(res.body))
+      }
+      // one answer whatever the number is elsewhere, or whether it is known at all
+      expect(bodies.size, actor.role).toBe(1)
+    }
+    // nothing written: no identity made, no link, the shop as it was
+    expect(await identities()).toEqual(before)
+    expect(
+      await db.select().from(retailerLinks).where(eq(retailerLinks.retailerId, shopProbe)),
+    ).toHaveLength(0)
+    const [probe] = await db.select().from(retailers).where(eq(retailers.id, shopProbe))
+    expect(probe?.identityId ?? null).toBeNull()
+    // the shop's sign-in is still given from its page, which links it
+    const given = await give(owner, shopProbe)
+    expect(given.status, JSON.stringify(given.body)).toBe(200)
+    expect(given.body.outcome).toBe('created')
   })
 
   it('is the owner’s and the manager’s alone: the accountant, the field, the godown, the crew and a shop are refused', async () => {

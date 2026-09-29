@@ -139,7 +139,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
@@ -502,7 +502,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
@@ -865,7 +865,7 @@ Full request/response samples are in `backend/sales-service/README.md`.
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
@@ -1079,7 +1079,7 @@ Full request/response samples are in `backend/warehouse-service/README.md`.
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
@@ -1348,7 +1348,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |
@@ -1626,7 +1626,7 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | GET | `/retailers/{id}` | One retailer (retailer role: only its own, without credit) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/retailers` | Create or update a retailer; code is server-assigned | owner, manager, accountant, salesperson, warehouse, delivery |
 | POST | `/retailers/{id}/credit` | Set tier and credit terms (owner/manager/accountant only) | owner, manager |
-| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone | owner, manager |
+| POST | `/retailers/{id}/link` | Link the retailer to its global identity by phone (closed to every role: the shop’s sign-in links it) | _nobody (closed)_ |
 | POST | `/retailers/me` | The shop edits its own contact and GST details (never credit, tier or beat) | retailer |
 | POST | `/retailers/{id}/sign-in` | Give the shop an app sign-in (a username and a first password, shown once) | owner, manager |
 | POST | `/retailers/{id}/sign-in/password` | Give the shop a new first password; it must choose its own at the next sign-in | owner, manager |

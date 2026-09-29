@@ -131,3 +131,12 @@ mobile field with "The shop's mobile number … already has a Distribution OS si
 mobile number of the shopkeeper." and "It will be saved as the shop's mobile number."; the give takes a typed mobile for a shop
 that has one, saves it as the shop's mobile, moves the old number to the second number when that is free and keeps it in the
 audit row. No sentence sends the desk to change it "on the shop" any more.
+
+### Closed in repair 3 without an id: the old link door told a desk where a number is known
+`retailers.linkIdentity` (POST `/retailers/{id}/link`, owner and manager, on no screen since repair 1) looked the number up
+across the platform. Run on the lane before repair 3: for another distributor's shopkeeper it answered 409 "This phone already
+has a retailer identity that is not linked to this distributor…", for another business's rep, a console account and an unknown
+number it answered 200 and made a platform identity for the number. Beside the give's one sentence (R1) that told a shopkeeper
+elsewhere from staff or a console account elsewhere. Status: FIXED on the lane — the procedure stays in the contract
+(expand-only) and PERMISSIONS closes it to every role (`NOBODY`): every caller gets the gate's 403 before any handler, the same
+body whatever the number; the give links a shop to its number itself.
