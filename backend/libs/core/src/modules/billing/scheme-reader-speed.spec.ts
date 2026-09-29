@@ -271,7 +271,9 @@ describeDb('the once-per-order-line reader over 4 000 bill lines (DATABASE_URL)'
     // the reader orders by (date, bill id, line) — so does the expectation
     const billOrder = new Map(
       [...bills]
-        .sort((a, b) => (a.day < b.day ? -1 : a.day > b.day ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+        .sort((a, b) =>
+          a.day < b.day ? -1 : a.day > b.day ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
+        )
         .map((bill, i) => [bill.id, i]),
     )
     expected.sort(
@@ -314,9 +316,10 @@ describeDb('the once-per-order-line reader over 4 000 bill lines (DATABASE_URL)'
         .reduce((s, r) => s + (r[key] ?? 0), 0)
     expect(sum(moneyScheme, 'amountPaise')).toBe(givenMoney)
     expect(sum(freeScheme, 'freeQty')).toBe(givenFree)
-    expect(ms, `invoiceLinesForPeriod over 4 000 lines took ${String(Math.round(ms))} ms`).toBeLessThan(
-      ONE_SECOND,
-    )
+    expect(
+      ms,
+      `invoiceLinesForPeriod over 4 000 lines took ${String(Math.round(ms))} ms`,
+    ).toBeLessThan(ONE_SECOND)
   })
 
   it('a bound on the lines is cut at the edge of the bill its last line belongs to, inside one second', async () => {
@@ -376,8 +379,9 @@ describeDb('the once-per-order-line reader over 4 000 bill lines (DATABASE_URL)'
     expect(rows.map((r) => [r.day, Number(r.company)])).toEqual(
       days.map((d) => [d, moneyByDay.get(d) ?? 0]),
     )
-    expect(ms, `the recount of ${String(days.length)} days took ${String(Math.round(ms))} ms`).toBeLessThan(
-      ONE_SECOND,
-    )
+    expect(
+      ms,
+      `the recount of ${String(days.length)} days took ${String(Math.round(ms))} ms`,
+    ).toBeLessThan(ONE_SECOND)
   })
 })
