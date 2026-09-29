@@ -785,6 +785,49 @@ describeDb('demo seed on an empty database', () => {
   }, 180_000)
 
   /**
+   * QA DOS-331 (docs/22 §8, 2026-09-28, prices and tax): the demo seed carries the GST 2.0 rates the project's
+   * research names as rows dated 2025-09-22 beside the 2017 rows, so a bill dated today resolves to the new
+   * rate and one dated before the change to the old; on any day exactly one row of a heading is live (S-176).
+   * The legal rates are the CA's to confirm; the seed's comment names where each figure comes from.
+   */
+  it('DOS-331: a bill dated today resolves the dated GST 2.0 row, one dated before 22 Sep 2025 the 2017 row, and each heading has one live row', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    const on = async (date: string) =>
+      (
+        await db.execute(sql`
+          SELECT DISTINCT ON (hsn_code) hsn_code, gst_bps, cess_bps
+            FROM hsn_rates
+           WHERE hsn_code IN ('2202', '1905', '2106', '21069099', '22029920')
+             AND effective_from <= ${date}::date
+             AND (effective_to IS NULL OR effective_to >= ${date}::date)
+           ORDER BY hsn_code, effective_from DESC`)
+      ).rows as { hsn_code: string; gst_bps: number; cess_bps: number }[]
+    const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10)
+    expect(await on(today)).toEqual([
+      { hsn_code: '1905', gst_bps: 500, cess_bps: 0 },
+      { hsn_code: '2106', gst_bps: 500, cess_bps: 0 },
+      { hsn_code: '21069099', gst_bps: 500, cess_bps: 0 },
+      { hsn_code: '2202', gst_bps: 4000, cess_bps: 0 },
+      { hsn_code: '22029920', gst_bps: 500, cess_bps: 0 },
+    ])
+    expect(await on('2025-09-21')).toEqual([
+      { hsn_code: '1905', gst_bps: 1800, cess_bps: 0 },
+      { hsn_code: '2106', gst_bps: 1800, cess_bps: 0 },
+      { hsn_code: '21069099', gst_bps: 1200, cess_bps: 0 },
+      { hsn_code: '2202', gst_bps: 2800, cess_bps: 1200 },
+      { hsn_code: '22029920', gst_bps: 1200, cess_bps: 0 },
+    ])
+    const twoLive = (
+      await db.execute(sql`
+        SELECT hsn_code FROM hsn_rates
+         WHERE effective_from <= current_date
+           AND (effective_to IS NULL OR effective_to >= current_date)
+         GROUP BY hsn_code HAVING count(*) > 1`)
+    ).rows
+    expect(twoLive).toEqual([])
+  }, 180_000)
+
+  /**
    * DOS-257: the simulation's audit found one cancel that left 12 toor in the godown that the bill never
    * took out, and asked for the seed's three look-alike rows (`adjustment` +72 under `invoice_cancel`, the
    * cancelled INV/9002 of each distributor) to be checked. They put back exactly the `sale` −72 their bill

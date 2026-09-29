@@ -2,6 +2,7 @@
  * Global product master (ADR 0005): manufacturers, brands, products, variants, pack hierarchy, external
  * codes, supplier-invoice aliases and dated HSN rates. No tenant_id — shared by every distributor.
  */
+import { and, inArray, isNull } from 'drizzle-orm'
 import {
   brands,
   hsnRates,
@@ -525,6 +526,35 @@ export const HSN_RATES: {
   ...EXTRA_HSN_RATES,
 ]
 
+/**
+ * GST 2.0 — THE RATES FROM 22 SEPTEMBER 2025, as the project's own research records them (docs/22 §8,
+ * 2026-09-28, prices and tax: "the demo seed … gets dated rows from the project's own research"; QA DOS-331).
+ * Each is a NEW row beside the heading's 2017 row, so a bill dated today resolves to it and a bill re-printed
+ * with its own older date still resolves to the rate it was issued at. The seed only: no migration writes a tax
+ * rate and a live database is never touched. THE LEGAL RATES ARE THE CA's TO CONFIRM (docs/32 item 4, open).
+ *
+ * Where each figure comes from:
+ *  - 2202 sweetened / flavoured drinks 40 %, the compensation cess folded in (so 0 cess):
+ *    docs/research/R09-domain-operations.md §9 ("sweetened/flavoured drinks (2202) 40%"), and
+ *    docs/32-legacy-import.md §3 (the founder's list files its 40 % drinks under 2202);
+ *  - 1905 biscuits, chips and wafers 5 %: R09 §9 ("biscuits (1905) 5%", "potato chips/wafers (2005/1905) 5%");
+ *  - 2106 namkeen / bhujia 5 %: R09 §9 ("namkeen/bhujia (HSN 2106) 5%");
+ *  - 21069099 pre-packed namkeen 5 % and 22029920 fruit drinks 5 %: docs/32 §7 (the founder's list: 5 % against
+ *    the catalogue's 12 %).
+ * Left as they are: 2201 (the seed files soda water AND packaged drinking water under it, and R09 gives the two
+ * different rates — 18 % and 5 % — which one heading cannot hold, QA S-176; the CA classifies the water under
+ * its own sub-heading first, docs/32 lists 22011010), 0405 butter and ghee and every heading the research does
+ * not name.
+ */
+export const GST_2025_FROM = '2025-09-22'
+export const HSN_RATES_2025: { key: string; hsnCode: string; gstBps: number; cessBps: number }[] = [
+  { key: 'hsn-2202-carbonated', hsnCode: '2202', gstBps: 4000, cessBps: 0 },
+  { key: 'hsn-1905', hsnCode: '1905', gstBps: 500, cessBps: 0 },
+  { key: 'hsn-2106', hsnCode: '2106', gstBps: 500, cessBps: 0 },
+  { key: 'hsn-2106-prepacked', hsnCode: '21069099', gstBps: 500, cessBps: 0 },
+  { key: 'hsn-2202-fruit', hsnCode: '22029920', gstBps: 500, cessBps: 0 },
+]
+
 const ALIASES: { variantKey: string; alias: string; hits: number }[] = [
   { variantKey: 'campa-cola-750ml', alias: 'CAMPA COLA PET 750ML X 24', hits: 41 },
   { variantKey: 'campa-orange-750ml', alias: 'CAMPA ORANGE PET 750ML X 24', hits: 22 },
@@ -687,6 +717,10 @@ export async function seedCatalog(db: Db, opts: SeedCatalogOptions = {}): Promis
     })),
   )
 
+  // A heading GST 2.0 changed keeps its 2017 row for every date before the change (`effective_to`), so on any
+  // day exactly one row of it is live (S-176) and an older bill re-printed with its own date finds its rate.
+  const changed = new Set(HSN_RATES_2025.map((h) => h.key))
+  const closedOn = '2025-09-21'
   await insertMany(
     db,
     hsnRates,
@@ -697,6 +731,34 @@ export async function seedCatalog(db: Db, opts: SeedCatalogOptions = {}): Promis
       gstBps: h.gstBps,
       cessBps: h.cessBps,
       effectiveFrom: '2017-07-01',
+      ...(changed.has(h.key) ? { effectiveTo: closedOn } : {}),
+    })),
+  )
+  // A demo database seeded before the dated rows existed: close the seed's OWN 2017 rows of those headings.
+  await db
+    .update(hsnRates)
+    .set({ effectiveTo: closedOn })
+    .where(
+      and(
+        inArray(
+          hsnRates.id,
+          [...changed].map((key) => demoId('hsn-rate', key)),
+        ),
+        isNull(hsnRates.effectiveTo),
+      ),
+    )
+  // GST 2.0 (see HSN_RATES_2025): dated rows beside the 2017 ones; a re-seed adds them where they are missing.
+  const described = new Map(HSN_RATES.map((h) => [h.key, h.description]))
+  await insertMany(
+    db,
+    hsnRates,
+    HSN_RATES_2025.map((h) => ({
+      id: demoId('hsn-rate', `${h.key}@${GST_2025_FROM}`),
+      hsnCode: h.hsnCode,
+      description: described.get(h.key) ?? h.hsnCode,
+      gstBps: h.gstBps,
+      cessBps: h.cessBps,
+      effectiveFrom: GST_2025_FROM,
     })),
   )
 

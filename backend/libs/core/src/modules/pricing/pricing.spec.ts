@@ -18,8 +18,8 @@ import {
   tenants,
   users,
 } from '@dos/db'
-import { uuidv7 } from '@dos/domain'
-import { eq, inArray } from 'drizzle-orm'
+import { lineTax, uuidv7 } from '@dos/domain'
+import { eq, inArray, sql } from 'drizzle-orm'
 import type { Bargain, PriceList, Quote, Scheme } from '@dos/contracts'
 import { bootTestApp, call, type Actor } from '../../testing/app.js'
 import { PricingModule } from './index.js'
@@ -701,7 +701,7 @@ describeDb('pricing (DATABASE_URL)', () => {
     ).toBe(1800)
   })
 
-  it('S-176: prices an aerated drink at the ONE rate its HSN carries — 28% plus 12% cess — alone on the order and beside another HSN', async () => {
+  it('S-176: prices an aerated drink at the ONE rate its HSN carries — alone on the order and beside another HSN', async () => {
     await db.insert(priceListItems).values({
       id: uuidv7(),
       tenantId,
@@ -718,14 +718,29 @@ describeDb('pricing (DATABASE_URL)', () => {
      * aerated drinks on an order quoted the shopkeeper a quarter under the bill he would be handed.
      * One heading now names one rate (migration 0060) and a second live row is refused (0061).
      */
+    /*
+     * The ONE rate the curated heading resolves to today: 28 % + 12 % cess from 2017, or the dated GST 2.0 row
+     * (40 %, no cess, from 2025-09-22) where the demo seed has added it (docs/22 §8, 2026-09-28; the legal rate
+     * is the CA's). Read the way `loadHsnRates` reads it — newest live row on the date — so the spec holds on a
+     * database with either.
+     */
+    const [live] = (
+      await db.execute(sql`
+        select gst_bps, cess_bps from hsn_rates
+         where hsn_code = ${AERATED_HSN} and effective_from <= ${today}
+           and (effective_to is null or effective_to >= ${today})
+         order by effective_from desc limit 1`)
+    ).rows as { gst_bps: number; cess_bps: number }[]
+    const rate = { gstBps: Number(live?.gst_bps), cessBps: Number(live?.cess_bps) }
+    const tax = lineTax(60_000, rate, false)
     const alone = await quoteFor(rep, shopA, [{ lineId: 'a1', variantId: vAerated, qtyPcs: 24 }])
     expect(alone.status).toBe(200)
     expect(alone.body.lines[0]).toMatchObject({
       lineNetPaise: 60_000,
-      gstBps: 2_800,
-      cessBps: 1_200,
-      cessPaise: 7_200,
-      taxPaise: 24_000, // 28% GST ₹168.00 + 12% cess ₹72.00, cess INSIDE the tax (DOS-079)
+      gstBps: rate.gstBps,
+      cessBps: rate.cessBps,
+      cessPaise: tax.cessPaise,
+      taxPaise: tax.taxPaise, // cess INSIDE the tax (DOS-079)
     })
 
     // Beside a line of another HSN — the case that used to resolve differently.
