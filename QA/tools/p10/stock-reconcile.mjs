@@ -9,13 +9,15 @@
 //  C2 reserved: stock_balances.reserved = sum(pending reservations.qty) per (lot, location); pending rows with no lot.
 //  C3 no negative: on_hand < 0 (ANY location, the damaged bin included even though it allows it), reserved < 0,
 //     reserved > on_hand.
-//  C4 sellable_stock = on_hand − reserved for warehouse and vehicle places only (and > 0), and nothing else in it.
+//  C4 sellable_stock = on_hand − reserved for warehouse and vehicle places only (and > 0), batches not past their
+//     expiry, and nothing else in it.
 //  C5 references: every ledger row's lot and location exist and are this tenant's; its ref names a real document
-//     for the ref types that name one (grn, pack→order, load_sheet, delivery, invoice, invoice_cancel, credit_note,
-//     trip_settlement, trip_checkin→trip, cycle_count); unknown ref types are listed.
+//     for the ref types that name one (grn, pack→order, unpack→order, load_sheet, delivery, invoice, invoice_cancel,
+//     credit_note, trip_settlement, trip_checkin→trip, cycle_count); unknown ref types are listed.
 //  C6 per bill: for every issued (not cancelled) bill, per lot, pieces billed (qty + free) = pieces its pack took
-//     out of the godown (pack bills) or out of the van (van-sale bills).
-//  C7 per delivery: pieces recorded delivered = pieces sold off the vehicle for that delivery.
+//     out of the godown net of what an unpack gave back (pack bills), or out of the van (van-sale bills).
+//  C7 per delivery: pieces recorded delivered = pieces sold off the vehicle for that delivery — at the door, or by the
+//     van sale's own bill.
 //  C8 holds belong to live documents: a pending hold at the godown only for an order confirmed/picking; a pending
 //     hold on the dock only for an order that is packed with a live bill.
 //  C9 journal: every journal entry balances (sum of lines = 0).
@@ -64,9 +66,13 @@ const checks = {
            case when b.on_hand < 0 then 'on_hand<0' when b.reserved < 0 then 'reserved<0' else 'reserved>on_hand' end problem
     from stock_balances b join locations loc on loc.id = b.location_id
     where b.tenant_id = ${T} and (b.on_hand < 0 or b.reserved < 0 or b.reserved > b.on_hand)`,
+  // C4 leaves out a batch past its expiry (IST): architect ruling 3 on stock of 2026-09-28 (DOS-351, expired goods are
+  // never sold), which migration 0075's sellable_stock enforces; before the ruling the view listed expired batches too.
   C4_sellable_view: `
     with want as (select b.lot_id, b.location_id, b.on_hand - b.reserved avail from stock_balances b join locations loc on loc.id = b.location_id
-                  where b.tenant_id = ${T} and loc.kind in ('warehouse', 'vehicle') and b.on_hand - b.reserved > 0),
+                  join stock_lots lot on lot.id = b.lot_id
+                  where b.tenant_id = ${T} and loc.kind in ('warehouse', 'vehicle') and b.on_hand - b.reserved > 0
+                    and (lot.expiry_date is null or lot.expiry_date >= (now() at time zone 'Asia/Kolkata')::date)),
          got as (select lot_id, location_id, available from sellable_stock where tenant_id = ${T})
     select coalesce(w.lot_id, g.lot_id) lot_id, coalesce(w.location_id, g.location_id) location_id, w.avail expected, g.available in_view,
            (select kind::text from locations where id = coalesce(w.location_id, g.location_id)) kind
@@ -81,6 +87,7 @@ const checks = {
         when loc.tenant_id <> l.tenant_id then 'location of another tenant'
         when l.ref_type in ('grn') and not exists (select 1 from grns x where x.id = l.ref_id) then 'grn missing'
         when l.ref_type = 'pack' and not exists (select 1 from sales_orders x where x.id = l.ref_id) then 'pack order missing'
+        when l.ref_type = 'unpack' and not exists (select 1 from sales_orders x where x.id = l.ref_id) then 'unpack order missing'
         when l.ref_type = 'load_sheet' and not exists (select 1 from load_sheets x where x.id = l.ref_id) then 'load sheet missing'
         when l.ref_type = 'delivery' and not exists (select 1 from deliveries x where x.id = l.ref_id) then 'delivery missing'
         when l.ref_type in ('invoice', 'invoice_cancel') and not exists (select 1 from invoices x where x.id = l.ref_id) then 'invoice missing'
@@ -91,7 +98,7 @@ const checks = {
         when l.ref_type = 'trip' and not exists (select 1 from trips x where x.id = l.ref_id) then 'trip missing'
         when l.ref_type = 'cycle_count' and not exists (select 1 from cycle_counts x where x.id = l.ref_id) then 'cycle count missing'
         when l.ref_type is null then 'no ref'
-        when l.ref_type not in ('grn','pack','load_sheet','delivery','invoice','invoice_cancel','credit_note','trip_settlement','trip_checkin','trip','cycle_count','adjustment','transfer','manual','opening')
+        when l.ref_type not in ('grn','pack','unpack','load_sheet','delivery','invoice','invoice_cancel','credit_note','trip_settlement','trip_checkin','trip','cycle_count','adjustment','transfer','manual','opening')
              then 'unknown ref type'
       end problem
     from stock_ledger l left join stock_lots lot on lot.id = l.lot_id left join locations loc on loc.id = l.location_id
@@ -99,6 +106,7 @@ const checks = {
       and (lot.id is null or loc.id is null or lot.tenant_id <> l.tenant_id or loc.tenant_id <> l.tenant_id
            or (l.ref_type = 'grn' and not exists (select 1 from grns x where x.id = l.ref_id))
            or (l.ref_type = 'pack' and not exists (select 1 from sales_orders x where x.id = l.ref_id))
+           or (l.ref_type = 'unpack' and not exists (select 1 from sales_orders x where x.id = l.ref_id))
            or (l.ref_type = 'load_sheet' and not exists (select 1 from load_sheets x where x.id = l.ref_id))
            or (l.ref_type = 'delivery' and not exists (select 1 from deliveries x where x.id = l.ref_id))
            or (l.ref_type in ('invoice', 'invoice_cancel') and not exists (select 1 from invoices x where x.id = l.ref_id))
@@ -107,13 +115,22 @@ const checks = {
            or (l.ref_type in ('trip_checkin', 'trip') and not exists (select 1 from trips x where x.id = l.ref_id))
            or (l.ref_type = 'cycle_count' and not exists (select 1 from cycle_counts x where x.id = l.ref_id))
            or l.ref_type is null
-           or l.ref_type not in ('grn','pack','load_sheet','delivery','invoice','invoice_cancel','credit_note','trip_settlement','trip_checkin','trip','cycle_count','adjustment','transfer','manual','opening'))`,
+           or l.ref_type not in ('grn','pack','unpack','load_sheet','delivery','invoice','invoice_cancel','credit_note','trip_settlement','trip_checkin','trip','cycle_count','adjustment','transfer','manual','opening'))`,
+  // C5 and C6 know ref_type 'unpack' (architect ruling 4 on vans and trips, 2026-09-28: a pack without a bill is undone
+  // by the desk, its pieces from the dock back to the godown, expired ones into the damaged bin; and the ruling that an
+  // order is never served from a van: they never go back onto one). The IN legs of an unpack are pieces the pack took
+  // that came back, so an order packed, unpacked and packed again nets to what its live bill carries. A pack off a van
+  // is still not counted as moved: under the same ruling no order is packed from a van, so an old one stays listed.
   C6_billed_vs_moved: `
     with billed as (select i.id invoice_id, i.invoice_no, i.source::text source, i.order_id, il.lot_id, sum(il.qty_pcs + il.free_qty_pcs)::bigint billed
                     from invoices i join invoice_lines il on il.invoice_id = i.id
                     where i.tenant_id = ${T} and i.state <> 'cancelled' and i.source in ('pack', 'van_sale') group by 1, 2, 3, 4, 5),
-         packed as (select l.ref_id order_id, l.lot_id, -sum(l.qty_delta)::bigint moved from stock_ledger l join locations loc on loc.id = l.location_id
-                    where l.tenant_id = ${T} and l.ref_type = 'pack' and loc.kind = 'warehouse' group by 1, 2),
+         packed as (select order_id, lot_id, sum(moved)::bigint moved from (
+                      select l.ref_id order_id, l.lot_id, -l.qty_delta moved from stock_ledger l join locations loc on loc.id = l.location_id
+                       where l.tenant_id = ${T} and l.ref_type = 'pack' and loc.kind = 'warehouse'
+                      union all
+                      select l.ref_id, l.lot_id, -l.qty_delta from stock_ledger l
+                       where l.tenant_id = ${T} and l.ref_type = 'unpack' and l.qty_delta > 0) x group by 1, 2),
          vansold as (select l.ref_id invoice_id, l.lot_id, -sum(l.qty_delta)::bigint moved from stock_ledger l join locations loc on loc.id = l.location_id
                      where l.tenant_id = ${T} and l.ref_type = 'invoice' and l.reason = 'sale' group by 1, 2)
     select b.invoice_no, b.source, b.invoice_id, b.lot_id, b.billed, coalesce(p.moved, v.moved, 0) moved
@@ -134,6 +151,14 @@ const checks = {
          sold as (select delivery_id, lot_id, sum(q)::bigint sold from (
                     select l.ref_id delivery_id, l.lot_id, -l.qty_delta q from stock_ledger l
                     where l.tenant_id = ${T} and l.ref_type = 'delivery' and l.reason = 'sale'
+                    union all
+                    -- a van sale (ADR 0013; its own door, kept by the architect ruling of 2026-09-28 that an order is
+                    -- never served from a van) sells off the vehicle under its BILL's ref, not the delivery's: its
+                    -- delivery is the one row the sale made for that bill
+                    select d.id, l.lot_id, -l.qty_delta from stock_ledger l
+                    join invoices i on i.id = l.ref_id and i.source = 'van_sale'
+                    join deliveries d on d.invoice_id = i.id
+                    where l.tenant_id = ${T} and l.ref_type = 'invoice' and l.reason = 'sale'
                     union all
                     select d.id, l.lot_id, -l.qty_delta from stock_ledger l join credit_notes cn on cn.id = l.ref_id
                     -- the product links the note to its delivery; the demo seed's door notes carry no delivery_id,
