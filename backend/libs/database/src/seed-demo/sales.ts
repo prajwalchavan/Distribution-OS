@@ -993,12 +993,12 @@ export async function seedSales(
     const lines = built.lines.map((l) => {
       const v = variantById.get(l.variantId)
       if (!v) {
-        tax += l.taxPaise
+        tax += l.taxPaise ?? 0
         cess += l.cessPaise ?? 0
         return l
       }
       const rate = gstRateOn(v, day)
-      const taxable = l.lineTotalPaise - l.taxPaise
+      const taxable = (l.lineTotalPaise ?? 0) - (l.taxPaise ?? 0)
       const lineTax = taxOn(taxable, rate.gstBps, rate.cessBps)
       const lineCess = percentOf(paise(taxable), rate.cessBps)
       tax += lineTax
