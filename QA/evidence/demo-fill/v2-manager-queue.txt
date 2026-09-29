@@ -1,0 +1,43 @@
+LD
+Look-alike Distributors
+manager
+⋯
+Updated just now
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+SO-0049 · Vighnaharta Kirana and General
+Submitted
+2,129.00
+SO-0047 · Datta Krupa Cold Drinks House 2
+Submitted
+1,980.00
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Vighnaharta Kirana and General · SO-0049
+Asked rate
+₹291.00
+Approve
+Reject
+Datta Krupa Cold Drinks House 2 · SO-0047
+Over credit limit
+₹1,980.00
+Approve
+Reject
+Today
+Orders
+Fulfilment
+Billing

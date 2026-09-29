@@ -1,0 +1,81 @@
+LD
+Look-alike Distributors
+manager
+⋯
+Updated just now
+Today
+Open the queue
+INVOICED TODAY
+₹0.00
+COLLECTED TODAY
+₹0.00
+0 trips active
+MONEY OWED
+₹6,83,870.00
+₹6,73,488.40 overdue
+ORDERS TO CONFIRM
+2
+0 bills to issue
+as of 29 Sep, 11:15 am
+What is waiting
+Orders to confirm
+2 rows
+₹4,109.00
+2
+Bills to issue
+0 rows
+₹0.00
+0
+Goods to receive
+1 rows
+1
+Receipts to post
+0 rows
+0
+Bills to review
+0 rows
+0
+Cash to bank
+0 rows
+₹0.00
+0
+Cheques in hand
+1 rows
+₹5,455.00
+1
+Invoiced today
+23 Sep — 29 Sep
+29 Sep
+₹0
+23 Sep — 29 Sep · as of 29 Sep, 11:15 am
+Collections by mode
+29 Sep
+Cheque
+₹31.1k
+41%
+UPI
+₹27.4k
+37%
+Cash
+₹16.6k
+22%
+Money owed, by age
+₹
+0–7
+47,504.00
+8–15
+28,332.20
+16–30
+89,738.20
+31–60
+1,89,430.20
+61–90
+42,635.00
+90+
+2,86,230.40
+Cash-discount windows closing
+No discount window is open
+Today
+Orders
+Fulfilment
+Billing

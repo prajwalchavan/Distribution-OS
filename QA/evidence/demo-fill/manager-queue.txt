@@ -1,0 +1,43 @@
+LD
+Look-alike Distributors
+manager
+⋯
+Updated just now
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Submitted
+Filters (1)
+Clear
+SO-0049 · Laxmi Narayan Mart
+Submitted
+3,712.00
+SO-0047 · Navratna Provision Stores 9
+Submitted
+940.00
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Laxmi Narayan Mart · SO-0049
+Asked rate
+₹275.00
+Approve
+Reject
+Navratna Provision Stores 9 · SO-0047
+Over credit limit
+₹940.00
+Approve
+Reject
+Today
+Orders
+Fulfilment
+Billing
