@@ -414,6 +414,44 @@ describe('the plan of a day', () => {
     }
   })
 
+  it('gives a shop one door on a van, with all its carried bills (wrapper gap d)', () => {
+    const shopA = id('5', 44)
+    const shopB = id('5', 45)
+    const carried = [
+      { invoiceId: 'inv-a1', orderId: 'o-a1', shopId: shopA, mustRideVan1: false },
+      { invoiceId: 'inv-a2', orderId: 'o-a2', shopId: shopA, mustRideVan1: false },
+      { invoiceId: 'inv-a3', orderId: 'o-a3', shopId: shopA, mustRideVan1: false },
+      // B's first bill is already on van 1's trip (last night's van load); its second cannot join a door that
+      // is already planned, so it rides van 2.
+      {
+        invoiceId: 'inv-b1',
+        orderId: 'o-b1',
+        shopId: shopB,
+        mustRideVan1: false,
+        pin: { driver: 'driver1' as const, sequence: 1 },
+      },
+      { invoiceId: 'inv-b2', orderId: 'o-b2', shopId: shopB, mustRideVan1: false },
+    ]
+    const plan = planDay(input({ carried }))
+    for (const driver of ['driver1', 'driver2'] as const) {
+      const shops = plan.trips[driver].map((d) => d.shopId)
+      expect(new Set(shops).size, driver).toBe(shops.length)
+    }
+    const doorA = [...plan.trips.driver1, ...plan.trips.driver2].filter((d) => d.shopId === shopA)
+    expect(doorA).toHaveLength(1)
+    expect([doorA[0]?.carried?.invoiceId, ...(doorA[0]?.alsoCarried ?? []).map((c) => c.invoiceId)]).toEqual([
+      'inv-a1',
+      'inv-a2',
+      'inv-a3',
+    ])
+    expect(plan.trips.driver1.find((d) => d.sequence === 1)?.carried?.invoiceId).toBe('inv-b1')
+    expect(plan.trips.driver2.filter((d) => d.shopId === shopB).map((d) => d.carried?.invoiceId)).toEqual([
+      'inv-b2',
+    ])
+    // A shop a carried bill visits gets no fresh order of its own the same day.
+    expect(plan.orders.some((o) => o.shopId === shopA || o.shopId === shopB)).toBe(false)
+  })
+
   it('leaves a slot empty, and says so, when no priced item is in stock', () => {
     const plan = planDay(input({ items: ITEMS.map((i) => ({ ...i, available: 0 })) }))
     expect(plan.orders).toHaveLength(0)

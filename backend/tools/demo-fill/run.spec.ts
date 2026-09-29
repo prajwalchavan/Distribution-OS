@@ -1,17 +1,26 @@
+import { spawnSync } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { mkdtempSync, readFileSync, rmSync, statSync, unlinkSync } from 'node:fs'
 import { createServer, request } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { authContract, contract } from '@dos/contracts'
 import { createAllInOne, type AllInOne } from '@dos/core'
-import { createDb, createPool } from '@dos/db'
+import {
+  createDb,
+  createPool,
+  invoiceCancelFootprints,
+  receiptReferenceReport,
+  stockBelowZero,
+} from '@dos/db'
 import { uuidv7 } from '@dos/domain'
 import { buildLookalikeTenant, databaseName } from '../testing/lookalike.js'
 import { Api, type Session } from './client.js'
 import { allRows, type CoverageSessions } from './coverage.js'
-import { addDays, isDemoId, todayIst } from './ids.js'
+import { paymentReference } from './helpers.js'
+import { addDays, demoId, demoIdDate, isDemoId, todayIst } from './ids.js'
 import { newPassword, readLogins, testersFor, type TesterKey } from './people.js'
 import { DEMO_ID_LIKE, DERIVED_KINDS, TOOL_KINDS, VIOLATIONS, expectedFromReports } from './rows.js'
 import { runFill, type RunResult } from './run.js'
@@ -147,6 +156,13 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
   const hashesBefore = new Map<string, string>()
   const printed: string[] = []
   const results: RunResult[] = []
+  /** The stand-in shop that was sent real money on account, and when (rule 3b). */
+  let plantedShop = ''
+  let plantedAt = new Date(0)
+  /** A day's two vans: van 1's trip was planned the night before with the van load, van 2's in the morning. */
+  const vans = (r: RunResult): number =>
+    (r.summary.made.get('driver:trip planned') ?? 0) +
+    (r.summary.found.get('driver:trip planned') ?? 0)
 
   const fill = (date: string, commit: boolean, through = api) =>
     runFill({
@@ -273,6 +289,32 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(readLogins(loginsFile).size).toBe(7)
   }, 240_000)
 
+  it('a stand-in shop that is sent real money on account is billed no more (rule 3b)', async () => {
+    // The product applies a shop's money on account to every new bill of it (DOS-312). A real payment the shop
+    // did not name a bill for, larger than all it owes, arrives for one of the stand-in shops: from now on the tool
+    // must not bill that shop, or the real money would settle the tool's bill.
+    const owner = await client.signIn(ownerUsername, ownerPassword, slug)
+    const offer = await toolOffer(owner, daysAgo(6))
+    plantedShop = [...offer.shops].sort()[2] ?? ''
+    expect(plantedShop).not.toBe('')
+    const dues = await client.call(owner, contract.receivables.outstanding.get, {
+      retailerId: plantedShop,
+      includeBills: false,
+    })
+    await client.call(owner, contract.receivables.receipts.create, {
+      idempotencyKey: uuidv7(),
+      id: uuidv7(),
+      retailerId: plantedShop,
+      mode: 'upi',
+      amountPaise: dues.outstandingPaise + dues.undeliveredPaise + 10_000,
+      reference: `9${String(randomBytes(6).readUIntBE(0, 6) % 100_000_000_000).padStart(11, '0')}`,
+      strategy: 'none',
+      note: 'Advance for next week',
+    })
+    plantedAt = new Date()
+    await client.signOut(owner)
+  }, 120_000)
+
   it('a step the API refuses is counted, the rest of the day is made, and the next run makes it', async () => {
     // Only the desk's "record a supplier bill": matching an earlier bill's line goes through.
     const door = await doorway(api, (method, path) =>
@@ -290,7 +332,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(hurt.summary.totals().refused).toBe(2)
     // The rest of the day went on: orders taken, both vans out, their doors worked.
     expect(hurt.summary.made.get('sales:order taken')).toBeGreaterThan(0)
-    expect(hurt.summary.made.get('driver:trip planned')).toBe(2)
+    expect(vans(hurt)).toBe(2)
     expect(hurt.summary.features.get('manager:supplier-bill-review')).toBe('missing')
     expect(hurt.summary.features.get('driver:trip-today')).toBe('there')
     expect(hurt.exitCode).toBe(0)
@@ -319,7 +361,7 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     const healed = await fill(date, true)
     expect(healed.exitCode).toBe(0)
     expect(healed.summary.totals().refused).toBe(0)
-    expect(healed.summary.made.get('driver:trip planned')).toBe(2)
+    expect(vans(healed)).toBe(2)
     const again = await fill(date, true)
     expect(again.summary.totals().made).toBe(0)
   }, 240_000)
@@ -407,16 +449,73 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
   }, 240_000)
 
   it('makes yesterday, then today with yesterday finished', async () => {
+    // Two real UPI payments already carry the references the tool would give van 1's UPI door of yesterday — the
+    // one the tool gave before the fixes and its first try now (DOS-310: a UTR is used once): the tool takes its
+    // next reference instead of being refused.
+    const owner = await client.signIn(ownerUsername, ownerPassword, slug)
+    const stop = demoId(tenantId, yesterday, 'stop', 'driver1', '2')
+    const collection = demoId(tenantId, yesterday, 'collection', stop)
+    const before = (
+      BigInt(`0x${collection.replace(/-/g, '').slice(-15)}`) % 1_000_000_000_000n
+    )
+      .toString()
+      .padStart(12, '1')
+      .replace(/^0/, '7')
+    const now = paymentReference('upi', yesterday, demoId(tenantId, yesterday, 'receipt', stop), 0)
+    // Paid by a shop with no phone and no bill: never a stand-in (enough shops have a phone) nor a credit shop.
+    const quiet = await pool.query<{ id: string }>(
+      `select r.id from retailers r
+        where r.tenant_id = $1 and r.phone = '' and r.active
+          and not exists (select 1 from invoices i where i.tenant_id = r.tenant_id and i.retailer_id = r.id)
+          and not exists (select 1 from sales_orders o where o.tenant_id = r.tenant_id and o.retailer_id = r.id)
+        order by r.id limit 1`,
+      [tenantId],
+    )
+    const other = quiet.rows[0]?.id
+    for (const reference of [before, now])
+      await client.call(owner, contract.receivables.receipts.create, {
+        idempotencyKey: uuidv7(),
+        id: uuidv7(),
+        retailerId: other ?? '',
+        mode: 'upi',
+        amountPaise: 5_000,
+        reference,
+        strategy: 'none',
+      })
+    await client.signOut(owner)
+
     const first = await fill(yesterday, true)
     expect(first.leadIn).toBeNull()
     expect(first.exitCode).toBe(0)
     expect(first.summary.totals().refused).toBe(0)
+    expect(first.summary.made.get('driver:paid upi')).toBe(2)
+    expect(first.summary.notes.some((n) => /payment reference\(s\) the product named/.test(n))).toBe(
+      true,
+    )
     expect(first.summary.made.get('masters:offer moved')).toBeUndefined()
     const second = await fill(today, true)
     expect(second.leadIn).toBeNull()
     expect(second.exitCode).toBe(0)
     expect(second.summary.totals().refused).toBe(0)
     expect(second.summary.made.get('accountant:trip settled')).toBe(2)
+    // The van to load for tomorrow: van 1's trip of tomorrow planned tonight with its bills, and that trip's
+    // sheet waiting for the manager (the product signs it off only once today's trip of van 1 is settled).
+    expect(second.summary.made.get('godown:trip planned')).toBe(1)
+    expect(second.summary.made.get('godown:van to load')).toBe(1)
+    const sheet = await pool.query<{ trip_id: string | null; approved_at: Date | null }>(
+      `select trip_id, approved_at from load_sheets where tenant_id = $1 and id = $2`,
+      [tenantId, demoId(tenantId, today, 'sheet', 'van-to-load')],
+    )
+    expect(sheet.rows[0]?.trip_id).toBe(demoId(tenantId, addDays(today, 1), 'trip', 'driver1'))
+    expect(sheet.rows[0]?.approved_at).toBeNull()
+    // UPI money of the days before is confirmed at Day-end (DOS-256): none of the tool's is still in clearing.
+    const upi = await pool.query<{ id: string; status: string }>(
+      `select id, status::text as status from receipts where tenant_id = $1 and id like $2 and mode = 'upi'`,
+      [tenantId, DEMO_ID_LIKE],
+    )
+    const earlierUpi = upi.rows.filter((r) => (demoIdDate(r.id) ?? today) < today)
+    expect(earlierUpi.length).toBeGreaterThan(4)
+    expect(earlierUpi.filter((r) => r.status !== 'deposited')).toEqual([])
     expect(statSync(loginsFile).mode & 0o777).toBe(0o600)
     expect(readLogins(loginsFile).size).toBe(7)
   }, 240_000)
@@ -488,7 +587,40 @@ describe.skipIf(!usable)('pnpm fill:demo — the whole run on a look-alike tenan
     expect(derived.get("lots received on the tool's goods receipts")).toBeGreaterThan(0)
     expect(derived.get("purchase costs of the tool's lots")).toBeGreaterThan(0)
     expect(derived.get("supplier pack settings the tool's bills taught")).toBeGreaterThan(0)
+    // Rule 3b: the stand-in shop sent real money on account got no bill of the tool after it, and its money is
+    // on no bill of the tool.
+    const billedAfter = await pool.query<{ n: number }>(
+      `select count(*)::int as n from invoices
+        where tenant_id = $1 and retailer_id = $2 and order_id like $3 and created_at > $4`,
+      [tenantId, plantedShop, DEMO_ID_LIKE, plantedAt],
+    )
+    expect(billedAfter.rows[0]?.n).toBe(0)
+    expect(VIOLATIONS.filter((v) => v.rule === '3b')).toHaveLength(2)
   })
+
+  it('leaves the four release checks passing: nothing below zero, stranded, cancelled with stock, or paid twice', async () => {
+    // The work the tool leaves open on purpose (a trip on the road, a van load waiting, a wave to pick) is work the
+    // product can carry on; none of it may read as stranded (rule 7b).
+    const db = createDb(pool)
+    expect(await stockBelowZero(db, tenantId)).toEqual([])
+    expect((await receiptReferenceReport(db, tenantId)).duplicates.filter((d) => d.failing)).toEqual(
+      [],
+    )
+    expect((await invoiceCancelFootprints(db, tenantId)).filter((f) => f.status === 'open')).toEqual(
+      [],
+    )
+    const stranded = spawnSync(
+      process.execPath,
+      ['--import', 'tsx', 'check-stranded.mts', '--tenant', slug, '--json'],
+      {
+        cwd: fileURLToPath(new URL('..', import.meta.url)),
+        env: { ...process.env, DATABASE_URL: url },
+        encoding: 'utf8',
+      },
+    )
+    expect(stranded.status, stranded.stderr).toBe(0)
+    expect(JSON.parse(stranded.stdout) as unknown[]).toEqual([])
+  }, 120_000)
 
   it("leaves the distributor's own logins and their passwords alone", async () => {
     expect(await passwordHashes()).toEqual(hashesBefore)

@@ -328,7 +328,8 @@ async function plannedStops(
       id: ctx.id(date, 'stop', driver, String(door.sequence)),
       sequence: door.sequence,
       retailerId: bill.retailerId,
-      invoiceIds: [bill.id],
+      // A shop with two carried bills on this van is one door with both (a stop carries a list of bills).
+      invoiceIds: [bill.id, ...door.alsoCarried.map((c) => c.invoiceId)],
     })
   }
   return stops

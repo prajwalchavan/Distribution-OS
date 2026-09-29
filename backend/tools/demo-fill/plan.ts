@@ -142,6 +142,11 @@ export interface PlannedDoor {
   /** A fresh order of today, or a bill an earlier day left. */
   orderSlot: OrderSlot | null
   carried: CarriedBill | null
+  /**
+   * More bills earlier days left for the SAME shop on this van: one door, all its bills (a stop carries a list of
+   * bills), never the same shop twice on one route.
+   */
+  alsoCarried: CarriedBill[]
   /** Stands for tester.shop<n+1>. */
   shopSlot: 0 | 1 | 2 | null
 }
@@ -436,11 +441,32 @@ export function planDay(input: PlanInput): DayPlan {
   }
   const onAccountAt = `${ON_ACCOUNT_DOOR[0]}:${String(ON_ACCOUNT_DOOR[1])}`
   const takes = new Map<string, CarriedBill>()
+  const also = new Map<string, CarriedBill[]>()
+  // Which door of which van a shop's carried bills have: a second bill of that shop on that van joins the door
+  // (one door, two bills: a stop carries a list of bills) instead of taking another. A door already on the trip
+  // (pinned) takes no more bills — a stop is planned with its bills — so a second bill of its shop rides the
+  // other van, or waits for tomorrow; the same shop never has two doors on one van.
+  const doorOfShop = new Map<string, string>()
+  const pinnedAt = new Set<string>()
+  const put = (at: string, c: CarriedBill): void => {
+    if (takes.has(at)) also.set(at, [...(also.get(at) ?? []), c])
+    else takes.set(at, c)
+    doorOfShop.set(`${at.slice(0, at.indexOf(':'))}:${c.shopId}`, at)
+  }
   // A bill already planned on one of the day's trips keeps its door (a bill rides one trip at a time).
   for (const c of input.carried)
-    if (c.pin) takes.set(`${c.pin.driver}:${String(c.pin.sequence - 1)}`, c)
-  const carriedVan1 = input.carried.filter((c) => !c.pin && c.mustRideVan1)
-  const carriedAny = input.carried.filter((c) => !c.pin && !c.mustRideVan1)
+    if (c.pin) {
+      const at = `${c.pin.driver}:${String(c.pin.sequence - 1)}`
+      put(at, c)
+      pinnedAt.add(at)
+    }
+  // A stand-in shop's doors are its own (a fresh order each): a carried bill of that shop does not join them.
+  for (const [at, slot] of slotAt) {
+    const shop = input.slotShops[slot]
+    if (!shop) continue
+    doorOfShop.set(`${at.slice(0, at.indexOf(':'))}:${shop}`, at)
+    pinnedAt.add(at)
+  }
   const waiting: CarriedBill[] = []
   const freeDoors = (driver: 'driver1' | 'driver2'): number[] =>
     TRIP_DOORS[driver]
@@ -449,23 +475,32 @@ export function planDay(input: PlanInput): DayPlan {
         const at = `${driver}:${String(i)}`
         return !slotAt.has(at) && at !== onAccountAt && !takes.has(at)
       })
-  const van1 = freeDoors('driver1')
-  const van2 = freeDoors('driver2')
-  for (const c of carriedVan1) {
-    const door = van1.shift()
-    if (door === undefined) waiting.push(c)
-    else takes.set(`driver1:${String(door)}`, c)
-  }
-  for (const c of carriedAny) {
-    const onVan2 = van2.shift()
-    if (onVan2 !== undefined) {
-      takes.set(`driver2:${String(onVan2)}`, c)
-      continue
+  const free = { driver1: freeDoors('driver1'), driver2: freeDoors('driver2') }
+  /** Puts a carried bill on the first of `vans` that can take it; false when none can today. */
+  const place = (c: CarriedBill, vans: readonly ('driver1' | 'driver2')[]): boolean => {
+    // Its shop's door on one of these vans, when that door is still to be planned: the bill joins it.
+    for (const van of vans) {
+      const same = doorOfShop.get(`${van}:${c.shopId}`)
+      if (same && !pinnedAt.has(same)) {
+        put(same, c)
+        return true
+      }
     }
-    const onVan1 = van1.shift()
-    if (onVan1 !== undefined) takes.set(`driver1:${String(onVan1)}`, c)
-    else waiting.push(c)
+    for (const van of vans) {
+      if (doorOfShop.has(`${van}:${c.shopId}`)) continue
+      const door = free[van].shift()
+      if (door !== undefined) {
+        put(`${van}:${String(door)}`, c)
+        return true
+      }
+    }
+    return false
   }
+  const loose = input.carried.filter((c) => !c.pin)
+  for (const c of [...loose.filter((x) => x.mustRideVan1), ...loose.filter((x) => !x.mustRideVan1)])
+    if (!place(c, c.mustRideVan1 ? ['driver1'] : ['driver2', 'driver1'])) waiting.push(c)
+  // A shop a carried bill already visits today is given no fresh door of its own as well.
+  for (const c of input.carried) usedFresh.add(c.shopId)
   // The door whose money stays on account overnight takes the first clean shop before any other door does.
   const onAccountShop = nextFresh(clean)
   for (const driver of ['driver1', 'driver2'] as const) {
@@ -480,6 +515,7 @@ export function planDay(input: PlanInput): DayPlan {
           shopId: carried.shopId,
           orderSlot: null,
           carried,
+          alsoCarried: also.get(at) ?? [],
           shopSlot: null,
         })
         return
@@ -499,6 +535,7 @@ export function planDay(input: PlanInput): DayPlan {
         shopId: order.shopId,
         orderSlot: slot,
         carried: null,
+        alsoCarried: [],
         shopSlot,
       })
     })
