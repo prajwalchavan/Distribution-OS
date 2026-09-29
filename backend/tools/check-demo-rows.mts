@@ -8,10 +8,12 @@
  *  - rule 7: stock ledger = balances, every journal entry balances, each shop's dues = its bills less its
  *    receipts, credit notes and write-offs to the paisa, and the dues add up to the ledger's receivables.
  *
- *   pnpm check:demo-rows --tenant tarsun [--expect <run.json> ...] [--json <file>]
+ *   pnpm check:demo-rows --tenant tarsun [--expect <run.json> ...] [--baseline <before.json>] [--json <file>]
  *
  * `--expect` takes the reports `pnpm fill:demo --report` wrote (one per run, any number) and fails unless
- * the rows found of each kind are exactly what the runs said they made. Output is counts and ids only.
+ * the rows found of each kind are exactly what the runs said they made — on top of `--baseline`, this
+ * check's own `--json` taken before those runs (so a nightly run is proved against the night before).
+ * Output is counts and ids only.
  *
  * Exit: 0 all holds; 1 a rule is broken or a count differs from the reports; 2 could not start.
  */
@@ -41,15 +43,29 @@ const { values } = parseArgs({
   options: {
     tenant: { type: 'string' },
     expect: { type: 'string', multiple: true },
+    baseline: { type: 'string' },
     json: { type: 'string' },
     help: { type: 'boolean', short: 'h', default: false },
   },
 })
 if (values.help) {
-  say('usage: check-demo-rows.mts --tenant <slug> [--expect <run.json> ...] [--json <file>]')
+  say(
+    'usage: check-demo-rows.mts --tenant <slug> [--expect <run.json> ...] [--baseline <before.json>] [--json <file>]',
+  )
   process.exit(0)
 }
 const slug = values.tenant ?? stop('--tenant <slug> is required')
+/** An earlier `--json` of this check: the rows that were there before the runs of `--expect`. */
+const baseline: Record<string, number> = values.baseline
+  ? (() => {
+      try {
+        const b = JSON.parse(readFileSync(values.baseline, 'utf8')) as { kinds?: Record<string, number> }
+        return b.kinds ?? {}
+      } catch {
+        return stop(`cannot read the baseline ${values.baseline}`)
+      }
+    })()
+  : {}
 const reports = (values.expect ?? []).map((path) => {
   try {
     return JSON.parse(readFileSync(path, 'utf8')) as { made?: Record<string, number> }
@@ -113,14 +129,15 @@ try {
   const mismatches: { kind: string; found: number; reported: number }[] = []
   if (reports.length > 0) {
     say(`against ${String(reports.length)} run report(s)`)
-    for (const [kind, reported] of expectedFromReports(reports)) {
+    for (const [kind, made] of expectedFromReports(reports)) {
+      const reported = (baseline[kind] ?? 0) + made
       const n = found.get(kind) ?? 0
       if (n !== reported) {
         failures++
         mismatches.push({ kind, found: n, reported })
       }
       say(
-        `  ${n === reported ? 'ok  ' : 'FAIL'} ${kind.padEnd(40)} found ${String(n)}, the runs made ${String(reported)}`,
+        `  ${n === reported ? 'ok  ' : 'FAIL'} ${kind.padEnd(40)} found ${String(n)}, ${values.baseline ? `${String(baseline[kind] ?? 0)} before + ` : ''}the runs made ${String(made)}`,
       )
     }
   }

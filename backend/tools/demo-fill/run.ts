@@ -98,6 +98,13 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
       counts = planCounts(await makeDay(ctx, date, standing))
     })
     if (!opts.commit) summary.note(`the day's plan: ${JSON.stringify(counts)}`)
+    // Every tester login signs in with the password of the logins file: a login whose password someone
+    // changed, or a file that was lost, is healed here (the owner sets it again), so the file is always
+    // a complete, working list after a run.
+    if (opts.commit)
+      await guard(ctx, 'people', 'logins', async () => {
+        for (const t of ctx.testers) await ctx.as(t.key)
+      })
 
     const read = await allRows(ctx.api, { owner: ctx.owner }, date).catch((e: unknown) => {
       summary.note(
