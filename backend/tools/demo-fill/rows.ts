@@ -71,7 +71,11 @@ const TOOL_BILLS = `select id from invoices where tenant_id = $1 and order_id li
 const TOOL_RECEIPTS = `select id from receipts where tenant_id = $1 and id like $2`
 const TOOL_NOTES = `select id from credit_notes where tenant_id = $1 and (id like $2 or invoice_id in (${TOOL_BILLS}))`
 
-/** Rows the API made from the tool's rows (they carry the API's ids): reported, not compared. */
+/**
+ * Rows the API made from the tool's rows (they carry the API's ids), and the real rows the tool's work
+ * touches (a real supplier's pack setting, the real shops its offer is for, the shops a tester put on a
+ * limit): reported, not compared. QA DOS-402 lists why no row of these can carry the tool's mark.
+ */
 export const DERIVED_KINDS: readonly { kind: string; sql: string }[] = [
   {
     kind: 'order lines',
@@ -104,6 +108,31 @@ export const DERIVED_KINDS: readonly { kind: string; sql: string }[] = [
   {
     kind: 'journal entries of tool rows',
     sql: `select count(*)::int as n from journal_entries where tenant_id = $1 and (ref_id like $2 or ref_id in (${TOOL_BILLS}) or ref_id in (${TOOL_NOTES}))`,
+  },
+  {
+    kind: "lots received on the tool's goods receipts",
+    sql: `select count(distinct lot_id)::int as n from grn_lines where tenant_id = $1 and grn_id like $2 and lot_id is not null`,
+  },
+  {
+    kind: "purchase costs of the tool's lots",
+    sql: `select count(*)::int as n from tenant_product_costs where tenant_id = $1 and updated_from_grn_id like $2`,
+  },
+  {
+    // One row per supplier and item, kept (and overwritten) by the desk's "match this line": a real
+    // supplier's pack setting the tool's bill taught or changed (DOS-402).
+    kind: "supplier pack settings the tool's bills taught",
+    sql: `select count(*)::int as n from supplier_pack_configs p
+            where p.tenant_id = $1
+              and exists (select 1 from supplier_invoice_lines l
+                            join supplier_invoices s on s.id = l.supplier_invoice_id and s.tenant_id = l.tenant_id
+                           where s.tenant_id = $1 and s.id like $2 and s.supplier_id = p.supplier_id
+                             and l.variant_id = p.variant_id and l.supplier_code is not distinct from p.supplier_code)`,
+  },
+  {
+    kind: "real shops the tool's offer is for",
+    sql: `select count(distinct r.id)::int as n
+            from schemes s cross join lateral jsonb_array_elements_text(coalesce(s.applicability->'retailerIds', '[]'::jsonb)) as r(id)
+           where s.tenant_id = $1 and s.id like $2`,
   },
   {
     kind: 'shops whose credit terms a tester login set',

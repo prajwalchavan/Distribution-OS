@@ -99,7 +99,7 @@ try {
     found.set(k.kind, n)
     say(`  ${k.kind.padEnd(44)} ${String(n)}`)
   }
-  say('rows the API made from them')
+  say('rows the API made from them, and real rows they touch')
   const derived: Record<string, number> = {}
   for (const k of DERIVED_KINDS) {
     derived[k.kind] = await count(k.sql)
