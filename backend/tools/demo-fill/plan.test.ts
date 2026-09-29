@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isDemoId } from './ids.js'
+import { demoId, isDemoId } from './ids.js'
 import {
   SLOT_DOORS,
   TRIP_DOORS,
@@ -8,6 +8,7 @@ import {
   chooseRepBeats,
   chooseSlotShops,
   creditLimitFor,
+  offerStep,
   planCounts,
   planDay,
   quantityFor,
@@ -18,6 +19,8 @@ import {
 } from './plan.js'
 
 const TENANT = '01a0eb1e-3c50-74e3-8bdb-c81a7fd0d498'
+/** An offer the tool made (its id carries the tool's tag). */
+const toolId = demoId(TENANT, '2026-09-20', 'offer', 'v1')
 const id = (prefix: string, n: number): string =>
   `${prefix}${String(n).padStart(4, '0')}-0000-7000-8000-000000000000`
 
@@ -153,6 +156,32 @@ describe('the standing choices', () => {
     for (const s of three) expect(SHOPS.find((x) => x.id === s)?.hasPhone).toBe(true)
     const withLogin = SHOPS.map((s) => (three.includes(s.id) ? { ...s, hasLogin: true } : s))
     for (const s of chooseSlotShops(TENANT, withLogin, new Set())) expect(three).not.toContain(s)
+  })
+
+  it("moves the tool's offer to the shop that replaces a closed stand-in shop", () => {
+    const three = chooseSlotShops(TENANT, SHOPS, new Set())
+    const closed = SHOPS.map((s) => (s.id === three[0] ? { ...s, active: false } : s))
+    const now = chooseSlotShops(TENANT, closed, new Set())
+    expect(now).not.toContain(three[0])
+    expect(now.filter((s) => three.includes(s))).toHaveLength(2)
+    const offer = { id: toolId, retailerIds: three }
+    // The offer made for yesterday's three is live, and today's three are not the same shops: moved.
+    expect(offerStep([offer], now, isDemoId)).toEqual({ kind: 'move', id: toolId })
+    // Once moved (in any order), it is kept.
+    expect(offerStep([{ ...offer, retailerIds: [...now].reverse() }], now, isDemoId)).toEqual({
+      kind: 'keep',
+      id: toolId,
+    })
+  })
+
+  it("makes an offer when none of the tool's is live, and never one for every shop", () => {
+    const real = { id: id('9', 1), retailerIds: undefined }
+    const three = chooseSlotShops(TENANT, SHOPS, new Set())
+    expect(offerStep([real], three, isDemoId)).toEqual({ kind: 'make' })
+    expect(offerStep([], three, isDemoId)).toEqual({ kind: 'make' })
+    // No shop can stand in: nothing is made or moved (an offer naming no shop is for every shop).
+    expect(offerStep([], [], isDemoId)).toEqual({ kind: 'none' })
+    expect(offerStep([{ id: toolId, retailerIds: three }], [], isDemoId)).toEqual({ kind: 'none' })
   })
 })
 

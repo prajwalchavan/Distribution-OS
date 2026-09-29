@@ -199,6 +199,38 @@ export function chooseSlotShops(
     .map((s) => s.id)
 }
 
+/** An offer as the tool needs to see it: its id and the shops it is for (none named = every shop). */
+export interface OfferInfo {
+  id: string
+  retailerIds: readonly string[] | undefined
+}
+
+export type OfferStep =
+  { kind: 'keep'; id: string } | { kind: 'move'; id: string } | { kind: 'make' } | { kind: 'none' }
+
+/**
+ * What to do about the tool's offer today, given the offers live on the date and the stand-in shops chosen
+ * today. The tool's live offer is KEPT while it is for exactly those shops; when a stand-in shop was
+ * replaced (it was closed, got a login or became a credit shop) the offer is MOVED to today's three, so the
+ * shopkeeper row never loses its offer for the thirty days the offer runs; when none of the tool's offers is
+ * live, one is MADE. With no stand-in shop at all nothing is made or moved: an offer that names no shop is
+ * an offer for every shop, and the real shops' prices are not the tool's to change.
+ */
+export function offerStep(
+  live: readonly OfferInfo[],
+  shops: readonly string[],
+  isTool: (id: string) => boolean,
+): OfferStep {
+  if (shops.length === 0) return { kind: 'none' }
+  // The newest of the tool's live offers (its id carries the date it was made for).
+  const mine = live.filter((o) => isTool(o.id)).sort((a, b) => b.id.localeCompare(a.id))[0]
+  if (!mine) return { kind: 'make' }
+  const now = [...(mine.retailerIds ?? [])].sort()
+  const want = [...shops].sort()
+  const same = now.length === want.length && now.every((s, i) => s === want[i])
+  return same ? { kind: 'keep', id: mine.id } : { kind: 'move', id: mine.id }
+}
+
 // -------------------------------------------------------------------------------------------- items
 
 /** A quantity a kirana shop would order: 2 to 12 pieces, on the item's own order rules. */

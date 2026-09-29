@@ -125,4 +125,10 @@ nothing; a run that died midway is healed by the next. Output is counts and ids 
 live in the logins file (mode 600) and nowhere else. Tester usernames are `tester.manager`, `tester.accounts`,
 `tester.sales1`, `tester.sales2`, `tester.godown`, `tester.driver1`, `tester.driver2` (`--login-suffix x`
 makes them `tester.<role>.x`, for a second distributor on one database). A shopkeeper login cannot be made
-through the API (QA DOS-400): three shops stand in for `tester.shop1…3`.
+through the API (QA DOS-400): three shops stand in for `tester.shop1…3`; when one of them is closed, gets a
+login or becomes a credit shop, the next run picks another and moves the tool's offer to it.
+
+A dry run writes nothing of the business, but it does sign the owner in and out, and the sign-in service
+records that as it records every sign-in: one session, its sign-in and sign-out events and the device. A run
+the API stops answering in the middle still prints its summary and writes its `--report` (exit 1 when a whole
+row of the brief's table is missing); the next run carries on from what is there.

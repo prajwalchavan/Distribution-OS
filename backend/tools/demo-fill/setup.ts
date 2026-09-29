@@ -1,5 +1,6 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
+import { pages } from './helpers.js'
 import { addDays, demoKey, isDemoId, unit } from './ids.js'
 import { newPassword, testerPhone } from './people.js'
 import {
@@ -7,6 +8,7 @@ import {
   chooseRepBeats,
   chooseSlotShops,
   creditLimitFor,
+  offerStep,
   type ShopInfo,
 } from './plan.js'
 import type { World } from './world.js'
@@ -202,7 +204,8 @@ async function ensureCreditShops(
 
 /**
  * One offer, "buy 12, get 1 free" on the item the godown holds most of, for the three shops that stand for
- * the shopkeepers only: a real shop's order is priced as it was, and the offer is the tool's to see.
+ * the shopkeepers only: a real shop's order is priced as it was, and the offer is the tool's to see. When a
+ * stand-in shop is replaced, the live offer is moved to today's three (the same offer, its shops changed).
  */
 async function ensureOffer(
   ctx: Ctx,
@@ -210,13 +213,61 @@ async function ensureOffer(
   date: string,
   shops: readonly string[],
 ): Promise<void> {
-  const live = await ctx.read(contract.pricing.schemes.list, {
-    activeOnly: true,
-    on: date,
-    limit: 200,
-  })
-  if (live.items.some((s) => isDemoId(s.id))) {
+  const live = await pages(
+    (cursor) =>
+      ctx.read(contract.pricing.schemes.list, {
+        activeOnly: true,
+        on: date,
+        limit: 200,
+        ...(cursor ? { cursor } : {}),
+      }),
+    10,
+  )
+  const step = offerStep(
+    live.map((s) => ({ id: s.id, retailerIds: s.applicability.retailerIds })),
+    shops,
+    isDemoId,
+  )
+  if (step.kind === 'none') {
+    ctx.summary.note('no shop can stand in for the shopkeepers: no offer is made or moved')
+    return
+  }
+  if (step.kind === 'keep') {
     ctx.summary.foundOne('masters', 'offer')
+    return
+  }
+  if (step.kind === 'move') {
+    const s = live.find((x) => x.id === step.id)
+    if (!s) return
+    const to = [...shops].sort()
+    // The same offer, as the back office reads it, with only its shops changed; the dates stay its own.
+    const back = 'fundingSource' in s ? s : null
+    await ctx.write('masters', 'offer moved', manager(ctx), contract.pricing.schemes.upsert, {
+      idempotencyKey: demoKey(date, 'offer', s.id, 'shops', ...to),
+      id: s.id,
+      name: s.name,
+      brandId: s.brandId,
+      scope: s.scope,
+      triggerKind: s.triggerKind,
+      triggerMin: s.triggerMin,
+      triggerUnit: s.triggerUnit,
+      slabs: s.slabs,
+      rewardKind: s.rewardKind,
+      rewardValue: s.rewardValue,
+      freeVariantId: s.freeVariantId,
+      applicability: { ...s.applicability, retailerIds: to },
+      validFrom: s.validFrom,
+      validTo: s.validTo,
+      stackable: s.stackable,
+      final: s.final,
+      gstOnFreeGoods: s.gstOnFreeGoods,
+      pricingDateMode: s.pricingDateMode,
+      fundingSource: back?.fundingSource ?? 'distributor',
+      claimable: back?.claimable ?? false,
+      claimWindowDays: back?.claimWindowDays ?? null,
+      sourceRef: back?.sourceRef ?? null,
+      active: true,
+    })
     return
   }
   // The priced item the godown holds most of: "buy 12, get 1 free" of the same item.

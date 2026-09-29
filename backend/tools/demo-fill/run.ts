@@ -8,7 +8,7 @@ import { pages } from './helpers.js'
 import { addDays, isDemoId } from './ids.js'
 import { planCounts } from './plan.js'
 import { readTrip } from './road.js'
-import { ensureStanding } from './setup.js'
+import { ensureStanding, type Standing } from './setup.js'
 import { KNOWN_GAPS, Summary, type Section } from './summary.js'
 import { readWorld } from './world.js'
 
@@ -42,6 +42,47 @@ async function guard(
   }
 }
 
+/**
+ * What must be read and made before a day can be: the distributor as the API sees it, the refusal of a date
+ * before one already made, whether the day before needs making, and the standing pieces.
+ */
+async function prepare(
+  ctx: Ctx,
+  date: string,
+): Promise<{ standing: Standing; leadIn: string | null }> {
+  const world = await readWorld(ctx)
+  ctx.log(
+    `  read: ${String(world.shops.length)} shops, ${String(world.beatIds.length)} beats, ${String(world.items.length)} listed items (${String(world.items.filter((i) => i.ratePaise > 0 && i.available > 0).length)} priced and in stock), ${String(world.suppliers.length)} suppliers`,
+  )
+  // A day after one the tool has already made cannot be made before it: the vans are on later trips.
+  const later = await pages(
+    (cursor) =>
+      ctx.read(contract.delivery.trips.list, {
+        from: addDays(date, 1),
+        limit: 200,
+        ...(cursor ? { cursor } : {}),
+      }),
+    5,
+  )
+  const madeLater = later.find((t) => isDemoId(t.id))
+  if (madeLater)
+    throw new Error(
+      `the tool has already made ${madeLater.tripDate}: run it for that date or a later one`,
+    )
+  // The day before has no van of the tool (the first run, or a night the server was down): make it and
+  // finish it first, so today opens with "yesterday's trip settled".
+  const yesterday = addDays(date, -1)
+  const hadYesterday =
+    (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver1'))) ??
+    (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver2')))
+  const leadIn = hadYesterday ? null : yesterday
+  const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
+  ctx.log(
+    `  standing: ${String(Object.keys(standing.repBeats).length)} rep beat(s), ${String(Object.keys(standing.creditShops).length)} shop(s) over a limit, ${String(standing.slotShops.length)} stand-in shop(s), ${String(Object.keys(standing.vans).length)} van(s)`,
+  )
+  return { standing, leadIn }
+}
+
 export async function runFill(opts: RunOptions): Promise<RunResult> {
   const summary = new Summary()
   summary.dryRun = !opts.commit
@@ -53,58 +94,46 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
     ctx.log(
       `distributor ${opts.tenant} (${ctx.tenantId}), business date ${date}, ${opts.commit ? 'COMMIT' : 'dry run: nothing is written'}`,
     )
-    const world = await readWorld(ctx)
-    ctx.log(
-      `  read: ${String(world.shops.length)} shops, ${String(world.beatIds.length)} beats, ${String(world.items.length)} listed items (${String(world.items.filter((i) => i.ratePaise > 0 && i.available > 0).length)} priced and in stock), ${String(world.suppliers.length)} suppliers`,
-    )
-    // A day after one the tool has already made cannot be made before it: the vans are on later trips.
-    const later = await pages(
-      (cursor) =>
-        ctx.read(contract.delivery.trips.list, {
-          from: addDays(date, 1),
-          limit: 200,
-          ...(cursor ? { cursor } : {}),
-        }),
-      5,
-    )
-    const madeLater = later.find((t) => isDemoId(t.id))
-    if (madeLater)
-      throw new Error(
-        `the tool has already made ${madeLater.tripDate}: run it for that date or a later one`,
+    if (!opts.commit)
+      summary.note(
+        'a dry run writes nothing of the business; signing the owner in and out is recorded by the sign-in service as every sign-in is (a session, its sign-in and sign-out events, the device)',
       )
-    // The day before has no van of the tool (the first run, or a night the server was down): make it and
-    // finish it first, so today opens with "yesterday's trip settled".
-    const yesterday = addDays(date, -1)
-    const hadYesterday =
-      (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver1'))) ??
-      (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver2')))
-    const leadIn = hadYesterday ? null : yesterday
-    const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
-    ctx.log(
-      `  standing: ${String(Object.keys(standing.repBeats).length)} rep beat(s), ${String(Object.keys(standing.creditShops).length)} shop(s) over a limit, ${String(standing.slotShops.length)} stand-in shop(s), ${String(Object.keys(standing.vans).length)} van(s)`,
-    )
-    if (leadIn) {
-      ctx.log(
-        `the tool has no van on ${leadIn}: making that day first, so ${date} opens with a day behind it`,
-      )
-      await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, leadIn))
-      await guard(ctx, 'yesterday', `make ${leadIn}`, () => makeDay(ctx, leadIn, standing))
+    // The API stopping in the middle of the reads and the standing pieces is an answer too: what was made
+    // before it stopped is counted, the summary and the report are still written, and the next run heals.
+    let prepared: Awaited<ReturnType<typeof prepare>> | null = null
+    try {
+      prepared = await prepare(ctx, date)
+    } catch (e) {
+      if (!(e instanceof ApiRefusal)) throw e
+      summary.refusedOne('masters', 'read the distributor and the standing pieces', e.label)
+      ctx.log(`  run stopped before the day: ${e.label}; the next run takes it from here`)
     }
-    ctx.log(`finishing what earlier days left open`)
-    await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, date))
-    ctx.log(`making ${date}`)
-    let counts: Record<string, number> = {}
-    await guard(ctx, 'driver', `make ${date}`, async () => {
-      counts = planCounts(await makeDay(ctx, date, standing))
-    })
-    if (!opts.commit) summary.note(`the day's plan: ${JSON.stringify(counts)}`)
-    // Every tester login signs in with the password of the logins file: a login whose password someone
-    // changed, or a file that was lost, is healed here (the owner sets it again), so the file is always
-    // a complete, working list after a run.
-    if (opts.commit)
-      await guard(ctx, 'people', 'logins', async () => {
-        for (const t of ctx.testers) await ctx.as(t.key)
+    const leadIn = prepared?.leadIn ?? null
+    if (prepared) {
+      const { standing } = prepared
+      if (leadIn) {
+        ctx.log(
+          `the tool has no van on ${leadIn}: making that day first, so ${date} opens with a day behind it`,
+        )
+        await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, leadIn))
+        await guard(ctx, 'yesterday', `make ${leadIn}`, () => makeDay(ctx, leadIn, standing))
+      }
+      ctx.log(`finishing what earlier days left open`)
+      await guard(ctx, 'yesterday', 'finish', () => finishEarlier(ctx, date))
+      ctx.log(`making ${date}`)
+      let counts: Record<string, number> = {}
+      await guard(ctx, 'driver', `make ${date}`, async () => {
+        counts = planCounts(await makeDay(ctx, date, standing))
       })
+      if (!opts.commit) summary.note(`the day's plan: ${JSON.stringify(counts)}`)
+      // Every tester login signs in with the password of the logins file: a login whose password someone
+      // changed, or a file that was lost, is healed here (the owner sets it again), so the file is always
+      // a complete, working list after a run.
+      if (opts.commit)
+        await guard(ctx, 'people', 'logins', async () => {
+          for (const t of ctx.testers) await ctx.as(t.key)
+        })
+    }
 
     const repUserIds: Partial<Record<'sales1' | 'sales2', string>> = {}
     for (const rep of ['sales1', 'sales2'] as const) {
