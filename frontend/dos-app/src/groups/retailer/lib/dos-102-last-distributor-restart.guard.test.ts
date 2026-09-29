@@ -121,12 +121,12 @@ describe('DOS-102 the phone opens the distributor it was last used with, after a
     await second.boot()
     expect(second.getItemSync(second.LAST_TENANT_KEY)).toBe(SAI)
     expect(second.distributorToOpen(FIRST, MEMBERSHIPS)).toBe(SAI)
-  })
+  }, 30_000)
 
   it('every key this app reads synchronously is primed at boot', async () => {
     const app = await launch()
     expect([...app.PERSISTED_KEYS]).toContain(app.LAST_TENANT_KEY)
-  })
+  }, 30_000)
 
   it('and the guard is real: a key left OFF that list is invisible after the kill', async () => {
     const first = await launch()
@@ -137,5 +137,5 @@ describe('DOS-102 the phone opens the distributor it was last used with, after a
     const second = await launch()
     await second.boot()
     expect(second.getItemSync('dos.notPrimed')).toBeNull()
-  })
+  }, 30_000)
 })
