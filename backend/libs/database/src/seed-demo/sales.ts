@@ -2075,8 +2075,14 @@ export async function seedSales(
       saleable: restock?.reason === 'sale_return_saleable',
       ratePaise,
       taxablePaise: money.taxable,
-      gstBps: v.gstBps + v.cessBps,
+      // the GST rate alone, as the product writes it (the cess is the invoice line's own `cess_bps`); the note's
+      // split is written on its line, which the GST summary reads (prices lane, blind check 1, B1)
+      gstBps: v.gstBps,
       taxPaise: money.tax,
+      cgstPaise: halfGst,
+      sgstPaise: halfGst,
+      igstPaise: 0,
+      cessPaise: cess,
       // the line is taxable + tax to the paisa; the header rounds to the rupee and says so
       lineTotalPaise: money.taxable + money.tax,
     })

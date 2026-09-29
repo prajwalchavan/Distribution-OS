@@ -1148,6 +1148,11 @@ export async function seedBilling(
       taxablePaise: priced.taxable,
       gstBps: Number(source.gst_bps),
       taxPaise: priced.cgst + priced.sgst + priced.igst + priced.cess,
+      // the note's split on its line, which the GST summary reads (prices lane, blind check 1, B1)
+      cgstPaise: priced.cgst,
+      sgstPaise: priced.sgst,
+      igstPaise: priced.igst,
+      cessPaise: priced.cess,
       lineTotalPaise: priced.total,
     })
     postCreditNote(cnId, spec.no, source.retailer_id, date, priced, money)

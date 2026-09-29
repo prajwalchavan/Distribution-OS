@@ -874,6 +874,36 @@ describeDb('demo seed on an empty database', () => {
   }, 180_000)
 
   /**
+   * Prices lane, blind check 1 (B1): the GST summary reports a credit note at the split the NOTE carries, read from
+   * its lines. Every note the seed writes carries that split on its lines, adding up to its header, and the GST
+   * rate of the bill line it credits — the seed wrote GST + cess as the line's rate, so the register folded a
+   * cess-bearing note's cess into its CGST and SGST (on a fresh seed, 30 days of notes read ₹804.02 of CGST in the
+   * register against the notes' own ₹724.53).
+   */
+  it('B1: every seeded credit note line carries its share of the note’s CGST, SGST, IGST and cess, and the GST rate of the line it credits', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    const faults = (
+      await db.execute(sql`
+        SELECT c.credit_note_no
+          FROM credit_notes c
+          JOIN credit_note_lines l ON l.credit_note_id = c.id
+          JOIN invoice_lines il ON il.id = l.invoice_line_id
+         GROUP BY c.id, c.credit_note_no, c.cgst_paise, c.sgst_paise, c.igst_paise, c.cess_paise
+        HAVING count(*) FILTER (WHERE l.cgst_paise IS NULL OR l.sgst_paise IS NULL
+                                   OR l.igst_paise IS NULL OR l.cess_paise IS NULL) > 0
+            OR sum(l.cgst_paise) <> c.cgst_paise OR sum(l.sgst_paise) <> c.sgst_paise
+            OR sum(l.igst_paise) <> c.igst_paise OR sum(l.cess_paise) <> c.cess_paise
+            OR NOT bool_and(l.gst_bps = il.gst_bps)
+         ORDER BY c.credit_note_no`)
+    ).rows
+    expect(faults).toEqual([])
+    const [seeded] = (await db.execute(sql`SELECT count(*)::int AS n FROM credit_notes`)).rows as {
+      n: number
+    }[]
+    expect(seeded?.n).toBeGreaterThan(0)
+  }, 180_000)
+
+  /**
    * DOS-257: the simulation's audit found one cancel that left 12 toor in the godown that the bill never
    * took out, and asked for the seed's three look-alike rows (`adjustment` +72 under `invoice_cancel`, the
    * cancelled INV/9002 of each distributor) to be checked. They put back exactly the `sale` −72 their bill
