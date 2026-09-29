@@ -436,7 +436,10 @@ vm_main() {
   say "3/4 every morning at 06:00 IST"
   write_nightly
   when="$(cron_when)"
-  if [ -z "$when" ]; then
+  if [ "$FAILS" -gt 0 ]; then
+    # A run that failed a check is not repeated every morning: put it right, run this command again.
+    proof bad "no cron line written: $FAILS of the proofs above failed; put them right and run this command again"
+  elif [ -z "$when" ]; then
     proof bad "the VM clock is on $(env -u TZ date +%Z) ($(env -u TZ date +%z)), neither UTC nor IST: no cron line written; set FILL_CRON_WHEN to 06:00 IST in that clock"
   else
     (
@@ -465,7 +468,8 @@ mac_main() {
     ssh -i "$key" "$vm" "umask 077 && cat > $OWNER_PW" <"$ownerpw"
     echo "owner password: sent to the VM ($OWNER_PW, mode 600; not shown)"
   fi
-  ssh -i "$key" "$vm" "bash /opt/dos/fill-demo.sh vm" || rc=$?
+  # The distributor and the owner's username go with it, so FILL_TENANT / FILL_OWNER set on this Mac hold there.
+  ssh -i "$key" "$vm" "FILL_TENANT=$(printf '%q' "$TENANT") FILL_OWNER=$(printf '%q' "$OWNER") bash /opt/dos/fill-demo.sh vm" || rc=$?
   mkdir -p "$(dirname "$out")"
   (
     umask 077
