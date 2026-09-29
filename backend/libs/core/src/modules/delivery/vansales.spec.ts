@@ -95,7 +95,7 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
   const shopUserA = uuidv7()
   const shopUserB = uuidv7()
   // one driver per test: a driver is on one open trip a day, and each test reads its own stop's figure
-  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
+  const driverIds = [uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7(), uuidv7()]
 
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
@@ -702,7 +702,9 @@ describeDb('delivery van sales (DATABASE_URL)', () => {
   }, 120_000)
 
   it('DOS-312 a shop holding money on account buys from the van for cash: the money on account meets the bill at issue and the cash is still taken', async () => {
-    const driver = driverAt(6)
+    // its own driver (and, through roadTrip, its own van): the expired-batch test above drives driverAt(6), and a
+    // driver is on one open trip a day
+    const driver = driverAt(7)
     const { tripId } = await roadTrip('onacct', driver)
     // Shanti's shape (every bill of hers paid above, so nothing older is open): what she paid ahead, kept on account
     const advance = await call(app, owner, 'POST', '/receipts', {

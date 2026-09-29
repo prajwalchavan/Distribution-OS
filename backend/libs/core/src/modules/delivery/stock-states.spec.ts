@@ -81,7 +81,10 @@ const istDay = (offset: number): string => {
 describeDb('stock states: pick, pack, load and trip (DATABASE_URL)', () => {
   const pool = createPool(url ?? '')
   const db = createDb(pool)
-  const run = String(Date.now()).slice(-8)
+  // The clock read half a wrap (50 000 000 ms) ahead: delivery.spec.ts builds the same `7${run}` HSN code from the same
+  // eight digits, and the two files started in the same millisecond collided on it when run in parallel. Offset, the
+  // suffix of this file can never equal that of a spec that reads the clock at the same moment.
+  const run = String(Date.now() + 50_000_000).slice(-8)
   const hsn = `7${run}`
 
   const tenantId = uuidv7()
