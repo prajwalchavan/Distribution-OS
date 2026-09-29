@@ -86,6 +86,29 @@ export function roundToRupee(p: Paise): { rounded: Paise; roundOff: Paise } {
 }
 
 /**
+ * `numerator / denominator` rounded half up, in integers only: THE rounding of a tax or a percentage on an order,
+ * a bill and a credit note. Floats never decide a half paisa: `1025 × 1200 / 20000` is 61.5 and becomes 62 here,
+ * whatever the binary representation of the quotient would have said.
+ */
+export function divideHalfUp(numerator: number, denominator: number): number {
+  if (!Number.isSafeInteger(numerator) || !Number.isSafeInteger(denominator) || denominator <= 0)
+    throw new MoneyError(`Cannot divide ${numerator} by ${denominator} in whole paise`)
+  if (numerator < 0) return -divideHalfUp(-numerator, denominator)
+  let quotient = Math.floor(numerator / denominator)
+  let remainder = numerator - quotient * denominator
+  // The float quotient of two large integers can land one off; the remainder says which way.
+  while (remainder < 0) {
+    quotient -= 1
+    remainder += denominator
+  }
+  while (remainder >= denominator) {
+    quotient += 1
+    remainder -= denominator
+  }
+  return 2 * remainder >= denominator ? quotient + 1 : quotient
+}
+
+/**
  * Split an amount across weights without losing a paise (largest-remainder method).
  * allocate(100, [1,1,1]) -> [34, 33, 33]. Used to spread invoice-level discounts over lines.
  */
@@ -105,4 +128,18 @@ export function allocate(total: Paise, weights: readonly number[]): Paise[] {
     remainder -= 1
   }
   return floors.map((f) => paise(f))
+}
+
+/**
+ * `allocate` for any amount and any weights: nothing to share gives zeros, a negative amount is shared as its
+ * mirror (an override above the list rate is a negative rule amount), and weights that are all zero put the
+ * whole amount on the first entry, so an amount is never lost because nothing was there to carry it.
+ */
+export function shareOut(total: number, weights: readonly number[]): number[] {
+  if (weights.length === 0) return []
+  if (total === 0) return weights.map(() => 0)
+  if (total < 0) return shareOut(-total, weights).map((share) => (share === 0 ? 0 : -share))
+  const clean = weights.map((w) => (Number.isFinite(w) && w > 0 ? w : 0))
+  if (clean.every((w) => w === 0)) return clean.map((_, i) => (i === 0 ? total : 0))
+  return allocate(paise(total), clean).map((share) => Number(share))
 }

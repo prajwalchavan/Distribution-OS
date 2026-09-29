@@ -3,6 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import {
   businessDate,
   invoiceMachine,
+  placeOfSupply,
   TransitionError,
   type InvoiceEvent,
   type InvoiceState,
@@ -264,7 +265,8 @@ export async function loadBuyer(tx: Db, retailerId: string): Promise<BuyerProfil
  * GSTIN, because that is the number the return is filed against.
  */
 export function placeOfSupplyOf(buyer: BuyerProfile): string {
-  return buyer.gstin ? buyer.gstin.slice(0, 2) : buyer.stateCode
+  // The rule lives in @dos/domain so the quote decides CGST + SGST or IGST exactly as the bill does (DOS-332).
+  return placeOfSupply({ gstin: buyer.gstin, stateCode: buyer.stateCode })
 }
 
 /**

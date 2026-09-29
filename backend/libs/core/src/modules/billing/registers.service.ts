@@ -10,7 +10,7 @@ import type {
   SalesRegisterOutput,
   SalesRegisterRow,
 } from '@dos/contracts'
-import { withTenant, type AppliedRule, type Db } from '@dos/db'
+import { invoiceRulesGiven, withTenant, type AppliedRule, type Db } from '@dos/db'
 import { BACK_OFFICE, currentTenant, DB, requireDb, requireRole } from '../../platform/index.js'
 
 /**
@@ -311,26 +311,39 @@ export class RegistersService {
   // the in-process surface reporting (9) and claims (7) consume — no HTTP face
   // =============================================================================================================
 
-  /** Invoice lines inside a window, with `applied_rules` — the source a scheme/damage claim is built from. */
+  /**
+   * Invoice lines inside a window, with `applied_rules` — the source a scheme/damage claim is built from.
+   *
+   * QA DOS-330 (docs/22 §8, 2026-09-28, ruling 1): the rules come back AS GIVEN, counted once per order line
+   * (`invoiceRulesGiven` in @dos/db): a line's `amountPaise` / `freeQty` is its share, so summing them over the
+   * batch lines of one order line gives the scheme once — on a bill written with a whole copy per batch line too.
+   */
   async invoiceLinesForPeriod(tx: Db, filter: PeriodFilter): Promise<InvoiceLineForPeriod[]> {
     const { tenantId } = currentTenant()
     const limit = Math.min(filter.limit ?? 5000, 20_000)
     const result = await tx.execute(sql`
-      SELECT i.id AS invoice_id, i.invoice_no, i.invoice_date, i.retailer_id,
-             l.id AS line_id, l.variant_id, l.hsn_code, l.qty_pcs, l.free_qty_pcs,
-             l.rate_paise, l.discount_paise, l.taxable_paise, l.applied_rules
-        FROM invoice_lines l
-        JOIN invoices i ON i.id = l.invoice_id
-        JOIN product_variants v ON v.id = l.variant_id
-        JOIN products p ON p.id = v.product_id
-       WHERE l.tenant_id = ${tenantId}
-         AND i.state NOT IN ('draft', 'cancelled')
-         AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
-         AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
-         AND (${filter.variantId ?? null}::text IS NULL OR l.variant_id = ${filter.variantId ?? null})
-         AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
-       ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
-       LIMIT ${limit}`)
+      WITH ${invoiceRulesGiven(sql`
+        SELECT i.id AS invoice_id, i.invoice_no, i.invoice_date, i.retailer_id,
+               l.id AS line_id, l.line_no, l.order_line_id, l.variant_id, l.hsn_code, l.qty_pcs,
+               l.free_qty_pcs, l.rate_paise, l.discount_paise, l.taxable_paise, l.applied_rules
+          FROM invoice_lines l
+          JOIN invoices i ON i.id = l.invoice_id
+          JOIN product_variants v ON v.id = l.variant_id
+          JOIN products p ON p.id = v.product_id
+         WHERE l.tenant_id = ${tenantId}
+           AND i.state NOT IN ('draft', 'cancelled')
+           AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
+           AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
+           AND (${filter.variantId ?? null}::text IS NULL OR l.variant_id = ${filter.variantId ?? null})
+           AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
+         ORDER BY i.invoice_date ASC, i.id ASC, l.line_no ASC
+         LIMIT ${limit}`)}
+      SELECT rl.invoice_id, rl.invoice_no, rl.invoice_date, rl.retailer_id, rl.line_id, rl.variant_id,
+             rl.hsn_code, rl.qty_pcs, rl.free_qty_pcs, rl.rate_paise, rl.discount_paise, rl.taxable_paise,
+             coalesce((SELECT jsonb_agg(g.given_rule ORDER BY g.ord)
+                         FROM rg_given g WHERE g.line_id = rl.line_id), '[]'::jsonb) AS applied_rules
+        FROM rg_lines rl
+       ORDER BY rl.invoice_date ASC, rl.invoice_id ASC, rl.line_no ASC`)
     return result.rows.map((row: Record<string, unknown>) => ({
       invoiceId: String(row.invoice_id),
       invoiceNo: (row.invoice_no as string | null) ?? null,
@@ -525,23 +538,26 @@ export class RegistersService {
    */
   async schemeSpend(tx: Db, filter: PeriodFilter): Promise<SchemeSpendRow[]> {
     const { tenantId } = currentTenant()
+    // QA DOS-330: counted once per order line (`invoiceRulesGiven`), never once per batch line it left on.
     const result = await tx.execute(sql`
-      SELECT rule ->> 'ruleId'                                        AS rule_id,
-             COALESCE(rule ->> 'kind', 'scheme')                      AS kind,
-             COUNT(DISTINCT l.invoice_id)::int                        AS document_count,
-             COALESCE(SUM(COALESCE((rule ->> 'freeQty')::int, 0)), 0)::bigint     AS free_qty_pcs,
-             COALESCE(SUM(COALESCE((rule ->> 'amountPaise')::bigint, 0)), 0)::bigint AS amount_paise
-        FROM invoice_lines l
-        JOIN invoices i ON i.id = l.invoice_id
-        JOIN product_variants v ON v.id = l.variant_id
-        JOIN products p ON p.id = v.product_id
-        CROSS JOIN LATERAL jsonb_array_elements(l.applied_rules) AS rule
-       WHERE l.tenant_id = ${tenantId}
-         AND i.state NOT IN ('draft', 'cancelled')
-         AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
-         AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
-         AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})
-         AND rule ->> 'ruleId' IS NOT NULL
+      WITH ${invoiceRulesGiven(sql`
+        SELECT l.invoice_id, l.id AS line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
+               l.free_qty_pcs, l.applied_rules
+          FROM invoice_lines l
+          JOIN invoices i ON i.id = l.invoice_id
+          JOIN product_variants v ON v.id = l.variant_id
+          JOIN products p ON p.id = v.product_id
+         WHERE l.tenant_id = ${tenantId}
+           AND i.state NOT IN ('draft', 'cancelled')
+           AND i.invoice_date BETWEEN ${filter.from} AND ${filter.to}
+           AND (${filter.retailerId ?? null}::text IS NULL OR i.retailer_id = ${filter.retailerId ?? null})
+           AND (${filter.brandId ?? null}::text IS NULL OR p.brand_id = ${filter.brandId ?? null})`)}
+      SELECT g.rule_id                                       AS rule_id,
+             g.kind                                          AS kind,
+             COUNT(DISTINCT g.invoice_id)::int               AS document_count,
+             COALESCE(SUM(g.free_qty), 0)::bigint            AS free_qty_pcs,
+             COALESCE(SUM(g.amount_paise), 0)::bigint        AS amount_paise
+        FROM rg_given g
        GROUP BY 1, 2
        ORDER BY amount_paise DESC, rule_id ASC`)
     return result.rows.map((row: Record<string, unknown>) => ({

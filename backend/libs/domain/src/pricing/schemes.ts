@@ -107,6 +107,15 @@ export interface AppliedRule {
   amountPaise?: number
   freeQty?: number
   freeVariantId?: string
+  /** DOS-185: the reward line's single entry — a pointer to the rule; `freeQty` lives on the trigger line only. */
+  reward?: boolean
+  /**
+   * QA DOS-330 (ruling 1): on a BILL line, `amountPaise` / `freeQty` are this batch line's SHARE of the order
+   * line's rule, so the shares of one order line add up to the rule once. A bill line without it was written
+   * before the ruling with the order line's whole rule copied onto every batch line: a reader counts such
+   * copies ONCE per order line (`invoiceRulesGiven` in @dos/db). Never set on an order line.
+   */
+  batchShare?: boolean
 }
 
 export interface PriceOrderLineInput {

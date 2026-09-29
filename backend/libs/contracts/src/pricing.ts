@@ -308,6 +308,12 @@ export const AppliedRuleSchema = z.object({
    * carries `freeQty` / `freeVariantId`, so a reader that sums `freeQty` over the lines counts a gift once.
    */
   reward: z.boolean().optional(),
+  /**
+   * QA DOS-330: `true` on a BILL line's entry that holds this batch line's SHARE of the order line's rule, so
+   * the shares of one order line add up to what the rule gave once. A bill written before it carries the whole
+   * rule on every batch line; the claim and the scheme-spend register count such copies once per order line.
+   */
+  batchShare: z.boolean().optional(),
 })
 export type AppliedRule = z.infer<typeof AppliedRuleSchema>
 

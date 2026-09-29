@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   dailyOwnerStats,
   dailyTenantStats,
+  invoiceRulesGiven,
   ownerSummary,
   withSystem,
   withTenant,
@@ -547,19 +548,22 @@ async function rollupOwnerDay(tx: Db, tenantId: string, day: string): Promise<vo
       left join lot_cost lc on lc.lot_id = b.lot_id
       left join cost c on c.variant_id = lo.variant_id
      where b.tenant_id = ${tenantId} and b.on_hand > 0`)
+  // QA DOS-330: a scheme is counted once per order line (`invoiceRulesGiven`), however many batches it left from.
   const schemes = await tx.execute(sql`
+    with ${invoiceRulesGiven(sql`
+      select l.invoice_id, l.id as line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
+             l.free_qty_pcs, l.applied_rules
+        from invoice_lines l
+        join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
+       where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
+         and i.state not in ('draft', 'cancelled')`)}
     select coalesce(s.funding_source::text, 'company') as funding_source,
-           coalesce(sum(coalesce((rule ->> 'amountPaise')::bigint, 0)), 0)::bigint as amount_paise
-      from invoice_lines l
-      join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
-      cross join lateral jsonb_array_elements(l.applied_rules) as rule
-      left join schemes s on s.id = rule ->> 'ruleId' and s.tenant_id = l.tenant_id
-     where l.tenant_id = ${tenantId} and i.invoice_date = ${day}
-       and i.state not in ('draft', 'cancelled')
-       and rule ->> 'ruleId' is not null
+           coalesce(sum(g.amount_paise), 0)::bigint as amount_paise
+      from rg_given g
+      left join schemes s on s.id = g.rule_id and s.tenant_id = ${tenantId}
        -- DOS-018: a line carries every rule the engine applied; only a SCHEME is scheme spend, and a
        -- bargain counted here fell to the company side and looked like a claim to raise on a brand.
-       and coalesce(rule ->> 'kind', 'scheme') = 'scheme'
+     where g.kind = 'scheme'
      group by 1`)
 
   /*

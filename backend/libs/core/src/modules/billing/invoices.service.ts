@@ -45,14 +45,13 @@ import type {
   SetEwayBillOutput,
 } from '@dos/contracts'
 import {
-  allocate,
+  billOrderLine,
   businessDate,
   financialYear,
   invoiceStateShown,
+  lineTax,
   paise,
-  percentOf,
   roundToRupee,
-  splitGst,
   uuidv7,
 } from '@dos/domain'
 import {
@@ -693,8 +692,12 @@ export class BillingService {
         throw new ORPCError('BAD_REQUEST', {
           message: `line ${String(index + 1)} discounts more than it charges`,
         })
-      const gst = splitGst(paise(taxable), line.gstBps, seller.stateCode, placeOfSupply)
-      const cess = percentOf(paise(taxable), line.cessBps)
+      // The brand's own figures, taxed by the one rule (ruling 2): its lines are its own, one per line.
+      const tax = lineTax(
+        taxable,
+        { gstBps: line.gstBps, cessBps: line.cessBps },
+        seller.stateCode !== placeOfSupply,
+      )
       return {
         grossPaise: gross,
         row: {
@@ -721,12 +724,12 @@ export class BillingService {
           discountPaise: line.discountPaise,
           taxablePaise: taxable,
           gstBps: line.gstBps,
-          cgstPaise: gst.cgst,
-          sgstPaise: gst.sgst,
-          igstPaise: gst.igst,
+          cgstPaise: tax.cgstPaise,
+          sgstPaise: tax.sgstPaise,
+          igstPaise: tax.igstPaise,
           cessBps: line.cessBps,
-          cessPaise: cess,
-          lineTotalPaise: taxable + gst.tax + cess,
+          cessPaise: tax.cessPaise,
+          lineTotalPaise: taxable + tax.taxPaise,
           appliedRules: [] as AppliedRule[],
         },
       }
@@ -1891,11 +1894,14 @@ export class BillingService {
 
   /**
    * One order line becomes one invoice line PER LOT the pieces left from, with the batch, expiry and
-   * MRP frozen from that lot. The order line's discount scales with what was actually packed
-   * (`allocate`, largest remainder, no paisa lost) and is then split across the lots the same way, so
-   * the header is a plain sum of its lines. The line's own taxable decides what comes off its charged
-   * rate (DOS-126): rate × qty − (line_total − tax), because a line priced with an approved rate stores
-   * that rate AND a discount that already holds the bargain, which would take the bargain off twice.
+   * MRP frozen from that lot. The money is `billOrderLine` (@dos/domain, docs/22 §8 2026-09-28 rulings 1, 2
+   * and 10): the order line's discount scales with what was actually packed and each scheme's amount and free
+   * pieces are SHARED over the lots (never copied whole onto each, QA DOS-330); the GST is computed ONCE on the
+   * order line's taxable with the rule the quote and the order used and shared over the lots, so a fully packed
+   * line bills exactly the tax it was ordered at (QA DOS-332); the free pieces follow the lots in proportion
+   * (QA DOS-337). The line's own taxable decides what comes off its charged rate (DOS-126): rate × qty −
+   * (line_total − tax), because a line priced with an approved rate stores that rate AND a discount that
+   * already holds the bargain, which would take the bargain off twice.
    */
   private priceOrderLineGroup(i: {
     invoiceId: string
@@ -1909,10 +1915,7 @@ export class BillingService {
     startLineNo: number
   }): PricedLine[] {
     const { tenantId } = currentTenant()
-    const paidQtys = i.group.map((g) => g.qtyPcs)
-    const packedPaid = paidQtys.reduce((s, q) => s + q, 0)
     const ordered = i.orderLine.qtyPcs
-    const shortfall = Math.max(0, ordered - packedPaid)
     // The stored taxable is the one invariant both stored conventions keep (an API-priced line folds a bargain
     // into its rate and its discount; a seed-priced line only into its rate). An issued bill is immutable, so a
     // line whose stored money does not add up is refused, never clamped and never billed.
@@ -1922,30 +1925,30 @@ export class BillingService {
       throw new ORPCError('CONFLICT', {
         message: `order line ${i.orderLine.id} (line ${String(i.orderLine.lineNo)}): stored line money is inconsistent; not billable`,
       })
-    const groupDiscount =
-      lineDiscount === 0 || packedPaid === 0
-        ? 0
-        : shortfall === 0
-          ? lineDiscount
-          : (allocate(paise(lineDiscount), [packedPaid, shortfall])[0] ?? 0)
-    const weights = packedPaid > 0 ? paidQtys : i.group.map((g) => g.freeQtyPcs)
-    const perLot =
-      groupDiscount === 0 || weights.every((w) => w === 0)
-        ? weights.map(() => 0)
-        : allocate(paise(groupDiscount), weights)
+    const money = billOrderLine(
+      {
+        variantId: i.orderLine.variantId,
+        qtyPcs: ordered,
+        freeQtyPcs: i.orderLine.freeQtyPcs,
+        ratePaise: i.orderLine.ratePaise,
+        discountPaise: lineDiscount,
+        appliedRules: i.orderLine.appliedRules,
+      },
+      i.group.map((g) => ({ qtyPcs: g.qtyPcs, freeQtyPcs: g.freeQtyPcs })),
+      i.rate,
+      i.seller.stateCode !== i.placeOfSupply,
+    )
 
     return i.group.map((g, index) => {
       const lot = g.lotId === null ? undefined : i.lots.get(g.lotId)
-      const discount = perLot[index] ?? 0
-      const gross = i.orderLine.ratePaise * g.qtyPcs
-      const taxable = gross - discount
-      const gst = splitGst(paise(taxable), i.rate.gstBps, i.seller.stateCode, i.placeOfSupply)
-      const cess = percentOf(paise(taxable), i.rate.cessBps)
+      const m = money[index]
+      if (!m)
+        throw new ORPCError('INTERNAL_SERVER_ERROR', { message: 'a batch line lost its money' })
       const packSize = i.orderLine.packSizeAtEntry
       // "2 cs + 3 pcs" must still print honestly after a short pack (docs/17 A3).
-      const divides = packSize > 1 && g.qtyPcs > 0 && g.qtyPcs % packSize === 0
+      const divides = packSize > 1 && m.qtyPcs > 0 && m.qtyPcs % packSize === 0
       return {
-        grossPaise: gross,
+        grossPaise: m.grossPaise,
         row: {
           id: uuidv7(),
           tenantId,
@@ -1959,24 +1962,24 @@ export class BillingService {
           batchNo: lot?.batchNo ?? null,
           expiryDate: lot?.expiryDate ?? null,
           mrpPaise: lot?.mrpPaise ?? i.variant.mrpPaise ?? null,
-          qtyPcs: g.qtyPcs,
-          freeQtyPcs: g.freeQtyPcs,
-          enteredQty: divides ? g.qtyPcs / packSize : g.qtyPcs,
+          qtyPcs: m.qtyPcs,
+          freeQtyPcs: m.freeQtyPcs,
+          enteredQty: divides ? m.qtyPcs / packSize : m.qtyPcs,
           enteredUnit: divides ? i.orderLine.enteredUnit : ('piece' as const),
           packSizeAtEntry: divides ? packSize : 1,
           caseSize: lot?.caseSize ?? i.variant.caseSize,
           ratePaise: i.orderLine.ratePaise,
-          discountBps: gross > 0 ? Math.round((discount * 10_000) / gross) : 0,
-          discountPaise: discount,
-          taxablePaise: taxable,
+          discountBps: m.grossPaise > 0 ? Math.round((m.discountPaise * 10_000) / m.grossPaise) : 0,
+          discountPaise: m.discountPaise,
+          taxablePaise: m.taxablePaise,
           gstBps: i.rate.gstBps,
-          cgstPaise: gst.cgst,
-          sgstPaise: gst.sgst,
-          igstPaise: gst.igst,
+          cgstPaise: m.cgstPaise,
+          sgstPaise: m.sgstPaise,
+          igstPaise: m.igstPaise,
           cessBps: i.rate.cessBps,
-          cessPaise: cess,
-          lineTotalPaise: taxable + gst.tax + cess,
-          appliedRules: i.orderLine.appliedRules,
+          cessPaise: m.cessPaise,
+          lineTotalPaise: m.lineTotalPaise,
+          appliedRules: m.appliedRules,
         },
       }
     })

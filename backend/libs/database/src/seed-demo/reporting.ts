@@ -17,6 +17,7 @@ import {
   type DailyPaymentModeMix,
 } from '../schema/index.js'
 import type { Db } from '../client.js'
+import { invoiceRulesGiven } from '../scheme-amounts.js'
 import { brandId, type VariantRow } from './catalog.js'
 import { demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
@@ -760,17 +761,21 @@ async function readDayBook(db: Db, tenantId: string): Promise<DayBook> {
     marginByDay.set(r.day, entry)
   }
   const schemeSpendByDay = new Map<string, { company: number; distributor: number }>()
-  for (const r of (
+  for (const r of // QA DOS-330: counted once per order line (`invoiceRulesGiven`), as the owner's live rollup does.
+  (
     await db.execute(sql`
-      select to_char(i.invoice_date, 'YYYY-MM-DD') as day,
+      with ${invoiceRulesGiven(sql`
+        select l.invoice_id, l.id as line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
+               l.free_qty_pcs, l.applied_rules, to_char(i.invoice_date, 'YYYY-MM-DD') as day
+          from invoice_lines l
+          join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
+         where l.tenant_id = ${tenantId} and i.state not in ('draft', 'cancelled')`)}
+      select rl.day,
              coalesce(s.funding_source::text, 'company') as funding,
-             sum(coalesce((rule ->> 'amountPaise')::bigint, 0))::bigint as paise
-        from invoice_lines l
-        join invoices i on i.id = l.invoice_id and i.tenant_id = l.tenant_id
-        cross join lateral jsonb_array_elements(l.applied_rules) as rule
-        left join schemes s on s.id = rule ->> 'ruleId' and s.tenant_id = l.tenant_id
-       where l.tenant_id = ${tenantId} and i.state not in ('draft', 'cancelled')
-         and rule ->> 'ruleId' is not null
+             sum(g.amount_paise)::bigint as paise
+        from rg_given g
+        join rg_lines rl on rl.line_id = g.line_id
+        left join schemes s on s.id = g.rule_id and s.tenant_id = ${tenantId}
        group by 1, 2`)
   ).rows as { day: string; funding: string; paise: string | number }[]) {
     const entry = schemeSpendByDay.get(r.day) ?? { company: 0, distributor: 0 }

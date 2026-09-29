@@ -66,6 +66,12 @@ export interface AppliedRule {
   freeVariantId?: string
   /** DOS-185: the reward line's single entry — a pointer to the rule; `freeQty` lives on the trigger line only. */
   reward?: boolean
+  /**
+   * QA DOS-330: on an INVOICE line, the entry holds this batch line's share of the order line's rule (the
+   * shares add up to the rule once). Absent on bills written before 2026-09-29, whose batch lines each carry
+   * a whole copy: `invoiceRulesGiven` (scheme-amounts.ts) counts those once per order line. Never on an order line.
+   */
+  batchShare?: boolean
 }
 
 /**

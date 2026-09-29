@@ -14,13 +14,15 @@ import {
   retailers,
   schemes,
   tenantProducts,
+  tenants,
   withTenant,
   type Db,
   type TenantContext,
 } from '@dos/db'
 import {
+  lineTax,
   paise,
-  percentOf,
+  placeOfSupply,
   priceOrder,
   PricingError,
   roundToRupee,
@@ -48,6 +50,10 @@ export interface PricedRetailer {
   id: string
   tier: string
   beatId: string | null
+  /** Place of supply (DOS-332): the shop's state, or a registered shop's GSTIN prefix. */
+  stateCode: string
+  gstin: string | null
+  gstRegType: string
 }
 
 export interface QuoteVariant {
@@ -178,6 +184,11 @@ export class QuoteService {
       [...new Set([...variants.values()].map((v) => v.hsnCode))],
       result.pricingDate,
     )
+    // QA DOS-332 (docs/22 §8, 2026-09-28, ruling 2): the ONE GST rule the bill uses — per line on its taxable,
+    // CGST and SGST half the rate each rounded, or IGST whole when the shop is in another state — so the order
+    // carries, to the paisa, the tax its bill will. The combined rate on the whole line differed by a paisa a
+    // line and, at a rupee boundary, by ₹1 on the total.
+    const interState = (await sellerStateCode(tx, ctx)) !== placeOfSupply(retailer)
     let taxPaise = 0
     let cessPaise = 0
     const lines = result.lines.map((l) => {
@@ -188,9 +199,10 @@ export class QuoteService {
           message: `quote lost the GST rate for ${l.variantId}`,
         })
       const { gstBps, cessBps } = rate
-      const lineCess = percentOf(paise(l.lineNetPaise), cessBps)
-      const lineTax = percentOf(paise(l.lineNetPaise), gstBps) + lineCess
-      taxPaise += lineTax
+      const tax = lineTax(l.lineNetPaise, rate, interState)
+      const lineCess = tax.cessPaise
+      const lineTaxPaise = tax.taxPaise
+      taxPaise += lineTaxPaise
       cessPaise += lineCess
       return {
         lineId: l.lineId,
@@ -208,9 +220,9 @@ export class QuoteService {
         lineNetPaise: l.lineNetPaise,
         gstBps,
         cessBps,
-        taxPaise: lineTax,
+        taxPaise: lineTaxPaise,
         cessPaise: lineCess,
-        lineTotalPaise: l.lineNetPaise + lineTax,
+        lineTotalPaise: l.lineNetPaise + lineTaxPaise,
       }
     })
     // s.170: one rounding to the rupee, with the same `roundToRupee` billing issues the invoice with.
@@ -254,7 +266,14 @@ export class QuoteService {
         throw new ORPCError('FORBIDDEN', { message: 'This retailer is not linked to your login' })
     }
     const [row] = await tx
-      .select({ id: retailers.id, tier: retailers.tier, beatId: retailers.beatId })
+      .select({
+        id: retailers.id,
+        tier: retailers.tier,
+        beatId: retailers.beatId,
+        stateCode: retailers.stateCode,
+        gstin: retailers.gstin,
+        gstRegType: retailers.gstRegType,
+      })
       .from(retailers)
       .where(and(eq(retailers.tenantId, ctx.tenantId), eq(retailers.id, retailerId)))
       .limit(1)
@@ -397,6 +416,21 @@ export class QuoteService {
 
     return { tierPrices, overrides, schemes: schemeRows.map(toSchemeRule), approvedBargains }
   }
+}
+
+/**
+ * The distributor's own state (`tenants.state_code`), the other half of the place-of-supply test. The quote reads
+ * it for the retailer role too: `tenants_read` admits any member of the tenant.
+ */
+async function sellerStateCode(tx: Db, ctx: TenantContext): Promise<string> {
+  const [row] = await tx
+    .select({ stateCode: tenants.stateCode })
+    .from(tenants)
+    .where(eq(tenants.id, ctx.tenantId))
+    .limit(1)
+  if (!row)
+    throw new ORPCError('INTERNAL_SERVER_ERROR', { message: `tenant ${ctx.tenantId} not found` })
+  return row.stateCode
 }
 
 /**

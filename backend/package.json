@@ -29,6 +29,7 @@
     "check:stock-cancels": "tsx tools/check-stock-cancels.mts",
     "check:stock-negative": "tsx tools/check-stock-negative.mts",
     "check:receipt-references": "tsx tools/check-receipt-references.mts",
+    "check:scheme-amounts": "tsx tools/check-scheme-amounts.mts",
     "import:legacy": "pnpm --filter @dos/tools import:legacy",
     "clean": "turbo run clean && rm -rf node_modules"
   },

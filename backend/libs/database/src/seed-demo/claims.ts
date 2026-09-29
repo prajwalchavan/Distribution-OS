@@ -13,6 +13,7 @@
  */
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import type { Db } from '../client.js'
+import { invoiceRulesGiven } from '../scheme-amounts.js'
 import {
   accounts,
   claimEvidence,
@@ -1061,20 +1062,26 @@ interface SchemeLineSource extends InvoiceLineSource {
   brandId: string
 }
 async function schemeClaimLinesFor(db: Db, tenantId: string): Promise<SchemeLineSource[]> {
+  // QA DOS-330: the rule AS GIVEN, counted once per order line (`invoiceRulesGiven`), like the claim builder.
   const result = await db.execute(sql`
-    SELECT il.id AS line_id, i.id AS invoice_id, i.invoice_no, i.invoice_date::text AS invoice_date,
-           i.retailer_id, il.variant_id, il.qty_pcs, il.rate_paise, il.taxable_paise, il.applied_rules,
-           rule AS rule, s.id AS scheme_id, s.name AS scheme_name, s.source_ref, s.brand_id
-      FROM invoice_lines il
-      JOIN invoices i ON i.id = il.invoice_id AND i.tenant_id = il.tenant_id
-      CROSS JOIN LATERAL jsonb_array_elements(il.applied_rules) AS rule
-      JOIN schemes s ON s.id = rule ->> 'ruleId' AND s.tenant_id = il.tenant_id
-     WHERE il.tenant_id = ${tenantId}
-       AND i.state NOT IN ('draft', 'cancelled')
-       AND s.funding_source = 'company' AND s.claimable AND s.claim_channel = 'dos'
+    WITH ${invoiceRulesGiven(sql`
+      SELECT il.invoice_id, il.id AS line_id, il.line_no, il.order_line_id, il.variant_id, il.qty_pcs,
+             il.free_qty_pcs, il.applied_rules, il.rate_paise, il.taxable_paise,
+             i.invoice_no, i.invoice_date::text AS invoice_date, i.retailer_id
+        FROM invoice_lines il
+        JOIN invoices i ON i.id = il.invoice_id AND i.tenant_id = il.tenant_id
+       WHERE il.tenant_id = ${tenantId}
+         AND i.state NOT IN ('draft', 'cancelled')`)}
+    SELECT rl.line_id, rl.invoice_id, rl.invoice_no, rl.invoice_date, rl.retailer_id, rl.variant_id,
+           rl.qty_pcs, rl.rate_paise, rl.taxable_paise, rl.applied_rules,
+           g.given_rule AS rule, s.id AS scheme_id, s.name AS scheme_name, s.source_ref, s.brand_id
+      FROM rg_given g
+      JOIN rg_lines rl ON rl.line_id = g.line_id
+      JOIN schemes s ON s.id = g.rule_id AND s.tenant_id = ${tenantId}
+     WHERE s.funding_source = 'company' AND s.claimable AND s.claim_channel = 'dos'
        AND s.brand_id IS NOT NULL
-       AND rule ->> 'kind' = 'scheme' AND rule ->> 'rewardKind' <> 'cash_discount_pct'
-     ORDER BY i.invoice_date ASC, i.id ASC, il.line_no ASC, s.id ASC`)
+       AND g.kind = 'scheme' AND g.reward_kind <> 'cash_discount_pct'
+     ORDER BY rl.invoice_date ASC, rl.invoice_id ASC, rl.line_no ASC, s.id ASC`)
   return result.rows.map((r) => ({
     lineId: String(r.line_id),
     invoiceId: String(r.invoice_id),

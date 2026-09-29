@@ -222,10 +222,32 @@ export class ClaimBuildService {
     let skipped = 0
     let outOfWindow = 0
     let truncated = false
+    const mine = new Map(existing.map((l) => [`${l.sourceType}:${l.sourceId}`, l]))
     for (const c of candidates) {
       const key = `${c.sourceType}:${c.sourceId}`
       if (onThisClaim.has(key) || elsewhere.has(key)) {
         skipped += 1
+        // QA DOS-330: a line this draft built before the reader counted a scheme once per order line may carry a
+        // whole copy of the rule from each batch line of a bill. An open line nobody has touched since it was
+        // built (never adjusted) is brought to what the bill gave; a line the desk adjusted keeps its figure.
+        const line = mine.get(key)
+        if (
+          line !== undefined &&
+          line.status === 'open' &&
+          line.sourceType === 'invoice' &&
+          line.updatedAt.getTime() === line.createdAt.getTime() &&
+          (line.amountPaise !== c.amountPaise || line.qtyPcs !== c.qtyPcs) &&
+          c.amountPaise > 0
+        )
+          await tx
+            .update(claimLines)
+            .set({
+              qtyPcs: c.qtyPcs,
+              ratePaise: c.ratePaise,
+              amountPaise: c.amountPaise,
+              detail: c.detail,
+            })
+            .where(and(eq(claimLines.tenantId, tenantId), eq(claimLines.id, line.id)))
         continue
       }
       if (added >= limit) {
