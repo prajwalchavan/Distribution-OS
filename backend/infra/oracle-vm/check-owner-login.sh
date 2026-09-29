@@ -16,7 +16,7 @@ if len(pw) < 8:
     print("the saved password is shorter than 8 characters: not sent"); sys.exit(1)
 body = json.dumps({"username": user, "password": pw, "deviceId": str(uuid.uuid5(uuid.NAMESPACE_URL, "dos:check-owner-login")),
                    "deviceName": "founder's check", "platform": "web"}).encode()
-req = urllib.request.Request(api + "/auth/auth/login", data=body, headers={"content-type": "application/json"})
+req = urllib.request.Request(api + "/auth/auth/login", data=body, headers={"content-type": "application/json", "user-agent": "dos-check/1.0"})  # the site's front door refuses Python's own name (403, error 1010)
 try:
     with urllib.request.urlopen(req, timeout=20) as r:
         b = json.loads(r.read() or b"{}")
@@ -24,6 +24,12 @@ try:
         print(f"sign-in as {user}: {r.status} OK, role {b.get('role')}, must change password: {must}")
         sys.exit(0 if not must else 3)
 except urllib.error.HTTPError as e:
-    print(f"sign-in as {user}: {e.code} REFUSED (401 = wrong username or password, 423 = locked for 15 minutes after 5 wrong tries)")
+    raw = e.read()[:400]
+    try:
+        code = json.loads(raw).get("code")
+        who = f"the API said {code}"
+    except Exception:
+        who = "NOT the API: the site's front door answered (the password was not tested)"
+    print(f"sign-in as {user}: {e.code} REFUSED, {who} (401 = wrong username or password, 423 = locked for 15 minutes after 5 wrong tries)")
     sys.exit(2)
 PY
