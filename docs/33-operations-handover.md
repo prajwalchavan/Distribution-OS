@@ -34,7 +34,8 @@ sudo -u postgres psql -d dos_live -c '\dt' | tail -5            # the data
 1. Backend (API): `bash backend/infra/oracle-vm/deploy.sh` — rsync, install, build, migrate live + demo, restart, public health. A demo migration that fails is reported and does not stop the live release.
 2. Website: `cd frontend && CLOUDFLARE_API_TOKEN="$(cat ~/.config/dos/cloudflare.token)" CLOUDFLARE_ACCOUNT_ID=6730952ae1e2212f14c52d66a5339d35 DOMAIN=distributionos.in PAGES_PROJECT=dos PAGES_BRANCH=main EXPO_PUBLIC_API_URL=https://api.distributionos.in EXPO_PUBLIC_AUTH_URL=https://api.distributionos.in/auth ./scripts/pages-deploy.sh dos` (the script exports with `--clear`; a cached export ships a stale API URL — S-192).
 3. Android: §5.
-4. Rollback: `git checkout <previous sha>` on the Mac, run 1 and 2 again. Migrations are expand-only and stay.
+4. After a backend release, the four release checks against the real database: `bash backend/infra/oracle-vm/release-checks.sh` (they only read; one line per check; what a check names stays on the server in `~/release-checks/`).
+5. Going back: release a fix on top (1 and 2 again). Old code on a newer database is not a way back: migrations stay, and from 0074 on old code answers 500 to a goods receipt of a new batch, to a batch saved by hand, to a new distributor and to a payment reference used twice. Nothing is written wrongly (each refusal is whole), measured 2026-09-29 on a copy. The same holds for the seconds between "migrate live" and "restart" in a release. If the data itself is wrong, restore the dump the release took just before migrating (§4).
 
 ## 4. Backups and the restore drill
 

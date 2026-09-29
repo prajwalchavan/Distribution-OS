@@ -82,6 +82,8 @@ describe('DOS-017 the owner live map draws a map', () => {
     const catalogue: Readonly<Record<string, string>> = strings
 
     const note = catalogue['o4.mapNote'] ?? ''
+    const androidNote = catalogue['o4.mapNoteList'] ?? ''
+    const screen = await read('../../../../app/owner/map.tsx')
 
     expect({
       web: deps['maplibre-gl'],
@@ -93,14 +95,23 @@ describe('DOS-017 the owner live map draws a map', () => {
        * `listOnly` guard above). A note that offers every phone "its own maps" would be a promise
        * again — and the repo-wide DOS-179 guard refuses that vocabulary anyway.
        */
-      namesAndroidList: /android/i.test(note) && /list/i.test(note),
-      claimsEveryPhonesMaps: /\b(this|the)\s+(phone|device|browser)\b/i.test(note),
+      namesAndroidList: /android/i.test(androidNote) && /list/i.test(androidNote),
+      androidReadsItsOwnNote:
+        /process\.env\.EXPO_OS === 'android' \? 'o4\.mapNoteList' : 'o4\.mapNote'/.test(screen),
+      claimsEveryPhonesMaps: /\b(this|the)\s+(phone|device|browser)\b/i.test(note + androidNote),
+      /*
+       * docs/22 §8, 2026-09-29: no developer's note on a screen. The note used to name the tile
+       * providers and "the maps key"; a person reading the map has no use for either.
+       */
+      saysHowItIsBuilt: /tiles|openstreetmap|apple maps|\bkey\b|sdk/i.test(note + androidNote),
     }).toEqual({
       web: 'catalog:',
       native: 'catalog:',
       promisesTiles: false,
       namesAndroidList: true,
+      androidReadsItsOwnNote: true,
       claimsEveryPhonesMaps: false,
+      saysHowItIsBuilt: false,
     })
   })
 })

@@ -125,7 +125,7 @@ export default function LiveMap(): React.JSX.Element {
       chips={<PageTabs group={go.href('/')} active={go.href('/map')} />}
     >
       <Stack gap={4}>
-        <Panel meta={t('o4.mapNote')}>
+        <Panel meta={t(process.env.EXPO_OS === 'android' ? 'o4.mapNoteList' : 'o4.mapNote')}>
           <Async
             state={[positions]}
             rows={4}

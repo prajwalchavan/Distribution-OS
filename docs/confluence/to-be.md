@@ -2,14 +2,14 @@
 
 ## Document Information
 
-| Property     | Value                                  |
-| ------------ | -------------------------------------- |
-| Document     | TO-BE Business Process                 |
-| Product      | Distribution OS                        |
-| Version      | 2.1                                    |
-| Status       | Active                                 |
-| Owner        | Product Management & Business Analysis |
-| Last Updated | 21 September 2026                      |
+| Property     | Value                  |
+| ------------ | ---------------------- |
+| Document     | TO-BE Business Process |
+| Product      | Distribution OS        |
+| Version      | 2.2                    |
+| Status       | Active                 |
+| Owner        | Prajwal Chavan         |
+| Last Updated | 29 September 2026      |
 
 ---
 
@@ -21,89 +21,85 @@ Unlike the current paper-centric process, Distribution OS introduces digital wor
 
 The objective is not only to digitize existing workflows but to redesign them for greater efficiency, accuracy, and scalability.
 
-**New in version 2.0.** The generic stage ladders of version 1.0 are replaced by the **actual flows** the product implements: order to cash across the six business roles, stock-in from supplier bill to goods received, money and who may collect it, and sign-in. The lifecycles are the state machines coded in `backend/libs/domain/src/state-machines/`, not illustrative examples. Nothing that was true in version 1.0 has been deleted; where a dated founder decision changed the answer, the sentence says so and carries its date.
-
-**Status vocabulary.** **BUILT** = a verified backend procedure or table exists · **BUILT, GAP NAMED** = core built, a named part missing · **PLANNED (v1)** = a named module in the build chain covers it before the pilot · **NOT IN V1** = deliberately out of scope, reason stated.
-
-As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and **all seven apps built and gated green** on 2026-09-07. Everything marked PLANNED (v1) below is now built; the statuses describe both the backend and the screens. Nothing is deployed yet — go-live is targeted for **Saturday 27 September 2026** on `distributionos.in`.
+This page describes the **actual flows** the product implements: order to cash across the six business roles, stock-in from supplier bill to goods received, money and who may collect it, and sign-in. The lifecycles are the state machines coded in `backend/libs/domain/src/state-machines/`, not illustrative examples.
 
 # Guiding Principles
 
-The future process is based on the following principles, all still current:
+The future process is based on the following principles:
 
 1. Single source of truth for all business data.
 2. Capture data once and reuse it throughout the workflow.
 3. Every business activity is tracked through system-defined statuses.
 4. Paper documents are outputs, not the operational workflow.
 5. Real-time visibility for every stakeholder.
-6. Mobile-first experience for field users — **and web for every role** (Decided 2026-09-04 as six role apps, revised 2026-09-21 to **one app** for the six business roles, web + Android + iOS, plus a separate admin console).
-7. Automation wherever practical — **but AI drafts and a human commits** (Decided 2026-09-05).
-8. Configurable workflows without custom development — **within fixed rails**. Configurable per distributor: branding, numbering series, credit modes and limits, schemes, settlement tolerance, proof-of-delivery policy, feature flags. Not configurable: state machines, the seven roles, approval kinds, the permission matrix (Decided 2026-09-05, correcting the version 1.0 statement that statuses and approval flows are configurable).
+6. Mobile-first experience for field users — **and web for every role**: **one app** for the six business roles, served as a website and an Android app (the iOS app is built from the same code and is not released yet), plus a separate admin console.
+7. Automation wherever practical — **but AI drafts and a human commits**.
+8. Configurable workflows without custom development — **within fixed rails**. Configurable per distributor: branding, numbering series, credit modes and limits, schemes, settlement tolerance, proof-of-delivery policy, feature flags. Not configurable: state machines, the seven roles, approval kinds, the permission matrix.
 
 # Who performs the process
 
-**One app** for the six business roles, which becomes the right app after sign-in (Decided 2026-09-21, replacing the six role apps of 2026-09-04), plus a separate platform-admin console (Decided 2026-09-05). The role elected at sign-in decides which backend service the app talks to, so a role can only reach the endpoints its service mounts. The version 1.0 assumption of a Data Entry Operator who keys orders and generates invoices is removed: there is no such role.
+**One app** for the six business roles, which becomes the right app after sign-in, plus a separate platform-admin console. The role elected at sign-in decides which backend service the app talks to, so a role can only reach the endpoints its service mounts. There is no Data Entry Operator who keys orders and generates invoices: there is no such role.
 
-| What the app becomes        | Signs in                | Service : port           | What it owns in the process                                                                  |
-| --------------------------- | ----------------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
-| Owner                       | `owner`                 | owner-service : 3001     | Approvals, prices, schemes, credit, live map, day numbers with graphs, branding, imports     |
-| Manager                     | `manager`, `accountant` | manager-service : 3002   | Order queue, GRN review, billing desk, load-sheet approval, day-end, registers, Tally export |
-| Sales                       | `salesperson`           | sales-service : 3003     | Beat, shop check-in, order capture, bargain request. Never sees cost, never collects money   |
-| Warehouse                   | `warehouse`             | warehouse-service : 3004 | Gate count, supplier-bill capture, pick, pack (invoice issued here), load sheets, challans   |
-| Delivery                    | `delivery`              | delivery-service : 3005  | Trip, stops, proof of delivery, returns, collections, van sales, settlement                  |
-| Retailer                    | `retailer`              | retailer-service : 3006  | Own bills and outstanding, reorder, pay online, track delivery                               |
-| Distribution OS - Admin (a separate console) | `platform_admin` | admin-service : 3007  | Distributor onboarding, plans, subscription state, time-boxed support access                 |
-| Sign-in for all             | every role              | auth-service : 3000      | Username and password, our own tokens, switch distributor, elect the role                    |
+| What the app becomes                         | Signs in                | Service : port           | What it owns in the process                                                                  |
+| -------------------------------------------- | ----------------------- | ------------------------ | -------------------------------------------------------------------------------------------- |
+| Owner                                        | `owner`                 | owner-service : 3001     | Approvals, prices, schemes, credit, live map, day numbers with graphs, branding, imports     |
+| Manager                                      | `manager`, `accountant` | manager-service : 3002   | Order queue, GRN review, billing desk, load-sheet approval, day-end, registers, Tally export |
+| Sales                                        | `salesperson`           | sales-service : 3003     | Beat, shop check-in, order capture, bargain request. Never sees cost, never collects money   |
+| Warehouse                                    | `warehouse`             | warehouse-service : 3004 | Gate count, supplier-bill capture, pick, pack (invoice issued here), load sheets, challans   |
+| Delivery                                     | `delivery`              | delivery-service : 3005  | Trip, stops, proof of delivery, returns, collections, van sales, settlement                  |
+| Retailer                                     | `retailer`              | retailer-service : 3006  | Own bills and outstanding, reorder, pay online, track delivery                               |
+| Distribution OS - Admin (a separate console) | `platform_admin`        | admin-service : 3007     | Distributor onboarding, plans, subscription state, time-boxed support access                 |
+| Sign-in for all                              | every role              | auth-service : 3000      | Username and password, our own tokens, switch distributor, elect the role                    |
 
 # Process 1 — Order to Cash
 
 The single loop every order travels. Each step names the actor, the app and the record the system writes.
 
-| #   | Step                                    | Actor · App                                                | System result                                                                                                                                                           | Status                                |
-| --- | --------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
-| 1   | Open today's beat                       | Salesperson · Sales                                        | Beat plan with shop sequence and last-order context                                                                                                                     | BUILT                                 |
-| 2   | Check in at the shop                    | Salesperson · Sales                                        | Geo-tagged visit — **evidence, never a block** on ordering                                                                                                              | BUILT                                 |
-| 3   | Build the order                         | Salesperson · Sales                                        | Reorder-last, suggested list or grid; cases and pieces; live available-to-promise **hint**                                                                              | BUILT                                 |
-| 4   | Price and credit check on the device    | System · Sales                                             | `pricing.quote`: tier price → retailer override → schemes → approved bargain → cash discount **reported, not deducted**. Credit exposure checked                        | BUILT                                 |
-| 5a  | Inside limits: submit                   | Salesperson · Sales                                        | Order `draft → submitted`                                                                                                                                               | BUILT                                 |
-| 5b  | Bargain or over limit: request approval | Salesperson · Sales                                        | Approval request (price variance, credit, minimum order value, bargain)                                                                                                 | BUILT                                 |
-| 6   | Approve or reject                       | Owner · Owner                                              | Rejection is a cancel with a reason code                                                                                                                                | BUILT                                 |
-| 7   | Confirm                                 | System                                                     | Server **re-prices at the same pricing version** and reserves stock; `submitted → confirmed`                                                                            | BUILT                                 |
-| 8   | Fulfilment queue by beat or trip        | Warehouse · Warehouse                                      | Wave of confirmed orders                                                                                                                                                | BUILT                                 |
-| 9   | Picklist and pick                       | Warehouse · Warehouse                                      | Consolidated by SKU, FEFO lots, actual lots recorded; `confirmed → picking`                                                                                             | BUILT                                 |
-| 10  | Pack per order                          | Warehouse · Warehouse                                      | `picking → packed`. A short pack is a **pack row, never an order edit**                                                                                                 | BUILT                                 |
-| 11  | **Invoice issued at pack**              | System · Warehouse                                         | GST tax invoice on the tenant's own series, distributor's name and logo, UPI QR (Decided 2026-09-04: shops are GST-registered, B2B tax invoice is the primary document) | BUILT                                 |
-| 12  | Load sheet and manager approval         | Warehouse raises · **Manager approves in the Manager app** | Crew count confirmed by manager PIN given from the manager's own device (Decided 2026-09-05, replacing a PIN typed on the warehouse phone)                              | BUILT                                 |
-| 13  | Dispatch                                | Warehouse · Warehouse                                      | `packed → dispatched`; stock moves warehouse → vehicle; delivery challan printed                                                                                        | BUILT                                 |
-| 14  | Run the trip                            | Delivery crew · Delivery                                   | Trip and next stop, maps hand-off for navigation                                                                                                                        | BUILT                                 |
-| 15a | Deliver in full                         | Delivery crew · Delivery                                   | `delivered` + proof of delivery (signature, photo, per tenant policy)                                                                                                   | BUILT                                 |
-| 15b | Deliver in part                         | Delivery crew · Delivery                                   | Per-line quantity and reason → **credit note**, never an invoice edit                                                                                                   | BUILT                                 |
-| 15c | Fail the stop                           | Delivery crew · Delivery                                   | Reason recorded, stock stays on the vehicle                                                                                                                             | BUILT                                 |
-| 16  | Collect at the door                     | Delivery crew · Delivery                                   | Cash, UPI with UTR, or cheque. Receipt allocated **oldest bill first** unless tagged                                                                                    | BUILT                                 |
-| 17  | Van sale from vehicle stock             | Delivery crew · Delivery                                   | Normal invoice series — no separate van-sale numbering (Decided 2026-09-04)                                                                                             | BUILT                                 |
-| 18  | Trip check-in                           | Delivery crew · Delivery                                   | Unsold stock counted back in, cash settled; variance beyond the owner's tolerance blocks the close and needs owner approval                                             | BUILT                                 |
-| 19  | Day-end                                 | Manager / accountant · Manager                             | Registers, bank deposits, cheques, brand-DMS bills captured                                                                                                             | BUILT                                 |
-| 20  | Shop is informed                        | System                                                     | Invoice, proof of delivery and receipt on WhatsApp; the shop can also pay online in the Retailer app                                                                    | BUILT — `notifications`               |
+| #   | Step                                    | Actor · App                                                | System result                                                                                                                                           |
+| --- | --------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Open today's beat                       | Salesperson · Sales                                        | Beat plan with shop sequence and last-order context                                                                                                     |
+| 2   | Check in at the shop                    | Salesperson · Sales                                        | Geo-tagged visit — **evidence, never a block** on ordering                                                                                              |
+| 3   | Build the order                         | Salesperson · Sales                                        | Reorder-last, suggested list or grid; cases and pieces; live available-to-promise **hint**                                                              |
+| 4   | Price and credit check on the device    | System · Sales                                             | `pricing.quote`: tier price → retailer override → schemes → approved bargain → cash discount **reported, not deducted**. Credit exposure checked        |
+| 5a  | Inside limits: submit                   | Salesperson · Sales                                        | Order `draft → submitted`                                                                                                                               |
+| 5b  | Bargain or over limit: request approval | Salesperson · Sales                                        | Approval request (price variance, credit, minimum order value, bargain)                                                                                 |
+| 6   | Approve or reject                       | Owner · Owner                                              | Rejection is a cancel with a reason code                                                                                                                |
+| 7   | Confirm                                 | System                                                     | Server **re-prices at the same pricing version** and reserves stock; `submitted → confirmed`                                                            |
+| 8   | Fulfilment queue by beat or trip        | Warehouse · Warehouse                                      | Wave of confirmed orders                                                                                                                                |
+| 9   | Picklist and pick                       | Warehouse · Warehouse                                      | Consolidated by SKU, FEFO lots, actual lots recorded; `confirmed → picking`                                                                             |
+| 10  | Pack per order                          | Warehouse · Warehouse                                      | `picking → packed`. A short pack is a **pack row, never an order edit**                                                                                 |
+| 11  | **Invoice issued at pack**              | System · Warehouse                                         | GST tax invoice on the tenant's own series, distributor's name and logo, UPI QR (shops are GST-registered; the B2B tax invoice is the primary document) |
+| 12  | Load sheet and manager approval         | Warehouse raises · **Manager approves in the Manager app** | Crew count confirmed by manager PIN given from the manager's own device, never typed on the warehouse phone                                             |
+| 13  | Dispatch                                | Warehouse · Warehouse                                      | `packed → dispatched`; stock moves warehouse → vehicle; delivery challan printed                                                                        |
+| 14  | Run the trip                            | Delivery crew · Delivery                                   | Trip and next stop, maps hand-off for navigation                                                                                                        |
+| 15a | Deliver in full                         | Delivery crew · Delivery                                   | `delivered` + proof of delivery (signature, photo, per tenant policy)                                                                                   |
+| 15b | Deliver in part                         | Delivery crew · Delivery                                   | Per-line quantity and reason → **credit note**, never an invoice edit                                                                                   |
+| 15c | Fail the stop                           | Delivery crew · Delivery                                   | Reason recorded, stock stays on the vehicle                                                                                                             |
+| 16  | Collect at the door                     | Delivery crew · Delivery                                   | Cash, UPI with UTR, or cheque. Receipt allocated **oldest bill first** unless tagged                                                                    |
+| 17  | Van sale from vehicle stock             | Delivery crew · Delivery                                   | Normal invoice series — no separate van-sale numbering                                                                                                  |
+| 18  | Trip check-in                           | Delivery crew · Delivery                                   | Unsold stock counted back in, cash settled; variance beyond the owner's tolerance blocks the close and needs owner approval                             |
+| 19  | Day-end                                 | Manager / accountant · Manager                             | Registers, bank deposits, cheques, brand-DMS bills captured                                                                                             |
+| 20  | Shop is informed                        | System                                                     | Invoice, proof of delivery and receipt on WhatsApp through the `notifications` module; the shop can also pay online in the Retailer app                 |
 
-**Second order source.** The shop itself orders — reorder from the Retailer app or free text on WhatsApp — and joins the same loop at step 5a (Decided 2026-09-05: the Retailer app **places** orders; version 1.0 marked customer self-ordering as "future").
+**Second order source.** The shop itself orders — reorder from the Retailer app or free text on WhatsApp — and joins the same loop at step 5a.
 
 **Order-to-cash exceptions.**
 
-| Exception                          | How the process handles it                                                               | Status                                          |
-| ---------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Insufficient stock                 | Available-to-promise hint at capture, authoritative check at confirm, short pack at pack | BUILT                                           |
-| Credit limit exceeded              | Approval request to the owner; the order does not silently proceed                       | BUILT                                           |
-| Customer unavailable / shop closed | Stop fails with a reason; stock returns on the vehicle                                   | BUILT                                           |
-| Partial delivery                   | Per-line quantity and reason → credit note                                               | BUILT                                           |
-| Damaged goods                      | Damaged location, inbound discrepancy, `return_damaged`                                  | BUILT                                           |
-| Payment mismatch at settlement     | Variance recorded; trip closes as `settled_with_variance` with owner approval            | BUILT                                           |
-| Network unavailable                | Offline upload **never** answers 4xx; rejections are recorded and shown, never lost      | BUILT — sales and delivery work offline          |
-| Wrong product picked               | Only short pack and FEFO override exist; there is no mis-pick correction step            | GAP NAMED                                       |
-| Vehicle breakdown                  | Cancel before departure, or return the trip and fail the open stops                      | BUILT, GAP NAMED                                |
+| Exception                          | How the process handles it                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Insufficient stock                 | Available-to-promise hint at capture, authoritative check at confirm, short pack at pack                              |
+| Credit limit exceeded              | Approval request to the owner; the order does not silently proceed                                                    |
+| Customer unavailable / shop closed | Stop fails with a reason; stock returns on the vehicle                                                                |
+| Partial delivery                   | Per-line quantity and reason → credit note                                                                            |
+| Damaged goods                      | Damaged location, inbound discrepancy, `return_damaged`                                                               |
+| Payment mismatch at settlement     | Variance recorded; trip closes as `settled_with_variance` with owner approval                                         |
+| Network unavailable                | Offline upload **never** answers 4xx; rejections are recorded and shown, never lost. Sales and delivery work offline  |
+| Wrong product picked               | Only short pack and FEFO override exist; there is no mis-pick correction step                                         |
+| Vehicle breakdown                  | Cancel before departure, or return the trip and fail the open stops; a breakdown path of its own is not available yet |
 
 # Process 2 — Stock In: Supplier Bill to Goods Received
 
-"Zero manual entry" has a precise meaning: **zero typing except the blind gate count.** This flow replaces the version 1.0 steps Purchase Planning, Goods Receipt, Quality Check and Warehouse Putaway with what the product actually does.
+"Zero manual entry" has a precise meaning: **zero typing except the blind gate count.** This flow takes the place of separate goods-receipt, quality-check and putaway steps with what the product actually does.
 
 1. **Blind gate count.** The warehouse counts what arrived without seeing the bill quantities. This is the only typing in the flow.
 2. **Capture the bill.** Photograph or share the supplier invoice from the Warehouse app.
@@ -119,7 +115,7 @@ The single loop every order travels. Each step names the actor, the app and the 
 
 **Brand-DMS lane (pilot reality).** Too Yumm is billed by the brand in FieldAssist DMS. Those bills are captured before loading and committed as `source = brand_dms_import` — **a receivable in; no stock movement**, because the brand's field force already moved the goods on its own documents — and are **never re-issued as a second legal invoice**.
 
-**Status.** Every step is BUILT — the gate count, the GRN post and `sellable_stock`, and steps 3–7 in the `docint` module. Purchase planning and reorder suggestion come from the AI module below, also built. **NOT IN V1:** racks and bins, barcode scanning of picks, and a separate quality-check state — short and damaged are handled at the gate and in review.
+**Where each step lives.** Steps 3–7 run in the `docint` module, alongside the gate count, the GRN post and the `sellable_stock` view. Purchase planning and reorder suggestion come from the AI module below. **NOT IN V1:** racks and bins, barcode scanning of picks, and a separate quality-check state — short and damaged are handled at the gate and in review.
 
 # Process 3 — Money: Who May Collect
 
@@ -130,7 +126,7 @@ The single loop every order travels. Each step names the actor, the app and the 
 | At the office   | Owner, manager, accountant | Owner, Manager | Payment received at the desk                                                             |
 | **Salesperson** | **Never**                  | —              | The sales service has **no receipt endpoint** and the permission matrix never grants one |
 
-**Decided 2026-09-04: only delivery collects money, or the shop pays online; the salesperson never does.** This replaces the version 1.0 persona statement that collections are a sales-representative responsibility. The salesperson may **see** a shop's outstanding and its credit check (Decided 2026-09-05) — visibility without a cash box.
+**Only delivery collects money, or the shop pays online; the salesperson never does.** The salesperson may **see** a shop's outstanding and its credit check — visibility without a cash box.
 
 Rules that follow every receipt:
 
@@ -138,40 +134,40 @@ Rules that follow every receipt:
 2. Every receipt posts to a double-entry journal that **must balance at commit** — enforced by a database trigger, not by application code.
 3. Outstanding and ageing are recomputed into buckets 0–7, 8–15, 16–30, 31–60, 61–90 and 90+ days. "Overdue" is derived, never stored as a state.
 4. A cheque moves collected → deposited; a bounce posts a reversal plus bank charges and reopens the bill.
-5. Cash discount is shown on the bill and realised as a credit note **only when the payment arrives on time** (Decided 2026-09-04).
+5. Cash discount is shown on the bill and realised as a credit note **only when the payment arrives on time**.
 6. Write-off is back-office only.
 7. Cash on a vehicle counts toward expected cash at settlement; variance beyond the owner's tolerance blocks the trip close.
 
-**NOT IN V1:** bank-statement reconciliation. The version 1.0 payment ladder's "Verified" and "Reconciled" stages do not exist; receipt status is collected, deposited, bounced or cancelled. Distribution OS also does not move money itself — no payments aggregation, no lending, no fintech.
+**NOT IN V1:** bank-statement reconciliation. There are no "Verified" or "Reconciled" payment stages; receipt status is collected, deposited, bounced or cancelled. Distribution OS also does not move money itself — no payments aggregation, no lending, no fintech.
 
 # Process 4 — Sign-In and Permissions
 
-1. The app posts username, password and a device id to auth-service :3000. **Decided 2026-09-04: username and password with our own token service; OTP over SMS or WhatsApp is a later layer on top, not a replacement.**
+1. The app posts username, password and a device id to auth-service :3000. **Sign-in is a username and a password on the product's own token service; OTP over SMS or WhatsApp comes after version 1, as a layer on top, not a replacement.**
 2. The password is verified against an argon2id hash; five failures lock the account for fifteen minutes.
 3. The service returns a 15-minute access token and a rotating per-device refresh token. Reuse of an old refresh token revokes the session.
 4. Every request to a role service is checked twice: the service refuses roles it does not serve **before any business logic**, then the permission matrix decides the specific endpoint. The guard fails closed on an undeclared route.
 5. The database transaction sets the tenant, actor and role, and row-level security returns only the rows that tenant and role may see.
 6. A user with more than one distributor — a shop buying from several, or shared staff — switches distributor without signing in again.
 
-**Added 2026-09-21, landing before go-live.** The app opens on a **Welcome** screen — the Distribution OS mark, one line, this app's name and a Sign in button, shown once per device until a session exists — and lands after sign-in on **who you are**: the distributor's (or shop's) logo and name, the person's name, and which role this is. The role itself is **elected at sign-in, downward only**: an owner may act as manager, accountant, warehouse, delivery or salesperson; a manager as warehouse, delivery or salesperson; every other staff role only as itself plus the extra roles the owner or manager grants; retailer and platform admin never as anything else. The token carries the elected role, so the services, the permission matrix and the database rules are untouched, and the person stays the actor on every audit row. An owner token is never let into a field app.
+**Welcome and role.** The app opens on a **Welcome** screen — the Distribution OS mark, one line, this app's name and a Sign in button, shown once per device until a session exists — and lands after sign-in on **who you are**: the distributor's (or shop's) logo and name, the person's name, and which role this is. The role itself is **elected at sign-in, downward only**: an owner may act as manager, accountant, warehouse, delivery or salesperson; a manager as warehouse, delivery or salesperson; every other staff role only as itself plus the extra roles the owner or manager grants; retailer and platform admin never as anything else. The token carries the elected role, so the services, the permission matrix and the database rules are untouched, and the person stays the actor on every audit row. An owner token is never let into a field app.
 
-**Branding.** Distribution OS appears only on the Welcome and sign-in screens. Inside the app and on every printed document the distributor's own name and logo appear (Decided 2026-09-04, white-label).
+**Branding.** Distribution OS appears only on the Welcome and sign-in screens. Inside the app and on every printed document the distributor's own name and logo appear (white-label).
 
 # AI Steps in the Process
 
-**Decided 2026-09-05: all four AI capabilities ship in v1, before the pilot** — the first four rows below; the fifth, vision extraction, was always part of document intake. This reverses the earlier plan to defer voice, WhatsApp parsing, forecasting and routing, and version 1.0's marking of voice and WhatsApp ordering as "future". The guardrail is fixed: **AI drafts, a human commits.**
+**All four AI capabilities are part of v1** — the first four rows below; the fifth, vision extraction, is part of document intake. The guardrail is fixed: **AI drafts, a human commits.**
 
-| Capability                                 | Where it sits in the process          | Guardrail                                                                                                       | Status                           |
-| ------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| WhatsApp free-text order capture           | Before step 5a of Process 1           | Parsed against that shop's own SKU and order history into a **draft**; always human-confirmed before submission | BUILT — `ai`                     |
-| Voice order capture                        | Before step 5a, in the Sales screens  | Speech to text into the same parser and the same human confirmation                                             | BUILT — `ai`                     |
-| Demand forecasting and reorder suggestions | Purchase planning, ahead of Process 2 | A suggested purchase quantity a buyer edits and approves; never an automatic purchase order                     | BUILT — `ai`                     |
-| Route sequencing                           | Between steps 13 and 14 of Process 1  | Stops ordered by distance and time windows; **the driver may override any sequence**                            | BUILT — `ai`                     |
-| Supplier-bill vision extraction            | Step 4 of Process 2                   | Human review before every GRN commit                                                                            | BUILT — `docint`                 |
+| Capability                                 | Where it sits in the process          | Guardrail                                                                                                       | Module   |
+| ------------------------------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------- | -------- |
+| WhatsApp free-text order capture           | Before step 5a of Process 1           | Parsed against that shop's own SKU and order history into a **draft**; always human-confirmed before submission | `ai`     |
+| Voice order capture                        | Before step 5a, in the Sales screens  | Speech to text into the same parser and the same human confirmation                                             | `ai`     |
+| Demand forecasting and reorder suggestions | Purchase planning, ahead of Process 2 | A suggested purchase quantity a buyer edits and approves; never an automatic purchase order                     | `ai`     |
+| Route sequencing                           | Between steps 13 and 14 of Process 1  | Stops ordered by distance and time windows; **the driver may override any sequence**                            | `ai`     |
+| Supplier-bill vision extraction            | Step 4 of Process 2                   | Human review before every GRN commit                                                                            | `docint` |
 
 # Core Business Object Lifecycles
 
-These are the coded state machines. Application code calls the machine; **no screen and no service ever writes a state column by hand.** Version 1.0's ladders are replaced here; states it named that do not exist are listed at the end.
+These are the coded state machines. Application code calls the machine; **no screen and no service ever writes a state column by hand.**
 
 **Sales Order** — `draft → submitted → confirmed → picking → packed → dispatched → delivered | partially_delivered → closed`
 
@@ -190,42 +186,42 @@ These are the coded state machines. Application code calls the machine; **no scr
 
 **Supplier document (intake)** — `uploaded → verifying → extracting → extracted | needs_review → reviewed → committed`, with `rejected` and `failed` reachable from any non-terminal state. Only a human review can reach `committed`.
 
-**Purchase Order** — a status list (`draft`, `sent`, `partially_received`, `received`, `cancelled`), not yet a state machine. Version 1.0's Submitted, Approved and Closed stages do not exist. **GAP NAMED.**
+**Purchase Order** — a status list (`draft`, `sent`, `partially_received`, `received`, `cancelled`), not a state machine. There are no Submitted, Approved or Closed stages.
 
-**States named in version 1.0 that are not states:** Validated and Reserved (both collapse into `confirmed`), Loaded (it is the load sheet), Accepted (no driver acceptance step), Payment Collected (a receipt, not a stop state), Verified and Reconciled (no bank reconciliation).
+**Stages that are not states:** Validated and Reserved (both collapse into `confirmed`), Loaded (it is the load sheet), Accepted (no driver acceptance step), Payment Collected (a receipt, not a stop state), Verified and Reconciled (no bank reconciliation).
 
-# Steps From Version 1.0 That Are Not in v1
+# Steps That Are Not in v1
 
-| Version 1.0 step                                           | Decision                                                                                                                                 |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Purchase Planning                                          | Replaced by AI reorder suggestions; no separate planning workflow                                                                        |
-| Quality Check as a stage                                   | Handled as short and damaged at the gate and in review; no QC state                                                                      |
-| Warehouse Putaway, racks, bins, barcode scanning           | NOT IN V1 — stock lands in the godown location; the only QR in the product is e-invoice verification                                     |
-| Analytics as a workflow stage                              | Reporting is a module, not a step in the loop; the owner's graphs are its first consumer                                                 |
-| Per-organisation custom roles, statuses and approval flows | NOT IN V1 — one fixed matrix over seven roles, fixed state machines, fixed approval kinds                                                |
-| Multiple branches                                          | **Decided 2026-09-05:** one tenant = one distributorship for v1; multi-branch is v2, each branch its own tenant with an owner group view |
+| Step                                                       | In Distribution OS                                                                                                              |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Purchase Planning                                          | Replaced by AI reorder suggestions; no separate planning workflow                                                               |
+| Quality Check as a stage                                   | Handled as short and damaged at the gate and in review; no QC state                                                             |
+| Warehouse Putaway, racks, bins, barcode scanning           | NOT IN V1 — stock lands in the godown location; the only QR in the product is e-invoice verification                            |
+| Analytics as a workflow stage                              | Reporting is a module, not a step in the loop; the owner's graphs are its first consumer                                        |
+| Per-organisation custom roles, statuses and approval flows | NOT IN V1 — one fixed matrix over seven roles, fixed state machines, fixed approval kinds                                       |
+| Multiple branches                                          | One tenant = one distributorship in v1; multi-branch comes after version 1, each branch its own tenant with an owner group view |
 
 # The Nine Business Domains
 
-Version 1.0 organised the business into nine domains. All nine survive; the table states how each is covered today.
+The business is organised into nine domains; the table states how each is covered.
 
-| Domain           | Coverage in Distribution OS                                                                                           | Status                                              |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| Procurement      | Suppliers, pack configurations, purchase orders, supplier invoices, GRN, discrepancies, returns to supplier           | BUILT, `docint` included                            |
-| Inventory        | Locations, lots, batches, expiry, transfers, adjustments, cycle counts, reservations — **no bins**                    | BUILT                                               |
-| Sales            | Rep capture, shop self-order, WhatsApp and voice capture, imports; call-centre orders are the desk placing an order   | BUILT, `ai` included                                |
-| Order Fulfilment | The twenty steps of Process 1                                                                                         | BUILT                                               |
-| Logistics        | Vehicles, trips, stops, GPS, live tracking, delivery confirmation, route sequencing                                   | BUILT, routing included                             |
-| Finance          | Receivables, receipts, credit, collections, credit notes and reversals, journals, Tally export                        | BUILT                                               |
-| CRM              | Retailers, contacts, visits, schemes, promotions — **complaints not modelled**                                        | BUILT, GAP NAMED                                    |
-| Analytics        | KPIs, registers, owner graphs, forecasts, alerts                                                                      | BUILT — `reporting`, `notifications`                |
-| Administration   | Users, the seven fixed roles, permission matrix, organisation settings, numbering, feature flags, audit, integrations | BUILT                                               |
+| Domain           | Coverage in Distribution OS                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Procurement      | Suppliers, pack configurations, purchase orders, supplier invoices, GRN, discrepancies, returns to supplier; document intake (`docint`) |
+| Inventory        | Locations, lots, batches, expiry, transfers, adjustments, cycle counts, reservations — **no bins**                                      |
+| Sales            | Rep capture, shop self-order, WhatsApp and voice capture (`ai`), imports; call-centre orders are the desk placing an order              |
+| Order Fulfilment | The twenty steps of Process 1                                                                                                           |
+| Logistics        | Vehicles, trips, stops, GPS, live tracking, delivery confirmation, route sequencing                                                     |
+| Finance          | Receivables, receipts, credit, collections, credit notes and reversals, journals, Tally export                                          |
+| CRM              | Retailers, contacts, visits, schemes, promotions — **complaints not modelled**                                                          |
+| Analytics        | KPIs, registers, owner graphs, forecasts, alerts (`reporting`, `notifications`)                                                         |
+| Administration   | Users, the seven fixed roles, permission matrix, organisation settings, numbering, feature flags, audit, integrations                   |
 
 # Automation and Real-Time Visibility
 
-Automation that exists today: stock reserved on confirm; picklists generated and FEFO lots chosen; the invoice issued automatically at pack; overdue flagged by computation; ageing recomputed on every receipt; the permission decision made before business logic; customer notifications and payment reminders; commission and incentive calculation; reporting and the owner's graphs; low-stock alerts; and the AI steps above.
+Automation in the product: stock reserved on confirm; picklists generated and FEFO lots chosen; the invoice issued automatically at pack; overdue flagged by computation; ageing recomputed on every receipt; the permission decision made before business logic; customer notifications and payment reminders; commission and incentive calculation; reporting and the owner's graphs; low-stock alerts; and the AI steps above.
 
-At any moment the system answers: where is the order (order state and stop state); where is the crew (GPS points and the owner's live map); what stock is available; which shops are overdue and by how much; which deliveries failed and why; which salesperson is behind target. Every activity also writes an event to an outbox that drives notifications, integrations, audit and dashboards — the event-driven design of version 1.0, now with a named mechanism.
+At any moment the system answers: where is the order (order state and stop state); where is the crew (GPS points and the owner's live map); what stock is available; which shops are overdue and by how much; which deliveries failed and why; which salesperson is behind target. Every activity also writes an event to an outbox that drives notifications, integrations, audit and dashboards.
 
 # Success Criteria
 
@@ -233,6 +229,4 @@ The future-state workflow succeeds when: orders are captured digitally at source
 
 # Related Documents
 
-AS-IS Business Process · Pain Point Analysis · Personas · Product Principles · Product Goals · Success Metrics (KPIs) · Problem Statement · Founder Decisions Register.
-
-**Source of truth.** This page mirrors `docs/22-source-of-truth.md` in the repository (§4 order to cash, §5 stock in, §6 money, §7 sign-in, §8 dated decisions, §9 non-negotiables). Where this page and that file disagree, the file wins and this page is corrected. Build status figures come from `docs/18-build-log.md`; screen-level detail from `docs/23-app-screens-and-api-gaps.md`.
+AS-IS Business Process · Pain Point Analysis · Personas · Product Principles · Product Goals · Success Metrics (KPIs) · Problem Statement.

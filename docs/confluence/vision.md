@@ -2,18 +2,18 @@
 
 ## Document Information
 
-| Property     | Value              |
-| ------------ | ------------------ |
-| Document     | Product Vision     |
-| Product      | Distribution OS    |
-| Version      | 2.1                |
-| Status       | Active             |
-| Owner        | Product Management |
-| Last Updated | 21 September 2026  |
+| Property     | Value             |
+| ------------ | ----------------- |
+| Document     | Product Vision    |
+| Product      | Distribution OS   |
+| Version      | 2.2               |
+| Status       | Active            |
+| Owner        | Prajwal Chavan    |
+| Last Updated | 29 September 2026 |
 
-**Decided 2026-09-05:** the product name is **Distribution OS** (two words). Earlier drafts of this space used "DistributionOS".
+The product name is **Distribution OS** (two words).
 
-**Decided 2026-09-21:** there is **one app**, named **Distribution OS**, and it becomes the right app for whoever signs in. The six business roles — owner, manager (with the accountant), sales, warehouse, delivery and retailer — share one application on web, Android and iOS; the role is elected at sign-in and the app mounts that role's screens and its backend service. The internal platform console stays a separate application. This replaces the earlier six-apps-one-per-role shape: one listing in each store, one install for a distributor's staff, and one front door to prove.
+There is **one app**, named **Distribution OS**, and it becomes the right app for whoever signs in. The six business roles — owner, manager (with the accountant), sales, warehouse, delivery and retailer — share one application, served as one website and one Android app; the iOS app is built from the same code and is not released yet. The role is chosen at sign-in, and the app opens that role's screens and talks to that role's backend service. The internal platform console is a separate application. There is one listing in each store, one install for a distributor's staff, and one front door.
 
 ---
 
@@ -22,8 +22,6 @@
 This document defines the long-term vision for Distribution OS.
 
 It establishes why the product exists, the business problems it aims to solve, and the future direction of the platform. Every product, engineering, and business decision should align with this vision.
-
-**Decided 2026-09-05:** `docs/22-source-of-truth.md` in the repository is the single source of truth for product shape and founder decisions. This space mirrors it. Where the two disagree, docs/22 wins and this page is corrected.
 
 # Vision Statement
 
@@ -57,22 +55,22 @@ Distribution OS aims to solve these challenges by providing one unified platform
 
 # What Makes Distribution OS Stand Out for Local FMCG Distribution
 
-The category is crowded, but nobody sells the local distributor a system **he** owns across brands at SMB prices. Brand DMS products (Botree, FieldAssist, Shikhar) serve the manufacturer; billing packages (Marg, Vyapar, Busy, TradeEzee) stop at the invoice; marketplaces (Udaan, Jumbotail) compete with the distributor. These seven capabilities are the difference, and **all of them are in v1 (decided 2026-09-05)**.
+The category is crowded, but nobody sells the local distributor a system **he** owns across brands at SMB prices. Brand DMS products (Botree, FieldAssist, Shikhar) serve the manufacturer; billing packages (Marg, Vyapar, Busy, TradeEzee) stop at the invoice; marketplaces (Udaan, Jumbotail) compete with the distributor. These seven capabilities are the difference, and **all of them are in v1**.
 
-| #   | Standout capability                                                                                                                                                                                                                                                                | Why it wins locally                                                                                              | Status                                                                                           |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 1   | **Zero-typing document intake** — photograph the supplier bill; e-invoice QR/IRN verification, LLM vision extraction, GST arithmetic and pack-size validators, SKU matching, human review, then a single idempotent goods-receipt commit. The only typing is the blind gate count. | No Indian DMS or billing product reads purchase invoices. This is the capability the pilot customer converts on. | Built and verified — QR/IRN verification, extraction, validators, SKU match, review and the goods-receipt commit                                          |
-| 2   | **Brand-DMS coexistence** — bills raised in a brand's own DMS (FieldAssist) are captured and imported as `brand_dms_import` so stock and receivables stay whole. A brand-DMS sale is **never** re-invoiced.                                                                        | The distributor stops keeping two truths. No competitor treats a rival DMS as a first-class input.               | Flow decided and enforced as a non-negotiable                                                    |
-| 3   | **White-label by default** — each distributor sees their own name and logo in the apps and on every printed document; Distribution OS branding appears only on the sign-in screen. Decided 2026-09-04.                                                                             | The distributor's customers see the distributor, not a vendor. Retailers trust the bill.                         | Branding keys in tenant settings                                                                 |
-| 4   | **Field apps that never block** — no sync button, geo-tag as evidence rather than a gate, offline uploads that never answer an error, rejections recorded and shown instead of lost.                                                                                               | Six years of top-voted complaints against field-force apps are exactly these.                                    | Built — offline contract, the device sync client and the sales and delivery apps on it |
-| 5   | **AI order capture** — a free-text WhatsApp message or a spoken order becomes a draft order, parsed against that shop's own purchase history, and is **always confirmed by a human** before it is submitted.                                                                       | Shops already order on WhatsApp and by phone. This removes the re-keying without removing the check.             | v1, decided 2026-09-05                                                                           |
-| 6   | **Demand forecasting and reorder suggestions** for purchase planning.                                                                                                                                                                                                              | Purchase decisions today rest on memory.                                                                         | v1, decided 2026-09-05                                                                           |
-| 7   | **Route sequencing** — stops ordered by distance and time window, with a driver override, handing off to the phone's own maps app.                                                                                                                                                 | Delivery order is currently decided on the van.                                                                  | v1, decided 2026-09-05 (this reverses the earlier "route optimisation: do not build" position)   |
+| #   | Standout capability                                                                                                                                                                                                                                                                | Why it wins locally                                                                                  |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 1   | **Zero-typing document intake** — photograph the supplier bill; e-invoice QR/IRN verification, LLM vision extraction, GST arithmetic and pack-size validators, SKU matching, human review, then a single idempotent goods-receipt commit. The only typing is the blind gate count. | No Indian DMS or billing product reads purchase invoices.                                            |
+| 2   | **Brand-DMS coexistence** — bills raised in a brand's own DMS (FieldAssist) are captured and imported as `brand_dms_import` so stock and receivables stay whole. A brand-DMS sale is **never** re-invoiced.                                                                        | The distributor stops keeping two truths. No competitor treats a rival DMS as a first-class input.   |
+| 3   | **White-label by default** — each distributor sees their own name and logo in the app and on every printed document; Distribution OS branding appears only on the sign-in screen. The branding is held in the distributor's settings.                                              | The distributor's customers see the distributor, not a vendor. Retailers trust the bill.             |
+| 4   | **Field screens that never block** — no sync button, geo-tag as evidence rather than a gate, offline uploads that never answer an error, rejections recorded and shown instead of lost.                                                                                            | Six years of top-voted complaints against field-force apps are exactly these.                        |
+| 5   | **AI order capture** — a free-text WhatsApp message or a spoken order becomes a draft order, parsed against that shop's own purchase history, and is **always confirmed by a human** before it is submitted.                                                                       | Shops already order on WhatsApp and by phone. This removes the re-keying without removing the check. |
+| 6   | **Demand forecasting and reorder suggestions** for purchase planning.                                                                                                                                                                                                              | Purchase decisions otherwise rest on memory.                                                         |
+| 7   | **Route sequencing** — stops ordered by distance and time window, with a driver override, handing off to the phone's own maps app.                                                                                                                                                 | Without it, delivery order is decided on the van.                                                    |
 
 Two further guarantees are structural rather than features, and they matter to the owner more than any screen:
 
 - **Purchase cost, landed cost and margin are unreadable by the salesperson, warehouse, delivery and retailer roles.** This is a database policy with tests, not an application rule.
-- **The salesperson never records a receipt.** Only the delivery crew at the door, the shop paying online, or the back office at the desk may take money. Decided 2026-09-04.
+- **The salesperson never records a receipt.** Only the delivery crew at the door, the shop paying online, or the back office at the desk may take money.
 
 # Product Philosophy
 
@@ -88,11 +86,11 @@ Operational data should exist only once and be shared across all modules. Stock 
 
 ### Mobile First
 
-Field users should be able to perform every essential business activity from a mobile device. **Decided 2026-09-04, revised 2026-09-21:** every role's full job is on the phone, and the product ships on **web, Android and iOS** — this replaces the earlier "web for managers, mobile for field" split. The six business roles now share **one** app that becomes the right app after sign-in, rather than one app per role.
+Field users should be able to perform every essential business activity from a mobile device. Every role's full job is on the phone as well as on the web: the product is one website and one Android app, and the iOS app is built from the same code and is not released yet. The six business roles share **one** app that becomes the right app after sign-in.
 
 ### Real-Time Visibility
 
-Business owners should have immediate access to operational information without waiting for end-of-day reports. **Decided 2026-09-04:** the owner app leads with graphs — growth and performance — not tables alone.
+Business owners should have immediate access to operational information without waiting for end-of-day reports. The owner's screens lead with graphs — growth and performance — not tables alone.
 
 ### Automation by Default
 
@@ -100,7 +98,7 @@ Manual processes should be replaced with intelligent workflows wherever possible
 
 ### AI in the Product, Not "AI Ready"
 
-**Decided 2026-09-05:** the AI capabilities below are in v1, before the pilot, rather than a later stage:
+The AI capabilities below are part of v1:
 
 - WhatsApp free-text order capture (human-confirmed)
 - Voice order capture (same parser, human-confirmed)
@@ -108,36 +106,36 @@ Manual processes should be replaced with intelligent workflows wherever possible
 - Demand forecasting and reorder suggestions
 - Delivery route sequencing
 
-Sales recommendations, credit-risk scoring and a conversational assistant remain later-stage ambitions and are **not** in v1.
+Sales recommendations, credit-risk scoring and a conversational assistant are **not** in v1; they come after version 1.
 
 # Long-Term Product Vision
 
-Distribution OS evolves across the stages below. **Decided 2026-09-05:** stages 1 to 4, plus the AI capabilities listed above, are all v1 — the retailer network is no longer a later stage, and a platform console has been added.
+Distribution OS evolves across the stages below. Stages 1 to 4, plus the AI capabilities listed above, are all v1.
 
-| Stage                          | Scope                                                                                                                                                                                                   | Timing                                                        |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 1 — Distribution Management    | Sales, purchase, inventory, warehouse, delivery, payments, GST billing, receivables and the double-entry journal                                                                                        | v1                                                            |
-| 2 — Connected Workforce        | Applications for owner, manager and accountant, sales representatives, warehouse operators and delivery executives                                                                                      | v1                                                            |
-| 3 — Connected Retail Network   | Retailers browse products, **place orders**, track deliveries, view outstanding balances, download invoices and **pay online**; one retailer login can be linked to several distributors, one card each | v1 — previously documented as "future", superseded 2026-09-05 |
-| 4 — Platform Console           | "Distribution OS - Admin", a separate application for Distribution OS staff, one codebase for web, Android and iOS like the rest: distributor onboarding, plans and subscription state, time-boxed and owner-approved audited support access | v1 — added 2026-09-05                                         |
-| 5 — Manufacturer Collaboration | Manufacturer visibility into distributor sales, stock levels, market demand, secondary sales and scheme performance                                                                                     | Future, not scheduled                                         |
-| 6 — Deeper Intelligence        | Inventory optimisation, credit-risk analysis, prescriptive insights, conversational assistant                                                                                                           | Future, built on the data v1 accumulates                      |
+| Stage                          | Scope                                                                                                                                                                                                                                        | Timing                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1 — Distribution Management    | Sales, purchase, inventory, warehouse, delivery, payments, GST billing, receivables and the double-entry journal                                                                                                                             | v1                                                |
+| 2 — Connected Workforce        | One app for owner, manager and accountant, sales representatives, warehouse operators and delivery executives                                                                                                                                | v1                                                |
+| 3 — Connected Retail Network   | Retailers browse products, **place orders**, track deliveries, view outstanding balances, download invoices and **pay online**; one retailer login can be linked to several distributors, one card each                                      | v1                                                |
+| 4 — Platform Console           | "Distribution OS - Admin", a separate application for Distribution OS staff, one codebase for web, Android and iOS like the rest: distributor onboarding, plans and subscription state, time-boxed and owner-approved audited support access | v1                                                |
+| 5 — Manufacturer Collaboration | Manufacturer visibility into distributor sales, stock levels, market demand, secondary sales and scheme performance                                                                                                                          | After version 1                                   |
+| 6 — Deeper Intelligence        | Inventory optimisation, credit-risk analysis, prescriptive insights, conversational assistant                                                                                                                                                | After version 1, built on the data v1 accumulates |
 
 ---
 
 # Target Industries
 
-**Decided 2026-09-05: the positioning stays multi-industry, with FMCG first.** The product is deliberately FMCG-shaped today — batch, expiry, case-and-piece quantities, schemes and claims, beat plans — and will stay so until a customer in a second industry is signed. Adjacent markets are a sequencing decision, not a hedge.
+**The positioning is multi-industry, with FMCG first.** The product is deliberately FMCG-shaped — batch, expiry, case-and-piece quantities, schemes and claims, beat plans — and the other industries are later markets.
 
 **First market (v1):** FMCG — packaged foods, beverages, bottled water, bakery, chocolates and confectionery, household products, personal care.
 
-**Adjacent markets, after the first FMCG customers are live:**
+**Adjacent markets, after FMCG:**
 
 - Dairy, frozen foods and ice cream — the same batch-and-expiry model, with cold-chain fields added
 - Electrical goods and consumer durables — serial numbers and warranty tracking would be new
 - Agricultural products; pharmaceuticals is the most demanding (schedule drugs, licence numbers, stricter traceability)
 
-The platform stays configurable enough to support additional industries without re-architecture, but **no industry-specific work is scheduled before FMCG is proven in the pilot**.
+The platform stays configurable enough to support additional industries without re-architecture; industry-specific features for them are not available yet.
 
 ---
 
@@ -156,11 +154,11 @@ The platform is designed for organisations ranging from small distributors to la
 ### Enterprise Distributor
 
 - Multiple warehouses, hundreds of employees, high transaction volumes, advanced analytics, integration with external systems
-- **Decided 2026-09-05:** for the pilot and v1, **one tenant is one distributorship**. Multi-branch support is v2, where each branch is its own tenant with a group view for the owner. Confluence pages that promised branch-level hierarchy in v1 are corrected by this decision.
+- In v1, **one tenant is one distributorship**; there is no branch-level hierarchy. Multi-branch support comes after version 1: each branch is its own tenant, with a group view for the owner.
 
 ### Pilot customer
 
-Tarsun Enterprises, Kalyan West — a working FMCG distributorship billing today on TradeEzee, with one brand (Too Yumm) mandated onto FieldAssist DMS, carrying Campa and MOM alongside, and roughly 36 shops in the demonstration data. The pilot is the design constraint, not an afterthought.
+Tarsun Enterprises, Kalyan West — a working FMCG distributorship that came to the product from TradeEzee billing, with one brand (Too Yumm) mandated onto FieldAssist DMS, carrying Campa and MOM alongside. The pilot is the design constraint, not an afterthought.
 
 ---
 
@@ -177,13 +175,13 @@ Success is measured by the ability to improve operational efficiency and busines
 - Increase customer satisfaction
 - Provide real-time business dashboards
 
-**Pilot conversion criteria.** The pilot distributor is expected to pay when three things are visibly true within two weeks of a parallel run:
+**Conversion criteria.** A distributor is expected to pay when three things are visibly true:
 
 1. Inbound stock enters by photograph with no typing except the blind gate count.
 2. The physical pending-bills file is on his phone — per-retailer ledger, ageing buckets, his own UPI QR on every bill, WhatsApp reminders with the PDF.
 3. His chartered accountant receives Tally XML that imports cleanly, unasked.
 
-Everything else is retention and is sequenced behind these three.
+Everything else is retention.
 
 ---
 
@@ -198,11 +196,11 @@ Distribution OS is not intended to be:
 - Only an accounting package — the journal and Tally export **complement** the distributor's accountant, they never replace him
 - A brand DMS — those serve the manufacturer; Distribution OS serves the distributor and coexists with them
 - A marketplace — it never competes with the distributor for his retailers
-- A payments business — **no aggregation, wallet, lending or BNPL**. Revenue is the distributor's subscription. Collections use the distributor's own UPI VPA. Decided 2026-08, unchanged.
+- A payments business — **no aggregation, wallet, lending or BNPL**. Revenue is the distributor's subscription. Collections use the distributor's own UPI VPA.
 
-Two further boundaries are worth stating because earlier drafts implied otherwise:
+Two further boundaries are worth stating:
 
-- **Roles and permissions are not customisable per organisation.** There is one fixed permission matrix, tested for every endpoint against every role. Decided 2026-09-04.
+- **Roles and permissions are not customisable per organisation.** There is one fixed permission matrix, tested for every endpoint against every role.
 - **Business states are not configurable.** Order, trip, stop and invoice states change only through coded state machines.
 
 ---
@@ -214,30 +212,15 @@ Every architectural and product decision should align with these principles:
 1. Multi-tenant SaaS architecture — one tenant per distributorship, isolated in the database itself by row-level security, not by application code.
 2. Modular design based on business domains, with enforced module boundaries.
 3. API-first development: the contract is declared once and both the services and the apps are generated against it.
-4. Security and privacy by design — per-endpoint permission matrix that fails closed, cost data invisible to field roles as a database guarantee.
-5. Mobile-first experience for field users; one app on web, Android and iOS, which becomes the right app for the role that signs in (2026-09-21).
-6. Cloud-native deployment, built for lakhs of users from day one.
-7. Extensible integration framework — **decided 2026-09-04:** data migration is a generic importer (upload, preview, map columns, save profile, dry run, commit) for any source, rather than per-vendor readers.
+4. Security and privacy by design — sign-in is a username and a password on the product's own token service (one-time passcodes are not available yet, and when added they sit on top of the password rather than replacing it); role election at sign-in goes downward only; a per-endpoint permission matrix that fails closed; cost data invisible to field roles as a database guarantee.
+5. Mobile-first experience for field users; one app, on the web and on Android, which becomes the right app for the role that signs in, on one layout, A Ledger.
+6. Cloud-native deployment, built for lakhs of users from day one: independently running services on one PostgreSQL 17 database with forced row-level security, hosted on Oracle Cloud in Mumbai, with the website on Cloudflare Pages at `www.distributionos.in`.
+7. Extensible integration framework — data migration is a generic importer (upload, preview, map columns, save profile, dry run, commit) for any source, rather than per-vendor readers.
 8. Event-driven business workflows where appropriate.
 9. Complete auditability: append-only stock and money ledgers, every mutation idempotent, an issued invoice never edited.
 10. Design for long-term scalability rather than short-term convenience.
 11. **White-label** — the distributor's identity, never ours, inside the product and on every document.
-12. **English only for now** (decided 2026-09-04); translation keys exist from day one so other languages are a data change, not a rewrite.
-
----
-
-# Where the Vision Stands Today
-
-Honest status as of **21 September 2026**, from `docs/18-build-log.md` and `QA/STATE.md`:
-
-| Area               | Status                                                                                                                                                                                                                                                                              |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend            | **Complete.** 23 business modules across 8 independently running services on one Postgres database with forced row-level security; 139 tables, 646 module specs, and 1,618 endpoint calls exercised ending 0 broken.                                                                |
-| Authentication     | Built: username and password with our own token service. **OTP is a later layer on top, not a replacement** (decided 2026-09-04). Role election at sign-in — downward only — is being added before go-live (decided 2026-09-21).                                                    |
-| Applications       | **Built.** All seven apps were gated green on 2026-09-07, each one codebase serving website + Android + iOS on the "A Ledger" layout chosen 2026-09-05. The six business apps merge into **one** app before go-live (decided 2026-09-21); the platform console stays separate.      |
-| Quality            | QA batch 1 (34 findings) fixed; batch 2 has **153 of 158** findings merged. A seven-day business simulation on the merged app is the last verdict before launch.                                                                                                                    |
-| Deployment         | Not deployed yet. Decided 2026-09-21: Oracle Cloud Always Free (Mumbai) with self-hosted PostgreSQL 17, Cloudflare Pages for the web, domain `distributionos.in`. **Go-live target: Saturday 27 September 2026.**                                                                   |
-| Demonstration data | Three distributors with staff under each and shops linked to more than one of them: 174 SKUs across 13 brands, 60 / 40 / 24 shops, 90 / 60 / 45 days of trading history. Multi-tenancy is proven with data rather than asserted.                                                    |
+12. **English** — the app is in English; translation keys exist from day one so other languages are a data change, not a rewrite.
 
 ---
 
@@ -245,4 +228,4 @@ Honest status as of **21 September 2026**, from `docs/18-build-log.md` and `QA/S
 
 Distribution OS aims to become the digital operating system for distribution businesses by replacing disconnected tools with an integrated platform that connects people, processes, inventory, logistics, finance, and intelligence.
 
-The near-term objective is narrower and sharper than the long-term one: **win the local FMCG distributor by removing the typing on the way in, making his outstanding whole across every brand he carries — including the brands that force their own DMS on him — and putting his business on his own phone under his own name.** The long-term objective is to build a scalable, cloud-native platform capable of serving distributors of all sizes across several industries, with the flexibility to expand into manufacturer collaboration, retailer engagement, and AI-powered business optimisation.
+The near-term objective is narrower and sharper than the long-term one: **win the local FMCG distributor by removing the typing on the way in, making his outstanding whole across every brand he carries — including the brands that force their own DMS on him — and putting his business on his own phone under his own name.** The long-term objective is to build a scalable, cloud-native platform capable of serving distributors of all sizes across several industries, with the flexibility to expand into manufacturer collaboration, retailer engagement, and AI-driven business optimisation.

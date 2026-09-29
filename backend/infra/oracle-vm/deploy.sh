@@ -6,7 +6,9 @@
 #
 # The website is a separate publish (frontend/scripts/pages-deploy.sh dos) and the Android APK a
 # separate build (docs/33). Migrations are expand-only (CLAUDE.md), so the old API keeps serving while
-# they run; rollback = `git checkout <previous sha>` here and run this again.
+# they run. Going back = a fix on top, released the same way. Old code on a newer database is NOT a way
+# back: from migration 0074 on it answers 500 to a goods receipt of a new batch, to a new distributor
+# and to a payment reference used twice (nothing is written wrongly; measured 2026-09-29, docs/33 §3).
 set -euo pipefail
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 KEY="$HOME/.ssh/dos_oracle"; VM="ubuntu@92.4.84.106"
