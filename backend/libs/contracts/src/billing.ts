@@ -496,7 +496,10 @@ export const IssueForPackOutput = InvoiceItemOutput
  */
 export const IssueVanSaleInvoiceInput = MutationBase.extend({
   id: IdSchema,
-  /** Must be a `van_sale` order fulfilled from `vehicleLocationId`. */
+  /**
+   * Must be a `van_sale` order fulfilled from `vehicleLocationId`. Nothing is billed off a van while a trip holds it
+   * (409 `vehicle_on_trip`): that trip's crew sells on its own van-sale door, `delivery.vanSales.create`.
+   */
   orderId: IdSchema,
   vehicleLocationId: IdSchema,
   invoiceDate: IsoDateSchema.optional(),
@@ -558,7 +561,12 @@ export const ImportBrandDmsInvoiceOutput = InvoiceItemOutput
 export const CancelInvoiceInput = MutationBase.extend({
   id: IdSchema,
   reason: z.string().trim().min(1).max(200),
-  /** Where the pieces go back; defaults to the order's fulfilment location. */
+  /**
+   * Where the pieces go back; defaults to the order's fulfilment location, and to the godown when that is a van, a
+   * batch that has expired going into the damaged / expiry bin. A van is never a place to put them back (409
+   * `restock_not_on_van`, or `vehicle_on_trip` while a trip holds it): architect ruling of 2026-09-28, the last
+   * stock row.
+   */
   restockLocationId: IdSchema.optional(),
   deviceId: DeviceIdSchema.optional(),
 })

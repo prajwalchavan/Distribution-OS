@@ -87,6 +87,7 @@ import { istDateWord } from '../../platform/refusal-words.js'
 import {
   coverFromDock,
   dockLocationId,
+  damagedBinPlace,
   InventoryService,
   pgConstraint,
   reservableLocationId,
@@ -987,6 +988,13 @@ export class BillingService {
     const ctx = currentTenant()
     return withTenant(db, ctx, (tx) =>
       idempotent(tx, input.idempotencyKey, input, async () => {
+        // This door names no trip, so it keeps none of a trip's pieces out of the sale: while a trip holds the van
+        // (loading, on the road, or back and not settled) nothing is billed off it here — the crew of that trip
+        // sells on its own van-sale screen, which holds the trip's bills and every other trip's pieces out
+        // (architect ruling of 2026-09-28, the last stock row: another trip's loaded pieces are never sold).
+        await this.inventory.assertVehicleNotOut(tx, input.vehicleLocationId, {
+          untilSettled: true,
+        })
         const row = await this.issueFromLocation(tx, {
           orderId: input.orderId,
           locationId: input.vehicleLocationId,
@@ -1068,12 +1076,16 @@ export class BillingService {
         const to = invoiceTransition(invoice.state, 'cancel')
         if (invoice.source === 'pack' && invoice.orderId)
           await this.assertOffEveryTrip(tx, invoice, 'cancel it')
-        // Vans and trips 1 (QA verify 3): a cancelled bill's pieces are not put onto a van a trip holds.
-        if (input.restockLocationId !== undefined)
+        // Vans and trips 1 (QA verify 3): a cancelled bill's pieces are not put onto a van a trip holds. And onto
+        // no van at all (architect ruling of 2026-09-28, the last stock row; QA verify 4, N1 "V4-CANCELONTO"): a
+        // cancelled bill's pieces stand on the dock, and they go back to the godown.
+        if (input.restockLocationId !== undefined) {
           await this.inventory.assertVehicleNotOut(tx, input.restockLocationId, {
             untilSettled: true,
             onto: true,
           })
+          await this.assertNotOntoAVan(tx, invoice, input.restockLocationId)
+        }
         await this.restock(tx, invoice, input.restockLocationId)
         await this.reverseInvoiceEntry(tx, invoice)
         /*
@@ -1720,6 +1732,78 @@ export class BillingService {
     return reservableLocationId(tx)
   }
 
+  /** A place's name and kind, or null when it is not one of this distributor's places. */
+  private async placeOf(
+    tx: Db,
+    locationId: string,
+  ): Promise<{ name: string; kind: string } | null> {
+    const { tenantId } = currentTenant()
+    const [row] = await tx
+      .select({ name: locations.name, kind: locations.kind })
+      .from(locations)
+      .where(and(eq(locations.tenantId, tenantId), eq(locations.id, locationId)))
+      .limit(1)
+    return row ?? null
+  }
+
+  /**
+   * NOTHING IS PUT BACK ONTO A VAN BY CANCELLING A BILL (architect ruling of 2026-09-28, the last stock row): 409
+   * `restock_not_on_van` for a restock place that is a vehicle, in words, before anything moves. A van a trip holds
+   * has already been refused `vehicle_on_trip` naming that trip.
+   */
+  private async assertNotOntoAVan(tx: Db, invoice: InvoiceRow, locationId: string): Promise<void> {
+    const place = await this.placeOf(tx, locationId)
+    if (place?.kind !== 'vehicle') return
+    throw new ORPCError('CONFLICT', {
+      message: `The pieces of bill ${invoice.invoiceNo ?? invoice.id} go back to the godown, not onto ${place.name}: a cancelled bill's pieces stand on the dock, and a van carries only its own trip's bills and van stock. Cancel the bill without a place — the godown takes them and expired ones go into the damaged / expiry bin — or name the godown.`,
+      data: { code: 'restock_not_on_van', locationId },
+    })
+  }
+
+  /**
+   * Where a cancelled bill's pieces go when the desk names no place: the order's own place, and THE godown when that
+   * place is a van — never a van (architect ruling of 2026-09-28, the last stock row; QA verify 4, N1: the default was
+   * the order's place, and an order served from a van put its cancelled bill's pieces back onto a van another trip
+   * held). Any other place keeps what it gave (a godown its pieces, the damaged bin its damaged ones: ruling 2,
+   * nothing leaves the bin for sale). A batch that has expired goes into the damaged / expiry bin instead (the same
+   * ruling, as undoing a pack does). A place the desk names is taken as named (a van refused before this).
+   */
+  private async restockPlaces(
+    tx: Db,
+    invoice: InvoiceRow,
+    restockLocationId: string | undefined,
+    lotIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    const to = new Map<string, string>()
+    if (restockLocationId !== undefined) {
+      for (const lotId of lotIds) to.set(lotId, restockLocationId)
+      return to
+    }
+    const named = invoice.orderId
+      ? ((await this.orders.findOrder(tx, invoice.orderId))?.fulfilFromLocationId ?? null)
+      : null
+    const home =
+      named !== null && (await this.placeOf(tx, named))?.kind !== 'vehicle'
+        ? named
+        : await this.warehouseLocation(tx)
+    const today = businessDate().date
+    const expired = new Set(
+      lotIds.length === 0
+        ? []
+        : (
+            await tx
+              .select({ id: stockLots.id, expiryDate: stockLots.expiryDate })
+              .from(stockLots)
+              .where(inArray(stockLots.id, [...lotIds]))
+          )
+            .filter((l) => l.expiryDate !== null && l.expiryDate < today)
+            .map((l) => l.id),
+    )
+    const bin = expired.size > 0 ? (await damagedBinPlace(tx)).id : null
+    for (const lotId of lotIds) to.set(lotId, bin !== null && expired.has(lotId) ? bin : home)
+    return to
+  }
+
   private async assertVehicleLocation(tx: Db, locationId: string): Promise<void> {
     const { tenantId } = currentTenant()
     const [row] = await tx
@@ -2116,12 +2200,8 @@ export class BillingService {
       byLot.set(line.lotId, (byLot.get(line.lotId) ?? 0) + line.qtyPcs + line.freeQtyPcs)
     }
     if (byLot.size === 0) return
-    const locationId =
-      restockLocationId ??
-      (invoice.orderId
-        ? ((await this.orders.findOrder(tx, invoice.orderId))?.fulfilFromLocationId ??
-          (await this.warehouseLocation(tx)))
-        : await this.warehouseLocation(tx))
+    const places = await this.restockPlaces(tx, invoice, restockLocationId, [...byLot.keys()])
+    const placeOf = (lotId: string): string => places.get(lotId) ?? ''
     const note = `cancelled invoice ${invoice.invoiceNo ?? invoice.id}`
     if (invoice.source === 'pack' && invoice.orderId !== null) {
       const short = await this.billOffDock(
@@ -2130,9 +2210,9 @@ export class BillingService {
         [...byLot].map(([lotId, pcs]) => ({
           lotId,
           pcs,
-          toLocationId: locationId,
+          toLocationId: placeOf(lotId),
           outKey: `invoice-cancel:${invoice.id}:${lotId}:dock`,
-          inKey: `invoice-cancel:${invoice.id}:${lotId}:${locationId}`,
+          inKey: `invoice-cancel:${invoice.id}:${lotId}:${placeOf(lotId)}`,
         })),
         { refType: 'invoice_cancel', refId: invoice.id, note },
         'refuse',
@@ -2176,12 +2256,12 @@ export class BillingService {
         .filter(([, qty]) => qty > 0)
         .map(([lotId, qty]) => ({
           lotId,
-          locationId,
+          locationId: placeOf(lotId),
           qtyDelta: qty,
           reason: 'adjustment' as const,
           refType: 'invoice_cancel',
           refId: invoice.id,
-          idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:${locationId}`,
+          idempotencyKey: `invoice-cancel:${invoice.id}:${lotId}:${placeOf(lotId)}`,
           note,
         })),
     )
