@@ -405,6 +405,9 @@ export class ClaimBuildService {
         // already claimed from the TRIGGER line's entry (the one with `freeQty`). Counting it here claimed
         // every cross-variant free-goods scheme twice.
         if (rule.reward) continue
+        // QA DOS-330: the rule is this line's SHARE of what the scheme gave on its order line; a batch line that
+        // carried none of it (no paid pieces, no free pieces of its own) has nothing to claim.
+        if ((rule.amountPaise ?? 0) === 0 && (rule.freeQty ?? 0) === 0) continue
         const scheme = schemes.get(rule.ruleId)
         if (!eligible(scheme)) continue
         out.push(this.schemeLine(claim, l, rule, scheme, kept, returned, packs, costs, policy))
