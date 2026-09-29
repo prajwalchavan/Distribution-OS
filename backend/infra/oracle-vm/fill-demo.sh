@@ -18,8 +18,8 @@
 #      failure stops everything before the real database is touched;
 #   3. runs the tool with --commit against the real API (127.0.0.1:3100) as owner.tarsun, with the tester
 #      logins in /opt/dos/env/tester-logins.txt (mode 600), then the three checks;
-#   4. writes /opt/dos/fill-demo-nightly.sh and the cron line `30 0 * * *` (06:00 IST), log in
-#      /var/backups/dos/fill-demo.log;
+#   4. writes /opt/dos/fill-demo-nightly.sh and the cron line for 06:00 IST (`30 0 * * *` on a VM clock in UTC,
+#      `0 6 * * *` on one in IST; any other clock needs FILL_CRON_WHEN), log in /var/backups/dos/fill-demo.log;
 #   5. prints PASS / FAIL lines.
 #
 # The Mac half then copies the logins file to ~/.config/dos/tester-logins.txt (mode 600) and prints only
@@ -43,7 +43,8 @@ OWNER_PW="${FILL_OWNER_PW:-$E/live-owner.pw}"
 LOGINS="${FILL_LOGINS:-$E/tester-logins.txt}"
 NIGHTLY="${FILL_NIGHTLY_SCRIPT:-/opt/dos/fill-demo-nightly.sh}"
 LOG="${FILL_LOG:-$BACKUPS/fill-demo.log}"
-CRON_WHEN="${FILL_CRON_WHEN:-30 0 * * *}"
+# Empty = worked out from the VM clock (cron_when).
+CRON_WHEN="${FILL_CRON_WHEN:-}"
 
 say() { echo "== $*"; }
 die() {
@@ -66,6 +67,19 @@ proof() { # proof <ok|bad> <sentence>
 }
 
 health() { curl -s -m 10 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$1/health" 2>/dev/null || true; }
+# 06:00 IST in the clock cron keeps: the system zone (/etc/localtime), not this shell's TZ. Empty when the
+# clock is neither UTC nor IST (then FILL_CRON_WHEN must say it).
+cron_when() {
+  if [ -n "$CRON_WHEN" ]; then
+    echo "$CRON_WHEN"
+    return
+  fi
+  case "$(env -u TZ date +%z)" in
+    +0000) echo "30 0 * * *" ;;
+    +0530) echo "0 6 * * *" ;;
+    *) echo "" ;;
+  esac
+}
 # The last line a script printed itself (pnpm's own "Command failed" line left out).
 last() { grep -v -E 'ELIFECYCLE|^\s*$' "$1" | tail -1 || true; }
 
@@ -111,8 +125,10 @@ stop_rehearsal() {
 
 write_nightly() {
   local pnpm_dir node_dir
-  pnpm_dir="$(dirname "$(command -v pnpm)")"
-  node_dir="$(dirname "$(command -v node)")"
+  # The folders themselves, not a per-shell link to them (a version manager's shell folder is gone by
+  # tomorrow morning).
+  pnpm_dir="$(cd "$(dirname "$(command -v pnpm)")" && pwd -P)"
+  node_dir="$(cd "$(dirname "$(command -v node)")" && pwd -P)"
   cat >"$NIGHTLY.new" <<SH
 #!/usr/bin/env bash
 # Written by backend/infra/oracle-vm/fill-demo.sh. Every morning at 06:00 IST: the tool finishes what it
@@ -151,7 +167,7 @@ SH
 
 vm_main() {
   export CI=1
-  local rc codes stamp dump url rurl out before after
+  local rc codes stamp dump url rurl out before after when
 
   say "0/4 preconditions"
   [ -f "$LIVE_ENV" ] || die "this is not the VM ($LIVE_ENV is expected)"
@@ -170,6 +186,14 @@ vm_main() {
   done
   url="$(val "$LIVE_ENV" DATABASE_URL)"
   case "$url" in */"$LIVE_DB") ;; *) die "$LIVE_ENV does not point at $LIVE_DB" ;; esac
+  # The rehearsal database is created, restored over and DROPPED: it can never be the real one.
+  case "$REHEARSAL_DB" in
+    *rehearsal*) ;;
+    *) die "the rehearsal database must be a scratch copy whose name says rehearsal (it is dropped): $REHEARSAL_DB" ;;
+  esac
+  [ "$REHEARSAL_DB" != "$LIVE_DB" ] && [ "$REHEARSAL_DB" != "${url##*/}" ] ||
+    die "the rehearsal database is the real one ($REHEARSAL_DB)"
+  [ "$REHEARSAL_PORT" != "$LIVE_PORT" ] || die "the rehearsal port is the real API's ($REHEARSAL_PORT)"
   [ "$(health "$LIVE_PORT")" = 200 ] || die "the real API does not answer /health on :$LIVE_PORT"
   [ "$(health "$REHEARSAL_PORT")" = 000 ] || die "port $REHEARSAL_PORT is taken: the rehearsal needs it free"
   echo "   built, the API answers on :$LIVE_PORT, no message channel, port $REHEARSAL_PORT free"
@@ -177,6 +201,8 @@ vm_main() {
   mkdir -p "$BACKUPS/daily"
 
   say "1/4 rehearse on a copy of $LIVE_DB"
+  # A dump of the real data as it is before this run: the copy the rehearsal restores, and the way back. It
+  # sits with the nightly backups and goes with them after seven days (backup-local.sh).
   dump="$BACKUPS/daily/$LIVE_DB-$stamp-before-fill.dump"
   sudo -u postgres pg_dump -Fc "$LIVE_DB" >"$dump"
   dump="$(ls -t "$BACKUPS/daily/$LIVE_DB"-*.dump 2>/dev/null | head -1)"
@@ -186,7 +212,19 @@ vm_main() {
   stop_rehearsal
   sudo -u postgres createdb -O dos "$REHEARSAL_DB"
   sudo -u postgres psql -qc "REVOKE CONNECT ON DATABASE \"$REHEARSAL_DB\" FROM PUBLIC"
-  sudo -u postgres pg_restore -d "$REHEARSAL_DB" --no-owner --role=dos "$dump" >/dev/null 2>&1 || true
+  # What pg_restore says stays on the VM (mode 600): an error line may quote a row of the real data.
+  local restore_log="$BACKUPS/fill-rehearsal-restore.log" restored=0 errors there
+  (umask 077 && sudo -u postgres pg_restore -d "$REHEARSAL_DB" --no-owner --role=dos "$dump" >"$restore_log" 2>&1) ||
+    restored=$?
+  errors="$(grep -c -i 'error' "$restore_log" || true)"
+  there="$(sudo -u postgres psql -d "$REHEARSAL_DB" -qtAc "select count(*) from tenants where slug = '$TENANT'" 2>/dev/null || true)"
+  [ "$there" = 1 ] ||
+    die "the copy has no distributor $TENANT after pg_restore (exit $restored, $errors error line(s) in $restore_log); the real database was NOT touched"
+  if [ "$restored" = 0 ]; then
+    echo "   restored"
+  else
+    echo "   restored, but pg_restore exit $restored with $errors error line(s) ($restore_log); the rehearsal decides"
+  fi
   rurl="${url%/*}/$REHEARSAL_DB"
   mkdir -p "$REHEARSAL_STORAGE"
   chmod 700 "$REHEARSAL_STORAGE"
@@ -243,13 +281,18 @@ vm_main() {
 
   say "3/4 every morning at 06:00 IST"
   write_nightly
-  (
-    crontab -l 2>/dev/null | grep -v 'fill-demo-nightly.sh' || true
-    echo "$CRON_WHEN $NIGHTLY >> $LOG 2>&1"
-  ) | crontab -
-  [ -x "$NIGHTLY" ] && [ "$(crontab -l 2>/dev/null | grep -c 'fill-demo-nightly.sh')" = 1 ] &&
-    proof ok "$NIGHTLY and one cron line ($CRON_WHEN, UTC = 06:00 IST), log $LOG" ||
-    proof bad "the nightly script or its cron line is missing"
+  when="$(cron_when)"
+  if [ -z "$when" ]; then
+    proof bad "the VM clock is on $(env -u TZ date +%Z) ($(env -u TZ date +%z)), neither UTC nor IST: no cron line written; set FILL_CRON_WHEN to 06:00 IST in that clock"
+  else
+    (
+      crontab -l 2>/dev/null | grep -v 'fill-demo-nightly.sh' || true
+      echo "$when $NIGHTLY >> $LOG 2>&1"
+    ) | crontab -
+    [ -x "$NIGHTLY" ] && [ "$(crontab -l 2>/dev/null | grep -c 'fill-demo-nightly.sh')" = 1 ] &&
+      proof ok "$NIGHTLY and one cron line ($when on a clock at $(env -u TZ date +%z) = 06:00 IST), log $LOG" ||
+      proof bad "the nightly script or its cron line is missing"
+  fi
 
   say "4/4 the real API after the run"
   [ "$(health "$LIVE_PORT")" = 200 ] && proof ok "the real API answers /health" || proof bad "the real API does not answer /health"
