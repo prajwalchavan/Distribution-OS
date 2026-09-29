@@ -555,6 +555,27 @@ export const HSN_RATES_2025: { key: string; hsnCode: string; gstBps: number; ces
   { key: 'hsn-2202-fruit', hsnCode: '22029920', gstBps: 500, cessBps: 0 },
 ]
 
+const GST_2025_BY_CODE = new Map(HSN_RATES_2025.map((h) => [h.hsnCode, h]))
+
+/**
+ * The GST and cess rates a bill dated `date` resolves for an item: its heading's GST 2.0 row from 22 Sep 2025 where
+ * the seed has one (HSN_RATES_2025), else the rate the seed's catalogue carries (the 2017 row). Prices lane, blind
+ * check 1 (M2): an order the seed leaves NOT YET BILLED — a draft, one waiting for a decision, one confirmed or being
+ * picked — is priced with it at today's date, because the bill the godown issues for it is dated today and resolves
+ * today's row: priced at the catalogue rate, its bill differed from its order (SO-0873: ₹4,430 ordered, ₹4,006
+ * billed). The bills the seed has already issued, and their orders, keep the catalogue rate (docs/22 §8
+ * 2026-09-28: "the demo seed still carries 2017 rates").
+ */
+export function gstRateOn(
+  v: { hsnCode: string; gstBps: number; cessBps: number },
+  date: string,
+): { gstBps: number; cessBps: number } {
+  const dated = date >= GST_2025_FROM ? GST_2025_BY_CODE.get(v.hsnCode) : undefined
+  return dated
+    ? { gstBps: dated.gstBps, cessBps: dated.cessBps }
+    : { gstBps: v.gstBps, cessBps: v.cessBps }
+}
+
 const ALIASES: { variantKey: string; alias: string; hits: number }[] = [
   { variantKey: 'campa-cola-750ml', alias: 'CAMPA COLA PET 750ML X 24', hits: 41 },
   { variantKey: 'campa-orange-750ml', alias: 'CAMPA ORANGE PET 750ML X 24', hits: 22 },

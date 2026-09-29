@@ -825,6 +825,52 @@ describeDb('demo seed on an empty database', () => {
          GROUP BY hsn_code HAVING count(*) > 1`)
     ).rows
     expect(twoLive).toEqual([])
+
+    // Prices lane, blind check 1 (M2): every order the seed leaves NOT YET BILLED — a draft, one waiting for a
+    // decision, one confirmed or being picked — carries the rate a bill dated today resolves, so the bill the godown
+    // issues for it is the order (SO-0873 was ordered at 18 % and 28 % + 12 % cess, ₹4,430, and billed at 5 % and
+    // 40 %, ₹4,006). A bill the seed already issued keeps its own rate, and so does its order.
+    const openLines = (
+      await db.execute(sql`
+        SELECT o.state::text AS state, v.hsn_code, l.gst_bps, l.cess_bps,
+               r.gst_bps AS today_gst_bps, r.cess_bps AS today_cess_bps
+          FROM sales_order_lines l
+          JOIN sales_orders o ON o.id = l.order_id AND o.tenant_id = l.tenant_id
+          JOIN product_variants v ON v.id = l.variant_id
+          JOIN LATERAL (SELECT h.gst_bps, h.cess_bps FROM hsn_rates h
+                         WHERE h.hsn_code = v.hsn_code AND h.effective_from <= ${today}::date
+                           AND (h.effective_to IS NULL OR h.effective_to >= ${today}::date)
+                         ORDER BY h.effective_from DESC LIMIT 1) r ON true
+         WHERE o.state IN ('draft', 'submitted', 'confirmed', 'picking')
+           AND NOT EXISTS (SELECT 1 FROM invoices i WHERE i.tenant_id = o.tenant_id AND i.order_id = o.id)`)
+    ).rows as {
+      state: string
+      hsn_code: string
+      gst_bps: number
+      cess_bps: number
+      today_gst_bps: number
+      today_cess_bps: number
+    }[]
+    // the demo does leave such orders on headings GST 2.0 changed, so the check below is not an empty one
+    expect(
+      openLines.filter((l) => ['1905', '2106', '21069099', '2202', '22029920'].includes(l.hsn_code))
+        .length,
+    ).toBeGreaterThan(0)
+    expect(
+      openLines
+        .filter((l) => l.gst_bps !== l.today_gst_bps || l.cess_bps !== l.today_cess_bps)
+        .map((l) => `${l.state} ${l.hsn_code} ${String(l.gst_bps)}+${String(l.cess_bps)}`),
+    ).toEqual([])
+    // ...and each such order's header is the sum of its lines at that rate
+    const headers = (
+      await db.execute(sql`
+        SELECT o.id FROM sales_orders o
+          JOIN (SELECT order_id, sum(tax_paise)::bigint AS tax, sum(cess_paise)::bigint AS cess
+                  FROM sales_order_lines GROUP BY order_id) l ON l.order_id = o.id
+         WHERE o.state IN ('draft', 'submitted', 'confirmed', 'picking')
+           AND (o.tax_paise <> l.tax OR o.cess_paise <> l.cess)`)
+    ).rows
+    expect(headers).toEqual([])
   }, 180_000)
 
   /**

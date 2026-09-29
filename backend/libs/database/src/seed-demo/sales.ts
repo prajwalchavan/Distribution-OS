@@ -48,7 +48,7 @@ import {
 } from '../schema/index.js'
 import type { Db } from '../client.js'
 import type { AppliedRule } from '../schema/orders.js'
-import { brandId, innerPackOf, type VariantRow } from './catalog.js'
+import { brandId, gstRateOn, innerPackOf, type VariantRow } from './catalog.js'
 import { insertMany, postLedger, seriesPrefix } from './db-helpers.js'
 import { demoId } from './ids.js'
 import type { PeopleResult, PersonRef } from './people.js'
@@ -99,6 +99,9 @@ const INVOICE_ELIGIBLE = new Set<FinalOrderState>([
   'delivered',
   'partially_delivered',
 ])
+
+/** Orders still to be billed: the godown's pack bills them at the date it packs (prices lane, blind check 1, M2). */
+const UNBILLED_STATES = new Set<FinalOrderState>(['draft', 'submitted', 'confirmed', 'picking'])
 
 /** What happened at the door, for the delivery seed to write the stop that says so. */
 export type StopOutcome = 'delivered' | 'partial' | 'failed' | 'on_road'
@@ -980,18 +983,47 @@ export async function seedSales(
   let seq = 0
   let visitSeq = 0
 
+  /**
+   * The lines of `built` taxed at the rates a bill dated `day` resolves (`gstRateOn`); the taxable is untouched,
+   * so schemes, discounts and quantities stay what they were.
+   */
+  function retaxAt(built: Built, day: string): Built {
+    let tax = 0
+    let cess = 0
+    const lines = built.lines.map((l) => {
+      const v = variantById.get(l.variantId)
+      if (!v) {
+        tax += l.taxPaise
+        cess += l.cessPaise ?? 0
+        return l
+      }
+      const rate = gstRateOn(v, day)
+      const taxable = l.lineTotalPaise - l.taxPaise
+      const lineTax = taxOn(taxable, rate.gstBps, rate.cessBps)
+      const lineCess = percentOf(paise(taxable), rate.cessBps)
+      tax += lineTax
+      cess += lineCess
+      return {
+        ...l,
+        gstBps: rate.gstBps,
+        cessBps: rate.cessBps,
+        taxPaise: lineTax,
+        cessPaise: lineCess,
+        lineTotalPaise: taxable + lineTax,
+      }
+    })
+    return { ...built, lines, tax, cess }
+  }
+
   function pushOrder(
     orderId: string,
     retailer: RetailerRow,
     day: Date,
     outcome: Outcome | 'draft' | 'submitted',
-    built: Built,
+    priced: Built,
     who: { source: OrderRecord['source']; createdBy: string; salespersonId: string | null },
     cancelReason: string | null = null,
   ): OrderRecord {
-    const { rounded: totalPaise, roundOff } = roundToRupee(
-      paise(built.subtotal - built.discount + built.tax),
-    )
     const ageDays = ageDaysOf(day)
     let state: FinalOrderState
     let stops: PlannedStop[] = []
@@ -1028,6 +1060,12 @@ export async function seedSales(
       default:
         state = outcome
     }
+    // Prices lane, blind check 1 (M2): an order the seed leaves without a bill is billed at today's date, so it is
+    // priced at today's GST rate; a billed one keeps the rate its bill was issued at (`gstRateOn`).
+    const built = UNBILLED_STATES.has(state) ? retaxAt(priced, isoDate(TODAY)) : priced
+    const { rounded: totalPaise, roundOff } = roundToRupee(
+      paise(built.subtotal - built.discount + built.tax),
+    )
     const last = stops[stops.length - 1]
     orderLineRows.push(...built.lines)
     const record: OrderRecord = {

@@ -35,7 +35,7 @@ import {
   tenantSettings,
 } from '../schema/index.js'
 import { TENANT_SETTING_KEYS } from '../tenant-bootstrap.js'
-import type { VariantRow } from './catalog.js'
+import { gstRateOn, type VariantRow } from './catalog.js'
 import { insertMany, postLedger, seriesPrefix } from './db-helpers.js'
 import { currentDemoScope, demoId } from './ids.js'
 import type { PeopleResult } from './people.js'
@@ -1373,8 +1373,10 @@ export async function seedPendingVanSaleOrder(
        ORDER BY available DESC, l.variant_id
        LIMIT 1`)
   ).rows as unknown as { variant_id: string; available: string | number }[]
-  const vanStockVariant = variants.find((v) => v.id === onVan?.variant_id)
-  if (!vanStockVariant) return
+  const vanStock = variants.find((v) => v.id === onVan?.variant_id)
+  if (!vanStock) return
+  // Not billed yet: it is billed at today's date, so it is priced at today's GST rate (prices lane, blind check 1, M2).
+  const vanStockVariant: VariantRow = { ...vanStock, ...gstRateOn(vanStock, isoDate(TODAY_SEED)) }
 
   const pendingVanOrderId = demoId('order', 'van-sale-pending')
   const qty = 2
