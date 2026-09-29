@@ -1,6 +1,6 @@
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { eq, sql } from 'drizzle-orm'
+import { eq, sql, type SQL } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { uuidv7 } from '@dos/domain'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -9,6 +9,7 @@ import { memberships, salesOrders, tenants, users } from './schema/index.js'
 import { dispatchStockFaults } from './seed-demo/dispatch-stock.js'
 import { seedDemo, seedExtraTenants, seedPlatformConsole } from './seed-demo.js'
 import { cancelFootprintFaults, invoiceCancelFootprints } from './stock-footprints.js'
+import { invoiceRulesGiven, schemeAmountFaults } from './scheme-amounts.js'
 import { bootstrapTenant } from './tenant-bootstrap.js'
 
 /**
@@ -130,6 +131,89 @@ async function expectAiDemo(db: Db, tenantId: string, slug: string): Promise<voi
     applied: 0,
   })
   expect({ slug, planned: (plans?.plannable ?? 0) > 0 }).toEqual({ slug, planned: true })
+}
+
+/**
+ * The "once per order line" reader AS IT WAS before blind check 2 of the prices lane (commit 8deef098), kept here
+ * word for word as the reference the repaired reader is held to: same rows, same figures. It is correct and was too
+ * slow only where a caller joined it back to its lines or ran it per line; a plain SELECT of `rg_given` over it is one
+ * pass, so this reference stays cheap to run.
+ */
+function preRepairRulesGiven(lines: SQL): SQL {
+  return sql`rg_lines AS (${lines}),
+  rg_entries AS (
+    SELECT x.invoice_id, x.line_id, x.line_no,
+           coalesce(x.order_line_id, x.line_id) AS grp,
+           e.ord, e.rule,
+           e.rule ->> 'ruleId' AS rule_id,
+           coalesce(e.rule ->> 'kind', 'scheme') AS kind,
+           e.rule ->> 'rewardKind' AS reward_kind,
+           coalesce((e.rule ->> 'reward')::boolean, false) AS is_reward,
+           coalesce(e.rule ->> 'freeVariantId', x.variant_id) AS free_variant_id,
+           (e.rule -> 'amountPaise') IS NOT NULL AS has_amount,
+           (e.rule -> 'freeQty') IS NOT NULL AS has_free,
+           coalesce((e.rule ->> 'amountPaise')::bigint, 0) AS amount,
+           coalesce((e.rule ->> 'freeQty')::bigint, 0) AS free_qty,
+           coalesce((e.rule ->> 'batchShare')::boolean, false) AS is_share,
+           x.qty_pcs::bigint AS w_amount,
+           (CASE WHEN coalesce(e.rule ->> 'freeVariantId', x.variant_id) = x.variant_id
+                 THEN x.free_qty_pcs ELSE x.qty_pcs END)::bigint AS w_free
+      FROM rg_lines x
+      CROSS JOIN LATERAL jsonb_array_elements(coalesce(x.applied_rules, '[]'::jsonb))
+           WITH ORDINALITY AS e(rule, ord)
+     WHERE e.rule ->> 'ruleId' IS NOT NULL
+  ),
+  rg_old AS (
+    SELECT r.*,
+           (sum(r.w_amount) OVER g)::bigint AS wa_total,
+           (sum(r.w_free) OVER g)::bigint AS wf_total,
+           min(r.line_no) OVER g AS first_line
+      FROM rg_entries r
+     WHERE NOT r.is_share
+    WINDOW g AS (PARTITION BY r.invoice_id, r.grp, r.ord, r.rule_id)
+  ),
+  rg_old_split AS (
+    SELECT o.*,
+           (abs(o.amount) * o.wa) / o.wat AS a_floor, (abs(o.amount) * o.wa) % o.wat AS a_rem,
+           (abs(o.free_qty) * o.wf) / o.wft AS f_floor, (abs(o.free_qty) * o.wf) % o.wft AS f_rem
+      FROM (
+        SELECT r.*,
+               (CASE WHEN r.wa_total > 0 THEN r.w_amount WHEN r.line_no = r.first_line THEN 1 ELSE 0 END)::bigint AS wa,
+               greatest(r.wa_total, 1)::bigint AS wat,
+               (CASE WHEN r.wf_total > 0 THEN r.w_free WHEN r.line_no = r.first_line THEN 1 ELSE 0 END)::bigint AS wf,
+               greatest(r.wf_total, 1)::bigint AS wft
+          FROM rg_old r
+      ) o
+  ),
+  rg_old_given AS (
+    SELECT s.*,
+           (sign(s.amount) * (s.a_floor + CASE
+              WHEN row_number() OVER (PARTITION BY s.invoice_id, s.grp, s.ord, s.rule_id ORDER BY s.a_rem DESC, s.line_no)
+                   <= abs(s.amount) - sum(s.a_floor) OVER (PARTITION BY s.invoice_id, s.grp, s.ord, s.rule_id)
+              THEN 1 ELSE 0 END))::bigint AS amount_given,
+           (sign(s.free_qty) * (s.f_floor + CASE
+              WHEN row_number() OVER (PARTITION BY s.invoice_id, s.grp, s.ord, s.rule_id ORDER BY s.f_rem DESC, s.line_no)
+                   <= abs(s.free_qty) - sum(s.f_floor) OVER (PARTITION BY s.invoice_id, s.grp, s.ord, s.rule_id)
+              THEN 1 ELSE 0 END))::bigint AS free_given
+      FROM rg_old_split s
+  ),
+  rg_both AS (
+    SELECT invoice_id, line_id, line_no, ord, rule, rule_id, kind, reward_kind, is_reward, free_variant_id,
+           has_amount, has_free, is_share, amount AS amount_paise, free_qty
+      FROM rg_entries WHERE is_share
+    UNION ALL
+    SELECT invoice_id, line_id, line_no, ord, rule, rule_id, kind, reward_kind, is_reward, free_variant_id,
+           has_amount, has_free, is_share, amount_given AS amount_paise, free_given AS free_qty
+      FROM rg_old_given
+  ),
+  rg_given AS (
+    SELECT b.*,
+           (b.rule - 'amountPaise' - 'freeQty' - 'batchShare')
+             || CASE WHEN b.has_amount THEN jsonb_build_object('amountPaise', b.amount_paise) ELSE '{}'::jsonb END
+             || CASE WHEN b.has_free THEN jsonb_build_object('freeQty', b.free_qty) ELSE '{}'::jsonb END
+             AS given_rule
+      FROM rg_both b
+  )`
 }
 
 describeDb('demo seed on an empty database', () => {
@@ -901,6 +985,37 @@ describeDb('demo seed on an empty database', () => {
       n: number
     }[]
     expect(seeded?.n).toBeGreaterThan(0)
+  }, 180_000)
+
+  /**
+   * Prices lane, blind check 2 (speed): the reader that counts a scheme once per order line was rewritten to read
+   * each bill line once. On the seed's own bills — every rule kind the demo writes, every live bill of the
+   * distributor — it gives what the reader gave before, row for row and paisa for paisa: each rule entry's share and
+   * the entry as a reader sees it; and the release check still finds the seed's bills clean.
+   */
+  it('speed: the repaired reader gives the seed’s bills exactly what the reader before it gave, row for row', async () => {
+    await seedDemo(db, tenantId, { passwordHash, printSignIn: false })
+    const lines = sql`
+      SELECT l.invoice_id, l.id AS line_id, l.line_no, l.order_line_id, l.variant_id, l.qty_pcs,
+             l.free_qty_pcs, l.applied_rules
+        FROM invoice_lines l
+        JOIN invoices i ON i.id = l.invoice_id AND i.tenant_id = l.tenant_id
+       WHERE l.tenant_id = ${tenantId} AND i.state NOT IN ('draft', 'cancelled')`
+    const read = async (cte: SQL) =>
+      (
+        await db.execute(sql`
+          WITH ${cte}
+          SELECT invoice_id, line_id, line_no, ord, rule_id, kind, reward_kind, is_reward, free_variant_id,
+                 has_amount, has_free, is_share, amount_paise, free_qty, given_rule
+            FROM rg_given ORDER BY line_id, ord`)
+      ).rows
+    const before = await read(preRepairRulesGiven(lines))
+    const now = await read(invoiceRulesGiven(lines))
+    expect(before.length).toBeGreaterThan(1_000)
+    expect(now).toEqual(before)
+
+    // the release check, now one grouping per bill: the seed's bills add up
+    expect(await schemeAmountFaults(db, tenantId)).toEqual([])
   }, 180_000)
 
   /**
