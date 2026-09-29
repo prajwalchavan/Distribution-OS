@@ -1559,7 +1559,10 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
       orderId: null,
       upiQrPayload: null,
     })
-    const [template] = await db.select().from(invoiceLines).where(eq(invoiceLines.invoiceId, bill.id))
+    const [template] = await db
+      .select()
+      .from(invoiceLines)
+      .where(eq(invoiceLines.invoiceId, bill.id))
     if (!template) throw new Error('bill line not found')
     const discounts = shareOut(given, [4, 3, 3])
     await db.insert(invoiceLines).values(
