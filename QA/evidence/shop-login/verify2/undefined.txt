@@ -1,0 +1,76 @@
+Tarsun Enterprise
+owner
+⋯
+Updated just now
+Shops
+20 rows
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Ghadge Test Kirana
+C
+0.00
+Any Name Kirana
+C
+0.00
+Datta Kirana Tarsun Side
+C
+0.00
+Sai Baba Kirana
+B
+1,80,000.00
+Joshi Kirana Stores
+B
+1,80,000.00
+Shree Ganesh Kirana
+C
+50,000.00
+Sharma Kirana Stores
+C
+50,000.00
+Gupta Kirana Stores
+B
+1,80,000.00
+Deshmukh Kirana
+C
+50,000.00
+Hariom Kirana Bhandar
+B
+1,50,000.00
+Ekvira Kirana
+C
+50,000.00
+Krishna Kirana Stores
+D
+0.00
+Birla Road Kirana Mart
+C
+50,000.00
+Chavan Kirana Stores
+C
+50,000.00
+Nakshatra Kirana
+C
+50,000.00
+Nutan Kirana Stores
+C
+50,000.00
+Vaibhav Kirana Mart
+B
+1,80,000.00
+Ansari Kirana Stores
+C
+50,000.00
+Gavhane Kirana
+C
+50,000.00
+Metro Kirana Bazar
+C
+50,000.00
+Today
+Orders
+Money
+Shops

@@ -1,0 +1,144 @@
+Tarsun Enterprise
+accountant
+Today
+Orders
+2
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Messages
+Updated just now
+MJ
+Meena Joshi
+accountant
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Any date, matching "Ekvira"
+Filters (1)
+Clear
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone	App sign-in
+
+R-0014
+	
+Ekvira Kirana
+	
+Kalyan West Market
+	
+C
+	
+Credit
+	50,000.00	Needs approval	
++918452019976
+	
+kirti.shah
+
+1 rows								
+Ekvira Kirana
+Close
+Code
+R-0014
+Beat
+Kalyan West Market
+Limit ₹
+50,000.00
+Days to pay
+7
+Over the limit
+Needs approval
+Payment terms
+Credit
+Phone
++918452019976
+GSTIN
+—
+App sign-in
+kirti.shah
+Since 29 Sep, 1:01 pm
+Owes ₹
+₹34,703.00
+₹34,703.00 overdue
+Oldest bill
+27 Aug 2026
+How they buy
+Usually pays in 19 days
+Last order 29 Sep
+Statement of account
+Debit ₹
+Credit ₹
+Balance ₹
+Opening balance
+1 Jul 2026
+—
+—
+0.00
+Invoice · INV/0085
+10 Jul 2026
+11,973.00
+—
+11,973.00
+Invoice · INV/0158
+17 Jul 2026
+2,879.00
+—
+14,852.00
+Receipt · RCPT-0053
+23 Jul 2026
+—
+11,973.00
+2,879.00
+Invoice · INV/0215
+24 Jul 2026
+11,514.00
+—
+14,393.00
+Invoice · INV/0296
+31 Jul 2026
+9,257.00
+—
+23,650.00
+Invoice · INV/0367
+7 Aug 2026
+1,551.00
+—
+25,201.00
+Receipt · RCPT-0161
+8 Aug 2026
+—
+4,107.00
+21,094.00
+Invoice · INV/0385
+8 Aug 2026
+4,107.00
+—
+25,201.00
+Invoice · INV/0404
+11 Aug 2026
+2,538.00
+—
+27,739.00
+Receipt · RCPT-0195
+13 Aug 2026
+—
+9,257.00
+18,482.00
+Receipt · RCPT-0197
+13 Aug 2026
+—
+1,951.00
+16,531.00
+Invoice · INV/0429
+14 Aug 2026
+3,306.00
+—
+19,837.00
+Send the statement

@@ -1,0 +1,83 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+3
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Order queue
+7 days
+30 days
+90 days
+Export CSV
+Order queue
+Drafts
+✓ Submitted
+Confirmed
+Being picked
+Packed
+Dispatched
+Cancelled
+Any date, matching "SO-0884"
+Submitted
+Filters (2)
+Clear
+Order	Shop	Person	Amount ₹	State	Stock	Waiting on	Credit	Placed
+
+SO-0884
+	
+Ekvira Kirana
+	
+—
+	4,430.00	Submitted		
+Over credit limit
+	Over limit · held	
+29 Sep
+
+1 rows			4,430.00					
+j / k move · Enter open · 1 confirm · 2 cancel
+Waiting for a decision
+Laxmi Narayan Stores · SO-0882
+Over credit limit
+₹13,499.00
+Approve
+Reject
+Patil General Store · SO-0879
+Below floor price
+₹6,249.00
+Approve
+Reject
+Patil General Store · SO-0879
+Over credit limit
+₹6,249.00
+Approve
+Reject
+Mahalaxmi General Stores
+Asked rate
+₹22.28
+Approve
+Reject
+Om Sai Provision Store
+Asked rate
+₹39.58
+Approve
+Reject
+Ekvira Kirana · SO-0884
+Over credit limit
+₹4,430.00
+Approve
+Reject

@@ -1,0 +1,156 @@
+Tarsun Enterprise
+manager
+Today
+Orders
+2
+Fulfilment
+Billing
+1
+Inbound
+Money
+Registers
+Shops
+Stock
+SETUP
+Prices
+Staff
+Messages
+Updated just now
+VK
+Vikas Kadam
+manager
+Shops
+Birla College Road
+Godrej Hill
+Kalyan West Market
+Khadakpada
+Kolsewadi
+Station Road
+Any date, matching "Sai Baba"
+Filters (1)
+Clear
+Code	Shop	Beat	Tier	Terms	Limit ₹	Over the limit	Phone	App sign-in
+
+R-0011
+	
+Sai Baba Kirana
+	
+Kalyan West Market
+	
+B
+	
+Credit
+	1,80,000.00	Warn only	
++918655015314
+	
+mangesh.gaikwad
+
+1 rows								
+Sai Baba Kirana
+Close
+Code
+R-0011
+Beat
+Kalyan West Market
+Limit ₹
+1,80,000.00
+Days to pay
+14
+Over the limit
+Warn only
+Payment terms
+Credit
+Phone
++918655015314
+GSTIN
+27RBNPG3735M1ZS
+App sign-in
+mangesh.gaikwad
+Since 29 Sep, 12:58 pm
+New first password
+Stop this sign-in
+Sign-in added
+This number already has a sign-in. The shopkeeper uses their own password and will now see your shop.
+Username
+mangesh.gaikwad
+Cancel
+Close
+Owes ₹
+₹1,25,372.00
+₹36,886.00 overdue
+Oldest bill
+8 Sep 2026
+How they buy
+Usually pays in 28 days
+Last order 29 Sep
+Statement of account
+Debit ₹
+Credit ₹
+Balance ₹
+Opening balance
+1 Jul 2026
+—
+—
+0.00
+Invoice · INV/0014
+3 Jul 2026
+25,579.00
+—
+25,579.00
+Invoice · INV/0054
+7 Jul 2026
+26,081.00
+—
+51,660.00
+Receipt · RCPT-0008
+9 Jul 2026
+—
+25,579.00
+26,081.00
+Invoice · INV/0087
+10 Jul 2026
+28,017.00
+—
+54,098.00
+Invoice · INV/0114
+14 Jul 2026
+23,919.00
+—
+78,017.00
+Invoice · INV/0155
+17 Jul 2026
+22,811.00
+—
+1,00,828.00
+Invoice · INV/0182
+21 Jul 2026
+13,886.00
+—
+1,14,714.00
+Invoice · INV/0255
+28 Jul 2026
+18,982.00
+—
+1,33,696.00
+Receipt · RCPT-0085
+30 Jul 2026
+—
+23,919.00
+1,09,777.00
+Receipt · RCPT-0124
+4 Aug 2026
+—
+16,378.00
+93,399.00
+Invoice · INV/0361
+7 Aug 2026
+14,846.00
+—
+1,08,245.00
+Receipt · RCPT-0210
+15 Aug 2026
+—
+9,703.00
+98,542.00
+Change the credit terms
+Send the statement
