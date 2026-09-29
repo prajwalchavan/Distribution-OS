@@ -2,14 +2,14 @@
 
 ## Document Information
 
-| Property     | Value              |
-| ------------ | ------------------ |
-| Document     | Problem Statement  |
-| Product      | Distribution OS    |
-| Version      | 2.1                |
-| Status       | Active             |
-| Last Updated | 21 September 2026  |
-| Owner        | Product Management |
+| Property     | Value             |
+| ------------ | ----------------- |
+| Document     | Problem Statement |
+| Product      | Distribution OS   |
+| Version      | 2.2               |
+| Status       | Active            |
+| Last Updated | 29 September 2026 |
+| Owner        | Prajwal Chavan    |
 
 ---
 
@@ -21,9 +21,7 @@ The objective is to ensure that product development is driven by validated opera
 
 Every feature introduced into Distribution OS should directly address one or more of the problems described in this document.
 
-**New in version 2.0.** Each problem now carries a **How Distribution OS addresses it** section naming the module, procedure or table that answers it, with an honest status: **ADDRESSED** = built and verified in the backend, every named element has a procedure or table; **PARTIAL** = the core is built, at least one named element is missing or only planned; **PLANNED** = nothing built yet, a named module in the build chain covers it; **NOT YET** = no module, no plan, the honest answer is "not scheduled". Nothing from version 1.0 has been deleted; where a founder decision changed the answer, the sentence says so and carries its date.
-
-As at 21 September 2026: **23 backend modules across 8 services, 139 tables, 646 module specs, 1,618 endpoint calls exercised, 0 broken** (Build Status & Roadmap mirrors `docs/18-build-log.md`), and **all seven apps built and gated green** on 2026-09-07. The statuses below now describe both the backend and the screens. What is left before the pilot is proof rather than construction: a cross-role walk, a seven-day business simulation, and go-live on `distributionos.in` targeted for **Saturday 27 September 2026**.
+Each problem carries a **How Distribution OS addresses it** section naming the module, procedure or table that answers it.
 
 ---
 
@@ -37,7 +35,7 @@ While these tools support daily operations, they create inefficiencies, duplicat
 
 The current operational model is heavily dependent on manual coordination rather than connected digital workflows.
 
-**Field evidence (added 2026-09-05).** The pilot customer, Tarsun Enterprises (Kalyan West), bills on TradeEzee, a Windows ERP, while one of its brands (Too Yumm) is billed inside the brand's own DMS, FieldAssist. A distributor therefore does not have one legacy system to replace — it has several, some of which belong to the manufacturer and cannot be switched off. Distribution OS must coexist with them, never issue a second legal invoice for a sale already billed elsewhere, and import rather than demand re-keying.
+**Field evidence.** The distributor Tarsun Enterprises (Kalyan West) bills on TradeEzee, a Windows ERP, while one of its brands (Too Yumm) is billed inside the brand's own DMS, FieldAssist. A distributor therefore does not have one legacy system to replace — it has several, some of which belong to the manufacturer and cannot be switched off. Distribution OS must coexist with them, never issue a second legal invoice for a sale already billed elsewhere, and import rather than demand re-keying.
 
 ---
 
@@ -51,7 +49,7 @@ As a result, distributors must switch between multiple tools and manually coordi
 
 Distribution OS aims to eliminate this fragmentation by providing one integrated platform that supports every operational stage from manufacturer onboarding to payment collection and business analytics.
 
-**How Distribution OS addresses it — ADDRESSED.** One Postgres database with forced row-level security, one API contract, and **23 backend modules across 8 services**, all built and verified. The six business roles share **one app** that becomes the right app after sign-in (Decided 2026-09-21, replacing one app per role), on web, Android and iOS; the platform console for Distribution OS staff is a separate application (Decided 2026-09-05). Document intake, integrations, claims, notifications, reporting, incentives, the AI module and the console are all built.
+**How Distribution OS addresses it.** One Postgres database with forced row-level security, one API contract, and one set of backend modules served by eight services. The six business roles share **one app** that becomes the right app after sign-in, on the web and on Android; the iOS app is built from the same code and is not released yet. The single app the distributor's staff install is named "Distribution OS". The manager and the accountant share the manager's screens. The platform console for Distribution OS staff is a separate application. The product runs on Oracle Cloud in the Mumbai region, with PostgreSQL 17 hosted on the product's own server, and the website is served from Cloudflare Pages at `www.distributionos.in`. Document intake, integrations, claims, notifications, reporting, incentives, the AI module and the console are all part of the product.
 
 ---
 
@@ -65,7 +63,7 @@ Orders are received from multiple channels: phone calls, WhatsApp, sales represe
 
 **Business impact:** missed orders, duplicate orders, incorrect quantities, time spent manually consolidating requests.
 
-**How Distribution OS addresses it — ADDRESSED.** Every order is one record with a `source` field (`salesperson`, `retailer_app`, `van_sale`, `phone`, `whatsapp`), created through `orders.create / setLines / submit / repeatLast`. The order inbox is `orders.list` filtered to `state = submitted`. The retailer app can place its own orders (Decided 2026-09-05: `orders.submit` is granted to the retailer role). **Decided 2026-09-05, WhatsApp and voice order capture are in v1, before the pilot** — and both are built, in the `ai` module; the parse is always confirmed by a human before the order is submitted.
+**How Distribution OS addresses it.** Every order is one record with a `source` field (`salesperson`, `retailer_app`, `van_sale`, `phone`, `whatsapp`), created through `orders.create / setLines / submit / repeatLast`. The order inbox is `orders.list` filtered to `state = submitted`. A shop can place its own orders in the app (`orders.submit` is granted to the retailer role). **WhatsApp and voice order capture are part of version 1**, in the `ai` module; the parse is always confirmed by a human before the order is submitted.
 
 ## 2. High Manual Data Entry
 
@@ -73,7 +71,7 @@ Most orders must be manually entered into billing software before processing can
 
 **Business impact:** operational delays, human error, duplicate work, increased staffing requirements, slower order processing.
 
-**How Distribution OS addresses it — ADDRESSED.** Nothing is typed twice on the outbound side: the representative or the shop captures the order once, `orders.repeatLast` turns the last order into a template, and the invoice is derived from the pack (`warehouse.packs.confirm` calls `BillingService.issueForPack`) rather than re-keyed. On the inbound side, `docint` removes typing from supplier bills: QR/IRN verification, LLM vision extraction, validators, SKU match, human review, then GRN. Voice capture and free-text parsing were deferred post-pilot until **Decided 2026-09-05 moved all AI features into v1**; both are now built in the `ai` module.
+**How Distribution OS addresses it.** Nothing is typed twice on the outbound side: the representative or the shop captures the order once, `orders.repeatLast` turns the last order into a template, and the invoice is derived from the pack (`warehouse.packs.confirm` calls `BillingService.issueForPack`) rather than re-keyed. On the inbound side, `docint` removes typing from supplier bills: QR/IRN verification, LLM vision extraction, validators, SKU match, human review, then GRN. Voice capture and free-text parsing are in the `ai` module.
 
 ## 3. Invoice-Centric Operations
 
@@ -81,7 +79,7 @@ The printed invoice acts as order confirmation, picking list, packing instructio
 
 **Business impact:** limited operational visibility, difficult status tracking, delayed updates, paper handling overhead.
 
-**How Distribution OS addresses it — ADDRESSED.** Each job the paper invoice was doing is now its own record: `picklists` / `pick_lines`, `pack_confirmations`, `load_sheets`, `delivery_challans`, `trip_stops`, `deliveries`, `receipts`. The invoice is only a financial document, issued at pack by the warehouse (Decided 2026-09-04) and immutable once issued — corrections are credit or debit notes, and a cancelled invoice keeps its number.
+**How Distribution OS addresses it.** Each job the paper invoice was doing is now its own record: `picklists` / `pick_lines`, `pack_confirmations`, `load_sheets`, `delivery_challans`, `trip_stops`, `deliveries`, `receipts`. The invoice is only a financial document, issued at pack by the warehouse, after picking — there is no data-entry-operator role — and immutable once issued: corrections are credit or debit notes, and a cancelled invoice keeps its number.
 
 ## 4. Limited Order Visibility
 
@@ -89,7 +87,7 @@ Once an order is created, stakeholders have limited visibility into its progress
 
 **Business impact:** delayed customer responses, increased operational coordination, lack of accountability.
 
-**How Distribution OS addresses it — ADDRESSED.** A coded state machine drives the order: draft → submitted → confirmed → picking → packed → dispatched → delivered | partially_delivered → closed. Every change is written to `order_state_transitions` with the device that made it. Status is readable through `orders.get`, `warehouse.packs.list`, `warehouse.loadSheets.get` and `delivery.stops.list`. The shop sees an ETA, never a live coordinate of the crew.
+**How Distribution OS addresses it.** A coded state machine drives the order: draft → submitted → confirmed → picking → packed → dispatched → delivered | partially_delivered → closed. Every change is written to `order_state_transitions` with the device that made it. Status is readable through `orders.get`, `warehouse.packs.list`, `warehouse.loadSheets.get` and `delivery.stops.list`. The shop sees an ETA, never a live coordinate of the crew.
 
 ## 5. Weak Warehouse Visibility
 
@@ -97,7 +95,7 @@ Warehouse operations are largely manual, with limited digital tracking of pickin
 
 **Business impact:** picking errors, loading mistakes, stock discrepancies, low operational efficiency.
 
-**How Distribution OS addresses it — ADDRESSED.** `warehouse.queue.list`, `picklists.create / start / pick` (FEFO lot suggestion), `packs.confirm` (short-packs are pack rows, never edits to the order), `loadSheets.create / approve / confirm` with a crew count, and an append-only `stock_ledger` row for every movement. Load-out approval is given by the manager in the **manager app** (Decided 2026-09-05), not typed on the warehouse phone. The warehouse productivity register (`reporting.registers.fillRate`) is built with the reporting module. Rack, bin and zone management and barcode scanning are **NOT YET** — not scheduled for v1.
+**How Distribution OS addresses it.** `warehouse.queue.list`, `picklists.create / start / pick` (FEFO lot suggestion), `packs.confirm` (short-packs are pack rows, never edits to the order), `loadSheets.create / approve / confirm` with a crew count, and an append-only `stock_ledger` row for every movement. Load-out approval is given by the manager on the **manager's screens**, not typed on the warehouse phone. The warehouse productivity register (`reporting.registers.fillRate`) is part of the reporting module. Rack, bin and zone management and barcode scanning are **not available yet**; they are not part of version 1.
 
 ## 6. Delivery Challenges
 
@@ -105,7 +103,7 @@ Delivery staff often rely on printed invoices, phone calls, shared shop photos a
 
 **Business impact:** delivery delays, increased travel time, failed deliveries, poor customer experience.
 
-**How Distribution OS addresses it — ADDRESSED.** Shops carry coordinates (`retailers.upsert` lat/lng), the representative's check-in geo-tags the shop as evidence and never blocks the visit, and the crew works a trip of sequenced stops (`delivery.trips.*`, `stops.next / start / arrive`, `deliveries.record` with `pod_evidence` — photo, signature, OTP, geo). Navigation hands off to the phone's own maps app. **Change:** route optimisation was previously out of scope; **Decided 2026-09-05, route sequencing by distance and time window is in v1** (`ai` module) — now built, with the driver always able to override the order.
+**How Distribution OS addresses it.** Shops carry coordinates (`retailers.upsert` lat/lng), the representative's check-in geo-tags the shop as evidence and never blocks the visit, and the crew works a trip of sequenced stops (`delivery.trips.*`, `stops.next / start / arrive`, `deliveries.record` with `pod_evidence` — photo, signature, OTP, geo). Navigation hands off to the phone's own maps app. **Route sequencing by distance and time window is part of version 1** (`ai` module), with the driver always able to override the order.
 
 ## 7. Limited Payment Tracking
 
@@ -113,7 +111,7 @@ Payments are frequently recorded on paper and updated later, delaying visibility
 
 **Business impact:** collection delays, credit disputes, reduced cash-flow visibility.
 
-**How Distribution OS addresses it — ADDRESSED.** A payment is one append-only receipt plus one balanced double-entry journal, written in the same transaction and allocated to the oldest bill first unless tagged: `delivery.collections.record` → `receivables.receipts.create` (cash, UPI with UTR, cheque), `allocations.*`, `retailer_outstanding_summary`, `trip_settlements` for cash in transit. **Who may collect is a rule, not a setting (Decided 2026-09-04): only the delivery crew at the door, or the shop paying online in the retailer app; the salesperson never records a receipt, and the sales service has no receipt endpoint at all.** The owner, manager and accountant may record a payment received at the office; the accountant's scope was fixed at money desk plus reads (Decided 2026-09-05). The period collections register is built with the reporting module.
+**How Distribution OS addresses it.** A payment is one append-only receipt plus one balanced double-entry journal, written in the same transaction and allocated to the oldest bill first unless tagged: `delivery.collections.record` → `receivables.receipts.create` (cash, UPI with UTR, cheque), `allocations.*`, `retailer_outstanding_summary`, `trip_settlements` for cash in transit. **Who may collect is a rule, not a setting: only the delivery crew at the door, or the shop paying online in the app; the salesperson never records a receipt, and the sales service has no receipt endpoint at all.** The owner, manager and accountant may record a payment received at the office; the accountant works in the manager's part of the app, and the accountant's scope is the money desk plus reads. The period collections register is part of the reporting module.
 
 ## 8. Poor Outstanding Management
 
@@ -121,7 +119,7 @@ Businesses often struggle to monitor customer credit, due dates, overdue invoice
 
 **Business impact:** increased bad debt, uncontrolled credit exposure, collection inefficiencies.
 
-**How Distribution OS addresses it — ADDRESSED.** `retailers.setCredit` (limit, open bills, days, mode), `receivables.creditCheck` run on the device before an order is submitted, `outstanding.list / get` with six ageing buckets (0-7, 8-15, 16-30, 31-60, 61-90, 90+), `ageing.history`, `statements.send`, `cashDiscounts.list` and `writeOffs.create` (back office only). "Overdue" is computed, never stored. A salesperson may **see** a shop's dues and run the credit check (Decided 2026-09-05) but still cannot collect. Automated dues reminders are built in the notifications module.
+**How Distribution OS addresses it.** `retailers.setCredit` (limit, open bills, days, mode), `receivables.creditCheck` run on the device before an order is submitted, `outstanding.list / get` with six ageing buckets (0-7, 8-15, 16-30, 31-60, 61-90, 90+), `ageing.history`, `statements.send`, `cashDiscounts.list` and `writeOffs.create` (back office only). "Overdue" is computed, never stored. A salesperson may **see** a shop's dues and run the credit check but still cannot collect. Automated dues reminders are part of the notifications module.
 
 ## 9. Delayed Business Insights
 
@@ -129,7 +127,7 @@ Business owners often receive operational information only after end-of-day reco
 
 **Business impact:** slow decision making, delayed corrective actions, reduced operational control.
 
-**How Distribution OS addresses it — ADDRESSED.** The underlying registers are live — `orders.list`, `receivables.outstanding.list`, `delivery.trips.list`, `billing.invoices.queue` — so the data exists the moment the event happens rather than at day end. The owner dashboard and the chart-ready series behind the owner's graphs are built, meeting the founder's requirement of 2026-09-04 that the owner app carry graphs wherever possible.
+**How Distribution OS addresses it.** The underlying registers are live — `orders.list`, `receivables.outstanding.list`, `delivery.trips.list`, `billing.invoices.queue` — so the data exists the moment the event happens rather than at day end. The owner dashboard and the chart-ready series behind the owner's graphs are part of the reporting module, so the owner's screens carry graphs wherever possible.
 
 ## 10. Siloed Systems
 
@@ -137,7 +135,7 @@ Different activities are managed through different tools — billing software, E
 
 **Business impact:** duplicate work, inconsistent information, increased operational complexity.
 
-**How Distribution OS addresses it — ADDRESSED.** One database, one contract, one catalog: manufacturers, products and variants are global and curated with a per-distributor overlay (`catalog.*`, `tenantCatalog.*`); a shop has one global identity with a link per distributor, so the same retailer can be served by more than one distributor (the demo data covers three distributors with shops linked to several). Backend modules never read each other's tables. Coexistence with legacy tools is by file — a generic importer (upload → preview → map columns → save profile → dry run → commit) for TradeEzee, Marg, Busy, Tally, FieldAssist or Excel (Decided 2026-09-04: one generic importer, not a connector per vendor), plus FieldAssist import and Tally export. All three are built in the integrations module; the pilot's own import runs at cut-over.
+**How Distribution OS addresses it.** One database, one contract, one catalog: manufacturers, products and variants are global and curated with a per-distributor overlay (`catalog.*`, `tenantCatalog.*`); a shop has one global identity with a link per distributor, so the same retailer can be served by more than one distributor. Backend modules never read each other's tables. Coexistence with legacy tools is by file — a generic importer (upload → preview → map columns → save profile → dry run → commit) for TradeEzee, Marg, Busy, Tally, FieldAssist or Excel (one generic importer, not a connector per vendor), plus FieldAssist import and Tally export. All three are in the integrations module.
 
 ## 11. Limited Mobility
 
@@ -145,7 +143,7 @@ Most existing software is designed primarily for desktop usage. Field employees 
 
 **Business impact:** reduced productivity, delayed updates, increased communication overhead.
 
-**How Distribution OS addresses it — ADDRESSED.** **Decided 2026-09-04 as six apps, one per role, revised 2026-09-21 to ONE app for the six business roles**, which becomes the right app after sign-in — built for web, Android and iOS, so the field roles get a real phone app rather than a cut-down web page. The backend is shaped for phones: `sync.upload` never answers 4xx (rejections are recorded and returned, never lost), `sync.pull`, `sync.errors.list`, and a GPS endpoint outside the queue. **Decided 2026-09-04: online-first, with offline for sales and delivery** — built. English only for the first release. All seven apps were gated green on 2026-09-07 on the A Ledger layout; the merge into one app lands before go-live.
+**How Distribution OS addresses it.** **One app for the six business roles**, which becomes the right app after sign-in — on the web and on Android, with the iOS app built from the same code and not released yet — so the field roles get a real phone app rather than a cut-down web page. The backend is shaped for phones: `sync.upload` never answers 4xx (rejections are recorded and returned, never lost), `sync.pull`, `sync.errors.list`, and a GPS endpoint outside the queue. **The app is online-first, with offline for sales and delivery.** The app is in English. The screens follow the A Ledger layout.
 
 ## 12. Lack of Operational Analytics
 
@@ -153,7 +151,7 @@ Managers have limited visibility into operational performance: daily sales trend
 
 **Business impact:** reactive management, poor forecasting, missed business opportunities.
 
-**How Distribution OS addresses it — ADDRESSED.** The reporting module is built: daily statistics for the tenant and each representative, registers for representative productivity, delivery performance, fill rate, stock value and scheme spend, retailer behaviour and lapsed-shop lists, and the series behind the owner's charts, including month grain and year-on-year comparison. Inventory turnover remains a recorded gap. Demand forecasting and reorder suggestions were previously absent; **Decided 2026-09-05, they are in v1** in the `ai` module, feeding purchase planning, and they are built.
+**How Distribution OS addresses it.** The reporting module provides daily statistics for the tenant and each representative, registers for representative productivity, delivery performance, fill rate, stock value and scheme spend, retailer behaviour and lapsed-shop lists, and the series behind the owner's charts, including month grain and year-on-year comparison. Inventory turnover is not reported. **Demand forecasting and reorder suggestions** are in the `ai` module, feeding purchase planning.
 
 # Root Causes
 
@@ -161,23 +159,23 @@ The problems above originate from several common root causes: disconnected softw
 
 Understanding these root causes helps ensure that solutions address underlying issues rather than symptoms.
 
-**Added 2026-09-05.** Two further root causes were confirmed in the field: (a) part of a distributor's own sales are billed in a manufacturer's DMS, so the distributor's books are incomplete by design, not by neglect; (b) the paper invoice is the only artefact every role shares, which is why replacing it requires seven separate records, not a prettier print.
+Two further root causes were confirmed in the field: (a) part of a distributor's own sales are billed in a manufacturer's DMS, so the distributor's books are incomplete by design, not by neglect; (b) the paper invoice is the only artefact every role shares, which is why replacing it requires seven separate records, not a prettier print.
 
 ---
 
 # Desired Future State
 
-| Desired capability                                              | Status    | Where it stands                                                                                                                                                                                                              |
-| --------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A single platform for all distribution activities               | ADDRESSED | One database, one contract, 23 modules across 8 services, all verified                                                                                                                                                       |
-| Digital workflows from order capture to payment reconciliation  | ADDRESSED | Order-to-cash loop is complete end to end, including trip settlement and deposits                                                                                                                                            |
-| Real-time visibility into inventory, deliveries and collections | ADDRESSED | `stock_balances`, `sellable_stock`, trips and receipts are live rows, and the owner's summary tiles are built                                                                                                                |
-| Mobile applications for field employees                         | ADDRESSED | All seven apps built and gated green (2026-09-07), web + Android + iOS; the six business apps merge into one before go-live (2026-09-21)                                                                                     |
-| Automated operational workflows                                 | ADDRESSED | Auto-confirm inside limits, FEFO suggestion, oldest-first allocation, stock reservation at confirm, reminders and route sequencing — all built                                                                               |
-| Integrated analytics and reporting                              | ADDRESSED | Reporting module built: owner dashboard, registers and the chart series                                                                                                                                                      |
-| Configurable business processes                                 | PARTIAL   | Settings, feature flags, numbering series, credit modes, schemes, settlement tolerance and proof-of-delivery policy are per distributor; state machines, roles, approval kinds and the permission matrix are fixed by design |
-| Secure multi-tenant SaaS architecture                           | ADDRESSED | Forced row-level security per distributor, per-endpoint permission matrix, audit log; one tenant = one distributorship (Decided 2026-09-05; multi-branch is v2)                                                              |
-| Extensibility for future AI-driven capabilities                 | ADDRESSED | LLM vision extraction is built (`docint`), and **Decided 2026-09-05 the remaining AI features are v1, not "future"** — WhatsApp and voice capture, forecasting and route sequencing are built too                             |
+| Desired capability                                              | How Distribution OS provides it                                                                                                                                                                                              |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A single platform for all distribution activities               | One database, one contract, one set of backend modules served by eight services                                                                                                                                              |
+| Digital workflows from order capture to payment reconciliation  | The order-to-cash loop runs end to end, including trip settlement and deposits                                                                                                                                               |
+| Real-time visibility into inventory, deliveries and collections | `stock_balances`, `sellable_stock`, trips and receipts are live rows, and the owner's summary tiles show them                                                                                                                |
+| Mobile applications for field employees                         | One app for the six business roles, on the web and Android, offline for sales and delivery; the iOS app is built from the same code and is not released yet                                                                  |
+| Automated operational workflows                                 | Auto-confirm inside limits, FEFO suggestion, oldest-first allocation, stock reservation at confirm, reminders and route sequencing                                                                                           |
+| Integrated analytics and reporting                              | The reporting module: owner dashboard, registers and the chart series                                                                                                                                                        |
+| Configurable business processes                                 | Settings, feature flags, numbering series, credit modes, schemes, settlement tolerance and proof-of-delivery policy are per distributor; state machines, roles, approval kinds and the permission matrix are fixed by design |
+| Secure multi-tenant SaaS architecture                           | Forced row-level security per distributor, per-endpoint permission matrix, audit log; one tenant = one distributorship; multi-branch comes after version 1                                                                   |
+| Extensibility for future AI-driven capabilities                 | LLM vision extraction reads supplier bills (`docint`), and WhatsApp and voice capture, forecasting and route sequencing are part of version 1                                                                                |
 
 ---
 
@@ -190,11 +188,11 @@ Understanding these root causes helps ensure that solutions address underlying i
 5. Support mobile-first field operations.
 6. Maintain a complete audit trail for critical business activities.
 7. Design for scalability across distributors of different sizes.
-8. Enable configurable workflows rather than hard-coded processes — **within limits set 2026-09-05**: business parameters are per distributor, but state machines, roles, approval kinds and the permission matrix are fixed so that money and stock behave identically everywhere.
+8. Enable configurable workflows rather than hard-coded processes — **within limits**: business parameters are per distributor, but state machines, roles, approval kinds and the permission matrix are fixed so that money and stock behave identically everywhere.
 9. Keep business processes modular and extensible.
 10. Build with future integrations and AI capabilities in mind.
-11. **Added 2026-09-05.** The distributor's brand, not ours: each distributor sees their own name and logo inside the apps and on every printed document; Distribution OS appears only on the sign-in screen.
-12. **Added 2026-09-05.** AI proposes, a human commits: no AI output — parsed order, extracted bill line, forecast or route — becomes a transaction without human confirmation.
+11. The distributor's brand, not ours: each distributor sees their own name and logo inside the app and on every printed document; Distribution OS appears only on the sign-in screen.
+12. AI proposes, a human commits: no AI output — parsed order, extracted bill line, forecast or route — becomes a transaction without human confirmation.
 
 ---
 
@@ -208,45 +206,26 @@ Distribution OS will be considered successful when it enables distributors to ma
 
 This problem statement focuses on operational challenges within the distribution business. Specific feature requirements, workflows and implementation details are documented separately in the Product Requirements, Business Process and Architecture documentation.
 
-**Scope notes added 2026-09-05.** Positioning stays multi-industry — pharma, electricals, dairy and agri are named markets — while the product stays FMCG-shaped until a second-industry customer exists. One tenant is one distributorship; multi-branch groups are v2. Revenue is the distributor's subscription; the platform never touches payments as a business.
+**Scope notes.** Positioning is multi-industry — pharma, electricals, dairy and agri are named markets — while the product is FMCG-shaped. One tenant is one distributorship; multi-branch groups come after version 1. Revenue is the distributor's subscription; the platform never touches payments as a business.
 
 ## Traceability: problem to what actually delivers it
 
-| Problem                                         | What delivers it                                                                                                                                       | Status             |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
-| Fragmented Order Capture                        | `orders.create / setLines / submit / repeatLast` with a `source` field; `orders.list` state = submitted as the order inbox; retailer app places orders | ADDRESSED          |
-| Fragmented Order Capture — WhatsApp and voice   | `ai` module: free-text and speech parsed against the shop's own purchase history, always human-confirmed (v1, Decided 2026-09-05)                      | ADDRESSED          |
-| High Manual Data Entry — outbound               | `orders.repeatLast`, `pricing.quote`, invoice derived at pack by `warehouse.packs.confirm`                                                             | ADDRESSED          |
-| High Manual Data Entry — inbound bills          | `docint`: QR/IRN verify → vision extraction → validators → SKU match → human review → `procurement.grns.post`                                          | ADDRESSED          |
-| Delivery Challenges                             | `delivery.trips.*`, `stops.next / start / arrive`, `deliveries.record`, `pod_evidence`, shop coordinates, maps hand-off                                | ADDRESSED          |
-| Delivery route sequencing                       | `ai` module: stop sequencing by distance and time window, driver may override (v1, Decided 2026-09-05)                                                 | ADDRESSED          |
-| Limited Payment Tracking                        | `delivery.collections.record`, `receivables.receipts.*`, `allocations.*`, balanced journal, `trip_settlements`                                         | ADDRESSED          |
-| Poor Outstanding Management                     | `receivables.outstanding.list / get` with six ageing buckets, `creditCheck`, `retailers.setCredit`, `statements.send`, `writeOffs.create`              | ADDRESSED          |
-| Delayed Business Insights                       | `reporting.dashboard.owner` and the series behind the owner app's graphs                                                                               | ADDRESSED          |
-| Lack of Operational Analytics                   | `reporting.registers.*`, `reporting.retailers.behaviour / lapsed`                                                                                      | ADDRESSED          |
-| Demand forecasting and reorder suggestions      | `ai` module feeding purchase planning (v1, Decided 2026-09-05)                                                                                         | ADDRESSED          |
-| Siloed Systems — legacy coexistence             | Generic mapped importer, FieldAssist import, Tally export (integrations module)                                                                        | ADDRESSED          |
-| Limited Mobility                                | One app for the six roles, web + Android + iOS; `sync.upload` / `sync.pull` never lose a rejection; offline for sales and delivery                     | ADDRESSED          |
-| Distributor onboarding and support              | Platform-admin app and service: organisations, plans, subscription state, time-boxed owner-approved support access (v1, Decided 2026-09-05)            | ADDRESSED          |
-| Rack, bin and zone management; barcode scanning | Not scheduled for v1                                                                                                                                   | NOT YET            |
+| Problem                                         | What delivers it                                                                                                                                                    |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fragmented Order Capture                        | `orders.create / setLines / submit / repeatLast` with a `source` field; `orders.list` state = submitted as the order inbox; shops place their own orders in the app |
+| Fragmented Order Capture — WhatsApp and voice   | `ai` module: free-text and speech parsed against the shop's own purchase history, always human-confirmed                                                            |
+| High Manual Data Entry — outbound               | `orders.repeatLast`, `pricing.quote`, invoice derived at pack by `warehouse.packs.confirm`                                                                          |
+| High Manual Data Entry — inbound bills          | `docint`: QR/IRN verify → vision extraction → validators → SKU match → human review → `procurement.grns.post`                                                       |
+| Delivery Challenges                             | `delivery.trips.*`, `stops.next / start / arrive`, `deliveries.record`, `pod_evidence`, shop coordinates, maps hand-off                                             |
+| Delivery route sequencing                       | `ai` module: stop sequencing by distance and time window, driver may override                                                                                       |
+| Limited Payment Tracking                        | `delivery.collections.record`, `receivables.receipts.*`, `allocations.*`, balanced journal, `trip_settlements`                                                      |
+| Poor Outstanding Management                     | `receivables.outstanding.list / get` with six ageing buckets, `creditCheck`, `retailers.setCredit`, `statements.send`, `writeOffs.create`                           |
+| Delayed Business Insights                       | `reporting.dashboard.owner` and the series behind the owner's graphs                                                                                                |
+| Lack of Operational Analytics                   | `reporting.registers.*`, `reporting.retailers.behaviour / lapsed`                                                                                                   |
+| Demand forecasting and reorder suggestions      | `ai` module feeding purchase planning                                                                                                                               |
+| Siloed Systems — legacy coexistence             | Generic mapped importer, FieldAssist import, Tally export (integrations module)                                                                                     |
+| Limited Mobility                                | One app for the six roles, web and Android; `sync.upload` / `sync.pull` never lose a rejection; offline for sales and delivery                                      |
+| Distributor onboarding and support              | Platform-admin app and service: organisations, plans, subscription state, time-boxed owner-approved support access                                                  |
+| Rack, bin and zone management; barcode scanning | Not available yet                                                                                                                                                   |
 
 This traceability helps prioritise features, avoid unnecessary complexity, and explain the product's value to customers and investors in terms of what exists rather than what is hoped for.
-
----
-
-## What changed from version 1.0
-
-| Change                                                                                                                                                        | Date decided            |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| Every problem now names the module, procedure or table that answers it, with an honest built / partial / planned / not-yet status                             | 2026-09-05              |
-| Voice capture, WhatsApp and AI order parsing, demand forecasting and route sequencing moved from "future" to **v1, before the pilot**, always human-confirmed | 2026-09-05              |
-| Six role apps (owner; manager + accountant; sales; warehouse; delivery; retailer), each web + Android + iOS, plus a platform-admin console                    | 2026-09-04 / 2026-09-05 |
-| **Those six become ONE app** that becomes the right app after sign-in, with the role elected at sign-in; the console stays separate                            | 2026-09-21              |
-| Hosting decided: Oracle Cloud Always Free (Mumbai) with self-hosted PostgreSQL 17 and Cloudflare Pages for the web, on `distributionos.in`; go-live 27 Sep     | 2026-09-21              |
-| Only the delivery crew or the shop paying online may record money; the salesperson never collects                                                             | 2026-09-04              |
-| The invoice is issued at pack by the warehouse, after picking — there is no data-entry-operator role                                                          | 2026-09-04              |
-| Accountant scope fixed at money desk plus reads; manager approves load-out from the manager app                                                               | 2026-09-05              |
-| White-label: the distributor's own name and logo everywhere except the sign-in screen                                                                         | 2026-09-04              |
-| One tenant = one distributorship; multi-branch groups are v2                                                                                                  | 2026-09-05              |
-| Product name is "Distribution OS", and since 2026-09-21 that is also the name of the single app the distributor's staff install                               | 2026-09-05              |
-| The repository document `docs/22-source-of-truth.md` is the single source of truth; this space mirrors it                                                     | 2026-09-05              |
