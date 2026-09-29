@@ -95,12 +95,10 @@ async function finishTrips(ctx: Ctx, date: string): Promise<void> {
 // ------------------------------------------------------------------------------------------- waves
 
 async function finishWaves(ctx: Ctx, date: string): Promise<void> {
-  const live = await ctx.read(contract.warehouse.picklists.list, { limit: 200 })
-  for (const pl of live.items) {
-    if (!earlier(pl.id, date)) continue
-    if (pl.status !== 'open' && pl.status !== 'picking' && pl.status !== 'picked') continue
-    const name = demoIdDate(pl.id) ?? 'earlier'
-    await finishWave(ctx, date, pl.id, name)
+  // Asked per status: the waves still on the floor are a handful, whatever the history behind them.
+  for (const status of ['open', 'picking', 'picked'] as const) {
+    const live = await ctx.read(contract.warehouse.picklists.list, { status, limit: 200 })
+    for (const pl of live.items) if (earlier(pl.id, date)) await finishWave(ctx, date, pl.id)
   }
   // Earlier orders confirmed and on no wave (a rate approved this morning): one wave, picked and packed.
   const queue = await pages((cursor) =>
@@ -120,7 +118,7 @@ async function finishWaves(ctx: Ctx, date: string): Promise<void> {
   for (const o of picking) if (earlier(o.id, date)) await pack(ctx, date, o.id)
 }
 
-async function finishWave(ctx: Ctx, date: string, id: string, label: string): Promise<void> {
+async function finishWave(ctx: Ctx, date: string, id: string): Promise<void> {
   let pl = await ctx.read(contract.warehouse.picklists.get, { id })
   if (pl.item.status === 'open') {
     const started = await ctx.write(
@@ -160,7 +158,6 @@ async function finishWave(ctx: Ctx, date: string, id: string, label: string): Pr
       pl = { item: picked.item }
     }
   }
-  void label
   for (const o of pl.item.orders) await pack(ctx, date, o.orderId)
 }
 

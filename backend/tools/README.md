@@ -101,3 +101,28 @@ owner/orders.setLines   500 server error 500 [body: the contract example]
 example (or the handler). `[body: generated from demo data]` means the harness built it from real
 ids, so the fault is more likely in the handler. The service's own log has the underlying Postgres
 error.
+
+## `pnpm fill:demo` — dummy activity on top of the real master data
+
+Decision docs/22 §8 (2026-09-28), brief `docs/plans/demo-activity-fill.md`. One site, one database: the
+distributor's real shops, items, prices, stock and opening dues stay, and this tool adds a working day on top
+so that every role opens on work. It is a CLIENT of the running API — it signs in as the people who would do
+each step and calls the procedures the apps call — and never opens a database connection to write.
+
+| Command                                                                                             | What it does                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm fill:demo --api <url> --tenant <slug> --owner-password-file <f> --logins-file <f> [--commit]` | Finishes what the tool left open on earlier days, then makes `--date` (default today, IST). Dry run without `--commit`. `--report <json>` writes its counts.                                              |
+| `pnpm check:demo-coverage` (same arguments)                                                         | Signs in as every tester login and reads what each role's screens read; exits 1 with the gap list when a role has no work.                                                                                |
+| `pnpm check:demo-rows --tenant <slug> [--expect <run.json> …] [--baseline <before.json>]`           | Reads the database (`DATABASE_URL`) read-only: the tool's rows by kind, its money only on its own bills, stock ledger = balances, journals balance, dues = bills − receipts − credit notes.               |
+| `pnpm --filter @dos/tools build:lookalike --owner-password-file <f>`                                | TEST ONLY (refuses any database not named `dos_test_…`): a distributor built the way the real one was — `bootstrapTenant` + the legacy importer's writer — from an invented plan of the real one's shape. |
+| `bash backend/infra/oracle-vm/fill-demo.sh`                                                         | The founder's one command: rehearsal on a restored copy, the real run, the checks, the 06:00 IST cron line.                                                                                               |
+
+How rows are marked: every idempotency key starts `demo-fill:<business date>:`, and every id the tool names
+is derived from that key and the distributor — a UUIDv7 whose time falls inside the business date and which
+carries the tag `…-7d3f-bd3f-de30…` (`demo-fill/ids.ts`). Rows the API makes from them (a bill at pack, a
+credit note at a door) are found through the tool's row they hang off. The same date run twice writes
+nothing; a run that died midway is healed by the next. Output is counts and ids only; the tester passwords
+live in the logins file (mode 600) and nowhere else. Tester usernames are `tester.manager`, `tester.accounts`,
+`tester.sales1`, `tester.sales2`, `tester.godown`, `tester.driver1`, `tester.driver2` (`--login-suffix x`
+makes them `tester.<role>.x`, for a second distributor on one database). A shopkeeper login cannot be made
+through the API (QA DOS-400): three shops stand in for `tester.shop1…3`.
