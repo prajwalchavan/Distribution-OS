@@ -72,3 +72,14 @@ runs the three checks, reconciles rule 7 in SQL, proves rule 3 and rule 5 by sea
 export against the lane API at phone width and signs in as each tester login: the landing page must show
 the work in the table above. Then it breaks things on purpose (API down midway, a login whose password was
 changed, an item with no stock) and runs again: the run must report and heal, never duplicate.
+
+## Round 2 (founder, 2026-09-29: "no field must be empty, no 0s, every functionality must have some data")
+
+Starts when round 1 has passed its blind check. Same lane, same rules.
+
+1. **The sweep.** `check:demo-coverage` grows from "each role's home and lists" to **every GET of every service the role may call** (the smoke harness already knows them all): an empty list, a zero count or a zero amount is a gap, printed by role, screen and procedure. It exits 1 on any gap that the tool could fill and names, apart, the ones no procedure can fill.
+2. **The owner's home has no zero:** booked, held, billed, packed with no van, on the road, delivered AND failed, collected by cash AND UPI AND cheque, banked of today's money, owed; invoiced, collected, outstanding and orders today. So each day's run ends with some of today's money banked (a deposit and a UPI confirmation by the accountant) while other money is still to bank.
+3. **Every menu entry has rows:** approvals of each kind (credit, rate, load-out), the live map (the drivers' positions of today's trips), offers, claims on a brand, targets, returns and a credit note, a bounced cheque, a write-off, supplier bills in every state, a gate count with a difference, registers and exports, notices for every role.
+4. **Shopkeeper sign-ins** `tester.shop1…3` through the desk's new procedure (lane `feat/shop-login`), on the three shops that stand in for them today.
+5. Graphs of past days are not forced: nobody can date a bill in the past (DOS-403). They fill as the nightly runs add up.
+
