@@ -34,6 +34,36 @@ async function allPages<T>(
   return out
 }
 
+/** The most rows one read of the costs register answers (the procedure has no cursor). */
+export const COSTS_PAGE = 500
+
+/**
+ * Each item's purchase rate: its item-level row of the costs register (no lot). The register answers its
+ * newest rows first and has no cursor, and every goods receipt adds a row per lot, so after months of them
+ * the item-level rows fall off one read: when the first read comes back full, each item still without a rate
+ * is read on its own (`variantId`).
+ */
+export async function itemCosts(
+  ctx: Pick<Ctx, 'read'>,
+  variantIds: readonly string[],
+): Promise<Map<string, number>> {
+  const costOf = new Map<string, number>()
+  const take = (
+    items: readonly { variantId: string; lotId: string | null; purchaseRatePaise: number }[],
+  ) => {
+    for (const c of items) if (c.lotId === null) costOf.set(c.variantId, c.purchaseRatePaise)
+  }
+  const first = await ctx.read(contract.tenantCatalog.costs, { limit: COSTS_PAGE })
+  take(first.items)
+  if (first.items.length < COSTS_PAGE) return costOf
+  for (const variantId of variantIds) {
+    if (costOf.has(variantId)) continue
+    const one = await ctx.read(contract.tenantCatalog.costs, { variantId, limit: COSTS_PAGE })
+    take(one.items)
+  }
+  return costOf
+}
+
 export async function readWorld(ctx: Ctx): Promise<World> {
   const shopsRaw = await allPages((cursor) =>
     ctx.read(contract.retailers.list, {
@@ -93,9 +123,10 @@ export async function readWorld(ctx: Ctx): Promise<World> {
     ? await ctx.read(contract.pricing.rates, { retailerId: refShop.id })
     : { items: [] }
   const rateOf = new Map(rates.items.map((r) => [r.variantId, r.listRatePaise]))
-  const costs = await ctx.read(contract.tenantCatalog.costs, { limit: 500 })
-  const costOf = new Map<string, number>()
-  for (const c of costs.items) if (c.lotId === null) costOf.set(c.variantId, c.purchaseRatePaise)
+  const costOf = await itemCosts(
+    ctx,
+    catalog.map((c) => c.variantId),
+  )
   const hsnCodes = [...new Set(catalog.map((c) => c.hsnCode).filter((h) => /^\d{4,8}$/.test(h)))]
   const gstOf = new Map<string, number>()
   for (let at = 0; at < hsnCodes.length; at += 50) {
