@@ -4,7 +4,7 @@ import { businessDate } from '@dos/domain'
 import { packConfirmations, pickLines, picklists, type Db } from '@dos/db'
 import { currentTenant } from '../../platform/index.js'
 import { istDateWord } from '../../platform/refusal-words.js'
-import type { InventoryService } from '../inventory/index.js'
+import { fulfilPlaceRefusal, type InventoryService } from '../inventory/index.js'
 import type { OrdersService } from '../orders/index.js'
 import { MAX_PICK_ROWS, type LotRow } from './warehouse.internals.js'
 
@@ -43,7 +43,35 @@ export const isExpired = (lot: Pick<LotRow, 'expiryDate'>, today: string): boole
   lot.expiryDate !== null && lot.expiryDate < today
 
 /** The codes of the refusals above, which `warehouse.sync.ts` hands to the device as its rejection code. */
-export const STOCK_RULE_CODES = new Set(['batch_expired', 'held_for_another_order', 'order_packed'])
+export const STOCK_RULE_CODES = new Set([
+  'batch_expired',
+  'held_for_another_order',
+  'order_packed',
+  'fulfil_location_not_sellable',
+])
+
+/**
+ * AN ORDER IS SERVED FROM A GODOWN (architect ruling of 2026-09-28, the last stock row; QA verify 4, N1). An order
+ * already in the database that names a van — drafted before the ruling, when a rep's order naming van C held and
+ * then packed the pieces of another trip's loaded bill — or the bin, the dock or a shop's floor, is refused at pick
+ * and at pack with the sentence of its place, before anything moves (offline: the pick keeps this code). The van
+ * sale's own order never comes here: it is billed off its van inside its own door. The exit is the desk's cancel,
+ * which frees its holds; placed again without a location, it is picked and packed from the godown.
+ */
+export async function assertServedFromGodown(
+  tx: Db,
+  order: { orderNo: string | null; fulfilFromLocationId: string | null },
+  at: 'pick' | 'pack',
+): Promise<void> {
+  if (order.fulfilFromLocationId === null) return
+  const refusal = await fulfilPlaceRefusal(tx, order.fulfilFromLocationId)
+  if (refusal === null) return
+  const place = refusal.name ?? `location ${refusal.locationId}`
+  throw new ORPCError('CONFLICT', {
+    message: `${order.orderNo ?? 'This order'} is set to be served from ${place}, so it is not ${at === 'pick' ? 'picked' : 'packed'}: ${refusal.why} An order is served from a godown: cancel it and place it again without a location; it is then picked and packed from the godown.`,
+    data: { code: refusal.code, locationId: refusal.locationId },
+  })
+}
 
 /** Which of these orders already have a pack confirmation (warehouse's own table). */
 export async function packedOrders(tx: Db, orderIds: readonly string[]): Promise<Set<string>> {

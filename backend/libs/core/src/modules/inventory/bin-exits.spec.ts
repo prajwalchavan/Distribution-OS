@@ -423,12 +423,12 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
     expect(held).toEqual([])
   })
 
-  it('DOS-352 (V8): a pick out of the bin is never packed or billed — the ledger refuses the pack in words, the pieces stay in the bin and no bill is made', async () => {
+  it('DOS-352 (V8): an order pointed at the bin is never waved, picked, packed or billed — the wave and the desk’s pack are refused in words, the pieces stay in the bin and no bill is made', async () => {
     // an order confirmed from the godown, then pointed at the bin the way a pre-fix row (or any path the order
     // checks miss) points it: the wave, the pick and the pack all take their place from the order
     const placed = draftOrder(rep, 'pack-bin')
     expect((await placed.res).status).toBe(200)
-    const submitted = await call<{ item: { state: string } }>(
+    const submitted = await call<{ item: { state: string; orderNo: string } }>(
       app,
       rep,
       'POST',
@@ -437,64 +437,42 @@ describeDb('inventory: nothing leaves the damaged bin for sale, on any path (DAT
     )
     expect(submitted.status, JSON.stringify(submitted.body)).toBe(200)
     expect(submitted.body.item.state).toBe('confirmed')
+    const orderNo = submitted.body.item.orderNo
     await db
       .update(salesOrders)
       .set({ fulfilFromLocationId: bin })
       .where(eq(salesOrders.id, placed.id))
+    const notServed = (at: 'picked' | 'packed') =>
+      `${orderNo} is set to be served from Damaged / expiry bin, so it is not ${at}: pieces in the damaged / expiry bin never go back for sale. An order is served from a godown: cancel it and place it again without a location; it is then picked and packed from the godown.`
 
     const binBefore = await onHandAt(binLot, bin)
     const rowsBefore = await ledgerCount()
-    const waveId = uuidv7()
-    const waved = await call<
-      Refusal & { item: { locationId: string; lines: { id: string; orderLineId: string }[] } }
-    >(app, packer, 'POST', '/warehouse/picklists', {
+    // The wave is refused when it is made (the merged stock-states lane's vans and trips ruling 6 refused a wave at the
+    // bin; the architect ruling of 2026-09-28, the last stock row, refuses first the order that is not served from a
+    // godown). It answered 200 before the merge; the ruling is the refusal.
+    const waved = await call<Refusal>(app, packer, 'POST', '/warehouse/picklists', {
       idempotencyKey: `wave-bin-${run}`,
-      id: waveId,
+      id: uuidv7(),
       orderIds: [placed.id],
     })
-    // whichever door refuses it — the wave (the fulfilment lane's vans and trips ruling 6: a wave is not placed at
-    // the bin) or the pack (the ledger) — the pieces stay in the bin and no bill is made
-    if (waved.status !== 200) {
-      expect(waved.status, JSON.stringify(waved.body)).toBeGreaterThanOrEqual(400)
-      expect(waved.status).toBeLessThan(500)
-      expect(await onHandAt(binLot, bin)).toBe(binBefore)
-      expect(await onHandAt(binLot, dock)).toBe(0)
-      expect(await ledgerCount()).toBe(rowsBefore)
-      const none = await db
-        .select({ id: packConfirmations.id })
-        .from(packConfirmations)
-        .where(eq(packConfirmations.orderId, placed.id))
-      expect(none).toEqual([])
-      return
-    }
-    expect(waved.body.item.locationId).toBe(bin)
-    const row = waved.body.item.lines[0]
-    const started = await call(app, packer, 'POST', `/warehouse/picklists/${waveId}/start`, {
-      idempotencyKey: `start-bin-${run}`,
-      assignedTo: packerId,
-    })
-    expect(started.status, JSON.stringify(started.body)).toBe(200)
-    const picked = await call(app, packer, 'POST', `/warehouse/picklists/${waveId}/pick`, {
-      idempotencyKey: `pick-bin-${run}`,
-      lines: [{ id: row?.id, orderLineId: row?.orderLineId, lotId: binLot, pickedQtyPcs: 12 }],
-    })
-    expect(picked.status, JSON.stringify(picked.body)).toBe(200)
+    expect(waved.status, JSON.stringify(waved.body)).toBe(409)
+    expect(waved.body.data?.code).toBe('fulfil_location_not_sellable')
+    expect(waved.body.message).toBe(notServed('picked'))
+    expect(await onHandAt(binLot, bin)).toBe(binBefore)
+    expect(await ledgerCount()).toBe(rowsBefore)
 
-    const inBin = await onHandAt(binLot, bin)
-    const rows = await ledgerCount()
+    // the desk's pack without a wave takes its place from the order too, and is refused the same way
     const packed = await call<Refusal>(app, packer, 'POST', `/warehouse/orders/${placed.id}/pack`, {
       idempotencyKey: `pack-bin-${run}`,
       id: uuidv7(),
       packages: 1,
     })
-    expect(packed.status).toBe(409)
-    expect(packed.body.data?.code).toBe('damaged_not_for_sale')
-    expect(packed.body.message).toBe(
-      `${binWords}, so 12 pc of ${item} (batch ${binBatch}) cannot be moved to In transit. ${exits}`,
-    )
-    expect(await onHandAt(binLot, bin)).toBe(inBin)
+    expect(packed.status, JSON.stringify(packed.body)).toBe(409)
+    expect(packed.body.data?.code).toBe('fulfil_location_not_sellable')
+    expect(packed.body.message).toBe(notServed('packed'))
+    expect(await onHandAt(binLot, bin)).toBe(binBefore)
     expect(await onHandAt(binLot, dock)).toBe(0)
-    expect(await ledgerCount()).toBe(rows)
+    expect(await ledgerCount()).toBe(rowsBefore)
     const packs = await db
       .select({ id: packConfirmations.id })
       .from(packConfirmations)

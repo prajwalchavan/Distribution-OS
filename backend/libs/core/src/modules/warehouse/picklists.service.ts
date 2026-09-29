@@ -54,6 +54,7 @@ import {
 } from './warehouse.internals.js'
 import {
   assertPicksWithinShare,
+  assertServedFromGodown,
   batchWords,
   expiredBatch,
   isExpired,
@@ -290,6 +291,17 @@ export class PicklistsService implements OnModuleInit {
             message: `order(s) already on a live picklist: ${[...alreadyWaved.keys()].join(', ')}`,
           })
 
+        // Architect ruling of 2026-09-28 (the last stock row; QA verify 4, N1): an order already in the database that
+        // names a van, the dock, the damaged bin or a shop's floor is not picked, so it is not waved either — in the
+        // words of its own place, not "wave it from" a place no wave may stand at.
+        // One look per place: the orders of a wave nearly always share the godown.
+        const judged = new Set<string>()
+        for (const order of orders) {
+          const place = order.fulfilFromLocationId
+          if (place === null || judged.has(place)) continue
+          await assertServedFromGodown(tx, order, 'pick')
+          judged.add(place)
+        }
         const locationId = this.singleLocation(orders, input.locationId)
         // Ruling 6 (vans and trips, 2026-09-28): a wave is never placed at the damaged / expiry bin — nothing
         // leaves it for sale — nor at the dock or a shop's floor; refused when the wave is made.
@@ -819,6 +831,7 @@ export class PicklistsService implements OnModuleInit {
     const updates: { id: string; values: Partial<typeof pickLines.$inferInsert> }[] = []
     const working = new Map(existing.map((r) => [r.id, { ...r }]))
     const fefoCache = new Map<string, string | null>()
+    const servedFromGodown = new Set<string>()
     // QA DOS-054: the distributor's shelf-life rule, read once for this call.
     const { days: minShelfLifeDays, cutoff } = await this.inventory.shelfLifeRule(tx)
 
@@ -847,6 +860,14 @@ export class PicklistsService implements OnModuleInit {
       if (packed.has(template.orderId)) {
         const [order] = await this.orders.fulfilmentOrders(tx, [template.orderId])
         throw orderAlreadyPacked(order?.orderNo ?? 'This order')
+      }
+      // Architect ruling of 2026-09-28 (the last stock row; QA verify 4, N1): an order already in the database that
+      // names a van (or the bin, the dock, a shop's floor) is not picked — online a 409, offline a rejection with
+      // the same code and sentence. Its pieces there belong to that van's trip.
+      if (pick.pickedQtyPcs > 0 && !servedFromGodown.has(template.orderId)) {
+        const [order] = await this.orders.fulfilmentOrders(tx, [template.orderId])
+        if (order) await assertServedFromGodown(tx, order, 'pick')
+        servedFromGodown.add(template.orderId)
       }
       const lot = lots.get(pick.lotId)
       if (!lot) throw new ORPCError('NOT_FOUND', { message: `lot ${pick.lotId} not found` })

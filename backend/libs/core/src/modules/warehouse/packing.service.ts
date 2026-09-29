@@ -32,11 +32,13 @@ import {
   MAX_PICK_ROWS,
   pgConstraint,
   PIN_HOLDERS,
+  placeOf,
   WAREHOUSE_DESK,
   writeAudit,
 } from './warehouse.internals.js'
 import {
   assertPackWithinShare,
+  assertServedFromGodown,
   batchWords,
   expiredBatch,
   isExpired,
@@ -114,6 +116,9 @@ export class PackingService implements OnModuleInit {
             message: `order ${order.orderNo ?? order.id} is ${order.state}; cartons are taped shut while it is confirmed, picking or packed`,
           })
         await this.assertNotAlreadyPacked(tx, order.id)
+        // Architect ruling of 2026-09-28 (the last stock row; QA verify 4, N1): an order naming a van is not packed —
+        // its pieces there belong to that van's trip — nor one naming the bin, the dock or a shop's floor.
+        await assertServedFromGodown(tx, order, 'pack')
         const locationId = order.fulfilFromLocationId ?? (await activeWarehouseLocation(tx))
         const packs = await this.whatLeftTheRack(tx, order.id, locationId)
         // QA DOS-252: an order the picker came back from empty-handed has nothing to tape shut or to bill.
@@ -371,15 +376,26 @@ export class PackingService implements OnModuleInit {
       })
       const bin = expired ? await damagedBin(tx) : null
       const dock = await dockLocationId(tx)
+      // NOTHING GOES BACK ONTO A VAN (architect ruling of 2026-09-28, the last stock row; QA verify 4, N1 "V4-DOORS2"):
+      // a pack taken off a van (an order that named one before the ruling) put its pieces on the dock, and undoing it
+      // moved them dock → van while another trip held that van. Pieces a pack took off a van go to THE godown; every
+      // other place gets back what was taken from it (a godown its pieces, the damaged bin its damaged ones — ruling
+      // 2, nothing leaves the bin for sale); expired ones go to the expiry bin (above).
+      const fromKinds = await this.placeKinds(tx, [...new Set(open.map((c) => c.from))])
+      const godown = [...fromKinds.values()].includes('vehicle')
+        ? await activeWarehouseLocation(tx)
+        : null
+      const backTo = (from: string): string =>
+        godown !== null && fromKinds.get(from) === 'vehicle' ? godown : from
       const places = await this.inventory.locationNames(tx, [
-        ...open.map((c) => c.from),
+        ...open.map((c) => backTo(c.from)),
         ...(bin ? [bin.id] : []),
       ])
       const entries: Parameters<InventoryService['post']>[1] = []
       for (const c of open) {
         const lot = lots.get(c.lotId)
         const toBin = bin !== null && lot !== undefined && isExpired(lot, today)
-        const to = toBin ? bin.id : c.from
+        const to = toBin ? bin.id : backTo(c.from)
         const key = `unpack:${order.id}:${c.lineId}:${pack.id}:${c.lotId}`
         const note = toBin
           ? `${how === 'cancel' ? 'order cancelled' : 'unpacked'}: ${name}'s pieces expired on ${istDateWord(lot?.expiryDate ?? null)}, into the expiry bin`
@@ -696,6 +712,16 @@ export class PackingService implements OnModuleInit {
       out.push({ orderLineId: pack.line.orderLineId, lotId: pick.lotId, qtyPcs, freeQtyPcs })
     }
     return out
+  }
+
+  /** Each place's kind (`warehouse`, `vehicle`, …); a place that is not this distributor's is left out. */
+  private async placeKinds(tx: Db, ids: readonly string[]): Promise<Map<string, string>> {
+    const kinds = new Map<string, string>()
+    for (const id of ids) {
+      const place = await placeOf(tx, id)
+      if (place !== null) kinds.set(id, place.kind)
+    }
+    return kinds
   }
 
   private async assertNotAlreadyPacked(tx: Db, orderId: string): Promise<void> {
