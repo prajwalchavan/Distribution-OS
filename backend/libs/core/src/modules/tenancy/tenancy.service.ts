@@ -30,6 +30,7 @@ import {
   currentTenant,
   DB,
   idempotent,
+  pgConstraint,
   requireDb,
   requireRole,
   withoutSecrets,
@@ -46,6 +47,7 @@ import {
   setFirstPassword,
   signInById,
   signInByPhone,
+  usedElsewhere,
 } from './credentials.js'
 
 /** DOS-400: the person behind a shop's sign-in, as `retailers.signIn.give` asks for it. */
@@ -85,6 +87,15 @@ const NOT_A_SHOP_PHONE =
  */
 const NOT_YOURS_ALONE =
   'This sign-in is not yours alone to reset: the shopkeeper also uses it with another business. Only the shopkeeper can change its password.'
+/** The same refusal on the staff screen, for anybody who is not one of this distributor's shops. */
+const NOT_YOURS_ALONE_STAFF =
+  'This sign-in is not yours alone to reset: this person also uses it with another business. Only they can change its password.'
+/**
+ * A membership id the app sent is already a row (the app makes a new one for every form, so this is
+ * a request sent twice with its content changed, never a desk's mistake). Nothing is saved.
+ */
+const REPEATED_REQUEST =
+  'This could not be saved: it repeats an earlier request. Close this and try again.'
 
 /** Who may read the staff list: the desk. A rep must not enumerate the people of the business. */
 const BACK_OFFICE: readonly ActorRole[] = ['owner', 'manager', 'accountant', 'system']
@@ -215,6 +226,11 @@ export class TenancyService {
       }
       const existing = found[0]
       if (existing) return existing.id
+      // Before the person is made: a clashing membership id used to make them, then fail as a 500
+      // and leave them behind. (A replay of this very hire finds the person above and never gets here.)
+      if (await membershipIdTaken(tx, input.id)) {
+        throw new ORPCError('CONFLICT', { message: REPEATED_REQUEST })
+      }
       try {
         await tx.insert(users).values({
           id: input.userId,
@@ -255,12 +271,12 @@ export class TenancyService {
               message: 'This person is already a member of this distributor',
             })
           }
-          await tx.insert(memberships).values({
+          await insertMembership(tx, {
             id: input.id,
             tenantId: ctx.tenantId,
             userId,
             role: input.role,
-            status: 'active',
+            raced: 'This person is already a member of this distributor',
           })
           return { userId, membershipId: input.id, mustChangePassword: true as const }
         },
@@ -406,9 +422,18 @@ export class TenancyService {
           assertMayAdminister(ctx.actorRole, target.role)
           // users / auth_sessions / auth_events are global tables an admin cannot write for someone
           // else under app_rw (users_self_update, auth_sessions_own), so the credential work escalates.
-          await withSystem(db, (sys) =>
-            setFirstPassword(sys, { userId: input.userId, tenantId: ctx.tenantId, passwordHash }),
-          )
+          await withSystem(db, async (sys) => {
+            const who = { userId: input.userId, tenantId: ctx.tenantId }
+            // DOS-400 repair: the same rule the shop's page keeps. A password is global, so one set
+            // here for a person who also signs in with another business (as its shopkeeper, its staff
+            // or its owner) or to the console would let this desk sign in as them there.
+            if (await usedElsewhere(sys, who)) {
+              throw new ORPCError('CONFLICT', {
+                message: target.role === 'retailer' ? NOT_YOURS_ALONE : NOT_YOURS_ALONE_STAFF,
+              })
+            }
+            await setFirstPassword(sys, { ...who, passwordHash })
+          })
           return { ok: true as const }
         },
       ),
@@ -553,12 +578,12 @@ export class TenancyService {
       .where(and(eq(memberships.tenantId, input.tenantId), eq(memberships.userId, input.userId)))
       .limit(1)
     if (!row) {
-      await tx.insert(memberships).values({
+      await insertMembership(tx, {
         id: input.membershipId,
         tenantId: input.tenantId,
         userId: input.userId,
         role: 'retailer',
-        status: 'active',
+        raced: 'Another desk gave this shopkeeper a sign-in a moment ago. Try again.',
       })
       return
     }
@@ -604,19 +629,24 @@ export class TenancyService {
   }): Promise<void> {
     const db = requireDb(this.db)
     await withSystem(db, async (sys) => {
-      const [elsewhere] = await sys
-        .select({ id: memberships.id })
-        .from(memberships)
-        .where(and(eq(memberships.userId, input.userId), ne(memberships.tenantId, input.tenantId)))
-        .limit(1)
-      const [consoleSeat] = await sys
-        .select({ id: platformAdmins.id })
-        .from(platformAdmins)
-        .where(eq(platformAdmins.userId, input.userId))
-        .limit(1)
-      if (elsewhere || consoleSeat) throw new ORPCError('CONFLICT', { message: NOT_YOURS_ALONE })
+      if (await usedElsewhere(sys, input)) {
+        throw new ORPCError('CONFLICT', { message: NOT_YOURS_ALONE })
+      }
       await setFirstPassword(sys, input)
     })
+  }
+
+  /**
+   * A membership id the app sent that is already a row, refused BEFORE anybody is made: the person a
+   * shop's sign-in or a hire makes is written in its own transaction first, and a membership insert
+   * that failed after it left that person behind with a first password nobody was shown. Read as the
+   * system role, because the clashing row may be another distributor's.
+   */
+  async refuseTakenMembershipId(id: string): Promise<void> {
+    const db = requireDb(this.db)
+    if (await withSystem(db, (sys) => membershipIdTaken(sys, id))) {
+      throw new ORPCError('CONFLICT', { message: REPEATED_REQUEST })
+    }
   }
 
   /**
@@ -697,6 +727,42 @@ async function loadMember(
     })
   }
   return row
+}
+
+/** Is this membership id already a row, in any distributor (so read as the system role)? */
+async function membershipIdTaken(sys: Db, id: string): Promise<boolean> {
+  const [taken] = await sys
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(eq(memberships.id, id))
+    .limit(1)
+  return taken !== undefined
+}
+
+/**
+ * A new membership, with a clash said in words (never a 500): the person already joined a moment ago
+ * (`raced`, the unique person-per-distributor index), or the id is already a row (`REPEATED_REQUEST`).
+ * Both callers check first; this is what a request that loses a race hears.
+ */
+async function insertMembership(
+  tx: Db,
+  input: { id: string; tenantId: string; userId: string; role: MembershipRole; raced: string },
+): Promise<void> {
+  try {
+    await tx.insert(memberships).values({
+      id: input.id,
+      tenantId: input.tenantId,
+      userId: input.userId,
+      role: input.role,
+      status: 'active',
+    })
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err
+    const constraint = pgConstraint(err)
+    throw new ORPCError('CONFLICT', {
+      message: constraint === 'memberships_tenant_user_idx' ? input.raced : REPEATED_REQUEST,
+    })
+  }
 }
 
 function assertMayAdminister(actorRole: ActorRole, targetRole: MembershipRole): void {

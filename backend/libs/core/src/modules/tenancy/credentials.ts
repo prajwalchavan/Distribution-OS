@@ -1,11 +1,13 @@
-import { and, eq, isNull, sql } from 'drizzle-orm'
+import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import { ORPCError } from '@orpc/server'
 import { uuidv7 } from '@dos/domain'
 import {
   authEvents,
   authSessions,
   hashPassword,
+  memberships,
   normalizeUsername,
+  platformAdmins,
   users,
   validatePassword,
   validateUsername,
@@ -161,6 +163,32 @@ export async function setFirstPassword(
     .set({ revokedAt: now, revokedReason: 'password_reset' })
     .where(and(eq(authSessions.userId, input.userId), isNull(authSessions.revokedAt)))
   await noteFirstPassword(sys, input)
+}
+
+/**
+ * Is this sign-in used anywhere but this distributor — a membership of ANOTHER distributor (in any
+ * role, in any state, since a switched-off one can be switched back on) or a platform console seat?
+ * A desk may give a new first password only to a sign-in that is its alone: a password is global, so
+ * one set here would open the person's rows at that other business too — as its shopkeeper, as its
+ * staff, or as its owner. Both doors that give a new first password ask this, the staff screen
+ * (`tenancy.staff.setPassword`) and the shop's page (`retailers.signIn.setPassword`, DOS-400).
+ */
+export async function usedElsewhere(
+  sys: Db,
+  input: { userId: string; tenantId: string },
+): Promise<boolean> {
+  const [elsewhere] = await sys
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(and(eq(memberships.userId, input.userId), ne(memberships.tenantId, input.tenantId)))
+    .limit(1)
+  if (elsewhere) return true
+  const [consoleSeat] = await sys
+    .select({ id: platformAdmins.id })
+    .from(platformAdmins)
+    .where(eq(platformAdmins.userId, input.userId))
+    .limit(1)
+  return consoleSeat !== undefined
 }
 
 /**

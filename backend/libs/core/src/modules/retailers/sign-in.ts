@@ -229,6 +229,9 @@ export async function giveSignIn(
         })
       }
       const { phone, newMobile } = mobileFor(shop, input.phone)
+      // Before the person is made (in its own transaction): a clash found after it left a login with
+      // a first password nobody was shown, and the next try then read "already has a sign-in".
+      await tenancy.refuseTakenMembershipId(input.membershipId)
       const identity = await withSystem(db, (sys) => identityByPhone(sys, phone))
       const login = await tenancy.shopLogin({
         tenantId: ctx.tenantId,

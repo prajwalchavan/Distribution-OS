@@ -84,6 +84,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
   const twinTwo = uuidv7()
   const shopStaffPhone = uuidv7()
   const shopClosed = uuidv7()
+  const shopClash = uuidv7()
   const knownUsername = `known.${run}`
   /** What the server makes from the shopkeeper’s name on the shop: its first two words, lower case. */
   const sharmaKirana = `sharma${run}.kirana`
@@ -138,6 +139,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
         shop(twinTwo, 'E', 'Twin Mart Two', phone(41)),
         shop(shopStaffPhone, 'F', 'Rep Cousin Store', phone(14)),
         shop(shopClosed, 'G', 'Closed Corner', phone(51), false),
+        shop(shopClash, 'H', `Clash${run} Corner Stores`, phone(61)),
       ])
     app = await bootTestApp([RetailersModule, AuthModule])
   })
@@ -389,6 +391,43 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
     )
     const [still] = await userByPhone(phone(21))
     expect(still?.passwordHash).toBe(knownHash)
+
+    // …nor through the staff screen's door, which reaches the shopkeeper membership this desk just
+    // made (the blind check's major: two calls, then a sign-in at the other distributor)
+    const staffDoor = await call<{ message?: string }>(
+      app,
+      owner,
+      'POST',
+      '/tenancy/staff/set-password',
+      { idempotencyKey: uuidv7(), userId: knownUserId, temporaryPassword: 'Taken12345' },
+    )
+    expect(staffDoor.status, JSON.stringify(staffDoor.body)).toBe(409)
+    expect(staffDoor.body.message).toBe(
+      'This sign-in is not yours alone to reset: the shopkeeper also uses it with another business. Only the shopkeeper can change its password.',
+    )
+    const [unmoved] = await userByPhone(phone(21))
+    expect(unmoved?.passwordHash).toBe(knownHash)
+    expect(unmoved?.mustChangePassword).toBe(false)
+    const theirs = await login(knownUsername, 'Taken12345')
+    expect(theirs.status).toBe(401)
+    expect((await login(knownUsername, knownPassword)).status).toBe(200)
+  })
+
+  it('refuses a membership id that is already used, in words, and makes nobody', async () => {
+    const [taken] = await db
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(and(eq(memberships.tenantId, tenantId), eq(memberships.userId, ownerId)))
+    const res = await give(owner, shopClash, { membershipId: taken?.id })
+    expect(res.status, JSON.stringify(res.body)).toBe(409)
+    expect(res.body.message).toBe(
+      'This could not be saved: it repeats an earlier request. Close this and try again.',
+    )
+    // nobody was made on the way, so the desk's next try gives the shop a sign-in of its own
+    expect(await userByPhone(phone(61))).toHaveLength(0)
+    const next = await give(owner, shopClash)
+    expect(next.status, JSON.stringify(next.body)).toBe(200)
+    expect(next.body.outcome).toBe('created')
   })
 
   it('puts two shops of one owner with the same phone on the same login', async () => {

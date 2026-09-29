@@ -256,8 +256,10 @@ matchLine` ✓, `procurement.grns.open/post/list/get` ✓, `procurement.grns.cou
 gstSalesRegister/gstPurchaseRegister/schemeSpend/stockValue/fillRate`, `reporting.exports.request/get` (planned).
 - **M13 Tally export & mapping** — Calls: `integrations.exports.create/list/get`, `integrations.tally.mappings.list/upsert`,
   `integrations.tally.syncLedger.list` (planned).
-- **M14 Retailers (staff view) & credit** — Calls: `retailers.list/get/upsert/setCredit/linkIdentity` ✓ (manager; accountant may
-  `setCredit` ✓ but not `linkIdentity` ✗), `receivables.outstanding.get/ledger.get` ✓, `receivables.statements.send` ✓.
+- **M14 Retailers (staff view) & credit** — Calls: `retailers.list/get/upsert/setCredit` ✓ (manager; accountant may
+  `setCredit` ✓), `retailers.signIn.give/setPassword/stop` ✓ (the shop's "App sign-in" row, owner + manager, DOS-400 — it
+  replaced the "Link the shopkeeper" button, which called `linkIdentity` and made no sign-in),
+  `receivables.outstanding.get/ledger.get` ✓, `receivables.statements.send` ✓.
 - **M15 Prices & schemes (manager edits, accountant reads)** — Calls: `pricing.priceLists.*`, `pricing.schemes.*`,
   `pricing.overrides.*` ✓ (BACK_OFFICE; see §2.3 on the accountant).
 - **M16 Stock (balances, adjust, transfer, cycle count, near expiry)** — Calls: `inventory.stock.balances/ledger/adjust/transfer` ✓,

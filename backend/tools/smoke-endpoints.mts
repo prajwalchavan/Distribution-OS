@@ -550,12 +550,16 @@ class Fixtures {
    * nobody may change their OWN membership (and the demo tenant has two owners, so "not the primary
    * owner" is not the same as "not me"), and a MANAGER may only administer salesperson, warehouse or
    * delivery members. A junior member other than the caller satisfies both, for every back-office role.
+   * A third binds `setPassword` (DOS-400 repair): no desk resets a person who also signs in with another
+   * distributor or to the console, so the member picked works here alone.
    */
   staffOtherThan = (username: string) =>
     this.liveScalar(
       `select m.user_id from memberships m join users u on u.id = m.user_id
         where m.tenant_id=$1 and m.status='active'
           and m.role::text in ('salesperson','warehouse','delivery') and u.username <> $2
+          and not exists (select 1 from memberships o where o.user_id = m.user_id and o.tenant_id <> m.tenant_id)
+          and not exists (select 1 from platform_admins p where p.user_id = m.user_id)
         order by m.created_at limit 1`,
       [this.tenantId, username],
     )
