@@ -64,17 +64,20 @@ async function prepare(
       }),
     5,
   )
-  const madeLater = later.find((t) => isDemoId(t.id))
+  // A trip only PLANNED for a later date is the van load the night before planned (`vanToLoad`), not a later day.
+  const madeLater = later.find((t) => isDemoId(t.id) && t.state !== 'planned')
   if (madeLater)
     throw new Error(
       `the tool has already made ${madeLater.tripDate}: run it for that date or a later one`,
     )
   // The day before has no van of the tool (the first run, or a night the server was down): make it and
-  // finish it first, so today opens with "yesterday's trip settled".
+  // finish it first, so today opens with "yesterday's trip settled". Van 1's trip of the day before only planned
+  // (the van load of the night before it) is not a day made.
   const yesterday = addDays(date, -1)
+  const van1 = await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver1'))
   const hadYesterday =
-    (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver1'))) ??
-    (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver2')))
+    (van1 !== null && van1.state !== 'planned') ||
+    (await readTrip(ctx, ctx.id(yesterday, 'trip', 'driver2'))) !== null
   const leadIn = hadYesterday ? null : yesterday
   const standing = await ensureStanding(ctx, world, date, leadIn ?? date)
   ctx.log(
@@ -161,6 +164,10 @@ export async function runFill(opts: RunOptions): Promise<RunResult> {
   } finally {
     ctx.saveLogins()
     await ctx.signOutAll()
+    if (ctx.referencesTaken > 0)
+      summary.note(
+        `${String(ctx.referencesTaken)} payment reference(s) the product named as already taken: each receipt was recorded with the tool's next reference (DOS-310)`,
+      )
     const s = ctx.api.stats
     summary.note(
       `API calls: ${String(s.reads)} reads (${String(s.notFound)} of them "not made yet"), ${String(s.writes)} writes, ${String(s.refusals)} refused, ${String(s.signIns)} sign-ins`,

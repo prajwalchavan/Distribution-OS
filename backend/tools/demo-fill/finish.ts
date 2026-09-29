@@ -1,8 +1,8 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { pack, wave } from './day.js'
-import { openGate, supplierCodeOf } from './desk.js'
-import { digitsFrom, earlier, pages } from './helpers.js'
+import { openGate, ownMoneyStaysOwn, supplierCodeOf } from './desk.js'
+import { earlier, pages, paymentReference } from './helpers.js'
 import { addDays, demoIdDate, demoKey, isDemoId } from './ids.js'
 import { loadAndDepart, returnTrip, settleTrip, workDoors, type DriverKey } from './road.js'
 import { signOffAndLoad } from './road.js'
@@ -251,18 +251,40 @@ async function finishSupplierBills(ctx: Ctx, date: string): Promise<void> {
 
 async function issueReturns(ctx: Ctx, date: string): Promise<void> {
   const drafts = await ctx.read(contract.billing.creditNotes.list, { state: 'draft', limit: 200 })
-  for (const n of drafts.items)
-    if (earlier(n.id, date))
+  for (const n of drafts.items) {
+    if (!earlier(n.id, date)) continue
+    // Issued, a note meets its own bill first; what that bill no longer owes goes to the shop's OLDEST open bills
+    // by the product's own hand (DOS-312). When that could reach a bill the tool did not make, the manager does
+    // not issue the return: it is cancelled, and the tool's credit never touches a real bill (rule 3b).
+    const bill = await ctx.read(contract.billing.invoices.get, { id: n.invoiceId })
+    if (
+      bill.item.amountDuePaise < n.totalPaise &&
+      !(await ownMoneyStaysOwn(ctx, n.retailerId))
+    ) {
       await ctx.write(
         'yesterday',
-        'return issued',
+        'return not accepted',
         () => ctx.as('manager'),
-        contract.billing.creditNotes.issue,
+        contract.billing.creditNotes.cancel,
         {
-          idempotencyKey: demoKey(date, 'finish', 'return', n.id),
+          idempotencyKey: demoKey(date, 'finish', 'return', n.id, 'cancel'),
           id: n.id,
+          reason: 'Bill already settled: the shop takes the packets back instead',
         },
       )
+      continue
+    }
+    await ctx.write(
+      'yesterday',
+      'return issued',
+      () => ctx.as('manager'),
+      contract.billing.creditNotes.issue,
+      {
+        idempotencyKey: demoKey(date, 'finish', 'return', n.id),
+        id: n.id,
+      },
+    )
+  }
 }
 
 // -------------------------------------------------------------------------------------------- money
@@ -308,8 +330,10 @@ async function matchAndBank(ctx: Ctx, date: string): Promise<void> {
       },
     )
   }
+  // Cash and cheques are banked, and UPI is confirmed at Day-end against the bank or the UPI app (DOS-256: UPI
+  // money reaches the bank only when the accountant confirms it; the same call moves it out of UPI clearing).
   const inHand: string[] = []
-  for (const mode of ['cash', 'cheque'] as const) {
+  for (const mode of ['cash', 'cheque', 'upi'] as const) {
     const rows = await pages((cursor) =>
       ctx.read(contract.receivables.receipts.list, {
         status: 'collected',
@@ -370,25 +394,27 @@ async function payOldBills(ctx: Ctx, date: string): Promise<void> {
   for (const [retailerId, bills] of [...byShop.entries()].sort()) {
     const id = ctx.id(date, 'transfer', retailerId)
     const amount = bills.reduce((n, b) => n + b.amountDuePaise, 0)
-    await ctx.write(
+    // Explicit, to the paisa of the tool's own bills: nothing left on account (DOS-312), nothing to recover a
+    // write-off with (DOS-311), so no real bill is touched (rule 3b).
+    await ctx.writeReceipt(
       'yesterday',
       'old bills paid by transfer',
       () => ctx.as('accounts'),
       contract.receivables.receipts.create,
-      {
+      (attempt) => ({
         idempotencyKey: demoKey(date, 'transfer', retailerId),
         id,
         retailerId,
-        mode: 'bank_transfer',
+        mode: 'bank_transfer' as const,
         amountPaise: amount,
-        reference: `NEFT${digitsFrom(id.replace(/-/g, '').slice(-15), 10)}`,
-        strategy: 'explicit',
+        reference: paymentReference('bank_transfer', date, id, attempt),
+        strategy: 'explicit' as const,
         allocations: bills.map((b) => ({
           id: ctx.id(date, 'transfer', retailerId, b.id),
           invoiceId: b.id,
           amountPaise: b.amountDuePaise,
         })),
-      },
+      }),
     )
   }
 }

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { demoId, isDemoId } from './ids.js'
 import {
+  ON_ACCOUNT_DOOR,
   SLOT_DOORS,
   TRIP_DOORS,
+  VAN_LOAD_DOORS,
   chooseCreditShop,
   chooseLines,
   chooseRepBeats,
@@ -35,7 +37,12 @@ function shop(n: number, over: Partial<ShopInfo> = {}): ShopInfo {
     hasPhone: n % 3 !== 2,
     creditMode: 'indicate',
     creditLimitPaise: 0,
+    paymentTerms: 'POST_FULFILLMENT',
     outstandingPaise: n % 4 === 1 ? 50_000 + n * 1_000 : 0,
+    foreignOnAccountPaise: 0,
+    // What a shop owes is on its opening bills (none of the tool's yet).
+    foreignOpenPaise: n % 4 === 1 ? 50_000 + n * 1_000 : 0,
+    writtenOff: false,
     ...over,
   }
 }
@@ -142,6 +149,44 @@ describe('the standing choices', () => {
     expect(chooseCreditShop(strict, onThis, new Set())?.id).toBe(id('5', 6))
     expect(chooseCreditShop(SHOPS, onThis, new Set([most?.id ?? '']))?.id).not.toBe(most?.id)
     expect(chooseCreditShop(SHOPS, undefined, new Set())).toBeNull()
+  })
+
+  it('never makes a shop the product would not hold the credit shop: stopped, pay on delivery, money on account', () => {
+    const onThis = beat(1)
+    const most = chooseCreditShop(SHOPS, onThis, new Set())
+    for (const change of [
+      { creditMode: 'stop' },
+      { paymentTerms: 'ON' },
+      { foreignOnAccountPaise: 5_000 },
+    ] as Partial<ShopInfo>[]) {
+      const changed = SHOPS.map((s) => (s.id === most?.id ? { ...s, ...change } : s))
+      expect(chooseCreditShop(changed, onThis, new Set())?.id, JSON.stringify(change)).not.toBe(
+        most?.id,
+      )
+    }
+    // A shop already over a limit it was put on is kept only while that limit is strict (stop takes no order).
+    const stopped = SHOPS.map((s) =>
+      s.id === id('5', 6)
+        ? { ...s, creditMode: 'stop', creditLimitPaise: 1_000, outstandingPaise: 9_000 }
+        : s,
+    )
+    expect(chooseCreditShop(stopped, onThis, new Set())?.id).not.toBe(id('5', 6))
+  })
+
+  it('never stands in a shop that holds real money on account or has credit stopped', () => {
+    const three = chooseSlotShops(TENANT, SHOPS, new Set())
+    const [a, b] = three
+    const changed = SHOPS.map((s) =>
+      s.id === a
+        ? { ...s, foreignOnAccountPaise: 10_000 }
+        : s.id === b
+          ? { ...s, creditMode: 'stop' }
+          : s,
+    )
+    const now = chooseSlotShops(TENANT, changed, new Set())
+    expect(now).toHaveLength(3)
+    expect(now).not.toContain(a)
+    expect(now).not.toContain(b)
   })
 
   it('sets a strict limit at half the dues in whole hundreds of rupees, at least one hundred', () => {
@@ -291,6 +336,82 @@ describe('the plan of a day', () => {
     expect(van2).toContain('inv-2')
     expect(plan.trips.driver1).toHaveLength(8)
     expect(planCounts(plan).carriedBills).toBe(2)
+  })
+
+  it('never bills a shop that holds real money on account or has credit stopped (rule 3b, DOS-314)', () => {
+    // The product applies a shop's money on account to every new bill of it (DOS-312): a shop holding money the
+    // tool did not put there would have the tool's bill paid with real money.
+    const marked = new Set<string>()
+    const shops = SHOPS.map((s, n) => {
+      if (n % 3 === 0) {
+        marked.add(s.id)
+        return n % 2 === 0 ? { ...s, foreignOnAccountPaise: 25_000 } : { ...s, creditMode: 'stop' }
+      }
+      return s
+    })
+    const plan = planDay(input({ shops, slotShops: [id('5', 10), id('5', 20), id('5', 40)] }))
+    expect(plan.orders.length).toBeGreaterThan(15)
+    for (const o of plan.orders) expect(marked.has(o.shopId), `${o.slot} ${o.shopId}`).toBe(false)
+  })
+
+  it("gives the door whose money stays on account a shop that owes nothing on a real bill, never a carried bill", () => {
+    // Every shop that owes nothing on a real bill is taken by the other doors first, except one.
+    const [driver, index] = ON_ACCOUNT_DOOR
+    for (const date of ['2026-09-29', '2026-09-30', '2026-10-01', '2026-10-02']) {
+      const plan = planDay(input({ date }))
+      const door = plan.trips[driver][index]
+      const shop = SHOPS.find((s) => s.id === door?.shopId)
+      expect(door?.carried).toBeNull()
+      expect(shop?.foreignOpenPaise).toBe(0)
+      expect(shop?.writtenOff).toBe(false)
+    }
+    // Only shops with real dues left but one clean one: that one gets the door, before any other door.
+    const dirty = SHOPS.map((s, n) => (n === 56 ? s : { ...s, foreignOpenPaise: 10_000 + n }))
+    const plan = planDay(input({ shops: dirty }))
+    expect(plan.trips[driver][index]?.shopId).toBe(id('5', 56))
+    // Many carried bills: none of them takes that door.
+    const carried = Array.from({ length: 12 }, (_, n) => ({
+      invoiceId: `inv-${String(n)}`,
+      orderId: `o-${String(n)}`,
+      shopId: id('5', 40 + n),
+      mustRideVan1: n % 2 === 0,
+    }))
+    const full = planDay(input({ carried }))
+    expect(full.trips[driver][index]?.carried).toBeNull()
+    expect(full.waiting.length).toBeGreaterThan(0)
+  })
+
+  it("keeps a bill already planned on the day's trip at its door (tomorrow's van load)", () => {
+    const carried = [
+      {
+        invoiceId: 'inv-load-1',
+        orderId: 'o-load-1',
+        shopId: id('5', 45),
+        mustRideVan1: false,
+        pin: { driver: 'driver1' as const, sequence: (VAN_LOAD_DOORS[0] ?? 0) + 1 },
+      },
+      {
+        invoiceId: 'inv-load-2',
+        orderId: 'o-load-2',
+        shopId: id('5', 46),
+        mustRideVan1: false,
+        pin: { driver: 'driver1' as const, sequence: (VAN_LOAD_DOORS[1] ?? 1) + 1 },
+      },
+      { invoiceId: 'inv-3', orderId: 'o-3', shopId: id('5', 47), mustRideVan1: false },
+    ]
+    const plan = planDay(input({ carried }))
+    const at = (inv: string) =>
+      (['driver1', 'driver2'] as const).flatMap((d) =>
+        plan.trips[d].filter((x) => x.carried?.invoiceId === inv).map((x) => `${d}:${String(x.sequence)}`),
+      )
+    expect(at('inv-load-1')).toEqual([`driver1:${String((VAN_LOAD_DOORS[0] ?? 0) + 1)}`])
+    expect(at('inv-load-2')).toEqual([`driver1:${String((VAN_LOAD_DOORS[1] ?? 1) + 1)}`])
+    expect(at('inv-3')).toHaveLength(1)
+    // The van-load doors are never a stand-in shop's or the on-account door.
+    for (const d of VAN_LOAD_DOORS) {
+      expect(SLOT_DOORS.some((s) => s.delivered.join() === `driver1,${String(d)}` || s.onTheWay.join() === `driver1,${String(d)}`)).toBe(false)
+      expect(d).not.toBe(ON_ACCOUNT_DOOR[1])
+    }
   })
 
   it('leaves a slot empty, and says so, when no priced item is in stock', () => {

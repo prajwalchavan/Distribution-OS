@@ -1,6 +1,6 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
-import { SIGNATURE_PNG, digitsFrom, istTime, maybe } from './helpers.js'
+import { SIGNATURE_PNG, istTime, maybe, paymentReference } from './helpers.js'
 import { demoKey, unit } from './ids.js'
 import { TRIP_DOORS, type DoorOutcome } from './plan.js'
 
@@ -244,31 +244,33 @@ async function takeMoney(
   const amount = allocations.reduce((n, a) => n + a.amountPaise, 0)
   if (amount <= 0) return
   const id = ctx.id(date, 'collection', stop.id)
-  const hex = id.replace(/-/g, '')
-  await ctx.write(
+  const receiptId = ctx.id(date, 'receipt', stop.id)
+  // Explicit, to the paisa of what this door's bills still owe: nothing is left on account, so the product has
+  // nothing to apply to the shop's other bills (DOS-312) and nothing to recover a write-off with (DOS-311).
+  await ctx.writeReceipt(
     'driver',
     `paid ${mode}`,
     () => ctx.as(driver),
     contract.delivery.collections.record,
-    {
+    (attempt) => ({
       idempotencyKey: demoKey(date, 'collection', stop.id),
       id,
-      receiptId: ctx.id(date, 'receipt', stop.id),
+      receiptId,
       tripId: trip.id,
       stopId: stop.id,
       retailerId: stop.retailerId,
       mode,
       amountPaise: amount,
-      ...(mode === 'upi' ? { reference: digitsFrom(hex.slice(-15), 12) } : {}),
+      ...(mode === 'upi' ? { reference: paymentReference('upi', date, receiptId, attempt) } : {}),
       ...(mode === 'cheque'
         ? {
-            reference: digitsFrom(hex.slice(-12), 6),
+            reference: paymentReference('cheque', date, receiptId, attempt),
             chequeDate: date,
             bankName: BANKS[Math.floor(unit(id) * BANKS.length)] ?? 'Saraswat Bank',
           }
         : {}),
       allocations,
-    },
+    }),
   )
 }
 

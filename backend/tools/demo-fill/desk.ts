@@ -1,8 +1,8 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
-import { digitsFrom, maybe } from './helpers.js'
-import { addDays, demoKey, shuffled, unit } from './ids.js'
-import type { ItemInfo } from './plan.js'
+import { maybe, pages, paymentReference } from './helpers.js'
+import { addDays, demoKey, isDemoId, shuffled, unit } from './ids.js'
+import { ON_ACCOUNT_DOOR, type ItemInfo } from './plan.js'
 import { readTrip } from './road.js'
 import type { World } from './world.js'
 
@@ -77,22 +77,22 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
       ? await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId })
       : null
     if (door && bill && bill.item.amountDuePaise > 0) {
-      const hex = cheque.replace(/-/g, '')
-      await ctx.write(
+      // Explicit, to the paisa of the bill: nothing left on account (DOS-312), nothing to recover (DOS-311).
+      await ctx.writeReceipt(
         'accountant',
         'cheque at the counter',
         () => ctx.as('accounts'),
         contract.receivables.receipts.create,
-        {
+        (attempt) => ({
           idempotencyKey: demoKey(date, 'office', 'cheque'),
           id: cheque,
           retailerId: door.stop.retailerId,
-          mode: 'cheque',
+          mode: 'cheque' as const,
           amountPaise: bill.item.amountDuePaise,
-          reference: digitsFrom(hex.slice(-12), 6),
+          reference: paymentReference('cheque', date, cheque, attempt),
           chequeDate: date,
           bankName: 'Cosmos Bank',
-          strategy: 'explicit',
+          strategy: 'explicit' as const,
           allocations: [
             {
               id: ctx.id(date, 'office', 'cheque', 'allocation'),
@@ -100,7 +100,7 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
               amountPaise: bill.item.amountDuePaise,
             },
           ],
-        },
+        }),
       )
     }
   }
@@ -108,29 +108,63 @@ export async function officeMoney(ctx: Ctx, date: string): Promise<void> {
   if (await maybe(ctx.read(contract.receivables.receipts.get, { id: upi })))
     ctx.summary.foundOne('accountant', 'payment to match')
   else {
-    const door = await doorBill(ctx, date, 'driver1', 4)
+    const [driver, index] = ON_ACCOUNT_DOOR
+    const door = await doorBill(ctx, date, driver, index + 1)
     const bill = door
       ? await ctx.read(contract.billing.invoices.get, { id: door.delivery.invoiceId })
       : null
     if (door && bill && bill.item.amountDuePaise > 0) {
-      await ctx.write(
+      // This money stays ON ACCOUNT overnight, and the product applies money on account to the shop's oldest
+      // open bill by itself (DOS-312) and recovers a written-off bill with it first (DOS-311). The plan gave this
+      // door a shop that owes nothing on a bill the tool did not make; asked again here, and when that no longer
+      // holds the payment is left out today, so the tool's money never reaches a real bill (rule 3b).
+      if (!(await ownMoneyStaysOwn(ctx, door.stop.retailerId))) {
+        ctx.summary.note(
+          `rule 3b: no payment to match on ${date}: the shop at van 1's door ${String(index + 1)} owes on a bill the tool did not make, so the tool leaves no money of its own on account there`,
+        )
+        return
+      }
+      await ctx.writeReceipt(
         'accountant',
         'payment to match',
         () => ctx.as('accounts'),
         contract.receivables.receipts.create,
-        {
+        (attempt) => ({
           idempotencyKey: demoKey(date, 'office', 'upi'),
           id: upi,
           retailerId: door.stop.retailerId,
-          mode: 'upi',
+          mode: 'upi' as const,
           amountPaise: bill.item.amountDuePaise,
-          reference: digitsFrom(upi.replace(/-/g, '').slice(-15), 12),
-          strategy: 'none',
+          reference: paymentReference('upi', date, upi, attempt),
+          strategy: 'none' as const,
           note: 'UPI received, bill not named by the shop',
-        },
+        }),
       )
     }
   }
+}
+
+/**
+ * May the tool leave its own money on account with this shop (rule 3b)? Only when every open bill of the shop is
+ * the tool's and no bill of it stands written off: then whatever the product applies that money to by itself is a
+ * bill of the tool.
+ */
+export async function ownMoneyStaysOwn(ctx: Ctx, retailerId: string): Promise<boolean> {
+  const open = await pages((cursor) =>
+    ctx.read(contract.billing.invoices.list, {
+      retailerId,
+      openOnly: true,
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
+  )
+  if (open.some((b) => !isDemoId(b.orderId) && b.amountDuePaise > 0)) return false
+  const written = await ctx.read(contract.billing.invoices.list, {
+    retailerId,
+    state: 'written_off',
+    limit: 1,
+  })
+  return written.items.length === 0
 }
 
 // ------------------------------------------------------------------------------------- supplier side

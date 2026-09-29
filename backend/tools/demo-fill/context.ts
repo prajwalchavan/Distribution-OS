@@ -7,6 +7,7 @@ import {
   type ProcLike,
   type Session,
 } from './client.js'
+import { REFERENCE_TAKEN } from './helpers.js'
 import { demoId, demoKey } from './ids.js'
 import {
   newPassword,
@@ -125,6 +126,55 @@ export class Ctx {
       throw e
     }
   }
+
+  /**
+   * A write of a receipt, whose payment reference must be the tool's own (DOS-310). `input(attempt)` builds the
+   * request with the reference of that try (`paymentReference`). The product refuses a reference that is taken —
+   * a UPI or transfer reference already on a live receipt of the distributor, a cheque number already on one of
+   * the same shop — and asks before it takes a cheque number another shop's receipt carries; the tool never
+   * confirms that question and never repeats a reference: it asks again with its next one, up to five tries. The
+   * refused try wrote nothing (its transaction, idempotency key included, rolled back). Any other refusal is
+   * counted as `write` counts it.
+   */
+  async writeReceipt<P extends ProcLike>(
+    section: Section,
+    what: string,
+    session: Session | (() => Promise<Session | null>),
+    proc: P,
+    input: (attempt: number) => NoInfer<InputOf<P>>,
+  ): Promise<OutputOf<P> | null> {
+    if (!this.commit) {
+      this.summary.wouldOne(section, what)
+      return null
+    }
+    const s = typeof session === 'function' ? await session() : session
+    if (!s) {
+      this.summary.refusedOne(section, what, 'no sign-in')
+      return null
+    }
+    const tries = 5
+    for (let attempt = 0; attempt < tries; attempt++) {
+      try {
+        const out = await this.api.call(s, proc, input(attempt))
+        this.summary.madeOne(section, what)
+        return out
+      } catch (e) {
+        if (!(e instanceof ApiRefusal)) throw e
+        if (REFERENCE_TAKEN.has(e.reason) && attempt < tries - 1) {
+          this.referencesTaken++
+          this.log(`  ${section}/${what}: reference taken (${e.reason}), the next one is asked`)
+          continue
+        }
+        this.summary.refusedOne(section, what, e.label)
+        this.log(`  refused: ${section}/${what} ${e.label}`)
+        return null
+      }
+    }
+    return null
+  }
+
+  /** How many of this run's payment references the product named as taken (each answered with the next one). */
+  referencesTaken = 0
 
   key(date: string, ...parts: string[]): string {
     return demoKey(date, ...parts)

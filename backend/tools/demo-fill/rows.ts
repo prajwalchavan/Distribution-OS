@@ -10,7 +10,10 @@ import { DEMO_ID_LIKE } from './ids.js'
  *    API made FROM them (a bill from a pack, a credit note from a door that sent goods back, a journal
  *    entry), found through the tool's row they hang off;
  *  - RULE 3: no money of the tool — a receipt it recorded, a credit note on its bill or of its own — is put
- *    against a bill it did not make, and the opening bills carry nothing of the tool;
+ *    against a bill it did not make, and the opening bills carry nothing of the tool; RULE 3b (architect,
+ *    2026-09-29), the other way round too, because the product applies money on account by itself (DOS-312): no
+ *    receipt or credit note the tool did not make is on a bill it made, and no money of the tool sits on account
+ *    with a shop that owes on a real bill;
  *  - RULE 7: the books are right — stock ledger = balances, every journal entry balances, and each shop's
  *    dues are its bills less its receipts, credit notes and write-offs, to the paisa, and agree with the
  *    ledger's receivables account.
@@ -172,6 +175,50 @@ export const VIOLATIONS: readonly Violation[] = [
     sql: `select c.id from credit_notes c
            where c.tenant_id = $1 and c.id like $2 and c.invoice_id not in (${TOOL_BILLS})
            order by c.id limit 5`,
+  },
+  {
+    // The product applies money on account to a shop's oldest open bills by itself (DOS-312), at a new bill, at a
+    // receipt's remainder and at a credit note's: the tool never bills a shop holding money it did not put there.
+    rule: '3b',
+    holds: 'no real money (a receipt or credit note the tool did not make) is on a bill the tool made',
+    what: 'an allocation of money the tool did not make to a bill the tool made',
+    sql: `select a.id from allocations a
+           where a.tenant_id = $1
+             and a.invoice_id in (${TOOL_BILLS})
+             and ((a.receipt_id is not null and a.receipt_id not in (${TOOL_RECEIPTS}))
+                  or (a.credit_note_id is not null and a.credit_note_id not in (${TOOL_NOTES})))
+           order by a.id limit 5`,
+  },
+  {
+    // ... and never leaves its own money on account where the product could apply it to a real bill: a shop with
+    // an open bill the tool did not make, or a bill written off (money recovers that first, DOS-311).
+    rule: '3b',
+    holds:
+      "no money of the tool sits on account with a shop that has an open or written-off bill the tool did not make",
+    what: 'a receipt or credit note of the tool with money on account at a shop owing on a real bill',
+    sql: `with free as (
+              select r.retailer_id, r.id from receipts r
+               where r.tenant_id = $1 and r.id like $2 and r.status in ('collected', 'deposited')
+                 and r.amount_paise > 0 and r.reverses_receipt_id is null
+                 and r.amount_paise + r.cash_discount_paise >
+                     coalesce((select sum(a.amount_paise) from allocations a
+                                where a.tenant_id = r.tenant_id and a.receipt_id = r.id), 0)
+              union all
+              select c.retailer_id, c.id from credit_notes c
+               where c.tenant_id = $1 and c.id in (${TOOL_NOTES}) and c.state in ('issued', 'applied')
+                 and c.total_paise >
+                     coalesce((select sum(a.amount_paise) from allocations a
+                                where a.tenant_id = c.tenant_id and a.credit_note_id = c.id), 0))
+          select f.id from free f
+           where exists (
+             select 1 from invoices i
+              where i.tenant_id = $1 and i.retailer_id = f.retailer_id
+                and (i.order_id is null or i.order_id not like $2)
+                and (i.state = 'written_off'
+                     or (i.state in ('issued', 'partially_paid')
+                         and i.total_paise > coalesce((select sum(a.amount_paise) from allocations a
+                                                        where a.tenant_id = i.tenant_id and a.invoice_id = i.id), 0))))
+           order by 1 limit 5`,
   },
   {
     rule: '3',

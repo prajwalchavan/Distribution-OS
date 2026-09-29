@@ -1,5 +1,6 @@
 import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
+import { isDemoId } from './ids.js'
 import type { ItemInfo, ShopInfo } from './plan.js'
 
 /**
@@ -64,6 +65,51 @@ export async function itemCosts(
   return costOf
 }
 
+/**
+ * Whose money is where (rule 3b), per shop: what the tool's own receipts hold on account, what the shop owes on
+ * bills the tool did not make, and which shops have a bill written off. The product applies money on account to
+ * a shop's oldest open bills by itself (DOS-312) and recovers write-offs first (DOS-311), so the plan needs these
+ * to keep real money off the tool's bills and the tool's money off real bills.
+ */
+export async function moneyOfShops(ctx: Pick<Ctx, 'read'>): Promise<{
+  toolOnAccount: Map<string, number>
+  foreignOpen: Map<string, number>
+  writtenOff: Set<string>
+}> {
+  const toolOnAccount = new Map<string, number>()
+  const unallocated = await allPages((cursor) =>
+    ctx.read(contract.receivables.receipts.list, {
+      unallocatedOnly: true,
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
+  )
+  for (const r of unallocated)
+    if (isDemoId(r.id) && r.unallocatedPaise > 0)
+      toolOnAccount.set(r.retailerId, (toolOnAccount.get(r.retailerId) ?? 0) + r.unallocatedPaise)
+  const foreignOpen = new Map<string, number>()
+  const open = await allPages((cursor) =>
+    ctx.read(contract.billing.invoices.list, {
+      openOnly: true,
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
+  )
+  for (const b of open)
+    if (!isDemoId(b.orderId) && b.amountDuePaise > 0)
+      foreignOpen.set(b.retailerId, (foreignOpen.get(b.retailerId) ?? 0) + b.amountDuePaise)
+  const writtenOff = new Set<string>()
+  const written = await allPages((cursor) =>
+    ctx.read(contract.billing.invoices.list, {
+      state: 'written_off',
+      limit: 200,
+      ...(cursor ? { cursor } : {}),
+    }),
+  )
+  for (const b of written) writtenOff.add(b.retailerId)
+  return { toolOnAccount, foreignOpen, writtenOff }
+}
+
 export async function readWorld(ctx: Ctx): Promise<World> {
   const shopsRaw = await allPages((cursor) =>
     ctx.read(contract.retailers.list, {
@@ -80,6 +126,8 @@ export async function readWorld(ctx: Ctx): Promise<World> {
     }),
   )
   const owes = new Map(owing.map((o) => [o.retailerId, o.outstandingPaise]))
+  const money = await moneyOfShops(ctx)
+  const onAccount = new Map(owing.map((o) => [o.retailerId, o.unallocatedCreditPaise]))
   const shops: ShopInfo[] = shopsRaw.map((r) => {
     const staff = 'code' in r ? r : null
     return {
@@ -90,7 +138,14 @@ export async function readWorld(ctx: Ctx): Promise<World> {
       hasPhone: r.phone.length > 0,
       creditMode: staff?.creditMode ?? 'indicate',
       creditLimitPaise: staff?.creditLimitPaise ?? 0,
+      paymentTerms: r.paymentTerms,
       outstandingPaise: owes.get(r.id) ?? 0,
+      foreignOnAccountPaise: Math.max(
+        0,
+        (onAccount.get(r.id) ?? 0) - (money.toolOnAccount.get(r.id) ?? 0),
+      ),
+      foreignOpenPaise: money.foreignOpen.get(r.id) ?? 0,
+      writtenOff: money.writtenOff.has(r.id),
     }
   })
   const beats = await ctx.read(contract.retailers.beats.list, { activeOnly: true })

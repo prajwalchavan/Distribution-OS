@@ -17,8 +17,37 @@ export interface ShopInfo {
   hasPhone: boolean
   creditMode: string
   creditLimitPaise: number
+  /** `POST_FULFILLMENT`, `ON` (pay on delivery: never held for credit, DOS-225) or `PRE`. */
+  paymentTerms: string
   /** What the shop owes now (receivables' own figure). */
   outstandingPaise: number
+  /**
+   * Money on account the tool did NOT put there: a real receipt or credit note no bill has claimed. The
+   * product applies a shop's money on account to every new bill of it (DOS-312), so the tool never bills such a
+   * shop: real money never settles a dummy bill (rule 3b).
+   */
+  foreignOnAccountPaise: number
+  /** What the shop owes on bills the tool did not make (opening bills, real orders). */
+  foreignOpenPaise: number
+  /** A bill of the shop stands written off: money it pays recovers that first (DOS-311). */
+  writtenOff: boolean
+}
+
+/**
+ * A shop the tool may bill: open, credit not stopped (a stopped shop takes no order, DOS-314), and holding no
+ * money on account the tool did not put there (rule 3b: the product would apply that money to the tool's bill).
+ */
+export function billable(s: ShopInfo): boolean {
+  return s.active && s.creditMode !== 'stop' && s.foreignOnAccountPaise <= 0
+}
+
+/**
+ * A shop the tool may leave its OWN money on account with: billable, owing nothing on a bill the tool did not
+ * make and with no bill written off — so the product, which applies money on account to the oldest open bill
+ * (DOS-312) and recovers write-offs first (DOS-311), can only ever apply it to a bill of the tool (rule 3b).
+ */
+export function clean(s: ShopInfo): boolean {
+  return billable(s) && s.foreignOpenPaise <= 0 && !s.writtenOff
 }
 
 export interface ItemInfo {
@@ -59,6 +88,19 @@ export const SLOT_DOORS: readonly {
   { slot: 2, delivered: ['driver2', 6], onTheWay: ['driver1', 7] },
 ]
 
+/**
+ * The door whose shop sends the desk a UPI payment it does not name a bill for ("collections to match"): that
+ * money sits on account overnight, so the door always goes to a fresh order of a CLEAN shop (`clean`), never to a
+ * bill an earlier day carried. [driver, door index].
+ */
+export const ON_ACCOUNT_DOOR: readonly ['driver1', number] = ['driver1', 3]
+
+/**
+ * The doors of van 1 that tomorrow's van load (planned tonight on tomorrow's trip, "a van to load") takes, in
+ * this order: the first doors that are neither a stand-in shop's nor the on-account door.
+ */
+export const VAN_LOAD_DOORS: readonly number[] = [0, 1]
+
 export interface PlannedLine {
   id: string
   variantId: string
@@ -86,6 +128,11 @@ export interface CarriedBill {
   shopId: string
   /** On an earlier draft load sheet for van 1: it must ride van 1 (driver1). */
   mustRideVan1: boolean
+  /**
+   * Already planned on one of the day's trips (tomorrow's van load is planned the night before, a crash may
+   * leave a trip half made): it keeps that door, since a bill rides one trip at a time.
+   */
+  pin?: { driver: 'driver1' | 'driver2'; sequence: number } | undefined
 }
 
 export interface PlannedDoor {
@@ -160,13 +207,14 @@ export function chooseCreditShop(
   exclude: ReadonlySet<string>,
 ): ShopInfo | null {
   if (!beatId) return null
-  const on = shops.filter((s) => s.active && s.beatId === beatId && !exclude.has(s.id))
+  // Its order must be HELD, not refused: never a stopped shop (it takes no order, DOS-314) nor a pay-on-delivery
+  // one (never held for credit, DOS-225); and the limit must bite on what it owes, so no money on account.
+  const on = shops.filter(
+    (s) =>
+      billable(s) && s.paymentTerms !== 'ON' && s.beatId === beatId && !exclude.has(s.id),
+  )
   const already = on
-    .filter(
-      (s) =>
-        (s.creditMode === 'strict' || s.creditMode === 'stop') &&
-        s.outstandingPaise > s.creditLimitPaise,
-    )
+    .filter((s) => s.creditMode === 'strict' && s.outstandingPaise > s.creditLimitPaise)
     .sort((a, b) => a.id.localeCompare(b.id))[0]
   if (already) return already
   return (
@@ -191,7 +239,7 @@ export function chooseSlotShops(
   shops: readonly ShopInfo[],
   exclude: ReadonlySet<string>,
 ): string[] {
-  const free = shops.filter((s) => s.active && !s.hasLogin && !exclude.has(s.id))
+  const free = shops.filter((s) => billable(s) && !s.hasLogin && !exclude.has(s.id))
   const withPhone = free.filter((s) => s.hasPhone)
   const pool = withPhone.length >= 3 ? withPhone : free
   return shuffled(pool, `slot-shops:${tenantId}`, (s) => s.id)
@@ -323,24 +371,35 @@ export function planDay(input: PlanInput): DayPlan {
   const orders: PlannedOrder[] = []
   const emptySlots: OrderSlot[] = []
 
-  // Fresh shops for the desk's phone orders: never a credit shop or a shopkeeper stand-in, one order each,
-  // shops that owe nothing first — their real dues stay out of the way of the day's money (brief rule 3),
-  // and no credit gate holds an order that is meant to go out today.
-  const eligible = input.shops.filter((s) => s.active && !credit.has(s.id) && !slots.has(s.id))
+  // Fresh shops for the desk's phone orders: never a credit shop or a shopkeeper stand-in, one order each, only
+  // shops the tool may bill (`billable`), and shops that owe nothing on a real bill first — their real dues stay
+  // out of the way of the day's money (brief rules 3 and 3b), and no credit gate holds an order that is meant to
+  // go out today.
+  const eligible = input.shops.filter((s) => billable(s) && !credit.has(s.id) && !slots.has(s.id))
   const fresh = [
     ...shuffled(
-      eligible.filter((s) => s.outstandingPaise <= 0),
+      eligible.filter((s) => clean(s) && s.outstandingPaise <= 0),
       `fresh-shops:${date}`,
       (s) => s.id,
     ),
     ...shuffled(
-      eligible.filter((s) => s.outstandingPaise > 0),
+      eligible.filter((s) => clean(s) && s.outstandingPaise > 0),
+      `fresh-shops:${date}`,
+      (s) => s.id,
+    ),
+    ...shuffled(
+      eligible.filter((s) => !clean(s)),
       `fresh-shops:${date}`,
       (s) => s.id,
     ),
   ]
-  let freshAt = 0
-  const nextFresh = (): string | null => fresh[freshAt++]?.id ?? null
+  const usedFresh = new Set<string>()
+  const nextFresh = (when: (s: ShopInfo) => boolean = () => true): string | null => {
+    const s = fresh.find((x) => !usedFresh.has(x.id) && when(x))
+    if (!s) return null
+    usedFresh.add(s.id)
+    return s.id
+  }
 
   const addOrder = (
     slot: OrderSlot,
@@ -375,12 +434,21 @@ export function planDay(input: PlanInput): DayPlan {
     slotAt.set(`${s.delivered[0]}:${String(s.delivered[1])}`, s.slot)
     slotAt.set(`${s.onTheWay[0]}:${String(s.onTheWay[1])}`, s.slot)
   }
-  const carriedVan1 = input.carried.filter((c) => c.mustRideVan1)
-  const carriedAny = input.carried.filter((c) => !c.mustRideVan1)
+  const onAccountAt = `${ON_ACCOUNT_DOOR[0]}:${String(ON_ACCOUNT_DOOR[1])}`
+  const takes = new Map<string, CarriedBill>()
+  // A bill already planned on one of the day's trips keeps its door (a bill rides one trip at a time).
+  for (const c of input.carried)
+    if (c.pin) takes.set(`${c.pin.driver}:${String(c.pin.sequence - 1)}`, c)
+  const carriedVan1 = input.carried.filter((c) => !c.pin && c.mustRideVan1)
+  const carriedAny = input.carried.filter((c) => !c.pin && !c.mustRideVan1)
   const waiting: CarriedBill[] = []
   const freeDoors = (driver: 'driver1' | 'driver2'): number[] =>
-    TRIP_DOORS[driver].map((_o, i) => i).filter((i) => !slotAt.has(`${driver}:${String(i)}`))
-  const takes = new Map<string, CarriedBill>()
+    TRIP_DOORS[driver]
+      .map((_o, i) => i)
+      .filter((i) => {
+        const at = `${driver}:${String(i)}`
+        return !slotAt.has(at) && at !== onAccountAt && !takes.has(at)
+      })
   const van1 = freeDoors('driver1')
   const van2 = freeDoors('driver2')
   for (const c of carriedVan1) {
@@ -398,6 +466,8 @@ export function planDay(input: PlanInput): DayPlan {
     if (onVan1 !== undefined) takes.set(`driver1:${String(onVan1)}`, c)
     else waiting.push(c)
   }
+  // The door whose money stays on account overnight takes the first clean shop before any other door does.
+  const onAccountShop = nextFresh(clean)
   for (const driver of ['driver1', 'driver2'] as const) {
     TRIP_DOORS[driver].forEach((outcome, i) => {
       const at = `${driver}:${String(i)}`
@@ -415,7 +485,12 @@ export function planDay(input: PlanInput): DayPlan {
         return
       }
       const slot = `${driver === 'driver1' ? 't1' : 't2'}.${String(i)}` as OrderSlot
-      const shopId = shopSlot !== null ? (input.slotShops[shopSlot] ?? null) : nextFresh()
+      const shopId =
+        shopSlot !== null
+          ? (input.slotShops[shopSlot] ?? null)
+          : at === onAccountAt
+            ? onAccountShop
+            : nextFresh()
       const order = addOrder(slot, shopId, 'manager')
       if (!order) return
       trips[driver].push({
@@ -434,7 +509,7 @@ export function planDay(input: PlanInput): DayPlan {
     const beat = input.repBeats[rep]
     const beatShops = shuffled(
       input.shops.filter(
-        (s) => s.active && s.beatId === beat && !credit.has(s.id) && !slots.has(s.id),
+        (s) => billable(s) && s.beatId === beat && !credit.has(s.id) && !slots.has(s.id),
       ),
       `beat-shops:${date}:${rep}`,
       (s) => s.id,

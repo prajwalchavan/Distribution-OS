@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { contract } from '@dos/contracts'
 import { ApiRefusal } from './client.js'
 import type { Ctx } from './context.js'
@@ -63,8 +64,46 @@ export function istTime(date: string, hour: number, minute = 0): string {
   return `${date}T${hh}:${mm}:00+05:30`
 }
 
-/** A number string of `digits` digits from a seed (a UTR, a cheque number). */
-export function digitsFrom(hex: string, digits: number): string {
-  const n = BigInt(`0x${hex.replace(/[^0-9a-f]/gi, '').slice(0, 15) || '1'}`)
-  return (n % 10n ** BigInt(digits)).toString().padStart(digits, '1').replace(/^0/, '7')
+/** Whole days from 2020-01-01 to `date`: the part of a payment reference that never repeats across days. */
+export function dayNumber(date: string): number {
+  return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse('2020-01-01T00:00:00Z')) / 86_400_000)
 }
+
+/** `n` decimal digits from a hash of `seed`. */
+function hashDigits(seed: string, n: number): string {
+  const v = BigInt(`0x${createHash('sha256').update(seed).digest('hex').slice(0, 15)}`)
+  return (v % 10n ** BigInt(n)).toString().padStart(n, '0')
+}
+
+/** The payment modes that carry a reference the product holds to one live receipt (DOS-310). */
+export type ReferenceMode = 'upi' | 'cheque' | 'bank_transfer'
+
+/**
+ * The payment reference of one receipt of the tool, try `attempt` (0 first). A payment reference is used once
+ * (DOS-310): the product refuses a UPI or bank-transfer reference already on a live receipt of the distributor and
+ * a cheque number already on one of the same shop, and asks before taking another shop's cheque number. So the
+ * tool's references are its own: the business date is in each (a 12-digit UTR starts with the five-digit day
+ * number, a bank transfer's with it after `NEFT`, a six-digit cheque number with its last four digits — the same
+ * for 27 years), so no two days ever share one; the rest is a digest of the receipt's id and the try, and when
+ * the product still names one as taken (a real payment happened to carry it, or two of the day's collided) the
+ * next try gives another.
+ */
+export function paymentReference(
+  mode: ReferenceMode,
+  date: string,
+  receiptId: string,
+  attempt = 0,
+): string {
+  const day = dayNumber(date)
+  const seed = `demo-fill:reference:${mode}:${receiptId}:${String(attempt)}`
+  if (mode === 'upi') return `${String(day).padStart(5, '0')}${hashDigits(seed, 7)}`
+  if (mode === 'bank_transfer') return `NEFT${String(day).padStart(5, '0')}${hashDigits(seed, 5)}`
+  return `${String(day % 10_000).padStart(4, '0')}${hashDigits(seed, 2)}`
+}
+
+/** The refusals that say a payment reference is taken (DOS-310): the tool answers each with its next reference. */
+export const REFERENCE_TAKEN: ReadonlySet<string> = new Set([
+  'reference_already_recorded',
+  'cheque_already_recorded',
+  'cheque_number_seen_elsewhere',
+])

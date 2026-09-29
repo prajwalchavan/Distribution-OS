@@ -2,8 +2,15 @@ import { contract } from '@dos/contracts'
 import type { Ctx } from './context.js'
 import { officeMoney, returnToApprove, supplierBills } from './desk.js'
 import { billOf, earlier, getOrder, istTime, maybe, pages } from './helpers.js'
-import { demoKey, unit } from './ids.js'
-import { planCounts, planDay, type CarriedBill, type DayPlan, type PlannedOrder } from './plan.js'
+import { addDays, demoKey, unit } from './ids.js'
+import {
+  VAN_LOAD_DOORS,
+  planCounts,
+  planDay,
+  type CarriedBill,
+  type DayPlan,
+  type PlannedOrder,
+} from './plan.js'
 import { loadAndDepart, readTrip, workDoors, type DriverKey } from './road.js'
 import type { Standing } from './setup.js'
 import type { Section } from './summary.js'
@@ -57,6 +64,8 @@ export async function findCarried(
             orderId: d.orderId,
             shopId: stop.retailerId,
             mustRideVan1: false,
+            // Already on this trip (last night's van load, or a run that stopped halfway): it keeps its door.
+            pin: { driver, sequence: stop.sequence },
           })
   }
   // A bill on an earlier sheet for van 1 (the van load the manager signs off in the morning) rides van 1.
@@ -291,6 +300,67 @@ export async function pack(ctx: Ctx, date: string, orderId: string): Promise<voi
 
 // -------------------------------------------------------------------------------------------- vans
 
+interface StopPlan {
+  id: string
+  sequence: number
+  retailerId: string
+  invoiceIds: string[]
+}
+
+/** The stops a day's plan gives a van, each with the bill its door carries (a door with no bill yet is left out). */
+async function plannedStops(
+  ctx: Ctx,
+  date: string,
+  driver: DriverKey,
+  plan: DayPlan,
+): Promise<StopPlan[]> {
+  const stops: StopPlan[] = []
+  for (const door of plan.trips[driver]) {
+    // The door goes to the shop the BILL is for: after a crash the plan may name another shop for a slot
+    // whose order already exists, and the order is what it is.
+    const bill = door.carried
+      ? { id: door.carried.invoiceId, retailerId: door.carried.shopId }
+      : door.orderSlot
+        ? await billOf(ctx, ctx.id(date, 'order', door.orderSlot))
+        : null
+    if (!bill) continue
+    stops.push({
+      id: ctx.id(date, 'stop', driver, String(door.sequence)),
+      sequence: door.sequence,
+      retailerId: bill.retailerId,
+      invoiceIds: [bill.id],
+    })
+  }
+  return stops
+}
+
+/**
+ * A trip that is planned or loading takes the doors it does not have yet, as the desk adds a late bill
+ * (`trips.addStop`): tomorrow's van load is planned the night before on van 1's trip with its own doors only,
+ * and the rest of the day's doors join it in the morning.
+ */
+async function addMissingStops(
+  ctx: Ctx,
+  date: string,
+  tripId: string,
+  driver: DriverKey,
+  stops: readonly StopPlan[],
+  section: Section,
+): Promise<void> {
+  const trip = await readTrip(ctx, tripId)
+  if (!trip || (trip.state !== 'planned' && trip.state !== 'loading')) return
+  const have = new Set(trip.stops.map((s) => s.sequence))
+  const riding = new Set(trip.stops.flatMap((s) => s.deliveries.map((d) => d.invoiceId)))
+  for (const stop of stops) {
+    if (have.has(stop.sequence) || stop.invoiceIds.some((i) => riding.has(i))) continue
+    await ctx.write(section, 'door added', () => ctx.as('manager'), contract.delivery.stops.add, {
+      idempotencyKey: demoKey(date, 'trip', driver, 'stop', String(stop.sequence)),
+      id: tripId,
+      stop,
+    })
+  }
+}
+
 async function planTrip(
   ctx: Ctx,
   date: string,
@@ -307,28 +377,15 @@ async function planTrip(
     ctx.summary.wouldOne('driver', 'trip planned')
     return
   }
-  if (!existing) {
+  if (existing) {
+    ctx.summary.foundOne('driver', 'trip planned')
+    await addMissingStops(ctx, date, id, driver, await plannedStops(ctx, date, driver, plan), 'driver')
+  } else {
     if (!van || !driverId) {
       ctx.summary.refusedOne('driver', 'trip planned', 'no van or no driver')
       return
     }
-    const stops: { id: string; sequence: number; retailerId: string; invoiceIds: string[] }[] = []
-    for (const door of plan.trips[driver]) {
-      // The door goes to the shop the BILL is for: after a crash the plan may name another shop for a slot
-      // whose order already exists, and the order is what it is.
-      const bill = door.carried
-        ? { id: door.carried.invoiceId, retailerId: door.carried.shopId }
-        : door.orderSlot
-          ? await billOf(ctx, ctx.id(date, 'order', door.orderSlot))
-          : null
-      if (!bill) continue
-      stops.push({
-        id: ctx.id(date, 'stop', driver, String(door.sequence)),
-        sequence: door.sequence,
-        retailerId: bill.retailerId,
-        invoiceIds: [bill.id],
-      })
-    }
+    const stops = await plannedStops(ctx, date, driver, plan)
     if (stops.length === 0) {
       ctx.summary.refusedOne('driver', 'trip planned', 'no packed bill')
       return
@@ -349,12 +406,18 @@ async function planTrip(
       },
     )
     if (!made) return
-  } else ctx.summary.foundOne('driver', 'trip planned')
+  }
   await loadAndDepart(ctx, id, driver, date)
   await workDoors(ctx, id, driver, date)
 }
 
-/** The van load for tomorrow morning: built by the godown, waiting for the manager to sign it off. */
+/**
+ * The van load for tomorrow morning: the desk plans van 1's trip of tomorrow with these bills tonight (a bill is
+ * loaded only onto the trip that carries it, DOS-354), and the godown builds that trip's sheet, which waits for the
+ * manager to sign it off — the product refuses the sign-off until today's trip of van 1 is settled (a van carries
+ * one trip at a time), so it waits overnight, as it would at the godown. Tomorrow's run adds the day's other doors
+ * to that trip, and the bills keep the first doors of van 1 (`VAN_LOAD_DOORS`).
+ */
 async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standing): Promise<void> {
   const van1 = standing.vans.driver1
   if (!van1) return
@@ -363,10 +426,51 @@ async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standi
     ctx.summary.foundOne('godown', 'van to load')
     return
   }
-  const orderIds: string[] = []
-  for (const o of plan.orders.filter((x) => x.slot === 'l1' || x.slot === 'l2'))
-    if ((await getOrder(ctx, o.id))?.state === 'packed') orderIds.push(o.id)
-  if (orderIds.length === 0) return
+  const loads: { orderId: string; invoiceId: string; retailerId: string }[] = []
+  for (const o of plan.orders.filter((x) => x.slot === 'l1' || x.slot === 'l2')) {
+    if ((await getOrder(ctx, o.id))?.state !== 'packed') continue
+    const bill = await billOf(ctx, o.id)
+    if (bill) loads.push({ orderId: o.id, invoiceId: bill.id, retailerId: bill.retailerId })
+  }
+  if (loads.length === 0) return
+  const tomorrow = addDays(date, 1)
+  const tripId = ctx.id(tomorrow, 'trip', 'driver1')
+  const stops: StopPlan[] = loads.map((l, n) => {
+    const sequence = (VAN_LOAD_DOORS[n] ?? n) + 1
+    return {
+      id: ctx.id(tomorrow, 'stop', 'driver1', String(sequence)),
+      sequence,
+      retailerId: l.retailerId,
+      invoiceIds: [l.invoiceId],
+    }
+  })
+  const trip = await readTrip(ctx, tripId)
+  if (!trip) {
+    const driverId = ctx.userIds.get('driver1')
+    if (!driverId) {
+      ctx.summary.refusedOne('godown', 'trip planned', 'no driver')
+      return
+    }
+    const made = await ctx.write(
+      'godown',
+      'trip planned',
+      () => ctx.as('manager'),
+      contract.delivery.trips.create,
+      {
+        idempotencyKey: demoKey(tomorrow, 'trip', 'driver1'),
+        id: tripId,
+        tripDate: tomorrow,
+        vehicleId: van1.id,
+        driverId,
+        openingCashPaise: 50_000,
+        stops,
+      },
+    )
+    if (!made) return
+  } else if (trip.state === 'planned' || trip.state === 'loading')
+    await addMissingStops(ctx, tomorrow, tripId, 'driver1', stops, 'godown')
+  // Tomorrow's van already left (a later date was made first): there is nothing to load tonight.
+  else return
   await ctx.write(
     'godown',
     'van to load',
@@ -376,8 +480,9 @@ async function vanToLoad(ctx: Ctx, date: string, plan: DayPlan, standing: Standi
       idempotencyKey: demoKey(date, 'sheet', 'van-to-load'),
       id,
       toLocationId: van1.locationId,
-      sheetDate: date,
-      orderIds,
+      tripId,
+      sheetDate: tomorrow,
+      orderIds: loads.map((l) => l.orderId),
     },
   )
 }

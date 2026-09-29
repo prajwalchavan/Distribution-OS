@@ -50,10 +50,14 @@ export class ApiRefusal extends Error {
   ) {
     super(message)
   }
+  /** The API's own reason (`data.code`, e.g. `cheque_already_recorded`), else its error code. */
+  get reason(): string {
+    const inner = (this.data as { code?: unknown } | null)?.code
+    return typeof inner === 'string' ? inner : this.code
+  }
   /** What a summary line shows: the status and the API's own code, never the message (it may name a shop). */
   get label(): string {
-    const inner = (this.data as { code?: unknown } | null)?.code
-    return `${String(this.status)} ${typeof inner === 'string' ? inner : this.code}`
+    return `${String(this.status)} ${this.reason}`
   }
 }
 
