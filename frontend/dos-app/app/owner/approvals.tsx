@@ -84,6 +84,13 @@ interface Decision {
   reason: string | null
   /** DOS-235: the trip, its cash and its van count, on a trip settlement; null for every other kind. */
   trip: ApprovalTripSettlement | null
+  /** QA DOS-336: the item a rate is asked on, and on a gate the pieces on the order and what approving gives away. */
+  item: string | null
+  qtyPcs: number | null
+  givesAwayPaise: number | null
+  /** QA DOS-335: the item's cost a piece (the owner's queue may show it) and whether the asked rate is below it. */
+  costPaise: number | null
+  belowCost: boolean
 }
 
 /** A payload value, when it is text. */
@@ -159,10 +166,17 @@ export default function Approvals(): React.JSX.Element {
     pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),
   )
 
+  /** QA DOS-336: who asked for a rate, by name and role — the shop, the rep or the desk, never "whoever placed it". */
+  const askedBy = (name: string | null | undefined, role: string | null | undefined, id: string) =>
+    name === null || name === undefined
+      ? names.staff(id)
+      : t('o3.whoWithRole', { name, role: word(role ?? null) })
+
   const rows: readonly Decision[] = [
     ...pending.map<Decision>((row) => {
       const bargain = row.entityType === 'bargain_request' ? requested.get(row.entityId) : undefined
       const trip = tripOf(row)
+      const facts = row.bargain ?? null
       return bargain === undefined
         ? {
             id: row.id,
@@ -180,15 +194,24 @@ export default function Approvals(): React.JSX.Element {
             retailerId: row.retailerId,
             reason: textOf(row.payload.reason) ?? textOf(row.payload.note),
             trip,
+            item: facts?.itemName ?? null,
+            qtyPcs: facts?.qtyPcs ?? null,
+            givesAwayPaise: facts?.givesAwayPaise ?? null,
+            costPaise: facts?.costPaise ?? null,
+            belowCost: facts?.belowCost ?? false,
           }
         : {
             id: row.id,
             stream: 'approval',
             kind: row.kind,
             what: row.retailerName ?? names.retailer(bargain.retailerId),
-            who: names.staff(row.requestedBy),
+            // QA DOS-336: the gate was raised by whoever placed the order; the RATE was asked by this person.
+            who:
+              facts === null
+                ? askedBy(bargain.requestedByName, bargain.requestedByRole, bargain.requestedBy)
+                : askedBy(facts.requestedByName, facts.requestedByRole, facts.requestedBy),
             askedAt: row.createdAt,
-            amountPaise: bargain.askedRatePaise,
+            amountPaise: facts?.givesAwayPaise ?? bargain.askedRatePaise,
             listRatePaise: bargain.listRatePaise,
             askedRatePaise: bargain.askedRatePaise,
             orderId: row.orderId,
@@ -197,6 +220,11 @@ export default function Approvals(): React.JSX.Element {
             retailerId: row.retailerId ?? bargain.retailerId,
             reason: bargain.note,
             trip: null,
+            item: facts?.itemName ?? bargain.itemName ?? null,
+            qtyPcs: facts?.qtyPcs ?? null,
+            givesAwayPaise: facts?.givesAwayPaise ?? null,
+            costPaise: facts?.costPaise ?? bargain.costPaise ?? null,
+            belowCost: facts?.belowCost ?? bargain.belowCost ?? false,
           }
     }),
     ...(bargains.data?.items ?? [])
@@ -212,7 +240,7 @@ export default function Approvals(): React.JSX.Element {
         ]
           .filter((part): part is string => part !== null && part !== '')
           .join(' · '),
-        who: names.staff(row.requestedBy),
+        who: askedBy(row.requestedByName, row.requestedByRole, row.requestedBy),
         askedAt: row.createdAt,
         amountPaise: row.askedRatePaise,
         listRatePaise: row.listRatePaise,
@@ -225,6 +253,11 @@ export default function Approvals(): React.JSX.Element {
         retailerId: null,
         reason: row.note,
         trip: null,
+        item: row.itemName ?? null,
+        qtyPcs: null,
+        givesAwayPaise: null,
+        costPaise: row.costPaise ?? null,
+        belowCost: row.belowCost ?? false,
       })),
   ].filter(
     (row) =>
@@ -305,23 +338,36 @@ export default function Approvals(): React.JSX.Element {
     stillPending[0]?.id === current.id
 
   const decideApproval = useMutation(
-    (input: { id: string; decision: 'approve' | 'reject'; note?: string }, meta) =>
+    (
+      input: { id: string; decision: 'approve' | 'reject'; note?: string; belowCost?: boolean },
+      meta,
+    ) =>
       api.api.orders.approvals.decide({
         id: input.id,
         idempotencyKey: meta.idempotencyKey,
         decision: input.decision,
         ...(input.note === undefined || input.note === '' ? {} : { note: input.note }),
+        ...(input.belowCost === true && input.decision === 'approve'
+          ? { confirmBelowCost: true }
+          : {}),
       }),
     { invalidates: [['approvals'], ['bargains'], ['orders'], ['reporting']] },
   )
 
   const decideBargain = useMutation(
-    (input: { id: string; decision: 'approve' | 'reject'; note?: string }, meta) =>
+    (
+      input: { id: string; decision: 'approve' | 'reject'; note?: string; belowCost?: boolean },
+      meta,
+    ) =>
       api.api.pricing.bargains.decide({
         id: input.id,
         idempotencyKey: meta.idempotencyKey,
         decision: input.decision,
         ...(input.note === undefined || input.note === '' ? {} : { note: input.note }),
+        // QA DOS-335: said on screen first ("below cost"), then sent as the owner's explicit yes.
+        ...(input.belowCost === true && input.decision === 'approve'
+          ? { confirmBelowCost: true }
+          : {}),
       }),
     { invalidates: [['bargains'], ['reporting']] },
   )
@@ -330,7 +376,12 @@ export default function Approvals(): React.JSX.Element {
 
   const commit = (): void => {
     if (current === null || confirm === null) return
-    const input = { id: current.id, decision: confirm, note: note.trim() }
+    const input = {
+      id: current.id,
+      decision: confirm,
+      note: note.trim(),
+      belowCost: current.belowCost,
+    }
     const done = (): void => {
       setConfirm(null)
       setNote('')
@@ -515,6 +566,7 @@ export default function Approvals(): React.JSX.Element {
                 {t('o3t.unreadable')}
               </Txt>
             ) : null}
+            {current.item === null ? null : <Field label={t('o3.item')}>{current.item}</Field>}
             {current.listRatePaise === null ? null : (
               <Field label={t('o3.listRate')}>
                 <Money value={current.listRatePaise} size="moneyM" />
@@ -525,6 +577,24 @@ export default function Approvals(): React.JSX.Element {
                 <Money value={current.askedRatePaise} size="moneyM" tone="critical" />
               </Field>
             )}
+            {current.qtyPcs === null ? null : (
+              <Field label={t('o3.pieces')}>{String(current.qtyPcs)}</Field>
+            )}
+            {current.givesAwayPaise === null ? null : (
+              <Field label={t('o3.givesAway')}>
+                <Money value={current.givesAwayPaise} size="moneyM" testID="approval-gives-away" />
+              </Field>
+            )}
+            {current.belowCost && current.costPaise !== null ? (
+              <Txt
+                field="bodyStrong"
+                desk="body"
+                color={colors.status.brick.fg}
+                testID="approval-below-cost"
+              >
+                {t('o3.belowCost', { cost: formatINR(paise(current.costPaise)) })}
+              </Txt>
+            ) : null}
             {current.reason === null ? null : (
               <Field label={t('o3.reason')}>{current.reason}</Field>
             )}
@@ -586,6 +656,26 @@ export default function Approvals(): React.JSX.Element {
                 DOS-155: the consequence, stated before it happens. Only on approve — rejecting a
                 gate confirms nothing.
               */}
+              {/*
+                QA DOS-335: below cost is said here, before it happens, and the button says it too — pressing
+                it is the owner's explicit "sell below cost" the server asks for.
+              */}
+              {current?.belowCost === true &&
+              current.costPaise !== null &&
+              confirm === 'approve' ? (
+                <Txt
+                  field="bodyStrong"
+                  desk="body"
+                  color={colors.status.brick.fg}
+                  testID="approval-below-cost-confirm"
+                >
+                  {t('o3.belowCostApprove', {
+                    rate: formatINR(paise(current.askedRatePaise ?? 0)),
+                    item: current.item ?? current.what,
+                    cost: formatINR(paise(current.costPaise)),
+                  })}
+                </Txt>
+              ) : null}
               {lastGate && confirm === 'approve' ? (
                 <Txt field="bodyStrong" desk="body" testID="approval-last-gate">
                   {t('o3.lastGate', { order: current?.orderNo ?? '' })}
@@ -635,7 +725,13 @@ export default function Approvals(): React.JSX.Element {
             </Stack>
           </Panel>
         }
-        confirmLabel={confirm === 'approve' ? t('o3.approve') : t('o3.reject')}
+        confirmLabel={
+          confirm === 'approve'
+            ? current?.belowCost === true
+              ? t('o3.approveBelowCost')
+              : t('o3.approve')
+            : t('o3.reject')
+        }
         destructive={confirm === 'reject'}
         busy={busy}
         onConfirm={commit}

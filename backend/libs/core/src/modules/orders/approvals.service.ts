@@ -1,6 +1,6 @@
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ORPCError } from '@orpc/server'
-import { and, desc, eq, lt, ne, type SQL } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, lt, ne, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type {
   ApprovalsListInput,
@@ -9,7 +9,7 @@ import type {
   DecideApprovalOutput,
 } from '@dos/contracts'
 import { orderMachine } from '@dos/domain'
-import { approvals, salesOrders, withTenant, type Db } from '@dos/db'
+import { approvals, salesOrderLines, salesOrders, withTenant, type Db } from '@dos/db'
 import {
   BACK_OFFICE,
   MANAGEMENT,
@@ -54,7 +54,8 @@ export class ApprovalsService {
   async list(input: ListIn): Promise<ListOut> {
     requireRole(BACK_OFFICE)
     const db = requireDb(this.db)
-    return withTenant(db, currentTenant(), async (tx) => {
+    const ctx = currentTenant()
+    return withTenant(db, ctx, async (tx) => {
       const filters: (SQL | undefined)[] = [
         input.status ? eq(approvals.status, input.status) : undefined,
         input.orderId ? eq(approvals.orderId, input.orderId) : undefined,
@@ -96,6 +97,11 @@ export class ApprovalsService {
         ))
           described.set(id, value)
       }
+      const bargains = await this.bargainFacts(
+        tx,
+        ctx,
+        page.map((r) => r.approval),
+      )
       const items = page.map((r) => ({
         ...toApprovalQueueItem(r.approval, {
           orderNo: r.orderNo,
@@ -106,10 +112,71 @@ export class ApprovalsService {
         ...(described.has(r.approval.id)
           ? { tripSettlement: described.get(r.approval.id) ?? null }
           : {}),
+        ...(bargains.has(r.approval.id) ? { bargain: bargains.get(r.approval.id) ?? null } : {}),
       }))
       const last = items[items.length - 1]
       return { items, nextCursor: rows.length > input.limit && last ? last.id : null }
     })
+  }
+
+  /**
+   * QA DOS-336 (docs/22 §8, 2026-09-28, ruling 5): WHAT A BARGAIN GATE ASKS. The gate's own `requested_by` is
+   * whoever placed the order; the rate may have been asked by the shop, the rep or the desk, so the queue names
+   * the REQUEST's asker by name and role, the item, the shop's rate against the asked rate, the pieces of that
+   * item on this order and the money the decision gives away on it (before GST), and — the queue being back
+   * office — the cost and whether the asked rate is below it (DOS-335). One read per kind for the page.
+   */
+  private async bargainFacts(
+    tx: Db,
+    ctx: ReturnType<typeof currentTenant>,
+    rows: readonly ApprovalRow[],
+  ): Promise<Map<string, NonNullable<ListOut['items'][number]['bargain']>>> {
+    const gates = rows.filter((r) => r.kind === 'bargain' && r.entityType === 'bargain_request')
+    if (gates.length === 0) return new Map()
+    const facts = await this.bargains.factsFor(
+      tx,
+      ctx,
+      gates.map((g) => g.entityId),
+    )
+    const orderIds = [...new Set(gates.flatMap((g) => (g.orderId === null ? [] : [g.orderId])))]
+    const lines =
+      orderIds.length === 0
+        ? []
+        : await tx
+            .select({
+              orderId: salesOrderLines.orderId,
+              variantId: salesOrderLines.variantId,
+              qtyPcs: salesOrderLines.qtyPcs,
+            })
+            .from(salesOrderLines)
+            .where(and(inArray(salesOrderLines.orderId, orderIds), gt(salesOrderLines.qtyPcs, 0)))
+    const qtyOf = new Map<string, number>()
+    for (const l of lines) {
+      const key = `${l.orderId}|${l.variantId}`
+      qtyOf.set(key, (qtyOf.get(key) ?? 0) + l.qtyPcs)
+    }
+    const out = new Map<string, NonNullable<ListOut['items'][number]['bargain']>>()
+    for (const gate of gates) {
+      const f = facts.get(gate.entityId)
+      if (!f) continue
+      const qty = gate.orderId === null ? undefined : qtyOf.get(`${gate.orderId}|${f.variantId}`)
+      out.set(gate.id, {
+        requestId: f.requestId,
+        requestedBy: f.requestedBy,
+        requestedByName: f.requestedByName,
+        requestedByRole: f.requestedByRole,
+        variantId: f.variantId,
+        itemName: f.itemName,
+        listRatePaise: f.listRatePaise,
+        askedRatePaise: f.askedRatePaise,
+        qtyPcs: qty ?? null,
+        givesAwayPaise:
+          qty === undefined ? null : Math.max(0, f.listRatePaise - f.askedRatePaise) * qty,
+        costPaise: f.costPaise,
+        belowCost: f.belowCost,
+      })
+    }
+    return out
   }
 
   /** Owner and manager decide; the accountant reads the queue and decides nothing (docs/22 2026-09-05). */
@@ -204,6 +271,10 @@ export class ApprovalsService {
               id: approval.entityId,
               decision: input.decision,
               ...(input.note ? { note: input.note } : {}),
+              // QA DOS-335: below cost, the owner alone and knowingly — the gate carries her "yes, below cost".
+              ...(input.confirmBelowCost === undefined
+                ? {}
+                : { confirmBelowCost: input.confirmBelowCost }),
             },
             { ifStillRequested: true },
           )

@@ -189,6 +189,12 @@ export const strings = {
   'm2.terms': 'Terms',
   'm2.expected': 'Wanted by',
   'm2.askedRate': 'Asked rate',
+  /* QA DOS-336: who asked for the rate (by role), the rates, what approving gives away on the order. */
+  'm2.rateAskedBy': 'asked by {name} ({role})',
+  'm2.rateFromTo': '{list} → {asked} a piece',
+  'm2.rateGivesAway': 'gives away {amount} on this order',
+  /* QA DOS-335: the desk may not approve a rate below cost; the owner decides it. */
+  'm2.rateBelowCost': 'below cost — the owner decides it',
   /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
   'm2.rateAsked': 'asked {when}',
   'm2.rateOrderAny': 'Any order of this shop',

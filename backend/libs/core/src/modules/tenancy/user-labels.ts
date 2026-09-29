@@ -50,3 +50,23 @@ export async function activeMembersWithRole(
     .orderBy(asc(users.name), asc(users.id))
     .limit(limit)
 }
+
+/**
+ * User id → name AND role in the CURRENT tenant (QA DOS-336): the approvals queue says who asked for a rate —
+ * "Ganesh More (delivery)" is not "Rahul Deshmukh (salesperson)" — so the lookup carries the membership's role
+ * beside the name. Same scoping as `userLabels`; one query.
+ */
+export async function memberLabels(
+  tx: Db,
+  ids: readonly string[],
+): Promise<Map<string, { name: string; role: string }>> {
+  const unique = [...new Set(ids)].filter((id) => id.length > 0)
+  if (unique.length === 0) return new Map()
+  const { tenantId } = currentTenant()
+  const rows = await tx
+    .select({ id: users.id, name: users.name, role: memberships.role })
+    .from(users)
+    .innerJoin(memberships, eq(memberships.userId, users.id))
+    .where(and(eq(memberships.tenantId, tenantId), inArray(users.id, unique)))
+  return new Map(rows.map((r) => [r.id, { name: r.name, role: r.role }]))
+}

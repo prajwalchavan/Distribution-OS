@@ -472,6 +472,28 @@ export default function OrderQueue(): React.JSX.Element {
     return `${head} · ${ask.waiting ? t('m2.creditOver', { over }) : t('m2.creditOverNow', { over })}`
   }
 
+  /** QA DOS-336 / DOS-335: a rate request in words — who asked, the item, the two rates, and below cost. */
+  const rateWhy = (r: {
+    name: string | null
+    role: string | null
+    item: string | null
+    list: number
+    asked: number
+    givesAway: number | null
+    belowCost: boolean
+  }): string =>
+    [
+      r.name === null ? null : t('m2.rateAskedBy', { name: r.name, role: word(r.role) }),
+      r.item,
+      t('m2.rateFromTo', { list: formatINR(paise(r.list)), asked: formatINR(paise(r.asked)) }),
+      r.givesAway === null
+        ? null
+        : t('m2.rateGivesAway', { amount: formatINR(paise(r.givesAway)) }),
+      r.belowCost ? t('m2.rateBelowCost') : null,
+    ]
+      .filter((part): part is string => part !== null && part !== '')
+      .join(' · ')
+
   const requested = new Map((bargains.data?.items ?? []).map((row) => [row.id, row]))
   const gated = new Set(
     pending.filter((row) => row.entityType === 'bargain_request').map((row) => row.entityId),
@@ -514,9 +536,19 @@ export default function OrderQueue(): React.JSX.Element {
             what: [row.retailerName ?? names.retailer(bargain.retailerId), row.orderNo]
               .filter((p): p is string => p !== null)
               .join(' · '),
-            why: t('m2.askedRate'),
-            amount: bargain.askedRatePaise,
-            ownerOnly: false,
+            // QA DOS-336: who asked (not who placed the order), the item, both rates, what it gives away.
+            why: rateWhy({
+              name: row.bargain?.requestedByName ?? bargain.requestedByName ?? null,
+              role: row.bargain?.requestedByRole ?? bargain.requestedByRole ?? null,
+              item: row.bargain?.itemName ?? bargain.itemName ?? null,
+              list: bargain.listRatePaise,
+              asked: bargain.askedRatePaise,
+              givesAway: row.bargain?.givesAwayPaise ?? null,
+              belowCost: row.bargain?.belowCost ?? bargain.belowCost ?? false,
+            }),
+            amount: row.bargain?.givesAwayPaise ?? bargain.askedRatePaise,
+            // QA DOS-335: below cost is the owner's decision alone; the desk reads it and waits.
+            ownerOnly: row.bargain?.belowCost ?? bargain.belowCost ?? false,
           }
     }),
     ...(bargains.data?.items ?? [])
@@ -531,9 +563,17 @@ export default function OrderQueue(): React.JSX.Element {
         ]
           .filter((part): part is string => part !== null && part !== '')
           .join(' · '),
-        why: `${t('m2.askedRate')} · ${t('m2.rateAsked', { when: shortInstant(row.createdAt) })}`,
+        why: `${rateWhy({
+          name: row.requestedByName ?? null,
+          role: row.requestedByRole ?? null,
+          item: row.itemName ?? null,
+          list: row.listRatePaise,
+          asked: row.askedRatePaise,
+          givesAway: null,
+          belowCost: row.belowCost ?? false,
+        })} · ${t('m2.rateAsked', { when: shortInstant(row.createdAt) })}`,
         amount: row.askedRatePaise,
-        ownerOnly: false,
+        ownerOnly: row.belowCost ?? false,
       })),
   ]
 

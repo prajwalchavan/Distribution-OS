@@ -3,4 +3,9 @@ export { PricingService } from './pricing.service.js'
 export { SchemesService, type SchemeForClaim } from './schemes.service.js'
 export { QuoteService, approvedBargainsFor, todayIst } from './quote.service.js'
 export { loadHsnRates, type HsnRate } from './hsn-rates.js'
-export { BargainsService, pendingBargainsForOrder } from './bargains.service.js'
+export {
+  BargainsService,
+  pendingBargainsForOrder,
+  RATE_ASKERS,
+  type RateRequestFacts,
+} from './bargains.service.js'

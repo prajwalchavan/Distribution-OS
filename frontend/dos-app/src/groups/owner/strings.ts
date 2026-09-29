@@ -198,6 +198,16 @@ export const strings = {
   'o3.grnExceptions': 'GRN exceptions',
   'o3.listRate': 'List rate',
   'o3.askedRate': 'Asked rate',
+  /* QA DOS-336: who asked for the rate, the item, and what approving gives away on the order. */
+  'o3.whoWithRole': '{name} ({role})',
+  'o3.item': 'Item',
+  'o3.pieces': 'Pieces on this order',
+  'o3.givesAway': 'Gives away on this order',
+  /* QA DOS-335: a rate below what the item cost is the owner's alone, and knowingly. */
+  'o3.belowCost': 'Below cost — it cost {cost} a piece',
+  'o3.belowCostApprove':
+    '{rate} a piece is below what {item} cost ({cost}). Approving sells it below cost.',
+  'o3.approveBelowCost': 'Approve below cost',
   /* DOS-090: the order a rate request names may still be a draft on the rep's phone. */
   'o3.rateOrderAny': 'Any order of this shop',
   'o3.rateOrderMissing': "Not placed yet — on the rep's phone",

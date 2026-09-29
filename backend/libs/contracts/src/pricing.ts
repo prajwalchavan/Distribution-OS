@@ -465,6 +465,18 @@ export const BargainSchema = z.object({
   expiresAt: z.string().nullable(),
   note: z.string().nullable(),
   createdAt: z.string(),
+  /** QA DOS-336: who asked, by name and role, so the desk never reads a rate request as somebody else's. */
+  requestedByName: z.string().nullable().optional(),
+  requestedByRole: z.string().nullable().optional(),
+  /** The item, by the name the distributor lists it under. */
+  itemName: z.string().nullable().optional(),
+  /**
+   * QA DOS-335, BACK OFFICE ONLY (absent for a rep, a driver and a shop): the item's purchase cost a piece —
+   * landed, else the purchase rate — and whether the asked rate is below it. Null / absent when no cost is on
+   * record, and then the below-cost rule does not apply.
+   */
+  costPaise: PaiseSchema.nullable().optional(),
+  belowCost: z.boolean().optional(),
 })
 export type Bargain = z.infer<typeof BargainSchema>
 
@@ -472,7 +484,8 @@ export const RequestBargainInput = MutationBase.extend({
   id: IdSchema,
   retailerId: IdSchema,
   variantId: IdSchema,
-  askedRatePaise: PaiseSchema.nonnegative(),
+  /** A rate at or below ₹0.00 is refused in words (QA DOS-335), not by the schema. */
+  askedRatePaise: PaiseSchema,
   /** Lets the rep's per-order cap (`maxOrderDiscountPaise`) be checked; without it that cap needs a decision. */
   qtyPcs: PiecesSchema.optional(),
   /**
@@ -482,15 +495,25 @@ export const RequestBargainInput = MutationBase.extend({
    */
   orderId: IdSchema.optional(),
   note: z.string().trim().max(200).optional(),
+  /**
+   * QA DOS-335: the OWNER's own ask below the item's purchase cost is approved only with this set, after the
+   * screen has said "below cost". Ignored for every other role (a manager's ask below cost waits for the owner).
+   */
+  confirmBelowCost: z.boolean().optional(),
 })
 export const RequestBargainOutput = z.object({ item: BargainSchema })
 
 export const DecideBargainInput = MutationBase.extend({
   id: IdSchema,
   decision: z.enum(['approve', 'reject']),
-  /** Defaults to the asked rate on approve. */
-  approvedRatePaise: PaiseSchema.nonnegative().optional(),
+  /** Defaults to the asked rate on approve. At or below ₹0.00 it is refused in words (QA DOS-335). */
+  approvedRatePaise: PaiseSchema.optional(),
   note: z.string().trim().max(200).optional(),
+  /**
+   * QA DOS-335: a rate below the item's purchase cost is approved only by the OWNER, and only with this set
+   * after the screen has said "below cost". A manager is refused with the sentence that says the owner decides.
+   */
+  confirmBelowCost: z.boolean().optional(),
 })
 export const DecideBargainOutput = z.object({ item: BargainSchema })
 

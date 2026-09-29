@@ -17,12 +17,15 @@ import {
   priceLists,
   products,
   productVariants,
+  retailerIdentities,
+  retailerLinks,
   retailers,
   returnPolicies,
   schemeAmountFaults,
   schemes,
   suppliers,
   tenantBrands,
+  tenantProductCosts,
   tenants,
   users,
   withTenant,
@@ -116,7 +119,12 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
   const repId = uuidv7()
   const storeId = uuidv7()
   const driverId = uuidv7()
+  const accountantId = uuidv7()
+  const shopUserId = uuidv7()
   const owner: Actor = { tenantId, actorId: ownerId, role: 'owner' }
+  const accountant: Actor = { tenantId, actorId: accountantId, role: 'accountant' }
+  const store: Actor = { tenantId, actorId: storeId, role: 'warehouse' }
+  const shopkeeper: Actor = { tenantId, actorId: shopUserId, role: 'retailer' }
   const manager: Actor = { tenantId, actorId: managerId, role: 'manager' }
   const rep: Actor = { tenantId, actorId: repId, role: 'salesperson' }
   const driver: Actor = { tenantId, actorId: driverId, role: 'delivery' }
@@ -136,6 +144,8 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     t0at1040: uuidv7(),
     t0at1011: uuidv7(),
     t18at1050: Array.from({ length: 6 }, () => uuidv7()),
+    /** QA N05 / N09: Sunbake Marie, ₹22.45 on the list, landed at ₹20.37. */
+    marie: uuidv7(),
   }
   const RATE = {
     ghee: 31_738,
@@ -146,7 +156,9 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     t0at1040: 1040,
     t0at1011: 1011,
     t18at1050: 1050,
+    marie: 2245,
   }
+  const MARIE_LANDED = 2037
   /** A fresh shop per case, so no credit decision or earlier order of another case reaches it. */
   const shopOf = new Map<string, string>()
   let godown = ''
@@ -168,6 +180,63 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     shopOf.set(tag, id)
     return id
   }
+
+  /** A shop whose own login (`shopkeeper`) is linked to it, so the shop can ask for its own rate. */
+  async function linkedShop(tag: string): Promise<string> {
+    const id = await newShop(tag)
+    const identityId = uuidv7()
+    await db.insert(retailerIdentities).values({
+      id: identityId,
+      phone: `+91976${run}${String(shopOf.size).padStart(2, '0')}`,
+      userId: shopUserId,
+      shopName: `Shop ${tag} ${run}`,
+    })
+    await db.update(retailers).set({ identityId }).where(eq(retailers.id, id))
+    await db.insert(retailerLinks).values({
+      id: uuidv7(),
+      tenantId,
+      identityId,
+      retailerId: id,
+      userId: shopUserId,
+      linkedBy: 'rep_onboarding',
+      status: 'active',
+    })
+    return id
+  }
+
+  interface Bargain {
+    id: string
+    status: string
+    requestedByName?: string | null
+    requestedByRole?: string | null
+    itemName?: string | null
+    costPaise?: number | null
+    belowCost?: boolean
+  }
+  const ask = (
+    actor: Actor,
+    retailerId: string,
+    variantId: string,
+    askedRatePaise: number,
+    tag: string,
+    extra: Record<string, unknown> = {},
+  ) =>
+    call<{ item: Bargain; message?: string }>(app, actor, 'POST', '/pricing/bargains', {
+      idempotencyKey: `ask-${tag}-${run}`,
+      id: uuidv7(),
+      retailerId,
+      variantId,
+      askedRatePaise,
+      ...extra,
+    })
+  const decideRate = (actor: Actor, id: string, tag: string, extra: Record<string, unknown> = {}) =>
+    call<{ item: Bargain; message?: string; data?: { code?: string } }>(
+      app,
+      actor,
+      'POST',
+      `/pricing/bargains/${id}/decide`,
+      { idempotencyKey: `decide-${tag}-${run}`, id, decision: 'approve', ...extra },
+    )
 
   async function quote(retailerId: string, lines: { variantId: string; qtyPcs: number }[]) {
     const res = await call<Quote>(app, rep, 'POST', '/pricing/quote', {
@@ -229,20 +298,20 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     b.cgstPaise + b.sgstPaise + b.igstPaise + b.cessPaise
 
   beforeAll(async () => {
-    await db
-      .insert(tenants)
-      .values({
-        id: tenantId,
-        slug: `ptax-${run}`,
-        legalName: 'Prices Tax Traders',
-        stateCode: '27',
-      })
+    await db.insert(tenants).values({
+      id: tenantId,
+      slug: `ptax-${run}`,
+      legalName: 'Prices Tax Traders',
+      stateCode: '27',
+    })
     await db.insert(users).values([
       { id: ownerId, phone: `+91974${run}1`, name: 'Owner' },
       { id: managerId, phone: `+91974${run}2`, name: 'Manager' },
       { id: repId, phone: `+91974${run}3`, name: 'Rep' },
       { id: storeId, phone: `+91974${run}4`, name: 'Store' },
       { id: driverId, phone: `+91974${run}5`, name: 'Driver' },
+      { id: accountantId, phone: `+91974${run}6`, name: 'Accountant' },
+      { id: shopUserId, phone: `+91974${run}7`, name: 'Shopkeeper' },
     ])
     await db.insert(memberships).values([
       { id: uuidv7(), tenantId, userId: ownerId, role: 'owner' },
@@ -250,6 +319,8 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
       { id: uuidv7(), tenantId, userId: repId, role: 'salesperson' },
       { id: uuidv7(), tenantId, userId: storeId, role: 'warehouse' },
       { id: uuidv7(), tenantId, userId: driverId, role: 'delivery' },
+      { id: uuidv7(), tenantId, userId: accountantId, role: 'accountant' },
+      { id: uuidv7(), tenantId, userId: shopUserId, role: 'retailer' },
     ])
     await bootstrapTenant(db, tenantId)
     await db.insert(hsnRates).values([
@@ -284,6 +355,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         variant(v.t0at1040, 'Paneer 100 g', hsn.g0),
         variant(v.t0at1011, 'Milk 500 ml', hsn.g0),
         ...v.t18at1050.map((id, i) => variant(id, `Biscuit ${String(i + 1)}`, hsn.g18)),
+        variant(v.marie, 'Marie 250 g', hsn.g18),
       ])
     const listId = uuidv7()
     await db
@@ -307,7 +379,15 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         item(v.t0at1040, RATE.t0at1040),
         item(v.t0at1011, RATE.t0at1011),
         ...v.t18at1050.map((id) => item(id, RATE.t18at1050)),
+        item(v.marie, RATE.marie),
       ])
+    await db.insert(tenantProductCosts).values({
+      id: uuidv7(),
+      tenantId,
+      variantId: v.marie,
+      purchaseRatePaise: 2007,
+      landedCostPaise: MARIE_LANDED,
+    })
     // X05: the brand's 6 % on ghee, company-funded and claimable, "on its own".
     await db.insert(schemes).values({
       id: gheeScheme,
@@ -387,6 +467,7 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
         v.t0at1040,
         v.t0at1011,
         ...v.t18at1050,
+        v.marie,
       ]
       for (const [i, variantId] of others.entries()) {
         const { lot } = await inventory.findOrCreateLot(tx, {
@@ -726,6 +807,193 @@ describeDb('prices and tax, quote to bill (DATABASE_URL)', () => {
     expect(sold.status, JSON.stringify(sold.body)).toBe(200)
     expect(taxOf(sold.body.item)).toBe(124)
     expect(sold.body.item.totalPaise).toBe(2200)
+  })
+
+  // ---------------------------------------------------------------------------------------------------------------
+  // DOS-336 and DOS-335 (ruling 5): who asks for a rate, what the desk is shown, and never below zero or cost blind
+
+  it('DOS-336: only the rep, the shop, the manager and the owner ask; the gate names who asked, the item, both rates and what it gives away', async () => {
+    const shop = await linkedShop('N336')
+    for (const [actor, tag] of [
+      [accountant, 'acc'],
+      [store, 'store'],
+      [driver, 'crew'],
+    ] as const) {
+      const refused = await ask(actor, shop, v.marie, 1256, `336-${tag}`)
+      expect(refused.status, `${tag}: ${JSON.stringify(refused.body)}`).toBe(403)
+    }
+    // the SHOP asks; the REP places the order the ask then gates
+    const asked = await ask(shopkeeper, shop, v.marie, 2100, '336-shop')
+    expect(asked.status, JSON.stringify(asked.body)).toBe(200)
+    expect(asked.body.item.status).toBe('requested')
+    const order = await placeOrder(shop, [{ variantId: v.marie, qtyPcs: 10 }], '336')
+    expect(order.state).toBe('submitted')
+
+    const queue = await call<{
+      items: {
+        id: string
+        requestedBy: string
+        bargain?: {
+          requestedBy: string
+          requestedByName: string | null
+          requestedByRole: string | null
+          itemName: string | null
+          listRatePaise: number
+          askedRatePaise: number
+          qtyPcs: number | null
+          givesAwayPaise: number | null
+          costPaise: number | null
+          belowCost: boolean
+        } | null
+      }[]
+    }>(app, owner, 'GET', '/approvals', { status: 'pending', kind: 'bargain', orderId: order.id })
+    expect(queue.status, JSON.stringify(queue.body)).toBe(200)
+    const gate = queue.body.items[0]
+    // the gate was raised by whoever placed the order; the rate was asked by the shop — the queue says so
+    expect(gate?.requestedBy).toBe(repId)
+    expect(gate?.bargain).toMatchObject({
+      requestedBy: shopUserId,
+      requestedByName: 'Shopkeeper',
+      requestedByRole: 'retailer',
+      itemName: 'Marie 250 g',
+      listRatePaise: 2245,
+      askedRatePaise: 2100,
+      qtyPcs: 10,
+      givesAwayPaise: 1450,
+      costPaise: MARIE_LANDED,
+      belowCost: false,
+    })
+
+    const decided = await call<{ order: Order | null }>(
+      app,
+      owner,
+      'POST',
+      `/approvals/${gate?.id ?? ''}/decide`,
+      { idempotencyKey: `336-gate-${run}`, id: gate?.id, decision: 'approve' },
+    )
+    expect(decided.status, JSON.stringify(decided.body)).toBe(200)
+    expect(decided.body.order?.state).toBe('confirmed')
+  })
+
+  it('DOS-335: a rate at or below ₹0 is refused in words; below cost only the owner, knowingly; the rep learns only the outcome', async () => {
+    const shop = await newShop('N335')
+    for (const rate of [0, -100]) {
+      const refused = await ask(rep, shop, v.marie, rate, `335-zero-${String(rate)}`)
+      expect(refused.status).toBe(400)
+      expect(refused.body.message).toMatch(/cannot be asked for Marie 250 g: ask for the rate/)
+      expect(refused.body.message).not.toMatch(/20\.37/)
+    }
+    // a rep bound of 20 % would approve ₹20.00 on the spot — but it is below cost, so it waits for the owner
+    const bound = await call(app, owner, 'POST', '/pricing/bounds', {
+      idempotencyKey: `335-bound-${run}`,
+      id: uuidv7(),
+      userId: repId,
+      maxDiscountBps: 2000,
+    })
+    expect(bound.status, JSON.stringify(bound.body)).toBe(200)
+    const below = await ask(rep, shop, v.marie, 2000, '335-below')
+    expect(below.status).toBe(200)
+    expect(below.body.item.status).toBe('requested')
+    const above = await ask(rep, shop, v.marie, 2100, '335-above')
+    expect(above.body.item.status).toBe('auto_approved')
+    // purchase cost never reaches the rep, whatever the request
+    const mine = await call<{ items: Bargain[] }>(app, rep, 'GET', '/pricing/bargains', {
+      retailerId: shop,
+    })
+    expect(mine.body.items.length).toBeGreaterThan(0)
+    for (const item of mine.body.items) {
+      expect('costPaise' in item).toBe(false)
+      expect('belowCost' in item).toBe(false)
+    }
+    expect(JSON.stringify(mine.body)).not.toMatch(/2037/)
+
+    // the manager is refused with the sentence that sends it to the owner
+    const byManager = await decideRate(manager, below.body.item.id, '335-mgr')
+    expect(byManager.status).toBe(403)
+    expect(byManager.body.message).toBe(
+      '₹20.00 a piece for Marie 250 g is below what it cost (₹20.37): only the owner can approve a rate below cost. Leave it for the owner, or approve ₹20.37 or more',
+    )
+    // the owner must say so
+    const blind = await decideRate(owner, below.body.item.id, '335-owner-blind')
+    expect(blind.status).toBe(409)
+    expect(blind.body.message).toMatch(/below what it cost \(₹20\.37\).*sell below cost/)
+    const knowingly = await decideRate(owner, below.body.item.id, '335-owner', {
+      confirmBelowCost: true,
+    })
+    expect(knowingly.status, JSON.stringify(knowingly.body)).toBe(200)
+    expect(knowingly.body.item.status).toBe('approved')
+    // what the rep reads afterwards: approved, and nothing about why
+    const after = await call<{ items: Bargain[] }>(app, rep, 'GET', '/pricing/bargains', {
+      retailerId: shop,
+    })
+    expect(after.body.items.find((b) => b.id === below.body.item.id)?.status).toBe('approved')
+
+    // ₹0.00 approved over a request: refused in words, owner or not
+    const another = await ask(rep, shop, v.marie, 1950, '335-another')
+    expect(another.body.item.status).toBe('requested')
+    const zero = await decideRate(owner, another.body.item.id, '335-zero-approve', {
+      approvedRatePaise: 0,
+      confirmBelowCost: true,
+    })
+    expect(zero.status).toBe(400)
+    expect(zero.body.message).toMatch(/^₹0\.00 a piece cannot be approved for Marie 250 g/)
+
+    // an item with no cost on record: the below-cost rule does not apply
+    const noCost = await ask(rep, shop, v.t0at1001, 1, '335-nocost')
+    expect(noCost.body.item.status).toBe('requested')
+    const allowed = await decideRate(manager, noCost.body.item.id, '335-nocost')
+    expect(allowed.status, JSON.stringify(allowed.body)).toBe(200)
+  })
+
+  it('DOS-335: approving a bargain GATE below cost is the owner’s alone, with the same confirmation', async () => {
+    const shop = await linkedShop('N335g')
+    const asked = await ask(shopkeeper, shop, v.marie, 1900, '335g-shop')
+    expect(asked.body.item.status).toBe('requested')
+    const order = await placeOrder(shop, [{ variantId: v.marie, qtyPcs: 5 }], '335g')
+    const queue = await call<{ items: { id: string; bargain?: { belowCost: boolean } | null }[] }>(
+      app,
+      owner,
+      'GET',
+      '/approvals',
+      { status: 'pending', kind: 'bargain', orderId: order.id },
+    )
+    const gate = queue.body.items[0]
+    expect(gate?.bargain?.belowCost).toBe(true)
+    const byManager = await call<{ message: string }>(
+      app,
+      manager,
+      'POST',
+      `/approvals/${gate?.id ?? ''}/decide`,
+      { idempotencyKey: `335g-mgr-${run}`, id: gate?.id, decision: 'approve' },
+    )
+    expect(byManager.status).toBe(403)
+    expect(byManager.body.message).toMatch(/only the owner can approve a rate below cost/)
+    const blind = await call<{ message: string }>(
+      app,
+      owner,
+      'POST',
+      `/approvals/${gate?.id ?? ''}/decide`,
+      { idempotencyKey: `335g-blind-${run}`, id: gate?.id, decision: 'approve' },
+    )
+    expect(blind.status).toBe(409)
+    const knowingly = await call<{ order: Order | null }>(
+      app,
+      owner,
+      'POST',
+      `/approvals/${gate?.id ?? ''}/decide`,
+      {
+        idempotencyKey: `335g-owner-${run}`,
+        id: gate?.id,
+        decision: 'approve',
+        confirmBelowCost: true,
+      },
+    )
+    expect(knowingly.status, JSON.stringify(knowingly.body)).toBe(200)
+    expect(knowingly.body.order?.state).toBe('confirmed')
+    // the order is charged the approved rate
+    expect(knowingly.body.order?.lines[0]?.lineTotalPaise).toBe(
+      5 * 1900 + lineTax(5 * 1900, { gstBps: 1800, cessBps: 0 }, false).taxPaise,
+    )
   })
 
   it('the release check is clean for this distributor’s bills written now', async () => {

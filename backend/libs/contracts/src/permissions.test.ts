@@ -200,6 +200,8 @@ describe('permission matrix', () => {
       'pricing.overrides.upsert',
       'pricing.schemes.upsert',
       'pricing.bargains.decide',
+      // QA DOS-336 (ruling 5): the accountant does not ask for a rate either.
+      'pricing.bargains.request',
       'pricing.bounds.set',
       'retailers.setCredit',
       'orders.confirm',
@@ -326,6 +328,13 @@ describe('permission matrix', () => {
       expect(isAllowed(permissionFor(path), 'retailer'), `${path} must refuse retailer`).toBe(false)
     }
     expect(permissionFor('retailers.updateOwn')).toEqual(['retailer'])
+  })
+
+  it('QA DOS-336 (docs/22 §8, 2026-09-28, ruling 5): only the rep, the shop, the manager and the owner ask for a rate', () => {
+    for (const role of ['owner', 'manager', 'salesperson', 'retailer'] as const)
+      expect(isAllowed(permissionFor('pricing.bargains.request'), role), role).toBe(true)
+    for (const role of ['accountant', 'warehouse', 'delivery'] as const)
+      expect(isAllowed(permissionFor('pricing.bargains.request'), role), role).toBe(false)
   })
 
   it('DOS-115: the godown and the crew place, re-line, repeat, submit or cancel no order, and still read one', () => {
@@ -911,11 +920,10 @@ describe('permission matrix', () => {
       'auth.resetPassword',
       'auth.revokeSession',
       'auth.switchTenant',
-      // every member or every staff member: a quote, a bargain request, a proposed
-      // product, a shop and its visit, an upload slot, the offline queue
+      // every member or every staff member: a quote, a proposed product, a shop and its visit, an upload
+      // slot, the offline queue (a rate request is no longer hers: QA DOS-336, ruling 5)
       'catalog.propose',
       'files.uploadUrl',
-      'pricing.bargains.request',
       'pricing.quote',
       'retailers.upsert',
       'retailers.visits.record',

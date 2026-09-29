@@ -156,7 +156,7 @@ Full request/response samples are in `backend/owner-service/README.md`.
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, salesperson, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
@@ -516,7 +516,7 @@ Full request/response samples are in `backend/manager-service/README.md`.
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, salesperson, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
@@ -876,7 +876,7 @@ Full request/response samples are in `backend/sales-service/README.md`.
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, salesperson, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
@@ -1353,7 +1353,7 @@ Full request/response samples are in `backend/delivery-service/README.md`.
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, salesperson, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |
@@ -1628,7 +1628,7 @@ Full request/response samples are in `backend/retailer-service/README.md`.
 | POST | `/pricing/schemes` | Create or update a scheme; a change to its economics bumps the version | owner, manager |
 | POST | `/pricing/quote` | Price an order with the pure engine (no side effects) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | GET | `/pricing/rates` | The shop’s standing per-piece rate for every listed item: the engine at one piece | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
-| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
+| POST | `/pricing/bargains` | Ask for a lower rate; auto-approved within the rep bound | owner, manager, salesperson, retailer |
 | POST | `/pricing/bargains/{id}/decide` | Approve or reject a bargain (back office) | owner, manager |
 | GET | `/pricing/bargains` | Bargain requests (a shop sees the outcome of its own) | owner, manager, accountant, salesperson, warehouse, delivery, retailer |
 | POST | `/pricing/bounds` | How far a rep may discount without asking (owner only) | owner |

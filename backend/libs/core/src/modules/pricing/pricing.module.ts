@@ -10,6 +10,7 @@ import {
 import { BACK_OFFICE } from '../../platform/index.js'
 import { SyncRegistry, tablePull } from '../sync/index.js'
 import { TenancyModule } from '../tenancy/index.js'
+import { TenantCatalogModule } from '../tenant-catalog/index.js'
 import { BargainsService } from './bargains.service.js'
 import { PricingController } from './pricing.controller.js'
 import { PricingService } from './pricing.service.js'
@@ -24,7 +25,7 @@ const SCHEME_PRIVATE_COLUMNS = ['funding_source', 'claimable', 'claim_window_day
  * registers their PULL readers: price lists and items, schemes in the PUBLIC shape, overrides.
  */
 @Module({
-  imports: [TenancyModule],
+  imports: [TenancyModule, TenantCatalogModule],
   controllers: [PricingController],
   providers: [PricingService, SchemesService, QuoteService, BargainsService],
   exports: [PricingService, SchemesService, QuoteService, BargainsService],

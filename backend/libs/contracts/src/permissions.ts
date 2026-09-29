@@ -534,7 +534,9 @@ export const PERMISSIONS: Record<ProcedurePath, Permission> = {
   // DOS-104: the same engine at one piece, projected to four numbers a row — the price list a shop or
   // a rep opens. Same audience as `quote`, same own-shop rule inside it.
   'pricing.rates': ANY_MEMBER,
-  'pricing.bargains.request': ANY_MEMBER,
+  // QA DOS-336 (docs/22 §8, 2026-09-28, ruling 5): only the rep, the shopkeeper, the manager and the owner ask
+  // for a rate — never the accountant, the godown or the crew, whose ask rode through as the rep's.
+  'pricing.bargains.request': ['owner', 'manager', 'salesperson', 'retailer'],
   'pricing.bargains.decide': MANAGEMENT,
   'pricing.bargains.list': ANY_MEMBER,
   'pricing.bounds.set': OWNER_ONLY,

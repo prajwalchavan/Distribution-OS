@@ -117,6 +117,34 @@ describe('warehouse-service', () => {
     expect(refusedAtGate).toBe(false)
   })
 
+  it('QA DOS-336: warehouse-service answers no pricing route — a rate request, a quote or the rate list is 404 here', async () => {
+    const headers = {
+      ...(await bearer({ tenantId, actorId, role: 'warehouse' })),
+      'content-type': 'application/json',
+    }
+    const bargain = await app.inject({
+      method: 'POST',
+      url: '/pricing/bargains',
+      headers,
+      payload: {
+        idempotencyKey: 'dos-336-bargain',
+        id: '00000000-0000-7000-8000-0000000000cc',
+        retailerId: '00000000-0000-7000-8000-0000000000cd',
+        variantId: '00000000-0000-7000-8000-0000000000ce',
+        askedRatePaise: 1256,
+      },
+    })
+    expect(bargain.statusCode).toBe(404)
+    expect(bargain.json<{ message: string }>().message).toBe(
+      "Warehouse service does not answer POST /pricing/bargains: it is served by another app's service",
+    )
+    for (const url of ['/pricing/bargains', '/pricing/schemes'])
+      expect((await app.inject({ method: 'GET', url, headers })).statusCode, url).toBe(404)
+    // a route it lists still answers past the gate
+    const me = await app.inject({ method: 'GET', url: '/tenancy/me', headers })
+    expect(me.statusCode).not.toBe(404)
+  })
+
   it('DOS-115: warehouse-service refuses order writes to the warehouse role at the gate', async () => {
     const auth = await bearer({ tenantId, actorId, role: 'warehouse' })
     const headers = { ...auth, 'content-type': 'application/json' }

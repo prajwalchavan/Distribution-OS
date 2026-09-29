@@ -9135,7 +9135,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -9367,7 +9368,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -9606,7 +9608,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -9829,7 +9832,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -10062,7 +10066,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -10306,7 +10311,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -10526,7 +10532,8 @@ curl "http://localhost:3004/orders/last-placed?retailerId=01a06dbc-35ed-7760-86f
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -10726,7 +10733,8 @@ curl "http://localhost:3004/orders/01a06d17-0be7-794a-8dab-9b14cf78673b" \
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -11048,6 +11056,20 @@ curl "http://localhost:3004/approvals?status=pending&orderId=01a06d67-52a6-70c4-
           }
         ],
         "stockVarianceValuePaise": 4000
+      },
+      "bargain": {
+        "requestId": "01a06d64-4f32-7e86-8a4c-1b8830bc48c7",
+        "requestedBy": "01a06ded-7766-7cf6-8494-dff03b8c3334",
+        "requestedByName": "text",
+        "requestedByRole": "text",
+        "variantId": "01a06df0-2faf-79a2-8456-92042e49f147",
+        "itemName": "text",
+        "listRatePaise": 4000,
+        "askedRatePaise": 4000,
+        "qtyPcs": 24,
+        "givesAwayPaise": 4000,
+        "costPaise": 4000,
+        "belowCost": true
       }
     }
   ],
@@ -11120,6 +11142,7 @@ Approve or reject; the last approval approved confirms the order · contract `or
 | `decision` | approve | reject | yes |
 | `note` | string | no |
 | `deviceId` | string | no |
+| `confirmBelowCost` | boolean | no |
 
 **Example request**
 
@@ -11137,7 +11160,8 @@ request.json
   "id": "01a06d17-0be7-794a-8dab-9b14cf78673b",
   "decision": "approve",
   "note": "Confirmed on phone with the shopkeeper",
-  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb"
+  "deviceId": "01a06d91-0ce4-73b4-8bda-89cbb975a4bb",
+  "confirmBelowCost": true
 }
 ```
 
@@ -11248,7 +11272,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -11590,7 +11615,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -11840,7 +11866,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -12109,7 +12136,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -12347,7 +12375,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -12578,7 +12607,8 @@ curl "http://localhost:3004/invoices/01a06d17-0be7-794a-8dab-9b14cf78673b" \
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -13119,7 +13149,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -23926,7 +23957,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true
@@ -24057,7 +24089,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ]
       }
@@ -34984,7 +35017,8 @@ request.json
             "amountPaise": 4000,
             "freeQty": 24,
             "freeVariantId": "01a06d92-594e-7ffa-82f0-6474461e10c4",
-            "reward": true
+            "reward": true,
+            "batchShare": true
           }
         ],
         "priceLocked": true

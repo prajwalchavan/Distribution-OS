@@ -264,6 +264,32 @@ export const ApprovalTripSettlementSchema = z.object({
 })
 export type ApprovalTripSettlement = z.infer<typeof ApprovalTripSettlementSchema>
 
+/**
+ * WHAT THE OWNER IS ASKED TO GIVE on a `bargain` approval (QA DOS-336, DOS-335): who asked for the rate — by
+ * name and role, which may be the shop itself or the rep, never simply whoever placed the order — the item, the
+ * shop's rate against the asked rate, the pieces on this order and the money the decision gives away on it
+ * before GST, and the item's purchase cost with whether the asked rate is below it. The queue is back office
+ * only, so the cost may be shown here; it never reaches a rep, a driver or a shop.
+ */
+export const ApprovalBargainSchema = z.object({
+  requestId: IdSchema,
+  requestedBy: IdSchema,
+  requestedByName: z.string().nullable(),
+  requestedByRole: z.string().nullable(),
+  variantId: IdSchema,
+  itemName: z.string().nullable(),
+  listRatePaise: PaiseSchema,
+  askedRatePaise: PaiseSchema,
+  /** Pieces of the item on this order; null when the request names no order line. */
+  qtyPcs: PiecesSchema.nullable(),
+  /** (shop's rate − asked rate) × those pieces, before GST; null with `qtyPcs`. */
+  givesAwayPaise: PaiseSchema.nullable(),
+  /** Purchase cost a piece (landed, else the purchase rate); null when none is on record. */
+  costPaise: PaiseSchema.nullable(),
+  belowCost: z.boolean(),
+})
+export type ApprovalBargain = z.infer<typeof ApprovalBargainSchema>
+
 export const ApprovalQueueItemSchema = ApprovalSchema.extend({
   orderNo: z.string().nullable(),
   orderTotalPaise: PaiseSchema.nullable(),
@@ -271,6 +297,8 @@ export const ApprovalQueueItemSchema = ApprovalSchema.extend({
   retailerName: z.string().nullable(),
   /** Only on a `trip_settlement` row (QA DOS-235); absent or null on every other kind. */
   tripSettlement: ApprovalTripSettlementSchema.nullable().optional(),
+  /** Only on a `bargain` row that names its rate request (QA DOS-336); absent or null on every other kind. */
+  bargain: ApprovalBargainSchema.nullable().optional(),
 })
 export type ApprovalQueueItem = z.infer<typeof ApprovalQueueItemSchema>
 
@@ -418,6 +446,11 @@ export const DecideApprovalInput = MutationBase.extend({
   decision: z.enum(['approve', 'reject']),
   note: z.string().trim().max(200).optional(),
   deviceId: DeviceIdSchema.optional(),
+  /**
+   * QA DOS-335: approving a `bargain` gate whose asked rate is below the item's purchase cost needs the OWNER
+   * and this flag, set after the screen has said "below cost". Ignored on every other kind.
+   */
+  confirmBelowCost: z.boolean().optional(),
 })
 /** `order` is the order after the decision: confirmed when the last pending approval was approved. */
 export const DecideApprovalOutput = z.object({

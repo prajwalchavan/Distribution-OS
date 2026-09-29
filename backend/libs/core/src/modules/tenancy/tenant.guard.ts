@@ -8,6 +8,7 @@ import {
   Inject,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   type OnModuleInit,
   Optional,
   RequestMethod,
@@ -141,6 +142,7 @@ export class TenantGuard implements CanActivate, OnModuleInit {
     if (permission === undefined) {
       throw new InternalServerErrorException(`endpoint has no permission entry: ${route}`)
     }
+    this.requireListed(route)
     if (permission === 'public') return true
 
     if (!this.verifier || !this.passes) {
@@ -248,6 +250,24 @@ export class TenantGuard implements CanActivate, OnModuleInit {
     return verified
   }
 
+  /**
+   * A SERVICE ANSWERS ONLY THE PART OF THE CONTRACT IT LISTS (QA DOS-336). Nest mounts the controller of every
+   * module a service imports, and a service imports modules for their in-process services too — the warehouse
+   * service imports orders, which imports pricing for the quote — so `/warehouse/pricing/bargains` answered a
+   * godown login although `contractKeys` (and `pricing.ts`) say warehouse does not mount pricing, and a rate
+   * asked there rode through the next order's approval as the rep's. A procedure outside the service's
+   * `contractKeys` is a 404 here, the answer an unmounted route gives. In-process calls are not routes and are
+   * untouched; in a module spec (no service) nothing changes.
+   */
+  private requireListed(route: string): void {
+    if (!this.service) return
+    const key = routeContractKeys().get(route)
+    if (key === undefined || (this.service.contractKeys as readonly string[]).includes(key)) return
+    throw new NotFoundException(
+      `${this.service.title} does not answer ${route}: it is served by another app's service`,
+    )
+  }
+
   private requireServed(role: PermissionRole): void {
     if (this.service && !this.service.roles.includes(role)) {
       throw new ForbiddenException(`${this.service.name}-service does not serve the ${role} role`)
@@ -284,6 +304,20 @@ function routePermissions(): ReadonlyMap<string, Permission | undefined> {
     map.set(`${p.method.toUpperCase()} ${toNestPattern(p.httpPath as `/${string}`)}`, p.permission)
   }
   routeCache = map
+  return map
+}
+
+/** Route key → the top-level contract key it belongs to (`POST /pricing/bargains` → `pricing`). */
+let routeKeyCache: ReadonlyMap<string, string> | null = null
+
+function routeContractKeys(): ReadonlyMap<string, string> {
+  if (routeKeyCache) return routeKeyCache
+  const map = new Map<string, string>()
+  for (const p of contractProcedures(contract)) {
+    const key = p.path.split('.')[0]
+    if (key) map.set(`${p.method.toUpperCase()} ${toNestPattern(p.httpPath as `/${string}`)}`, key)
+  }
+  routeKeyCache = map
   return map
 }
 
