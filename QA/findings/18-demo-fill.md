@@ -16,6 +16,7 @@ Ids DOS-400 … DOS-419.
 | DOS-404 | P3       | ux              | Manager home: "Bills to review" counts scanned documents only, never a typed supplier bill waiting in review                  |
 | DOS-405 | P3       | ux              | No accountant screen shows yesterday's settled trip: Day-end lists only the trips still waiting to be settled                 |
 | DOS-406 | P3       | ux              | The receipts list does not say which receipt has money on account; only the receipt's own drawer shows it                     |
+| DOS-407 | P2       | record          | Nothing keeps real and dummy money apart: a real payment the desk records FIFO is spent on the tool's open bills                |
 
 ### DOS-400 — No procedure gives a shopkeeper a login
 
@@ -142,3 +143,38 @@ Expected: the list marks a receipt with money on account (or offers an "on accou
 What the tool does: it records one UPI receipt a day with no allocation; check:demo-coverage reads
 receivables.receipts.list {unallocatedOnly: true}.
 ```
+
+### DOS-407 — Nothing keeps real and dummy money apart: a real FIFO payment is spent on the tool's bills
+
+Category: record | Priority: P2 | Role: Owner, Manager, Accountant (the money desk) | Platform: API
+
+```
+Found 2026-09-29 by the integrator of the demo fill on the fixed product (branch integrate/demo-fill-0929), on
+its own look-alike database dos_test_fillint_b after two days of pnpm fill:demo (all-in-one API on :3852,
+NODE_ENV=production). Architect rule 3b: real money never settles a dummy bill, and dummy money never reaches a
+real bill by the product's own hand. The tool keeps to it for everything IT records (explicit allocations to its
+own bills; no bill for a shop holding real money on account; its own money on account only with a shop that owes
+nothing real) and says in its report how many shops it leaves out. It cannot keep to it for money a PERSON records:
+User: Owner (owner.tarsun) via owner-service
+Steps:
+  1. A shop with 6 open bills of the tool (the shop the tool holds over its credit limit) and 1 open opening bill,
+     outstanding 3158460 paise.
+  2. POST receivables.receipts.create {retailerId: 8346c5bf-513d-7fb5-bf70-37a362e7f486, mode: cash,
+     amountPaise: 3158460, strategy: fifo}  (fifo is the default: the desk names no bill)
+  3. 200: receipt 01a0ec4d-34ad-74fb-be67-a2ebdc0c0df2, 7 allocations: 568560 paise on the opening bill, then
+     398600 + 366100 + 210500 + 528200 + 375900 + 710600 paise on SIX BILLS OF THE TOOL.
+  4. pnpm check:demo-rows --tenant tarsun: exit 1, "FAIL rule 3b: an allocation of money the tool did not make to
+     a bill the tool made" (the allocation ids).
+The same by the product's other hands (on-account.ts, DOS-312): a real receipt's remainder, a real credit note's
+remainder and the desk's "Apply money on account" spend a shop's money on its oldest open bills, dummy or real;
+and a NEW real bill for a shop that holds the tool's money on account overnight ("collections to match") takes it.
+Expected (for the one-site decision, docs/22 §8 2026-09-28): the product can tell a dummy document from a real one
+and never lets money of one kind settle a bill of the other (e.g. a marker on the tool's orders, bills, receipts
+and credit notes that FIFO, the remainder rule and "Apply money on account" respect), or the desk is warned.
+Actual: allocation is by shop and age only.
+What the tool does: nothing more it can do; check:demo-rows proves both directions after every run and names the
+allocations, so the nightly run reports it as FAIL the morning after a person's payment reaches a dummy bill.
+Risk on the live site: the shop held over its limit carries several open dummy bills every day; a real payment
+from it recorded FIFO pays them.
+```
+

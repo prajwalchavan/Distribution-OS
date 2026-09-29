@@ -322,6 +322,18 @@ vm_main() {
   umask 077
   mkdir -p "$FILL_DIR"
   chmod 700 "$FILL_DIR"
+  # Before-fill dumps an earlier version of this command wrote into the nightly backups' folder (readable there,
+  # and the newest dump of that folder is what deploy.sh restores): moved into the closed folder, mode 600.
+  local old
+  for old in "$BACKUPS/daily/$LIVE_DB"-*-before-fill.dump; do
+    [ -f "$old" ] || continue
+    if mv "$old" "$FILL_DIR/" 2>/dev/null; then
+      chmod 600 "$FILL_DIR/$(basename "$old")"
+      echo "   an earlier before-fill dump moved out of the nightly backups' folder into $FILL_DIR (mode 600)"
+    else
+      die "an earlier before-fill dump in $BACKUPS/daily cannot be moved into $FILL_DIR: move it by hand"
+    fi
+  done
   # A rehearsal an earlier run left when it was killed hard: recognised by its state file, then cleaned up.
   clean_leftover "${url##*/}"
   [ "$(health "$REHEARSAL_PORT")" = 000 ] ||
