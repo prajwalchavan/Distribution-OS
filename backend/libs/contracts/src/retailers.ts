@@ -224,7 +224,7 @@ export const LinkIdentityOutput = z.object({
  * The phone is the shop's mobile of record; `phone` is needed only when the shop has none (a blank or
  * a landline), and then becomes the shop's mobile. A person is one user across the platform, known by
  * that phone:
- *  - nobody has it yet → a user is made with `username` (or one made from the shop's name) and
+ *  - nobody has it yet → a user is made with `username` (or one made from the shopkeeper's name) and
  *    `firstPassword`, a shopkeeper membership here and the shop's link to that user — answer `created`,
  *    and the shopkeeper must choose its own password at the first sign-in;
  *  - somebody already signs in with it → NO new user and NO new password: that user gets this shop on
@@ -244,7 +244,10 @@ export const GiveShopSignInInput = MutationBase.extend({
   membershipId: IdSchema,
   /** The shopkeeper's mobile, when the shop has none on its record. */
   phone: PhoneSchema.optional(),
-  /** Omitted: made from the shop's name, e.g. `sharma.kirana`, and answered back. */
+  /**
+   * Omitted: made from the shopkeeper's name on the shop (else the shop's name), e.g. `ramesh.gupta`,
+   * `ramesh.gupta2` when taken, and answered back.
+   */
   username: UsernameSchema.optional(),
   /** Unused when the number already has a sign-in: the shopkeeper keeps its own password. */
   firstPassword: PasswordSchema,

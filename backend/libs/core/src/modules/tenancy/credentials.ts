@@ -86,10 +86,11 @@ export function isUsable(row: SignInRow | null): row is SignInRow & { username: 
 }
 
 /**
- * A free username made from a shop's name (DOS-400, when the desk does not choose one): the first two
- * words, lower case, joined by a dot — `Sharma Kirana Stores` → `sharma.kirana`, then `sharma.kirana2`
- * … when taken. A name with no Latin letters (a shop named in Devanagari) falls back to `shop.` and
- * the last four digits of its phone. Always inside the username rules.
+ * A free username made from a name (DOS-400, when the desk does not choose one): the shopkeeper's name
+ * on the shop, else the shop's own — the first two words, lower case, joined by a dot, the way staff
+ * usernames read: `Ramesh Gupta` → `ramesh.gupta`, then `ramesh.gupta2` … when taken. A name with no
+ * Latin letters (written in Devanagari) falls back to `shop.` and the last four digits of the phone.
+ * Always inside the username rules.
  */
 export async function freeUsername(sys: Db, name: string, phone: string): Promise<string> {
   const words = name

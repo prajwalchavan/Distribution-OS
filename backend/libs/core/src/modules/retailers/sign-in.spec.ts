@@ -85,7 +85,7 @@ describeDb('retailers.signIn (DATABASE_URL)', () => {
   const shopStaffPhone = uuidv7()
   const shopClosed = uuidv7()
   const knownUsername = `known.${run}`
-  /** What the server makes from `Sharma<run> Kirana Stores`: the first two words, lower case. */
+  /** What the server makes from the shopkeeper’s name on the shop: its first two words, lower case. */
   const sharmaKirana = `sharma${run}.kirana`
   const knownPassword = 'Known1234'
   let knownHash = ''
